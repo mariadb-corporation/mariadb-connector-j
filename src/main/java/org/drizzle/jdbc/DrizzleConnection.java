@@ -2,6 +2,7 @@ package org.drizzle.jdbc;
 
 import java.sql.*;
 import java.util.Map;
+import java.io.IOException;
 
 /**
  * User: marcuse
@@ -9,10 +10,18 @@ import java.util.Map;
  * Time: 7:47:37 AM
  */
 public class DrizzleConnection implements Connection {
-    public DrizzleConnection(String host, int port, String username, String password){
-        
+    private final Protocol protocol;
+    public DrizzleConnection(String host, int port, String username, String password) throws SQLException {
+        try {
+            protocol = new DrizzleProtocol(host,port,username,password);
+        } catch (IOException e) {
+            throw new SQLException("Could not connect: "+e.getMessage());
+        } catch (UnauthorizedException e) {
+            throw new SQLException("Not authorized: "+e.getMessage());
+        }
     }
     public Statement createStatement() throws SQLException {
+        //return new DrizzleStatement(protocol);
         return null;
     }
 
@@ -29,7 +38,7 @@ public class DrizzleConnection implements Connection {
     }
 
     public void setAutoCommit(boolean autoCommit) throws SQLException {
-
+        
     }
 
     public boolean getAutoCommit() throws SQLException {
@@ -45,11 +54,21 @@ public class DrizzleConnection implements Connection {
     }
 
     public void close() throws SQLException {
+        try {
+            protocol.close();
+        } catch (IOException e) {
+            throw new SQLException("Could not close socket: "+e.getMessage());
+        }
 
     }
 
+    /**
+     * checks if the connection is closed
+     * @return true if the connection is closed
+     * @throws SQLException if the connection cannot be closed.
+     */
     public boolean isClosed() throws SQLException {
-        return false;
+        return protocol.isClosed();
     }
 
     public DatabaseMetaData getMetaData() throws SQLException {

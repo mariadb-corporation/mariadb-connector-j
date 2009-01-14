@@ -1,8 +1,11 @@
 package org.drizzle.jdbc;
 
 import org.junit.Test;
+import org.junit.Before;
 
 import java.sql.SQLException;
+import java.sql.DriverManager;
+import java.sql.Connection;
 
 /**
  * User: marcuse
@@ -10,10 +13,17 @@ import java.sql.SQLException;
  * Time: 7:58:11 AM
  */
 public class DriverTest {
+    @Before
+    public void setup()
+    {
+        try {
+            Class.forName("org.drizzle.jdbc.Driver");
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
+    }
     @Test(expected=SQLException.class)
     public void connect() throws SQLException {
-        Driver dr = new Driver();
-        dr.connect("eh",null);
-
+        Connection connection = DriverManager.getConnection("","","");
     }
 }
