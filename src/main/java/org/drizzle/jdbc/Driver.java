@@ -12,8 +12,12 @@ import java.util.Properties;
  * Time: 7:46:09 AM
  */
 public class Driver implements java.sql.Driver {
-    public Driver() throws SQLException {
-        DriverManager.registerDriver(new Driver());
+    static {
+        try {
+            DriverManager.registerDriver(new Driver());
+        } catch (SQLException e) {
+            throw new RuntimeException("Could not register driver",e);
+        }
     }
 
     public Connection connect(String url, Properties info) throws SQLException {
