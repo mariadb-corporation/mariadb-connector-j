@@ -16,7 +16,7 @@ public class DrizzleProtocol implements Protocol {
     private Socket socket;
     private PrintWriter writer;
     private InputStream reader;
-    private int serverThreadID;
+    private long serverThreadID;
     private String serverVersion;
     private int protocolVersion;
     public DrizzleProtocol(String host, int port, String username, String password) throws IOException, UnauthorizedException {

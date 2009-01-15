@@ -14,12 +14,12 @@ public class GreetingPacket extends AbstractPacket {
     private String seed;
     private String serverVersion;
     private int protocolVersion;
-    private int serverThreadID;
+    private long serverThreadID;
     public GreetingPacket(InputStream reader) throws IOException {
         super(reader);
         protocolVersion = readByte();
         serverVersion = readString("ASCII");
-        serverThreadID = readInt();
+        serverThreadID = readLong();
         seed = readString("ASCII");
     }
 
@@ -47,7 +47,7 @@ public class GreetingPacket extends AbstractPacket {
         this.protocolVersion = protocolVersion;
     }
 
-    public int getServerThreadID() {
+    public long getServerThreadID() {
         return serverThreadID;
     }
 

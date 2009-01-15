@@ -56,7 +56,7 @@ public abstract class AbstractPacket {
      * @return an integer
      * @throws IOException if there are not 4 bytes left in the buffer
      */
-    protected int readInt() throws IOException {
+    protected long readLong() throws IOException {
         if(length - bufferPointer < 4)
             throw new IOException("Could not read integer");
         return buffer[bufferPointer++] + (buffer[bufferPointer++]<<8) +(buffer[bufferPointer++]<<16) +(buffer[bufferPointer++]<<32);
