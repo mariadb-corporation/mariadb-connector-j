@@ -22,8 +22,8 @@ public class DriverTest {
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         }
     }
-    @Test(expected=SQLException.class)
+    @Test
     public void connect() throws SQLException {
-        Connection connection = DriverManager.getConnection("","","");
+        Connection connection = DriverManager.getConnection("localhost","","");
     }
 }

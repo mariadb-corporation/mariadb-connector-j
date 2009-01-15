@@ -21,7 +21,8 @@ public class Driver implements java.sql.Driver {
     }
 
     public Connection connect(String url, Properties info) throws SQLException {
-        throw new SQLException("Could not connect");
+        return new DrizzleConnection(url,4427,"","");
+        //throw new SQLException("Could not connect");
     }
 
     public boolean acceptsURL(String url) throws SQLException {

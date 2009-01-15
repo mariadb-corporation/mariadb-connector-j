@@ -2,6 +2,7 @@ package org.drizzle.jdbc;
 
 import java.sql.*;
 import java.util.Map;
+import java.util.Properties;
 import java.io.IOException;
 
 /**
@@ -12,6 +13,7 @@ import java.io.IOException;
 public class DrizzleConnection implements Connection {
     private final Protocol protocol;
     public DrizzleConnection(String host, int port, String username, String password) throws SQLException {
+        System.out.println("trying to connect to: "+host);
         try {
             protocol = new DrizzleProtocol(host,port,username,password);
         } catch (IOException e) {
@@ -173,5 +175,57 @@ public class DrizzleConnection implements Connection {
 
     public PreparedStatement prepareStatement(String sql, String columnNames[]) throws SQLException {
         return null;
+    }
+
+    public Clob createClob() throws SQLException {
+        return null;  //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    public Blob createBlob() throws SQLException {
+        return null;  //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    public NClob createNClob() throws SQLException {
+        return null;  //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    public SQLXML createSQLXML() throws SQLException {
+        return null;  //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    public boolean isValid(int i) throws SQLException {
+        return false;  //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    public void setClientInfo(String s, String s1) throws SQLClientInfoException {
+        //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    public void setClientInfo(Properties properties) throws SQLClientInfoException {
+        //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    public String getClientInfo(String s) throws SQLException {
+        return null;  //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    public Properties getClientInfo() throws SQLException {
+        return null;  //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    public Array createArrayOf(String s, Object[] objects) throws SQLException {
+        return null;  //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    public Struct createStruct(String s, Object[] objects) throws SQLException {
+        return null;  //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    public <T> T unwrap(Class<T> tClass) throws SQLException {
+        return null;  //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    public boolean isWrapperFor(Class<?> aClass) throws SQLException {
+        return false;  //To change body of implemented methods use File | Settings | File Templates.
     }
 }

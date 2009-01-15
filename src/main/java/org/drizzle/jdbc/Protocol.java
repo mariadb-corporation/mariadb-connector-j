@@ -9,7 +9,7 @@ import java.io.IOException;
  */
 public interface Protocol {
 
-    void connect(String username, String password) throws UnauthorizedException;
+    void connect(String username, String password) throws UnauthorizedException, IOException;
 
     void close() throws IOException;
 
