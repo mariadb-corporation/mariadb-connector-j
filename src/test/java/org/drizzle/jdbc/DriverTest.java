@@ -2,7 +2,7 @@ package org.drizzle.jdbc;
 
 import org.junit.Test;
 import org.junit.Before;
-import org.drizzle.jdbc.packet.AbstractWritePacket;
+import org.drizzle.jdbc.packet.buffer.WriteBuffer;
 
 import java.sql.SQLException;
 import java.sql.DriverManager;
@@ -29,17 +29,14 @@ public class DriverTest {
     }
     @Test
     public void intOperations() {
-        AbstractWritePacket awp = new AbstractWritePacket(){};
-        awp.writeInt(77*256+99);
-        byte [] a = awp.toByteArray();
-        assertEquals(a[0],99);
-        assertEquals(a[1],77);
+        byte [] a = WriteBuffer.intToByteArray(99*256 + 77);
+
+        assertEquals(a[0],77);
+        assertEquals(a[1],99);
     }
     @Test
     public void longOperations() {
-        AbstractWritePacket awp = new AbstractWritePacket(){};
-        awp.writeLong(56*256*256*256 + 11*256*256 + 77*256 + 99);
-        byte [] a = awp.toByteArray();
+        byte [] a = WriteBuffer.longToByteArray(56*256*256*256 + 11*256*256 + 77*256 + 99);
         assertEquals(a[0],99);
         assertEquals(a[1],77);
         assertEquals(a[2],11);

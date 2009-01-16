@@ -1,5 +1,7 @@
 package org.drizzle.jdbc.packet;
 
+import org.drizzle.jdbc.packet.buffer.ReadBuffer;
+
 import java.io.InputStream;
 import java.io.IOException;
 
@@ -9,7 +11,8 @@ import java.io.IOException;
  * Date: Jan 15, 2009
  * Time: 3:18:11 PM
  */
-public class GreetingReadPacket extends AbstractReadPacket {
+public class GreetingReadPacket {
+
     private String seed;
     private String serverVersion;
     private int protocolVersion;
@@ -19,22 +22,21 @@ public class GreetingReadPacket extends AbstractReadPacket {
     private int serverCapabilities  ;
     private byte serverLanguage;
     private int serverStatus;
+    private ReadBuffer readBuffer;
 
     public GreetingReadPacket(InputStream reader) throws IOException {
-        super(reader);
-        protocolVersion = readByte();
-        serverVersion = readString("ASCII");
-
-        serverThreadID = readLong();
-
-        seed1 = readRawBytes(8);
-        skipByte();
-        serverCapabilities = readInt();
-        serverLanguage = readByte();
-        serverStatus = readInt();
-        skipBytes(13);
-        seed2=readRawBytes(13);
-        /*System.out.println("PROTOCOL_VERSION: "+protocolVersion);
+        readBuffer=new ReadBuffer(reader);
+        protocolVersion = readBuffer.readByte();
+        serverVersion = readBuffer.readString("ASCII");
+        serverThreadID = readBuffer.readLong();
+        seed1 = readBuffer.readRawBytes(8);
+        readBuffer.skipByte();
+        serverCapabilities = readBuffer.readInt();
+        serverLanguage = readBuffer.readByte();
+        serverStatus = readBuffer.readInt();
+        readBuffer.skipBytes(13);
+        seed2=readBuffer.readRawBytes(13);
+/*        System.out.println("PROTOCOL_VERSION: "+protocolVersion);
         System.out.println("SERVER_VERSION: "+ serverVersion);
         System.out.println("SERVER_TID: "+serverThreadID);
         System.out.println("SERVER_CAPABILITIES: "+(serverCapabilities & 32));

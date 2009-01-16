@@ -2,6 +2,8 @@ package org.drizzle.jdbc;
 
 import org.drizzle.jdbc.packet.GreetingReadPacket;
 import org.drizzle.jdbc.packet.ClientAuthPacket;
+import org.drizzle.jdbc.packet.ResultPacketFactory;
+import org.drizzle.jdbc.packet.ResultPacket;
 
 import javax.net.SocketFactory;
 import java.net.Socket;
@@ -33,14 +35,12 @@ public class DrizzleProtocol implements Protocol {
         this.writer=new PrintWriter(socket.getOutputStream());
         this.reader = socket.getInputStream();
         GreetingReadPacket greetingPacket = new GreetingReadPacket(reader);
-    /*    byte [] a = new ClientAuthPacket().toByteArrayWithLength();
-        for(byte aB : a)System.out.printf("0x%x\n",aB);
+        ClientAuthPacket cap = new ClientAuthPacket(greetingPacket.getServerCapabilities(), greetingPacket.getServerLanguage());
+        byte [] a = cap.toBytes();
         socket.getOutputStream().write(a);
         socket.getOutputStream().flush();
-        byte[]aaa = new byte[1000];
-        socket.getInputStream().read(aaa);
-        for(byte aB : aaa) System.out.printf("0x%x\n",aB);*/
-        //while(true);
+        ResultPacket resultPacket = ResultPacketFactory.createResultPacket(socket.getInputStream());
+        System.out.println(resultPacket.getResultType());
     }
 
     public void close() throws IOException {

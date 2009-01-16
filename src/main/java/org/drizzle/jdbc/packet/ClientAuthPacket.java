@@ -1,5 +1,7 @@
 package org.drizzle.jdbc.packet;
 
+import org.drizzle.jdbc.packet.buffer.WriteBuffer;
+
 /**
  4                            client_flags
  4                            max_packet_size
@@ -37,14 +39,23 @@ package org.drizzle.jdbc.packet;
  * Time: 11:19:31 AM
  * To change this template use File | Settings | File Templates.
  */
-public class ClientAuthPacket extends AbstractWritePacket {
-    public ClientAuthPacket(){
-        this.writeLong(512).
-            writeLong(5000).
-            writeByte((byte)45).
-            writeBytes((byte)0,23).
-            writeString("").
-            writeByte((byte)0);
+public class ClientAuthPacket {
+    private WriteBuffer writeBuffer;
+
+    public ClientAuthPacket(int serverCapabilities, byte serverLanguage) {
+        writeBuffer = new WriteBuffer();  
+        writeBuffer.writeLong(serverCapabilities & ~((1<<5)|(1<<11)|(1<<3))).
+                    writeLong(4+4+1+23+2+1+1).
+                    writeByte(serverLanguage).
+                    writeBytes((byte)0,23).
+                    writeString("aa").
+                    writeByte((byte)0).
+                    writeByte((byte)0);
+        for(byte b : writeBuffer.toByteArrayWithLength()) System.out.printf("%x ",b);
     }
-    
+
+    public byte [] toBytes() {
+        int i=0;
+        return writeBuffer.toByteArrayWithLength();
+    }
 }

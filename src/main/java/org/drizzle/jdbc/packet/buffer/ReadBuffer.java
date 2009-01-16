@@ -1,17 +1,17 @@
-package org.drizzle.jdbc.packet;
+package org.drizzle.jdbc.packet.buffer;
 
 import java.io.InputStream;
 import java.io.IOException;
 
 /**
- * Abstract packet, see the concrete implementations for actual packets
+ * Created by IntelliJ IDEA.
  * User: marcuse
- * Date: Jan 15, 2009
- * Time: 3:19:11 PM
+ * Date: Jan 16, 2009
+ * Time: 8:27:38 PM
  * To change this template use File | Settings | File Templates.
  */
-public abstract class AbstractReadPacket {
-    private int length;
+public class ReadBuffer {
+        private int length;
     private byte[] buffer;
     private int bufferPointer=0;
 
@@ -19,9 +19,9 @@ public abstract class AbstractReadPacket {
      * Creates a new packet, reads length from the first three bytes
      * Also buffers the whole packet.
      * @param reader the reader to use
-     * @throws IOException if it was not possible to read from the inputstream of if there is a problem parsing the length
+     * @throws java.io.IOException if it was not possible to read from the inputstream of if there is a problem parsing the length
      */
-    public AbstractReadPacket(InputStream reader) throws IOException {
+    public ReadBuffer(InputStream reader) throws IOException {
         byte [] lengthBuffer = new byte[4];
         int readBytes = reader.read(lengthBuffer,0,4);
         if(readBytes!=4)
@@ -31,11 +31,10 @@ public abstract class AbstractReadPacket {
         readBytes = reader.read(buffer,0,this.length);
         if(readBytes != this.length)
             throw new IOException("Could not read packet");
-        int i=0;
-        for (byte aBuffer : buffer){
+/*        for (byte aBuffer : buffer){
 
             System.out.printf("%d: 0x%x \n",i++, aBuffer);
-        }
+        }*/
     }
 
     /**
@@ -44,13 +43,13 @@ public abstract class AbstractReadPacket {
      * @return the read string
      * @throws IOException if it is not possible to create the string from the buffer
      */
-    protected String readString(String charset) throws IOException {
+    public String readString(String charset) throws IOException {
         int startPos = bufferPointer;
         // find the end of the string
         while(bufferPointer < length && buffer[bufferPointer] != 0) {
             bufferPointer++;
         }
-        String returnString = new String(buffer,startPos,bufferPointer,charset);
+        String returnString = new String(buffer,startPos,bufferPointer-startPos,charset);
         if(bufferPointer < length)
             bufferPointer++; //read away the string-ending zero
         return returnString;
@@ -60,7 +59,7 @@ public abstract class AbstractReadPacket {
      * @return an integer
      * @throws IOException if there are not 4 bytes left in the buffer
      */
-    protected int readInt() throws IOException {
+    public int readInt() throws IOException {
         if(length - bufferPointer < 2)
             throw new IOException("Could not read integer");
         return buffer[bufferPointer++] + (buffer[bufferPointer++]<<8);
@@ -71,7 +70,7 @@ public abstract class AbstractReadPacket {
      * @return a long
      * @throws IOException if there are not 4 bytes left in the buffer
      */
-    protected long readLong() throws IOException {
+    public long readLong() throws IOException {
         if(length - bufferPointer < 4)
             throw new IOException("Could not read integer");
         return buffer[bufferPointer++] + (buffer[bufferPointer++]<<8) +(buffer[bufferPointer++]<<16) +(buffer[bufferPointer++]<<24);
@@ -82,15 +81,15 @@ public abstract class AbstractReadPacket {
      * @return the byte
      * @throws IOException if bufferPointer exceeds the length of the buffer
      */
-    protected byte readByte() throws IOException {
+    public byte readByte() throws IOException {
         if(bufferPointer > length)
             throw new IOException("Could not read byte");
         return buffer[bufferPointer++];
     }
-    protected byte[] readRawBytes(int numberOfBytes) throws IOException {
+    public byte[] readRawBytes(int numberOfBytes) throws IOException {
         if(bufferPointer+numberOfBytes > length)
             throw new IOException("Could not read bytes");
-        
+
         byte [] returnBytes = new byte[numberOfBytes];
         for(int i=0;i<numberOfBytes;i++){
             returnBytes[i] = buffer[bufferPointer++];
@@ -98,12 +97,17 @@ public abstract class AbstractReadPacket {
 
         return returnBytes;
     }
-    protected void skipByte(){
+    public void skipByte(){
         skipBytes(1);
     }
 
-    protected void skipBytes(int bytesToSkip){
+    public void skipBytes(int bytesToSkip){
         bufferPointer+=bytesToSkip;
+    }
+    public byte getByteAt(int pos) throws IOException {
+        if(pos>=0 && pos < length)
+            return buffer[pos];
+        throw new IOException("Out of bounds");
     }
 
     /**
