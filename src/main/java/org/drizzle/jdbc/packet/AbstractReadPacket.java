@@ -10,7 +10,7 @@ import java.io.IOException;
  * Time: 3:19:11 PM
  * To change this template use File | Settings | File Templates.
  */
-public abstract class AbstractPacket {
+public abstract class AbstractReadPacket {
     private int length;
     private byte[] buffer;
     private int bufferPointer=0;
@@ -21,7 +21,7 @@ public abstract class AbstractPacket {
      * @param reader the reader to use
      * @throws IOException if it was not possible to read from the inputstream of if there is a problem parsing the length
      */
-    public AbstractPacket(InputStream reader) throws IOException {
+    public AbstractReadPacket(InputStream reader) throws IOException {
         byte [] lengthBuffer = new byte[4];
         int readBytes = reader.read(lengthBuffer,0,4);
         if(readBytes!=4)
@@ -31,6 +31,11 @@ public abstract class AbstractPacket {
         readBytes = reader.read(buffer,0,this.length);
         if(readBytes != this.length)
             throw new IOException("Could not read packet");
+        int i=0;
+        for (byte aBuffer : buffer){
+
+            System.out.printf("%d: 0x%x \n",i++, aBuffer);
+        }
     }
 
     /**
@@ -50,16 +55,26 @@ public abstract class AbstractPacket {
             bufferPointer++; //read away the string-ending zero
         return returnString;
     }
+   /**
+     * read an integer (2 bytes) from the buffer;
+     * @return an integer
+     * @throws IOException if there are not 4 bytes left in the buffer
+     */
+    protected int readInt() throws IOException {
+        if(length - bufferPointer < 2)
+            throw new IOException("Could not read integer");
+        return buffer[bufferPointer++] + (buffer[bufferPointer++]<<8);
+    }
 
     /**
-     * read an integer (4 bytes) from the buffer;
-     * @return an integer
+     * read a long (4 bytes) from the buffer;
+     * @return a long
      * @throws IOException if there are not 4 bytes left in the buffer
      */
     protected long readLong() throws IOException {
         if(length - bufferPointer < 4)
             throw new IOException("Could not read integer");
-        return buffer[bufferPointer++] + (buffer[bufferPointer++]<<8) +(buffer[bufferPointer++]<<16) +(buffer[bufferPointer++]<<32);
+        return buffer[bufferPointer++] + (buffer[bufferPointer++]<<8) +(buffer[bufferPointer++]<<16) +(buffer[bufferPointer++]<<24);
     }
 
     /**
@@ -71,6 +86,24 @@ public abstract class AbstractPacket {
         if(bufferPointer > length)
             throw new IOException("Could not read byte");
         return buffer[bufferPointer++];
+    }
+    protected byte[] readRawBytes(int numberOfBytes) throws IOException {
+        if(bufferPointer+numberOfBytes > length)
+            throw new IOException("Could not read bytes");
+        
+        byte [] returnBytes = new byte[numberOfBytes];
+        for(int i=0;i<numberOfBytes;i++){
+            returnBytes[i] = buffer[bufferPointer++];
+        }
+
+        return returnBytes;
+    }
+    protected void skipByte(){
+        skipBytes(1);
+    }
+
+    protected void skipBytes(int bytesToSkip){
+        bufferPointer+=bytesToSkip;
     }
 
     /**
