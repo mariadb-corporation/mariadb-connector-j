@@ -51,11 +51,11 @@ public class ClientAuthPacket {
                     writeString("aa").
                     writeByte((byte)0).
                     writeByte((byte)0);
-        for(byte b : writeBuffer.toByteArrayWithLength()) System.out.printf("%x ",b);
+        for(byte b : writeBuffer.toByteArrayWithLength((byte)1)) System.out.printf("%x ",b);
     }
 
     public byte [] toBytes() {
         int i=0;
-        return writeBuffer.toByteArrayWithLength();
+        return writeBuffer.toByteArrayWithLength((byte)1);
     }
 }

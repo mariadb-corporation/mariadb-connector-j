@@ -6,7 +6,10 @@ import org.drizzle.jdbc.packet.buffer.WriteBuffer;
 
 import java.sql.SQLException;
 import java.sql.DriverManager;
-import java.sql.Connection;import static junit.framework.Assert.assertEquals;
+import java.sql.Connection;
+import java.sql.Statement;
+
+import static junit.framework.Assert.assertEquals;
 
 /**
  * User: marcuse
@@ -25,7 +28,14 @@ public class DriverTest {
     }
     @Test
     public void connect() throws SQLException {
-        Connection connection = DriverManager.getConnection("localhost","","");
+        Connection connection = DriverManager.getConnection("jdbc:drizzle://localhost:4427/aaa");
+    }
+
+    @Test
+    public void doQuery() throws SQLException{
+        Connection connection = DriverManager.getConnection("jdbc:drizzle://localhost:4427");
+        Statement stmt = connection.createStatement();
+        stmt.execute("select * from test");
     }
     @Test
     public void intOperations() {

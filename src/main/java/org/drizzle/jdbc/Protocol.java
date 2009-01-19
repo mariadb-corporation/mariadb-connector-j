@@ -14,4 +14,6 @@ public interface Protocol {
     void close() throws IOException;
 
     boolean isClosed();
+
+    DrizzleRows executeQuery(String s) throws IOException;
 }

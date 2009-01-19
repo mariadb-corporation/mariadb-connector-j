@@ -54,4 +54,11 @@ public class DrizzleProtocol implements Protocol {
         return !this.connected;
     }
 
+    public DrizzleRows executeQuery(String s) throws IOException {
+        QueryPacket packet = new QueryPacket(s);
+        byte [] toWrite = packet.toBytes();
+        socket.getOutputStream().write(toWrite);
+        return null;  //To change body of implemented methods use File | Settings | File Templates.
+    }
+
 }

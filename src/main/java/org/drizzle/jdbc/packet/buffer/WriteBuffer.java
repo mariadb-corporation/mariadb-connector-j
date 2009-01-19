@@ -50,11 +50,11 @@ public class WriteBuffer {
         }
         return returnArray;
     }
-    public byte[] toByteArrayWithLength() {
+    public byte[] toByteArrayWithLength(byte packetNumber) {
         long length = buffer.size();
         byte[] bufferBytes = new byte[buffer.size()+4];
         byte [] lengthBytes = longToByteArray(length);
-        lengthBytes[3]=1;
+        lengthBytes[3]=packetNumber;
         int i=0;
         for(byte aB:lengthBytes) bufferBytes[i++]=aB;
         for(Byte aB:buffer) bufferBytes[i++]=aB;
