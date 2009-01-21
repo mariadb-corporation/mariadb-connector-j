@@ -11,7 +11,8 @@ import java.io.IOException;
  * To change this template use File | Settings | File Templates.
  */
 public class ReadBuffer {
-        private int length;
+    private int length;
+    private byte packetSeq;
     private byte[] buffer;
     private int bufferPointer=0;
 
@@ -24,14 +25,17 @@ public class ReadBuffer {
     public ReadBuffer(InputStream reader) throws IOException {
         byte [] lengthBuffer = new byte[4];
         int readBytes = reader.read(lengthBuffer,0,4);
-        if(readBytes!=4)
+        if(readBytes!=4) {
             throw new IOException("Could not read packet");
+        }
         this.length = lengthBuffer[0]+(lengthBuffer[1]<<8) + (lengthBuffer[2]<<16);
+        this.packetSeq = lengthBuffer[3];
         buffer=new byte[this.length+1];
         readBytes = reader.read(buffer,0,this.length);
         if(readBytes != this.length)
             throw new IOException("Could not read packet");
-/*        for (byte aBuffer : buffer){
+/*        int i=0;
+        for (byte aBuffer : buffer){
 
             System.out.printf("%d: 0x%x \n",i++, aBuffer);
         }*/
@@ -124,5 +128,35 @@ public class ReadBuffer {
      */
     public void setLength(int length) {
         this.length = length;
+    }
+    public long read24bitword() {
+        return buffer[bufferPointer++] + (buffer[bufferPointer++]<<8) +(buffer[bufferPointer++]<<16);
+    }
+    public long getLengthEncodedBinary() throws IOException {
+        byte type = buffer[bufferPointer++];
+        if(type <= 250)
+            return (long)type;
+        if(type == 251)
+            return -1;
+        if(type == 252)
+            return (long)readInt();
+        if(type == 253)
+            return read24bitword();
+        if(type == 254) {
+            readLong(); // TODO: FIX!!!!
+            return readLong();
+        }
+        return 0;
+    }
+
+    public byte getPacketSeq() {
+        return packetSeq;
+    }
+
+    public String getLengthEncodedString() throws IOException {
+        long length = getLengthEncodedBinary();
+        String returnString = new String(buffer,bufferPointer, (int)length, "ASCII");
+        bufferPointer+=length;
+        return returnString;
     }
 }

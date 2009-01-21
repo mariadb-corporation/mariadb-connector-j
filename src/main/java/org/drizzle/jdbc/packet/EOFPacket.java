@@ -20,4 +20,8 @@ public class EOFPacket extends ResultPacket {
     public ResultType getResultType() {
         return ResultType.EOF;
     }
+
+    public byte getPacketSeq() {
+        return 0;  //To change body of implemented methods use File | Settings | File Templates.
+    }
 }

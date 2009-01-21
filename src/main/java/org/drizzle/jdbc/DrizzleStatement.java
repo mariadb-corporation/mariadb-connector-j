@@ -79,7 +79,14 @@ public class DrizzleStatement implements Statement {
         //To change body of implemented methods use File | Settings | File Templates.
     }
 
-    public boolean execute(String s) throws SQLException {
+    public boolean execute(String query) throws SQLException {
+        try {
+            protocol.selectDB("test");
+            protocol.executeQuery("select * from t");
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new SQLException("Could not execute query: ");
+        }
         return false;  //To change body of implemented methods use File | Settings | File Templates.
     }
 

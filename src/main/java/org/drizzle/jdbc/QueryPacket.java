@@ -1,6 +1,7 @@
 package org.drizzle.jdbc;
 
 import org.drizzle.jdbc.packet.buffer.WriteBuffer;
+import org.drizzle.jdbc.packet.DrizzlePacket;
 
 
 /**
@@ -10,14 +11,14 @@ import org.drizzle.jdbc.packet.buffer.WriteBuffer;
  * Time: 10:14:32 PM
  * To change this template use File | Settings | File Templates.
  */
-public class QueryPacket {
+public class QueryPacket implements DrizzlePacket {
     WriteBuffer buffer;
     public QueryPacket(String query) {
         buffer = new WriteBuffer();
-        buffer.writeByte((byte)0x03);
-        buffer.writeString(query);
+        buffer.writeByte((byte)0x03).
+            writeString(query);
     }
-    public byte [] toBytes() {
-        return buffer.toByteArrayWithLength((byte)2);
+    public byte [] toBytes(byte queryNumber) {
+        return buffer.toByteArrayWithLength(queryNumber);
     }
 }

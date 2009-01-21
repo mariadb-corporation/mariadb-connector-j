@@ -13,8 +13,6 @@ import java.io.IOException;
 public class DrizzleConnection implements Connection {
     private final Protocol protocol;
     public DrizzleConnection(String host, int port, String username, String password, String database) throws SQLException {
-        System.out.println("trying to connect to: "+host+": user: "+"pass: "+password);
-
         try {
             protocol = new DrizzleProtocol(host,port,username,password);
         } catch (IOException e) {

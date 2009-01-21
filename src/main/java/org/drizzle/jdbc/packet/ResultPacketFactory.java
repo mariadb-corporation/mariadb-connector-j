@@ -20,6 +20,7 @@ public class ResultPacketFactory {
     private final static byte EOF = (byte)0xfe;
 
 
+
     public static ResultPacket createResultPacket(InputStream reader) throws IOException {
         ReadBuffer readBuffer = new ReadBuffer(reader);
         switch(readBuffer.getByteAt(0)) {
@@ -29,7 +30,8 @@ public class ResultPacketFactory {
                 return new OKPacket(readBuffer);
             case EOF:
                 return new EOFPacket(readBuffer);
+            default:
+                return new ResultSetPacket(readBuffer);
         }
-        return null;
     }
 }

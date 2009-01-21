@@ -18,8 +18,10 @@ public class ErrorPacket extends ResultPacket {
     private byte sqlStateMarker;
     private byte[] sqlState;
     private String message;
+    private byte packetSeq;
 
     public ErrorPacket(ReadBuffer readBuffer) throws IOException {
+        this.packetSeq = readBuffer.getPacketSeq();
         this.fieldCount = readBuffer.readByte();
         this.errorNumber = readBuffer.readInt();
         this.sqlStateMarker = readBuffer.readByte();
@@ -32,5 +34,9 @@ public class ErrorPacket extends ResultPacket {
 
     public ResultType getResultType() {
         return ResultType.ERROR;
+    }
+
+    public byte getPacketSeq() {
+        return packetSeq;
     }
 }

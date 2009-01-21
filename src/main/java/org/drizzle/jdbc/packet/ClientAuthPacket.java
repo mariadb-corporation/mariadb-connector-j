@@ -39,7 +39,7 @@ import org.drizzle.jdbc.packet.buffer.WriteBuffer;
  * Time: 11:19:31 AM
  * To change this template use File | Settings | File Templates.
  */
-public class ClientAuthPacket {
+public class ClientAuthPacket implements DrizzlePacket {
     private WriteBuffer writeBuffer;
 
     public ClientAuthPacket(int serverCapabilities, byte serverLanguage) {
@@ -48,14 +48,13 @@ public class ClientAuthPacket {
                     writeLong(4+4+1+23+2+1+1).
                     writeByte(serverLanguage).
                     writeBytes((byte)0,23).
-                    writeString("aa").
+                    //writeString("aa"). // username
                     writeByte((byte)0).
                     writeByte((byte)0);
-        for(byte b : writeBuffer.toByteArrayWithLength((byte)1)) System.out.printf("%x ",b);
+        //for(byte b : writeBuffer.toByteArrayWithLength((byte)1)) System.out.printf("%x ",b);
     }
 
-    public byte [] toBytes() {
-        int i=0;
-        return writeBuffer.toByteArrayWithLength((byte)1);
+    public byte [] toBytes(byte queryNumber) {
+        return writeBuffer.toByteArrayWithLength(queryNumber);
     }
 }

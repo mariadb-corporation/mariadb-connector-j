@@ -17,6 +17,7 @@ import static junit.framework.Assert.assertEquals;
  * Time: 7:58:11 AM
  */
 public class DriverTest {
+    private Connection connection;
     @Before
     public void setup()
     {
@@ -26,16 +27,16 @@ public class DriverTest {
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         }
     }
-    @Test
+    //@Test
     public void connect() throws SQLException {
-        Connection connection = DriverManager.getConnection("jdbc:drizzle://localhost:4427/aaa");
+        connection = DriverManager.getConnection("jdbc:drizzle://localhost:4427/aaa");
     }
 
     @Test
     public void doQuery() throws SQLException{
-        Connection connection = DriverManager.getConnection("jdbc:drizzle://localhost:4427");
+        connect();
         Statement stmt = connection.createStatement();
-        stmt.execute("select * from test");
+        stmt.execute("insert into test.t values (1)");
     }
     @Test
     public void intOperations() {

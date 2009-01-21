@@ -1,0 +1,58 @@
+package org.drizzle.jdbc.packet;
+
+import org.drizzle.jdbc.packet.buffer.ReadBuffer;
+
+import java.io.IOException;
+
+/**
+ * Created by IntelliJ IDEA.
+ * User: marcuse
+ * Date: Jan 21, 2009
+ * Time: 10:49:15 PM
+ * To change this template use File | Settings | File Templates.
+ */
+public class FieldPacket extends ResultPacket{
+/*
+Bytes                      Name
+ -----                      ----
+ n (Length Coded String)    catalog
+ n (Length Coded String)    db
+ n (Length Coded String)    table
+ n (Length Coded String)    org_table
+ n (Length Coded String)    name
+ n (Length Coded String)    org_name
+ 1                          (filler)
+ 2                          charsetnr
+ 4                          length
+ 1                          type
+ 2                          flags
+ 1                          decimals
+ 2                          (filler), always 0x00
+ n (Length Coded Binary)    default
+
+     */
+    private String catalog;
+    private String db;
+    private String table;
+    private String orgTable;
+    private String name;
+    private String orgName;
+    private int charsetNumber;
+    private long length;
+    private byte type;
+    private int flags;
+    private byte decimals;
+    private long defaultDefinitions;
+    public FieldPacket(ReadBuffer readBuffer) throws IOException {
+        //long strLen = readBuffer.getLengthEncodedBinary();
+        catalog=readBuffer.getLengthEncodedString();
+
+    }
+    public ResultType getResultType() {
+        return null;  //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    public byte getPacketSeq() {
+        return 0;  //To change body of implemented methods use File | Settings | File Templates.
+    }
+}
