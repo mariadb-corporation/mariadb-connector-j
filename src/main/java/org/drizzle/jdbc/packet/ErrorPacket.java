@@ -32,6 +32,9 @@ public class ErrorPacket extends ResultPacket {
         System.out.println(fieldCount);
     }
 
+    public String getMessage() {
+        return message;
+    }
     public ResultType getResultType() {
         return ResultType.ERROR;
     }

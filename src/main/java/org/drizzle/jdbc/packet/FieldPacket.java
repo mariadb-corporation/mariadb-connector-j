@@ -42,11 +42,21 @@ Bytes                      Name
     private byte type;
     private int flags;
     private byte decimals;
-    private long defaultDefinitions;
     public FieldPacket(ReadBuffer readBuffer) throws IOException {
-        //long strLen = readBuffer.getLengthEncodedBinary();
         catalog=readBuffer.getLengthEncodedString();
-
+        db=readBuffer.getLengthEncodedString();
+        table=readBuffer.getLengthEncodedString();
+        orgTable=readBuffer.getLengthEncodedString();
+        name=readBuffer.getLengthEncodedString();
+        orgName=readBuffer.getLengthEncodedString();
+        readBuffer.skipByte();
+        charsetNumber = readBuffer.readInt();
+        length=readBuffer.readLong();
+        type=readBuffer.readByte();
+        flags=readBuffer.readInt();
+        decimals=readBuffer.readByte();
+        readBuffer.skipBytes(2);
+        //System.out.println(readBuffer.getLength()+":"+readBuffer.getCurrentPointer());
     }
     public ResultType getResultType() {
         return null;  //To change body of implemented methods use File | Settings | File Templates.
@@ -54,5 +64,12 @@ Bytes                      Name
 
     public byte getPacketSeq() {
         return 0;  //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    public String toString() {
+        return "catalog="+catalog+" db="+db+" table="+table+
+               " orgTable="+orgTable+" name="+name+" orgName="
+                +orgName+" charsetNumber="+charsetNumber+" length="+
+                length+" type="+type+" flags="+flags+" decimals="+decimals;
     }
 }

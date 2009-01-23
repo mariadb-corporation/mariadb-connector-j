@@ -41,20 +41,39 @@ import org.drizzle.jdbc.packet.buffer.WriteBuffer;
  */
 public class ClientAuthPacket implements DrizzlePacket {
     private WriteBuffer writeBuffer;
+    private int serverCapabilities;
+    private byte serverLanguage;
+    private String username;
+    private String password;
+    private String database;
 
-    public ClientAuthPacket(int serverCapabilities, byte serverLanguage) {
-        writeBuffer = new WriteBuffer();  
+    public ClientAuthPacket(String username,String password,String database) {
+        writeBuffer = new WriteBuffer();
+        this.username=username;
+        this.password=password;
+        this.database=database;
+    }
+// TODO: fix passing the initial database...
+    public byte [] toBytes(byte queryNumber) {
         writeBuffer.writeLong(serverCapabilities & ~((1<<5)|(1<<11)|(1<<3))).
-                    writeLong(4+4+1+23+2+1+1).
-                    writeByte(serverLanguage).
-                    writeBytes((byte)0,23).
-                    //writeString("aa"). // username
+                    writeLong(4+4+1+23+username.length()+1+1+1+database.length()+1).
+                    writeByte(serverLanguage). //1
+                    writeBytes((byte)0,23).    //4
+                    writeString(username).     //strlen username
+                    writeByte((byte)0).        //1
+                    //writeString(scramblePassword(password)) //strlen(scramb)
+                    writeByte((byte)0).        //1
                     writeByte((byte)0).
-                    writeByte((byte)0);
-        //for(byte b : writeBuffer.toByteArrayWithLength((byte)1)) System.out.printf("%x ",b);
+                    writeString(database).     //strlen(database)
+                    writeByte((byte)0);        //1
+        return writeBuffer.toByteArrayWithLength(queryNumber);
     }
 
-    public byte [] toBytes(byte queryNumber) {
-        return writeBuffer.toByteArrayWithLength(queryNumber);
+    public void setServerCapabilities(int serverCapabilities) {
+        this.serverCapabilities = serverCapabilities;
+    }
+
+    public void setServerLanguage(byte serverLanguage) {
+        this.serverLanguage = serverLanguage;
     }
 }

@@ -14,7 +14,7 @@ public class DrizzleConnection implements Connection {
     private final Protocol protocol;
     public DrizzleConnection(String host, int port, String username, String password, String database) throws SQLException {
         try {
-            protocol = new DrizzleProtocol(host,port,username,password);
+            protocol = new DrizzleProtocol(host,port,database,username,password);
         } catch (IOException e) {
             throw new SQLException("Could not connect: "+e.getMessage());
         } catch (UnauthorizedException e) {

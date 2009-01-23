@@ -20,7 +20,7 @@ public class DrizzleStatement implements Statement {
     public ResultSet executeQuery(String s) throws SQLException {
         DrizzleRows rows = null;
         try {
-            rows = protocol.executeQuery(s);
+            protocol.executeQuery(s);
         } catch (IOException e) {
             throw new SQLException("Could not execute query: "+e.getMessage());
         }
@@ -81,13 +81,11 @@ public class DrizzleStatement implements Statement {
 
     public boolean execute(String query) throws SQLException {
         try {
-            protocol.selectDB("test");
-            protocol.executeQuery("select * from t");
+            protocol.executeQuery(query);
+            return true;
         } catch (IOException e) {
-            e.printStackTrace();
-            throw new SQLException("Could not execute query: ");
+            throw new SQLException("Could not execute query: "+e.getMessage());
         }
-        return false;  //To change body of implemented methods use File | Settings | File Templates.
     }
 
     public ResultSet getResultSet() throws SQLException {

@@ -29,14 +29,14 @@ public class DriverTest {
     }
     //@Test
     public void connect() throws SQLException {
-        connection = DriverManager.getConnection("jdbc:drizzle://localhost:4427/aaa");
+        connection = DriverManager.getConnection("jdbc:drizzle://localhost:4427/test");
     }
 
     @Test
     public void doQuery() throws SQLException{
         connect();
         Statement stmt = connection.createStatement();
-        stmt.execute("insert into test.t values (1)");
+        stmt.execute("select * from t2");
     }
     @Test
     public void intOperations() {

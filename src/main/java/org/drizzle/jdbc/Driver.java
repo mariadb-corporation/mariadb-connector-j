@@ -30,8 +30,8 @@ public class Driver implements java.sql.Driver {
 
     public Connection connect(String url, Properties info) throws SQLException {
         this.parseUrl(url);
-        System.out.println(info);
-        return new DrizzleConnection(hostname,port,"","",database);
+//        System.out.println(info);
+        return new DrizzleConnection(hostname,port,"a","b",database);
         //throw new SQLException("Could not connect");
     }
 

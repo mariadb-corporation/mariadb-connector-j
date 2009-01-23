@@ -28,17 +28,17 @@ public class ReadBuffer {
         if(readBytes!=4) {
             throw new IOException("Could not read packet");
         }
+        //for(byte b : lengthBuffer) System.out.printf("0x%x ",b);
+        //System.out.println("");
         this.length = lengthBuffer[0]+(lengthBuffer[1]<<8) + (lengthBuffer[2]<<16);
         this.packetSeq = lengthBuffer[3];
         buffer=new byte[this.length+1];
         readBytes = reader.read(buffer,0,this.length);
+        //for(byte b: buffer) System.out.printf("0x%x (%d)",b,b);
+        //System.out.println("");
         if(readBytes != this.length)
             throw new IOException("Could not read packet");
-/*        int i=0;
-        for (byte aBuffer : buffer){
-
-            System.out.printf("%d: 0x%x \n",i++, aBuffer);
-        }*/
+        int i=0;
     }
 
     /**
@@ -75,8 +75,8 @@ public class ReadBuffer {
      * @throws IOException if there are not 4 bytes left in the buffer
      */
     public long readLong() throws IOException {
-        if(length - bufferPointer < 4)
-            throw new IOException("Could not read integer");
+        if(length - bufferPointer < 3)
+            throw new IOException("Could not read long ("+length+") ("+bufferPointer+")");
         return buffer[bufferPointer++] + (buffer[bufferPointer++]<<8) +(buffer[bufferPointer++]<<16) +(buffer[bufferPointer++]<<24);
     }
 
@@ -158,5 +158,9 @@ public class ReadBuffer {
         String returnString = new String(buffer,bufferPointer, (int)length, "ASCII");
         bufferPointer+=length;
         return returnString;
+    }
+
+    public long getCurrentPointer() {
+        return bufferPointer;
     }
 }
