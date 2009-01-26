@@ -16,15 +16,17 @@ import java.net.URL;
  * To change this template use File | Settings | File Templates.
  */
 public class DrizzleResultSet implements ResultSet {
-    public DrizzleResultSet(DrizzleRows rows) {
+    private DrizzleQueryResult drizzleQueryResult;
+    public DrizzleResultSet(DrizzleQueryResult dqr) {
+        this.drizzleQueryResult=dqr;
     }
 
     public boolean next() throws SQLException {
-        return false;  //To change body of implemented methods use File | Settings | File Templates.
+        return drizzleQueryResult.next(); 
     }
 
     public void close() throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        
     }
 
     public boolean wasNull() throws SQLException {
@@ -32,11 +34,11 @@ public class DrizzleResultSet implements ResultSet {
     }
 
     public String getString(int i) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return drizzleQueryResult.getString(i);
     }
 
     public boolean getBoolean(int i) throws SQLException {
-        return false;  //To change body of implemented methods use File | Settings | File Templates.
+        return false;
     }
 
     public byte getByte(int i) throws SQLException {
@@ -96,7 +98,7 @@ public class DrizzleResultSet implements ResultSet {
     }
 
     public String getString(String s) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return drizzleQueryResult.getString(s);
     }
 
     public boolean getBoolean(String s) throws SQLException {

@@ -28,14 +28,10 @@ public class ReadBuffer {
         if(readBytes!=4) {
             throw new IOException("Could not read packet");
         }
-        //for(byte b : lengthBuffer) System.out.printf("0x%x ",b);
-        //System.out.println("");
-        this.length = lengthBuffer[0]+(lengthBuffer[1]<<8) + (lengthBuffer[2]<<16);
+        this.length = (lengthBuffer[0] & 0xff)+(lengthBuffer[1]<<8) + (lengthBuffer[2]<<16);
         this.packetSeq = lengthBuffer[3];
         buffer=new byte[this.length+1];
         readBytes = reader.read(buffer,0,this.length);
-        //for(byte b: buffer) System.out.printf("0x%x (%d)",b,b);
-        //System.out.println("");
         if(readBytes != this.length)
             throw new IOException("Could not read packet");
         int i=0;
@@ -134,18 +130,20 @@ public class ReadBuffer {
     }
     public long getLengthEncodedBinary() throws IOException {
         byte type = buffer[bufferPointer++];
-        if(type <= 250)
-            return (long)type;
-        if(type == 251)
+
+        if(type == (byte)251)
             return -1;
-        if(type == 252)
+        if(type == (byte)252)
             return (long)readInt();
-        if(type == 253)
+        if(type == (byte)253)
             return read24bitword();
-        if(type == 254) {
+        if(type == (byte)254) {
             readLong(); // TODO: FIX!!!!
             return readLong();
         }
+        if(type <= 250)
+            return (long)type;
+
         return 0;
     }
 
@@ -155,6 +153,7 @@ public class ReadBuffer {
 
     public String getLengthEncodedString() throws IOException {
         long length = getLengthEncodedBinary();
+        if(length==-1) return null;
         String returnString = new String(buffer,bufferPointer, (int)length, "ASCII");
         bufferPointer+=length;
         return returnString;

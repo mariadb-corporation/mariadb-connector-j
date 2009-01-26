@@ -1,5 +1,8 @@
 package org.drizzle.jdbc;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.DriverPropertyInfo;
@@ -19,7 +22,7 @@ public class Driver implements java.sql.Driver {
     private String username;
     private String password;
     private String database;
-
+    private static final Logger log = LoggerFactory.getLogger(Driver.class);
     static {
         try {
             DriverManager.registerDriver(new Driver());
@@ -29,8 +32,9 @@ public class Driver implements java.sql.Driver {
     }
 
     public Connection connect(String url, Properties info) throws SQLException {
+        log.debug("Connecting to: {} ",url);        
         this.parseUrl(url);
-//        System.out.println(info);
+
         return new DrizzleConnection(hostname,port,"a","b",database);
         //throw new SQLException("Could not connect");
     }
@@ -40,13 +44,20 @@ public class Driver implements java.sql.Driver {
         Matcher m=p.matcher(url);
         if(m.find()) {
             this.hostname = m.group(1);
+            log.debug("Found hostname: {}",hostname);
+
             if(m.group(3) != null) {
                 this.port = Integer.parseInt(m.group(3));
+                log.debug("Found port: {}",port);
+
             } else {
                 this.port=4427;
             }
             this.database = m.group(5);
+            log.debug("Found database: {}",database);
+
         } else {
+            log.debug("Could not parse connection string");
             throw new SQLException("Could not parse connection string...");
         }
     }

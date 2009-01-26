@@ -41,4 +41,8 @@ public class OKPacket extends ResultPacket {
     public String toString() {
         return "affectedRows = "+affectedRows+"&insertId = "+insertId+"&serverStatus="+serverStatus+"&warnings="+warnings+"&message="+message;
     }
+
+    public long getAffectedRows() {
+        return affectedRows;
+    }
 }

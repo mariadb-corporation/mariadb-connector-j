@@ -27,9 +27,6 @@ public class ErrorPacket extends ResultPacket {
         this.sqlStateMarker = readBuffer.readByte();
         this.sqlState = readBuffer.readRawBytes(5);
         this.message= readBuffer.readString("ASCII");
-        System.out.println(message);
-        System.out.println(errorNumber);
-        System.out.println(fieldCount);
     }
 
     public String getMessage() {

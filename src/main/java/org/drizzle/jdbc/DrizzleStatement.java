@@ -12,19 +12,18 @@ import java.io.IOException;
  */
 public class DrizzleStatement implements Statement {
     private Protocol protocol;
+    private ResultSet resultSet;
 
     public DrizzleStatement(Protocol protocol) {
         this.protocol=protocol;
     }
 
     public ResultSet executeQuery(String s) throws SQLException {
-        DrizzleRows rows = null;
         try {
-            protocol.executeQuery(s);
+            return new DrizzleResultSet(protocol.executeQuery(s));
         } catch (IOException e) {
             throw new SQLException("Could not execute query: "+e.getMessage());
         }
-        return new DrizzleResultSet(rows);
     }
 
     public int executeUpdate(String s) throws SQLException {
@@ -81,15 +80,19 @@ public class DrizzleStatement implements Statement {
 
     public boolean execute(String query) throws SQLException {
         try {
-            protocol.executeQuery(query);
-            return true;
+            DrizzleQueryResult dqr = protocol.executeQuery(query);
+            if(dqr.getRows() > 0) {
+                this.resultSet = new DrizzleResultSet(dqr);
+                return true;
+            }
+            return false;
         } catch (IOException e) {
             throw new SQLException("Could not execute query: "+e.getMessage());
         }
     }
 
     public ResultSet getResultSet() throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return resultSet; 
     }
 
     public int getUpdateCount() throws SQLException {

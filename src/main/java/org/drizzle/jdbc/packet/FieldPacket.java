@@ -72,4 +72,8 @@ Bytes                      Name
                 +orgName+" charsetNumber="+charsetNumber+" length="+
                 length+" type="+type+" flags="+flags+" decimals="+decimals;
     }
+
+    public String getColumnName() {
+        return name;
+    }
 }
