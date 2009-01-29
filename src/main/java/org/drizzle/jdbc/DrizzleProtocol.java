@@ -16,18 +16,30 @@ import java.util.ArrayList;
  * TODO: logging!
  * TODO: refactor, clean up
  * TODO: when should i read up the resultset?
+ * TODO: thread safety?
  * User: marcuse
  * Date: Jan 14, 2009
  * Time: 4:06:26 PM
  */
 public class DrizzleProtocol implements Protocol {
-    private static Logger log = LoggerFactory.getLogger(DrizzleProtocol.class);
+    private final static Logger log = LoggerFactory.getLogger(DrizzleProtocol.class);
     private byte packetSeqNum = 1;
     private boolean connected=false;
     private Socket socket;
     private BufferedInputStream reader;
     private BufferedOutputStream writer;
 
+    /**
+     * Get a protocol instance
+     *
+     * @param host the host to connect to
+     * @param port the port to connect to
+     * @param database the initial database
+     * @param username the username
+     * @param password the password
+     * @throws IOException if there is a problem reading / sending the packets
+     * @throws UnauthorizedException if the user is unauthorized
+     */
     public DrizzleProtocol(String host, int port, String database, String username, String password) throws IOException, UnauthorizedException {
         SocketFactory socketFactory = SocketFactory.getDefault();
         socket = socketFactory.createSocket(host,port);
@@ -35,10 +47,17 @@ public class DrizzleProtocol implements Protocol {
         reader = new BufferedInputStream(socket.getInputStream(),16384);
         writer = new BufferedOutputStream(socket.getOutputStream(),16384);
         this.connect(username,password,database);
-
     }
 
-    public void connect(String username, String password, String database) throws UnauthorizedException, IOException {
+    /**
+     * Connect to database
+     * @param username the username to use
+     * @param password the password for the user
+     * @param database initial database
+     * @throws UnauthorizedException
+     * @throws IOException
+     */
+    private void connect(String username, String password, String database) throws UnauthorizedException, IOException {
         this.connected=true;
         GreetingReadPacket greetingPacket = new GreetingReadPacket(reader);
         log.debug("Got greeting packet: {}",greetingPacket);
@@ -55,6 +74,10 @@ public class DrizzleProtocol implements Protocol {
         selectDB(database);
     }
 
+    /**
+     * Closes socket and stream readers/writers
+     * @throws IOException
+     */
     public void close() throws IOException {
         log.debug("Closing...");
         writer.close();
@@ -63,13 +86,24 @@ public class DrizzleProtocol implements Protocol {
         this.connected=false;
     }
 
+    /**
+     *
+     * @return true if the connection is closed
+     */
     public boolean isClosed() {
         return !this.connected;
     }
 
-    public DrizzleQueryResult executeQuery(String s) throws IOException, SQLException {
-        log.debug("Executing query: {}",s);
-        QueryPacket packet = new QueryPacket(s);
+    /**
+     * executes a query, eagerly fetches the results
+     * @param query the query to execute
+     * @return the query result
+     * @throws IOException
+     * @throws SQLException
+     */
+    public DrizzleQueryResult executeQuery(String query) throws IOException, SQLException {
+        log.debug("Executing query: {}",query);
+        QueryPacket packet = new QueryPacket(query);
         packetSeqNum=0; 
         byte [] toWrite = packet.toBytes(packetSeqNum);
         writer.write(toWrite);
@@ -92,6 +126,13 @@ public class DrizzleProtocol implements Protocol {
                 throw new SQLException("Could not parse result");
         }
     }
+
+    /**
+     * create a DrizzleQueryResult - precondition is that 
+     * @param packet
+     * @return
+     * @throws IOException
+     */
     private DrizzleQueryResult createDrizzleQueryResult(ResultSetPacket packet) throws IOException {
         List<FieldPacket> fieldPackets = new ArrayList<FieldPacket>();
         for(int i=0;i<packet.getFieldCount();i++) {

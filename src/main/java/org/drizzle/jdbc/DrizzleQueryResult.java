@@ -57,6 +57,7 @@ public class DrizzleQueryResult {
     }
 
     public int getRows() {
+
         return resultSet.size();
     }
 }

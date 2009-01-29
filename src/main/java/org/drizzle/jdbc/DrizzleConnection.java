@@ -26,11 +26,11 @@ public class DrizzleConnection implements Connection {
     }
 
     public PreparedStatement prepareStatement(String sql) throws SQLException {
-        return null;
+        return new DrizzlePreparedStatement(protocol,sql);
     }
 
     public CallableStatement prepareCall(String sql) throws SQLException {
-        return null;
+        throw new SQLFeatureNotSupportedException("Stored procedures not supported");
     }
 
     public String nativeSQL(String sql) throws SQLException {

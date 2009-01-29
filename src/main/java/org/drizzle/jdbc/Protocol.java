@@ -11,8 +11,6 @@ import java.util.List;
  */
 public interface Protocol {
 
-    void connect(String username, String password, String database) throws UnauthorizedException, IOException;
-
     void close() throws IOException;
 
     boolean isClosed();

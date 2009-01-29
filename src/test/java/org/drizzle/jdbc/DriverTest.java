@@ -6,6 +6,7 @@ import org.drizzle.jdbc.packet.buffer.WriteBuffer;
 import org.apache.log4j.BasicConfigurator;
 
 import java.sql.*;
+import java.util.List;
 
 import static junit.framework.Assert.assertEquals;
 
@@ -68,5 +69,31 @@ public class DriverTest {
         assertEquals(a[2],11);
         assertEquals(a[3],56);
     }
-
+    @Test
+    public void questionMarks() {
+        String query = "1?234?6789??";
+        List<Integer> qmIndexes = DrizzlePreparedStatement.getQuestionMarkIndexes(query);
+        assertEquals(4, qmIndexes.size());
+        for(Integer index : qmIndexes) {
+            assertEquals(0x3f,query.charAt(index));
+        }
+    }
+    @Test
+    public void insertTest() {
+        String query = "aaaa?cccc";
+        String insert = "bbbb";
+        String inserted = DrizzlePreparedStatement.insertStringAt(query,insert,4);
+        assertEquals("aaaabbbbcccc",inserted);
+    }
+    
+    @Test
+    public void preparedTest() throws SQLException {
+        String query = "SELECT * FROM t1 WHERE test = ?";
+        PreparedStatement prepStmt = connection.prepareStatement(query);
+        prepStmt.setString(1,"hej1");
+        ResultSet results = prepStmt.executeQuery();
+        while(results.next()) {
+            assertEquals("hej1",results.getString("test"));
+        }
+    }
 }
