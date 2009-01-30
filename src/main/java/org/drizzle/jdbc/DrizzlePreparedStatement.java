@@ -32,9 +32,11 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
 
     private String prepareQuery() {
         int i=0;
+        int insertedOffset = 0;
         String realQuery=query;
         for(String replacement : replacements) {
-            realQuery = insertStringAt(realQuery,replacement,replacementIndexes.get(i++));
+            realQuery = insertStringAt(realQuery,replacement,replacementIndexes.get(i++) + insertedOffset);
+            insertedOffset+=(replacement.length()-1);
         }
         return realQuery;
     }
@@ -64,6 +66,11 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
             throw new SQLException("Index out of range");
         replacements.add(column-1,"\""+sqlEscapeString(s)+"\"");
     }
+    public void setInt(int column, int i) throws SQLException {
+        if(column > replacements.size()+1)
+            throw new SQLException("Index out of range");
+        replacements.add(column-1, String.valueOf(i));
+    }
 
     public void setByte(int column, byte b) throws SQLException {
         //To change body of implemented methods use File | Settings | File Templates.
@@ -73,9 +80,6 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
         //To change body of implemented methods use File | Settings | File Templates.
     }
 
-    public void setInt(int i, int i1) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
-    }
 
     public void setLong(int i, long l) throws SQLException {
         //To change body of implemented methods use File | Settings | File Templates.
@@ -280,6 +284,8 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      */
     public static String insertStringAt(String query,String replacement, int index) {
         String s1 = query.substring(0,index);
+        if(index == query.length())
+            return s1.substring(0,index)+replacement;
         String s2 = query.substring(index+1,query.length()); // "+1" to remove the question mark
         return s1+replacement+s2;
     }

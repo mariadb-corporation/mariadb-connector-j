@@ -75,7 +75,7 @@ public class DriverTest {
         List<Integer> qmIndexes = DrizzlePreparedStatement.getQuestionMarkIndexes(query);
         assertEquals(4, qmIndexes.size());
         for(Integer index : qmIndexes) {
-            assertEquals(0x3f,query.charAt(index));
+            assertEquals('?',query.charAt(index)); 
         }
     }
     @Test
@@ -88,12 +88,15 @@ public class DriverTest {
     
     @Test
     public void preparedTest() throws SQLException {
-        String query = "SELECT * FROM t1 WHERE test = ?";
+        String query = "SELECT * FROM t1 WHERE test = ? and id = ?";
         PreparedStatement prepStmt = connection.prepareStatement(query);
         prepStmt.setString(1,"hej1");
+        prepStmt.setInt(2,1);
         ResultSet results = prepStmt.executeQuery();
+        String res = "";
         while(results.next()) {
-            assertEquals("hej1",results.getString("test"));
+            res=results.getString("test");
         }
+        assertEquals("hej1",res);        
     }
 }
