@@ -13,15 +13,17 @@ import java.io.IOException;
  * To change this template use File | Settings | File Templates.
  */
 public class OKPacket extends ResultPacket {
-    private long affectedRows;
-    private long insertId;
-    private int serverStatus;
-    private int warnings;
-    private String message;
-    private byte packetSeqNum;
+    private final byte fieldCount;
+    private final long affectedRows;
+    private final long insertId;
+    private final int serverStatus;
+    private final int warnings;
+    private final String message;
+    private final byte packetSeqNum;
 
     public OKPacket(ReadBuffer readBuffer) throws IOException {
         packetSeqNum = readBuffer.getPacketSeq();
+        fieldCount = readBuffer.readByte();
         affectedRows = readBuffer.getLengthEncodedBinary();
         insertId = readBuffer.getLengthEncodedBinary();
         serverStatus = readBuffer.readInt();
@@ -44,5 +46,21 @@ public class OKPacket extends ResultPacket {
 
     public long getAffectedRows() {
         return affectedRows;
+    }
+
+    public long getInsertId() {
+        return insertId;
+    }
+
+    public int getServerStatus() {
+        return serverStatus;
+    }
+
+    public int getWarnings() {
+        return warnings;
+    }
+
+    public String getMessage() {
+        return message;
     }
 }

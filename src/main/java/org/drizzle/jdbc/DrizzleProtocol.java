@@ -23,11 +23,12 @@ import java.util.ArrayList;
  */
 public class DrizzleProtocol implements Protocol {
     private final static Logger log = LoggerFactory.getLogger(DrizzleProtocol.class);
-    private byte packetSeqNum = 1;
     private boolean connected=false;
     private Socket socket;
     private BufferedInputStream reader;
     private BufferedOutputStream writer;
+    private String version;
+    private boolean readOnly=false;
 
     /**
      * Get a protocol instance
@@ -54,12 +55,13 @@ public class DrizzleProtocol implements Protocol {
      * @param username the username to use
      * @param password the password for the user
      * @param database initial database
-     * @throws UnauthorizedException
-     * @throws IOException
+     * @throws IOException ifsomething is wrong while reading / writing streams 
      */
-    private void connect(String username, String password, String database) throws UnauthorizedException, IOException {
+    private void connect(String username, String password, String database) throws IOException {
         this.connected=true;
+        byte packetSeqNum = 1;
         GreetingReadPacket greetingPacket = new GreetingReadPacket(reader);
+        this.version=greetingPacket.getServerVersion();
         log.debug("Got greeting packet: {}",greetingPacket);
         ClientAuthPacket cap = new ClientAuthPacket(username,password,database);
         cap.setServerCapabilities(greetingPacket.getServerCapabilities());
@@ -70,7 +72,6 @@ public class DrizzleProtocol implements Protocol {
         log.debug("Sending auth packet: {}",cap);
         ResultPacket resultPacket = ResultPacketFactory.createResultPacket(reader);
         log.debug("Got result: {}",resultPacket);
-        packetSeqNum=(byte)(resultPacket.getPacketSeq()+1);
         selectDB(database);
     }
 
@@ -104,20 +105,24 @@ public class DrizzleProtocol implements Protocol {
     public DrizzleQueryResult executeQuery(String query) throws IOException, SQLException {
         log.debug("Executing query: {}",query);
         QueryPacket packet = new QueryPacket(query);
-        packetSeqNum=0; 
+        byte packetSeqNum=0;
         byte [] toWrite = packet.toBytes(packetSeqNum);
         writer.write(toWrite);
         writer.flush();
         ResultPacket resultPacket = ResultPacketFactory.createResultPacket(reader);
-        packetSeqNum=(byte)(resultPacket.getPacketSeq()+1);
         switch(resultPacket.getResultType()) {
             case ERROR:
                 log.warn("Could not execute query: {}",((ErrorPacket)resultPacket).getMessage());
                 throw new SQLException("Could not execute query: "+((ErrorPacket)resultPacket).getMessage());
             case OK:
+                DrizzleQueryResult dqr = new DrizzleQueryResult();
+                OKPacket okpacket = (OKPacket)resultPacket;
+                dqr.setUpdateCount((int)okpacket.getAffectedRows());
+                dqr.setWarnings(okpacket.getWarnings());
+                dqr.setMessage(okpacket.getMessage());
+                dqr.setInsertId(okpacket.getInsertId());
                 log.info("OK, {}", ((OKPacket)resultPacket).getAffectedRows());
-                //TODO: yeah, pass this info to client somehow...
-                return new DrizzleQueryResult();
+                return dqr;
             case RESULTSET:
                 log.info("SELECT executed, fetching result set");
                 return this.createDrizzleQueryResult((ResultSetPacket)resultPacket);
@@ -129,9 +134,9 @@ public class DrizzleProtocol implements Protocol {
 
     /**
      * create a DrizzleQueryResult - precondition is that 
-     * @param packet
-     * @return
-     * @throws IOException
+     * @param packet the result set packet from the server
+     * @return a DrizzleQueryResult
+     * @throws IOException when something goes wrong while reading/writing from the server
      */
     private DrizzleQueryResult createDrizzleQueryResult(ResultSetPacket packet) throws IOException {
         List<FieldPacket> fieldPackets = new ArrayList<FieldPacket>();
@@ -156,7 +161,7 @@ public class DrizzleProtocol implements Protocol {
     }
     public void selectDB(String database) throws IOException {
         SelectDBPacket packet = new SelectDBPacket(database);
-        packetSeqNum=0;
+        byte packetSeqNum=0;
         byte [] b = packet.getBytes(packetSeqNum);
         writer.write(b);
         writer.flush();
@@ -169,6 +174,18 @@ public class DrizzleProtocol implements Protocol {
             byte [] aa = new byte[reader.available()];
             reader.read(aa);
         }
+    }
+
+    public String getVersion() {
+        return version;
+    }
+
+    public void setReadonly(boolean readOnly) {
+        this.readOnly = readOnly;
+    }
+
+    public boolean getReadonly() {
+        return readOnly;
     }
 
 }

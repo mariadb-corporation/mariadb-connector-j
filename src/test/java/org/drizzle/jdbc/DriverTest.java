@@ -27,7 +27,7 @@ public class DriverTest {
         }
         connection = DriverManager.getConnection("jdbc:drizzle://localhost:4427/test_units_jdbc");
         Statement stmt = connection.createStatement();
-        stmt.execute("drop table t1");
+        try { stmt.execute("drop table t1"); } catch (Exception e) {}
         stmt.execute("create table t1 (id int not null primary key auto_increment, test varchar(20))");
         stmt.execute("insert into t1 (test) values (\"hej1\")");
         stmt.execute("insert into t1 (test) values (\"hej2\")");
@@ -80,10 +80,12 @@ public class DriverTest {
     }
     @Test
     public void insertTest() {
-        String query = "aaaa?cccc";
+        String query = "aaaa?cccc?";
         String insert = "bbbb";
+        String insert2 = "dddd";
         String inserted = DrizzlePreparedStatement.insertStringAt(query,insert,4);
-        assertEquals("aaaabbbbcccc",inserted);
+        inserted = DrizzlePreparedStatement.insertStringAt(inserted,insert2,9+insert.length()-1);
+        assertEquals("aaaabbbbccccdddd",inserted);
     }
     
     @Test
@@ -98,5 +100,23 @@ public class DriverTest {
             res=results.getString("test");
         }
         assertEquals("hej1",res);        
+    }
+    @Test
+    public void updateTest() throws SQLException {
+        String query = "UPDATE t1 SET test = ? where id = ?";
+        PreparedStatement prepStmt = connection.prepareStatement(query);
+        prepStmt.setString(1,"updated");
+        prepStmt.setInt(2,3);
+        int updateCount = prepStmt.executeUpdate();
+        assertEquals(1,updateCount);
+        String query2 = "SELECT * FROM t1 WHERE id=?";
+        prepStmt = connection.prepareStatement(query2);
+        prepStmt.setInt(1,3);
+        ResultSet results = prepStmt.executeQuery();
+        String result = "";
+        while(results.next()) {
+            result = results.getString("test");
+        }
+        assertEquals("updated",result);
     }
 }

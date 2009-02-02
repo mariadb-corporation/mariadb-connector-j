@@ -19,8 +19,8 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
     private final List<Integer> replacementIndexes;
     private List<String> replacements;
 
-    public DrizzlePreparedStatement(Protocol protocol, String query) {
-        super(protocol);
+    public DrizzlePreparedStatement(Protocol protocol, DrizzleConnection drizzleConnection, String query) {
+        super(protocol, drizzleConnection);
         replacementIndexes = getQuestionMarkIndexes(query);
         this.query=query;
         this.replacements = new ArrayList<String>(replacementIndexes.size());

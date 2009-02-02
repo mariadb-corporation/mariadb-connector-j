@@ -12,7 +12,15 @@ import java.io.IOException;
  */
 public class DrizzleConnection implements Connection {
     private final Protocol protocol;
+    private final String username;
+    private final String host;
+    private final int port;
+    private final String database;
     public DrizzleConnection(String host, int port, String username, String password, String database) throws SQLException {
+        this.username=username;
+        this.port=port;
+        this.host=host;
+        this.database=database;
         try {
             protocol = new DrizzleProtocol(host,port,database,username,password);
         } catch (IOException e) {
@@ -22,11 +30,11 @@ public class DrizzleConnection implements Connection {
         }
     }
     public Statement createStatement() throws SQLException {
-        return new DrizzleStatement(protocol);
+        return new DrizzleStatement(protocol,this);
     }
 
     public PreparedStatement prepareStatement(String sql) throws SQLException {
-        return new DrizzlePreparedStatement(protocol,sql);
+        return new DrizzlePreparedStatement(protocol,this,sql);
     }
 
     public CallableStatement prepareCall(String sql) throws SQLException {
@@ -34,7 +42,7 @@ public class DrizzleConnection implements Connection {
     }
 
     public String nativeSQL(String sql) throws SQLException {
-        return null;
+        return sql;
     }
 
     public void setAutoCommit(boolean autoCommit) throws SQLException {
@@ -72,11 +80,15 @@ public class DrizzleConnection implements Connection {
     }
 
     public DatabaseMetaData getMetaData() throws SQLException {
-        return null;
+        return new DrizzleDatabaseMetaData.Builder().
+                                        url("jdbc:drizzle://"+host+":"+port+"/"+database).
+                                        username(this.username).
+                                        version(protocol.getVersion()).
+                                        build();
     }
 
     public void setReadOnly(boolean readOnly) throws SQLException {
-
+        protocol.setReadonly(readOnly);
     }
 
     public boolean isReadOnly() throws SQLException {

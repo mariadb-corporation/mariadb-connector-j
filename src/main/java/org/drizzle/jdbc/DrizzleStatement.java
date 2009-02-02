@@ -13,9 +13,12 @@ import java.io.IOException;
 public class DrizzleStatement implements Statement {
     private Protocol protocol;
     private ResultSet resultSet;
+    private int updateCount;
+    private final Connection connection;
 
-    public DrizzleStatement(Protocol protocol) {
+    public DrizzleStatement(Protocol protocol, DrizzleConnection drizzleConnection) {
         this.protocol=protocol;
+        this.connection=drizzleConnection;
     }
 
     public ResultSet executeQuery(String s) throws SQLException {
@@ -27,7 +30,21 @@ public class DrizzleStatement implements Statement {
     }
 
     public int executeUpdate(String s) throws SQLException {
-        return 0;  //To change body of implemented methods use File | Settings | File Templates.
+        try {
+            DrizzleQueryResult dqr = protocol.executeQuery(s);
+            return dqr.getUpdateCount();
+        } catch (IOException e) {
+            throw new SQLException("Could not execute update "+e.getMessage());
+        }
+    }
+
+    /**
+     * gets the connection that created this statement
+     * @return the connection
+     * @throws SQLException
+     */
+    public Connection getConnection() throws SQLException {
+        return this.connection;  //To change body of implemented methods use File | Settings | File Templates.
     }
 
     public void close() throws SQLException {
@@ -85,6 +102,7 @@ public class DrizzleStatement implements Statement {
                 this.resultSet = new DrizzleResultSet(dqr);
                 return true;
             }
+            this.updateCount = dqr.getUpdateCount();
             return false;
         } catch (IOException e) {
             throw new SQLException("Could not execute query: "+e.getMessage());
@@ -96,7 +114,7 @@ public class DrizzleStatement implements Statement {
     }
 
     public int getUpdateCount() throws SQLException {
-        return 0;  //To change body of implemented methods use File | Settings | File Templates.
+        return updateCount;
     }
 
     public boolean getMoreResults() throws SQLException {
@@ -139,9 +157,6 @@ public class DrizzleStatement implements Statement {
         return new int[0];  //To change body of implemented methods use File | Settings | File Templates.
     }
 
-    public Connection getConnection() throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
-    }
 
     public boolean getMoreResults(int i) throws SQLException {
         return false;  //To change body of implemented methods use File | Settings | File Templates.
