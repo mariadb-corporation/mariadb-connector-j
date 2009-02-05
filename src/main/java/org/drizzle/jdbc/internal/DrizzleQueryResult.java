@@ -1,19 +1,22 @@
-package org.drizzle.jdbc;
+package org.drizzle.jdbc.internal;
 
-import org.drizzle.jdbc.packet.FieldPacket;
+import org.drizzle.jdbc.internal.packet.FieldPacket;
 
 import java.util.*;
 
 /**
- * TODO: refactor, badly need to split this into two different classes, one for insert/update/ddl and one for selects
+ * TODO: refactor, badly need to split this into two/three different classes, one for insert/update/ddl, one for selects and one for generated keys?
  *
  * User: marcuse
  * Date: Jan 23, 2009
  * Time: 8:15:55 PM
  */
-public class DrizzleQueryResult {
+public class DrizzleQueryResult implements QueryResult {
+    private DrizzleQueryResult generatedKeysResult;
+
+    // TODO: tagged class antipattern...
     public enum QueryResultType {
-        SELECT, MODIFY
+        SELECT, MODIFY, GENERATEDKEYS
     }
 
     private final List<FieldPacket> fieldPackets;
@@ -38,21 +41,27 @@ public class DrizzleQueryResult {
             columnNameMap.put(fp.getColumnName().toLowerCase(),i++);
         }
     }
-    
     public DrizzleQueryResult() {
         queryResultType = QueryResultType.MODIFY;
         fieldPackets = null;
         rowCounter=-1;
     }
-
+    public DrizzleQueryResult(long insertId) {
+        queryResultType= QueryResultType.GENERATEDKEYS;
+        fieldPackets=null;
+        rowCounter=-1;
+        if(insertId>0) {
+            List<String> genKeyList = new ArrayList<String>();
+            genKeyList.add(String.valueOf(insertId));
+            resultSet.add(genKeyList);
+            columnNameMap.put("insert_id",0);
+        }
+    }
     public boolean next() {
         if(queryResultType == QueryResultType.MODIFY)
-            throw new IllegalStateException("No result set for this query");
+            return false;
         rowCounter++;
-        if(rowCounter < resultSet.size()) {
-            return true;
-        }
-        return false;
+        return rowCounter < resultSet.size();
     }
 
     public void addRow(List<String> row) {
@@ -84,6 +93,7 @@ public class DrizzleQueryResult {
     
     public void setInsertId(long insertId) {
         this.insertId = insertId;
+        this.generatedKeysResult = new DrizzleQueryResult(insertId);
     }
 
     public long getInsertId() {
@@ -109,4 +119,8 @@ public class DrizzleQueryResult {
     public String getMessage() {
         return message;
     }
+    public DrizzleQueryResult getGeneratedKeysResult() {
+        return generatedKeysResult;
+    }
+
 }

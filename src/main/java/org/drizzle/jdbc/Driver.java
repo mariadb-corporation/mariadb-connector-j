@@ -63,7 +63,7 @@ public class Driver implements java.sql.Driver {
     }
 
     public boolean acceptsURL(String url) throws SQLException {
-        return false;
+        return url.startsWith("jdbc:drizzle://");
     }
 
     public DriverPropertyInfo[] getPropertyInfo(String url, Properties info) throws SQLException {

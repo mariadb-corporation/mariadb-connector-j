@@ -1,5 +1,7 @@
 package org.drizzle.jdbc;
 
+import org.drizzle.jdbc.internal.Protocol;
+
 import java.sql.*;
 import java.math.BigDecimal;
 import java.io.InputStream;

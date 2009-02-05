@@ -1,7 +1,8 @@
-package org.drizzle.jdbc;
+package org.drizzle.jdbc.internal;
 
-import org.drizzle.jdbc.packet.*;
-import org.drizzle.jdbc.packet.buffer.ReadBuffer;
+import org.drizzle.jdbc.internal.packet.*;
+import org.drizzle.jdbc.internal.packet.buffer.ReadBuffer;
+import org.drizzle.jdbc.UnauthorizedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,7 +14,6 @@ import java.util.List;
 import java.util.ArrayList;
 
 /**
- * TODO: logging!
  * TODO: refactor, clean up
  * TODO: when should i read up the resultset?
  * TODO: thread safety?
@@ -22,6 +22,9 @@ import java.util.ArrayList;
  * Time: 4:06:26 PM
  */
 public class DrizzleProtocol implements Protocol {
+    public enum ProtocolState {
+        OPEN_TRANSACTION, NO_TRANSACTION
+    }
     private final static Logger log = LoggerFactory.getLogger(DrizzleProtocol.class);
     private boolean connected=false;
     private Socket socket;
@@ -29,7 +32,9 @@ public class DrizzleProtocol implements Protocol {
     private BufferedOutputStream writer;
     private String version;
     private boolean readOnly=false;
-
+    private boolean autoCommit;
+    
+    private ProtocolState protocolState = ProtocolState.NO_TRANSACTION;
     /**
      * Get a protocol instance
      *
@@ -39,7 +44,7 @@ public class DrizzleProtocol implements Protocol {
      * @param username the username
      * @param password the password
      * @throws IOException if there is a problem reading / sending the packets
-     * @throws UnauthorizedException if the user is unauthorized
+     * @throws org.drizzle.jdbc.UnauthorizedException if the user is unauthorized
      */
     public DrizzleProtocol(String host, int port, String database, String username, String password) throws IOException, UnauthorizedException {
         SocketFactory socketFactory = SocketFactory.getDefault();
@@ -103,6 +108,11 @@ public class DrizzleProtocol implements Protocol {
      * @throws SQLException
      */
     public DrizzleQueryResult executeQuery(String query) throws IOException, SQLException {
+        if(this.autoCommit == false && this.protocolState == ProtocolState.NO_TRANSACTION) {
+            log.debug("Starting transaction");
+            this.protocolState = ProtocolState.OPEN_TRANSACTION;
+            executeQuery("START TRANSACTION");
+        }
         log.debug("Executing query: {}",query);
         QueryPacket packet = new QueryPacket(query);
         byte packetSeqNum=0;
@@ -121,7 +131,7 @@ public class DrizzleProtocol implements Protocol {
                 dqr.setWarnings(okpacket.getWarnings());
                 dqr.setMessage(okpacket.getMessage());
                 dqr.setInsertId(okpacket.getInsertId());
-                log.info("OK, {}", ((OKPacket)resultPacket).getAffectedRows());
+                log.info("OK, {}", okpacket.getAffectedRows());
                 return dqr;
             case RESULTSET:
                 log.info("SELECT executed, fetching result set");
@@ -133,7 +143,7 @@ public class DrizzleProtocol implements Protocol {
     }
 
     /**
-     * create a DrizzleQueryResult - precondition is that 
+     * create a DrizzleQueryResult - precondition is that a result set packet has been read
      * @param packet the result set packet from the server
      * @return a DrizzleQueryResult
      * @throws IOException when something goes wrong while reading/writing from the server
@@ -159,6 +169,7 @@ public class DrizzleProtocol implements Protocol {
             dqr.addRow(rowPacket.getRow());
         }
     }
+    
     public void selectDB(String database) throws IOException {
         SelectDBPacket packet = new SelectDBPacket(database);
         byte packetSeqNum=0;
@@ -167,13 +178,6 @@ public class DrizzleProtocol implements Protocol {
         writer.flush();
         ResultPacket resultPacket = ResultPacketFactory.createResultPacket(reader);
         packetSeqNum=(byte)(resultPacket.getPacketSeq()+1);
-    }
-
-    public void clearInputStream() throws IOException {
-        if(reader.available() > 0) {
-            byte [] aa = new byte[reader.available()];
-            reader.read(aa);
-        }
     }
 
     public String getVersion() {
@@ -188,4 +192,23 @@ public class DrizzleProtocol implements Protocol {
         return readOnly;
     }
 
+    public void commit() throws IOException, SQLException {
+        log.debug("commiting transaction");
+        executeQuery("COMMIT");
+        this.protocolState=ProtocolState.NO_TRANSACTION;
+    }
+
+    public void rollback() throws IOException, SQLException {
+        log.debug("rolling transaction back");
+        executeQuery("ROLLBACK");
+        this.protocolState=ProtocolState.NO_TRANSACTION;
+    }
+
+    public void setAutoCommit(boolean autoCommit) {
+        this.autoCommit = autoCommit;
+    }
+
+    public boolean getAutoCommit() {
+        return autoCommit;
+    }
 }

@@ -1,8 +1,7 @@
 package org.drizzle.jdbc;
 
 import org.junit.Test;
-import org.junit.Before;
-import org.drizzle.jdbc.packet.buffer.WriteBuffer;
+import org.drizzle.jdbc.internal.packet.buffer.WriteBuffer;
 import org.apache.log4j.BasicConfigurator;
 
 import java.sql.*;
@@ -118,5 +117,54 @@ public class DriverTest {
             result = results.getString("test");
         }
         assertEquals("updated",result);
+    }
+    @Test
+    public void autoIncTest() throws SQLException {
+        String query = "CREATE TABLE t2 (id int not null primary key auto_increment, test varchar(10))";
+        Statement stmt = connection.createStatement();
+        try {
+            stmt.execute("DROP TABLE t2");
+        } catch (Exception e) {} //ignore if it does not exist
+        stmt.execute(query);
+        stmt.execute("INSERT INTO t2 (test) VALUES ('aa')");
+        ResultSet rs = stmt.getGeneratedKeys();
+        if(rs.next()) {
+            assertEquals(1,rs.getInt(1));
+            assertEquals(1,rs.getInt("insert_id"));
+        } else {
+            throw new SQLException("Could not get generated keys");
+        }
+        stmt.execute("INSERT INTO t2 (test) VALUES ('aa')");
+        rs = stmt.getGeneratedKeys();
+        if(rs.next()) {
+            assertEquals(2,rs.getInt(1));
+            assertEquals(2,rs.getInt("insert_id"));
+        } else {
+            throw new SQLException("Could not get generated keys");
+        }
+
+    }
+    @Test
+    public void transactionTest() throws SQLException {
+        Statement stmt = connection.createStatement();
+        try { stmt.executeQuery("DROP TABLE t3"); } catch(Exception e) {}
+        stmt.executeQuery("CREATE TABLE t3 (id int not null primary key auto_increment, test varchar(20))");
+        connection.setAutoCommit(false);
+        stmt.executeUpdate("INSERT INTO t3 (test) VALUES ('heja')");
+        stmt.executeUpdate("INSERT INTO t3 (test) VALUES ('japp')");
+        connection.commit();
+        ResultSet rs = stmt.executeQuery("SELECT * FROM t3");
+        assertEquals(true,rs.next());
+        assertEquals("heja",rs.getString("test"));
+        assertEquals(true,rs.next());
+        assertEquals("japp",rs.getString("test"));
+        assertEquals(false, rs.next());
+        stmt.executeUpdate("INSERT INTO t3 (test) VALUES ('rollmeback')");
+        ResultSet rsGen = stmt.getGeneratedKeys();
+        rsGen.next();
+        assertEquals(3,rsGen.getInt(1));
+        connection.rollback();
+        rs = stmt.executeQuery("SELECT * FROM t3 WHERE id=3");
+        assertEquals(false,rs.next());
     }
 }

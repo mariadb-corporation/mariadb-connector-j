@@ -1,7 +1,7 @@
-package org.drizzle.jdbc;
+package org.drizzle.jdbc.internal.packet;
 
-import org.drizzle.jdbc.packet.buffer.WriteBuffer;
-import org.drizzle.jdbc.packet.DrizzlePacket;
+import org.drizzle.jdbc.internal.packet.buffer.WriteBuffer;
+import org.drizzle.jdbc.internal.packet.DrizzlePacket;
 
 /**
  * Created by IntelliJ IDEA.

@@ -1,8 +1,7 @@
-package org.drizzle.jdbc.packet;
+package org.drizzle.jdbc.internal.packet;
 
-import org.drizzle.jdbc.packet.buffer.ReadBuffer;
+import org.drizzle.jdbc.internal.packet.buffer.ReadBuffer;
 
-import java.io.InputStream;
 import java.io.IOException;
 
 /**

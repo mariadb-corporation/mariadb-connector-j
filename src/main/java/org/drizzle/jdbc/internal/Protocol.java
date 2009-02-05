@@ -1,8 +1,7 @@
-package org.drizzle.jdbc;
+package org.drizzle.jdbc.internal;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.List;
 
 /**
  * User: marcuse
@@ -22,17 +21,25 @@ public interface Protocol {
     DrizzleSelectResult executeQuery(String query);
     DrizzleModifyResult executeUpdate(String query);      */
 
-    DrizzleQueryResult executeQuery(String s) throws IOException, SQLException;
+    QueryResult executeQuery(String s) throws IOException, SQLException;
 
 
 
     void selectDB(String database) throws IOException;
-
-    public void clearInputStream() throws IOException;
 
     String getVersion();
 
     void setReadonly(boolean readOnly);
 
     boolean getReadonly();
+
+    void commit() throws IOException, SQLException;
+
+    void rollback() throws IOException, SQLException;
+
+    void setAutoCommit(boolean autoCommit);
+
+    boolean getAutoCommit();
+
+
 }

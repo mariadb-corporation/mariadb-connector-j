@@ -1,5 +1,7 @@
 package org.drizzle.jdbc;
 
+import org.drizzle.jdbc.internal.QueryResult;
+
 import java.sql.*;
 import java.math.BigDecimal;
 import java.io.InputStream;
@@ -16,13 +18,14 @@ import java.net.URL;
  * To change this template use File | Settings | File Templates.
  */
 public class DrizzleResultSet implements ResultSet {
-    private DrizzleQueryResult drizzleQueryResult;
-    public DrizzleResultSet(DrizzleQueryResult dqr) {
-        this.drizzleQueryResult=dqr;
+    private QueryResult queryResult;
+    public DrizzleResultSet(QueryResult dqr) {
+        this.queryResult=dqr;
     }
 
+
     public boolean next() throws SQLException {
-        return drizzleQueryResult.next(); 
+        return queryResult.next();
     }
 
     public void close() throws SQLException {
@@ -34,7 +37,17 @@ public class DrizzleResultSet implements ResultSet {
     }
 
     public String getString(int i) throws SQLException {
-        return drizzleQueryResult.getString(i);
+        return queryResult.getString(i);
+    }
+
+    public int getInt(int i) throws SQLException {
+        String rawResult = getString(i);
+        return Integer.parseInt(rawResult);
+    }
+
+    public int getInt(String s) throws SQLException {
+        String rawResult = getString(s);
+        return Integer.parseInt(rawResult);
     }
 
     public boolean getBoolean(int i) throws SQLException {
@@ -46,10 +59,6 @@ public class DrizzleResultSet implements ResultSet {
     }
 
     public short getShort(int i) throws SQLException {
-        return 0;  //To change body of implemented methods use File | Settings | File Templates.
-    }
-
-    public int getInt(int i) throws SQLException {
         return 0;  //To change body of implemented methods use File | Settings | File Templates.
     }
 
@@ -98,7 +107,7 @@ public class DrizzleResultSet implements ResultSet {
     }
 
     public String getString(String s) throws SQLException {
-        return drizzleQueryResult.getString(s);
+        return queryResult.getString(s);
     }
 
     public boolean getBoolean(String s) throws SQLException {
@@ -113,9 +122,6 @@ public class DrizzleResultSet implements ResultSet {
         return 0;  //To change body of implemented methods use File | Settings | File Templates.
     }
 
-    public int getInt(String s) throws SQLException {
-        return 0;  //To change body of implemented methods use File | Settings | File Templates.
-    }
 
     public long getLong(String s) throws SQLException {
         return 0;  //To change body of implemented methods use File | Settings | File Templates.

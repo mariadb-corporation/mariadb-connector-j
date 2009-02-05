@@ -1,4 +1,4 @@
-package org.drizzle.jdbc.packet.buffer;
+package org.drizzle.jdbc.internal.packet.buffer;
 
 import java.io.InputStream;
 import java.io.IOException;

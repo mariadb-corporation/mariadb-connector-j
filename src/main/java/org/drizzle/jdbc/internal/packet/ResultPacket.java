@@ -1,7 +1,4 @@
-package org.drizzle.jdbc.packet;
-
-import java.io.InputStream;
-import java.io.IOException;
+package org.drizzle.jdbc.internal.packet;
 
 /**
  * Created by IntelliJ IDEA.

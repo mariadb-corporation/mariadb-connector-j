@@ -1,8 +1,7 @@
-package org.drizzle.jdbc.packet.buffer;
+package org.drizzle.jdbc.internal.packet.buffer;
 
 import java.util.List;
 import java.util.ArrayList;
-import java.util.LinkedList;
 
 /**
  * Created by IntelliJ IDEA.

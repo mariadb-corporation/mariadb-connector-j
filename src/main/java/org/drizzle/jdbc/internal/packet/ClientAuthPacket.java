@@ -1,6 +1,6 @@
-package org.drizzle.jdbc.packet;
+package org.drizzle.jdbc.internal.packet;
 
-import org.drizzle.jdbc.packet.buffer.WriteBuffer;
+import org.drizzle.jdbc.internal.packet.buffer.WriteBuffer;
 
 /**
  4                            client_flags
