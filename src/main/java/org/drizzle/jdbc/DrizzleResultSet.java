@@ -33,7 +33,7 @@ public class DrizzleResultSet implements ResultSet {
     }
 
     public boolean wasNull() throws SQLException {
-        return false;  //To change body of implemented methods use File | Settings | File Templates.
+        return false;
     }
 
     public String getString(int i) throws SQLException {

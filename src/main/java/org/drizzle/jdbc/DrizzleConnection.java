@@ -14,24 +14,19 @@ import java.io.IOException;
  * Time: 7:47:37 AM
  */
 public class DrizzleConnection implements Connection {
-    private ConnectionState connectionState;
-
-    public enum ConnectionState {
-        TRANSACTION_ACTIVE, NO_TRANSACTIONS
-    }
     private final Protocol protocol;
     private final String username;
     private final String host;
     private final int port;
     private final String database;
     private boolean autoCommit;
+    private int savepointCount = 0;
 
     public DrizzleConnection(String host, int port, String username, String password, String database) throws SQLException {
         this.username=username;
         this.port=port;
         this.host=host;
         this.database=database;
-        this.connectionState = ConnectionState.NO_TRANSACTIONS;
         try {
             protocol = new DrizzleProtocol(host,port,database,username,password);
         } catch (IOException e) {
@@ -57,7 +52,11 @@ public class DrizzleConnection implements Connection {
     }
 
     public void setAutoCommit(boolean autoCommit) throws SQLException {
-        protocol.setAutoCommit(autoCommit);
+        try {
+            protocol.setAutoCommit(autoCommit);
+        } catch (IOException e) {
+            throw new SQLException("Could not set autocommit");
+        }
     }
 
     public boolean getAutoCommit() throws SQLException {
@@ -445,7 +444,7 @@ public class DrizzleConnection implements Connection {
      * @since 1.4
      */
     public Savepoint setSavepoint() throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return setSavepoint("unnamed");
     }
 
     /**
@@ -469,7 +468,14 @@ public class DrizzleConnection implements Connection {
      * @since 1.4
      */
     public Savepoint setSavepoint(String name) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        Savepoint drizzleSavepoint = new DrizzleSavepoint(name,savepointCount++);
+        try {
+            protocol.setSavepoint(drizzleSavepoint.toString());
+        } catch (IOException e) {
+            throw new SQLException("could not set savepoint");
+        }
+        return drizzleSavepoint;
+
     }
 
     /**
@@ -493,7 +499,11 @@ public class DrizzleConnection implements Connection {
      * @since 1.4
      */
     public void rollback(Savepoint savepoint) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        try {
+            protocol.rollback(savepoint.toString());
+        } catch (IOException e) {
+            throw new SQLException("Could not rollback: "+e.getMessage());
+        }
     }
 
     /**
@@ -512,7 +522,11 @@ public class DrizzleConnection implements Connection {
      * @since 1.4
      */
     public void releaseSavepoint(Savepoint savepoint) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        try {
+            protocol.releaseSavepoint(savepoint.toString());
+        } catch (IOException e) {
+            throw new SQLException("Could not release savepoint");
+        }
     }
 
     /**

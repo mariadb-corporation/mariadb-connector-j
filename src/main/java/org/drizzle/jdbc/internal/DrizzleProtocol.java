@@ -17,14 +17,12 @@ import java.util.ArrayList;
  * TODO: refactor, clean up
  * TODO: when should i read up the resultset?
  * TODO: thread safety?
+ * TODO: exception handling
  * User: marcuse
  * Date: Jan 14, 2009
  * Time: 4:06:26 PM
  */
 public class DrizzleProtocol implements Protocol {
-    public enum ProtocolState {
-        OPEN_TRANSACTION, NO_TRANSACTION
-    }
     private final static Logger log = LoggerFactory.getLogger(DrizzleProtocol.class);
     private boolean connected=false;
     private Socket socket;
@@ -34,7 +32,7 @@ public class DrizzleProtocol implements Protocol {
     private boolean readOnly=false;
     private boolean autoCommit;
     
-    private ProtocolState protocolState = ProtocolState.NO_TRANSACTION;
+    //private ProtocolState protocolState = ProtocolState.NO_TRANSACTION;
     /**
      * Get a protocol instance
      *
@@ -78,6 +76,11 @@ public class DrizzleProtocol implements Protocol {
         ResultPacket resultPacket = ResultPacketFactory.createResultPacket(reader);
         log.debug("Got result: {}",resultPacket);
         selectDB(database);
+        try {
+            setAutoCommit(true);
+        } catch (SQLException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
     }
 
     /**
@@ -108,11 +111,6 @@ public class DrizzleProtocol implements Protocol {
      * @throws SQLException
      */
     public DrizzleQueryResult executeQuery(String query) throws IOException, SQLException {
-        if(this.autoCommit == false && this.protocolState == ProtocolState.NO_TRANSACTION) {
-            log.debug("Starting transaction");
-            this.protocolState = ProtocolState.OPEN_TRANSACTION;
-            executeQuery("START TRANSACTION");
-        }
         log.debug("Executing query: {}",query);
         QueryPacket packet = new QueryPacket(query);
         byte packetSeqNum=0;
@@ -122,7 +120,7 @@ public class DrizzleProtocol implements Protocol {
         ResultPacket resultPacket = ResultPacketFactory.createResultPacket(reader);
         switch(resultPacket.getResultType()) {
             case ERROR:
-                log.warn("Could not execute query: {}",((ErrorPacket)resultPacket).getMessage());
+                log.warn("Could not execute query {}: {}",query, ((ErrorPacket)resultPacket).getMessage());
                 throw new SQLException("Could not execute query: "+((ErrorPacket)resultPacket).getMessage());
             case OK:
                 DrizzleQueryResult dqr = new DrizzleQueryResult();
@@ -195,17 +193,30 @@ public class DrizzleProtocol implements Protocol {
     public void commit() throws IOException, SQLException {
         log.debug("commiting transaction");
         executeQuery("COMMIT");
-        this.protocolState=ProtocolState.NO_TRANSACTION;
     }
 
     public void rollback() throws IOException, SQLException {
         log.debug("rolling transaction back");
         executeQuery("ROLLBACK");
-        this.protocolState=ProtocolState.NO_TRANSACTION;
     }
 
-    public void setAutoCommit(boolean autoCommit) {
+    public void rollback(String savepoint) throws IOException, SQLException {
+        log.debug("rolling back to savepoint {}",savepoint);
+        executeQuery("ROLLBACK TO SAVEPOINT "+savepoint);
+    }
+
+    public void setSavepoint(String savepoint) throws IOException, SQLException {
+        log.debug("setting a savepoint named {}",savepoint);
+        executeQuery("SAVEPOINT "+savepoint);
+    }
+    public void releaseSavepoint(String savepoint) throws IOException, SQLException {
+        log.debug("releasing savepoint named {}",savepoint);
+        executeQuery("RELEASE SAVEPOINT "+savepoint);
+    }
+
+    public void setAutoCommit(boolean autoCommit) throws IOException, SQLException {
         this.autoCommit = autoCommit;
+        executeQuery("SET autocommit="+(autoCommit?"1":"0"));
     }
 
     public boolean getAutoCommit() {

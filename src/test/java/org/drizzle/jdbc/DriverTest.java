@@ -122,9 +122,7 @@ public class DriverTest {
     public void autoIncTest() throws SQLException {
         String query = "CREATE TABLE t2 (id int not null primary key auto_increment, test varchar(10))";
         Statement stmt = connection.createStatement();
-        try {
-            stmt.execute("DROP TABLE t2");
-        } catch (Exception e) {} //ignore if it does not exist
+        stmt.execute("DROP TABLE IF EXISTS t2");
         stmt.execute(query);
         stmt.execute("INSERT INTO t2 (test) VALUES ('aa')");
         ResultSet rs = stmt.getGeneratedKeys();
@@ -147,7 +145,7 @@ public class DriverTest {
     @Test
     public void transactionTest() throws SQLException {
         Statement stmt = connection.createStatement();
-        try { stmt.executeQuery("DROP TABLE t3"); } catch(Exception e) {}
+        stmt.executeQuery("DROP TABLE IF EXISTS t3");
         stmt.executeQuery("CREATE TABLE t3 (id int not null primary key auto_increment, test varchar(20))");
         connection.setAutoCommit(false);
         stmt.executeUpdate("INSERT INTO t3 (test) VALUES ('heja')");
@@ -165,6 +163,32 @@ public class DriverTest {
         assertEquals(3,rsGen.getInt(1));
         connection.rollback();
         rs = stmt.executeQuery("SELECT * FROM t3 WHERE id=3");
+        assertEquals(false,rs.next());
+    }
+    @Test
+    public void savepointTest() throws SQLException {
+        Statement stmt = connection.createStatement();
+        stmt.executeUpdate("drop table if exists t4");
+        stmt.executeUpdate("create table t4 (id int not null primary key auto_increment, test varchar(20))");
+        connection.setAutoCommit(false);
+        stmt.executeUpdate("INSERT INTO t4 (test) values('hej1')");
+        stmt.executeUpdate("INSERT INTO t4 (test) values('hej2')");
+        Savepoint savepoint = connection.setSavepoint("yep");
+        stmt.executeUpdate("INSERT INTO t4 (test)  values('hej3')");
+        stmt.executeUpdate("INSERT INTO t4 (test) values('hej4')");
+        connection.rollback(savepoint);
+        stmt.executeUpdate("INSERT INTO t4 (test) values('hej5')");
+        stmt.executeUpdate("INSERT INTO t4 (test) values('hej6')");
+        connection.commit();
+        ResultSet rs = stmt.executeQuery("SELECT * FROM t4");
+        assertEquals(true, rs.next());
+        assertEquals("hej1",rs.getString(2));
+        assertEquals(true, rs.next());
+        assertEquals("hej2",rs.getString(2));
+        assertEquals(true, rs.next());
+        assertEquals("hej5",rs.getString(2));
+        assertEquals(true, rs.next());
+        assertEquals("hej6",rs.getString(2));
         assertEquals(false,rs.next());
     }
 }

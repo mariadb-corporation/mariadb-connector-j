@@ -36,8 +36,11 @@ public interface Protocol {
     void commit() throws IOException, SQLException;
 
     void rollback() throws IOException, SQLException;
+    void rollback(String savepoint) throws IOException, SQLException;
+    void setSavepoint(String savepoint) throws IOException, SQLException;
+    void releaseSavepoint(String savepoint) throws IOException, SQLException;
 
-    void setAutoCommit(boolean autoCommit);
+    void setAutoCommit(boolean autoCommit) throws IOException, SQLException;
 
     boolean getAutoCommit();
 
