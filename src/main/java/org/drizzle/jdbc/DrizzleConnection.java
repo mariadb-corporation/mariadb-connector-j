@@ -2,6 +2,7 @@ package org.drizzle.jdbc;
 
 import org.drizzle.jdbc.internal.Protocol;
 import org.drizzle.jdbc.internal.DrizzleProtocol;
+import org.drizzle.jdbc.internal.QueryException;
 
 import java.sql.*;
 import java.util.Map;
@@ -29,10 +30,8 @@ public class DrizzleConnection implements Connection {
         this.database=database;
         try {
             protocol = new DrizzleProtocol(host,port,database,username,password);
-        } catch (IOException e) {
+        } catch (QueryException e) {
             throw new SQLException("Could not connect: "+e.getMessage());
-        } catch (UnauthorizedException e) {
-            throw new SQLException("Not authorized: "+e.getMessage());
         }
     }
     public Statement createStatement() throws SQLException {
@@ -54,8 +53,8 @@ public class DrizzleConnection implements Connection {
     public void setAutoCommit(boolean autoCommit) throws SQLException {
         try {
             protocol.setAutoCommit(autoCommit);
-        } catch (IOException e) {
-            throw new SQLException("Could not set autocommit");
+        } catch (QueryException e) {
+            throw new SQLException("Could not set autocommit",e);
         }
     }
 
@@ -66,24 +65,24 @@ public class DrizzleConnection implements Connection {
     public void commit() throws SQLException {
         try {
             protocol.commit();
-        } catch (IOException e) {
-            throw new SQLException("Could not commit");
+        } catch (QueryException e) {
+            throw new SQLException("Could not commit",e);
         }
     }
 
     public void rollback() throws SQLException {
         try {
             protocol.rollback();
-        } catch (IOException e) {
-            throw new SQLException("Could not roll transaction back: "+e.getMessage());
+        } catch (QueryException e) {
+            throw new SQLException("Could not roll transaction back",e);
         }
     }
 
     public void close() throws SQLException {
         try {
             protocol.close();
-        } catch (IOException e) {
-            throw new SQLException("Could not close socket: "+e.getMessage());
+        } catch (QueryException e) {
+            throw new SQLException("Could not close socket",e);
         }
 
     }
@@ -471,8 +470,8 @@ public class DrizzleConnection implements Connection {
         Savepoint drizzleSavepoint = new DrizzleSavepoint(name,savepointCount++);
         try {
             protocol.setSavepoint(drizzleSavepoint.toString());
-        } catch (IOException e) {
-            throw new SQLException("could not set savepoint");
+        } catch (QueryException e) {
+            throw new SQLException("could not set savepoint",e);
         }
         return drizzleSavepoint;
 
@@ -501,8 +500,8 @@ public class DrizzleConnection implements Connection {
     public void rollback(Savepoint savepoint) throws SQLException {
         try {
             protocol.rollback(savepoint.toString());
-        } catch (IOException e) {
-            throw new SQLException("Could not rollback: "+e.getMessage());
+        } catch (QueryException e) {
+            throw new SQLException("Could not rollback",e);
         }
     }
 
@@ -524,8 +523,8 @@ public class DrizzleConnection implements Connection {
     public void releaseSavepoint(Savepoint savepoint) throws SQLException {
         try {
             protocol.releaseSavepoint(savepoint.toString());
-        } catch (IOException e) {
-            throw new SQLException("Could not release savepoint");
+        } catch (QueryException e) {
+            throw new SQLException("Could not release savepoint",e);
         }
     }
 
@@ -565,7 +564,11 @@ public class DrizzleConnection implements Connection {
      * @since 1.4
      */
     public Statement createStatement(int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        if(resultSetConcurrency != ResultSet.CONCUR_READ_ONLY)
+            throw new SQLFeatureNotSupportedException("Only read-only result sets allowed");
+        if(resultSetHoldability != ResultSet.HOLD_CURSORS_OVER_COMMIT)
+            throw new SQLFeatureNotSupportedException("Cursors are always kept when sending commit (they are only client-side)");
+        return createStatement();
     }
 
     /**
@@ -609,7 +612,12 @@ public class DrizzleConnection implements Connection {
      * @since 1.4
      */
     public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        if(resultSetConcurrency != ResultSet.CONCUR_READ_ONLY)
+            throw new SQLFeatureNotSupportedException("Only read-only result sets allowed");
+        if(resultSetHoldability != ResultSet.HOLD_CURSORS_OVER_COMMIT)
+            throw new SQLFeatureNotSupportedException("Cursors are always kept when sending commit (they are only client-side)");
+        // resultSetType is ignored since we always are scroll insensitive
+        return prepareStatement(sql);
     }
 
     /**
@@ -650,7 +658,7 @@ public class DrizzleConnection implements Connection {
      * @since 1.4
      */
     public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Prepared statements are not supported");
     }
 
     /**
@@ -697,7 +705,8 @@ public class DrizzleConnection implements Connection {
      * @since 1.4
      */
     public PreparedStatement prepareStatement(String sql, int autoGeneratedKeys) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        // autoGeneratedKeys are ignored since we always receive them for free with drizzle
+        return prepareStatement(sql);
     }
 
     /**

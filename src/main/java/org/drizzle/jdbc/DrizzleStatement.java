@@ -2,6 +2,7 @@ package org.drizzle.jdbc;
 
 import org.drizzle.jdbc.internal.Protocol;
 import org.drizzle.jdbc.internal.QueryResult;
+import org.drizzle.jdbc.internal.QueryException;
 
 import java.sql.*;
 import java.io.IOException;
@@ -31,7 +32,7 @@ public class DrizzleStatement implements Statement {
             dqr = protocol.executeQuery(s);
             warningsCleared = false;
             return new DrizzleResultSet(dqr);
-        } catch (IOException e) {
+        } catch (QueryException e) {
             throw new SQLException("Could not execute query: "+e.getMessage());
         }
     }
@@ -41,7 +42,7 @@ public class DrizzleStatement implements Statement {
             warningsCleared=false;
             dqr = protocol.executeQuery(s);
             return dqr.getUpdateCount();
-        } catch (IOException e) {
+        } catch (QueryException e) {
             throw new SQLException("Could not execute update "+e.getMessage());
         }
     }
@@ -666,7 +667,7 @@ public class DrizzleStatement implements Statement {
             }
             this.updateCount = dqr.getUpdateCount();
             return false;
-        } catch (IOException e) {
+        } catch (QueryException e) {
             throw new SQLException("Could not execute query: "+e.getMessage());
         }
     }

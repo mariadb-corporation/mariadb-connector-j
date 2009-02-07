@@ -10,7 +10,7 @@ import java.sql.SQLException;
  */
 public interface Protocol {
 
-    void close() throws IOException;
+    void close() throws QueryException;
 
     boolean isClosed();
 /* TODO: use these methods for queries instead
@@ -21,11 +21,11 @@ public interface Protocol {
     DrizzleSelectResult executeQuery(String query);
     DrizzleModifyResult executeUpdate(String query);      */
 
-    QueryResult executeQuery(String s) throws IOException, SQLException;
+    QueryResult executeQuery(String s) throws QueryException;
 
 
 
-    void selectDB(String database) throws IOException;
+    void selectDB(String database) throws QueryException;
 
     String getVersion();
 
@@ -33,14 +33,14 @@ public interface Protocol {
 
     boolean getReadonly();
 
-    void commit() throws IOException, SQLException;
+    void commit() throws QueryException;
 
-    void rollback() throws IOException, SQLException;
-    void rollback(String savepoint) throws IOException, SQLException;
-    void setSavepoint(String savepoint) throws IOException, SQLException;
-    void releaseSavepoint(String savepoint) throws IOException, SQLException;
+    void rollback() throws QueryException;
+    void rollback(String savepoint) throws QueryException;
+    void setSavepoint(String savepoint) throws QueryException;
+    void releaseSavepoint(String savepoint) throws QueryException;
 
-    void setAutoCommit(boolean autoCommit) throws IOException, SQLException;
+    void setAutoCommit(boolean autoCommit) throws QueryException;
 
     boolean getAutoCommit();
 

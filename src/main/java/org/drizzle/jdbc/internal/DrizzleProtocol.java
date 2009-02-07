@@ -2,7 +2,6 @@ package org.drizzle.jdbc.internal;
 
 import org.drizzle.jdbc.internal.packet.*;
 import org.drizzle.jdbc.internal.packet.buffer.ReadBuffer;
-import org.drizzle.jdbc.UnauthorizedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,16 +40,23 @@ public class DrizzleProtocol implements Protocol {
      * @param database the initial database
      * @param username the username
      * @param password the password
-     * @throws IOException if there is a problem reading / sending the packets
-     * @throws org.drizzle.jdbc.UnauthorizedException if the user is unauthorized
+     * @throws QueryException if there is a problem reading / sending the packets
      */
-    public DrizzleProtocol(String host, int port, String database, String username, String password) throws IOException, UnauthorizedException {
+    public DrizzleProtocol(String host, int port, String database, String username, String password) throws QueryException {
         SocketFactory socketFactory = SocketFactory.getDefault();
-        socket = socketFactory.createSocket(host,port);
+        try {
+            socket = socketFactory.createSocket(host,port);
+        } catch (IOException e) {
+            throw new QueryException("Could not connect socket",e);
+        }
         log.info("Connected to: {}:{}",host,port);
-        reader = new BufferedInputStream(socket.getInputStream(),16384);
-        writer = new BufferedOutputStream(socket.getOutputStream(),16384);
-        this.connect(username,password,database);
+        try {
+            reader = new BufferedInputStream(socket.getInputStream(),16384);
+            writer = new BufferedOutputStream(socket.getOutputStream(),16384);
+            this.connect(username,password,database);
+        } catch (IOException e) {
+            throw new QueryException("Could not connect",e);
+        }
     }
 
     /**
@@ -58,40 +64,54 @@ public class DrizzleProtocol implements Protocol {
      * @param username the username to use
      * @param password the password for the user
      * @param database initial database
-     * @throws IOException ifsomething is wrong while reading / writing streams 
+     * @throws QueryException ifsomething is wrong while reading / writing streams
      */
-    private void connect(String username, String password, String database) throws IOException {
+    private void connect(String username, String password, String database) throws QueryException {
         this.connected=true;
         byte packetSeqNum = 1;
-        GreetingReadPacket greetingPacket = new GreetingReadPacket(reader);
+        GreetingReadPacket greetingPacket = null;
+        try {
+            greetingPacket = new GreetingReadPacket(reader);
+        } catch (IOException e) {
+            throw new QueryException("Could not read greeting from server",e);
+        }
         this.version=greetingPacket.getServerVersion();
         log.debug("Got greeting packet: {}",greetingPacket);
         ClientAuthPacket cap = new ClientAuthPacket(username,password,database);
         cap.setServerCapabilities(greetingPacket.getServerCapabilities());
         cap.setServerLanguage(greetingPacket.getServerLanguage());
         byte [] a = cap.toBytes(packetSeqNum);
-        writer.write(a);
-        writer.flush();
-        log.debug("Sending auth packet: {}",cap);
-        ResultPacket resultPacket = ResultPacketFactory.createResultPacket(reader);
-        log.debug("Got result: {}",resultPacket);
-        selectDB(database);
         try {
-            setAutoCommit(true);
-        } catch (SQLException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+            writer.write(a);
+            writer.flush();
+        } catch (IOException e) {
+            throw new QueryException("Could not write to server",e);
         }
+        log.debug("Sending auth packet: {}",cap);
+        ResultPacket resultPacket = null;
+        try {
+            resultPacket = ResultPacketFactory.createResultPacket(reader);
+        } catch (IOException e) {
+            throw new QueryException("Could not get result from server",e);
+        }
+        log.debug("Got result: {}",resultPacket);
+         selectDB(database);
+         setAutoCommit(true);
     }
 
     /**
      * Closes socket and stream readers/writers
-     * @throws IOException
+     * @throws QueryException if the socket or readers/writes cannot be closed
      */
-    public void close() throws IOException {
+    public void close() throws QueryException {
         log.debug("Closing...");
-        writer.close();
-        reader.close();
-        socket.close();
+        try {
+            writer.close();
+            reader.close();
+            socket.close();
+        } catch(IOException e){
+            throw new QueryException("Could not close connection",e);
+        }
         this.connected=false;
     }
 
@@ -110,18 +130,23 @@ public class DrizzleProtocol implements Protocol {
      * @throws IOException
      * @throws SQLException
      */
-    public DrizzleQueryResult executeQuery(String query) throws IOException, SQLException {
+    public DrizzleQueryResult executeQuery(String query) throws QueryException {
         log.debug("Executing query: {}",query);
         QueryPacket packet = new QueryPacket(query);
         byte packetSeqNum=0;
         byte [] toWrite = packet.toBytes(packetSeqNum);
-        writer.write(toWrite);
-        writer.flush();
-        ResultPacket resultPacket = ResultPacketFactory.createResultPacket(reader);
+        ResultPacket resultPacket = null;
+        try {
+            writer.write(toWrite);
+            writer.flush();
+            resultPacket = ResultPacketFactory.createResultPacket(reader);
+        } catch (IOException e) {
+            throw new QueryException("Could not send query",e);
+        }
         switch(resultPacket.getResultType()) {
             case ERROR:
                 log.warn("Could not execute query {}: {}",query, ((ErrorPacket)resultPacket).getMessage());
-                throw new SQLException("Could not execute query: "+((ErrorPacket)resultPacket).getMessage());
+                throw new QueryException("Could not execute query: "+((ErrorPacket)resultPacket).getMessage());
             case OK:
                 DrizzleQueryResult dqr = new DrizzleQueryResult();
                 OKPacket okpacket = (OKPacket)resultPacket;
@@ -129,14 +154,18 @@ public class DrizzleProtocol implements Protocol {
                 dqr.setWarnings(okpacket.getWarnings());
                 dqr.setMessage(okpacket.getMessage());
                 dqr.setInsertId(okpacket.getInsertId());
-                log.info("OK, {}", okpacket.getAffectedRows());
+                log.debug("OK, {}", okpacket.getAffectedRows());
                 return dqr;
             case RESULTSET:
-                log.info("SELECT executed, fetching result set");
-                return this.createDrizzleQueryResult((ResultSetPacket)resultPacket);
+                log.debug("SELECT executed, fetching result set");
+                try {
+                    return this.createDrizzleQueryResult((ResultSetPacket)resultPacket);
+                } catch (IOException e) {
+                    throw new QueryException("Could not get query result",e);
+                }
             default:
                 log.error("Could not parse result...");
-                throw new SQLException("Could not parse result");
+                throw new QueryException("Could not parse result");
         }
     }
 
@@ -168,14 +197,17 @@ public class DrizzleProtocol implements Protocol {
         }
     }
     
-    public void selectDB(String database) throws IOException {
+    public void selectDB(String database) throws QueryException {
         SelectDBPacket packet = new SelectDBPacket(database);
         byte packetSeqNum=0;
         byte [] b = packet.getBytes(packetSeqNum);
-        writer.write(b);
-        writer.flush();
-        ResultPacket resultPacket = ResultPacketFactory.createResultPacket(reader);
-        packetSeqNum=(byte)(resultPacket.getPacketSeq()+1);
+        try {
+            writer.write(b);
+            writer.flush();
+            ResultPacketFactory.createResultPacket(reader);
+        } catch (IOException e) {
+            throw new QueryException("Could not select database",e);
+        }
     }
 
     public String getVersion() {
@@ -190,31 +222,31 @@ public class DrizzleProtocol implements Protocol {
         return readOnly;
     }
 
-    public void commit() throws IOException, SQLException {
+    public void commit() throws QueryException {
         log.debug("commiting transaction");
         executeQuery("COMMIT");
     }
 
-    public void rollback() throws IOException, SQLException {
+    public void rollback() throws QueryException {
         log.debug("rolling transaction back");
         executeQuery("ROLLBACK");
     }
 
-    public void rollback(String savepoint) throws IOException, SQLException {
+    public void rollback(String savepoint) throws QueryException {
         log.debug("rolling back to savepoint {}",savepoint);
         executeQuery("ROLLBACK TO SAVEPOINT "+savepoint);
     }
 
-    public void setSavepoint(String savepoint) throws IOException, SQLException {
+    public void setSavepoint(String savepoint) throws QueryException {
         log.debug("setting a savepoint named {}",savepoint);
         executeQuery("SAVEPOINT "+savepoint);
     }
-    public void releaseSavepoint(String savepoint) throws IOException, SQLException {
+    public void releaseSavepoint(String savepoint) throws QueryException {
         log.debug("releasing savepoint named {}",savepoint);
         executeQuery("RELEASE SAVEPOINT "+savepoint);
     }
 
-    public void setAutoCommit(boolean autoCommit) throws IOException, SQLException {
+    public void setAutoCommit(boolean autoCommit) throws QueryException {
         this.autoCommit = autoCommit;
         executeQuery("SET autocommit="+(autoCommit?"1":"0"));
     }
