@@ -16,24 +16,13 @@ import java.io.IOException;
  */
 public class DrizzleConnection implements Connection {
     private final Protocol protocol;
-    private final String username;
-    private final String host;
-    private final int port;
-    private final String database;
     private boolean autoCommit;
     private int savepointCount = 0;
 
-    public DrizzleConnection(String host, int port, String username, String password, String database) throws SQLException {
-        this.username=username;
-        this.port=port;
-        this.host=host;
-        this.database=database;
-        try {
-            protocol = new DrizzleProtocol(host,port,database,username,password);
-        } catch (QueryException e) {
-            throw new SQLException("Could not connect: "+e.getMessage());
-        }
+    public DrizzleConnection(Protocol protocol) {
+        this.protocol=protocol;
     }
+
     public Statement createStatement() throws SQLException {
         return new DrizzleStatement(protocol,this);
     }
@@ -98,8 +87,10 @@ public class DrizzleConnection implements Connection {
 
     public DatabaseMetaData getMetaData() throws SQLException {
         return new DrizzleDatabaseMetaData.Builder().
-                                        url("jdbc:drizzle://"+host+":"+port+"/"+database).
-                                        username(this.username).
+                                        url("jdbc:drizzle://"+protocol.getHost()+
+                                                           ":"+protocol.getPort()+
+                                                           "/"+protocol.getDatabase()).
+                                        username(protocol.getUsername()).
                                         version(protocol.getVersion()).
                                         build();
     }

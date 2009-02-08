@@ -44,5 +44,12 @@ public interface Protocol {
 
     boolean getAutoCommit();
 
+    public String getHost();
 
+    public int getPort();
+
+    public String getDatabase();
+
+    public String getUsername();
+    public String getPassword();
 }

@@ -2,6 +2,8 @@ package org.drizzle.jdbc;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.drizzle.jdbc.internal.DrizzleProtocol;
+import org.drizzle.jdbc.internal.QueryException;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -35,7 +37,11 @@ public class Driver implements java.sql.Driver {
         log.debug("Connecting to: {} ",url);        
         this.parseUrl(url);
 
-        return new DrizzleConnection(hostname,port,"a","b",database);
+        try {
+            return new DrizzleConnection(new DrizzleProtocol(this.hostname,this.port,this.database,this.username,this.password));
+        } catch (QueryException e) {
+            throw new SQLException("Could not connect");
+        }
         //throw new SQLException("Could not connect");
     }
 

@@ -30,7 +30,12 @@ public class DrizzleProtocol implements Protocol {
     private String version;
     private boolean readOnly=false;
     private boolean autoCommit;
-    
+    private final String host;
+    private final int port;
+    private final String database;
+    private final String username;
+    private final String password;
+
     //private ProtocolState protocolState = ProtocolState.NO_TRANSACTION;
     /**
      * Get a protocol instance
@@ -43,6 +48,11 @@ public class DrizzleProtocol implements Protocol {
      * @throws QueryException if there is a problem reading / sending the packets
      */
     public DrizzleProtocol(String host, int port, String database, String username, String password) throws QueryException {
+        this.host=host;
+        this.port=port;
+        this.database=(database==null?"":database);
+        this.username=(username==null?"":username);
+        this.password=(password==null?"":password);
         SocketFactory socketFactory = SocketFactory.getDefault();
         try {
             socket = socketFactory.createSocket(host,port);
@@ -53,7 +63,7 @@ public class DrizzleProtocol implements Protocol {
         try {
             reader = new BufferedInputStream(socket.getInputStream(),16384);
             writer = new BufferedOutputStream(socket.getOutputStream(),16384);
-            this.connect(username,password,database);
+            this.connect(this.username,this.password,this.database);
         } catch (IOException e) {
             throw new QueryException("Could not connect",e);
         }
@@ -198,6 +208,7 @@ public class DrizzleProtocol implements Protocol {
     }
     
     public void selectDB(String database) throws QueryException {
+        log.debug("Selecting db {}",database);
         SelectDBPacket packet = new SelectDBPacket(database);
         byte packetSeqNum=0;
         byte [] b = packet.getBytes(packetSeqNum);
@@ -253,5 +264,25 @@ public class DrizzleProtocol implements Protocol {
 
     public boolean getAutoCommit() {
         return autoCommit;
+    }
+
+    public String getHost() {
+        return host;
+    }
+
+    public int getPort() {
+        return port;
+    }
+
+    public String getDatabase() {
+        return database;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public String getPassword() {
+        return password;
     }
 }

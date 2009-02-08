@@ -180,7 +180,7 @@ public class DrizzleResultSet implements ResultSet {
     }
 
     public ResultSetMetaData getMetaData() throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return new DrizzleResultSetMetaData(this.queryResult.getFieldPackets());  //To change body of implemented methods use File | Settings | File Templates.
     }
 
     public Object getObject(int i) throws SQLException {

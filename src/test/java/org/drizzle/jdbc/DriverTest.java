@@ -22,7 +22,7 @@ public class DriverTest {
         try {
             Class.forName("org.drizzle.jdbc.Driver");
         } catch (ClassNotFoundException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+            throw new SQLException("Could not load driver");
         }
         connection = DriverManager.getConnection("jdbc:drizzle://localhost:4427/test_units_jdbc");
         Statement stmt = connection.createStatement();

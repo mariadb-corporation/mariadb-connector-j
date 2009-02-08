@@ -1,5 +1,8 @@
 package org.drizzle.jdbc;
 
+import org.drizzle.jdbc.internal.DrizzleProtocol;
+import org.drizzle.jdbc.internal.QueryException;
+
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -28,7 +31,12 @@ public class DrizzleDatasource implements DataSource {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public Connection getConnection() throws SQLException {
-        return new DrizzleConnection(hostname,port,"","",database);
+
+        try {
+            return new DrizzleConnection(new DrizzleProtocol(hostname,port,database,null,null));
+        } catch (QueryException e) {
+            throw new SQLException("Could not connect");
+        }
     }
 
     /**
@@ -43,7 +51,11 @@ public class DrizzleDatasource implements DataSource {
      * @since 1.4
      */
     public Connection getConnection(String username, String password) throws SQLException {
-        return new DrizzleConnection(hostname,port,username,password,database);
+        try {
+            return new DrizzleConnection(new DrizzleProtocol(hostname,port,database,username,password));
+        } catch (QueryException e) {
+            throw new SQLException("Could not connect");
+        }
     }
 
     /**

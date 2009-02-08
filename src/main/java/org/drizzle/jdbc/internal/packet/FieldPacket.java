@@ -31,17 +31,17 @@ Bytes                      Name
  n (Length Coded Binary)    default
 
      */
-    private String catalog;
-    private String db;
-    private String table;
-    private String orgTable;
-    private String name;
-    private String orgName;
-    private int charsetNumber;
-    private long length;
-    private byte type;
-    private int flags;
-    private byte decimals;
+    private final String catalog;
+    private final String db;
+    private final String table;
+    private final String orgTable;
+    private final String name;
+    private final String orgName;
+    private final int charsetNumber;
+    private final long length;
+    private final byte type;
+    private final int flags;
+    private final byte decimals;
     public FieldPacket(ReadBuffer readBuffer) throws IOException {
         catalog=readBuffer.getLengthEncodedString();
         db=readBuffer.getLengthEncodedString();
@@ -56,7 +56,6 @@ Bytes                      Name
         flags=readBuffer.readInt();
         decimals=readBuffer.readByte();
         readBuffer.skipBytes(2);
-        //System.out.println(readBuffer.getLength()+":"+readBuffer.getCurrentPointer());
     }
     public ResultType getResultType() {
         return null;  //To change body of implemented methods use File | Settings | File Templates.
@@ -66,14 +65,54 @@ Bytes                      Name
         return 0;  //To change body of implemented methods use File | Settings | File Templates.
     }
 
-    public String toString() {
+/*    public String toString() {
         return "catalog="+catalog+" db="+db+" table="+table+
                " orgTable="+orgTable+" name="+name+" orgName="
                 +orgName+" charsetNumber="+charsetNumber+" length="+
                 length+" type="+type+" flags="+flags+" decimals="+decimals;
     }
-
+*/
     public String getColumnName() {
         return name;
+    }
+
+    public String getCatalog() {
+        return catalog;
+    }
+
+    public String getDb() {
+        return db;
+    }
+
+    public String getTable() {
+        return table;
+    }
+
+    public String getOrgTable() {
+        return orgTable;
+    }
+
+    public String getOrgName() {
+        return orgName;
+    }
+
+    public int getCharsetNumber() {
+        return charsetNumber;
+    }
+
+    public long getLength() {
+        return length;
+    }
+
+    public byte getType() {
+        return type;
+    }
+
+    public int getFlags() {
+        return flags;
+    }
+
+    public byte getDecimals() {
+        return decimals;
     }
 }
