@@ -55,26 +55,46 @@ public class ReadBuffer {
         return returnString;
     }
    /**
-     * read an integer (2 bytes) from the buffer;
-     * @return an integer
-     * @throws IOException if there are not 4 bytes left in the buffer
+     * read a short (2 bytes) from the buffer;
+     * @return an short
+     * @throws IOException if there are not 2 bytes left in the buffer
      */
-    public int readInt() throws IOException {
+    public short readShort() throws IOException {
         if(length - bufferPointer < 2)
-            throw new IOException("Could not read integer");
-        return buffer[bufferPointer++] + (buffer[bufferPointer++]<<8);
+            throw new IOException("Could not read short");
+        return (short) (buffer[bufferPointer++] + (buffer[bufferPointer++]<<8));
     }
 
     /**
-     * read a long (4 bytes) from the buffer;
-     * @return a long
+     * read a int (4 bytes) from the buffer;
+     * @return a int
      * @throws IOException if there are not 4 bytes left in the buffer
      */
-    public long readLong() throws IOException {
+    public int readInt() throws IOException {
         if(length - bufferPointer < 3)
-            throw new IOException("Could not read long ("+length+") ("+bufferPointer+")");
+            throw new IOException("Could not read int ("+length+") ("+bufferPointer+")");
         return buffer[bufferPointer++] + (buffer[bufferPointer++]<<8) +(buffer[bufferPointer++]<<16) +(buffer[bufferPointer++]<<24);
     }
+
+    /**
+     * read a long (8 bytes) from the buffer;
+     * @return a long
+     * @throws IOException if there are not 8 bytes left in the buffer
+     */
+    public long readLong() throws IOException {
+        if(length - bufferPointer < 7)
+            throw new IOException("Could not read long ("+length+") ("+bufferPointer+")");
+        return
+                buffer[bufferPointer++] +
+               (buffer[bufferPointer++]<<8) +
+               (buffer[bufferPointer++]<<16) +
+               (buffer[bufferPointer++]<<24) +
+               (buffer[bufferPointer++]<<32)+
+               (buffer[bufferPointer++]<<40)+
+               (buffer[bufferPointer++]<<48) +
+               (buffer[bufferPointer++]<<56);
+    }
+
 
     /**
      * reads a byte from the buffer
@@ -134,11 +154,10 @@ public class ReadBuffer {
         if(type == (byte)251)
             return -1;
         if(type == (byte)252)
-            return (long)readInt();
+            return (long) readShort();
         if(type == (byte)253)
             return read24bitword();
         if(type == (byte)254) {
-            readLong(); // TODO: FIX!!!!
             return readLong();
         }
         if(type <= 250)

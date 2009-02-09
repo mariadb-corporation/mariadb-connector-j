@@ -54,15 +54,15 @@ public class DriverTest {
         stmt.executeQuery("whraoaooa");
     }
     @Test
-    public void intOperations() {
-        byte [] a = WriteBuffer.intToByteArray(99*256 + 77);
+    public void shortOperations() {
+        byte [] a = WriteBuffer.shortToByteArray((short) (99*256 + 77));
 
         assertEquals(a[0],77);
         assertEquals(a[1],99);
     }
     @Test
-    public void longOperations() {
-        byte [] a = WriteBuffer.longToByteArray(56*256*256*256 + 11*256*256 + 77*256 + 99);
+    public void intOperations() {
+        byte [] a = WriteBuffer.intToByteArray(56*256*256*256 + 11*256*256 + 77*256 + 99);
         assertEquals(a[0],99);
         assertEquals(a[1],77);
         assertEquals(a[2],11);

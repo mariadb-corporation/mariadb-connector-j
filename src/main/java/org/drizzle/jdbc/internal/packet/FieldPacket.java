@@ -37,10 +37,10 @@ Bytes                      Name
     private final String orgTable;
     private final String name;
     private final String orgName;
-    private final int charsetNumber;
+    private final short charsetNumber;
     private final long length;
     private final byte type;
-    private final int flags;
+    private final short flags;
     private final byte decimals;
     public FieldPacket(ReadBuffer readBuffer) throws IOException {
         catalog=readBuffer.getLengthEncodedString();
@@ -50,10 +50,10 @@ Bytes                      Name
         name=readBuffer.getLengthEncodedString();
         orgName=readBuffer.getLengthEncodedString();
         readBuffer.skipByte();
-        charsetNumber = readBuffer.readInt();
-        length=readBuffer.readLong();
+        charsetNumber = readBuffer.readShort();
+        length=readBuffer.readInt();
         type=readBuffer.readByte();
-        flags=readBuffer.readInt();
+        flags=readBuffer.readShort();
         decimals=readBuffer.readByte();
         readBuffer.skipBytes(2);
     }
@@ -65,13 +65,6 @@ Bytes                      Name
         return 0;  //To change body of implemented methods use File | Settings | File Templates.
     }
 
-/*    public String toString() {
-        return "catalog="+catalog+" db="+db+" table="+table+
-               " orgTable="+orgTable+" name="+name+" orgName="
-                +orgName+" charsetNumber="+charsetNumber+" length="+
-                length+" type="+type+" flags="+flags+" decimals="+decimals;
-    }
-*/
     public String getColumnName() {
         return name;
     }
@@ -96,7 +89,7 @@ Bytes                      Name
         return orgName;
     }
 
-    public int getCharsetNumber() {
+    public short getCharsetNumber() {
         return charsetNumber;
     }
 
@@ -108,7 +101,7 @@ Bytes                      Name
         return type;
     }
 
-    public int getFlags() {
+    public short getFlags() {
         return flags;
     }
 

@@ -13,7 +13,7 @@ import java.io.IOException;
  */
 public class ErrorPacket extends ResultPacket {
     private byte fieldCount;
-    private int errorNumber;
+    private short errorNumber;
     private byte sqlStateMarker;
     private byte[] sqlState;
     private String message;
@@ -22,7 +22,7 @@ public class ErrorPacket extends ResultPacket {
     public ErrorPacket(ReadBuffer readBuffer) throws IOException {
         this.packetSeq = readBuffer.getPacketSeq();
         this.fieldCount = readBuffer.readByte();
-        this.errorNumber = readBuffer.readInt();
+        this.errorNumber = readBuffer.readShort();
         this.sqlStateMarker = readBuffer.readByte();
         this.sqlState = readBuffer.readRawBytes(5);
         this.message= readBuffer.readString("ASCII");

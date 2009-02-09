@@ -15,8 +15,8 @@ public class OKPacket extends ResultPacket {
     private final byte fieldCount;
     private final long affectedRows;
     private final long insertId;
-    private final int serverStatus;
-    private final int warnings;
+    private final short serverStatus;
+    private final short warnings;
     private final String message;
     private final byte packetSeqNum;
 
@@ -25,8 +25,8 @@ public class OKPacket extends ResultPacket {
         fieldCount = readBuffer.readByte();
         affectedRows = readBuffer.getLengthEncodedBinary();
         insertId = readBuffer.getLengthEncodedBinary();
-        serverStatus = readBuffer.readInt();
-        warnings = readBuffer.readInt();
+        serverStatus = readBuffer.readShort();
+        warnings = readBuffer.readShort();
         message = readBuffer.readString("ASCII");
     }
 
@@ -51,11 +51,11 @@ public class OKPacket extends ResultPacket {
         return insertId;
     }
 
-    public int getServerStatus() {
+    public short getServerStatus() {
         return serverStatus;
     }
 
-    public int getWarnings() {
+    public short getWarnings() {
         return warnings;
     }
 

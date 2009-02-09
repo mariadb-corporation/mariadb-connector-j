@@ -22,14 +22,14 @@ public class WriteBuffer {
             this.writeByte(theByte);
         return this;
     }
-    public WriteBuffer writeInt(int theInt){
-        byte [] b = intToByteArray(theInt);
+    public WriteBuffer writeShort(short theInt){
+        byte [] b = shortToByteArray(theInt);
         buffer.add(b[0]);
         buffer.add(b[1]);
         return this;
     }
-    public WriteBuffer writeLong(long theLong){
-        byte [] b = longToByteArray(theLong);
+    public WriteBuffer writeInt(int theLong){
+        byte [] b = intToByteArray(theLong);
         for(byte aB:b) buffer.add(aB);
         return this;
     }
@@ -50,9 +50,9 @@ public class WriteBuffer {
         return returnArray;
     }
     public byte[] toByteArrayWithLength(byte packetNumber) {
-        long length = buffer.size();
+        int length = buffer.size();
         byte[] bufferBytes = new byte[buffer.size()+4];
-        byte [] lengthBytes = longToByteArray(length);
+        byte [] lengthBytes = intToByteArray(length);
         lengthBytes[3]=packetNumber;
         int i=0;
         for(byte aB:lengthBytes) bufferBytes[i++]=aB;
@@ -60,13 +60,13 @@ public class WriteBuffer {
         return bufferBytes;
     }
 
-    public static byte[] intToByteArray(int i) {
+    public static byte[] shortToByteArray(short i) {
         byte [] returnArray = new byte[2];
         returnArray[0] = (byte)(i & 0xff);
         returnArray[1] = (byte)(i >>> 8);
         return returnArray;
     }
-    public static byte [] longToByteArray(long l){
+    public static byte [] intToByteArray(int l){
         byte[] returnArray = new byte[4];
         returnArray[0] = (byte)(l & 0xff);
         returnArray[1] = (byte)(l >>> 8);

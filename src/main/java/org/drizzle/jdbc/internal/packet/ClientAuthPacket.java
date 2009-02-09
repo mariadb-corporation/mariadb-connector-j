@@ -55,8 +55,8 @@ public class ClientAuthPacket implements DrizzlePacket {
     }
 // TODO: fix passing the initial database...
     public byte [] toBytes(byte queryNumber) {
-        writeBuffer.writeLong(serverCapabilities & ~((1<<5)|(1<<11)|(1<<3))).
-                    writeLong(4+4+1+23+username.length()+1+1+1+database.length()+1).
+        writeBuffer.writeInt(serverCapabilities & ~((1<<5)|(1<<11)|(1<<3))).
+                writeInt(4+4+1+23+username.length()+1+1+1+database.length()+1).
                     writeByte(serverLanguage). //1
                     writeBytes((byte)0,23).    //4
                     writeString(username).     //strlen username
