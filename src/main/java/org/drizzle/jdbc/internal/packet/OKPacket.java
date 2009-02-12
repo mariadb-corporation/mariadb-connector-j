@@ -1,8 +1,10 @@
 package org.drizzle.jdbc.internal.packet;
 
-import org.drizzle.jdbc.internal.packet.buffer.ReadBuffer;
+import org.drizzle.jdbc.internal.packet.buffer.ReadUtil;
+import org.drizzle.jdbc.internal.packet.buffer.Reader;
 
 import java.io.IOException;
+import java.io.InputStream;
 
 /**
  * Created by IntelliJ IDEA.
@@ -20,16 +22,16 @@ public class OKPacket extends ResultPacket {
     private final String message;
     private final byte packetSeqNum;
 
-    public OKPacket(ReadBuffer readBuffer) throws IOException {
-        packetSeqNum = readBuffer.getPacketSeq();
-        fieldCount = readBuffer.readByte();
-        affectedRows = readBuffer.getLengthEncodedBinary();
-        insertId = readBuffer.getLengthEncodedBinary();
-        serverStatus = readBuffer.readShort();
-        warnings = readBuffer.readShort();
-        message = readBuffer.readString("ASCII");
+    public OKPacket(InputStream istream) throws IOException {
+        Reader reader = new Reader(istream);
+        packetSeqNum = reader.getPacketSeq();
+        fieldCount = reader.readByte();
+        affectedRows = reader.getLengthEncodedBinary();
+        insertId = reader.getLengthEncodedBinary();
+        serverStatus = reader.readShort();
+        warnings = reader.readShort();
+        message = reader.readString("ASCII");
     }
-
     public ResultType getResultType() {
         return ResultType.OK;
     }

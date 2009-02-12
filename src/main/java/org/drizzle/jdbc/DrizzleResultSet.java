@@ -29,7 +29,7 @@ public class DrizzleResultSet implements ResultSet {
     }
 
     public void close() throws SQLException {
-        
+        this.queryResult.close();
     }
 
     public boolean wasNull() throws SQLException {

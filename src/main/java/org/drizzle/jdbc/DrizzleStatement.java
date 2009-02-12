@@ -33,7 +33,7 @@ public class DrizzleStatement implements Statement {
             warningsCleared = false;
             return new DrizzleResultSet(dqr);
         } catch (QueryException e) {
-            throw new SQLException("Could not execute query: "+e.getMessage());
+            throw new SQLException("Could not execute query",e);
         }
     }
 
@@ -65,7 +65,7 @@ public class DrizzleStatement implements Statement {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public void close() throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        dqr.close();
     }
 
     /**

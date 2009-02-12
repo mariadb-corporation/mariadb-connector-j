@@ -8,4 +8,5 @@ package org.drizzle.jdbc.internal.packet;
  * To change this template use File | Settings | File Templates.
  */
 public interface DrizzlePacket {
+    public byte [] toBytes(byte queryNumber);
 }

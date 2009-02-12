@@ -1,8 +1,10 @@
 package org.drizzle.jdbc.internal.packet;
 
-import org.drizzle.jdbc.internal.packet.buffer.ReadBuffer;
+import org.drizzle.jdbc.internal.packet.buffer.ReadUtil;
+import org.drizzle.jdbc.internal.packet.buffer.Reader;
 
 import java.io.IOException;
+import java.io.InputStream;
 
 /**
  * Created by IntelliJ IDEA.
@@ -19,13 +21,13 @@ public class ErrorPacket extends ResultPacket {
     private String message;
     private byte packetSeq;
 
-    public ErrorPacket(ReadBuffer readBuffer) throws IOException {
-        this.packetSeq = readBuffer.getPacketSeq();
-        this.fieldCount = readBuffer.readByte();
-        this.errorNumber = readBuffer.readShort();
-        this.sqlStateMarker = readBuffer.readByte();
-        this.sqlState = readBuffer.readRawBytes(5);
-        this.message= readBuffer.readString("ASCII");
+    public ErrorPacket(InputStream istream) throws IOException {
+        Reader reader = new Reader(istream);
+        this.fieldCount = reader.readByte();
+        this.errorNumber = reader.readShort();
+        this.sqlStateMarker = reader.readByte();
+        this.sqlState = reader.readRawBytes(5);
+        this.message= reader.readString("ASCII");
     }
 
     public String getMessage() {

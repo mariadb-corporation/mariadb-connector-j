@@ -1,8 +1,10 @@
 package org.drizzle.jdbc.internal.packet;
 
-import org.drizzle.jdbc.internal.packet.buffer.ReadBuffer;
+import org.drizzle.jdbc.internal.packet.buffer.ReadUtil;
+import org.drizzle.jdbc.internal.packet.buffer.Reader;
 
 import java.io.IOException;
+import java.io.InputStream;
 
 /**
  * Created by IntelliJ IDEA.
@@ -42,20 +44,21 @@ Bytes                      Name
     private final byte type;
     private final short flags;
     private final byte decimals;
-    public FieldPacket(ReadBuffer readBuffer) throws IOException {
-        catalog=readBuffer.getLengthEncodedString();
-        db=readBuffer.getLengthEncodedString();
-        table=readBuffer.getLengthEncodedString();
-        orgTable=readBuffer.getLengthEncodedString();
-        name=readBuffer.getLengthEncodedString();
-        orgName=readBuffer.getLengthEncodedString();
-        readBuffer.skipByte();
-        charsetNumber = readBuffer.readShort();
-        length=readBuffer.readInt();
-        type=readBuffer.readByte();
-        flags=readBuffer.readShort();
-        decimals=readBuffer.readByte();
-        readBuffer.skipBytes(2);
+    public FieldPacket(InputStream istream) throws IOException {
+        Reader reader = new Reader(istream);
+        catalog=reader.getLengthEncodedString();
+        db=reader.getLengthEncodedString();
+        table=reader.getLengthEncodedString();
+        orgTable=reader.getLengthEncodedString();
+        name=reader.getLengthEncodedString();
+        orgName=reader.getLengthEncodedString();
+        reader.skipBytes(1);
+        charsetNumber = reader.readShort();
+        length=reader.readInt();
+        type=reader.readByte();
+        flags=reader.readShort();
+        decimals=reader.readByte();
+        reader.skipBytes(2);
     }
     public ResultType getResultType() {
         return null;  //To change body of implemented methods use File | Settings | File Templates.

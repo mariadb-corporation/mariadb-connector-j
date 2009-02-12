@@ -1,10 +1,12 @@
 package org.drizzle.jdbc.internal.packet;
 
-import org.drizzle.jdbc.internal.packet.buffer.ReadBuffer;
+import org.drizzle.jdbc.internal.packet.buffer.ReadUtil;
+import org.drizzle.jdbc.internal.packet.buffer.Reader;
 
 import java.util.List;
 import java.util.ArrayList;
 import java.io.IOException;
+import java.io.InputStream;
 
 /**
  * Created by IntelliJ IDEA.
@@ -15,17 +17,12 @@ import java.io.IOException;
  */
 public class RowPacket {
     private List<String> columns = new ArrayList<String>();
-    private ReadBuffer readBuffer;
-    public RowPacket(ReadBuffer readBuffer, long fieldCount) throws IOException {
-        this.readBuffer=readBuffer;
+    public RowPacket(InputStream istream, long fieldCount) throws IOException {
+        Reader reader = new Reader(istream);
         for(int i = 0;i<fieldCount;i++){
-            String col = readBuffer.getLengthEncodedString();
-            //System.out.println(col);
+            String col = reader.getLengthEncodedString();
             columns.add(col);
         }
-
-
-        //String col = readBuffer.getLengthEncodedString();
     }
 
     public List<String> getRow() {

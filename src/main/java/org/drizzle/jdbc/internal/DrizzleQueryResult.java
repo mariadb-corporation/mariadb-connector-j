@@ -64,6 +64,10 @@ public class DrizzleQueryResult implements QueryResult {
         return rowCounter < resultSet.size();
     }
 
+    public void close() {
+        this.resultSet=null;
+    }
+
     public void addRow(List<String> row) {
         resultSet.add(row);
     }

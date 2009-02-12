@@ -13,7 +13,7 @@ import java.util.List;
  */
 public interface QueryResult {
     boolean next();
-
+    void close();
     void addRow(List<String> row);
 
     List<FieldPacket> getFieldPackets();

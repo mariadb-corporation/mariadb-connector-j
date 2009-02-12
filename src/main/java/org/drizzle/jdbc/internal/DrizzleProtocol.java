@@ -1,7 +1,7 @@
 package org.drizzle.jdbc.internal;
 
 import org.drizzle.jdbc.internal.packet.*;
-import org.drizzle.jdbc.internal.packet.buffer.ReadBuffer;
+import org.drizzle.jdbc.internal.packet.buffer.ReadUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -116,6 +116,8 @@ public class DrizzleProtocol implements Protocol {
     public void close() throws QueryException {
         log.debug("Closing...");
         try {
+            ClosePacket closePacket = new ClosePacket();
+            writer.write(closePacket.toBytes((byte)0));
             writer.close();
             reader.close();
             socket.close();
@@ -137,10 +139,11 @@ public class DrizzleProtocol implements Protocol {
      * executes a query, eagerly fetches the results
      * @param query the query to execute
      * @return the query result
-     * @throws IOException
+     * @throws IOException 
      * @throws SQLException
      */
     public DrizzleQueryResult executeQuery(String query) throws QueryException {
+
         log.debug("Executing query: {}",query);
         QueryPacket packet = new QueryPacket(query);
         byte packetSeqNum=0;
@@ -148,7 +151,7 @@ public class DrizzleProtocol implements Protocol {
         ResultPacket resultPacket = null;
         try {
             writer.write(toWrite);
-            writer.flush();
+            writer.flush();            
             resultPacket = ResultPacketFactory.createResultPacket(reader);
         } catch (IOException e) {
             throw new QueryException("Could not send query",e);
@@ -188,21 +191,17 @@ public class DrizzleProtocol implements Protocol {
     private DrizzleQueryResult createDrizzleQueryResult(ResultSetPacket packet) throws IOException {
         List<FieldPacket> fieldPackets = new ArrayList<FieldPacket>();
         for(int i=0;i<packet.getFieldCount();i++) {
-            FieldPacket fieldPacket = new FieldPacket(new ReadBuffer(reader));
+            FieldPacket fieldPacket = new FieldPacket(reader);
             fieldPackets.add(fieldPacket);
         }
-        ReadBuffer readBuffer = new ReadBuffer(reader);
-        if( (readBuffer.getByteAt(0)==(byte)0xfe) && (readBuffer.getLength()<9)) { //check for EOF
-        } else {
-            throw new IOException("Could not parse result");
-        }
+        EOFPacket eof = new EOFPacket(reader);
         DrizzleQueryResult dqr = new DrizzleQueryResult(fieldPackets);
         while(true) {
-            readBuffer = new ReadBuffer(reader);
-            if((readBuffer.getByteAt(0)==(byte)0xfe) && (readBuffer.getLength()<9)) { //check for EOF
+            if(ReadUtil.eofIsNext(reader)) {
+                new EOFPacket(reader);
                 return dqr;
             }
-            RowPacket rowPacket = new RowPacket(readBuffer,packet.getFieldCount());
+            RowPacket rowPacket = new RowPacket(reader,packet.getFieldCount());
             dqr.addRow(rowPacket.getRow());
         }
     }
@@ -211,7 +210,7 @@ public class DrizzleProtocol implements Protocol {
         log.debug("Selecting db {}",database);
         SelectDBPacket packet = new SelectDBPacket(database);
         byte packetSeqNum=0;
-        byte [] b = packet.getBytes(packetSeqNum);
+        byte [] b = packet.toBytes(packetSeqNum);
         try {
             writer.write(b);
             writer.flush();

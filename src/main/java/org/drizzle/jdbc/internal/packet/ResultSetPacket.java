@@ -1,8 +1,10 @@
 package org.drizzle.jdbc.internal.packet;
 
-import org.drizzle.jdbc.internal.packet.buffer.ReadBuffer;
+import org.drizzle.jdbc.internal.packet.buffer.ReadUtil;
+import org.drizzle.jdbc.internal.packet.buffer.Reader;
 
 import java.io.IOException;
+import java.io.InputStream;
 
 /**
  * Created by IntelliJ IDEA.
@@ -15,11 +17,10 @@ public class ResultSetPacket extends ResultPacket {
     private long fieldCount;
     private long extra;
     private byte packetSeq;
-    public ResultSetPacket(ReadBuffer readBuffer) throws IOException {
-        packetSeq = readBuffer.getPacketSeq();
-        fieldCount = readBuffer.getLengthEncodedBinary();
-        extra = readBuffer.getLengthEncodedBinary();
-
+    public ResultSetPacket(InputStream istream) throws IOException {
+        Reader reader = new Reader(istream);
+        packetSeq = reader.getPacketSeq();
+        fieldCount = reader.getLengthEncodedBinary();
     }
 
     public ResultType getResultType() {

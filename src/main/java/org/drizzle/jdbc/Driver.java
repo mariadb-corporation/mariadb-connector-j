@@ -40,7 +40,7 @@ public class Driver implements java.sql.Driver {
         try {
             return new DrizzleConnection(new DrizzleProtocol(this.hostname,this.port,this.database,this.username,this.password));
         } catch (QueryException e) {
-            throw new SQLException("Could not connect");
+            throw new SQLException("Could not connect",e);
         }
         //throw new SQLException("Could not connect");
     }

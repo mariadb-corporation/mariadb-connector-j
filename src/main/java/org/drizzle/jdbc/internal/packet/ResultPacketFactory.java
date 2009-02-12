@@ -1,6 +1,6 @@
 package org.drizzle.jdbc.internal.packet;
 
-import org.drizzle.jdbc.internal.packet.buffer.ReadBuffer;
+import org.drizzle.jdbc.internal.packet.buffer.ReadUtil;
 
 import java.io.InputStream;
 import java.io.IOException;
@@ -19,16 +19,15 @@ public class ResultPacketFactory {
     private final static byte EOF = (byte)0xfe;
 
     public static ResultPacket createResultPacket(InputStream reader) throws IOException {
-        ReadBuffer readBuffer = new ReadBuffer(reader);
-        switch(readBuffer.getByteAt(0)) {
+        switch(ReadUtil.getByteAt(reader,5)) {
             case ERROR:
-                return new ErrorPacket(readBuffer);
+                return new ErrorPacket(reader);
             case OK:
-                return new OKPacket(readBuffer);
+                return new OKPacket(reader);
             case EOF:
-                return new EOFPacket(readBuffer);
+                return new EOFPacket(reader);
             default:
-                return new ResultSetPacket(readBuffer);
+                return new ResultSetPacket(reader);
         }
     }
 }

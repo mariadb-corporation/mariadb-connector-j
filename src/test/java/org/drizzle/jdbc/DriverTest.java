@@ -1,6 +1,7 @@
 package org.drizzle.jdbc;
 
 import org.junit.Test;
+import org.junit.After;
 import org.drizzle.jdbc.internal.packet.buffer.WriteBuffer;
 import org.apache.log4j.BasicConfigurator;
 
@@ -34,7 +35,10 @@ public class DriverTest {
         stmt.execute("insert into t1 (test) values (null)");
         
     }
-
+    @After
+    public void close() throws SQLException {
+        connection.close();
+    }
     @Test
     public void doQuery() throws SQLException{
         Statement stmt = connection.createStatement();

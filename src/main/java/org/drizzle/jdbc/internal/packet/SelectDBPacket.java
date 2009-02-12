@@ -16,7 +16,7 @@ public class SelectDBPacket implements DrizzlePacket {
         buffer.writeByte((byte)0x02);
         buffer.writeString(database);
     }
-    public byte [] getBytes(byte commandNumber){
+    public byte [] toBytes(byte commandNumber){
         return buffer.toByteArrayWithLength(commandNumber);
     }
 }

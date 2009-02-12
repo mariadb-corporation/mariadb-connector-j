@@ -1,6 +1,7 @@
 package org.drizzle.jdbc.internal.packet;
 
-import org.drizzle.jdbc.internal.packet.buffer.ReadBuffer;
+import org.drizzle.jdbc.internal.packet.buffer.ReadUtil;
+import org.drizzle.jdbc.internal.packet.buffer.Reader;
 
 import java.io.InputStream;
 import java.io.IOException;
@@ -12,7 +13,6 @@ import java.io.IOException;
  * Time: 3:18:11 PM
  */
 public class GreetingReadPacket {
-
     private final String serverVersion;
     private final byte protocolVersion;
     private final long serverThreadID;
@@ -21,20 +21,19 @@ public class GreetingReadPacket {
     private final short serverCapabilities  ;
     private final byte serverLanguage;
     private final short serverStatus;
-    private final ReadBuffer readBuffer;
 
-    public GreetingReadPacket(InputStream reader) throws IOException {
-        readBuffer=new ReadBuffer(reader);
-        protocolVersion = readBuffer.readByte();
-        serverVersion = readBuffer.readString("ASCII");
-        serverThreadID = readBuffer.readInt();
-        seed1 = readBuffer.readRawBytes(8);
-        readBuffer.skipByte();
-        serverCapabilities = readBuffer.readShort();
-        serverLanguage = readBuffer.readByte();
-        serverStatus = readBuffer.readShort();
-        readBuffer.skipBytes(13);
-        seed2=readBuffer.readRawBytes(13);
+    public GreetingReadPacket(InputStream istream) throws IOException {
+        Reader reader = new Reader(istream);
+        protocolVersion = reader.readByte();
+        serverVersion = reader.readString("ASCII");
+        serverThreadID = reader.readInt();
+        seed1 = reader.readRawBytes(8);
+        reader.skipByte();
+        serverCapabilities = reader.readShort();
+        serverLanguage = reader.readByte();
+        serverStatus = reader.readShort();
+        reader.skipBytes(13);
+        seed2=reader.readRawBytes(13);
     }
     @Override
     public String toString(){
