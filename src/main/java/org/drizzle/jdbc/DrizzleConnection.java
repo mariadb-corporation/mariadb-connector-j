@@ -1,13 +1,11 @@
 package org.drizzle.jdbc;
 
 import org.drizzle.jdbc.internal.Protocol;
-import org.drizzle.jdbc.internal.DrizzleProtocol;
 import org.drizzle.jdbc.internal.QueryException;
 
 import java.sql.*;
 import java.util.Map;
 import java.util.Properties;
-import java.io.IOException;
 
 /**
  * User: marcuse
@@ -16,11 +14,13 @@ import java.io.IOException;
  */
 public class DrizzleConnection implements Connection {
     private final Protocol protocol;
-    private boolean autoCommit;
     private int savepointCount = 0;
+    private SQLWarning warning=null;
+    private Properties clientInfoProperties;
 
     public DrizzleConnection(Protocol protocol) {
         this.protocol=protocol;
+        clientInfoProperties=new Properties();
     }
 
     public Statement createStatement() throws SQLException {
@@ -109,7 +109,7 @@ public class DrizzleConnection implements Connection {
      *                               or this method is called on a closed connection
      */
     public boolean isReadOnly() throws SQLException {
-        return false;  //To change body of implemented methods use File | Settings | File Templates.
+        return false;
     }
 
     /**
@@ -119,6 +119,7 @@ public class DrizzleConnection implements Connection {
      * <p/>
      * If the driver does not support catalogs, it will
      * silently ignore this request.
+     * TODO: Explain the wrapper interface to be able to change database
      *
      * @param catalog the name of a catalog (subspace in this
      *                <code>Connection</code> object's database) in which to work
@@ -127,11 +128,15 @@ public class DrizzleConnection implements Connection {
      * @see #getCatalog
      */
     public void setCatalog(String catalog) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        // silently ignored since drizzle does not support catalogs
     }
 
     /**
      * Retrieves this <code>Connection</code> object's current catalog name.
+     *
+     * catalogs are not supported in drizzle
+     *
+     * TODO: Explain the wrapper interface to be able to change database
      *
      * @return the current catalog name or <code>null</code> if there is none
      * @throws java.sql.SQLException if a database access error occurs
@@ -139,7 +144,7 @@ public class DrizzleConnection implements Connection {
      * @see #setCatalog
      */
     public String getCatalog() throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return null;
     }
 
     /**
@@ -166,7 +171,28 @@ public class DrizzleConnection implements Connection {
      * @see #getTransactionIsolation
      */
     public void setTransactionIsolation(int level) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        String query = "SET SESSION TRANSACTION ISOLATION LEVEL";
+        switch(level){
+            case Connection.TRANSACTION_READ_UNCOMMITTED:
+                query+=" READ UNCOMMITTED";
+                break;
+            case Connection.TRANSACTION_READ_COMMITTED:
+                query+=" READ COMMITTED";
+                break;
+            case Connection.TRANSACTION_REPEATABLE_READ:
+                query+=" REPEATABLE READ";
+                break;
+            case Connection.TRANSACTION_SERIALIZABLE:
+                query+=" SERIALIZABLE";
+                break;
+            default:
+                throw new SQLException("Unsupported transaction isolation level");
+        }
+        try {
+            protocol.executeQuery(query);
+        } catch (QueryException e) {
+            throw new SQLException("Could not set transaction isolation level",e);
+        }
     }
 
     /**
@@ -185,7 +211,20 @@ public class DrizzleConnection implements Connection {
      * @see #setTransactionIsolation
      */
     public int getTransactionIsolation() throws SQLException {
-        return 0;  //To change body of implemented methods use File | Settings | File Templates.
+        Statement stmt = createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT @@tx_isolation");
+        rs.next();
+        String response = rs.getString(1);
+        if(response.equals( "REPEATABLE-READ"))
+            return  Connection.TRANSACTION_REPEATABLE_READ;
+        if(response.equals( "READ-UNCOMMITTED"))
+            return  Connection.TRANSACTION_READ_UNCOMMITTED;
+        if(response.equals( "READ-COMMITTED"))
+            return  Connection.TRANSACTION_READ_COMMITTED;
+        if(response.equals( "SERIALIZABLE"))
+            return  Connection.TRANSACTION_SERIALIZABLE;
+        
+        throw new SQLException("Could not get transaction isolation level");
     }
 
     /**
@@ -210,7 +249,7 @@ public class DrizzleConnection implements Connection {
      * @see java.sql.SQLWarning
      */
     public SQLWarning getWarnings() throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return warning;
     }
 
     /**
@@ -223,7 +262,7 @@ public class DrizzleConnection implements Connection {
      *                               or this method is called on a closed connection
      */
     public void clearWarnings() throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        this.warning=null;
     }
 
     /**
@@ -256,7 +295,9 @@ public class DrizzleConnection implements Connection {
      * @since 1.2
      */
     public Statement createStatement(int resultSetType, int resultSetConcurrency) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        // for nwo resultSetType and resultSetConcurrency are ignored
+        // TODO: fix
+        return createStatement();
     }
 
     /**
@@ -292,7 +333,9 @@ public class DrizzleConnection implements Connection {
      * @since 1.2
      */
     public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        // for nwo resultSetType and resultSetConcurrency are ignored
+        // TODO: fix
+        return prepareStatement(sql);
     }
 
     /**
@@ -327,7 +370,7 @@ public class DrizzleConnection implements Connection {
      * @since 1.2
      */
     public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Stored procedures not supported");
     }
 
     /**
@@ -347,7 +390,7 @@ public class DrizzleConnection implements Connection {
      * @since 1.2
      */
     public Map<String, Class<?>> getTypeMap() throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Not yet supported");
     }
 
     /**
@@ -369,7 +412,7 @@ public class DrizzleConnection implements Connection {
      * @since 1.2
      */
     public void setTypeMap(Map<String, Class<?>> map) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Not yet supported");
     }
 
     /**
@@ -393,7 +436,8 @@ public class DrizzleConnection implements Connection {
      * @since 1.4
      */
     public void setHoldability(int holdability) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        if(holdability != ResultSet.HOLD_CURSORS_OVER_COMMIT)
+            throw new SQLFeatureNotSupportedException("Only holding cursors over commit is supported");
     }
 
     /**
@@ -411,7 +455,7 @@ public class DrizzleConnection implements Connection {
      * @since 1.4
      */
     public int getHoldability() throws SQLException {
-        return 0;  //To change body of implemented methods use File | Settings | File Templates.
+        return ResultSet.HOLD_CURSORS_OVER_COMMIT;
     }
 
     /**
@@ -746,7 +790,7 @@ public class DrizzleConnection implements Connection {
      * @since 1.4
      */
     public PreparedStatement prepareStatement(String sql, int columnIndexes[]) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Not yet supported");
     }
 
     /**
@@ -795,7 +839,7 @@ public class DrizzleConnection implements Connection {
      * @since 1.4
      */
     public PreparedStatement prepareStatement(String sql, String columnNames[]) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Not yet supported");
     }
 
     /**
@@ -814,7 +858,7 @@ public class DrizzleConnection implements Connection {
      * @since 1.6
      */
     public Clob createClob() throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Not yet supported");
     }
 
     /**
@@ -833,7 +877,7 @@ public class DrizzleConnection implements Connection {
      * @since 1.6
      */
     public Blob createBlob() throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return null;
     }
 
     /**
@@ -852,7 +896,7 @@ public class DrizzleConnection implements Connection {
      * @since 1.6
      */
     public NClob createNClob() throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("NClobs not supported");
     }
 
     /**
@@ -871,7 +915,7 @@ public class DrizzleConnection implements Connection {
      * @since 1.6
      */
     public SQLXML createSQLXML() throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Not supported");
     }
 
     /**
@@ -898,7 +942,11 @@ public class DrizzleConnection implements Connection {
      *        <p/>
      */
     public boolean isValid(int timeout) throws SQLException {
-        return false;  //To change body of implemented methods use File | Settings | File Templates.
+        try {
+            return protocol.ping();
+        } catch (QueryException e) {
+            throw new SQLException("Could not ping server",e);
+        }
     }
 
     /**
@@ -957,7 +1005,7 @@ public class DrizzleConnection implements Connection {
      * @since 1.6
      */
     public void setClientInfo(String name, String value) throws SQLClientInfoException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        this.clientInfoProperties.setProperty(name,value);
     }
 
     /**
@@ -992,7 +1040,10 @@ public class DrizzleConnection implements Connection {
      *        <p/>
      */
     public void setClientInfo(Properties properties) throws SQLClientInfoException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        // TODO: actually use these!
+        for(String key : properties.stringPropertyNames()) {
+            this.clientInfoProperties.setProperty(key,properties.getProperty(key));
+        }
     }
 
     /**
@@ -1019,7 +1070,7 @@ public class DrizzleConnection implements Connection {
      *        <p/>
      */
     public String getClientInfo(String name) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return clientInfoProperties.getProperty(name);
     }
 
     /**
@@ -1039,7 +1090,7 @@ public class DrizzleConnection implements Connection {
      * @since 1.6
      */
     public Properties getClientInfo() throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return clientInfoProperties;
     }
 
     /**
@@ -1070,7 +1121,7 @@ public class DrizzleConnection implements Connection {
      * @since 1.6
      */
     public Array createArrayOf(String typeName, Object[] elements) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Not yet supported");
     }
 
     /**
@@ -1088,7 +1139,7 @@ public class DrizzleConnection implements Connection {
      * @since 1.6
      */
     public Struct createStruct(String typeName, Object[] attributes) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Not yet supported");
     }
 
     /**
@@ -1129,5 +1180,35 @@ public class DrizzleConnection implements Connection {
      */
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
         return false;  //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    private void addWarning(String warningMessage){
+        if(this.warning == null) {
+            this.warning = new SQLWarning(warningMessage);
+        } else {
+            SQLWarning warning = new SQLWarning(warningMessage);
+            warning.setNextWarning(this.warning);
+            this.warning = warning;
+        }
+    }
+
+    public String getUsername() {
+        return protocol.getUsername();
+    }
+
+    public String getPassword() {
+        return protocol.getPassword();
+    }
+
+    public String getHostname() {
+        return protocol.getHost();
+    }
+
+    public int getPort() {
+        return protocol.getPort();
+    }
+
+    public String getDatabase() {
+        return protocol.getDatabase();
     }
 }

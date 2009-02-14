@@ -52,4 +52,6 @@ public interface Protocol {
 
     public String getUsername();
     public String getPassword();
+
+    boolean ping() throws QueryException;
 }

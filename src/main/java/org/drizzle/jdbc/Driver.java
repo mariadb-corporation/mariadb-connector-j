@@ -34,7 +34,10 @@ public class Driver implements java.sql.Driver {
     }
 
     public Connection connect(String url, Properties info) throws SQLException {
-        log.debug("Connecting to: {} ",url);        
+        // TODO: handle the properties!
+        // TODO: define what props we support!
+
+        log.debug("Connecting to: {} ",url);
         this.parseUrl(url);
 
         try {
@@ -42,24 +45,33 @@ public class Driver implements java.sql.Driver {
         } catch (QueryException e) {
             throw new SQLException("Could not connect",e);
         }
-        //throw new SQLException("Could not connect");
     }
 
+    /**
+     * Syntax for connection url is:
+     * jdbc:drizzle://username:password@host:port/database
+     * @param url the url to parse
+     * @throws SQLException if the connection string is bad
+     */
     private void parseUrl(String url) throws SQLException {
-        Pattern p = Pattern.compile("^jdbc:drizzle://([^/:]+)(:(\\d+))?(/(\\w+))");
+        Pattern p = Pattern.compile("^jdbc:drizzle://((\\w+)(:(\\w+))?@)?([^/:]+)(:(\\d+))?(/(\\w+))?");
         Matcher m=p.matcher(url);
         if(m.find()) {
-            this.hostname = m.group(1);
+            this.username = m.group(2);
+            log.debug("found username: {}",username);
+            this.password = m.group(4);
+            log.debug("found password: {}",password);
+            this.hostname = m.group(5);
             log.debug("Found hostname: {}",hostname);
 
-            if(m.group(3) != null) {
-                this.port = Integer.parseInt(m.group(3));
+            if(m.group(7) != null) {
+                this.port = Integer.parseInt(m.group(7));
                 log.debug("Found port: {}",port);
 
             } else {
                 this.port=4427;
             }
-            this.database = m.group(5);
+            this.database = m.group(9);
             log.debug("Found database: {}",database);
 
         } else {

@@ -1291,7 +1291,7 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @see java.sql.Connection
      */
     public int getDefaultTransactionIsolation() throws SQLException {
-        return 0;  //To change body of implemented methods use File | Settings | File Templates.
+        return Connection.TRANSACTION_REPEATABLE_READ;
     }
 
     /**
@@ -1304,7 +1304,7 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public boolean supportsTransactions() throws SQLException {
-        return false;  //To change body of implemented methods use File | Settings | File Templates.
+        return true;
     }
 
     /**
@@ -1317,9 +1317,16 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @see java.sql.Connection
      */
     public boolean supportsTransactionIsolationLevel(int level) throws SQLException {
-        return false;  //To change body of implemented methods use File | Settings | File Templates.
+        switch(level){
+            case Connection.TRANSACTION_READ_UNCOMMITTED:
+            case Connection.TRANSACTION_READ_COMMITTED:
+            case Connection.TRANSACTION_REPEATABLE_READ:
+            case Connection.TRANSACTION_SERIALIZABLE:
+                return true;
+            default:
+                return false;
+        }
     }
-
     /**
      * Retrieves whether this database supports both data definition and
      * data manipulation statements within a transaction.

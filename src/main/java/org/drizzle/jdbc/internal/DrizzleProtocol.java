@@ -284,4 +284,16 @@ public class DrizzleProtocol implements Protocol {
     public String getPassword() {
         return password;
     }
+
+    public boolean ping() throws QueryException {
+        PingPacket pingPacket = new PingPacket();
+        try {
+            writer.write(pingPacket.toBytes((byte)0));
+            writer.flush();
+            log.debug("Sent ping packet");
+            return ResultPacketFactory.createResultPacket(reader).getResultType()==ResultPacket.ResultType.OK;
+        } catch (IOException e) {
+            throw new QueryException("Could not ping",e);
+        }
+    }
 }

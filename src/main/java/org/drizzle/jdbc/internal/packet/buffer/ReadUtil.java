@@ -14,12 +14,8 @@ import java.io.BufferedInputStream;
 public class ReadUtil {
     private static int readLength(InputStream reader) throws IOException {
         byte [] lengthBuffer = new byte[3];
-        //int readBytes = reader.read(lengthBuffer,0,3);
         for(int i =0 ;i<3;i++)
             lengthBuffer[i]= (byte) reader.read();
-//        if(readBytes!=3) {
-//            throw new IOException("Could not read packet");
-//        }
         return  (lengthBuffer[0] & 0xff)+(lengthBuffer[1]<<8) + (lengthBuffer[2]<<16);
     }
 
