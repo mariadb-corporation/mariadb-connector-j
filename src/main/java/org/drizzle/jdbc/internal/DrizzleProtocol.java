@@ -8,7 +8,6 @@ import org.slf4j.LoggerFactory;
 import javax.net.SocketFactory;
 import java.net.Socket;
 import java.io.*;
-import java.sql.SQLException;
 import java.util.List;
 import java.util.ArrayList;
 
@@ -139,8 +138,7 @@ public class DrizzleProtocol implements Protocol {
      * executes a query, eagerly fetches the results
      * @param query the query to execute
      * @return the query result
-     * @throws IOException 
-     * @throws SQLException
+     * @throws QueryException if the query could not be executed
      */
     public DrizzleQueryResult executeQuery(String query) throws QueryException {
 

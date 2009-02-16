@@ -20,7 +20,7 @@ public class DrizzleQueryResult implements QueryResult {
     }
 
     private final List<FieldPacket> fieldPackets;
-    private List<List<String>> resultSet = new ArrayList<List<String>>();
+    private List<List<ValueObject>> resultSet = new ArrayList<List<ValueObject>>();
     private Map<String, Integer> columnNameMap = new HashMap<String,Integer>();
     private int rowCounter;
     private int updateCount;
@@ -51,8 +51,8 @@ public class DrizzleQueryResult implements QueryResult {
         fieldPackets=null;
         rowCounter=-1;
         if(insertId>0) {
-            List<String> genKeyList = new ArrayList<String>();
-            genKeyList.add(String.valueOf(insertId));
+            List<ValueObject> genKeyList = new ArrayList<ValueObject>();
+            genKeyList.add(DrizzleValueObject.fromLong(insertId));
             resultSet.add(genKeyList);
             columnNameMap.put("insert_id",0);
         }
@@ -68,23 +68,25 @@ public class DrizzleQueryResult implements QueryResult {
         this.resultSet=null;
     }
 
-    public void addRow(List<String> row) {
+    public void addRow(List<ValueObject> row) {
         resultSet.add(row);
     }
 
     public List<FieldPacket> getFieldPackets() {
         return fieldPackets;
     }
-    
-    public String getString(int i) {
-        String result = resultSet.get(rowCounter).get(i-1);
-        if(result==null)
-            return "NULL";
-        return result;
+
+    /**
+     * gets the value at position i in the result set. i starts at zero!
+     * @param i index, starts at 0
+     * @return
+     */
+    public ValueObject getValueObject(int i) {
+        return resultSet.get(rowCounter).get(i);
     }
 
-    public String getString(String column) {
-        return getString(columnNameMap.get(column.toLowerCase())+1);
+    public ValueObject getValueObject(String column) {
+        return getValueObject(columnNameMap.get(column.toLowerCase()));
     }
 
     public void setUpdateCount(int updateCount) {

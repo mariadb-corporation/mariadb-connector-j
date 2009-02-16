@@ -74,4 +74,16 @@ public class WriteBuffer {
         returnArray[3] = (byte)(l >>> 24);
         return returnArray;
     }
+    public static byte [] longToByteArray(long l){
+        byte[] returnArray = new byte[8];
+        returnArray[0] = (byte)(l & 0xff);
+        returnArray[1] = (byte)(l >>> 8);
+        returnArray[2] = (byte)(l >>> 16);
+        returnArray[3] = (byte)(l >>> 24);
+        returnArray[0] = (byte)(l >>> 32);
+        returnArray[1] = (byte)(l >>> 40);
+        returnArray[2] = (byte)(l >>> 48);
+        returnArray[3] = (byte)(l >>> 56);
+        return returnArray;
+    }
 }

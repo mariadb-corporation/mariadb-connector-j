@@ -14,13 +14,13 @@ import java.util.List;
 public interface QueryResult {
     boolean next();
     void close();
-    void addRow(List<String> row);
+    void addRow(List<ValueObject> row);
 
     List<FieldPacket> getFieldPackets();
 
-    String getString(int i);
+    ValueObject getValueObject(int i);
 
-    String getString(String column);
+    ValueObject getValueObject(String column);
 
     void setUpdateCount(int updateCount);
 

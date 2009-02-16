@@ -187,6 +187,18 @@ public class Reader {
         return new String(tmpBuf, "ASCII");
     }
 
+    public byte[] getLengthEncodedBytes() throws IOException {
+        long encLength = getLengthEncodedBinary();
+        if(encLength==-1) return null;
+        if(readBytes+encLength > length)
+            throw new IOException("Could not read length encoded binary ("+readBytes+")("+encLength+")("+length+")");
+        byte [] tmpBuf = new byte[(int)encLength];
+        for(int i=0;i<encLength;i++)
+            tmpBuf[i] = (byte) reader.read();
+        readBytes+=encLength;
+        return tmpBuf;
+    }
+
     public  byte getByteAt(int i) throws IOException {
         reader.mark(i+1);
         reader.skip(i-1);

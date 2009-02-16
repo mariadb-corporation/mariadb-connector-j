@@ -21,13 +21,10 @@ public class ResultPacketFactory {
     public static ResultPacket createResultPacket(InputStream reader) throws IOException {
         switch(ReadUtil.getByteAt(reader,5)) {
             case ERROR:
-                System.out.println("ERROR");
                 return new ErrorPacket(reader);
             case OK:
-                System.out.println("OK");
                 return new OKPacket(reader);
             case EOF:
-                System.out.println("EOF");
                 return new EOFPacket(reader);
             default:
                 return new ResultSetPacket(reader);

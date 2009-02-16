@@ -1,7 +1,9 @@
 package org.drizzle.jdbc.internal.packet;
 
-import org.drizzle.jdbc.internal.packet.buffer.ReadUtil;
 import org.drizzle.jdbc.internal.packet.buffer.Reader;
+import org.drizzle.jdbc.internal.ValueObject;
+import org.drizzle.jdbc.internal.DrizzleValueObject;
+import static org.drizzle.jdbc.internal.DrizzleValueObject.DataType.STRING;
 
 import java.util.List;
 import java.util.ArrayList;
@@ -16,16 +18,17 @@ import java.io.InputStream;
  * To change this template use File | Settings | File Templates.
  */
 public class RowPacket {
-    private List<String> columns = new ArrayList<String>();
+    private List<ValueObject> columns = new ArrayList<ValueObject>();
     public RowPacket(InputStream istream, long fieldCount) throws IOException {
         Reader reader = new Reader(istream);
         for(int i = 0;i<fieldCount;i++){
-            String col = reader.getLengthEncodedString();
-            columns.add(col);
+            byte [] col  = reader.getLengthEncodedBytes();
+            columns.add(new DrizzleValueObject(col, STRING));
         }
     }
 
-    public List<String> getRow() {
+    public List<ValueObject> getRow() {
         return columns;
     }
+
 }
