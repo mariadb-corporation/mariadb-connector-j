@@ -6,6 +6,7 @@ import java.sql.Time;
 import java.text.ParseException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.util.Calendar;
 
 /**
  * Created by IntelliJ IDEA.
@@ -37,4 +38,10 @@ public interface ValueObject {
     InputStream getInputStream(String s) throws UnsupportedEncodingException;
 
     Object getObject();
+
+    Date getDate(Calendar cal) throws ParseException;
+
+    Time getTime(Calendar cal) throws ParseException;
+
+    boolean getBoolean();
 }

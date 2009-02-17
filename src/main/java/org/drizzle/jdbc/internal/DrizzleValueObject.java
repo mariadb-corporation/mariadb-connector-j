@@ -12,6 +12,7 @@ import java.io.InputStream;
 import java.io.StringReader;
 import java.io.ByteArrayInputStream;
 import java.io.UnsupportedEncodingException;
+import java.util.Calendar;
 
 /**
  * Contains the raw value returned from the server
@@ -102,6 +103,27 @@ public class DrizzleValueObject implements ValueObject {
                 
         }
         return null;  //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    public Date getDate(Calendar cal) throws ParseException {
+        String rawValue = getString();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        //TODO: actually use the calendar
+        return (Date) sdf.parse(rawValue);
+    }
+
+    public Time getTime(Calendar cal) throws ParseException {
+        String rawValue = getString();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        //TODO: actually use the calendar
+        return (Time) sdf.parse(rawValue);
+    }
+
+    public boolean getBoolean() {
+        String rawVal = getString();
+        if(rawVal.toLowerCase().equals("true") || rawVal.toLowerCase().equals("1"))
+            return true;
+        return false;
     }
 
     /**

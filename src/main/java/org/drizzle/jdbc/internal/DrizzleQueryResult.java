@@ -129,4 +129,16 @@ public class DrizzleQueryResult implements QueryResult {
         return generatedKeysResult;
     }
 
+    public int getColumnId(String columnLabel) {
+        return columnNameMap.get(columnLabel.toLowerCase());
+    }
+
+    public int getRowPointer() {
+        return rowCounter;
+    }
+
+    public void moveRowPointerTo(int i) {
+        this.rowCounter=i;    
+    }
+
 }

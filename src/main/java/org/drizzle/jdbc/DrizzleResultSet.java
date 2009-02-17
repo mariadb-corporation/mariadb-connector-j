@@ -8,9 +8,11 @@ import java.math.BigDecimal;
 import java.io.InputStream;
 import java.io.Reader;
 import java.io.UnsupportedEncodingException;
+import java.io.StringReader;
 import java.util.Map;
 import java.util.Calendar;
 import java.net.URL;
+import java.net.MalformedURLException;
 import java.text.ParseException;
 
 /**
@@ -22,8 +24,13 @@ import java.text.ParseException;
  */
 public class DrizzleResultSet implements ResultSet {
     private QueryResult queryResult;
-    public DrizzleResultSet(QueryResult dqr) {
+    private Statement statement;
+    private boolean isClosed;
+
+    public DrizzleResultSet(QueryResult dqr, Statement statement) {
         this.queryResult=dqr;
+        this.statement = statement;
+        isClosed = false;
     }
 
 
@@ -32,6 +39,7 @@ public class DrizzleResultSet implements ResultSet {
     }
 
     public void close() throws SQLException {
+        this.isClosed=true;
         this.queryResult.close();
     }
 
@@ -464,7 +472,7 @@ public class DrizzleResultSet implements ResultSet {
      *                               or this method is called on a closed result set
      */
     public int findColumn(String columnLabel) throws SQLException {
-        return 0;  //To change body of implemented methods use File | Settings | File Templates.
+        return this.queryResult.getColumnId(columnLabel)+1;
     }
 
     /**
@@ -482,7 +490,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public Reader getCharacterStream(int columnIndex) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return new StringReader(getValueObject(columnIndex).getString());
     }
 
     /**
@@ -500,7 +508,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public Reader getCharacterStream(String columnLabel) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return new StringReader(getValueObject(columnLabel).getString());
     }
 
     /**
@@ -518,7 +526,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public BigDecimal getBigDecimal(int columnIndex) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return getValueObject(columnIndex).getBigDecimal();
     }
 
     /**
@@ -536,7 +544,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public BigDecimal getBigDecimal(String columnLabel) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return getValueObject(columnLabel).getBigDecimal();
     }
 
     /**
@@ -558,7 +566,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean isBeforeFirst() throws SQLException {
-        return false;  //To change body of implemented methods use File | Settings | File Templates.
+        return queryResult.getRowPointer() == -1;
     }
 
     /**
@@ -580,7 +588,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean isAfterLast() throws SQLException {
-        return false;  //To change body of implemented methods use File | Settings | File Templates.
+        return false;
     }
 
     /**
@@ -601,7 +609,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean isFirst() throws SQLException {
-        return false;  //To change body of implemented methods use File | Settings | File Templates.
+        return queryResult.getRowPointer() == 0;
     }
 
     /**
@@ -626,7 +634,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean isLast() throws SQLException {
-        return false;  //To change body of implemented methods use File | Settings | File Templates.
+        return queryResult.getRowPointer() == queryResult.getRows();
     }
 
     /**
@@ -643,7 +651,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void beforeFirst() throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        queryResult.moveRowPointerTo(-1);
     }
 
     /**
@@ -660,7 +668,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void afterLast() throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Cannot move after last row");
     }
 
     /**
@@ -678,7 +686,11 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean first() throws SQLException {
-        return false;  //To change body of implemented methods use File | Settings | File Templates.
+        if(queryResult.getRows()>0) {
+            queryResult.moveRowPointerTo(0);
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -696,7 +708,11 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean last() throws SQLException {
-        return false;  //To change body of implemented methods use File | Settings | File Templates.
+         if(queryResult.getRows()>0) {
+            queryResult.moveRowPointerTo(queryResult.getRows());
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -716,7 +732,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public int getRow() throws SQLException {
-        return 0;  //To change body of implemented methods use File | Settings | File Templates.
+        return queryResult.getRowPointer()+1;//+1 since first row is 1, not 0
     }
 
     /**
@@ -760,6 +776,16 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean absolute(int row) throws SQLException {
+        if(queryResult.getRows() > 0) {
+            if(row >= 0 && row <= queryResult.getRows()) {
+                queryResult.moveRowPointerTo(row+1);
+                return true;
+            }
+            if(row<0) {
+                queryResult.moveRowPointerTo(queryResult.getRows()+row+1); //+1 since rows start at 1 in jdbc
+            }
+            return true;
+        }
         return false;  //To change body of implemented methods use File | Settings | File Templates.
     }
 
@@ -789,7 +815,14 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean relative(int rows) throws SQLException {
-        return false;  //To change body of implemented methods use File | Settings | File Templates.
+        if(queryResult.getRows()>0) {
+            int newPos = queryResult.getRowPointer() + rows;
+            if(newPos > -1 && newPos<=queryResult.getRows()) {
+                queryResult.moveRowPointerTo(newPos+1);
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -817,6 +850,10 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean previous() throws SQLException {
+        if(queryResult.getRows()>=0) {
+            queryResult.moveRowPointerTo(queryResult.getRowPointer()-1);
+            return true;
+        }
         return false;  //To change body of implemented methods use File | Settings | File Templates.
     }
 
@@ -841,7 +878,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void setFetchDirection(int direction) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        // todo: ignored for now
     }
 
     /**
@@ -855,7 +892,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public int getFetchDirection() throws SQLException {
-        return 0;  //To change body of implemented methods use File | Settings | File Templates.
+        return ResultSet.FETCH_UNKNOWN; 
     }
 
     /**
@@ -876,7 +913,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void setFetchSize(int rows) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        // ignored - we fetch 'em all!
     }
 
     /**
@@ -890,7 +927,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public int getFetchSize() throws SQLException {
-        return 0;  //To change body of implemented methods use File | Settings | File Templates.
+        return 0;
     }
 
     /**
@@ -906,7 +943,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public int getType() throws SQLException {
-        return 0;  //To change body of implemented methods use File | Settings | File Templates.
+        return ResultSet.TYPE_SCROLL_INSENSITIVE;
     }
 
     /**
@@ -922,7 +959,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public int getConcurrency() throws SQLException {
-        return 0;  //To change body of implemented methods use File | Settings | File Templates.
+        return ResultSet.CONCUR_READ_ONLY;
     }
 
     /**
@@ -943,7 +980,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean rowUpdated() throws SQLException {
-        return false;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Detecting row updates are not supported");
     }
 
     /**
@@ -965,7 +1002,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean rowInserted() throws SQLException {
-        return false;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Detecting inserts are not supported");
     }
 
     /**
@@ -988,7 +1025,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean rowDeleted() throws SQLException {
-        return false;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Row deletes are not supported");
     }
 
     /**
@@ -1010,7 +1047,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateNull(int columnIndex) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1032,7 +1069,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateBoolean(int columnIndex, boolean x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1054,7 +1091,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateByte(int columnIndex, byte x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1076,7 +1113,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateShort(int columnIndex, short x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1098,7 +1135,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateInt(int columnIndex, int x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1120,7 +1157,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateLong(int columnIndex, long x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1142,7 +1179,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateFloat(int columnIndex, float x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1164,7 +1201,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateDouble(int columnIndex, double x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1187,7 +1224,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateBigDecimal(int columnIndex, BigDecimal x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1209,7 +1246,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateString(int columnIndex, String x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1231,7 +1268,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateBytes(int columnIndex, byte x[]) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1253,7 +1290,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateDate(int columnIndex, Date x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1275,7 +1312,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateTime(int columnIndex, Time x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1298,7 +1335,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateTimestamp(int columnIndex, Timestamp x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1322,7 +1359,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateAsciiStream(int columnIndex, InputStream x, int length) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1346,7 +1383,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateBinaryStream(int columnIndex, InputStream x, int length) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1370,7 +1407,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateCharacterStream(int columnIndex, Reader x, int length) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1404,7 +1441,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateObject(int columnIndex, Object x, int scaleOrLength) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1426,7 +1463,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateObject(int columnIndex, Object x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1447,7 +1484,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateNull(String columnLabel) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1469,7 +1506,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateBoolean(String columnLabel, boolean x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1491,7 +1528,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateByte(String columnLabel, byte x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1513,7 +1550,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateShort(String columnLabel, short x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1535,7 +1572,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateInt(String columnLabel, int x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1557,7 +1594,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateLong(String columnLabel, long x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1579,7 +1616,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateFloat(String columnLabel, float x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1601,7 +1638,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateDouble(String columnLabel, double x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1624,7 +1661,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateBigDecimal(String columnLabel, BigDecimal x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1646,7 +1683,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateString(String columnLabel, String x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1669,7 +1706,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateBytes(String columnLabel, byte x[]) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1691,7 +1728,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateDate(String columnLabel, Date x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1713,7 +1750,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateTime(String columnLabel, Time x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1736,7 +1773,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateTimestamp(String columnLabel, Timestamp x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1760,7 +1797,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateAsciiStream(String columnLabel, InputStream x, int length) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1784,7 +1821,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateBinaryStream(String columnLabel, InputStream x, int length) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1809,7 +1846,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateCharacterStream(String columnLabel, Reader reader, int length) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1843,7 +1880,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateObject(String columnLabel, Object x, int scaleOrLength) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1865,7 +1902,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateObject(String columnLabel, Object x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1885,7 +1922,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void insertRow() throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1903,7 +1940,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateRow() throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1921,7 +1958,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void deleteRow() throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1956,7 +1993,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void refreshRow() throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Row refresh is not supported");
     }
 
     /**
@@ -1980,7 +2017,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void cancelRowUpdates() throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -2009,7 +2046,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void moveToInsertRow() throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -2026,7 +2063,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void moveToCurrentRow() throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -2044,7 +2081,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public Statement getStatement() throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return this.statement;
     }
 
     /**
@@ -2071,7 +2108,8 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public Object getObject(int columnIndex, Map<String, Class<?>> map) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        //TODO: implement this for types we know
+        throw new SQLFeatureNotSupportedException("Getting object using type map not supported");        
     }
 
     /**
@@ -2091,7 +2129,8 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public Ref getRef(int columnIndex) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        // TODO: figure out what REF's are and implement this method
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -2111,7 +2150,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public Blob getBlob(int columnIndex) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return new DrizzleBlob(getValueObject(columnIndex).getBytes());
     }
 
     /**
@@ -2131,7 +2170,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public Clob getClob(int columnIndex) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("CLOBs are not supported");
     }
 
     /**
@@ -2151,7 +2190,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public Array getArray(int columnIndex) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Arrays are not supported");
     }
 
     /**
@@ -2177,7 +2216,8 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public Object getObject(String columnLabel, Map<String, Class<?>> map) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        //TODO: implement this
+        throw new SQLFeatureNotSupportedException("Type map getting is not supported");
     }
 
     /**
@@ -2197,7 +2237,8 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public Ref getRef(String columnLabel) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        // TODO see getRef(int)
+        throw new SQLFeatureNotSupportedException("Getting REFs not supported");
     }
 
     /**
@@ -2217,7 +2258,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public Blob getBlob(String columnLabel) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return new DrizzleBlob(getValueObject(columnLabel).getBytes());
     }
 
     /**
@@ -2237,7 +2278,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public Clob getClob(String columnLabel) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("CLOBs not supported");
     }
 
     /**
@@ -2257,7 +2298,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public Array getArray(String columnLabel) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Arrays are not supported");
     }
 
     /**
@@ -2280,7 +2321,11 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public Date getDate(int columnIndex, Calendar cal) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        try {
+            return getValueObject(columnIndex).getDate(cal);
+        } catch (ParseException e) {
+            throw new SQLException("Could not parse as date");
+        }
     }
 
     /**
@@ -2303,7 +2348,11 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public Date getDate(String columnLabel, Calendar cal) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        try {
+            return getValueObject(columnLabel).getDate(cal);
+        } catch (ParseException e) {
+            throw new SQLException("Could not parse as date");
+        }
     }
 
     /**
@@ -2326,7 +2375,11 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public Time getTime(int columnIndex, Calendar cal) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        try {
+            return getValueObject(columnIndex).getTime(cal);
+        } catch (ParseException e) {
+            throw new SQLException("Could not parse as time");
+        }
     }
 
     /**
@@ -2349,7 +2402,11 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public Time getTime(String columnLabel, Calendar cal) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        try {
+            return getValueObject(columnLabel).getTime(cal);
+        } catch (ParseException e) {
+            throw new SQLException("Could not parse as time");
+        }
     }
 
     /**
@@ -2372,7 +2429,11 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public Timestamp getTimestamp(int columnIndex, Calendar cal) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        try {
+            return new Timestamp(getValueObject(columnIndex).getTime(cal).getTime());
+        } catch (ParseException e) {
+            throw new SQLException("Could not parse as time");
+        }
     }
 
     /**
@@ -2395,7 +2456,11 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public Timestamp getTimestamp(String columnLabel, Calendar cal) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        try {
+            return new Timestamp(getValueObject(columnLabel).getTime(cal).getTime());
+        } catch (ParseException e) {
+            throw new SQLException("Could not parse as time");
+        }
     }
 
     /**
@@ -2416,7 +2481,11 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.4
      */
     public URL getURL(int columnIndex) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        try {
+            return new URL(getValueObject(columnIndex).getString());
+        } catch (MalformedURLException e) {
+            throw new SQLException("Could not parse as URL");
+        }
     }
 
     /**
@@ -2437,7 +2506,11 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.4
      */
     public URL getURL(String columnLabel) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        try {
+            return new URL(getValueObject(columnLabel).getString());
+        } catch (MalformedURLException e) {
+            throw new SQLException("Could not parse as URL");
+        }
     }
 
     /**
@@ -2459,7 +2532,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.4
      */
     public void updateRef(int columnIndex, Ref x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -2481,7 +2554,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.4
      */
     public void updateRef(String columnLabel, Ref x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -2503,7 +2576,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.4
      */
     public void updateBlob(int columnIndex, Blob x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -2525,7 +2598,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.4
      */
     public void updateBlob(String columnLabel, Blob x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -2547,7 +2620,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.4
      */
     public void updateClob(int columnIndex, Clob x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -2569,7 +2642,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.4
      */
     public void updateClob(String columnLabel, Clob x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -2591,7 +2664,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.4
      */
     public void updateArray(int columnIndex, Array x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -2613,7 +2686,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.4
      */
     public void updateArray(String columnLabel, Array x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -2675,7 +2748,8 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateRowId(int columnIndex, RowId x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
+
     }
 
     /**
@@ -2697,7 +2771,8 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateRowId(String columnLabel, RowId x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        
     }
 
     /**
@@ -2709,7 +2784,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public int getHoldability() throws SQLException {
-        return 0;  //To change body of implemented methods use File | Settings | File Templates.
+        return ResultSet.HOLD_CURSORS_OVER_COMMIT;  //To change body of implemented methods use File | Settings | File Templates.
     }
 
     /**
@@ -2721,7 +2796,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public boolean isClosed() throws SQLException {
-        return false;  //To change body of implemented methods use File | Settings | File Templates.
+        return isClosed;  //To change body of implemented methods use File | Settings | File Templates.
     }
 
     /**
@@ -2747,7 +2822,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateNString(int columnIndex, String nString) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -2773,7 +2848,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateNString(String columnLabel, String nString) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -2797,7 +2872,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateNClob(int columnIndex, NClob nClob) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -2821,7 +2896,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateNClob(String columnLabel, NClob nClob) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -2843,7 +2918,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public NClob getNClob(int columnIndex) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("NClobs are not supported");
     }
 
     /**
@@ -2865,7 +2940,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public NClob getNClob(String columnLabel) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("NClobs are not supported");
     }
 
     /**
@@ -2884,7 +2959,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public SQLXML getSQLXML(int columnIndex) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("SQLXML not supported");
     }
 
     /**
@@ -2903,7 +2978,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public SQLXML getSQLXML(String columnLabel) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("SQLXML not supported");
     }
 
     /**
@@ -2933,7 +3008,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateSQLXML(int columnIndex, SQLXML xmlObject) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("SQLXML not supported");
     }
 
     /**
@@ -2963,7 +3038,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateSQLXML(String columnLabel, SQLXML xmlObject) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("SQLXML not supported");
     }
 
     /**
@@ -2986,7 +3061,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public String getNString(int columnIndex) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("NString not supported");
     }
 
     /**
@@ -3009,7 +3084,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public String getNString(String columnLabel) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("NString not supported");
     }
 
     /**
@@ -3033,7 +3108,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public Reader getNCharacterStream(int columnIndex) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return getCharacterStream(columnIndex);
     }
 
     /**
@@ -3057,7 +3132,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public Reader getNCharacterStream(String columnLabel) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return getCharacterStream(columnLabel);
     }
 
     /**
@@ -3086,7 +3161,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateNCharacterStream(int columnIndex, Reader x, long length) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -3116,7 +3191,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateNCharacterStream(String columnLabel, Reader reader, long length) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -3141,7 +3216,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateAsciiStream(int columnIndex, InputStream x, long length) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -3166,7 +3241,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateBinaryStream(int columnIndex, InputStream x, long length) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -3191,7 +3266,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateCharacterStream(int columnIndex, Reader x, long length) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -3216,7 +3291,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateAsciiStream(String columnLabel, InputStream x, long length) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -3241,7 +3316,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateBinaryStream(String columnLabel, InputStream x, long length) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -3267,7 +3342,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateCharacterStream(String columnLabel, Reader reader, long length) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -3294,7 +3369,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateBlob(int columnIndex, InputStream inputStream, long length) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -3321,7 +3396,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateBlob(String columnLabel, InputStream inputStream, long length) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -3351,7 +3426,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateClob(int columnIndex, Reader reader, long length) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -3381,7 +3456,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateClob(String columnLabel, Reader reader, long length) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -3413,7 +3488,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateNClob(int columnIndex, Reader reader, long length) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -3445,7 +3520,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateNClob(String columnLabel, Reader reader, long length) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -3478,7 +3553,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateNCharacterStream(int columnIndex, Reader x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -3512,7 +3587,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateNCharacterStream(String columnLabel, Reader reader) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -3541,7 +3616,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateAsciiStream(int columnIndex, InputStream x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -3570,7 +3645,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateBinaryStream(int columnIndex, InputStream x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -3599,7 +3674,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateCharacterStream(int columnIndex, Reader x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -3628,7 +3703,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateAsciiStream(String columnLabel, InputStream x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -3657,7 +3732,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateBinaryStream(String columnLabel, InputStream x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -3686,7 +3761,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateCharacterStream(String columnLabel, Reader reader) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -3714,7 +3789,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateBlob(int columnIndex, InputStream inputStream) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -3742,7 +3817,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateBlob(String columnLabel, InputStream inputStream) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -3774,7 +3849,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateClob(int columnIndex, Reader reader) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -3805,7 +3880,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateClob(String columnLabel, Reader reader) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -3839,7 +3914,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateNClob(int columnIndex, Reader reader) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -3872,7 +3947,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateNClob(String columnLabel, Reader reader) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Updates not supported");
     }
 
     public boolean getBoolean(int i) throws SQLException {
@@ -3886,23 +3961,23 @@ public class DrizzleResultSet implements ResultSet {
     }
 
     public byte getByte(int i) throws SQLException {
-        return Byte.valueOf(getString(i));
+        return getValueObject(i).getByte();
     }
 
     public short getShort(int i) throws SQLException {
-        return Short.valueOf(getString(i));
+        return getValueObject(i).getShort();
     }
 
     public long getLong(int i) throws SQLException {
-        return Long.valueOf(getString(i));
+        return getValueObject(i).getLong();
     }
 
     public float getFloat(int i) throws SQLException {
-        return Float.valueOf(getString(i));
+        return getValueObject(i).getFloat();
     }
 
     public double getDouble(int i) throws SQLException {
-        return Double.valueOf(getString(i));
+        return getValueObject(i).getDouble();
     }
 
     /**
@@ -3923,8 +3998,7 @@ public class DrizzleResultSet implements ResultSet {
      * @deprecated
      */
     public BigDecimal getBigDecimal(int columnIndex, int scale) throws SQLException {
-        //todo: is this right?
-        return new BigDecimal(getString(columnIndex));
+        return getValueObject(columnIndex).getBigDecimal();
     }
 
     /**
@@ -3941,7 +4015,7 @@ public class DrizzleResultSet implements ResultSet {
      *                               called on a closed result set
      */
     public byte[] getBytes(int columnIndex) throws SQLException {
-        return new byte[0];  //To change body of implemented methods use File | Settings | File Templates.
+        return getValueObject(columnIndex).getBytes();
     }
 
     /**
@@ -3957,7 +4031,11 @@ public class DrizzleResultSet implements ResultSet {
      *                               called on a closed result set
      */
     public Date getDate(int columnIndex) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        try {
+            return getValueObject(columnIndex).getDate();
+        } catch (ParseException e) {
+            throw new SQLException("Could not parse field as date");
+        }
     }
 
     /**
@@ -3973,7 +4051,11 @@ public class DrizzleResultSet implements ResultSet {
      *                               called on a closed result set
      */
     public Time getTime(int columnIndex) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        try {
+            return getValueObject(columnIndex).getTime();
+        } catch (ParseException e) {
+            throw new SQLException("Could not parse field as time");
+        }
     }
 
     /**
@@ -3989,7 +4071,11 @@ public class DrizzleResultSet implements ResultSet {
      *                               called on a closed result set
      */
     public Timestamp getTimestamp(int columnIndex) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        try {
+            return new Timestamp(getValueObject(columnIndex).getDate().getTime());
+        } catch (ParseException e) {
+            throw new SQLException("Could not parse field as date");
+        }
     }
 
     /**
@@ -4018,7 +4104,7 @@ public class DrizzleResultSet implements ResultSet {
      *                               called on a closed result set
      */
     public InputStream getAsciiStream(int columnIndex) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return getValueObject(columnIndex).getInputStream();
     }
 
     /**
@@ -4055,7 +4141,7 @@ public class DrizzleResultSet implements ResultSet {
      *             <code>getUnicodeStream</code>
      */
     public InputStream getUnicodeStream(int columnIndex) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return getValueObject(columnIndex).getInputStream();
     }
 
     /**
@@ -4082,7 +4168,8 @@ public class DrizzleResultSet implements ResultSet {
      *                               called on a closed result set
      */
     public InputStream getBinaryStream(int columnIndex) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return getValueObject(columnIndex).getInputStream();
+
     }
 
     /**
@@ -4122,7 +4209,7 @@ public class DrizzleResultSet implements ResultSet {
      *                               called on a closed result set
      */
     public boolean getBoolean(String columnLabel) throws SQLException {
-        return false;  //To change body of implemented methods use File | Settings | File Templates.
+        return getValueObject(columnLabel).getBoolean();
     }
 
     /**
@@ -4138,7 +4225,7 @@ public class DrizzleResultSet implements ResultSet {
      *                               called on a closed result set
      */
     public byte getByte(String columnLabel) throws SQLException {
-        return 0;  //To change body of implemented methods use File | Settings | File Templates.
+        return getValueObject(columnLabel).getByte();
     }
 
     /**
@@ -4154,7 +4241,7 @@ public class DrizzleResultSet implements ResultSet {
      *                               called on a closed result set
      */
     public short getShort(String columnLabel) throws SQLException {
-        return 0;  //To change body of implemented methods use File | Settings | File Templates.
+        return getValueObject(columnLabel).getShort();
     }
 
 

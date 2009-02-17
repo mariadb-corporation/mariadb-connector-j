@@ -33,7 +33,7 @@ public class DrizzleStatement implements Statement {
         try {
             dqr = protocol.executeQuery(s);
             warningsCleared = false;
-            return new DrizzleResultSet(dqr);
+            return new DrizzleResultSet(dqr,this);
         } catch (QueryException e) {
             throw new SQLException("Could not execute query",e);
         }
@@ -356,7 +356,7 @@ public class DrizzleStatement implements Statement {
      */
     public ResultSet getGeneratedKeys() throws SQLException {
         QueryResult genRes = dqr.getGeneratedKeysResult();
-        return new DrizzleResultSet(genRes);
+        return new DrizzleResultSet(genRes,this);
     }
 
     /**
@@ -662,7 +662,7 @@ public class DrizzleStatement implements Statement {
         try {
             dqr = protocol.executeQuery(query);
             if(dqr.getRows() > 0) {
-                this.resultSet = new DrizzleResultSet(dqr);
+                this.resultSet = new DrizzleResultSet(dqr,this);
                 return true;
             }
             this.updateCount = dqr.getUpdateCount();

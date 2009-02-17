@@ -41,4 +41,10 @@ public interface QueryResult {
     String getMessage();
 
     QueryResult getGeneratedKeysResult();
+
+    int getColumnId(String columnLabel);
+
+    int getRowPointer();
+
+    void moveRowPointerTo(int i);
 }

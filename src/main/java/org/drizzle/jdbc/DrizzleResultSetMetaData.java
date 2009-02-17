@@ -59,7 +59,7 @@ public class DrizzleResultSetMetaData implements ResultSetMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public boolean isSearchable(int column) throws SQLException {
-        return false;  //To change body of implemented methods use File | Settings | File Templates.
+        return true;
     }
 
     /**
@@ -70,7 +70,7 @@ public class DrizzleResultSetMetaData implements ResultSetMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public boolean isCurrency(int column) throws SQLException {
-        return false;  //To change body of implemented methods use File | Settings | File Templates.
+        return false;  // no currency columns in drizzle
     }
 
     /**
@@ -82,7 +82,7 @@ public class DrizzleResultSetMetaData implements ResultSetMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public int isNullable(int column) throws SQLException {
-        return 0;  //To change body of implemented methods use File | Settings | File Templates.
+        return ResultSetMetaData.columnNullableUnknown;
     }
 
     /**
@@ -120,7 +120,7 @@ public class DrizzleResultSetMetaData implements ResultSetMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public String getColumnLabel(int column) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return fieldPackets.get(column-1).getColumnName();
     }
 
     /**
@@ -131,8 +131,7 @@ public class DrizzleResultSetMetaData implements ResultSetMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public String getColumnName(int column) throws SQLException {
-        
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return fieldPackets.get(column-1).getOrgName();
     }
 
     /**
@@ -185,7 +184,7 @@ public class DrizzleResultSetMetaData implements ResultSetMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public String getTableName(int column) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return fieldPackets.get(column-1).getTable();
     }
 
     /**
@@ -197,7 +196,7 @@ public class DrizzleResultSetMetaData implements ResultSetMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public String getCatalogName(int column) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return "";
     }
 
     /**
