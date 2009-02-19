@@ -73,25 +73,6 @@ public class DriverTest {
         assertEquals(a[3],56);
     }
     @Test
-    public void questionMarks() {
-        String query = "1?234?6789??";
-        List<Integer> qmIndexes = DrizzlePreparedStatement.getQuestionMarkIndexes(query);
-        assertEquals(4, qmIndexes.size());
-        for(Integer index : qmIndexes) {
-            assertEquals('?',query.charAt(index)); 
-        }
-    }
-    @Test
-    public void insertTest() {
-        String query = "aaaa?cccc?";
-        String insert = "bbbb";
-        String insert2 = "dddd";
-        String inserted = DrizzlePreparedStatement.insertStringAt(query,insert,4);
-        inserted = DrizzlePreparedStatement.insertStringAt(inserted,insert2,9+insert.length()-1);
-        assertEquals("aaaabbbbccccdddd",inserted);
-    }
-    
-    @Test
     public void preparedTest() throws SQLException {
         String query = "SELECT * FROM t1 WHERE test = ? and id = ?";
         PreparedStatement prepStmt = connection.prepareStatement(query);
@@ -257,6 +238,14 @@ public class DriverTest {
         assertEquals("localhost",con.getHostname());
         assertEquals(4427,con.getPort());
         assertEquals("bbb",con.getDatabase());
+    }
 
+    @Test
+    public void testEscapes() throws SQLException {
+        String query = "select * from t1 where test = ?";
+        PreparedStatement stmt = connection.prepareStatement(query);
+        stmt.setString(1,"hej\"");
+        ResultSet rs = stmt.executeQuery();
+        assertEquals(false,rs.next());
     }
 }

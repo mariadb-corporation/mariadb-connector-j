@@ -1,11 +1,16 @@
 package org.drizzle.jdbc;
 
 import org.drizzle.jdbc.internal.Protocol;
+import org.drizzle.jdbc.internal.QueryResult;
+import org.drizzle.jdbc.internal.QueryException;
+import org.drizzle.jdbc.internal.query.*;
+import static org.drizzle.jdbc.internal.Utils.sqlEscapeString;
 
 import java.sql.*;
 import java.math.BigDecimal;
 import java.io.InputStream;
 import java.io.Reader;
+import java.io.IOException;
 import java.util.Calendar;
 import java.util.List;
 import java.util.ArrayList;
@@ -18,37 +23,48 @@ import java.net.URL;
  */
 public class DrizzlePreparedStatement extends DrizzleStatement implements PreparedStatement  {
     private final String query;
-    private final List<Integer> replacementIndexes;
-    private List<String> replacements;
+    private DrizzleQuery dQuery;
 
     public DrizzlePreparedStatement(Protocol protocol, DrizzleConnection drizzleConnection, String query) {
         super(protocol, drizzleConnection);
-        replacementIndexes = getQuestionMarkIndexes(query);
         this.query=query;
-        this.replacements = new ArrayList<String>(replacementIndexes.size());
+        dQuery = new DrizzleQuery(query);
     }
 
     public ResultSet executeQuery() throws SQLException {
-        return super.executeQuery(prepareQuery());
+        try {
+            return new DrizzleResultSet(getProtocol().executeQuery(dQuery),this);
+        } catch (QueryException e) {
+            throw new SQLException("Could not execute query",e);
+        }
     }
 
-    private String prepareQuery() {
-        int i=0;
-        int insertedOffset = 0;
-        String realQuery=query;
-        for(String replacement : replacements) {
-            realQuery = insertStringAt(realQuery,replacement,replacementIndexes.get(i++) + insertedOffset);
-            insertedOffset+=(replacement.length()-1);
-        }
-        return realQuery;
-    }
 
     public int executeUpdate() throws SQLException {
-        return super.executeUpdate(prepareQuery());
+        QueryResult qr = null;
+        try {
+            qr = getProtocol().executeQuery(dQuery);
+        } catch (QueryException e) {
+            throw new SQLException("Could not execute query",e);
+        }
+
+        return qr.getUpdateCount();
     }
     
     public boolean execute() throws SQLException {
-        return super.execute(prepareQuery());
+        QueryResult qr = null;
+        try {
+            qr = getProtocol().executeQuery(dQuery);
+        } catch (QueryException e) {
+            throw new SQLException("Could not execute query",e);
+        }
+        if(qr.getRows() > 0) {
+            super.setResultSet(new DrizzleResultSet(qr,this));
+            return true;
+        } else {
+            setUpdateCount(qr.getUpdateCount());
+            return false;            
+        }
     }
 
     /**
@@ -87,7 +103,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.2
      */
     public void setCharacterStream(int parameterIndex, Reader reader, int length) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+//        dQuery.setParameter(parameterIndex-1, new StreamParameter(reader.,length));
     }
 
     /**
@@ -124,7 +140,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.2
      */
     public void setBlob(int parameterIndex, Blob x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        setParameter(parameterIndex, new StreamParameter(x.getBinaryStream(),x.length()));
     }
 
     /**
@@ -301,7 +317,11 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.2
      */
     public void setNull(int parameterIndex, int sqlType, String typeName) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        setParameter(parameterIndex, new NullParameter());
+    }
+
+    private void setParameter(int parameterIndex, ParameterHolder holder) throws SQLException {
+        dQuery.setParameter(parameterIndex-1, holder);
     }
 
     /**
@@ -319,7 +339,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.4
      */
     public void setURL(int parameterIndex, URL x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        setParameter(parameterIndex,new StringParameter(x.toString()));
     }
 
     /**
@@ -376,7 +396,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.6
      */
     public void setNString(int parameterIndex, String value) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("NStrings not supported");
     }
 
     /**
@@ -398,7 +418,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.6
      */
     public void setNCharacterStream(int parameterIndex, Reader value, long length) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("NCharstreams not supported");
     }
 
     /**
@@ -417,7 +437,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.6
      */
     public void setNClob(int parameterIndex, NClob value) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("NClobs not supported");
     }
 
     /**
@@ -441,7 +461,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.6
      */
     public void setClob(int parameterIndex, Reader reader, long length) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("Clobs not supported");
     }
 
     /**
@@ -470,7 +490,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.6
      */
     public void setBlob(int parameterIndex, InputStream inputStream, long length) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        setParameter(parameterIndex, new StreamParameter(inputStream,length));
     }
 
     /**
@@ -497,7 +517,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.6
      */
     public void setNClob(int parameterIndex, Reader reader, long length) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("NClobs not supported");
     }
 
     /**
@@ -519,7 +539,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.6
      */
     public void setSQLXML(int parameterIndex, SQLXML xmlObject) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("SQlXML not supported");
     }
 
     /**
@@ -603,7 +623,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.6
      */
     public void setAsciiStream(int parameterIndex, InputStream x, long length) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        setParameter(parameterIndex, new StreamParameter(x,length));
     }
 
     /**
@@ -627,7 +647,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.6
      */
     public void setBinaryStream(int parameterIndex, InputStream x, long length) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        setParameter(parameterIndex, new StreamParameter(x,length));
     }
 
     /**
@@ -656,6 +676,10 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
         //To change body of implemented methods use File | Settings | File Templates.
     }//-----
     /**
+     * This function reads up the entire stream and stores it in memory since
+     * we need to know the length when sending it to the server
+     * use the corresponding method with a length parameter if memory is an issue
+     *
      * Sets the designated parameter to the given input stream.
      * When a very large ASCII value is input to a <code>LONGVARCHAR</code>
      * parameter, it may be more practical to send it via a
@@ -680,10 +704,17 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.6
      */
     public void setAsciiStream(int parameterIndex, InputStream x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        try {
+            setParameter(parameterIndex, new BufferedStreamParameter(x));
+        } catch (IOException e) {
+            throw new SQLException("Could not read stream");
+        }
     }
 
     /**
+     * This function reads up the entire stream and stores it in memory since
+     * we need to know the length when sending it to the server
+     *
      * Sets the designated parameter to the given input stream.
      * When a very large binary value is input to a <code>LONGVARBINARY</code>
      * parameter, it may be more practical to send it via a
@@ -707,7 +738,11 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.6
      */
     public void setBinaryStream(int parameterIndex, InputStream x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        try {
+            setParameter(parameterIndex, new BufferedStreamParameter(x));
+        } catch (IOException e) {
+            throw new SQLException("Could not read stream");
+        }
     }
 
     /**
@@ -765,7 +800,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.6
      */
     public void setNCharacterStream(int parameterIndex, Reader value) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("NChars not supported");
     }
 
     /**
@@ -791,7 +826,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.6
      */
     public void setClob(int parameterIndex, Reader reader) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLException("CLOBs not supported");    
     }
 
     /**
@@ -820,6 +855,12 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.6
      */
     public void setBlob(int parameterIndex, InputStream inputStream) throws SQLException {
+        try {
+            setParameter(parameterIndex, new BufferedStreamParameter(inputStream));
+        } catch (IOException e) {
+            throw new SQLException("Could not read stream");
+        }
+
         //To change body of implemented methods use File | Settings | File Templates.
     }
 
@@ -847,7 +888,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.6
      */
     public void setNClob(int parameterIndex, Reader reader) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("NClobs not supported");
     }
 
     public void setNull(int i, int i1) throws SQLException {
@@ -855,12 +896,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
     }
 
     public void setBoolean(int column, boolean value) throws SQLException {
-        if(column > replacements.size()+1)
-            throw new SQLException("Index out of range");
-        if(value)
-            replacements.add(column-1,"TRUE");
-        else
-            replacements.add(column-1,"FALSE");
+        setParameter(column, new IntParameter(value?1:0));
     }
 
     /**
@@ -875,7 +911,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      *                               this method is called on a closed <code>PreparedStatement</code>
      */
     public void setByte(int parameterIndex, byte x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        setParameter(parameterIndex, new IntParameter(x));
     }
 
     /**
@@ -890,13 +926,11 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      *                               this method is called on a closed <code>PreparedStatement</code>
      */
     public void setShort(int parameterIndex, short x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        setParameter(parameterIndex, new IntParameter(x));
     }
 
     public void setString(int column, String s) throws SQLException {
-        if(column > replacements.size()+1)
-            throw new SQLException("Index out of range");
-        replacements.add(column-1,"\""+sqlEscapeString(s)+"\"");
+        setParameter(column,new StringParameter(s));
     }
 
     /**
@@ -984,7 +1018,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      *                               this method is called on a closed <code>PreparedStatement</code>
      */
     public void setAsciiStream(int parameterIndex, InputStream x, int length) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        setParameter(parameterIndex,new StreamParameter(x,length));
     }
 
     /**
@@ -1017,7 +1051,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @deprecated
      */
     public void setUnicodeStream(int parameterIndex, InputStream x, int length) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        setParameter(parameterIndex,new StreamParameter(x,length));
     }
 
     /**
@@ -1040,7 +1074,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      *                               this method is called on a closed <code>PreparedStatement</code>
      */
     public void setBinaryStream(int parameterIndex, InputStream x, int length) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        setParameter(parameterIndex,new StreamParameter(x,length));
     }
 
     /**
@@ -1055,7 +1089,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      *                               this method is called on a closed <code>PreparedStatement</code>
      */
     public void clearParameters() throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        dQuery.clearParameters();
     }
 
     /**
@@ -1128,9 +1162,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
     }
 
     public void setInt(int column, int i) throws SQLException {
-        if(column > replacements.size()+1)
-            throw new SQLException("Index out of range");
-        replacements.add(column-1, String.valueOf(i));
+        setParameter(column,new IntParameter(i));
     }
 
     /**
@@ -1145,7 +1177,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      *                               this method is called on a closed <code>PreparedStatement</code>
      */
     public void setLong(int parameterIndex, long x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        setParameter(parameterIndex,new LongParameter(x));
     }
 
     /**
@@ -1191,39 +1223,5 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      */
     public void setBigDecimal(int parameterIndex, BigDecimal x) throws SQLException {
         //To change body of implemented methods use File | Settings | File Templates.
-    }
-
-
-    public static List<Integer> getQuestionMarkIndexes(String query) {
-        int qmIndex=0;
-        List<Integer> qmList = new ArrayList<Integer>();
-        while((qmIndex = query.indexOf("?", qmIndex+1))!=-1) {
-            qmList.add(qmIndex);
-        }
-        return qmList;
-    }
-
-    /**
-     * TODO: make more efficient!
-     * @param query the query to insert
-     * @param replacement the string to insert
-     * @param index where to put it
-     * @return a string with 'replacement' instead of the ? at index 
-     */
-    public static String insertStringAt(String query,String replacement, int index) {
-        String s1 = query.substring(0,index);
-        if(index == query.length())
-            return s1.substring(0,index)+replacement;
-        String s2 = query.substring(index+1,query.length()); // "+1" to remove the question mark
-        return s1+replacement+s2;
-    }
-
-    /**
-     * TODO: yeah, do something
-     * @param str the string to escape
-     * @return an escaped string
-     */
-    public static String sqlEscapeString(String str) {
-        return str;
     }
 }

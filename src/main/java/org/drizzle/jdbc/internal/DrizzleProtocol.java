@@ -2,6 +2,7 @@ package org.drizzle.jdbc.internal;
 
 import org.drizzle.jdbc.internal.packet.*;
 import org.drizzle.jdbc.internal.packet.buffer.ReadUtil;
+import org.drizzle.jdbc.internal.query.DrizzleQuery;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -141,7 +142,6 @@ public class DrizzleProtocol implements Protocol {
      * @throws QueryException if the query could not be executed
      */
     public DrizzleQueryResult executeQuery(String query) throws QueryException {
-
         log.debug("Executing query: {}",query);
         QueryPacket packet = new QueryPacket(query);
         byte packetSeqNum=0;
@@ -149,7 +149,7 @@ public class DrizzleProtocol implements Protocol {
         ResultPacket resultPacket = null;
         try {
             writer.write(toWrite);
-            writer.flush();            
+            writer.flush();
             resultPacket = ResultPacketFactory.createResultPacket(reader);
         } catch (IOException e) {
             throw new QueryException("Could not send query",e);
@@ -293,5 +293,48 @@ public class DrizzleProtocol implements Protocol {
         } catch (IOException e) {
             throw new QueryException("Could not ping",e);
         }
+    }
+
+    public QueryResult executeQuery(DrizzleQuery dQuery) throws QueryException {
+        log.debug("Executing streamed query: {}",dQuery);
+        StreamedQueryPacket packet = new StreamedQueryPacket(dQuery);
+        byte packetSeqNum=0;
+        int i=0;
+        try {
+            packet.sendQuery(writer);
+        } catch (IOException e) {
+            throw new QueryException("Could not send query",e);
+        }
+        ResultPacket resultPacket = null;
+        try {
+            resultPacket = ResultPacketFactory.createResultPacket(reader);
+        } catch (IOException e) {
+            throw new QueryException("Could not read response",e);
+        }
+        switch(resultPacket.getResultType()) {
+            case ERROR:
+                log.warn("Could not execute query {}: {}",dQuery, ((ErrorPacket)resultPacket).getMessage());
+                throw new QueryException("Could not execute query: "+((ErrorPacket)resultPacket).getMessage());
+            case OK:
+                DrizzleQueryResult dqr = new DrizzleQueryResult();
+                OKPacket okpacket = (OKPacket)resultPacket;
+                dqr.setUpdateCount((int)okpacket.getAffectedRows());
+                dqr.setWarnings(okpacket.getWarnings());
+                dqr.setMessage(okpacket.getMessage());
+                dqr.setInsertId(okpacket.getInsertId());
+                log.debug("OK, {}", okpacket.getAffectedRows());
+                return dqr;
+            case RESULTSET:
+                log.debug("SELECT executed, fetching result set");
+                try {
+                    return this.createDrizzleQueryResult((ResultSetPacket)resultPacket);
+                } catch (IOException e) {
+                    throw new QueryException("Could not get query result",e);
+                }
+            default:
+                log.error("Could not parse result...");
+                throw new QueryException("Could not parse result");
+        }
+
     }
 }

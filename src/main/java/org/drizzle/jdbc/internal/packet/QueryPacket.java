@@ -5,7 +5,6 @@ import org.drizzle.jdbc.internal.packet.DrizzlePacket;
 
 
 /**
- * Created by IntelliJ IDEA.
  * User: marcuse
  * Date: Jan 19, 2009
  * Time: 10:14:32 PM

@@ -22,26 +22,15 @@ public interface ValueObject {
     short getShort();
     byte getByte();
     byte [] getBytes();
-
     float getFloat();
-
     double getDouble();
-
     BigDecimal getBigDecimal();
-
     Date getDate() throws ParseException;
-
     Time getTime() throws ParseException;
-
     InputStream getInputStream();
-
     InputStream getInputStream(String s) throws UnsupportedEncodingException;
-
     Object getObject();
-
     Date getDate(Calendar cal) throws ParseException;
-
     Time getTime(Calendar cal) throws ParseException;
-
     boolean getBoolean();
 }

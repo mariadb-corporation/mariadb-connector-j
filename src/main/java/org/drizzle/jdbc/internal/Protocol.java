@@ -1,5 +1,7 @@
 package org.drizzle.jdbc.internal;
 
+import org.drizzle.jdbc.internal.query.DrizzleQuery;
+
 import java.io.IOException;
 import java.sql.SQLException;
 
@@ -54,4 +56,6 @@ public interface Protocol {
     public String getPassword();
 
     boolean ping() throws QueryException;
+
+    QueryResult executeQuery(DrizzleQuery dQuery) throws QueryException;
 }

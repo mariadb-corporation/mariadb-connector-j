@@ -28,6 +28,9 @@ public class DrizzleStatement implements Statement {
         this.connection=drizzleConnection;
         queryBatch = new LinkedList<String>();
     }
+    public Protocol getProtocol() {
+        return protocol;
+    }
 
     public ResultSet executeQuery(String s) throws SQLException {
         try {
@@ -662,10 +665,10 @@ public class DrizzleStatement implements Statement {
         try {
             dqr = protocol.executeQuery(query);
             if(dqr.getRows() > 0) {
-                this.resultSet = new DrizzleResultSet(dqr,this);
+                setResultSet(new DrizzleResultSet(dqr,this));
                 return true;
             }
-            this.updateCount = dqr.getUpdateCount();
+            setUpdateCount(dqr.getUpdateCount());
             return false;
         } catch (QueryException e) {
             throw new SQLException("Could not execute query: "+e.getMessage());
@@ -952,5 +955,12 @@ public class DrizzleStatement implements Statement {
      */
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
         return false;  //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    protected void setResultSet(DrizzleResultSet drizzleResultSet) {
+        this.resultSet = drizzleResultSet;
+    }
+    protected void setUpdateCount(int updateCount) {
+        this.updateCount=updateCount;
     }
 }
