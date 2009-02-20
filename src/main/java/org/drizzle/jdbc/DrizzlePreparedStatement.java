@@ -4,7 +4,6 @@ import org.drizzle.jdbc.internal.Protocol;
 import org.drizzle.jdbc.internal.QueryResult;
 import org.drizzle.jdbc.internal.QueryException;
 import org.drizzle.jdbc.internal.query.*;
-import static org.drizzle.jdbc.internal.Utils.sqlEscapeString;
 
 import java.sql.*;
 import java.math.BigDecimal;
@@ -12,8 +11,6 @@ import java.io.InputStream;
 import java.io.Reader;
 import java.io.IOException;
 import java.util.Calendar;
-import java.util.List;
-import java.util.ArrayList;
 import java.net.URL;
 
 /**
@@ -23,12 +20,12 @@ import java.net.URL;
  */
 public class DrizzlePreparedStatement extends DrizzleStatement implements PreparedStatement  {
     private final String query;
-    private DrizzleQuery dQuery;
+    private DrizzleParameterizedQuery dQuery;
 
     public DrizzlePreparedStatement(Protocol protocol, DrizzleConnection drizzleConnection, String query) {
         super(protocol, drizzleConnection);
         this.query=query;
-        dQuery = new DrizzleQuery(query);
+        dQuery = new DrizzleParameterizedQuery(query);
     }
 
     public ResultSet executeQuery() throws SQLException {

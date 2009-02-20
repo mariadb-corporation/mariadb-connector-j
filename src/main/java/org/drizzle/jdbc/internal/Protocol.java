@@ -1,9 +1,7 @@
 package org.drizzle.jdbc.internal;
 
-import org.drizzle.jdbc.internal.query.DrizzleQuery;
-
-import java.io.IOException;
-import java.sql.SQLException;
+import org.drizzle.jdbc.internal.query.DrizzleParameterizedQuery;
+import org.drizzle.jdbc.internal.query.Query;
 
 /**
  * User: marcuse
@@ -23,11 +21,9 @@ public interface Protocol {
     DrizzleSelectResult executeQuery(String query);
     DrizzleModifyResult executeUpdate(String query);      */
 
-    QueryResult executeQuery(String s) throws QueryException;
+//    QueryResult executeQuery(String s) throws QueryException;
 
-
-
-    void selectDB(String database) throws QueryException;
+   void selectDB(String database) throws QueryException;
 
     String getVersion();
 
@@ -57,5 +53,5 @@ public interface Protocol {
 
     boolean ping() throws QueryException;
 
-    QueryResult executeQuery(DrizzleQuery dQuery) throws QueryException;
+    QueryResult executeQuery(Query dQuery) throws QueryException;
 }

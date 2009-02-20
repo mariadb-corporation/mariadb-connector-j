@@ -2,6 +2,7 @@ package org.drizzle.jdbc;
 
 import org.drizzle.jdbc.internal.Protocol;
 import org.drizzle.jdbc.internal.QueryException;
+import org.drizzle.jdbc.internal.query.DrizzleQuery;
 
 import java.sql.*;
 import java.util.Map;
@@ -189,7 +190,7 @@ public class DrizzleConnection implements Connection {
                 throw new SQLException("Unsupported transaction isolation level");
         }
         try {
-            protocol.executeQuery(query);
+            protocol.executeQuery(new DrizzleQuery(query));
         } catch (QueryException e) {
             throw new SQLException("Could not set transaction isolation level",e);
         }

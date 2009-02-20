@@ -3,6 +3,7 @@ package org.drizzle.jdbc;
 import org.drizzle.jdbc.internal.Protocol;
 import org.drizzle.jdbc.internal.QueryResult;
 import org.drizzle.jdbc.internal.QueryException;
+import org.drizzle.jdbc.internal.query.DrizzleQuery;
 
 import java.sql.*;
 import java.io.IOException;
@@ -34,7 +35,7 @@ public class DrizzleStatement implements Statement {
 
     public ResultSet executeQuery(String s) throws SQLException {
         try {
-            dqr = protocol.executeQuery(s);
+            dqr = protocol.executeQuery(new DrizzleQuery(s));
             warningsCleared = false;
             return new DrizzleResultSet(dqr,this);
         } catch (QueryException e) {
@@ -45,10 +46,24 @@ public class DrizzleStatement implements Statement {
     public int executeUpdate(String s) throws SQLException {
         try {
             warningsCleared=false;
-            dqr = protocol.executeQuery(s);
+            dqr = protocol.executeQuery(new DrizzleQuery(s));
             return dqr.getUpdateCount();
         } catch (QueryException e) {
             throw new SQLException("Could not execute update "+e.getMessage());
+        }
+    }
+
+    public boolean execute(String query) throws SQLException {
+        try {
+            dqr = protocol.executeQuery(new DrizzleQuery(query));
+            if(dqr.getRows() > 0) {
+                setResultSet(new DrizzleResultSet(dqr,this));
+                return true;
+            }
+            setUpdateCount(dqr.getUpdateCount());
+            return false;
+        } catch (QueryException e) {
+            throw new SQLException("Could not execute query: "+e.getMessage());
         }
     }
 
@@ -660,20 +675,6 @@ public class DrizzleStatement implements Statement {
         return false;  //To change body of implemented methods use File | Settings | File Templates.
     }
 
-
-    public boolean execute(String query) throws SQLException {
-        try {
-            dqr = protocol.executeQuery(query);
-            if(dqr.getRows() > 0) {
-                setResultSet(new DrizzleResultSet(dqr,this));
-                return true;
-            }
-            setUpdateCount(dqr.getUpdateCount());
-            return false;
-        } catch (QueryException e) {
-            throw new SQLException("Could not execute query: "+e.getMessage());
-        }
-    }
 
     public ResultSet getResultSet() throws SQLException {
         return resultSet; 

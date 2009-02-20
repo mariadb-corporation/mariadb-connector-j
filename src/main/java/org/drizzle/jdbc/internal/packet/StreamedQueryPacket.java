@@ -1,9 +1,9 @@
 package org.drizzle.jdbc.internal.packet;
 
-import org.drizzle.jdbc.internal.packet.buffer.WriteBuffer;
 import static org.drizzle.jdbc.internal.packet.buffer.WriteBuffer.intToByteArray;
 import org.drizzle.jdbc.internal.packet.DrizzlePacket;
-import org.drizzle.jdbc.internal.query.DrizzleQuery;
+import org.drizzle.jdbc.internal.query.DrizzleParameterizedQuery;
+import org.drizzle.jdbc.internal.query.Query;
 
 import java.io.OutputStream;
 import java.io.IOException;
@@ -17,11 +17,11 @@ import java.util.Arrays;
  * To change this template use File | Settings | File Templates.
  */
 public class StreamedQueryPacket implements DrizzlePacket {
-    private final DrizzleQuery query;
+    private final Query query;
     private byte [] byteHeader;
     private byte byteHeaderPointer=0;
     private boolean headerWritten=false;
-    public StreamedQueryPacket(DrizzleQuery query) {
+    public StreamedQueryPacket(Query query) {
         this.query=query;
         byteHeader = Arrays.copyOf(intToByteArray(query.length()+1),5); //
         byteHeader[4]=(byte)0x03;

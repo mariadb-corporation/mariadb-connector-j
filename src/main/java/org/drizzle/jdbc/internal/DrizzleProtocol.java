@@ -2,6 +2,8 @@ package org.drizzle.jdbc.internal;
 
 import org.drizzle.jdbc.internal.packet.*;
 import org.drizzle.jdbc.internal.packet.buffer.ReadUtil;
+import org.drizzle.jdbc.internal.query.DrizzleParameterizedQuery;
+import org.drizzle.jdbc.internal.query.Query;
 import org.drizzle.jdbc.internal.query.DrizzleQuery;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -135,51 +137,7 @@ public class DrizzleProtocol implements Protocol {
         return !this.connected;
     }
 
-    /**
-     * executes a query, eagerly fetches the results
-     * @param query the query to execute
-     * @return the query result
-     * @throws QueryException if the query could not be executed
-     */
-    public DrizzleQueryResult executeQuery(String query) throws QueryException {
-        log.debug("Executing query: {}",query);
-        QueryPacket packet = new QueryPacket(query);
-        byte packetSeqNum=0;
-        byte [] toWrite = packet.toBytes(packetSeqNum);
-        ResultPacket resultPacket = null;
-        try {
-            writer.write(toWrite);
-            writer.flush();
-            resultPacket = ResultPacketFactory.createResultPacket(reader);
-        } catch (IOException e) {
-            throw new QueryException("Could not send query",e);
-        }
-        switch(resultPacket.getResultType()) {
-            case ERROR:
-                log.warn("Could not execute query {}: {}",query, ((ErrorPacket)resultPacket).getMessage());
-                throw new QueryException("Could not execute query: "+((ErrorPacket)resultPacket).getMessage());
-            case OK:
-                DrizzleQueryResult dqr = new DrizzleQueryResult();
-                OKPacket okpacket = (OKPacket)resultPacket;
-                dqr.setUpdateCount((int)okpacket.getAffectedRows());
-                dqr.setWarnings(okpacket.getWarnings());
-                dqr.setMessage(okpacket.getMessage());
-                dqr.setInsertId(okpacket.getInsertId());
-                log.debug("OK, {}", okpacket.getAffectedRows());
-                return dqr;
-            case RESULTSET:
-                log.debug("SELECT executed, fetching result set");
-                try {
-                    return this.createDrizzleQueryResult((ResultSetPacket)resultPacket);
-                } catch (IOException e) {
-                    throw new QueryException("Could not get query result",e);
-                }
-            default:
-                log.error("Could not parse result...");
-                throw new QueryException("Could not parse result");
-        }
-    }
-
+    
     /**
      * create a DrizzleQueryResult - precondition is that a result set packet has been read
      * @param packet the result set packet from the server
@@ -232,31 +190,31 @@ public class DrizzleProtocol implements Protocol {
 
     public void commit() throws QueryException {
         log.debug("commiting transaction");
-        executeQuery("COMMIT");
+        executeQuery(new DrizzleQuery("COMMIT"));
     }
 
     public void rollback() throws QueryException {
         log.debug("rolling transaction back");
-        executeQuery("ROLLBACK");
+        executeQuery(new DrizzleQuery("ROLLBACK"));
     }
 
     public void rollback(String savepoint) throws QueryException {
         log.debug("rolling back to savepoint {}",savepoint);
-        executeQuery("ROLLBACK TO SAVEPOINT "+savepoint);
+        executeQuery(new DrizzleQuery("ROLLBACK TO SAVEPOINT "+savepoint));
     }
 
     public void setSavepoint(String savepoint) throws QueryException {
         log.debug("setting a savepoint named {}",savepoint);
-        executeQuery("SAVEPOINT "+savepoint);
+        executeQuery(new DrizzleQuery("SAVEPOINT "+savepoint));
     }
     public void releaseSavepoint(String savepoint) throws QueryException {
         log.debug("releasing savepoint named {}",savepoint);
-        executeQuery("RELEASE SAVEPOINT "+savepoint);
+        executeQuery(new DrizzleQuery("RELEASE SAVEPOINT "+savepoint));
     }
 
     public void setAutoCommit(boolean autoCommit) throws QueryException {
         this.autoCommit = autoCommit;
-        executeQuery("SET autocommit="+(autoCommit?"1":"0"));
+        executeQuery(new DrizzleQuery("SET autocommit="+(autoCommit?"1":"0")));
     }
 
     public boolean getAutoCommit() {
@@ -295,10 +253,9 @@ public class DrizzleProtocol implements Protocol {
         }
     }
 
-    public QueryResult executeQuery(DrizzleQuery dQuery) throws QueryException {
+    public QueryResult executeQuery(Query dQuery) throws QueryException {
         log.debug("Executing streamed query: {}",dQuery);
         StreamedQueryPacket packet = new StreamedQueryPacket(dQuery);
-        byte packetSeqNum=0;
         int i=0;
         try {
             packet.sendQuery(writer);

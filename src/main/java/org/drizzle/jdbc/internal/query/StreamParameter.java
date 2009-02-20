@@ -1,5 +1,7 @@
 package org.drizzle.jdbc.internal.query;
 
+import static org.drizzle.jdbc.internal.Utils.needsEscaping;
+
 import java.io.InputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -11,7 +13,7 @@ import java.io.OutputStream;
  */
 public class StreamParameter implements ParameterHolder{
     private final InputStream stream;
-    private long length;
+    private final long length;
 
     public StreamParameter(InputStream is, long length) {
         stream=is;
@@ -26,10 +28,13 @@ public class StreamParameter implements ParameterHolder{
         }
     }
 
-    //    public byte read();
     public void writeTo(OutputStream os) throws IOException {
-        for(int i=0;i<length;i++)
-            os.write(stream.read());
+        for(int i=0;i<length;i++) {
+            byte b=(byte)stream.read();
+            if(needsEscaping(b)) // todo: this does not work.... writing two bytes
+                os.write('\\');
+            os.write(b);
+        }
     }
 
     public long length() {
