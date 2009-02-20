@@ -2,6 +2,7 @@ package org.drizzle.jdbc.internal.query;
 
 import java.io.InputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.Arrays;
 
 /**
@@ -33,6 +34,14 @@ public class BufferedStreamParameter implements ParameterHolder{
 
     public byte read() {
         return byteRepresentation[bufferPointer++];
+    }
+
+
+    //    public byte read();
+    public void writeTo(OutputStream os) throws IOException {
+        for(byte b: byteRepresentation) {
+            os.write(b);
+        }
     }
 
     public long length() {

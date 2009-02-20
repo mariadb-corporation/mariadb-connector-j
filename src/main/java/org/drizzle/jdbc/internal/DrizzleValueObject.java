@@ -38,18 +38,22 @@ public class DrizzleValueObject implements ValueObject {
     }
 
     public long getLong() {
+        if(rawBytes == null) return 0;
         return Long.valueOf(getString());
     }
 
     public int getInt() {
+        if(rawBytes == null) return 0;
         return Integer.valueOf(getString());
     }
 
     public short getShort() {
+        if(rawBytes == null) return 0;
         return Short.valueOf(getString());
     }
 
     public byte getByte() {
+        if(rawBytes == null) return 0;
         return Byte.valueOf(getString());
     }
 
@@ -58,13 +62,16 @@ public class DrizzleValueObject implements ValueObject {
     }
 
     public float getFloat() {
+        if(rawBytes == null) return 0;
         return Float.valueOf(getString());
     }
 
     public double getDouble() {
+        if(rawBytes == null) return 0;
         return Double.valueOf(getString());
     }
     public BigDecimal getBigDecimal() {
+        if(rawBytes == null) return null;
         return new BigDecimal(getString());
     }
 
@@ -124,6 +131,10 @@ public class DrizzleValueObject implements ValueObject {
         if(rawVal.toLowerCase().equals("true") || rawVal.toLowerCase().equals("1"))
             return true;
         return false;
+    }
+
+    public boolean isNull() {
+        return rawBytes == null;
     }
 
     /**

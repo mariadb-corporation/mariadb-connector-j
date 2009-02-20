@@ -248,4 +248,19 @@ public class DriverTest {
         ResultSet rs = stmt.executeQuery();
         assertEquals(false,rs.next());
     }
+
+    @Test
+    public void testPreparedWithNull() throws SQLException {
+        String query = "insert into t1 (test) values (null)";
+        PreparedStatement pstmt = connection.prepareStatement(query);
+        pstmt.execute();
+        query = "select * from t1 where test is ?";
+        pstmt = connection.prepareStatement(query);
+        pstmt.setNull(1,1);
+        ResultSet rs = pstmt.executeQuery();
+        assertEquals(true,rs.next());
+        assertEquals("NULL",rs.getString("test"));
+        assertEquals(true,rs.wasNull());
+
+    }
 }

@@ -2,6 +2,9 @@ package org.drizzle.jdbc.internal.query;
 
 import static org.drizzle.jdbc.internal.Utils.sqlEscapeString;
 
+import java.io.OutputStream;
+import java.io.IOException;
+
 /**
  * User: marcuse
  * Date: Feb 18, 2009
@@ -35,6 +38,11 @@ public class StringParameter implements ParameterHolder {
             return byteRepresentation[bytePointer++];
         }
         return -1;
+    }
+
+    public void writeTo(OutputStream os) throws IOException {
+        for(byte b:byteRepresentation)
+            os.write(b);
     }
 
     public long length() {

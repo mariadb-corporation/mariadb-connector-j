@@ -50,7 +50,30 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
 
         return qr.getUpdateCount();
     }
-    
+
+    /**
+     * Sets the designated parameter to SQL <code>NULL</code>.
+     * <p/>
+     * <P><B>Note:</B> You must specify the parameter's SQL type.
+     *
+     * @param parameterIndex the first parameter is 1, the second is 2, ...
+     * @param sqlType        the SQL type code defined in <code>java.sql.Types</code>
+     * @throws java.sql.SQLException if parameterIndex does not correspond to a parameter
+     *                               marker in the SQL statement; if a database access error occurs or
+     *                               this method is called on a closed <code>PreparedStatement</code>
+     * @throws java.sql.SQLFeatureNotSupportedException
+     *                               if <code>sqlType</code> is
+     *                               a <code>ARRAY</code>, <code>BLOB</code>, <code>CLOB</code>,
+     *                               <code>DATALINK</code>, <code>JAVA_OBJECT</code>, <code>NCHAR</code>,
+     *                               <code>NCLOB</code>, <code>NVARCHAR</code>, <code>LONGNVARCHAR</code>,
+     *                               <code>REF</code>, <code>ROWID</code>, <code>SQLXML</code>
+     *                               or  <code>STRUCT</code> data type and the JDBC driver does not support
+     *                               this data type
+     */
+    public void setNull(int parameterIndex, int sqlType) throws SQLException {
+        setParameter(parameterIndex,new NullParameter());
+    }
+
     public boolean execute() throws SQLException {
         QueryResult qr = null;
         try {
@@ -891,9 +914,6 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
         throw new SQLFeatureNotSupportedException("NClobs not supported");
     }
 
-    public void setNull(int i, int i1) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
-    }
 
     public void setBoolean(int column, boolean value) throws SQLException {
         setParameter(column, new IntParameter(value?1:0));

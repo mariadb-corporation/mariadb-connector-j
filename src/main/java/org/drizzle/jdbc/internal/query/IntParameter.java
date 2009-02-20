@@ -1,5 +1,8 @@
 package org.drizzle.jdbc.internal.query;
 
+import java.io.OutputStream;
+import java.io.IOException;
+
 /**
  * Created by IntelliJ IDEA.
  * User: marcuse
@@ -19,6 +22,11 @@ public class IntParameter implements ParameterHolder{
             return byteRepresentation[bytePointer++];
         }
         return -1;
+    }
+
+    public void writeTo(OutputStream os) throws IOException {
+        for(byte b:byteRepresentation)
+            os.write(b);
     }
 
     public long length() {

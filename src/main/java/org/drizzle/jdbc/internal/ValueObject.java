@@ -33,4 +33,6 @@ public interface ValueObject {
     Date getDate(Calendar cal) throws ParseException;
     Time getTime(Calendar cal) throws ParseException;
     boolean getBoolean();
+
+    boolean isNull();
 }

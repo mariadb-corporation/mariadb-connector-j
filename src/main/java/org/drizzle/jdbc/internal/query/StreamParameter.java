@@ -2,6 +2,7 @@ package org.drizzle.jdbc.internal.query;
 
 import java.io.InputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 
 /**
  * User: marcuse
@@ -23,6 +24,12 @@ public class StreamParameter implements ParameterHolder{
         } catch (IOException e) {
             throw new RuntimeException("Not able to read stream");
         }
+    }
+
+    //    public byte read();
+    public void writeTo(OutputStream os) throws IOException {
+        for(int i=0;i<length;i++)
+            os.write(stream.read());
     }
 
     public long length() {

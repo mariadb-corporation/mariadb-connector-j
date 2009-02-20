@@ -26,6 +26,7 @@ public class DrizzleResultSet implements ResultSet {
     private QueryResult queryResult;
     private Statement statement;
     private boolean isClosed;
+    private boolean lastGetWasNull;
 
     public DrizzleResultSet(QueryResult dqr, Statement statement) {
         this.queryResult=dqr;
@@ -43,9 +44,23 @@ public class DrizzleResultSet implements ResultSet {
         this.queryResult.close();
     }
 
+    /**
+     * Reports whether
+     * the last column read had a value of SQL <code>NULL</code>.
+     * Note that you must first call one of the getter methods
+     * on a column to try to read its value and then call
+     * the method <code>wasNull</code> to see if the value read was
+     * SQL <code>NULL</code>.
+     *
+     * @return <code>true</code> if the last column value read was SQL
+     *         <code>NULL</code> and <code>false</code> otherwise
+     * @throws java.sql.SQLException if a database access error occurs or this method is
+     *                               called on a closed result set
+     */
     public boolean wasNull() throws SQLException {
-        return false;
+        return lastGetWasNull;
     }
+
 
     public String getString(int i) throws SQLException {
         return getValueObject(i).getString();
@@ -60,10 +75,16 @@ public class DrizzleResultSet implements ResultSet {
     }
 
     private ValueObject getValueObject(int i) {
-        return queryResult.getValueObject(i-1);
+        ValueObject vo = queryResult.getValueObject(i-1);
+        System.out.println("vo="+vo.isNull());
+        this.lastGetWasNull = vo.isNull();
+        return vo;
     }
     private ValueObject getValueObject(String column) {
-        return queryResult.getValueObject(column);
+         ValueObject vo = queryResult.getValueObject(column);
+        System.out.println("vo="+vo.isNull());
+        this.lastGetWasNull = vo.isNull();
+        return vo;
     }
 
     /**
@@ -4185,7 +4206,7 @@ public class DrizzleResultSet implements ResultSet {
      *                               called on a closed result set
      */
     public String getString(String columnLabel) throws SQLException {
-        ValueObject vo = queryResult.getValueObject(columnLabel);
+        ValueObject vo = getValueObject(columnLabel);
         return vo.getString();
     }
 
