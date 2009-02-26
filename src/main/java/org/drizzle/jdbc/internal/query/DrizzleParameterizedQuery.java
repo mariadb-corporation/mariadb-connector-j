@@ -1,6 +1,8 @@
 package org.drizzle.jdbc.internal.query;
 
 import static org.drizzle.jdbc.internal.Utils.countChars;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
 import java.io.IOException;
@@ -18,16 +20,19 @@ import java.sql.SQLException;
  * To change this template use File | Settings | File Templates.
  */
 public class DrizzleParameterizedQuery extends DrizzleQuery {
+        private final static Logger log = LoggerFactory.getLogger(DrizzleParameterizedQuery.class);
     private List<ParameterHolder> parameters;
     private final int paramCount;
 
     public DrizzleParameterizedQuery(String query) {
         super(query);
         this.paramCount=countChars(query,'?');
+        log.debug("Found {} questionmarks",paramCount);
         parameters=new ArrayList<ParameterHolder>(paramCount);
     }
 
     public void setParameter(int position, ParameterHolder parameter) throws SQLException {
+        log.info("Setting parameter {} at position {}",parameter.toString(),position);
         if(position>=0 && position<paramCount)
             this.parameters.add(position,parameter);
         else
@@ -46,11 +51,13 @@ public class DrizzleParameterizedQuery extends DrizzleQuery {
     }
     @Override
     public void writeTo(OutputStream os) throws IOException {
+//        log.info("Sending query to outputstream");
         StringReader strReader = new StringReader(query);
         int ch;
         int paramCounter=0;
         while((ch=strReader.read())!=-1) {
             if(ch=='?') {
+ //               log.debug("Found '?', sending parameter {}",parameters.get(paramCounter).toString());
                 parameters.get(paramCounter++).writeTo(os);
             } else {
                 os.write(ch);

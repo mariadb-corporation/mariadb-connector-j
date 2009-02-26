@@ -2,6 +2,9 @@ package org.drizzle.jdbc.internal;
 
 import org.drizzle.jdbc.internal.query.DrizzleParameterizedQuery;
 import org.drizzle.jdbc.internal.query.Query;
+import org.drizzle.jdbc.internal.query.DrizzleQuery;
+
+import java.util.List;
 
 /**
  * User: marcuse
@@ -54,4 +57,9 @@ public interface Protocol {
     boolean ping() throws QueryException;
 
     QueryResult executeQuery(Query dQuery) throws QueryException;
+
+    void addToBatch(Query dQuery);
+    public List<QueryResult> executeBatch() throws QueryException;
+
+    void clearBatch();
 }

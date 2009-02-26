@@ -76,13 +76,11 @@ public class DrizzleResultSet implements ResultSet {
 
     private ValueObject getValueObject(int i) {
         ValueObject vo = queryResult.getValueObject(i-1);
-        System.out.println("vo="+vo.isNull());
         this.lastGetWasNull = vo.isNull();
         return vo;
     }
     private ValueObject getValueObject(String column) {
-         ValueObject vo = queryResult.getValueObject(column);
-        System.out.println("vo="+vo.isNull());
+        ValueObject vo = queryResult.getValueObject(column);
         this.lastGetWasNull = vo.isNull();
         return vo;
     }

@@ -25,6 +25,8 @@ public class ReadUtil {
     public static byte getByteAt(InputStream reader, int i) throws IOException {
         reader.mark(i+1);
         reader.skip(i-1);
+
+
         byte b = (byte) reader.read();
         reader.reset();
         return b;

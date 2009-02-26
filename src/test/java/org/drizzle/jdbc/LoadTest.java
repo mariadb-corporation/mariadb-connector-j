@@ -25,9 +25,9 @@ public class LoadTest {
         }
         Connection connection = DriverManager.getConnection("jdbc:drizzle://localhost:4427/test_units_jdbc");
         Statement stmt = connection.createStatement();
-       // stmt.executeUpdate("drop table if exists loadsofdata");
-       // stmt.executeUpdate("create table loadsofdata (id int not null primary key auto_increment, data varchar(100))");
-//        stmt.close();
+         stmt.executeUpdate("drop table if exists loadsofdata");
+         stmt.executeUpdate("create table loadsofdata (id int not null primary key auto_increment, data varchar(100))");
+         stmt.close();
        for(int i=0;i<100;i++) {
             stmt=connection.createStatement();
             stmt.executeUpdate("insert into loadsofdata (data) values ('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"+i+"')");

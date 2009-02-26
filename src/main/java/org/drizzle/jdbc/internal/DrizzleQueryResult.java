@@ -62,7 +62,6 @@ public class DrizzleQueryResult implements QueryResult {
         if(queryResultType == QueryResultType.MODIFY)
             return false;
         rowCounter++;
-        System.out.println(resultSet.size());
         return rowCounter < resultSet.size();
     }
 

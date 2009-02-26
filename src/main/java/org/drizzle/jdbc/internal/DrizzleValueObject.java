@@ -21,6 +21,7 @@ import java.util.Calendar;
  * Time: 9:18:26 PM
  */
 public class DrizzleValueObject implements ValueObject {
+
     public enum DataType {
         INTEGER, STRING, LONG
     }
@@ -106,8 +107,7 @@ public class DrizzleValueObject implements ValueObject {
             case STRING:
                 return getString();
             case INTEGER:
-                return getInt();
-                
+                return getInt();      
         }
         return null;  //To change body of implemented methods use File | Settings | File Templates.
     }
@@ -145,4 +145,10 @@ public class DrizzleValueObject implements ValueObject {
     public static ValueObject fromLong(long theLong) {
         return new DrizzleValueObject(String.valueOf(theLong).getBytes(), DataType.LONG);
     }
+    public int getDisplayLength() {
+        if(rawBytes!=null)
+            return rawBytes.length;
+        return 4; //NULL
+    }
+
 }

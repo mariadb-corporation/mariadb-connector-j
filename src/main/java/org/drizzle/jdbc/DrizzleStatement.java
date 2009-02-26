@@ -16,7 +16,7 @@ import java.util.LinkedList;
  * Time: 10:10:58 PM
  */
 public class DrizzleStatement implements Statement {
-    private Protocol protocol;
+    protected Protocol protocol;
     private ResultSet resultSet;
     private int updateCount;
     private final Connection connection;
@@ -833,7 +833,7 @@ public class DrizzleStatement implements Statement {
      * @since 1.2
      */
     public void addBatch(String sql) throws SQLException {
-        this.queryBatch.add(sql);
+        this.protocol.addToBatch(new DrizzleQuery(sql));
     }
 
     /**
@@ -849,7 +849,7 @@ public class DrizzleStatement implements Statement {
      * @since 1.2
      */
     public void clearBatch() throws SQLException {
-        this.queryBatch.clear();
+        this.protocol.clearBatch();
     }
 
     /**
@@ -903,19 +903,18 @@ public class DrizzleStatement implements Statement {
      * @since 1.3
      */
     public int[] executeBatch() throws SQLException {
-        // todo: maybe this should be done in one transaction?
-
-        int [] retVals = new int[queryBatch.size()];
-        int i =0;
-        for(String sql : queryBatch) {
-            try {
-                retVals[i++] = executeUpdate(sql);
+        try {
+            
+            List<QueryResult> queryRes = protocol.executeBatch();
+            int [] retVals = new int[queryRes.size()];
+            int i = 0;
+            for(QueryResult qr : queryRes){
+                retVals[i++] = qr.getUpdateCount(); //TODO: this needs to be handled according to javadoc
             }
-            catch(SQLException e) {
-                throw new BatchUpdateException(e);
-            }
+            return retVals;
+        } catch (QueryException e) {
+            throw new SQLException("Could not execute batch");
         }
-        return retVals;
     }
 
     /**

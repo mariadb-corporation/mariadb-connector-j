@@ -37,7 +37,7 @@ public class DrizzleProtocol implements Protocol {
     private final String database;
     private final String username;
     private final String password;
-
+    private List<Query> batchList;
     //private ProtocolState protocolState = ProtocolState.NO_TRANSACTION;
     /**
      * Get a protocol instance
@@ -62,6 +62,7 @@ public class DrizzleProtocol implements Protocol {
             throw new QueryException("Could not connect socket",e);
         }
         log.info("Connected to: {}:{}",host,port);
+        batchList=new ArrayList<Query>();
         try {
             reader = new BufferedInputStream(socket.getInputStream(),16384);
             writer = new BufferedOutputStream(socket.getOutputStream(),16384);
@@ -157,7 +158,7 @@ public class DrizzleProtocol implements Protocol {
                 new EOFPacket(reader);
                 return dqr;
             }
-            RowPacket rowPacket = new RowPacket(reader,packet.getFieldCount());
+            RowPacket rowPacket = new RowPacket(reader,fieldPackets);
             dqr.addRow(rowPacket.getRow());
         }
     }
@@ -255,6 +256,11 @@ public class DrizzleProtocol implements Protocol {
 
     public QueryResult executeQuery(Query dQuery) throws QueryException {
         log.debug("Executing streamed query: {}",dQuery);
+        try {
+            dQuery.writeTo(System.out);
+        } catch (IOException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
         StreamedQueryPacket packet = new StreamedQueryPacket(dQuery);
         int i=0;
         try {
@@ -262,12 +268,15 @@ public class DrizzleProtocol implements Protocol {
         } catch (IOException e) {
             throw new QueryException("Could not send query",e);
         }
+
         ResultPacket resultPacket = null;
         try {
+            System.out.println("mo");
             resultPacket = ResultPacketFactory.createResultPacket(reader);
         } catch (IOException e) {
             throw new QueryException("Could not read response",e);
         }
+
         switch(resultPacket.getResultType()) {
             case ERROR:
                 log.warn("Could not execute query {}: {}",dQuery, ((ErrorPacket)resultPacket).getMessage());
@@ -293,5 +302,25 @@ public class DrizzleProtocol implements Protocol {
                 throw new QueryException("Could not parse result");
         }
 
+    }
+
+    public void addToBatch(Query dQuery) {
+        log.info("Adding query to batch");
+        batchList.add(dQuery);
+    }
+    public List<QueryResult> executeBatch() throws QueryException {
+        log.info("executing batch");
+        List<QueryResult> retList = new ArrayList<QueryResult>(batchList.size());
+        int i=0;
+        for(Query query : batchList) {
+            log.info("executing batch query");
+            retList.add(executeQuery(query));
+        }
+        return retList;
+
+    }
+
+    public void clearBatch() {
+        batchList.clear();
     }
 }

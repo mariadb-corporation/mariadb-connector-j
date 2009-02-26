@@ -23,6 +23,7 @@ public class OKPacket extends ResultPacket {
     private final byte packetSeqNum;
 
     public OKPacket(InputStream istream) throws IOException {
+
         Reader reader = new Reader(istream);
         packetSeqNum = reader.getPacketSeq();
         fieldCount = reader.readByte();
@@ -30,6 +31,7 @@ public class OKPacket extends ResultPacket {
         insertId = reader.getLengthEncodedBinary();
         serverStatus = reader.readShort();
         warnings = reader.readShort();
+
         message = reader.readString("ASCII");
     }
     public ResultType getResultType() {

@@ -2,9 +2,13 @@ package org.drizzle.jdbc.internal.packet;
 
 import org.drizzle.jdbc.internal.packet.buffer.ReadUtil;
 import org.drizzle.jdbc.internal.packet.buffer.Reader;
+import org.drizzle.jdbc.internal.DrizzleType;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.EnumSet;
+import java.util.Collections;
+import java.util.Set;
 
 /**
  * Created by IntelliJ IDEA.
@@ -41,9 +45,37 @@ Bytes                      Name
     private final String orgName;
     private final short charsetNumber;
     private final long length;
-    private final byte type;
-    private final short flags;
+    private final DrizzleType type;
     private final byte decimals;
+    private int maxFieldLength=0;
+    private final Set<FieldFlags> flags;
+
+
+    public enum FieldFlags {
+        NOT_NULL((short)1),
+        PRIMARY_KEY((short)2),
+        UNIQUE_KEY((short)4),
+        MULTIPLE_KEY((short)8),
+        BLOB((short)16),
+        UNSIGNED((short)32),
+        DECIMAL((short)64),
+        BINARY((short)128),
+        ENUM((short)256),
+        AUTO_INCREMENT((short)512),
+        TIMESTAMP((short)1024),
+        SET((short)2048);
+        
+        private short flag;
+
+        FieldFlags(short i) {
+            this.flag=i;
+        }
+
+        public short flag() {
+            return flag;
+        }
+    }
+
     public FieldPacket(InputStream istream) throws IOException {
         Reader reader = new Reader(istream);
         catalog=reader.getLengthEncodedString();
@@ -55,17 +87,33 @@ Bytes                      Name
         reader.skipBytes(1);
         charsetNumber = reader.readShort();
         length=reader.readInt();
-        type=reader.readByte();
-        flags=reader.readShort();
+        type=DrizzleType.values()[reader.readByte()]; //bad, using ordial to fetch type
+        flags= Collections.unmodifiableSet(parseFlags(reader.readShort()));
         decimals=reader.readByte();
         reader.skipBytes(2);
     }
+
+    private Set<FieldFlags> parseFlags(short i) {
+        Set<FieldFlags> retFlags = EnumSet.noneOf(FieldFlags.class);
+        for(FieldFlags fieldFlag: FieldFlags.values()) {
+            if((i & fieldFlag.flag())==fieldFlag.flag())
+                retFlags.add(fieldFlag);
+        }
+        return retFlags;
+    }
+
+    public String getTypeName(){
+        return type.toString();
+    }
+    public DrizzleType getFieldType() {
+        return type;
+    }
     public ResultType getResultType() {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return null;
     }
 
     public byte getPacketSeq() {
-        return 0;  //To change body of implemented methods use File | Settings | File Templates.
+        return 0;
     }
 
     public String getColumnName() {
@@ -101,14 +149,22 @@ Bytes                      Name
     }
 
     public byte getType() {
-        return type;
+        return (byte)type.ordinal();
     }
 
-    public short getFlags() {
+    public Set<FieldFlags> getFlags() {
         return flags;
     }
 
     public byte getDecimals() {
         return decimals;
+    }
+
+    public void updateDisplaySize(int length) {
+        if(length>this.maxFieldLength)
+            this.maxFieldLength=length;
+    }
+    public int getDisplaySize(){
+        return this.maxFieldLength;
     }
 }

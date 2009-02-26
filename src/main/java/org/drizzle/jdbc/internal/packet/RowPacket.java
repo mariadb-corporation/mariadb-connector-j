@@ -11,19 +11,21 @@ import java.io.IOException;
 import java.io.InputStream;
 
 /**
- * Created by IntelliJ IDEA.
  * User: marcuse
  * Date: Jan 23, 2009
  * Time: 9:28:43 PM
- * To change this template use File | Settings | File Templates.
  */
 public class RowPacket {
     private List<ValueObject> columns = new ArrayList<ValueObject>();
-    public RowPacket(InputStream istream, long fieldCount) throws IOException {
+    public RowPacket(InputStream istream, List<FieldPacket> fieldPackets) throws IOException {
+        int fieldCount = fieldPackets.size();
         Reader reader = new Reader(istream);
         for(int i = 0;i<fieldCount;i++){
+            FieldPacket currentField = fieldPackets.get(i);
             byte [] col  = reader.getLengthEncodedBytes();
-            columns.add(new DrizzleValueObject(col, STRING));
+            DrizzleValueObject dvo = new DrizzleValueObject(col, STRING);
+            columns.add(dvo);
+            currentField.updateDisplaySize(dvo.getDisplayLength());
         }
     }
 

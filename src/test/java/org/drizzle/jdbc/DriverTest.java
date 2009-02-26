@@ -261,6 +261,29 @@ public class DriverTest {
         assertEquals(true,rs.next());
         assertEquals("NULL",rs.getString("test"));
         assertEquals(true,rs.wasNull());
+    }
+
+   // @Test
+    public void batchTest() throws SQLException {
+        connection.createStatement().executeQuery("drop table if exists test_batch");
+        connection.createStatement().executeQuery("create table test_batch (id int not null primary key, test varchar(10))");
+
+        PreparedStatement ps = connection.prepareStatement("insert into test_batch values (null, ?)");
+        ps.setString(1, "aaa");
+        ps.addBatch();
+        ps.setString(1, "bbb");
+        ps.addBatch();
+        ps.setString(1, "ccc");
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = connection.createStatement().executeQuery("select * from test_batch");
+        assertEquals(true,rs.next());
+        assertEquals("aaa",rs.getString(2));
+        assertEquals(true,rs.next());
+        assertEquals("bbb",rs.getString(2));
+        assertEquals(true,rs.next());
+        assertEquals("ccc",rs.getString(2));
+        assertEquals(false,rs.next());
 
     }
 }

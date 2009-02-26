@@ -19,6 +19,8 @@ public class ResultPacketFactory {
     private final static byte EOF = (byte)0xfe;
 
     public static ResultPacket createResultPacket(InputStream reader) throws IOException {
+        
+                
         switch(ReadUtil.getByteAt(reader,5)) {
             case ERROR:
                 return new ErrorPacket(reader);
