@@ -1,10 +1,12 @@
 package org.drizzle.jdbc.internal.packet;
 
-import org.drizzle.jdbc.internal.packet.buffer.ReadUtil;
 import org.drizzle.jdbc.internal.packet.buffer.Reader;
+import org.drizzle.jdbc.internal.ServerStatus;
+import org.drizzle.jdbc.internal.ServerCapabilities;
 
 import java.io.InputStream;
 import java.io.IOException;
+import java.util.Set;
 
 /**
  * Greeting from drizzle looks like this
@@ -18,9 +20,9 @@ public class GreetingReadPacket {
     private final long serverThreadID;
     private byte[] seed1 = new byte[8];
     private byte[] seed2 = new byte[13];
-    private final short serverCapabilities  ;
+    private final Set<ServerCapabilities> serverCapabilities ;
     private final byte serverLanguage;
-    private final short serverStatus;
+    private final Set<ServerStatus> serverStatus;
 
     public GreetingReadPacket(InputStream istream) throws IOException {
         Reader reader = new Reader(istream);
@@ -29,9 +31,9 @@ public class GreetingReadPacket {
         serverThreadID = reader.readInt();
         seed1 = reader.readRawBytes(8);
         reader.skipByte();
-        serverCapabilities = reader.readShort();
+        serverCapabilities = ServerCapabilities.getServerCapabilitiesSet(reader.readShort());
         serverLanguage = reader.readByte();
-        serverStatus = reader.readShort();
+        serverStatus = ServerStatus.getServerStatusSet(reader.readShort());
         reader.skipBytes(13);
         seed2=reader.readRawBytes(13);
     }
@@ -67,7 +69,7 @@ public class GreetingReadPacket {
         return seed1;
     }
 
-    public int getServerCapabilities() {
+    public Set<ServerCapabilities> getServerCapabilities() {
         return serverCapabilities;
     }
 
@@ -79,7 +81,7 @@ public class GreetingReadPacket {
 
 
 
-    public int getServerStatus() {
+    public Set<ServerStatus> getServerStatus() {
         return serverStatus;
     }
 

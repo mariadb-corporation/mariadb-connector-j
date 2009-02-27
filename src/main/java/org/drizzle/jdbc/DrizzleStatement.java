@@ -16,7 +16,7 @@ import java.util.LinkedList;
  * Time: 10:10:58 PM
  */
 public class DrizzleStatement implements Statement {
-    protected Protocol protocol;
+    private Protocol protocol;
     private ResultSet resultSet;
     private int updateCount;
     private final Connection connection;

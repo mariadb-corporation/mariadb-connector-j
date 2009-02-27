@@ -284,6 +284,19 @@ public class DriverTest {
         assertEquals(true,rs.next());
         assertEquals("ccc",rs.getString(2));
         assertEquals(false,rs.next());
+    }
 
+    @Test
+    public void floatingNumbersTest() throws SQLException {
+        connection.createStatement().executeQuery("drop table if exists test_float");
+        connection.createStatement().executeQuery("create table test_float (a float )");
+
+        PreparedStatement ps = connection.prepareStatement("insert into test_float values (?)");
+        ps.setDouble(1,3.99);
+        ps.executeUpdate();
+        ResultSet rs = connection.createStatement().executeQuery("select * from test_float");
+        assertEquals(true,rs.next());
+        assertEquals((float)3.99, rs.getFloat(1));
+        assertEquals(false,rs.next());
     }
 }

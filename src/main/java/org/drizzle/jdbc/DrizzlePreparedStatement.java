@@ -4,6 +4,8 @@ import org.drizzle.jdbc.internal.Protocol;
 import org.drizzle.jdbc.internal.QueryResult;
 import org.drizzle.jdbc.internal.QueryException;
 import org.drizzle.jdbc.internal.query.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.*;
 import java.math.BigDecimal;
@@ -12,6 +14,7 @@ import java.io.Reader;
 import java.io.IOException;
 import java.util.Calendar;
 import java.net.URL;
+import java.text.SimpleDateFormat;
 
 /**
  * User: marcuse
@@ -19,11 +22,13 @@ import java.net.URL;
  * Time: 10:49:42 PM
  */
 public class DrizzlePreparedStatement extends DrizzleStatement implements PreparedStatement  {
+    private final static Logger log = LoggerFactory.getLogger(DrizzlePreparedStatement.class);
     private final String query;
     private DrizzleParameterizedQuery dQuery;
 
     public DrizzlePreparedStatement(Protocol protocol, DrizzleConnection drizzleConnection, String query) {
         super(protocol, drizzleConnection);
+        log.info("Creating prepared statement for {}",query);
         this.query=query;
         dQuery = new DrizzleParameterizedQuery(query);
     }
@@ -38,7 +43,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
 
 
     public int executeUpdate() throws SQLException {
-        QueryResult qr = null;
+        QueryResult qr;
         try {
             qr = getProtocol().executeQuery(dQuery);
         } catch (QueryException e) {
@@ -68,11 +73,13 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      *                               this data type
      */
     public void setNull(int parameterIndex, int sqlType) throws SQLException {
+        log.info("Setting null at index {}",parameterIndex);
+
         setParameter(parameterIndex,new NullParameter());
     }
 
     public boolean execute() throws SQLException {
-        QueryResult qr = null;
+        QueryResult qr;
         try {
             qr = getProtocol().executeQuery(dQuery);
         } catch (QueryException e) {
@@ -101,7 +108,8 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.2
      */
     public void addBatch() throws SQLException {
-        this.protocol.addToBatch(dQuery);
+        log.info("Adding query {} to batch",query);
+        this.getProtocol().addToBatch(dQuery);
         dQuery=new DrizzleParameterizedQuery(query);
     }
 
@@ -128,7 +136,8 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.2
      */
     public void setCharacterStream(int parameterIndex, Reader reader, int length) throws SQLException {
-//        dQuery.setParameter(parameterIndex-1, new StreamParameter(reader.,length));
+        log.info("Setting char stream at {}",parameterIndex);
+        dQuery.setParameter(parameterIndex-1, new ReaderParameter(reader,length));
     }
 
     /**
@@ -147,7 +156,8 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.2
      */
     public void setRef(int parameterIndex, Ref x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        log.info("REFs not supported");
+        throw new SQLFeatureNotSupportedException("REF not supported");
     }
 
     /**
@@ -165,6 +175,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.2
      */
     public void setBlob(int parameterIndex, Blob x) throws SQLException {
+        log.info("Setting blob at {}",parameterIndex);
         setParameter(parameterIndex, new StreamParameter(x.getBinaryStream(),x.length()));
     }
 
@@ -183,7 +194,8 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.2
      */
     public void setClob(int parameterIndex, Clob x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        log.info("Clobs not supported");
+        throw new SQLFeatureNotSupportedException("Clobs not supported");
     }
 
     /**
@@ -201,7 +213,8 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.2
      */
     public void setArray(int parameterIndex, Array x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        log.info("Arrays not supported");
+        throw new SQLFeatureNotSupportedException("Arrays not supported");
     }
 
     /**
@@ -232,7 +245,9 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.2
      */
     public ResultSetMetaData getMetaData() throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        if(super.getResultSet()!=null)
+            return super.getResultSet().getMetaData();
+        return null;
     }
 
     /**
@@ -246,7 +261,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * timezone, which is that of the virtual machine running the application.
      *
      * @param parameterIndex the first parameter is 1, the second is 2, ...
-     * @param x              the parameter value
+     * @param date              the parameter value
      * @param cal            the <code>Calendar</code> object the driver will use
      *                       to construct the date
      * @throws java.sql.SQLException if parameterIndex does not correspond to a parameter
@@ -254,8 +269,11 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      *                               this method is called on a closed <code>PreparedStatement</code>
      * @since 1.2
      */
-    public void setDate(int parameterIndex, Date x, Calendar cal) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+    public void setDate(int parameterIndex, Date date, Calendar cal) throws SQLException {
+        // todo: move this to protocol?
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        sdf.setCalendar(cal);
+        setParameter(parameterIndex,new StringParameter(sdf.format(date)));
     }
 
     /**
@@ -269,7 +287,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * timezone, which is that of the virtual machine running the application.
      *
      * @param parameterIndex the first parameter is 1, the second is 2, ...
-     * @param x              the parameter value
+     * @param time            the parameter value
      * @param cal            the <code>Calendar</code> object the driver will use
      *                       to construct the time
      * @throws java.sql.SQLException if parameterIndex does not correspond to a parameter
@@ -277,8 +295,10 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      *                               this method is called on a closed <code>PreparedStatement</code>
      * @since 1.2
      */
-    public void setTime(int parameterIndex, Time x, Calendar cal) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+    public void setTime(int parameterIndex, Time time, Calendar cal) throws SQLException {
+        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+        sdf.setCalendar(cal);
+        setParameter(parameterIndex,new StringParameter(sdf.format(time)));
     }
 
     /**
@@ -301,7 +321,9 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.2
      */
     public void setTimestamp(int parameterIndex, Timestamp x, Calendar cal) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        //TODO: use cal
+
+        setParameter(parameterIndex,new LongParameter(x.getTime()));
     }
 
     /**
@@ -380,6 +402,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.4
      */
     public ParameterMetaData getParameterMetaData() throws SQLException {
+        //TODO: figure out how this works..
         return null;  //To change body of implemented methods use File | Settings | File Templates.
     }
 
@@ -698,7 +721,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.6
      */
     public void setCharacterStream(int parameterIndex, Reader reader, long length) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        setParameter(parameterIndex, new ReaderParameter(reader,length));
     }//-----
     /**
      * This function reads up the entire stream and stores it in memory since
@@ -797,7 +820,11 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.6
      */
     public void setCharacterStream(int parameterIndex, Reader reader) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        try {
+            setParameter(parameterIndex, new BufferedReaderParameter(reader));
+        } catch (IOException e) {
+            throw new SQLException("Could not read reader",e);
+        }
     }
 
     /**
@@ -968,7 +995,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      *                               this method is called on a closed <code>PreparedStatement</code>
      */
     public void setBytes(int parameterIndex, byte x[]) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        setParameter(parameterIndex,new ByteParameter(x));
     }
 
     /**
@@ -979,13 +1006,14 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * to an SQL <code>DATE</code> value when it sends it to the database.
      *
      * @param parameterIndex the first parameter is 1, the second is 2, ...
-     * @param x              the parameter value
+     * @param date              the parameter value
      * @throws java.sql.SQLException if parameterIndex does not correspond to a parameter
      *                               marker in the SQL statement; if a database access error occurs or
      *                               this method is called on a closed <code>PreparedStatement</code>
      */
-    public void setDate(int parameterIndex, Date x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+    public void setDate(int parameterIndex, Date date) throws SQLException {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        setParameter(parameterIndex,new StringParameter(sdf.format(date)));
     }
 
     /**
@@ -1000,7 +1028,8 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      *                               this method is called on a closed <code>PreparedStatement</code>
      */
     public void setTime(int parameterIndex, Time x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:dd");
+        setParameter(parameterIndex,new StringParameter(sdf.format(x)));
     }
 
     /**
@@ -1016,7 +1045,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      *                               this method is called on a closed <code>PreparedStatement</code>
      */
     public void setTimestamp(int parameterIndex, Timestamp x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        setParameter(parameterIndex,new LongParameter(x.getTime()));
     }
 
     /**
@@ -1214,7 +1243,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      *                               this method is called on a closed <code>PreparedStatement</code>
      */
     public void setFloat(int parameterIndex, float x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        setParameter(parameterIndex,new DoubleParameter(x));
     }
 
     /**
@@ -1229,7 +1258,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      *                               this method is called on a closed <code>PreparedStatement</code>
      */
     public void setDouble(int parameterIndex, double x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        setParameter(parameterIndex,new DoubleParameter(x));
     }
 
     /**
@@ -1244,6 +1273,6 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      *                               this method is called on a closed <code>PreparedStatement</code>
      */
     public void setBigDecimal(int parameterIndex, BigDecimal x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        setParameter(parameterIndex,new BigDecimalParameter(x));
     }
 }

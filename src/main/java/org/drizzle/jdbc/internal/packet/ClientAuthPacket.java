@@ -1,6 +1,9 @@
 package org.drizzle.jdbc.internal.packet;
 
 import org.drizzle.jdbc.internal.packet.buffer.WriteBuffer;
+import org.drizzle.jdbc.internal.ServerCapabilities;
+
+import java.util.Set;
 
 /**
  4                            client_flags
@@ -41,7 +44,7 @@ import org.drizzle.jdbc.internal.packet.buffer.WriteBuffer;
  */
 public class ClientAuthPacket implements DrizzlePacket {
     private WriteBuffer writeBuffer;
-    private int serverCapabilities;
+    private Set<ServerCapabilities> serverCapabilities;
     private byte serverLanguage;
     private String username;
     private String password;
@@ -55,7 +58,8 @@ public class ClientAuthPacket implements DrizzlePacket {
     }
 // TODO: fix passing the initial database...
     public byte [] toBytes(byte queryNumber) {
-        writeBuffer.writeInt(serverCapabilities & ~((1<<5)|(1<<11)|(1<<3))).
+    //& ~((1<<5)|(1<<11)|(1<<3))    
+    writeBuffer.writeInt(ServerCapabilities.fromSet(serverCapabilities)).
                 writeInt(4+4+1+23+username.length()+1+1+1+database.length()+1).
                     writeByte(serverLanguage). //1
                     writeBytes((byte)0,23).    //4
@@ -69,8 +73,15 @@ public class ClientAuthPacket implements DrizzlePacket {
         return writeBuffer.toByteArrayWithLength(queryNumber);
     }
 
-    public void setServerCapabilities(int serverCapabilities) {
+    public void setServerCapabilities(Set<ServerCapabilities> serverCapabilities) {
         this.serverCapabilities = serverCapabilities;
+        this.serverCapabilities.remove(ServerCapabilities.INTERACTIVE);
+        this.serverCapabilities.remove(ServerCapabilities.SSL);
+        this.serverCapabilities.remove(ServerCapabilities.ODBC);
+        this.serverCapabilities.remove(ServerCapabilities.ODBC);
+        this.serverCapabilities.add(ServerCapabilities.CONNECT_WITH_DB);
+        this.serverCapabilities.add(ServerCapabilities.TRANSACTIONS);
+
     }
 
     public void setServerLanguage(byte serverLanguage) {

@@ -2,9 +2,11 @@ package org.drizzle.jdbc.internal.packet;
 
 import org.drizzle.jdbc.internal.packet.buffer.ReadUtil;
 import org.drizzle.jdbc.internal.packet.buffer.Reader;
+import org.drizzle.jdbc.internal.ServerStatus;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Set;
 
 /**
  * Created by IntelliJ IDEA.
@@ -17,21 +19,19 @@ public class OKPacket extends ResultPacket {
     private final byte fieldCount;
     private final long affectedRows;
     private final long insertId;
-    private final short serverStatus;
+    private final Set<ServerStatus> serverStatus;
     private final short warnings;
     private final String message;
     private final byte packetSeqNum;
 
     public OKPacket(InputStream istream) throws IOException {
-
         Reader reader = new Reader(istream);
         packetSeqNum = reader.getPacketSeq();
         fieldCount = reader.readByte();
         affectedRows = reader.getLengthEncodedBinary();
         insertId = reader.getLengthEncodedBinary();
-        serverStatus = reader.readShort();
+        serverStatus = ServerStatus.getServerStatusSet(reader.readShort());
         warnings = reader.readShort();
-
         message = reader.readString("ASCII");
     }
     public ResultType getResultType() {
@@ -55,7 +55,7 @@ public class OKPacket extends ResultPacket {
         return insertId;
     }
 
-    public short getServerStatus() {
+    public Set<ServerStatus> getServerStatus() {
         return serverStatus;
     }
 
