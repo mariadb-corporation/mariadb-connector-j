@@ -913,7 +913,7 @@ public class DrizzleStatement implements Statement {
             }
             return retVals;
         } catch (QueryException e) {
-            throw new SQLException("Could not execute batch");
+            throw new SQLException("Could not execute batch",e);
         }
     }
 

@@ -263,10 +263,10 @@ public class DriverTest {
         assertEquals(true,rs.wasNull());
     }
 
-   // @Test
+    @Test
     public void batchTest() throws SQLException {
         connection.createStatement().executeQuery("drop table if exists test_batch");
-        connection.createStatement().executeQuery("create table test_batch (id int not null primary key, test varchar(10))");
+        connection.createStatement().executeQuery("create table test_batch (id int not null primary key auto_increment, test varchar(10))");
 
         PreparedStatement ps = connection.prepareStatement("insert into test_batch values (null, ?)");
         ps.setString(1, "aaa");

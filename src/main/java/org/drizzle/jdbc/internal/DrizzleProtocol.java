@@ -256,11 +256,6 @@ public class DrizzleProtocol implements Protocol {
 
     public QueryResult executeQuery(Query dQuery) throws QueryException {
         log.debug("Executing streamed query: {}",dQuery);
-        try {
-            dQuery.writeTo(System.out);
-        } catch (IOException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-        }
         StreamedQueryPacket packet = new StreamedQueryPacket(dQuery);
         int i=0;
         try {
@@ -271,7 +266,6 @@ public class DrizzleProtocol implements Protocol {
 
         ResultPacket resultPacket = null;
         try {
-            System.out.println("mo");
             resultPacket = ResultPacketFactory.createResultPacket(reader);
         } catch (IOException e) {
             throw new QueryException("Could not read response",e);

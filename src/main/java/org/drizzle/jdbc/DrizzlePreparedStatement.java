@@ -92,7 +92,8 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * Adds a set of parameters to this <code>PreparedStatement</code>
      * object's batch of commands.
      *
-     * This implementation does not clear the current list of parameters
+     *
+     * this implementation clears the current list of parameters (TODO: desired behaviour?)
      *
      * @throws java.sql.SQLException if a database access error occurs or
      *                               this method is called on a closed <code>PreparedStatement</code>
@@ -101,6 +102,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      */
     public void addBatch() throws SQLException {
         this.protocol.addToBatch(dQuery);
+        dQuery=new DrizzleParameterizedQuery(query);
     }
 
     /**

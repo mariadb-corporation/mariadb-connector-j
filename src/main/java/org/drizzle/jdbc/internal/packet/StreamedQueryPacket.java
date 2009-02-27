@@ -30,16 +30,9 @@ public class StreamedQueryPacket implements DrizzlePacket {
         return null;
     }
     public void sendQuery(OutputStream ostream) throws IOException {
-        System.out.println("a");
         for(byte b:byteHeader)
             ostream.write(b);
-        System.out.println("b");
-
         query.writeTo(ostream);
-        System.out.println("c");
-
         ostream.flush();
-        System.out.println("d");
-        
     }
 }
