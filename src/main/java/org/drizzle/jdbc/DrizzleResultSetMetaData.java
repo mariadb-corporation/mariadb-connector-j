@@ -7,10 +7,7 @@ import org.slf4j.LoggerFactory;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.List;
-import java.util.Collections;
-import java.util.Arrays;
 
-import com.sun.xml.internal.bind.v2.model.nav.ReflectionNavigator;
 
 /**
  * TODO: finish implem.
