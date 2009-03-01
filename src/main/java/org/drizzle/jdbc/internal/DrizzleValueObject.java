@@ -7,6 +7,7 @@ import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.sql.Blob;
 import java.text.SimpleDateFormat;
 import java.text.ParseException;
 import java.io.InputStream;
@@ -23,12 +24,9 @@ import java.util.Calendar;
  */
 public class DrizzleValueObject implements ValueObject {
 
-    public enum DataType {
-        INTEGER, STRING, LONG
-    }
     private final byte[] rawBytes;
-    private final DataType dataType;
-    public DrizzleValueObject(byte [] rawBytes, DataType dataType) {
+    private final DrizzleType dataType;
+    public DrizzleValueObject(byte [] rawBytes, DrizzleType dataType) {
         this.rawBytes= rawBytes;
         this.dataType=dataType;
     }
@@ -78,6 +76,7 @@ public class DrizzleValueObject implements ValueObject {
     }
 
     public Date getDate() throws ParseException {
+        if(rawBytes==null) return null;
         String rawValue = getString();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
         java.util.Date utilDate = sdf.parse(rawValue);
@@ -85,12 +84,14 @@ public class DrizzleValueObject implements ValueObject {
     }
 
     public Time getTime() throws ParseException {
+        if(rawBytes==null) return null;
         String rawValue = getString();
         SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
         java.util.Date utilTime = sdf.parse(rawValue);
         return new Time(utilTime.getTime());
     }
     public Timestamp getTimestamp() throws ParseException {
+        if(rawBytes==null) return null;
         String rawValue = getString();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         java.util.Date utilTime = sdf.parse(rawValue);
@@ -98,28 +99,51 @@ public class DrizzleValueObject implements ValueObject {
     }    
 
     public InputStream getInputStream() {
+        if(rawBytes==null) return null;
         return new ByteArrayInputStream(getString().getBytes());
     }
     public InputStream getInputStream(String s) throws UnsupportedEncodingException {
+        if(rawBytes==null) return null;      
         return new ByteArrayInputStream(getString().getBytes("UTF-8"));
 
     }
 
-    public Object getObject() {
+    public Object getObject() throws ParseException {
         if(this.getBytes()==null)
             return null;
-        switch(this.dataType) {
+        switch(dataType) {
+            case TINY:
+                return getShort();
             case LONG:
                 return getLong();
-            case STRING:
+            case DOUBLE:
+                return getDouble();
+            case TIMESTAMP:
+                return getTimestamp();
+            case LONGLONG:
+                return getLong();
+            case TIME:
+                return getTime();
+            case DATETIME:
+                return getTimestamp();
+            case DATE:
+                return getDate();
+            case VARCHAR:
                 return getString();
-            case INTEGER:
-                return getInt();      
+            case VIRTUAL:
+                return getString();
+            case NEWDECIMAL:
+                return getBigDecimal();
+            case ENUM:
+                return getString();
+            case BLOB:
+                return getBytes(); //TODO: wrong, handle this
         }
         return null;  //To change body of implemented methods use File | Settings | File Templates.
     }
 
     public Date getDate(Calendar cal) throws ParseException {
+        if(rawBytes==null) return null;
          String rawValue = getString();
          SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
          sdf.setCalendar(cal);
@@ -128,6 +152,7 @@ public class DrizzleValueObject implements ValueObject {
      }
 
      public Time getTime(Calendar cal) throws ParseException {
+         if(rawBytes==null) return null;
          String rawValue = getString();
          SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
          sdf.setCalendar(cal);
@@ -135,6 +160,7 @@ public class DrizzleValueObject implements ValueObject {
          return new Time(utilTime.getTime());
      }
      public Timestamp getTimestamp(Calendar cal) throws ParseException {
+         if(rawBytes==null) return null;
          String rawValue = getString();
          SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
          sdf.setCalendar(cal);
@@ -143,6 +169,8 @@ public class DrizzleValueObject implements ValueObject {
      }
 
     public boolean getBoolean() {
+        if(rawBytes==null) return false;
+
         String rawVal = getString();
         if(rawVal.toLowerCase().equals("true") || rawVal.toLowerCase().equals("1"))
             return true;
@@ -159,7 +187,7 @@ public class DrizzleValueObject implements ValueObject {
      * @return a new VO
      */
     public static ValueObject fromLong(long theLong) {
-        return new DrizzleValueObject(String.valueOf(theLong).getBytes(), DataType.LONG);
+        return new DrizzleValueObject(String.valueOf(theLong).getBytes(), DrizzleType.LONG);
     }
     public int getDisplayLength() {
         if(rawBytes!=null)

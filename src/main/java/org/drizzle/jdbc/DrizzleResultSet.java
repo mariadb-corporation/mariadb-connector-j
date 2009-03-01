@@ -448,7 +448,11 @@ public class DrizzleResultSet implements ResultSet {
      *                               called on a closed result set
      */
     public Object getObject(int columnIndex) throws SQLException {
-        return getValueObject(columnIndex).getObject();
+        try {
+            return getValueObject(columnIndex).getObject();
+        } catch (ParseException e) {
+            throw new SQLException("Could not get object: "+e.getMessage(),e);
+        }
     }
 
     /**
@@ -480,7 +484,11 @@ public class DrizzleResultSet implements ResultSet {
      *                               called on a closed result set
      */
     public Object getObject(String columnLabel) throws SQLException {
-        return getValueObject(columnLabel).getObject();
+        try {
+            return getValueObject(columnLabel).getObject();
+        } catch (ParseException e) {
+            throw new SQLException("Could not get object: "+e.getMessage(),e);
+        }
     }
 
     /**

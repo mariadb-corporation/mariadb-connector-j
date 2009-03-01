@@ -30,7 +30,7 @@ public interface ValueObject {
     Time getTime() throws ParseException;
     InputStream getInputStream();
     InputStream getInputStream(String s) throws UnsupportedEncodingException;
-    Object getObject();
+    Object getObject() throws ParseException;
     Date getDate(Calendar cal) throws ParseException;
     Time getTime(Calendar cal) throws ParseException;
     Timestamp getTimestamp(Calendar cal) throws ParseException;

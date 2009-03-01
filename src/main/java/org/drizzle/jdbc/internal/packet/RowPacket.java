@@ -3,7 +3,6 @@ package org.drizzle.jdbc.internal.packet;
 import org.drizzle.jdbc.internal.packet.buffer.Reader;
 import org.drizzle.jdbc.internal.ValueObject;
 import org.drizzle.jdbc.internal.DrizzleValueObject;
-import static org.drizzle.jdbc.internal.DrizzleValueObject.DataType.STRING;
 
 import java.util.List;
 import java.util.ArrayList;
@@ -23,7 +22,7 @@ public class RowPacket {
         for(int i = 0;i<fieldCount;i++){
             FieldPacket currentField = fieldPackets.get(i);
             byte [] col  = reader.getLengthEncodedBytes();
-            DrizzleValueObject dvo = new DrizzleValueObject(col, STRING);
+            DrizzleValueObject dvo = new DrizzleValueObject(col, currentField.getFieldType());
             columns.add(dvo);
             currentField.updateDisplaySize(dvo.getDisplayLength());
         }

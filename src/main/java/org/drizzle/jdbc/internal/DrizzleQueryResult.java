@@ -38,7 +38,6 @@ public class DrizzleQueryResult implements QueryResult {
         rowCounter=-1;
         int i=0;        
         for(FieldPacket fp : fieldPackets) {
-            
             columnNameMap.put(fp.getColumnName().toLowerCase(),i++);
         }
     }
