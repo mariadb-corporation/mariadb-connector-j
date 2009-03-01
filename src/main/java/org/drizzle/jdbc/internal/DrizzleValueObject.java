@@ -6,6 +6,7 @@ import org.drizzle.jdbc.internal.packet.buffer.WriteBuffer;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Time;
+import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.text.ParseException;
 import java.io.InputStream;
@@ -78,17 +79,23 @@ public class DrizzleValueObject implements ValueObject {
 
     public Date getDate() throws ParseException {
         String rawValue = getString();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        return (Date) sdf.parse(rawValue);
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        java.util.Date utilDate = sdf.parse(rawValue);
+        return new Date(utilDate.getTime());
     }
 
     public Time getTime() throws ParseException {
-        //todo: is this proper?
-
         String rawValue = getString();
         SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
-        return (Time)sdf.parse(rawValue);
+        java.util.Date utilTime = sdf.parse(rawValue);
+        return new Time(utilTime.getTime());
     }
+    public Timestamp getTimestamp() throws ParseException {
+        String rawValue = getString();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        java.util.Date utilTime = sdf.parse(rawValue);
+        return new Timestamp(utilTime.getTime());
+    }    
 
     public InputStream getInputStream() {
         return new ByteArrayInputStream(getString().getBytes());
@@ -113,18 +120,27 @@ public class DrizzleValueObject implements ValueObject {
     }
 
     public Date getDate(Calendar cal) throws ParseException {
-        String rawValue = getString();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        //TODO: actually use the calendar
-        return (Date) sdf.parse(rawValue);
-    }
+         String rawValue = getString();
+         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+         sdf.setCalendar(cal);
+         java.util.Date utilDate = sdf.parse(rawValue);
+         return new Date(utilDate.getTime());
+     }
 
-    public Time getTime(Calendar cal) throws ParseException {
-        String rawValue = getString();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        //TODO: actually use the calendar
-        return (Time) sdf.parse(rawValue);
-    }
+     public Time getTime(Calendar cal) throws ParseException {
+         String rawValue = getString();
+         SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+         sdf.setCalendar(cal);
+         java.util.Date utilTime = sdf.parse(rawValue);
+         return new Time(utilTime.getTime());
+     }
+     public Timestamp getTimestamp(Calendar cal) throws ParseException {
+         String rawValue = getString();
+         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+         sdf.setCalendar(cal);
+         java.util.Date utilTime = sdf.parse(rawValue);
+         return new Timestamp(utilTime.getTime());
+     }
 
     public boolean getBoolean() {
         String rawVal = getString();

@@ -1045,7 +1045,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      *                               this method is called on a closed <code>PreparedStatement</code>
      */
     public void setTimestamp(int parameterIndex, Timestamp x) throws SQLException {
-        setParameter(parameterIndex,new LongParameter(x.getTime()));
+        setParameter(parameterIndex,new StringParameter(x.toString().substring(0,19)));
     }
 
     /**

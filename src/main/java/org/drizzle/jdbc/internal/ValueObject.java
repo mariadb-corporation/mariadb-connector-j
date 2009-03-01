@@ -3,6 +3,7 @@ package org.drizzle.jdbc.internal;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Time;
+import java.sql.Timestamp;
 import java.text.ParseException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
@@ -32,6 +33,8 @@ public interface ValueObject {
     Object getObject();
     Date getDate(Calendar cal) throws ParseException;
     Time getTime(Calendar cal) throws ParseException;
+    Timestamp getTimestamp(Calendar cal) throws ParseException;
+    Timestamp getTimestamp() throws ParseException;
     boolean getBoolean();
 
     boolean isNull();

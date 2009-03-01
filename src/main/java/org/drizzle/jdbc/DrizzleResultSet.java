@@ -225,8 +225,11 @@ public class DrizzleResultSet implements ResultSet {
      *                               called on a closed result set
      */
     public Timestamp getTimestamp(String columnLabel) throws SQLException {
-        Date date = getDate(columnLabel);
-        return new Timestamp(date.getTime());
+        try {
+            return getValueObject(columnLabel).getTimestamp();
+        } catch (ParseException e) {
+            throw new SQLException("Could not parse column as timestamp, was: \""+getValueObject(columnLabel).getString()+"\"",e);
+        }
     }
 
     /**
@@ -4053,7 +4056,7 @@ public class DrizzleResultSet implements ResultSet {
         try {
             return getValueObject(columnIndex).getDate();
         } catch (ParseException e) {
-            throw new SQLException("Could not parse field as date");
+            throw new SQLException("Could not parse field as date",e);
         }
     }
 
@@ -4091,7 +4094,7 @@ public class DrizzleResultSet implements ResultSet {
      */
     public Timestamp getTimestamp(int columnIndex) throws SQLException {
         try {
-            return new Timestamp(getValueObject(columnIndex).getDate().getTime());
+            return getValueObject(columnIndex).getTimestamp();
         } catch (ParseException e) {
             throw new SQLException("Could not parse field as date");
         }

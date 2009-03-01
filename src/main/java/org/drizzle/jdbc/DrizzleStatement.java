@@ -49,7 +49,7 @@ public class DrizzleStatement implements Statement {
             dqr = protocol.executeQuery(new DrizzleQuery(s));
             return dqr.getUpdateCount();
         } catch (QueryException e) {
-            throw new SQLException("Could not execute update "+e.getMessage());
+            throw new SQLException("Could not execute update ",e);
         }
     }
 
