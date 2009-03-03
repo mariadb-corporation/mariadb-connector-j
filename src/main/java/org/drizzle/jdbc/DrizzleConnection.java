@@ -87,7 +87,7 @@ public class DrizzleConnection implements Connection {
     }
 
     public DatabaseMetaData getMetaData() throws SQLException {
-        return new DrizzleDatabaseMetaData.Builder().
+        return new DrizzleDatabaseMetaData.Builder(this).
                                         url("jdbc:drizzle://"+protocol.getHost()+
                                                            ":"+protocol.getPort()+
                                                            "/"+protocol.getDatabase()).

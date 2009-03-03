@@ -1,7 +1,5 @@
 package org.drizzle.jdbc.internal;
 
-import java.util.Arrays;
-
 /**
  * User: marcuse
  * Date: Feb 19, 2009
@@ -50,4 +48,5 @@ public class Utils {
         }
         return count;
     }
+
 }

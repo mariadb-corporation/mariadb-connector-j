@@ -78,9 +78,11 @@ public class ClientAuthPacket implements DrizzlePacket {
         this.serverCapabilities.remove(ServerCapabilities.INTERACTIVE);
         this.serverCapabilities.remove(ServerCapabilities.SSL);
         this.serverCapabilities.remove(ServerCapabilities.ODBC);
-        this.serverCapabilities.remove(ServerCapabilities.ODBC);
+        this.serverCapabilities.remove(ServerCapabilities.NO_SCHEMA);
+
         this.serverCapabilities.add(ServerCapabilities.CONNECT_WITH_DB);
         this.serverCapabilities.add(ServerCapabilities.TRANSACTIONS);
+//        this.serverCapabilities.add(ServerCapabilities.)
 
     }
 

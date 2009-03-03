@@ -12,6 +12,7 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
     private final String version;
     private final String url;
     private final String username;
+    private Connection connection;
 
     /**
      * Retrieves whether the current user can call all the procedures
@@ -296,7 +297,7 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public String getIdentifierQuoteString() throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return " ";
     }
 
     /**
@@ -308,7 +309,7 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public String getSQLKeywords() throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return "";
     }
 
     /**
@@ -320,7 +321,7 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public String getNumericFunctions() throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return "";
     }
 
     /**
@@ -332,7 +333,7 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public String getStringFunctions() throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return "";
     }
 
     /**
@@ -344,8 +345,9 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public String getSystemFunctions() throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return "";
     }
+
 
     /**
      * Retrieves a comma-separated list of the time and date functions available
@@ -355,7 +357,7 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public String getTimeDateFunctions() throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return "";
     }
 
     /**
@@ -372,7 +374,7 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public String getSearchStringEscape() throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return "_";
     }
 
     /**
@@ -383,7 +385,7 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public String getExtraNameCharacters() throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return "";
     }
 
     /**
@@ -700,7 +702,7 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public String getSchemaTerm() throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return "database";
     }
 
     /**
@@ -710,7 +712,7 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public String getProcedureTerm() throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return "";
     }
 
     /**
@@ -720,7 +722,7 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public String getCatalogTerm() throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return "";
     }
 
     /**
@@ -743,7 +745,7 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public String getCatalogSeparator() throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return "";
     }
 
     /**
@@ -1515,7 +1517,8 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @see #getSearchStringEscape
      */
     public ResultSet getProcedureColumns(String catalog, String schemaPattern, String procedureNamePattern, String columnNamePattern) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLException("uh1");
+
     }
 
     /**
@@ -1565,7 +1568,19 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @see #getSearchStringEscape
      */
     public ResultSet getTables(String catalog, String schemaPattern, String tableNamePattern, String types[]) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return connection.createStatement().
+                executeQuery("SELECT table_catalog table_cat, " +
+                                    "table_schema table_schem, " +
+                                    "table_name, " +
+                                    "table_type, " +
+                                    "table_comment as remarks," +
+                                    "null as type_cat, " +
+                                    "null as type_schem," +
+                                    "null as type_name, " +
+                                    "null as self_referencing_col_name," +
+                                    "null as ref_generation " +
+                                "FROM information_schema.tables " +
+                                "WHERE table_schema=database()"); 
     }
 
     /**
@@ -1584,7 +1599,9 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public ResultSet getSchemas() throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return connection.createStatement().executeQuery("SELECT catalog_name table_catalog," +
+                                                                "schema_name table_schem " +
+                                                         "FROM information_schema.schemata");
     }
 
     /**
@@ -1601,7 +1618,7 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public ResultSet getCatalogs() throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return connection.createStatement().executeQuery("SELECT null as table_cat");
     }
 
     /**
@@ -1620,7 +1637,7 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public ResultSet getTableTypes() throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return connection.createStatement().executeQuery("SELECT DISTINCT(table_type) FROM information_schema.tables");
     }
 
     /**
@@ -1634,6 +1651,9 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * <p/>
      * <P>Each column description has the following columns:
      * <OL>
+
+
+
      * <LI><B>TABLE_CAT</B> String => table catalog (may be <code>null</code>)
      * <LI><B>TABLE_SCHEM</B> String => table schema (may be <code>null</code>)
      * <LI><B>TABLE_NAME</B> String => table name
@@ -1709,7 +1729,35 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @see #getSearchStringEscape
      */
     public ResultSet getColumns(String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        String query ="     SELECT null as table_cat," +
+                "            table_schema as table_schema," +
+                "            table_name," +
+                "            column_name," +
+                "            if(data_type='int',4,12) data_type," +
+                "            data_type type_name," +
+                "            character_maximum_length column_size," +
+                "            0 buffer_length," +
+                "            numeric_precision decimal_digits," +
+                "            numeric_scale num_prec_radix," +
+                "            if(is_nullable='yes',1,0) nullable," +
+                "            column_comment remarks," +
+                "            column_default column_def," +
+                "            0 sql_data," +
+                "            0 sql_datetime_sub," +
+                "            character_octet_length char_octet_length," +
+                "            ordinal_position," +
+                "            is_nullable," +
+                "            null scope_catalog," +
+                "            null scope_schema," +
+                "            null scope_table," +
+                "            null source_data_type," +
+                "            '' is_autoincrement" +
+                "    FROM information_schema.columns " +
+                "WHERE table_schema LIKE '"+((schemaPattern==null)?"%":schemaPattern)+"'"+
+                " AND table_name LIKE '"+((tableNamePattern==null)?"%":tableNamePattern)+"'"+
+                " AND column_name LIKE '"+((columnNamePattern==null)?"%":columnNamePattern)+"'";
+        System.out.println("query="+query);
+        return connection.createStatement().executeQuery(query);
     }
 
     /**
@@ -1749,7 +1797,7 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @see #getSearchStringEscape
      */
     public ResultSet getColumnPrivileges(String catalog, String schema, String table, String columnNamePattern) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLException("uh6");
     }
 
     /**
@@ -1793,7 +1841,17 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @see #getSearchStringEscape
      */
     public ResultSet getTablePrivileges(String catalog, String schemaPattern, String tableNamePattern) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return connection.createStatement()
+                .executeQuery("SELECT null table_cat, " +
+                         "table_schema table_schem, " +
+                        "table_name, " +
+                        "null grantor, " +
+                        "user() grantee, " +
+                        "'update' privilege, " +
+                        "'yes' is_grantable " +
+                        "FROM information_schema.columns "+
+                            "WHERE table_schema LIKE '"+((schemaPattern==null)?"%":schemaPattern)+"'"+
+                " AND table_name LIKE '"+((tableNamePattern==null)?"%":tableNamePattern)+"'");
     }
 
     /**
@@ -1848,7 +1906,7 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public ResultSet getBestRowIdentifier(String catalog, String schema, String table, int scope, boolean nullable) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLException("uh7");
     }
 
     /**
@@ -1897,7 +1955,7 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public ResultSet getVersionColumns(String catalog, String schema, String table) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLException("uh7");
     }
 
     /**
@@ -1930,7 +1988,16 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public ResultSet getPrimaryKeys(String catalog, String schema, String table) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        String query = "SELECT null table_cat, " +
+                        "table_schema table_schem, " +
+                        "table_name, " +
+                        "column_name, " +
+                        "1 key_seq," +
+                        "null pk_name FROM information_schema.columns WHERE table_name='"+table+"' AND column_key='pri'";
+        if(schema!=null)
+            query += " AND table_schema = '"+schema+"'";
+        return connection.createStatement()
+                .executeQuery(query);
     }
 
     /**
@@ -2009,7 +2076,7 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @see #getExportedKeys
      */
     public ResultSet getImportedKeys(String catalog, String schema, String table) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return connection.createStatement().executeQuery("select * from information_schema.columns where 1=2");
     }
 
     /**
@@ -2089,7 +2156,7 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @see #getImportedKeys
      */
     public ResultSet getExportedKeys(String catalog, String schema, String table) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLException("uh7");
     }
 
     /**
@@ -2176,7 +2243,7 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @see #getImportedKeys
      */
     public ResultSet getCrossReference(String parentCatalog, String parentSchema, String parentTable, String foreignCatalog, String foreignSchema, String foreignTable) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLException("uh7");
     }
 
     /**
@@ -2244,7 +2311,7 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public ResultSet getTypeInfo() throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLException("uh7");
     }
 
     /**
@@ -2306,7 +2373,7 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public ResultSet getIndexInfo(String catalog, String schema, String table, boolean unique, boolean approximate) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLException("uh7");
     }
 
     /**
@@ -2319,7 +2386,7 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @since 1.2
      */
     public boolean supportsResultSetType(int type) throws SQLException {
-        return false;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLException("uh7");
     }
 
     /**
@@ -2334,7 +2401,7 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @since 1.2
      */
     public boolean supportsResultSetConcurrency(int type, int concurrency) throws SQLException {
-        return false;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLException("uh7");
     }
 
     /**
@@ -2552,7 +2619,7 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @since 1.2
      */
     public ResultSet getUDTs(String catalog, String schemaPattern, String typeNamePattern, int[] types) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLException("uh7");
     }
 
     /**
@@ -2564,7 +2631,7 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @since 1.2
      */
     public Connection getConnection() throws SQLException {
-        return null;
+        return connection;
     }
 
     /**
@@ -2786,7 +2853,7 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @since 1.4
      */
     public ResultSet getAttributes(String catalog, String schemaPattern, String typeNamePattern, String attributeNamePattern) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLException("uh7");
     }
 
     /**
@@ -2923,7 +2990,7 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @since 1.6
      */
     public RowIdLifetime getRowIdLifetime() throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLException("uh7");
     }
 
     /**
@@ -2950,7 +3017,7 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @since 1.6
      */
     public ResultSet getSchemas(String catalog, String schemaPattern) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLException("uh7");
     }
 
     /**
@@ -2962,7 +3029,7 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @since 1.6
      */
     public boolean supportsStoredFunctionsUsingCallSyntax() throws SQLException {
-        return false;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLException("uh7");
     }
 
     /**
@@ -2977,7 +3044,7 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @since 1.6
      */
     public boolean autoCommitFailureClosesAllResultSets() throws SQLException {
-        return false;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLException("uh7");
     }
 
     /**
@@ -3004,7 +3071,7 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @since 1.6
      */
     public ResultSet getClientInfoProperties() throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLException("uh7");
     }
 
     /**
@@ -3056,7 +3123,7 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @since 1.6
      */
     public ResultSet getFunctions(String catalog, String schemaPattern, String functionNamePattern) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLException("uh7");
     }
 
     /**
@@ -3154,7 +3221,7 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @since 1.6
      */
     public ResultSet getFunctionColumns(String catalog, String schemaPattern, String functionNamePattern, String columnNamePattern) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLException("uh7");
     }
 
     /**
@@ -3201,7 +3268,11 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
         private String version;
         private String url;
         private String username;
+        private Connection connection;
 
+        public Builder(Connection connection) {
+            this.connection = connection;
+        }
         public Builder version(String version) {
             this.version=version;
             return this;
@@ -3224,6 +3295,7 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
         this.version=builder.version;
         this.url = builder.url;
         this.username = builder.username;
+        this.connection = builder.connection;
     }
 
 
