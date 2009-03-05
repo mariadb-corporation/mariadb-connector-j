@@ -299,4 +299,9 @@ public class DriverTest {
         assertEquals((float)3.99, rs.getFloat(1));
         assertEquals(false,rs.next());
     }
+    @Test
+    public void dbmetaTest() throws SQLException {
+        DatabaseMetaData dmd = connection.getMetaData();
+        dmd.getIndexInfo("","test_units_jdbc","t1",false,false);
+    }
 }
