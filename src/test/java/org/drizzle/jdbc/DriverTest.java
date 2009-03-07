@@ -302,6 +302,6 @@ public class DriverTest {
     @Test
     public void dbmetaTest() throws SQLException {
         DatabaseMetaData dmd = connection.getMetaData();
-        dmd.getIndexInfo("","test_units_jdbc","t1",false,false);
+        dmd.getBestRowIdentifier(null,"test_units_jdbc","t1",DatabaseMetaData.bestRowSession, true);
     }
 }
