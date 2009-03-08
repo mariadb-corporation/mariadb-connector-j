@@ -40,11 +40,9 @@ public class Utils {
     }
 
     public static int countChars(String str, char c) {
-        int index=0;
         int count=0;
-        while((index=str.indexOf(c,index))!=-1) {
-            count++;
-            index++;
+        for(byte b:str.getBytes()) {
+            if(c == b) count++;
         }
         return count;
     }

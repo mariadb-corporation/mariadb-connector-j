@@ -85,7 +85,9 @@ public class DrizzleStatement implements Statement {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public void close() throws SQLException {
-        dqr.close();
+
+        if(dqr!=null)
+            dqr.close();
     }
 
     /**

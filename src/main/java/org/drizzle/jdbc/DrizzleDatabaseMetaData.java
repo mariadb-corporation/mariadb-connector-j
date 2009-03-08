@@ -26,7 +26,6 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
    public boolean allProceduresAreCallable() throws SQLException {
-        //TODO: throw not supported exception?
         return false;
     }
     /**

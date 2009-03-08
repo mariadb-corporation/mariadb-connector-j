@@ -403,7 +403,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      */
     public ParameterMetaData getParameterMetaData() throws SQLException {
         //TODO: figure out how this works..
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return null; 
     }
 
     /**
@@ -421,7 +421,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.6
      */
     public void setRowId(int parameterIndex, RowId x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new SQLFeatureNotSupportedException("RowIDs not supported");
     }
 
     /**
