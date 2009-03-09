@@ -1,6 +1,8 @@
 package org.drizzle.jdbc;
 
-import org.drizzle.jdbc.internal.QueryResult;
+import org.drizzle.jdbc.internal.queryresults.QueryResult;
+import org.drizzle.jdbc.internal.queryresults.ResultSetType;
+import org.drizzle.jdbc.internal.queryresults.SelectQueryResult;
 import org.drizzle.jdbc.internal.ValueObject;
 
 import java.sql.*;
@@ -36,7 +38,9 @@ public class DrizzleResultSet implements ResultSet {
 
 
     public boolean next() throws SQLException {
-        return queryResult.next();
+        if(queryResult.getResultSetType()== ResultSetType.SELECT)
+            return ((SelectQueryResult)queryResult).next();
+        return false;
     }
 
     public void close() throws SQLException {
@@ -74,15 +78,21 @@ public class DrizzleResultSet implements ResultSet {
         return getValueObject(s).getInt();
     }
 
-    private ValueObject getValueObject(int i) {
-        ValueObject vo = queryResult.getValueObject(i-1);
-        this.lastGetWasNull = vo.isNull();
-        return vo;
+    private ValueObject getValueObject(int i) throws SQLException {
+        if(queryResult.getResultSetType()== ResultSetType.SELECT) {
+            ValueObject vo = ((SelectQueryResult)queryResult).getValueObject(i-1);
+            this.lastGetWasNull = vo.isNull();
+            return vo;
+        }
+        throw new SQLException("Cannot get data from update-result sets");
     }
-    private ValueObject getValueObject(String column) {
-        ValueObject vo = queryResult.getValueObject(column);
-        this.lastGetWasNull = vo.isNull();
-        return vo;
+    private ValueObject getValueObject(String column) throws SQLException {
+        if(queryResult.getResultSetType()== ResultSetType.SELECT) {
+            ValueObject vo = ((SelectQueryResult)queryResult).getValueObject(column);
+            this.lastGetWasNull = vo.isNull();
+            return vo;
+        }
+        throw new SQLException("Cannot get data from update-result sets");
     }
 
     /**
@@ -406,7 +416,7 @@ public class DrizzleResultSet implements ResultSet {
      *                               called on a closed result set
      */
     public ResultSetMetaData getMetaData() throws SQLException {
-        return new DrizzleResultSetMetaData(queryResult.getFieldPackets());
+        return new DrizzleResultSetMetaData(queryResult.getColumnInformation());
     }
 
     /**
@@ -502,7 +512,9 @@ public class DrizzleResultSet implements ResultSet {
      *                               or this method is called on a closed result set
      */
     public int findColumn(String columnLabel) throws SQLException {
-        return this.queryResult.getColumnId(columnLabel)+1;
+        if(this.queryResult.getResultSetType()==ResultSetType.SELECT)
+            return ((SelectQueryResult)queryResult).getColumnId(columnLabel)+1;
+        throw new SQLException("Cannot get column id of update result sets");
     }
 
     /**
@@ -596,7 +608,9 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean isBeforeFirst() throws SQLException {
-        return queryResult.getRowPointer() == -1;
+        if(queryResult.getResultSetType()==ResultSetType.MODIFY)
+            return false;
+        return ((SelectQueryResult)queryResult).getRowPointer() == -1;
     }
 
     /**
@@ -639,7 +653,9 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean isFirst() throws SQLException {
-        return queryResult.getRowPointer() == 0;
+        if(queryResult.getResultSetType()==ResultSetType.MODIFY)
+            return false;
+        return ((SelectQueryResult)queryResult).getRowPointer() == 0;
     }
 
     /**
@@ -664,7 +680,9 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean isLast() throws SQLException {
-        return queryResult.getRowPointer() == queryResult.getRows();
+        if(queryResult.getResultSetType()==ResultSetType.MODIFY)
+            return false;
+        return ((SelectQueryResult)queryResult).getRowPointer() ==((SelectQueryResult)queryResult).getRows();
     }
 
     /**
@@ -681,7 +699,8 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void beforeFirst() throws SQLException {
-        queryResult.moveRowPointerTo(-1);
+        if(queryResult.getResultSetType()==ResultSetType.SELECT)
+            ((SelectQueryResult)queryResult).moveRowPointerTo(-1);
     }
 
     /**
@@ -716,8 +735,8 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean first() throws SQLException {
-        if(queryResult.getRows()>0) {
-            queryResult.moveRowPointerTo(0);
+        if(queryResult.getResultSetType()==ResultSetType.MODIFY && ((SelectQueryResult)queryResult).getRows()>0){
+            ((SelectQueryResult)queryResult).moveRowPointerTo(0);
             return true;
         }
         return false;
@@ -738,8 +757,8 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean last() throws SQLException {
-         if(queryResult.getRows()>0) {
-            queryResult.moveRowPointerTo(queryResult.getRows());
+       if(queryResult.getResultSetType()==ResultSetType.MODIFY && ((SelectQueryResult)queryResult).getRows()>0){
+            ((SelectQueryResult)queryResult).moveRowPointerTo(queryResult.getRows());
             return true;
         }
         return false;
@@ -762,7 +781,9 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public int getRow() throws SQLException {
-        return queryResult.getRowPointer()+1;//+1 since first row is 1, not 0
+        if(queryResult.getResultSetType()==ResultSetType.SELECT)
+            return ((SelectQueryResult)queryResult).getRowPointer()+1;//+1 since first row is 1, not 0
+        return 0;
     }
 
     /**
@@ -806,13 +827,16 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean absolute(int row) throws SQLException {
-        if(queryResult.getRows() > 0) {
-            if(row >= 0 && row <= queryResult.getRows()) {
-                queryResult.moveRowPointerTo(row+1);
+        if(queryResult.getResultSetType()!=ResultSetType.SELECT)
+            return false;
+        SelectQueryResult sqr = (SelectQueryResult)queryResult; 
+        if(sqr.getRows() > 0) {
+            if(row >= 0 && row <= sqr.getRows()) {
+                sqr.moveRowPointerTo(row+1);
                 return true;
             }
             if(row<0) {
-                queryResult.moveRowPointerTo(queryResult.getRows()+row+1); //+1 since rows start at 1 in jdbc
+                sqr.moveRowPointerTo(sqr.getRows()+row+1); //+1 since rows start at 1 in jdbc
             }
             return true;
         }
@@ -845,10 +869,13 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean relative(int rows) throws SQLException {
+        if(queryResult.getResultSetType()!=ResultSetType.SELECT)
+            return false;
+        SelectQueryResult sqr = (SelectQueryResult)queryResult;
         if(queryResult.getRows()>0) {
-            int newPos = queryResult.getRowPointer() + rows;
+            int newPos = sqr.getRowPointer() + rows;
             if(newPos > -1 && newPos<=queryResult.getRows()) {
-                queryResult.moveRowPointerTo(newPos+1);
+                sqr.moveRowPointerTo(newPos+1);
                 return true;
             }
         }
@@ -880,8 +907,11 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean previous() throws SQLException {
-        if(queryResult.getRows()>=0) {
-            queryResult.moveRowPointerTo(queryResult.getRowPointer()-1);
+        if(queryResult.getResultSetType()!=ResultSetType.SELECT)
+            return false;
+        SelectQueryResult sqr = (SelectQueryResult)queryResult;
+        if(sqr.getRows()>=0) {
+            sqr.moveRowPointerTo(sqr.getRowPointer()-1);
             return true;
         }
         return false;  //To change body of implemented methods use File | Settings | File Templates.

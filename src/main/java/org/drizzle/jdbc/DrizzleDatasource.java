@@ -14,9 +14,9 @@ import java.io.PrintWriter;
  * Time: 10:53:22 PM
  */
 public class DrizzleDatasource implements DataSource {
-    private String hostname;
-    private int port;
-    private String database;
+    private final String hostname;
+    private final int port;
+    private final String database;
 
     public DrizzleDatasource(String hostname, int port,String database) {
         this.hostname=hostname;

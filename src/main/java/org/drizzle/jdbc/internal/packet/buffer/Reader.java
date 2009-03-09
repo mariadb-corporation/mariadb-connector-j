@@ -131,11 +131,12 @@ public class Reader {
         skipBytes(1);
     }
 
-    public  void skipBytes(int bytesToSkip) throws IOException {
+    public long skipBytes(int bytesToSkip) throws IOException {
         if(readBytes+bytesToSkip>length)
             throw new IOException("Could not skip bytes");
         readBytes+=bytesToSkip;
-        reader.skip(bytesToSkip);
+        return reader.skip(bytesToSkip);
+
     }
 
     public  int read24bitword() throws IOException {

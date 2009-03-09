@@ -1,12 +1,13 @@
 package org.drizzle.jdbc;
 
 import org.drizzle.jdbc.internal.Protocol;
-import org.drizzle.jdbc.internal.QueryResult;
+import org.drizzle.jdbc.internal.queryresults.QueryResult;
+import org.drizzle.jdbc.internal.queryresults.ModifyQueryResult;
+import org.drizzle.jdbc.internal.queryresults.ResultSetType;
 import org.drizzle.jdbc.internal.QueryException;
 import org.drizzle.jdbc.internal.query.DrizzleQuery;
 
 import java.sql.*;
-import java.io.IOException;
 import java.util.List;
 import java.util.LinkedList;
 
@@ -18,7 +19,7 @@ import java.util.LinkedList;
 public class DrizzleStatement implements Statement {
     private Protocol protocol;
     private ResultSet resultSet;
-    private int updateCount;
+    private long updateCount;
     private final Connection connection;
     private QueryResult dqr;
     private boolean warningsCleared;
@@ -47,7 +48,7 @@ public class DrizzleStatement implements Statement {
         try {
             warningsCleared=false;
             dqr = protocol.executeQuery(new DrizzleQuery(s));
-            return dqr.getUpdateCount();
+            return (int) ((ModifyQueryResult)dqr).getUpdateCount();
         } catch (QueryException e) {
             throw new SQLException("Could not execute update ",e);
         }
@@ -60,7 +61,7 @@ public class DrizzleStatement implements Statement {
                 setResultSet(new DrizzleResultSet(dqr,this));
                 return true;
             }
-            setUpdateCount(dqr.getUpdateCount());
+            setUpdateCount(((ModifyQueryResult)dqr).getUpdateCount());
             return false;
         } catch (QueryException e) {
             throw new SQLException("Could not execute query: "+e.getMessage());
@@ -375,8 +376,11 @@ public class DrizzleStatement implements Statement {
      * @since 1.4
      */
     public ResultSet getGeneratedKeys() throws SQLException {
-        QueryResult genRes = dqr.getGeneratedKeysResult();
-        return new DrizzleResultSet(genRes,this);
+        if(dqr.getResultSetType()== ResultSetType.MODIFY) {
+            QueryResult genRes = ((ModifyQueryResult)dqr).getGeneratedKeysResult();
+            return new DrizzleResultSet(genRes,this);
+        }
+        return null;
     }
 
     /**
@@ -683,7 +687,7 @@ public class DrizzleStatement implements Statement {
     }
 
     public int getUpdateCount() throws SQLException {
-        return updateCount;
+        return (int)updateCount;
     }
 
     /**
@@ -911,7 +915,10 @@ public class DrizzleStatement implements Statement {
             int [] retVals = new int[queryRes.size()];
             int i = 0;
             for(QueryResult qr : queryRes){
-                retVals[i++] = qr.getUpdateCount(); //TODO: this needs to be handled according to javadoc
+                if(qr.getResultSetType()==ResultSetType.MODIFY)
+                    retVals[i++] = (int) ((ModifyQueryResult)qr).getUpdateCount(); //TODO: this needs to be handled according to javadoc
+                else
+                    retVals[i++] = SUCCESS_NO_INFO;
             }
             return retVals;
         } catch (QueryException e) {
@@ -962,7 +969,7 @@ public class DrizzleStatement implements Statement {
     protected void setResultSet(DrizzleResultSet drizzleResultSet) {
         this.resultSet = drizzleResultSet;
     }
-    protected void setUpdateCount(int updateCount) {
+    protected void setUpdateCount(long updateCount) {
         this.updateCount=updateCount;
     }
 }

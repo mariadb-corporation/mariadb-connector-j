@@ -1,8 +1,7 @@
 package org.drizzle.jdbc.internal;
 
-import org.drizzle.jdbc.internal.query.DrizzleParameterizedQuery;
 import org.drizzle.jdbc.internal.query.Query;
-import org.drizzle.jdbc.internal.query.DrizzleQuery;
+import org.drizzle.jdbc.internal.queryresults.QueryResult;
 
 import java.util.List;
 

@@ -1,7 +1,9 @@
 package org.drizzle.jdbc;
 
 import org.drizzle.jdbc.internal.Protocol;
-import org.drizzle.jdbc.internal.QueryResult;
+import org.drizzle.jdbc.internal.queryresults.QueryResult;
+import org.drizzle.jdbc.internal.queryresults.ResultSetType;
+import org.drizzle.jdbc.internal.queryresults.ModifyQueryResult;
 import org.drizzle.jdbc.internal.QueryException;
 import org.drizzle.jdbc.internal.query.*;
 import org.slf4j.Logger;
@@ -41,7 +43,19 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
         }
     }
 
-
+    /**
+     * Executes the SQL statement in this <code>PreparedStatement</code> object,
+     * which must be an SQL Data Manipulation Language (DML) statement, such as <code>INSERT</code>, <code>UPDATE</code> or
+     * <code>DELETE</code>; or an SQL statement that returns nothing,
+     * such as a DDL statement.
+     *
+     * @return either (1) the row count for SQL Data Manipulation Language (DML) statements
+     *         or (2) 0 for SQL statements that return nothing
+     * @throws java.sql.SQLException if a database access error occurs;
+     *                               this method is called on a closed  <code>PreparedStatement</code>
+     *                               or the SQL
+     *                               statement returns a <code>ResultSet</code> object
+     */
     public int executeUpdate() throws SQLException {
         QueryResult qr;
         try {
@@ -49,9 +63,11 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
         } catch (QueryException e) {
             throw new SQLException("Could not execute query",e);
         }
-
-        return qr.getUpdateCount();
+        if(qr.getResultSetType()!= ResultSetType.MODIFY)
+            throw new SQLException("The query returned a result set");
+        return (int) ((ModifyQueryResult)qr).getUpdateCount();
     }
+
 
     /**
      * Sets the designated parameter to SQL <code>NULL</code>.
@@ -89,7 +105,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
             super.setResultSet(new DrizzleResultSet(qr,this));
             return true;
         } else {
-            setUpdateCount(qr.getUpdateCount());
+            setUpdateCount(((ModifyQueryResult)qr).getUpdateCount());
             return false;            
         }
     }

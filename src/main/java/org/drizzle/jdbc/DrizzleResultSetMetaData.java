@@ -1,6 +1,8 @@
 package org.drizzle.jdbc;
 
 import org.drizzle.jdbc.internal.packet.FieldPacket;
+import org.drizzle.jdbc.internal.queryresults.ColumnInformation;
+import org.drizzle.jdbc.internal.queryresults.ColumnFlags;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,9 +21,9 @@ import java.util.List;
  */
 public class DrizzleResultSetMetaData implements ResultSetMetaData {
     private final static Logger log = LoggerFactory.getLogger(DrizzleResultSetMetaData.class);
-    private final List<FieldPacket> fieldPackets;
+    private final List<ColumnInformation> fieldPackets;
 
-    public DrizzleResultSetMetaData(List<FieldPacket> fieldPackets) {
+    public DrizzleResultSetMetaData(List<ColumnInformation> fieldPackets) {
         this.fieldPackets = fieldPackets;
     }
     /**
@@ -44,7 +46,7 @@ public class DrizzleResultSetMetaData implements ResultSetMetaData {
      */
     public boolean isAutoIncrement(int column) throws SQLException {
         log.debug("Getting is auto inc");
-        return getFieldPacket(column).getFlags().contains(FieldPacket.FieldFlags.AUTO_INCREMENT);
+        return getColumnInformation(column).getFlags().contains(ColumnFlags.AUTO_INCREMENT);
     }
 
     /**
@@ -56,7 +58,7 @@ public class DrizzleResultSetMetaData implements ResultSetMetaData {
      */
     public boolean isCaseSensitive(int column) throws SQLException {
         log.debug("Getting is case sensitive");
-        return getFieldPacket(column).getFlags().contains(FieldPacket.FieldFlags.BINARY); //TODO: of course not this simple
+        return getColumnInformation(column).getFlags().contains(ColumnFlags.BINARY); //TODO: of course not this simple
     }
 
     /**
@@ -92,7 +94,7 @@ public class DrizzleResultSetMetaData implements ResultSetMetaData {
      */
     public int isNullable(int column) throws SQLException {
         log.debug("Checking if col is nullable");
-        if(getFieldPacket(column).getFlags().contains(FieldPacket.FieldFlags.NOT_NULL))
+        if(getColumnInformation(column).getFlags().contains(ColumnFlags.NOT_NULL))
             return ResultSetMetaData.columnNoNulls;
         else
             return ResultSetMetaData.columnNullable;
@@ -119,7 +121,8 @@ public class DrizzleResultSetMetaData implements ResultSetMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public int getColumnDisplaySize(int column) throws SQLException {
-        return getFieldPacket(column).getDisplaySize();
+        //return getColumnInformation(column).getDisplaySize();
+        return 0;
     }
 
     /**
@@ -134,7 +137,7 @@ public class DrizzleResultSetMetaData implements ResultSetMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public String getColumnLabel(int column) throws SQLException {
-        return getFieldPacket(column).getColumnName();
+        return getColumnInformation(column).getName();
     }
 
     /**
@@ -145,7 +148,7 @@ public class DrizzleResultSetMetaData implements ResultSetMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public String getColumnName(int column) throws SQLException {
-        return getFieldPacket(column).getOrgName();
+        return getColumnInformation(column).getOriginalName();
     }
 
     /**
@@ -156,8 +159,7 @@ public class DrizzleResultSetMetaData implements ResultSetMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public String getSchemaName(int column) throws SQLException {
-        FieldPacket fp = getFieldPacket(column);
-        return fp.getDb();
+        return getColumnInformation(column).getDb();
     }
 
     /**
@@ -185,7 +187,7 @@ public class DrizzleResultSetMetaData implements ResultSetMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public int getScale(int column) throws SQLException {
-        return getFieldPacket(column).getDecimals();
+        return getColumnInformation(column).getDecimals();
     }
 
     /**
@@ -196,7 +198,7 @@ public class DrizzleResultSetMetaData implements ResultSetMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public String getTableName(int column) throws SQLException {
-        return getFieldPacket(column).getTable();
+        return getColumnInformation(column).getTable();
     }
 
     /**
@@ -220,7 +222,7 @@ public class DrizzleResultSetMetaData implements ResultSetMetaData {
      * @see java.sql.Types
      */
     public int getColumnType(int column) throws SQLException {
-        return getFieldPacket(column).getFieldType().getSqlType();
+        return getColumnInformation(column).getType().getSqlType();
     }
 
     /**
@@ -232,7 +234,7 @@ public class DrizzleResultSetMetaData implements ResultSetMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public String getColumnTypeName(int column) throws SQLException {
-        return getFieldPacket(column).getTypeName();
+        return getColumnInformation(column).getType().toString();
     }
 
     /**
@@ -284,10 +286,10 @@ public class DrizzleResultSetMetaData implements ResultSetMetaData {
      * @since 1.2
      */
     public String getColumnClassName(int column) throws SQLException {
-        return getFieldPacket(column).getFieldType().getJavaClass().getName();
+        return getColumnInformation(column).getType().getJavaClass().getName();
     }
 
-    private FieldPacket getFieldPacket(int column) throws SQLException {
+    private ColumnInformation getColumnInformation(int column) throws SQLException {
         if(column-1>=0 && column-1<=fieldPackets.size())
             return fieldPackets.get(column-1);
         throw new SQLException("No such column");

@@ -1734,7 +1734,7 @@ log.info("getting empty result set, proc columns");
      */
     public ResultSet getColumns(String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern) throws SQLException {
         String query ="     SELECT null as table_cat," +
-                "            table_schema as table_schema," +
+                "            table_schema as table_schem," +
                 "            table_name," +
                 "            column_name," +
                 "            if(data_type='int',4,12) data_type," +

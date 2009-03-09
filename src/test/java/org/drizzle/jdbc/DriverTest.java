@@ -275,7 +275,16 @@ public class DriverTest {
         ps.addBatch();
         ps.setString(1, "ccc");
         ps.addBatch();
-        ps.executeBatch();
+        int [] a = ps.executeBatch();
+        for(int c : a ) assertEquals(1,c);
+        ps.setString(1, "aaa");
+        ps.addBatch();
+        ps.setString(1, "bbb");
+        ps.addBatch();
+        ps.setString(1, "ccc");
+        ps.addBatch();
+         a = ps.executeBatch();
+        for(int c : a ) assertEquals(1,c);
         ResultSet rs = connection.createStatement().executeQuery("select * from test_batch");
         assertEquals(true,rs.next());
         assertEquals("aaa",rs.getString(2));
@@ -283,7 +292,7 @@ public class DriverTest {
         assertEquals("bbb",rs.getString(2));
         assertEquals(true,rs.next());
         assertEquals("ccc",rs.getString(2));
-        assertEquals(false,rs.next());
+
     }
 
     @Test

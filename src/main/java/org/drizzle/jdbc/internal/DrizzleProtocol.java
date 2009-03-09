@@ -2,9 +2,12 @@ package org.drizzle.jdbc.internal;
 
 import org.drizzle.jdbc.internal.packet.*;
 import org.drizzle.jdbc.internal.packet.buffer.ReadUtil;
-import org.drizzle.jdbc.internal.query.DrizzleParameterizedQuery;
 import org.drizzle.jdbc.internal.query.Query;
 import org.drizzle.jdbc.internal.query.DrizzleQuery;
+import org.drizzle.jdbc.internal.queryresults.DrizzleQueryResult;
+import org.drizzle.jdbc.internal.queryresults.DrizzleUpdateResult;
+import org.drizzle.jdbc.internal.queryresults.QueryResult;
+import org.drizzle.jdbc.internal.queryresults.ColumnInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,9 +29,9 @@ import java.util.ArrayList;
 public class DrizzleProtocol implements Protocol {
     private final static Logger log = LoggerFactory.getLogger(DrizzleProtocol.class);
     private boolean connected=false;
-    private Socket socket;
-    private BufferedInputStream reader;
-    private BufferedOutputStream writer;
+    private final Socket socket;
+    private final BufferedInputStream reader;
+    private final BufferedOutputStream writer;
     private String version;
     private boolean readOnly=false;
     private boolean autoCommit;
@@ -146,20 +149,20 @@ public class DrizzleProtocol implements Protocol {
      * @throws IOException when something goes wrong while reading/writing from the server
      */
     private DrizzleQueryResult createDrizzleQueryResult(ResultSetPacket packet) throws IOException {
-        List<FieldPacket> fieldPackets = new ArrayList<FieldPacket>();
+        List<ColumnInformation> columnInformation = new ArrayList<ColumnInformation>();
         for(int i=0;i<packet.getFieldCount();i++) {
-            FieldPacket fieldPacket = new FieldPacket(reader);
-            fieldPackets.add(fieldPacket);
+            ColumnInformation columnInfo = FieldPacket.columnInformationFactory(reader);
+            columnInformation.add(columnInfo);
         }
         EOFPacket eof = new EOFPacket(reader);
-        DrizzleQueryResult dqr = new DrizzleQueryResult(fieldPackets);
+        List<List<ValueObject>> valueObjects = new ArrayList<List<ValueObject>>();
         while(true) {
             if(ReadUtil.eofIsNext(reader)) {
                 new EOFPacket(reader);
-                return dqr;
+                return new DrizzleQueryResult(columnInformation,valueObjects);
             }
-            RowPacket rowPacket = new RowPacket(reader,fieldPackets);
-            dqr.addRow(rowPacket.getRow());
+            RowPacket rowPacket = new RowPacket(reader,columnInformation);
+            valueObjects.add(rowPacket.getRow());
         }
     }
     
@@ -276,14 +279,13 @@ public class DrizzleProtocol implements Protocol {
                 log.warn("Could not execute query {}: {}",dQuery, ((ErrorPacket)resultPacket).getMessage());
                 throw new QueryException("Could not execute query: "+((ErrorPacket)resultPacket).getMessage());
             case OK:
-                DrizzleQueryResult dqr = new DrizzleQueryResult();
                 OKPacket okpacket = (OKPacket)resultPacket;
-                dqr.setUpdateCount((int)okpacket.getAffectedRows());
-                dqr.setWarnings(okpacket.getWarnings());
-                dqr.setMessage(okpacket.getMessage());
-                dqr.setInsertId(okpacket.getInsertId());
+                QueryResult updateResult = new DrizzleUpdateResult(okpacket.getAffectedRows(),
+                                                                            okpacket.getWarnings(),
+                                                                            okpacket.getMessage(),
+                                                                            okpacket.getInsertId());
                 log.debug("OK, {}", okpacket.getAffectedRows());
-                return dqr;
+                return updateResult;
             case RESULTSET:
                 log.debug("SELECT executed, fetching result set");
                 try {
@@ -310,6 +312,7 @@ public class DrizzleProtocol implements Protocol {
             log.info("executing batch query");
             retList.add(executeQuery(query));
         }
+        clearBatch();
         return retList;
 
     }

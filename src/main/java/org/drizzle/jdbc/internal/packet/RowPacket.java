@@ -3,6 +3,7 @@ package org.drizzle.jdbc.internal.packet;
 import org.drizzle.jdbc.internal.packet.buffer.Reader;
 import org.drizzle.jdbc.internal.ValueObject;
 import org.drizzle.jdbc.internal.DrizzleValueObject;
+import org.drizzle.jdbc.internal.queryresults.ColumnInformation;
 
 import java.util.List;
 import java.util.ArrayList;
@@ -16,15 +17,15 @@ import java.io.InputStream;
  */
 public class RowPacket {
     private List<ValueObject> columns = new ArrayList<ValueObject>();
-    public RowPacket(InputStream istream, List<FieldPacket> fieldPackets) throws IOException {
-        int fieldCount = fieldPackets.size();
+    public RowPacket(InputStream istream, List<ColumnInformation> columnInformation) throws IOException {
+        int fieldCount = columnInformation.size();
         Reader reader = new Reader(istream);
         for(int i = 0;i<fieldCount;i++){
-            FieldPacket currentField = fieldPackets.get(i);
+            ColumnInformation currentColumn = columnInformation.get(i);
             byte [] col  = reader.getLengthEncodedBytes();
-            DrizzleValueObject dvo = new DrizzleValueObject(col, currentField.getFieldType());
+            DrizzleValueObject dvo = new DrizzleValueObject(col, currentColumn.getType());
             columns.add(dvo);
-            currentField.updateDisplaySize(dvo.getDisplayLength());
+            currentColumn.updateDisplaySize(dvo.getDisplayLength());
         }
     }
 

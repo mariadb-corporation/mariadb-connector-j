@@ -1,6 +1,7 @@
-package org.drizzle.jdbc.internal;
+package org.drizzle.jdbc.internal.queryresults;
 
 import org.drizzle.jdbc.internal.packet.FieldPacket;
+import org.drizzle.jdbc.internal.ValueObject;
 
 import java.util.List;
 
@@ -12,9 +13,13 @@ import java.util.List;
  * To change this template use File | Settings | File Templates.
  */
 public interface QueryResult {
+    public ResultSetType getResultSetType();
+     public void close();
+    short getWarnings();
+    String getMessage();
+/*
     boolean next();
     void close();
-    void addRow(List<ValueObject> row);
 
     List<FieldPacket> getFieldPackets();
 
@@ -24,7 +29,7 @@ public interface QueryResult {
 
     void setUpdateCount(int updateCount);
 
-    int getUpdateCount();
+    long getUpdateCount();
 
     void setInsertId(long insertId);
 
@@ -36,7 +41,7 @@ public interface QueryResult {
 
     void setMessage(String message);
 
-    int getWarnings();
+    short getWarnings();
 
     String getMessage();
 
@@ -46,5 +51,9 @@ public interface QueryResult {
 
     int getRowPointer();
 
-    void moveRowPointerTo(int i);
+    void moveRowPointerTo(int i);*/
+
+    List<ColumnInformation> getColumnInformation();
+
+    int getRows();
 }
