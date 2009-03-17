@@ -16,8 +16,7 @@ import java.util.Properties;
 public class DrizzleConnection implements Connection {
     private final Protocol protocol;
     private int savepointCount = 0;
-    private SQLWarning warning=null;
-    private Properties clientInfoProperties;
+    private final Properties clientInfoProperties;
 
     public DrizzleConnection(Protocol protocol) {
         this.protocol=protocol;
@@ -229,6 +228,10 @@ public class DrizzleConnection implements Connection {
     }
 
     /**
+     * Not yet implemented:
+     * Protocol needs to store any warnings related to connections
+     *
+     *
      * Retrieves the first warning reported by calls on this
      * <code>Connection</code> object.  If there is more than one
      * warning, subsequent warnings will be chained to the first one
@@ -250,7 +253,7 @@ public class DrizzleConnection implements Connection {
      * @see java.sql.SQLWarning
      */
     public SQLWarning getWarnings() throws SQLException {
-        return warning;
+        return null;
     }
 
     /**
@@ -263,7 +266,6 @@ public class DrizzleConnection implements Connection {
      *                               or this method is called on a closed connection
      */
     public void clearWarnings() throws SQLException {
-        this.warning=null;
     }
 
     /**
@@ -1183,16 +1185,7 @@ public class DrizzleConnection implements Connection {
         return false;  //To change body of implemented methods use File | Settings | File Templates.
     }
 
-    private void addWarning(String warningMessage){
-        if(this.warning == null) {
-            this.warning = new SQLWarning(warningMessage);
-        } else {
-            SQLWarning warning = new SQLWarning(warningMessage);
-            warning.setNextWarning(this.warning);
-            this.warning = warning;
-        }
-    }
-
+    
     public String getUsername() {
         return protocol.getUsername();
     }

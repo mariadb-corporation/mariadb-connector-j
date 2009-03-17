@@ -18,9 +18,10 @@ import java.util.Arrays;
  */
 public class StreamedQueryPacket implements DrizzlePacket {
     private final Query query;
-    private byte [] byteHeader;
-    private byte byteHeaderPointer=0;
-    private boolean headerWritten=false;
+    private final byte [] byteHeader;
+    private final byte byteHeaderPointer=0;
+    private final boolean headerWritten=false;
+
     public StreamedQueryPacket(Query query) {
         this.query=query;
         byteHeader = Arrays.copyOf(intToByteArray(query.length()+1),5); //

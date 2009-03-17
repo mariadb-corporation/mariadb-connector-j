@@ -20,7 +20,7 @@ import java.sql.SQLException;
  * To change this template use File | Settings | File Templates.
  */
 public class DrizzleParameterizedQuery extends DrizzleQuery {
-        private final static Logger log = LoggerFactory.getLogger(DrizzleParameterizedQuery.class);
+    private final static Logger log = LoggerFactory.getLogger(DrizzleParameterizedQuery.class);
     private List<ParameterHolder> parameters;
     private final int paramCount;
 
@@ -29,6 +29,13 @@ public class DrizzleParameterizedQuery extends DrizzleQuery {
         this.paramCount=countChars(query,'?');
         log.debug("Found {} questionmarks",paramCount);
         parameters=new ArrayList<ParameterHolder>(paramCount);
+    }
+    
+    public DrizzleParameterizedQuery(DrizzleParameterizedQuery query) {
+        super(query.getQuery());
+        this.paramCount=query.paramCount;
+        parameters=new ArrayList<ParameterHolder>(paramCount);
+        log.debug("Copying an existing parameterized query");    
     }
 
     public void setParameter(int position, ParameterHolder parameter) throws SQLException {
@@ -66,4 +73,7 @@ public class DrizzleParameterizedQuery extends DrizzleQuery {
     }
 
 
+    public String getQuery() {
+        return query;
+    }
 }

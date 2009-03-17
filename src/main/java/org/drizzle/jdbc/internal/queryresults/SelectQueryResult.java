@@ -20,9 +20,7 @@ public interface SelectQueryResult extends QueryResult {
     void moveRowPointerTo(int i);
     int getRowPointer();
     boolean next();
-    // TODO: make field packet a column descriptor factory instead, don't use FieldPackets as a general
-    // TODO: column information holder
-    public List<ColumnInformation> getColumnInformation();
+    List<ColumnInformation> getColumnInformation();
 
 
 }

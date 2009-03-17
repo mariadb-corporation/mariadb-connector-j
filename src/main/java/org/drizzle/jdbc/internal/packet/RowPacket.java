@@ -16,7 +16,7 @@ import java.io.InputStream;
  * Time: 9:28:43 PM
  */
 public class RowPacket {
-    private List<ValueObject> columns = new ArrayList<ValueObject>();
+    private final List<ValueObject> columns = new ArrayList<ValueObject>();
     public RowPacket(InputStream istream, List<ColumnInformation> columnInformation) throws IOException {
         int fieldCount = columnInformation.size();
         Reader reader = new Reader(istream);

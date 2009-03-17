@@ -18,8 +18,8 @@ public class GreetingReadPacket {
     private final String serverVersion;
     private final byte protocolVersion;
     private final long serverThreadID;
-    private byte[] seed1 = new byte[8];
-    private byte[] seed2 = new byte[13];
+    private final byte[] seed1;
+    private final byte[] seed2;
     private final Set<ServerCapabilities> serverCapabilities ;
     private final byte serverLanguage;
     private final Set<ServerStatus> serverStatus;

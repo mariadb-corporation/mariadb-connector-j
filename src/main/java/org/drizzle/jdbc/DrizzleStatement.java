@@ -17,18 +17,16 @@ import java.util.LinkedList;
  * Time: 10:10:58 PM
  */
 public class DrizzleStatement implements Statement {
-    private Protocol protocol;
+    private final Protocol protocol;
     private ResultSet resultSet;
     private long updateCount;
     private final Connection connection;
     private QueryResult dqr;
     private boolean warningsCleared;
-    private List<String> queryBatch;
 
     public DrizzleStatement(Protocol protocol, DrizzleConnection drizzleConnection) {
         this.protocol=protocol;
         this.connection=drizzleConnection;
-        queryBatch = new LinkedList<String>();
     }
     public Protocol getProtocol() {
         return protocol;
@@ -86,7 +84,6 @@ public class DrizzleStatement implements Statement {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public void close() throws SQLException {
-
         if(dqr!=null)
             dqr.close();
     }
@@ -678,7 +675,7 @@ public class DrizzleStatement implements Statement {
      *        <p/>
      */
     public boolean isPoolable() throws SQLException {
-        return false;  //To change body of implemented methods use File | Settings | File Templates.
+        return false;
     }
 
 

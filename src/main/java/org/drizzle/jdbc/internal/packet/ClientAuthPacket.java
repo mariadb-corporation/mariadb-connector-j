@@ -43,23 +43,23 @@ import java.util.Set;
  * To change this template use File | Settings | File Templates.
  */
 public class ClientAuthPacket implements DrizzlePacket {
-    private WriteBuffer writeBuffer;
-    private Set<ServerCapabilities> serverCapabilities;
-    private byte serverLanguage;
-    private String username;
-    private String password;
-    private String database;
+    private final WriteBuffer writeBuffer;
+    private final Set<ServerCapabilities> serverCapabilities;
+    private final byte serverLanguage=45;
+    private final String username;
+    private final String password;
+    private final String database;
 
-    public ClientAuthPacket(String username,String password,String database) {
+    public ClientAuthPacket(String username,String password,String database, Set<ServerCapabilities> serverCapabilities) {
         writeBuffer = new WriteBuffer();
         this.username=username;
         this.password=password;
         this.database=database;
+        this.serverCapabilities=serverCapabilities;
     }
 // TODO: fix passing the initial database...
     public byte [] toBytes(byte queryNumber) {
-    //& ~((1<<5)|(1<<11)|(1<<3))    
-    writeBuffer.writeInt(ServerCapabilities.fromSet(serverCapabilities)).
+        writeBuffer.writeInt(ServerCapabilities.fromSet(serverCapabilities)).
                 writeInt(4+4+1+23+username.length()+1+1+1+database.length()+1).
                     writeByte(serverLanguage). //1
                     writeBytes((byte)0,23).    //4
@@ -71,22 +71,5 @@ public class ClientAuthPacket implements DrizzlePacket {
                     writeString(database).     //strlen(database)
                     writeByte((byte)0);        //1
         return writeBuffer.toByteArrayWithLength(queryNumber);
-    }
-
-    public void setServerCapabilities(Set<ServerCapabilities> serverCapabilities) {
-        this.serverCapabilities = serverCapabilities;
-        this.serverCapabilities.remove(ServerCapabilities.INTERACTIVE);
-        this.serverCapabilities.remove(ServerCapabilities.SSL);
-        this.serverCapabilities.remove(ServerCapabilities.ODBC);
-        this.serverCapabilities.remove(ServerCapabilities.NO_SCHEMA);
-
-        this.serverCapabilities.add(ServerCapabilities.CONNECT_WITH_DB);
-        this.serverCapabilities.add(ServerCapabilities.TRANSACTIONS);
-//        this.serverCapabilities.add(ServerCapabilities.)
-
-    }
-
-    public void setServerLanguage(byte serverLanguage) {
-        this.serverLanguage = serverLanguage;
     }
 }

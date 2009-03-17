@@ -15,7 +15,7 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
     private final String version;
     private final String url;
     private final String username;
-    private Connection connection;
+    private final Connection connection;
     private final static Logger log = LoggerFactory.getLogger(DrizzleDatabaseMetaData.class);
 
     /**

@@ -11,21 +11,10 @@ import java.util.List;
  * Time: 4:05:47 PM
  */
 public interface Protocol {
-
     void close() throws QueryException;
-
     boolean isClosed();
-/* TODO: use these methods for queries instead
-   if you don't know what kind of query is being passed, classify it using
-   queryIsSelect(..) first, then execute the correct method*/
-    /*
-    boolean queryIsSelect(String query);
-    DrizzleSelectResult executeQuery(String query);
-    DrizzleModifyResult executeUpdate(String query);      */
 
-//    QueryResult executeQuery(String s) throws QueryException;
-
-   void selectDB(String database) throws QueryException;
+    void selectDB(String database) throws QueryException;
 
     String getVersion();
 

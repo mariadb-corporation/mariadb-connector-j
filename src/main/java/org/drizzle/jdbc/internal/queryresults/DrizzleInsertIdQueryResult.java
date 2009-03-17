@@ -18,7 +18,7 @@ import java.util.EnumSet;
  */
 public class DrizzleInsertIdQueryResult implements SelectQueryResult {
     private final List<ColumnInformation> columnInformation;
-    private long insertId;
+    private final long insertId;
 
     public DrizzleInsertIdQueryResult(long insertId){
         this.insertId=insertId;

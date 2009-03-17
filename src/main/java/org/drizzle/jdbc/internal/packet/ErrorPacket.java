@@ -14,12 +14,12 @@ import java.io.InputStream;
  * To change this template use File | Settings | File Templates.
  */
 public class ErrorPacket extends ResultPacket {
-    private byte fieldCount;
-    private short errorNumber;
-    private byte sqlStateMarker;
-    private byte[] sqlState;
-    private String message;
-    private byte packetSeq;
+    private final byte fieldCount;
+    private final short errorNumber;
+    private final byte sqlStateMarker;
+    private final byte[] sqlState;
+    private final String message;
+    private final byte packetSeq=0;
 
     public ErrorPacket(InputStream istream) throws IOException {
         Reader reader = new Reader(istream);

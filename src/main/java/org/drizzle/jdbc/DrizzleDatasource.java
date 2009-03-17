@@ -31,7 +31,6 @@ public class DrizzleDatasource implements DataSource {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public Connection getConnection() throws SQLException {
-
         try {
             return new DrizzleConnection(new DrizzleProtocol(hostname,port,database,null,null));
         } catch (QueryException e) {

@@ -25,8 +25,9 @@ import java.text.ParseException;
  * To change this template use File | Settings | File Templates.
  */
 public class DrizzleResultSet implements ResultSet {
-    private QueryResult queryResult;
-    private Statement statement;
+    private final QueryResult queryResult;
+    private final Statement statement;
+    // dont want these, but jdbc forces them with "lastGetWasNull" etc...
     private boolean isClosed;
     private boolean lastGetWasNull;
 

@@ -16,6 +16,8 @@ import java.net.Socket;
 import java.io.*;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Set;
+import java.util.Arrays;
 
 /**
  * TODO: refactor, clean up
@@ -41,7 +43,7 @@ public class DrizzleProtocol implements Protocol {
     private final String username;
     private final String password;
     private List<Query> batchList;
-    //private ProtocolState protocolState = ProtocolState.NO_TRANSACTION;
+
     /**
      * Get a protocol instance
      *
@@ -93,9 +95,10 @@ public class DrizzleProtocol implements Protocol {
         }
         this.version=greetingPacket.getServerVersion();
         log.debug("Got greeting packet: {}",greetingPacket);
-        ClientAuthPacket cap = new ClientAuthPacket(username,password,database);
-        cap.setServerCapabilities(greetingPacket.getServerCapabilities());
-        cap.setServerLanguage(greetingPacket.getServerLanguage());
+        Set<ServerCapabilities> serverCapabilities = greetingPacket.getServerCapabilities();
+        serverCapabilities.removeAll(Arrays.asList(ServerCapabilities.INTERACTIVE, ServerCapabilities.SSL, ServerCapabilities.ODBC, ServerCapabilities.NO_SCHEMA));
+        serverCapabilities.addAll(Arrays.asList(ServerCapabilities.CONNECT_WITH_DB,ServerCapabilities.TRANSACTIONS));
+        ClientAuthPacket cap = new ClientAuthPacket(username,password,database,serverCapabilities);
         byte [] a = cap.toBytes(packetSeqNum);
         try {
             writer.write(a);

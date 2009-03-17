@@ -23,9 +23,9 @@ import java.util.Calendar;
  * Time: 9:18:26 PM
  */
 public class DrizzleValueObject implements ValueObject {
-
     private final byte[] rawBytes;
     private final DrizzleType dataType;
+
     public DrizzleValueObject(byte [] rawBytes, DrizzleType dataType) {
         this.rawBytes= rawBytes;
         this.dataType=dataType;

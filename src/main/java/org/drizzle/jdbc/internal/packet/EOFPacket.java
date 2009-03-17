@@ -14,7 +14,7 @@ import java.io.InputStream;
  * To change this template use File | Settings | File Templates.
  */
 public class EOFPacket extends ResultPacket {
-    private byte packetSeq;
+    private final byte packetSeq;
 
     public EOFPacket(InputStream istream) throws IOException {
         Reader reader = new Reader(istream);

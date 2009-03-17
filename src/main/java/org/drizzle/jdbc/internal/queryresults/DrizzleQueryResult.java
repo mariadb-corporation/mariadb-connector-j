@@ -1,6 +1,5 @@
 package org.drizzle.jdbc.internal.queryresults;
 
-import org.drizzle.jdbc.internal.packet.FieldPacket;
 import org.drizzle.jdbc.internal.ValueObject;
 
 import java.util.*;
@@ -13,18 +12,16 @@ import java.util.*;
  * Time: 8:15:55 PM
  */
 public class DrizzleQueryResult implements SelectQueryResult {
-
-
     private final List<ColumnInformation> columnInformation;
     private final List<List<ValueObject>> resultSet;
     private final Map<String, Integer> columnNameMap;
-    private int rowCounter;
+    private int rowPointer;
 
     public DrizzleQueryResult(List<ColumnInformation> columnInformation, List<List<ValueObject>> valueObjects) {
         this.columnInformation = Collections.unmodifiableList(columnInformation);
         this.resultSet=Collections.unmodifiableList(valueObjects);
         columnNameMap=new HashMap<String,Integer>();
-        rowCounter=-1;
+        rowPointer =-1;
         int i=0;
         for(ColumnInformation ci : columnInformation) {
             columnNameMap.put(ci.getName().toLowerCase(),i++);
@@ -32,8 +29,8 @@ public class DrizzleQueryResult implements SelectQueryResult {
     }
     
     public boolean next() {
-        rowCounter++;
-        return rowCounter < resultSet.size();
+        rowPointer++;
+        return rowPointer < resultSet.size();
     }
 
     public void close() {
@@ -58,7 +55,7 @@ public class DrizzleQueryResult implements SelectQueryResult {
      * @return
      */
     public ValueObject getValueObject(int i) {
-        return resultSet.get(rowCounter).get(i);
+        return resultSet.get(rowPointer).get(i);
     }
 
     public ValueObject getValueObject(String column) {
@@ -75,11 +72,11 @@ public class DrizzleQueryResult implements SelectQueryResult {
     }
 
     public void moveRowPointerTo(int i) {
-        this.rowCounter=i;
+        this.rowPointer =i;
     }
 
     public int getRowPointer() {
-        return rowCounter;
+        return rowPointer;
     }
 
 

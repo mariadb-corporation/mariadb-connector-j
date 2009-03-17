@@ -17,41 +17,6 @@ public interface QueryResult {
      public void close();
     short getWarnings();
     String getMessage();
-/*
-    boolean next();
-    void close();
-
-    List<FieldPacket> getFieldPackets();
-
-    ValueObject getValueObject(int i);
-
-    ValueObject getValueObject(String column);
-
-    void setUpdateCount(int updateCount);
-
-    long getUpdateCount();
-
-    void setInsertId(long insertId);
-
-    long getInsertId();
-
-    int getRows();
-
-    void setWarnings(int warnings);
-
-    void setMessage(String message);
-
-    short getWarnings();
-
-    String getMessage();
-
-    QueryResult getGeneratedKeysResult();
-
-    int getColumnId(String columnLabel);
-
-    int getRowPointer();
-
-    void moveRowPointerTo(int i);*/
 
     List<ColumnInformation> getColumnInformation();
 

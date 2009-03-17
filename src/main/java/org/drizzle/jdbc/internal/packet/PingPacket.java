@@ -10,7 +10,7 @@ import org.drizzle.jdbc.internal.packet.buffer.WriteBuffer;
  * To change this template use File | Settings | File Templates.
  */
 public class PingPacket implements DrizzlePacket {
-    WriteBuffer buffer = new WriteBuffer();
+    private final WriteBuffer buffer = new WriteBuffer();
     public PingPacket() {
         buffer.writeByte((byte)12);
     }

@@ -11,7 +11,7 @@ import org.drizzle.jdbc.internal.packet.DrizzlePacket;
  * To change this template use File | Settings | File Templates.
  */
 public class QueryPacket implements DrizzlePacket {
-    WriteBuffer buffer;
+    private final WriteBuffer buffer;
     public QueryPacket(String query) {
         buffer = new WriteBuffer();
         buffer.writeByte((byte)0x03).

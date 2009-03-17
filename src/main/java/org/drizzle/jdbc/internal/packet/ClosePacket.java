@@ -10,7 +10,7 @@ import org.drizzle.jdbc.internal.packet.buffer.WriteBuffer;
  * To change this template use File | Settings | File Templates.
  */
 public class ClosePacket implements DrizzlePacket {
-    private WriteBuffer writeBuffer;
+    private final WriteBuffer writeBuffer;
 
     public ClosePacket() {
         this.writeBuffer = new WriteBuffer();

@@ -24,6 +24,7 @@ public class DrizzleColumnInformation implements ColumnInformation {
     private final byte decimals;
     private final Set<ColumnFlags> flags;
     private int displayWidth=0;
+    
     private DrizzleColumnInformation(Builder builder) {
         this.catalog=builder.catalog;
         this.db=builder.db;

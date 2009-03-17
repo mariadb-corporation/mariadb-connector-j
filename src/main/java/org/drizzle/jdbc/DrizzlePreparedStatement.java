@@ -25,13 +25,11 @@ import java.text.SimpleDateFormat;
  */
 public class DrizzlePreparedStatement extends DrizzleStatement implements PreparedStatement  {
     private final static Logger log = LoggerFactory.getLogger(DrizzlePreparedStatement.class);
-    private final String query;
     private DrizzleParameterizedQuery dQuery;
 
     public DrizzlePreparedStatement(Protocol protocol, DrizzleConnection drizzleConnection, String query) {
         super(protocol, drizzleConnection);
         log.info("Creating prepared statement for {}",query);
-        this.query=query;
         dQuery = new DrizzleParameterizedQuery(query);
     }
 
@@ -101,7 +99,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
         } catch (QueryException e) {
             throw new SQLException("Could not execute query",e);
         }
-        if(qr.getRows() > 0) {
+        if(qr.getResultSetType() == ResultSetType.SELECT) {
             super.setResultSet(new DrizzleResultSet(qr,this));
             return true;
         } else {
@@ -124,9 +122,9 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.2
      */
     public void addBatch() throws SQLException {
-        log.info("Adding query {} to batch",query);
+        log.info("Adding query {} to batch",dQuery);
         this.getProtocol().addToBatch(dQuery);
-        dQuery=new DrizzleParameterizedQuery(query);
+        dQuery=new DrizzleParameterizedQuery(dQuery);
     }
 
     /**

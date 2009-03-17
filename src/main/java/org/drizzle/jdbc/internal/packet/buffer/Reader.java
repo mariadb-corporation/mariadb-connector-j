@@ -12,10 +12,10 @@ import java.io.BufferedInputStream;
  * To change this template use File | Settings | File Templates.
  */
 public class Reader {
-    private InputStream reader;
-    private int length;
+    private final InputStream reader;
+    private final int length;
     private int readBytes;
-    private byte packetSeq;
+    private final byte packetSeq;
 
     public Reader(InputStream reader) throws IOException {
         this.reader=reader;
