@@ -5,7 +5,7 @@ import org.drizzle.jdbc.internal.queryresults.QueryResult;
 import org.drizzle.jdbc.internal.queryresults.ModifyQueryResult;
 import org.drizzle.jdbc.internal.queryresults.ResultSetType;
 import org.drizzle.jdbc.internal.QueryException;
-import org.drizzle.jdbc.internal.query.DrizzleQuery;
+import org.drizzle.jdbc.internal.query.QueryFactory;
 
 import java.sql.*;
 import java.util.List;
@@ -23,10 +23,12 @@ public class DrizzleStatement implements Statement {
     private final Connection connection;
     private QueryResult dqr;
     private boolean warningsCleared;
+    private QueryFactory queryFactory;
 
-    public DrizzleStatement(Protocol protocol, DrizzleConnection drizzleConnection) {
+    public DrizzleStatement(Protocol protocol, Connection connection, QueryFactory queryFactory) {
         this.protocol=protocol;
-        this.connection=drizzleConnection;
+        this.connection=connection;
+        this.queryFactory = queryFactory;
     }
     public Protocol getProtocol() {
         return protocol;
@@ -34,7 +36,7 @@ public class DrizzleStatement implements Statement {
 
     public ResultSet executeQuery(String s) throws SQLException {
         try {
-            dqr = protocol.executeQuery(new DrizzleQuery(s));
+            dqr = protocol.executeQuery(queryFactory.createQuery(s));
             warningsCleared = false;
             return new DrizzleResultSet(dqr,this);
         } catch (QueryException e) {
@@ -45,7 +47,7 @@ public class DrizzleStatement implements Statement {
     public int executeUpdate(String s) throws SQLException {
         try {
             warningsCleared=false;
-            dqr = protocol.executeQuery(new DrizzleQuery(s));
+            dqr = protocol.executeQuery(queryFactory.createQuery(s));
             return (int) ((ModifyQueryResult)dqr).getUpdateCount();
         } catch (QueryException e) {
             throw new SQLException("Could not execute update ",e);
@@ -54,7 +56,7 @@ public class DrizzleStatement implements Statement {
 
     public boolean execute(String query) throws SQLException {
         try {
-            dqr = protocol.executeQuery(new DrizzleQuery(query));
+            dqr = protocol.executeQuery(queryFactory.createQuery(query));
             if(dqr.getRows() > 0) {
                 setResultSet(new DrizzleResultSet(dqr,this));
                 return true;
@@ -65,7 +67,9 @@ public class DrizzleStatement implements Statement {
             throw new SQLException("Could not execute query: "+e.getMessage());
         }
     }
-
+    public QueryFactory getQueryFactory(){
+        return queryFactory;
+    }
     /**
      * Releases this <code>Statement</code> object's database
      * and JDBC resources immediately instead of waiting for
@@ -836,7 +840,7 @@ public class DrizzleStatement implements Statement {
      * @since 1.2
      */
     public void addBatch(String sql) throws SQLException {
-        this.protocol.addToBatch(new DrizzleQuery(sql));
+        this.protocol.addToBatch(queryFactory.createQuery(sql));
     }
 
     /**

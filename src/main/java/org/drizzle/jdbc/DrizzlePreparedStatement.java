@@ -25,12 +25,12 @@ import java.text.SimpleDateFormat;
  */
 public class DrizzlePreparedStatement extends DrizzleStatement implements PreparedStatement  {
     private final static Logger log = LoggerFactory.getLogger(DrizzlePreparedStatement.class);
-    private DrizzleParameterizedQuery dQuery;
+    private ParameterizedQuery dQuery;
 
-    public DrizzlePreparedStatement(Protocol protocol, DrizzleConnection drizzleConnection, String query) {
-        super(protocol, drizzleConnection);
+    public DrizzlePreparedStatement(Protocol protocol, DrizzleConnection drizzleConnection, String query, QueryFactory queryFactory) {
+        super(protocol, drizzleConnection,queryFactory);
         log.info("Creating prepared statement for {}",query);
-        dQuery = new DrizzleParameterizedQuery(query);
+        dQuery = queryFactory.createParameterizedQuery(query);
     }
 
     public ResultSet executeQuery() throws SQLException {
@@ -124,7 +124,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
     public void addBatch() throws SQLException {
         log.info("Adding query {} to batch",dQuery);
         this.getProtocol().addToBatch(dQuery);
-        dQuery=new DrizzleParameterizedQuery(dQuery);
+        dQuery=getQueryFactory().createParameterizedQuery(dQuery);
     }
 
     /**
@@ -151,7 +151,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      */
     public void setCharacterStream(int parameterIndex, Reader reader, int length) throws SQLException {
         log.info("Setting char stream at {}",parameterIndex);
-        dQuery.setParameter(parameterIndex-1, new ReaderParameter(reader,length));
+        setParameter(parameterIndex, new ReaderParameter(reader,length));
     }
 
     /**
@@ -382,7 +382,11 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
     }
 
     private void setParameter(int parameterIndex, ParameterHolder holder) throws SQLException {
-        dQuery.setParameter(parameterIndex-1, holder);
+        try {
+            dQuery.setParameter(parameterIndex-1, holder);
+        } catch (IllegalParameterException e) {
+            throw new SQLException("Could not set parameter",e);
+        }
     }
 
     /**

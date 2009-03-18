@@ -3,7 +3,7 @@ package org.drizzle.jdbc.internal;
 import org.drizzle.jdbc.internal.packet.*;
 import org.drizzle.jdbc.internal.packet.buffer.ReadUtil;
 import org.drizzle.jdbc.internal.query.Query;
-import org.drizzle.jdbc.internal.query.DrizzleQuery;
+import org.drizzle.jdbc.internal.query.drizzle.DrizzleQuery;
 import org.drizzle.jdbc.internal.queryresults.DrizzleQueryResult;
 import org.drizzle.jdbc.internal.queryresults.DrizzleUpdateResult;
 import org.drizzle.jdbc.internal.queryresults.QueryResult;
@@ -34,7 +34,7 @@ public class DrizzleProtocol implements Protocol {
     private final Socket socket;
     private final BufferedInputStream reader;
     private final BufferedOutputStream writer;
-    private String version;
+    private final String version;
     private boolean readOnly=false;
     private boolean autoCommit;
     private final String host;
@@ -71,51 +71,24 @@ public class DrizzleProtocol implements Protocol {
         try {
             reader = new BufferedInputStream(socket.getInputStream(),16384);
             writer = new BufferedOutputStream(socket.getOutputStream(),16384);
-            this.connect(this.username,this.password,this.database);
+            GreetingReadPacket greetingPacket = new GreetingReadPacket(reader);
+            log.debug("Got greeting packet: {}",greetingPacket);
+            this.version=greetingPacket.getServerVersion();
+            Set<ServerCapabilities> serverCapabilities = greetingPacket.getServerCapabilities();
+            serverCapabilities.removeAll(Arrays.asList(ServerCapabilities.INTERACTIVE, ServerCapabilities.SSL, ServerCapabilities.ODBC, ServerCapabilities.NO_SCHEMA));
+            serverCapabilities.addAll(Arrays.asList(ServerCapabilities.CONNECT_WITH_DB,ServerCapabilities.TRANSACTIONS));
+            ClientAuthPacket cap = new ClientAuthPacket(this.username,this.password,this.database,serverCapabilities);
+            byte [] bytes = cap.toBytes((byte)1);
+            writer.write(bytes);
+            writer.flush();
+            log.debug("Sending auth packet: {}",cap);
+            ResultPacket resultPacket = ResultPacketFactory.createResultPacket(reader);
+            log.debug("Got result: {}",resultPacket);
+            selectDB(this.database);
+            setAutoCommit(true);
         } catch (IOException e) {
             throw new QueryException("Could not connect",e);
         }
-    }
-
-    /**
-     * Connect to database
-     * @param username the username to use
-     * @param password the password for the user
-     * @param database initial database
-     * @throws QueryException ifsomething is wrong while reading / writing streams
-     */
-    private void connect(String username, String password, String database) throws QueryException {
-        this.connected=true;
-        byte packetSeqNum = 1;
-        GreetingReadPacket greetingPacket = null;
-        try {
-            greetingPacket = new GreetingReadPacket(reader);
-        } catch (IOException e) {
-            throw new QueryException("Could not read greeting from server",e);
-        }
-        this.version=greetingPacket.getServerVersion();
-        log.debug("Got greeting packet: {}",greetingPacket);
-        Set<ServerCapabilities> serverCapabilities = greetingPacket.getServerCapabilities();
-        serverCapabilities.removeAll(Arrays.asList(ServerCapabilities.INTERACTIVE, ServerCapabilities.SSL, ServerCapabilities.ODBC, ServerCapabilities.NO_SCHEMA));
-        serverCapabilities.addAll(Arrays.asList(ServerCapabilities.CONNECT_WITH_DB,ServerCapabilities.TRANSACTIONS));
-        ClientAuthPacket cap = new ClientAuthPacket(username,password,database,serverCapabilities);
-        byte [] a = cap.toBytes(packetSeqNum);
-        try {
-            writer.write(a);
-            writer.flush();
-        } catch (IOException e) {
-            throw new QueryException("Could not write to server",e);
-        }
-        log.debug("Sending auth packet: {}",cap);
-        ResultPacket resultPacket = null;
-        try {
-            resultPacket = ResultPacketFactory.createResultPacket(reader);
-        } catch (IOException e) {
-            throw new QueryException("Could not get result from server",e);
-        }
-        log.debug("Got result: {}",resultPacket);
-         selectDB(database);
-         setAutoCommit(true);
     }
 
     /**

@@ -1,6 +1,7 @@
 package org.drizzle.jdbc.internal;
 
 import org.drizzle.jdbc.internal.query.Query;
+import org.drizzle.jdbc.internal.query.QueryFactory;
 import org.drizzle.jdbc.internal.queryresults.QueryResult;
 
 import java.util.List;
@@ -50,4 +51,5 @@ public interface Protocol {
     public List<QueryResult> executeBatch() throws QueryException;
 
     void clearBatch();
+
 }

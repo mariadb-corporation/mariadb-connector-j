@@ -2,6 +2,7 @@ package org.drizzle.jdbc;
 
 import org.drizzle.jdbc.internal.DrizzleProtocol;
 import org.drizzle.jdbc.internal.QueryException;
+import org.drizzle.jdbc.internal.query.drizzle.DrizzleQueryFactory;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -32,7 +33,7 @@ public class DrizzleDatasource implements DataSource {
      */
     public Connection getConnection() throws SQLException {
         try {
-            return new DrizzleConnection(new DrizzleProtocol(hostname,port,database,null,null));
+            return new DrizzleConnection(new DrizzleProtocol(hostname,port,database,null,null), new DrizzleQueryFactory());
         } catch (QueryException e) {
             throw new SQLException("Could not connect");
         }
@@ -51,7 +52,7 @@ public class DrizzleDatasource implements DataSource {
      */
     public Connection getConnection(String username, String password) throws SQLException {
         try {
-            return new DrizzleConnection(new DrizzleProtocol(hostname,port,database,username,password));
+            return new DrizzleConnection(new DrizzleProtocol(hostname,port,database,username,password), new DrizzleQueryFactory());
         } catch (QueryException e) {
             throw new SQLException("Could not connect");
         }

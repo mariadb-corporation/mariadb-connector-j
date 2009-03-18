@@ -1,9 +1,9 @@
-package org.drizzle.jdbc.internal.query;
+package org.drizzle.jdbc.internal.query.drizzle;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.drizzle.jdbc.internal.query.Query;
 
-import java.util.List;
 import java.io.OutputStream;
 import java.io.IOException;
 import java.io.StringReader;
@@ -16,7 +16,7 @@ import java.io.StringReader;
  * To change this template use File | Settings | File Templates.
  */
 public class DrizzleQuery implements Query {
-        private final static Logger log = LoggerFactory.getLogger(DrizzleQuery.class);
+    private final static Logger log = LoggerFactory.getLogger(DrizzleQuery.class);
     protected final String query;
     public DrizzleQuery(String query) {
         this.query=query;
@@ -34,6 +34,10 @@ public class DrizzleQuery implements Query {
         while((ch=strReader.read())!=-1) {
             os.write(ch);
         }
+    }
+
+    public String getQuery() {
+        return query;
     }
 
 }

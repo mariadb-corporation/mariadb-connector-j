@@ -2,7 +2,6 @@ package org.drizzle.jdbc.internal.packet;
 
 import static org.drizzle.jdbc.internal.packet.buffer.WriteBuffer.intToByteArray;
 import org.drizzle.jdbc.internal.packet.DrizzlePacket;
-import org.drizzle.jdbc.internal.query.DrizzleParameterizedQuery;
 import org.drizzle.jdbc.internal.query.Query;
 
 import java.io.OutputStream;

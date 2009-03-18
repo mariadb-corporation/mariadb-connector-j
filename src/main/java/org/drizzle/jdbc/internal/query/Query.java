@@ -14,4 +14,5 @@ public interface Query {
     int length();
 
     void writeTo(OutputStream os) throws IOException;
+    String getQuery();
 }
