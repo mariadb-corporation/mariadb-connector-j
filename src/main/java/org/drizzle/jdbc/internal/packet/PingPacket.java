@@ -12,7 +12,7 @@ import org.drizzle.jdbc.internal.packet.buffer.WriteBuffer;
 public class PingPacket implements DrizzlePacket {
     private final WriteBuffer buffer = new WriteBuffer();
     public PingPacket() {
-        buffer.writeByte((byte)12);
+        buffer.writeByte((byte)6);
     }
     public byte [] toBytes(byte commandNumber){
         return buffer.toByteArrayWithLength(commandNumber);
