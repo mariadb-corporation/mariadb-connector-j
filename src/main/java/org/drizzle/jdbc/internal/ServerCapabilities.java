@@ -19,10 +19,8 @@ public enum ServerCapabilities {
     LOCAL_FILES((short)128),     /* Can use LOAD DATA LOCAL */
     IGNORE_SPACE((short)256),     /* Ignore spaces before '(' */
     CLIENT_PROTOCOL_41((short)512),     /* New 4.1 protocol */
-    INTERACTIVE((short)1024),    /* This is an interactive client */
     SSL((short)2048),    /* Switch to SSL after handshake */
     IGNORE_SIGPIPE((short)4096),    /* IGNORE sigpipes */
-    TRANSACTIONS((short)8192),    /* Client knows about transactions */
     RESERVED((short)16384),   /* Old flag for 4.1 protocol  */
     SECURE_CONNECTION((short)32768),  /* New 4.1 authentication */
     MULTI_STATEMENTS((short)(1L << 16)), /* Enable/disable multi-stmt support */

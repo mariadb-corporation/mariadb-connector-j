@@ -25,22 +25,22 @@ public class DateTest {
 
         Statement stmt = connection.createStatement();
         stmt.executeUpdate("drop table if exists date_test");
-        stmt.executeUpdate("create table date_test (d_test date,t_test time, dt_test datetime)");
+        stmt.executeUpdate("create table date_test (d_test date,dt_test datetime)");
         Date date = Date.valueOf("2009-01-17");
-        Time time = Time.valueOf("15:41:01");
+//        Time time = Time.valueOf("15:41:01");
         Timestamp timestamp = Timestamp.valueOf("2009-01-17 15:41:01");
-        PreparedStatement ps = connection.prepareStatement("insert into date_test values (?,?,?)");
+        PreparedStatement ps = connection.prepareStatement("insert into date_test values (?,?)");
         ps.setDate(1,date);
-        ps.setTime(2,time);
-        ps.setTimestamp(3,timestamp);
+//        ps.setTime(2,time);
+        ps.setTimestamp(2,timestamp);
         ps.executeUpdate();
         ResultSet rs = stmt.executeQuery("select * from date_test");
         assertEquals(true,rs.next());
         Date date2 = rs.getDate(1);
-        Time time2=rs.getTime(2);
-        Timestamp timestamp2=rs.getTimestamp(3);
+//        Time time2=rs.getTime(2);
+        Timestamp timestamp2=rs.getTimestamp(2);
         assertEquals(date.toString(), date2.toString());
-        assertEquals(time.toString(), time2.toString());
+//        assertEquals(time.toString(), time2.toString());
         assertEquals(timestamp.toString(), timestamp2.toString());
 
     }

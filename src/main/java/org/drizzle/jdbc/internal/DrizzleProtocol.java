@@ -14,10 +14,7 @@ import org.slf4j.LoggerFactory;
 import javax.net.SocketFactory;
 import java.net.Socket;
 import java.io.*;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Set;
-import java.util.Arrays;
+import java.util.*;
 
 /**
  * TODO: refactor, clean up
@@ -75,8 +72,8 @@ public class DrizzleProtocol implements Protocol {
             log.debug("Got greeting packet: {}",greetingPacket);
             this.version=greetingPacket.getServerVersion();
             Set<ServerCapabilities> serverCapabilities = greetingPacket.getServerCapabilities();
-            serverCapabilities.removeAll(Arrays.asList(ServerCapabilities.INTERACTIVE, ServerCapabilities.SSL, ServerCapabilities.ODBC, ServerCapabilities.NO_SCHEMA));
-            serverCapabilities.addAll(Arrays.asList(ServerCapabilities.CONNECT_WITH_DB,ServerCapabilities.TRANSACTIONS));
+            serverCapabilities.removeAll(EnumSet.of(ServerCapabilities.SSL, ServerCapabilities.ODBC, ServerCapabilities.NO_SCHEMA));
+            serverCapabilities.addAll(EnumSet.of(ServerCapabilities.CONNECT_WITH_DB));
             ClientAuthPacket cap = new ClientAuthPacket(this.username,this.password,this.database,serverCapabilities);
             byte [] bytes = cap.toBytes((byte)1);
             writer.write(bytes);

@@ -51,7 +51,7 @@ Bytes                      Name
                 .skipMe(reader.skipBytes(1))
                 .charsetNumber(reader.readShort())
                 .length(reader.readInt())
-                .type(DrizzleType.values()[reader.readByte()])
+                .type(/*DrizzleType.values()[reader.readByte()]*/DrizzleType.fromServer(reader.readByte()))
                 .flags(parseFlags(reader.readShort()))
                 .decimals(reader.readByte())
                 .skipMe(reader.skipBytes(2))

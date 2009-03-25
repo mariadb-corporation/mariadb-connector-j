@@ -35,12 +35,46 @@ public enum DrizzleType {
         this.javaClass = clazz;
         this.sqlType=sqlType;
     }
-
     public int getSqlType() {
         return sqlType;
     }
-
     public Class getJavaClass() {
         return javaClass;
+    }
+
+    public static DrizzleType fromServer(byte typeValue) {
+        switch(typeValue) {
+            case 0:
+            return TINY;
+            case 1:
+                return LONG;
+            case 2:
+                return DOUBLE;
+            case 3:
+                return NULL;
+            case 4:
+                return TIMESTAMP;
+            case 5:
+                return LONGLONG;
+            case 6:
+                return DATETIME;
+            case 7:
+                return DATE;
+            case 8:
+                return VARCHAR;
+            case 9:
+                return VIRTUAL;
+            case 10:
+                return NEWDECIMAL;
+            case 11:
+                return ENUM;
+            case 12:
+                return BLOB;
+            case 13:
+                return BLOB;
+            default:
+            return VARCHAR;
+        }
+        
     }
 }
