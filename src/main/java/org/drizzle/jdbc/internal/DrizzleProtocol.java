@@ -1,6 +1,7 @@
 package org.drizzle.jdbc.internal;
 
 import org.drizzle.jdbc.internal.packet.*;
+import org.drizzle.jdbc.internal.packet.commands.*;
 import org.drizzle.jdbc.internal.packet.buffer.ReadUtil;
 import org.drizzle.jdbc.internal.query.Query;
 import org.drizzle.jdbc.internal.query.drizzle.DrizzleQuery;
@@ -75,9 +76,7 @@ public class DrizzleProtocol implements Protocol {
             serverCapabilities.removeAll(EnumSet.of(ServerCapabilities.SSL, ServerCapabilities.ODBC, ServerCapabilities.NO_SCHEMA));
             serverCapabilities.addAll(EnumSet.of(ServerCapabilities.CONNECT_WITH_DB));
             ClientAuthPacket cap = new ClientAuthPacket(this.username,this.password,this.database,serverCapabilities);
-            byte [] bytes = cap.toBytes((byte)1);
-            writer.write(bytes);
-            writer.flush();
+            cap.send(writer);
             log.debug("Sending auth packet: {}",cap);
             ResultPacket resultPacket = ResultPacketFactory.createResultPacket(reader);
             log.debug("Got result: {}",resultPacket);
@@ -96,7 +95,7 @@ public class DrizzleProtocol implements Protocol {
         log.debug("Closing...");
         try {
             ClosePacket closePacket = new ClosePacket();
-            writer.write(closePacket.toBytes((byte)0));
+            closePacket.send(writer);
             writer.close();
             reader.close();
             socket.close();
@@ -142,14 +141,11 @@ public class DrizzleProtocol implements Protocol {
     public void selectDB(String database) throws QueryException {
         log.debug("Selecting db {}",database);
         SelectDBPacket packet = new SelectDBPacket(database);
-        byte packetSeqNum=0;
-        byte [] b = packet.toBytes(packetSeqNum);
         try {
-            writer.write(b);
-            writer.flush();
+            packet.send(writer);
             ResultPacketFactory.createResultPacket(reader);
         } catch (IOException e) {
-            throw new QueryException("Could not select database",e);
+            throw new QueryException("Could not select database ",e);
         }
     }
 
@@ -221,8 +217,7 @@ public class DrizzleProtocol implements Protocol {
     public boolean ping() throws QueryException {
         PingPacket pingPacket = new PingPacket();
         try {
-            writer.write(pingPacket.toBytes((byte)0));
-            writer.flush();
+            pingPacket.send(writer);
             log.debug("Sent ping packet");
             return ResultPacketFactory.createResultPacket(reader).getResultType()==ResultPacket.ResultType.OK;
         } catch (IOException e) {
@@ -235,7 +230,7 @@ public class DrizzleProtocol implements Protocol {
         StreamedQueryPacket packet = new StreamedQueryPacket(dQuery);
         int i=0;
         try {
-            packet.sendQuery(writer);
+            packet.send(writer);
         } catch (IOException e) {
             throw new QueryException("Could not send query",e);
         }

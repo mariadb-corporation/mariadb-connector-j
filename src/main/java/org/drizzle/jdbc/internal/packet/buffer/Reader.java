@@ -5,11 +5,11 @@ import java.io.IOException;
 import java.io.BufferedInputStream;
 
 /**
- * Created by IntelliJ IDEA.
+ .
  * User: marcuse
  * Date: Jan 16, 2009
  * Time: 8:27:38 PM
- * To change this template use File | Settings | File Templates.
+
  */
 public class Reader {
     private final InputStream reader;

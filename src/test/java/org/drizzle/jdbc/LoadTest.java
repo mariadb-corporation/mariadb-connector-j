@@ -16,6 +16,7 @@ import static junit.framework.Assert.assertEquals;
  */
 public class LoadTest {
     static { BasicConfigurator.configure(); }
+   
     @Test
     public void loadTest() throws SQLException {
         try {
@@ -23,7 +24,7 @@ public class LoadTest {
         } catch (ClassNotFoundException e) {
             throw new SQLException("Could not load driver");
         }
-        Connection connection = DriverManager.getConnection("jdbc:drizzle://localhost:4427/test_units_jdbc");
+        Connection connection = DriverManager.getConnection("jdbc:drizzle://"+DriverTest.host+":4427/test_units_jdbc");
         Statement stmt = connection.createStatement();
          stmt.executeUpdate("drop table if exists loadsofdata");
          stmt.executeUpdate("create table loadsofdata (id int not null primary key auto_increment, data varchar(100))");

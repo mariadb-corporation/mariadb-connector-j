@@ -1,9 +1,12 @@
-package org.drizzle.jdbc.internal.packet;
+package org.drizzle.jdbc.internal.packet.commands;
 
 import org.drizzle.jdbc.internal.packet.buffer.WriteBuffer;
+import org.drizzle.jdbc.internal.packet.CommandPacket;
 import org.drizzle.jdbc.internal.ServerCapabilities;
 
 import java.util.Set;
+import java.io.OutputStream;
+import java.io.IOException;
 
 /**
  4                            client_flags
@@ -40,9 +43,9 @@ import java.util.Set;
  * User: marcuse
  * Date: Jan 16, 2009
  * Time: 11:19:31 AM
- * To change this template use File | Settings | File Templates.
+
  */
-public class ClientAuthPacket implements DrizzlePacket {
+public class ClientAuthPacket implements CommandPacket {
     private final WriteBuffer writeBuffer;
     private final Set<ServerCapabilities> serverCapabilities;
     private final byte serverLanguage=45;
@@ -56,9 +59,6 @@ public class ClientAuthPacket implements DrizzlePacket {
         this.password=password;
         this.database=database;
         this.serverCapabilities=serverCapabilities;
-    }
-// TODO: fix passing the initial database...
-    public byte [] toBytes(byte queryNumber) {
         writeBuffer.writeInt(ServerCapabilities.fromSet(serverCapabilities)).
                 writeInt(4+4+1+23+username.length()+1+1+1+database.length()+1).
                     writeByte(serverLanguage). //1
@@ -69,7 +69,14 @@ public class ClientAuthPacket implements DrizzlePacket {
                     writeByte((byte)0).        //1
                     writeByte((byte)0).
                     writeString(database).     //strlen(database)
-                    writeByte((byte)0);        //1
-        return writeBuffer.toByteArrayWithLength(queryNumber);
+                    writeByte((byte)0);
+    }
+
+
+    public void send(OutputStream os) throws IOException {
+        byte [] buff = writeBuffer.toByteArrayWithLength((byte)1);
+        for(byte b:buff)
+            os.write(b);
+        os.flush();
     }
 }

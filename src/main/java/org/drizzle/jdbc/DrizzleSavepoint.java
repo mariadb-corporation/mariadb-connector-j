@@ -4,11 +4,11 @@ import java.sql.Savepoint;
 import java.sql.SQLException;
 
 /**
- * Created by IntelliJ IDEA.
+ .
  * User: marcuse
  * Date: Feb 6, 2009
  * Time: 9:56:55 PM
- * To change this template use File | Settings | File Templates.
+
  */
 public class DrizzleSavepoint implements Savepoint {
     private final int savepointId;

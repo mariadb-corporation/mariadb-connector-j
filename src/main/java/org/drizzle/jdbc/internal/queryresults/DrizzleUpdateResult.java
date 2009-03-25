@@ -3,11 +3,11 @@ package org.drizzle.jdbc.internal.queryresults;
 import java.util.List;
 
 /**
- * Created by IntelliJ IDEA.
+ .
  * User: marcuse
  * Date: Mar 9, 2009
  * Time: 8:20:04 PM
- * To change this template use File | Settings | File Templates.
+
  */
 public class DrizzleUpdateResult implements ModifyQueryResult {
     private final long updateCount;
@@ -44,7 +44,7 @@ public class DrizzleUpdateResult implements ModifyQueryResult {
     }
 
     public List<ColumnInformation> getColumnInformation() {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return null;
     }
 
     public int getRows() {

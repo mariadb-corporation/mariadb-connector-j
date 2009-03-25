@@ -220,7 +220,7 @@ public class DrizzleStatement implements Statement {
      * @see #getQueryTimeout
      */
     public void setQueryTimeout(int seconds) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+
     }
 
     /**
@@ -314,7 +314,7 @@ public class DrizzleStatement implements Statement {
      * @throws SQLException
      */
     public Connection getConnection() throws SQLException {
-        return this.connection;  //To change body of implemented methods use File | Settings | File Templates.
+        return this.connection;
     }
 
     /**
@@ -660,7 +660,7 @@ public class DrizzleStatement implements Statement {
      * @since 1.6
      */
     public void setPoolable(boolean poolable) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+
     }
 
     /**
@@ -735,7 +735,7 @@ public class DrizzleStatement implements Statement {
      * @since 1.2
      */
     public void setFetchDirection(int direction) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+
     }
 
     /**
@@ -772,7 +772,7 @@ public class DrizzleStatement implements Statement {
      * @since 1.2
      */
     public void setFetchSize(int rows) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+
     }
 
     /**
@@ -791,7 +791,7 @@ public class DrizzleStatement implements Statement {
      * @since 1.2
      */
     public int getFetchSize() throws SQLException {
-        return 0;  //To change body of implemented methods use File | Settings | File Templates.
+        return 0;
     }
 
     /**
@@ -945,7 +945,7 @@ public class DrizzleStatement implements Statement {
      * @since 1.6
      */
     public <T> T unwrap(Class<T> iface) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return null;
     }
 
     /**
@@ -964,7 +964,7 @@ public class DrizzleStatement implements Statement {
      * @since 1.6
      */
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
-        return false;  //To change body of implemented methods use File | Settings | File Templates.
+        return false;
     }
 
     protected void setResultSet(DrizzleResultSet drizzleResultSet) {

@@ -139,7 +139,7 @@ public class DrizzleValueObject implements ValueObject {
             case BLOB:
                 return getBytes(); //TODO: wrong, handle this
         }
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return null;
     }
 
     public Date getDate(Calendar cal) throws ParseException {

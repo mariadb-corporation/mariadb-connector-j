@@ -9,7 +9,7 @@ import java.util.Collections;
  * User: marcuse
  * Date: Mar 9, 2009
  * Time: 8:53:40 PM
- * To change this template use File | Settings | File Templates.
+
  */
 public class DrizzleColumnInformation implements ColumnInformation {
     private final String catalog;

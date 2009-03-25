@@ -6,11 +6,11 @@ import org.drizzle.jdbc.internal.packet.FieldPacket;
 import java.util.List;
 
 /**
- * Created by IntelliJ IDEA.
+ .
  * User: marcuse
  * Date: Mar 9, 2009
  * Time: 8:42:45 PM
- * To change this template use File | Settings | File Templates.
+
  */
 public interface SelectQueryResult extends QueryResult {
     ValueObject getValueObject(int index);

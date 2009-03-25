@@ -18,11 +18,11 @@ import java.net.MalformedURLException;
 import java.text.ParseException;
 
 /**
- * Created by IntelliJ IDEA.
+ .
  * User: marcuse
  * Date: Jan 19, 2009
  * Time: 10:25:00 PM
- * To change this template use File | Settings | File Templates.
+
  */
 public class DrizzleResultSet implements ResultSet {
     private final QueryResult queryResult;
@@ -841,7 +841,7 @@ public class DrizzleResultSet implements ResultSet {
             }
             return true;
         }
-        return false;  //To change body of implemented methods use File | Settings | File Templates.
+        return false;
     }
 
     /**
@@ -915,7 +915,7 @@ public class DrizzleResultSet implements ResultSet {
             sqr.moveRowPointerTo(sqr.getRowPointer()-1);
             return true;
         }
-        return false;  //To change body of implemented methods use File | Settings | File Templates.
+        return false;
     }
 
     /**
@@ -2767,7 +2767,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public RowId getRowId(int columnIndex) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return null;
     }
 
     /**
@@ -2787,7 +2787,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public RowId getRowId(String columnLabel) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return null;
     }
 
     /**
@@ -2845,7 +2845,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public int getHoldability() throws SQLException {
-        return ResultSet.HOLD_CURSORS_OVER_COMMIT;  //To change body of implemented methods use File | Settings | File Templates.
+        return ResultSet.HOLD_CURSORS_OVER_COMMIT;
     }
 
     /**
@@ -2857,7 +2857,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public boolean isClosed() throws SQLException {
-        return isClosed;  //To change body of implemented methods use File | Settings | File Templates.
+        return isClosed;
     }
 
     /**
@@ -4324,7 +4324,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public <T> T unwrap(Class<T> iface) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return null;
     }
 
     /**
@@ -4343,6 +4343,6 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
-        return false;  //To change body of implemented methods use File | Settings | File Templates.
+        return false;  
     }
 }

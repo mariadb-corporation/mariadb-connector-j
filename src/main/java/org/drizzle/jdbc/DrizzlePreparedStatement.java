@@ -664,7 +664,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.6
      */
     public void setObject(int parameterIndex, Object x, int targetSqlType, int scaleOrLength) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+
     }
 
     /**
@@ -931,7 +931,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
             throw new SQLException("Could not read stream");
         }
 
-        //To change body of implemented methods use File | Settings | File Templates.
+
     }
 
     /**
@@ -1184,7 +1184,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @see java.sql.Types
      */
     public void setObject(int parameterIndex, Object x, int targetSqlType) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+
     }
 
     /**
@@ -1227,7 +1227,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      *                               or the type of the given object is ambiguous
      */
     public void setObject(int parameterIndex, Object x) throws SQLException {
-        //To change body of implemented methods use File | Settings | File Templates.
+
     }
 
     public void setInt(int column, int i) throws SQLException {

@@ -17,7 +17,7 @@ import java.util.List;
  * User: marcuse
  * Date: Feb 8, 2009
  * Time: 9:48:12 PM
- * To change this template use File | Settings | File Templates.
+
  */
 public class DrizzleResultSetMetaData implements ResultSetMetaData {
     private final static Logger log = LoggerFactory.getLogger(DrizzleResultSetMetaData.class);
@@ -313,7 +313,7 @@ public class DrizzleResultSetMetaData implements ResultSetMetaData {
      * @since 1.6
      */
     public <T> T unwrap(Class<T> iface) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return null;
     }
 
     /**
@@ -332,6 +332,6 @@ public class DrizzleResultSetMetaData implements ResultSetMetaData {
      * @since 1.6
      */
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
-        return false;  //To change body of implemented methods use File | Settings | File Templates.
+        return false;
     }
 }

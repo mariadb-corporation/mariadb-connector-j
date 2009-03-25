@@ -94,7 +94,7 @@ public class Driver implements java.sql.Driver {
     }
 
     public int getMinorVersion() {
-        return 0;
+        return 1;
     }
 
     public boolean jdbcCompliant() {

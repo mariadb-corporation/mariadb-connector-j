@@ -7,11 +7,11 @@ import java.io.IOException;
 import java.io.InputStream;
 
 /**
- * Created by IntelliJ IDEA.
+ .
  * User: marcuse
  * Date: Jan 16, 2009
  * Time: 4:23:54 PM
- * To change this template use File | Settings | File Templates.
+
  */
 public class EOFPacket extends ResultPacket {
     private final byte packetSeq;
@@ -31,6 +31,6 @@ public class EOFPacket extends ResultPacket {
     }
 
     public byte getPacketSeq() {
-        return packetSeq;  //To change body of implemented methods use File | Settings | File Templates.
+        return packetSeq;
     }
 }

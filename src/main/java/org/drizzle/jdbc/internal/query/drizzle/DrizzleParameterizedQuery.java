@@ -14,11 +14,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Created by IntelliJ IDEA.
+ .
  * User: marcuse
  * Date: Feb 18, 2009
  * Time: 10:13:42 PM
- * To change this template use File | Settings | File Templates.
+
  */
 public class DrizzleParameterizedQuery implements ParameterizedQuery {
     private final static Logger log = LoggerFactory.getLogger(DrizzleParameterizedQuery.class);

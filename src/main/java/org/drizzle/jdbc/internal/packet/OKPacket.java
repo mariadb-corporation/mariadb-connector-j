@@ -9,11 +9,11 @@ import java.io.InputStream;
 import java.util.Set;
 
 /**
- * Created by IntelliJ IDEA.
+ .
  * User: marcuse
  * Date: Jan 16, 2009
  * Time: 4:23:40 PM
- * To change this template use File | Settings | File Templates.
+
  */
 public class OKPacket extends ResultPacket {
     private final byte fieldCount;
@@ -39,7 +39,7 @@ public class OKPacket extends ResultPacket {
     }
 
     public byte getPacketSeq() {
-        return packetSeqNum;  //To change body of implemented methods use File | Settings | File Templates.
+        return packetSeqNum;
     }
 
     @Override

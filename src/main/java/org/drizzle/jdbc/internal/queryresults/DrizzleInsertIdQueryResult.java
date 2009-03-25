@@ -10,11 +10,11 @@ import java.util.Arrays;
 import java.util.EnumSet;
 
 /**
- * Created by IntelliJ IDEA.
+ .
  * User: marcuse
  * Date: Mar 9, 2009
  * Time: 8:34:44 PM
- * To change this template use File | Settings | File Templates.
+
  */
 public class DrizzleInsertIdQueryResult implements SelectQueryResult {
     private final List<ColumnInformation> columnInformation;
@@ -68,10 +68,10 @@ public class DrizzleInsertIdQueryResult implements SelectQueryResult {
     }
 
     public short getWarnings() {
-        return 0;  //To change body of implemented methods use File | Settings | File Templates.
+        return 0;
     }
 
     public String getMessage() {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return null;
     }
 }

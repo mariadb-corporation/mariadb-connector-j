@@ -10,11 +10,11 @@ import java.io.UnsupportedEncodingException;
 import java.util.Calendar;
 
 /**
- * Created by IntelliJ IDEA.
+ .
  * User: marcuse
  * Date: Feb 16, 2009
  * Time: 9:16:36 PM
- * To change this template use File | Settings | File Templates.
+
  */
 public interface ValueObject {
     String getString();

@@ -8,11 +8,11 @@ import java.io.IOException;
 import java.util.Arrays;
 
 /**
- * Created by IntelliJ IDEA.
+ .
  * User: marcuse
  * Date: Feb 27, 2009
  * Time: 9:53:04 PM
- * To change this template use File | Settings | File Templates.
+
  */
 public class BufferedReaderParameter implements ParameterHolder {
     private final int length;

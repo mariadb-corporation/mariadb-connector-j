@@ -38,11 +38,11 @@ public class DrizzleQueryResult implements SelectQueryResult {
     }
 
     public short getWarnings() {
-        return 0;  //To change body of implemented methods use File | Settings | File Templates.
+        return 0;
     }
 
     public String getMessage() {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return null;
     }
 
     public List<ColumnInformation> getColumnInformation() {

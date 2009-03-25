@@ -9,11 +9,11 @@ import java.io.IOException;
 import java.io.StringReader;
 
 /**
- * Created by IntelliJ IDEA.
+ .
  * User: marcuse
  * Date: Feb 20, 2009
  * Time: 10:43:58 PM
- * To change this template use File | Settings | File Templates.
+
  */
 public class DrizzleQuery implements Query {
     private final static Logger log = LoggerFactory.getLogger(DrizzleQuery.class);

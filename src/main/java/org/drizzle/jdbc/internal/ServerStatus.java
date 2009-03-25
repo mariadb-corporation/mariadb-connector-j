@@ -4,11 +4,11 @@ import java.util.Set;
 import java.util.EnumSet;
 
 /**
- * Created by IntelliJ IDEA.
+ .
  * User: marcuse
  * Date: Feb 27, 2009
  * Time: 8:36:46 PM
- * To change this template use File | Settings | File Templates.
+
  */
 public enum ServerStatus {
     IN_TRANSACTION((short)1),

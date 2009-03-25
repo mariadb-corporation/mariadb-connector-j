@@ -8,11 +8,11 @@ import java.io.OutputStream;
 import java.util.Arrays;
 
 /**
- * Created by IntelliJ IDEA.
+ .
  * User: marcuse
  * Date: Feb 19, 2009
  * Time: 8:56:34 PM
- * To change this template use File | Settings | File Templates.
+
  */
 public class BufferedStreamParameter implements ParameterHolder{
     private byte [] byteRepresentation;

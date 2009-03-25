@@ -7,11 +7,11 @@ import java.io.IOException;
 import java.io.InputStream;
 
 /**
- * Created by IntelliJ IDEA.
+ .
  * User: marcuse
  * Date: Jan 16, 2009
  * Time: 4:20:30 PM
- * To change this template use File | Settings | File Templates.
+
  */
 public class ErrorPacket extends ResultPacket {
     private final byte fieldCount;

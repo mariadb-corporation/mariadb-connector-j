@@ -10,7 +10,7 @@ import java.math.BigDecimal;
  * User: marcuse
  * Date: Feb 23, 2009
  * Time: 10:42:02 PM
- * To change this template use File | Settings | File Templates.
+
  */
 public enum DrizzleType {
     TINY(java.sql.Types.SMALLINT,Short.class),

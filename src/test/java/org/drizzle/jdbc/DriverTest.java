@@ -16,6 +16,7 @@ import static junit.framework.Assert.assertEquals;
  * Time: 7:58:11 AM
  */
 public class DriverTest {
+    public static String host = "10.100.100.50";
     private Connection connection;
     static { BasicConfigurator.configure(); }
 
@@ -25,7 +26,7 @@ public class DriverTest {
         } catch (ClassNotFoundException e) {
             throw new SQLException("Could not load driver");
         }
-        connection = DriverManager.getConnection("jdbc:drizzle://localhost:4427/test_units_jdbc");
+        connection = DriverManager.getConnection("jdbc:drizzle://"+host+":4427/test_units_jdbc");
         Statement stmt = connection.createStatement();
         try { stmt.execute("drop table t1"); } catch (Exception e) {}
         stmt.execute("create table t1 (id int not null primary key auto_increment, test varchar(20))");
@@ -195,47 +196,47 @@ public class DriverTest {
 
     @Test
     public void connectionStringTest() throws SQLException {
-        DrizzleConnection con = (DrizzleConnection)DriverManager.getConnection("jdbc:drizzle://localhost:4427/mmm");
+        DrizzleConnection con = (DrizzleConnection)DriverManager.getConnection("jdbc:drizzle://"+host+":4427/mmm");
         assertEquals("",con.getUsername());
         assertEquals("",con.getPassword());
-        assertEquals("localhost",con.getHostname());
+        assertEquals(""+host+"",con.getHostname());
         assertEquals(4427,con.getPort());
         assertEquals("mmm",con.getDatabase());
         con.close();
-        con = (DrizzleConnection)DriverManager.getConnection("jdbc:drizzle://whoa@localhost:4427/mmm");
+        con = (DrizzleConnection)DriverManager.getConnection("jdbc:drizzle://whoa@"+host+":4427/mmm");
         assertEquals("whoa",con.getUsername());
         assertEquals("",con.getPassword());
-        assertEquals("localhost",con.getHostname());
+        assertEquals(""+host+"",con.getHostname());
         assertEquals(4427,con.getPort());
         assertEquals("mmm",con.getDatabase());
-        con = (DrizzleConnection)DriverManager.getConnection("jdbc:drizzle://whoa:pass@localhost:4427/mmm");
+        con = (DrizzleConnection)DriverManager.getConnection("jdbc:drizzle://whoa:pass@"+host+":4427/mmm");
         assertEquals("whoa",con.getUsername());
         assertEquals("pass",con.getPassword());
-        assertEquals("localhost",con.getHostname());
+        assertEquals(""+host+"",con.getHostname());
         assertEquals(4427,con.getPort());
         assertEquals("mmm",con.getDatabase());
-        con = (DrizzleConnection)DriverManager.getConnection("jdbc:drizzle://whoa:pass@localhost");
+        con = (DrizzleConnection)DriverManager.getConnection("jdbc:drizzle://whoa:pass@"+host+"");
         assertEquals("whoa",con.getUsername());
         assertEquals("pass",con.getPassword());
-        assertEquals("localhost",con.getHostname());
+        assertEquals(""+host+"",con.getHostname());
         assertEquals(4427,con.getPort());
         assertEquals("",con.getDatabase());
-        con = (DrizzleConnection)DriverManager.getConnection("jdbc:drizzle://whoa:pass@localhost/");
+        con = (DrizzleConnection)DriverManager.getConnection("jdbc:drizzle://whoa:pass@"+host+"/");
         assertEquals("whoa",con.getUsername());
         assertEquals("pass",con.getPassword());
-        assertEquals("localhost",con.getHostname());
+        assertEquals(""+host+"",con.getHostname());
         assertEquals(4427,con.getPort());
         assertEquals("",con.getDatabase());
-        con = (DrizzleConnection)DriverManager.getConnection("jdbc:drizzle://whoa:pass@localhost/bbb");
+        con = (DrizzleConnection)DriverManager.getConnection("jdbc:drizzle://whoa:pass@"+host+"/bbb");
         assertEquals("whoa",con.getUsername());
         assertEquals("pass",con.getPassword());
-        assertEquals("localhost",con.getHostname());
+        assertEquals(""+host+"",con.getHostname());
         assertEquals(4427,con.getPort());
         assertEquals("bbb",con.getDatabase());
-        con = (DrizzleConnection)DriverManager.getConnection("jdbc:drizzle://whoa:pass@localhost/bbb/");
+        con = (DrizzleConnection)DriverManager.getConnection("jdbc:drizzle://whoa:pass@"+host+"/bbb/");
         assertEquals("whoa",con.getUsername());
         assertEquals("pass",con.getPassword());
-        assertEquals("localhost",con.getHostname());
+        assertEquals(""+host+"",con.getHostname());
         assertEquals(4427,con.getPort());
         assertEquals("bbb",con.getDatabase());
     }

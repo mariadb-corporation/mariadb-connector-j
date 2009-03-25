@@ -1040,7 +1040,7 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public int getMaxCharLiteralLength() throws SQLException {
-        return 16777208;  //To change body of implemented methods use File | Settings | File Templates.
+        return 16777208;
     }
 
     /**
@@ -3317,7 +3317,7 @@ SELECT null table_cat,       table_schema table_schem,       table_name,       n
      * @since 1.6
      */
     public <T> T unwrap(Class<T> iface) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return null;
     }
 
     /**
@@ -3336,7 +3336,7 @@ SELECT null table_cat,       table_schema table_schem,       table_name,       n
      * @since 1.6
      */
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
-        return false;  //To change body of implemented methods use File | Settings | File Templates.
+        return false;
     }
 
     public static class Builder {

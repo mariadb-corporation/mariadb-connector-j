@@ -7,16 +7,15 @@ import java.io.IOException;
 import java.io.InputStream;
 
 /**
- * Created by IntelliJ IDEA.
+ .
  * User: marcuse
  * Date: Jan 21, 2009
  * Time: 10:40:03 PM
- * To change this template use File | Settings | File Templates.
+
  */
 public class ResultSetPacket extends ResultPacket {
-    private long fieldCount;
-    private long extra;
-    private byte packetSeq;
+    private final long fieldCount;
+    private final byte packetSeq;
     public ResultSetPacket(InputStream istream) throws IOException {
         Reader reader = new Reader(istream);
         packetSeq = reader.getPacketSeq();
@@ -24,7 +23,7 @@ public class ResultSetPacket extends ResultPacket {
     }
 
     public ResultType getResultType() {
-        return ResultPacket.ResultType.RESULTSET;  //To change body of implemented methods use File | Settings | File Templates.
+        return ResultPacket.ResultType.RESULTSET;
     }
 
     public byte getPacketSeq() {

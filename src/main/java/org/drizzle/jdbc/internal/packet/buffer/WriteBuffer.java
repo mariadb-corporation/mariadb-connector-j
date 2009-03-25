@@ -4,11 +4,11 @@ import java.util.List;
 import java.util.ArrayList;
 
 /**
- * Created by IntelliJ IDEA.
+ .
  * User: marcuse
  * Date: Jan 16, 2009
  * Time: 8:10:24 PM
- * To change this template use File | Settings | File Templates.
+
  */
 public class WriteBuffer {
     private List<Byte> buffer = new ArrayList<Byte>();
