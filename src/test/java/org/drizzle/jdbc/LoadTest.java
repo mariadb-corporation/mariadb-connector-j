@@ -8,11 +8,9 @@ import java.sql.*;
 import static junit.framework.Assert.assertEquals;
 
 /**
- * Created by IntelliJ IDEA.
  * User: marcuse
  * Date: Feb 10, 2009
  * Time: 9:53:59 PM
- * To change this template use File | Settings | File Templates.
  */
 public class LoadTest {
     static { BasicConfigurator.configure(); }
@@ -26,10 +24,10 @@ public class LoadTest {
         }
         Connection connection = DriverManager.getConnection("jdbc:drizzle://"+DriverTest.host+":4427/test_units_jdbc");
         Statement stmt = connection.createStatement();
-         stmt.executeUpdate("drop table if exists loadsofdata");
-         stmt.executeUpdate("create table loadsofdata (id int not null primary key auto_increment, data varchar(100))");
-         stmt.close();
-       for(int i=0;i<100;i++) {
+        stmt.executeUpdate("drop table if exists loadsofdata");
+        stmt.executeUpdate("create table loadsofdata (id int not null primary key auto_increment, data varchar(100))");
+        stmt.close();
+        for(int i=0;i<100;i++) {
             stmt=connection.createStatement();
             stmt.executeUpdate("insert into loadsofdata (data) values ('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"+i+"')");
             stmt.close();

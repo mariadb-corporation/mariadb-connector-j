@@ -20,13 +20,6 @@ public class LongParameter implements ParameterHolder {
         byteRepresentation = String.valueOf(theLong).getBytes();
     }
 
-    public byte read() {
-        if(bytePointer<byteRepresentation.length) {
-            return byteRepresentation[bytePointer++];
-        }
-        return -1;
-    }
-
     public void writeTo(OutputStream os) throws IOException {
         for(byte b:byteRepresentation)
             os.write(b);

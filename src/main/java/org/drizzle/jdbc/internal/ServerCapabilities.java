@@ -4,6 +4,8 @@ import java.util.Set;
 import java.util.EnumSet;
 
 /**
+ * Represents what the server is capable of
+ *
  * User: marcuse
  * Date: Feb 27, 2009
  * Time: 9:01:29 PM
@@ -25,8 +27,6 @@ public enum ServerCapabilities {
     SECURE_CONNECTION((short)32768),  /* New 4.1 authentication */
     MULTI_STATEMENTS((short)(1L << 16)), /* Enable/disable multi-stmt support */
     MULTI_RESULTS((short)(1L << 17)); /* Enable/disable multi-results */
-//    SSL_VERIFY_SERVER_CERT ((short)(1L << 30)), //TODO: uh, not used i hope
-//    REMEMBER_OPTIONS ((short)(1L << 31));
 
     private short bitmapFlag;
 
@@ -34,6 +34,11 @@ public enum ServerCapabilities {
         this.bitmapFlag = i;
     }
 
+    /**
+     * creates an enum set of the server capabilities represented by i
+     * @param i the value from the server
+     * @return an enum set containing the flags in i
+     */
     public static Set<ServerCapabilities> getServerCapabilitiesSet(short i) {
         Set<ServerCapabilities> statusSet = EnumSet.noneOf(ServerCapabilities.class);
         for(ServerCapabilities value : ServerCapabilities.values())
@@ -42,11 +47,19 @@ public enum ServerCapabilities {
         return statusSet;
     }
 
-
+    /**
+     * the raw bit map flag from the server
+     * @return the raw map flag
+     */
     public short getBitmapFlag() {
         return bitmapFlag;
     }
 
+    /**
+     * creates a bitmasked short from an enum set
+     * @param capabilities
+     * @return
+     */
     public static short fromSet(Set<ServerCapabilities> capabilities) {
         short retVal = 0;
         for(ServerCapabilities cap : capabilities) {

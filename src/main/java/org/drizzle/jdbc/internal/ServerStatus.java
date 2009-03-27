@@ -4,7 +4,8 @@ import java.util.Set;
 import java.util.EnumSet;
 
 /**
- .
+ * Represents the server status
+ * 
  * User: marcuse
  * Date: Feb 27, 2009
  * Time: 8:36:46 PM
@@ -29,10 +30,20 @@ public enum ServerStatus {
         this.bitmapFlag = i;
     }
 
+    /**
+     * returns the bit map flag
+     * @return the bitmap flag
+     */
     public short getBitmapFlag() {
         return bitmapFlag;
     }
 
+    /**
+     * creates an enum set of the bitmasked field i
+     * 
+     * @param i the bitmasked field
+     * @return an enum set with the flags defined by i
+     */
     public static Set<ServerStatus> getServerStatusSet(short i) {
         Set<ServerStatus> statusSet = EnumSet.noneOf(ServerStatus.class);
         for(ServerStatus value : ServerStatus.values())

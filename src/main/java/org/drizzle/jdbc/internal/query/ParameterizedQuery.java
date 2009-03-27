@@ -11,5 +11,5 @@ public interface ParameterizedQuery extends Query {
 
     int getParamCount();
     void clearParameters();
-    public void setParameter(int position, ParameterHolder parameter) throws IllegalParameterException;
+    void setParameter(int position, ParameterHolder parameter) throws IllegalParameterException;
 }

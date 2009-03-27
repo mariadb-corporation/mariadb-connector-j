@@ -16,10 +16,7 @@ public class NullParameter implements ParameterHolder {
     public NullParameter() {
         this.byteRepresentation = "NULL".getBytes();
     }
-    public byte read() {
-        return byteRepresentation[bytePointer++];
-    }
-
+    
     public void writeTo(OutputStream os) throws IOException {
         for(byte b:byteRepresentation)
             os.write(b);

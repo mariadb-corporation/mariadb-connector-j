@@ -795,7 +795,9 @@ public class DrizzleConnection implements Connection {
      * @since 1.4
      */
     public PreparedStatement prepareStatement(String sql, int columnIndexes[]) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Not yet supported");
+        if(columnIndexes!=null && columnIndexes.length==1 && columnIndexes[0]==1)
+            return prepareStatement(sql);
+        throw new SQLException("Only one auto generated key is supported, and it is on position 1");
     }
 
     /**
@@ -844,7 +846,9 @@ public class DrizzleConnection implements Connection {
      * @since 1.4
      */
     public PreparedStatement prepareStatement(String sql, String columnNames[]) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Not yet supported");
+        if(columnNames!=null && columnNames.length==1 && columnNames[0].equals("insert_id"))
+            return prepareStatement(sql);
+        throw new SQLException("Only one auto generated key is supported, and it is called insert_id");
     }
 
     /**
@@ -882,7 +886,7 @@ public class DrizzleConnection implements Connection {
      * @since 1.6
      */
     public Blob createBlob() throws SQLException {
-        return null;
+        return new DrizzleBlob();
     }
 
     /**

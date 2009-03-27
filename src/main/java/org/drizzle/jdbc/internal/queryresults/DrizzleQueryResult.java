@@ -54,11 +54,15 @@ public class DrizzleQueryResult implements SelectQueryResult {
      * @param i index, starts at 0
      * @return
      */
-    public ValueObject getValueObject(int i) {
+    public ValueObject getValueObject(int i) throws NoSuchColumnException {
+        if(i<0 || i > resultSet.size())
+            throw new NoSuchColumnException("No such column: "+i);
         return resultSet.get(rowPointer).get(i);
     }
 
-    public ValueObject getValueObject(String column) {
+    public ValueObject getValueObject(String column) throws NoSuchColumnException {
+        if(columnNameMap.get(column.toLowerCase())==null)
+            throw new NoSuchColumnException("No such column: "+column);
         return getValueObject(columnNameMap.get(column.toLowerCase()));
     }
 
@@ -66,8 +70,9 @@ public class DrizzleQueryResult implements SelectQueryResult {
         return resultSet.size();
     }
 
-
-    public int getColumnId(String columnLabel) {
+    public int getColumnId(String columnLabel) throws NoSuchColumnException {
+        if(columnNameMap.get(columnLabel.toLowerCase())==null)
+            throw new NoSuchColumnException("No such column: "+columnLabel);
         return columnNameMap.get(columnLabel.toLowerCase());
     }
 

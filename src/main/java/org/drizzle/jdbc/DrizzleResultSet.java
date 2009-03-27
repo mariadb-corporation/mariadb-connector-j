@@ -3,6 +3,7 @@ package org.drizzle.jdbc;
 import org.drizzle.jdbc.internal.queryresults.QueryResult;
 import org.drizzle.jdbc.internal.queryresults.ResultSetType;
 import org.drizzle.jdbc.internal.queryresults.SelectQueryResult;
+import org.drizzle.jdbc.internal.queryresults.NoSuchColumnException;
 import org.drizzle.jdbc.internal.ValueObject;
 
 import java.sql.*;
@@ -81,7 +82,12 @@ public class DrizzleResultSet implements ResultSet {
 
     private ValueObject getValueObject(int i) throws SQLException {
         if(queryResult.getResultSetType()== ResultSetType.SELECT) {
-            ValueObject vo = ((SelectQueryResult)queryResult).getValueObject(i-1);
+            ValueObject vo = null;
+            try {
+                vo = ((SelectQueryResult)queryResult).getValueObject(i-1);
+            } catch (NoSuchColumnException e) {
+                throw new SQLException("No such column: "+i,e);
+            }
             this.lastGetWasNull = vo.isNull();
             return vo;
         }
@@ -89,7 +95,12 @@ public class DrizzleResultSet implements ResultSet {
     }
     private ValueObject getValueObject(String column) throws SQLException {
         if(queryResult.getResultSetType()== ResultSetType.SELECT) {
-            ValueObject vo = ((SelectQueryResult)queryResult).getValueObject(column);
+            ValueObject vo = null;
+            try {
+                vo = ((SelectQueryResult)queryResult).getValueObject(column);
+            } catch (NoSuchColumnException e) {
+                throw new SQLException("No such column: "+column,e);
+            }
             this.lastGetWasNull = vo.isNull();
             return vo;
         }
@@ -513,8 +524,13 @@ public class DrizzleResultSet implements ResultSet {
      *                               or this method is called on a closed result set
      */
     public int findColumn(String columnLabel) throws SQLException {
-        if(this.queryResult.getResultSetType()==ResultSetType.SELECT)
-            return ((SelectQueryResult)queryResult).getColumnId(columnLabel)+1;
+        if(this.queryResult.getResultSetType()==ResultSetType.SELECT) {
+            try {
+                return ((SelectQueryResult) queryResult).getColumnId(columnLabel) + 1;
+            } catch (NoSuchColumnException e) {
+                throw new SQLException("No such column: "+columnLabel,e);
+            }
+        }
         throw new SQLException("Cannot get column id of update result sets");
     }
 

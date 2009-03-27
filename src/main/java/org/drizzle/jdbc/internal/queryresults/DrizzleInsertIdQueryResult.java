@@ -26,11 +26,13 @@ public class DrizzleInsertIdQueryResult implements SelectQueryResult {
         columnInformation=Arrays.asList(ci);
     }
 
-    public ValueObject getValueObject(int index) {
+    public ValueObject getValueObject(int index) throws NoSuchColumnException {
+        if(index!=0) throw new NoSuchColumnException("No such column: "+index);
         return DrizzleValueObject.fromLong(insertId);
     }
 
-    public ValueObject getValueObject(String columnName) {
+    public ValueObject getValueObject(String columnName) throws NoSuchColumnException {
+        if(!columnName.toLowerCase().equals("insert_id")) throw new NoSuchColumnException("No such column: "+columnName);
         return DrizzleValueObject.fromLong(insertId);
     }
 
@@ -38,9 +40,9 @@ public class DrizzleInsertIdQueryResult implements SelectQueryResult {
         return 1;
     }
 
-    public int getColumnId(String columnLabel) {
-        if(columnLabel.equals("insert_id")) return 1;
-        return 0;
+    public int getColumnId(String columnLabel) throws NoSuchColumnException {
+        if(columnLabel.equals("insert_id")) return 0;
+        throw new NoSuchColumnException("No such column");
     }
 
     public void moveRowPointerTo(int i) {

@@ -20,14 +20,6 @@ public class StreamParameter implements ParameterHolder{
         this.length = length;
     }
 
-    public byte read() {
-        try {
-            return (byte)(stream.read());
-        } catch (IOException e) {
-            throw new RuntimeException("Not able to read stream");
-        }
-    }
-
     public void writeTo(OutputStream os) throws IOException {
         for(int i=0;i<length;i++) {
             byte b=(byte)stream.read();

@@ -37,10 +37,10 @@ public class DrizzleProtocol implements Protocol {
     private boolean autoCommit;
     private final String host;
     private final int port;
-    private final String database;
+    private String database;
     private final String username;
     private final String password;
-    private List<Query> batchList;
+    private final List<Query> batchList;
 
     /**
      * Get a protocol instance
@@ -147,6 +147,7 @@ public class DrizzleProtocol implements Protocol {
         } catch (IOException e) {
             throw new QueryException("Could not select database ",e);
         }
+        this.database=database;
     }
 
     public String getVersion() {

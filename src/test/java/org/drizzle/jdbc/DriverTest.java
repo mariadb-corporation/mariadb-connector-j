@@ -16,7 +16,7 @@ import static junit.framework.Assert.assertEquals;
  * Time: 7:58:11 AM
  */
 public class DriverTest {
-    public static String host = "10.100.100.50";
+    public static String host = "localhost";
     private Connection connection;
     static { BasicConfigurator.configure(); }
 
@@ -51,6 +51,20 @@ public class DriverTest {
         }
         rs.next();
         assertEquals("NULL",rs.getString("test"));
+    }
+    @Test(expected = SQLException.class)
+    public void askForBadColumnTest() throws SQLException{
+        Statement stmt = connection.createStatement();
+        ResultSet rs = stmt.executeQuery("select * from t1");
+        rs.next();
+        rs.getInt("non_existing_column");
+    }
+    @Test(expected = SQLException.class)
+    public void askForBadColumnIndexTest() throws SQLException{
+        Statement stmt = connection.createStatement();
+        ResultSet rs = stmt.executeQuery("select * from t1");
+        rs.next();
+        rs.getInt(102);
     }
 
     @Test(expected = SQLException.class)

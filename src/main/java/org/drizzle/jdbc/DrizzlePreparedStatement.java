@@ -28,7 +28,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
     private ParameterizedQuery dQuery;
 
     public DrizzlePreparedStatement(Protocol protocol, DrizzleConnection drizzleConnection, String query, QueryFactory queryFactory) {
-        super(protocol, drizzleConnection,queryFactory);
+        super(protocol, drizzleConnection, queryFactory);
         log.info("Creating prepared statement for {}",query);
         dQuery = queryFactory.createParameterizedQuery(query);
     }

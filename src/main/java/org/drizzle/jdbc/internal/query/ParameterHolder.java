@@ -11,7 +11,6 @@ import java.io.IOException;
 
  */
 public interface ParameterHolder {
-//    public byte read();
     public void writeTo(OutputStream os) throws IOException;
     public long length();
 }
