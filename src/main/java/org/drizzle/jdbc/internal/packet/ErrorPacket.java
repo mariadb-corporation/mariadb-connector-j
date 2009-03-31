@@ -5,6 +5,7 @@ import org.drizzle.jdbc.internal.packet.buffer.Reader;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 
 /**
  .
@@ -28,6 +29,13 @@ public class ErrorPacket extends ResultPacket {
         this.sqlStateMarker = reader.readByte();
         this.sqlState = reader.readRawBytes(5);
         this.message= reader.readString("ASCII");
+    }
+    public ErrorPacket(byte[] rawBytes) {
+        this.fieldCount = rawBytes[0];
+        this.errorNumber = ReadUtil.readShort(rawBytes,1);
+        this.sqlStateMarker = rawBytes[3];
+        this.sqlState = Arrays.copyOfRange(rawBytes,4,5+4);
+        this.message= new String(rawBytes,9,rawBytes.length-9);
     }
 
     public String getMessage() {

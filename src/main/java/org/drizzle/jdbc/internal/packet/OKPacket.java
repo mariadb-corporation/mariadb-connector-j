@@ -34,6 +34,27 @@ public class OKPacket extends ResultPacket {
         warnings = reader.readShort();
         message = reader.readString("ASCII");
     }
+    public OKPacket(byte [] rawBytes) {
+        int readBytes = 0;
+        packetSeqNum = rawBytes[readBytes++];
+        fieldCount = rawBytes[readBytes++];
+        long encodedBinaryLength = ReadUtil.getLengthEncodedByteLength(rawBytes,readBytes++);
+        affectedRows = ReadUtil.getLengthEncodedBinary(rawBytes,readBytes++);
+        readBytes+=encodedBinaryLength;
+        encodedBinaryLength = ReadUtil.getLengthEncodedByteLength(rawBytes, readBytes);
+        readBytes++;
+        insertId = ReadUtil.getLengthEncodedBinary(rawBytes, readBytes);
+        readBytes+=encodedBinaryLength;
+        serverStatus = ServerStatus.getServerStatusSet(ReadUtil.readShort(rawBytes,readBytes));
+        readBytes+=2;
+        warnings = ReadUtil.readShort(rawBytes,readBytes);
+        readBytes+=2;
+        if(readBytes < rawBytes.length)
+            message = new String(rawBytes, readBytes, rawBytes.length);
+        else
+            message="";
+
+    }
     public ResultType getResultType() {
         return ResultType.OK;
     }

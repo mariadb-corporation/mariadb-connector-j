@@ -20,6 +20,7 @@ public class DrizzleQueryResult implements SelectQueryResult {
     public DrizzleQueryResult(List<ColumnInformation> columnInformation, List<List<ValueObject>> valueObjects) {
         this.columnInformation = Collections.unmodifiableList(columnInformation);
         this.resultSet=Collections.unmodifiableList(valueObjects);
+
         columnNameMap=new HashMap<String,Integer>();
         rowPointer =-1;
         int i=0;

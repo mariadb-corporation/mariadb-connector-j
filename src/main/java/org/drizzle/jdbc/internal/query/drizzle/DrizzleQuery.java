@@ -7,6 +7,7 @@ import org.drizzle.jdbc.internal.query.Query;
 import java.io.OutputStream;
 import java.io.IOException;
 import java.io.StringReader;
+import java.nio.charset.Charset;
 
 /**
  .
@@ -29,11 +30,13 @@ public class DrizzleQuery implements Query {
 
     public void writeTo(OutputStream os) throws IOException {
         log.info("writing query to outputstream");
-        StringReader strReader = new StringReader(query);
-        int ch;
-        while((ch=strReader.read())!=-1) {
+/*        StringReader strReader = new StringReader(query);
+        int ch;*/
+        byte [] b = query.getBytes();
+        os.write(b,0,length());
+        /*while((ch=strReader.read())!=-1) {
             os.write(ch);
-        }
+        }*/
     }
 
     public String getQuery() {

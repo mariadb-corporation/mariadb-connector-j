@@ -22,8 +22,9 @@ public class SelectDBPacket implements CommandPacket {
 
     public void send(OutputStream os) throws IOException {
         byte [] buff = buffer.toByteArrayWithLength((byte) 0);
-        for(byte b: buff)
-            os.write(b);
+        os.write(buff);
+//        for(byte b: buff)
+//            os.write(b);
         os.flush();
     }
 }

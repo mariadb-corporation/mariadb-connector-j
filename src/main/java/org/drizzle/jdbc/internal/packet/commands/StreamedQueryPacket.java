@@ -25,8 +25,8 @@ public class StreamedQueryPacket implements CommandPacket {
         byteHeader[4]=(byte)0x03;
     }
     public void send(OutputStream ostream) throws IOException {
-        for(byte b:byteHeader)
-            ostream.write(b);
+
+        ostream.write(byteHeader);
         query.writeTo(ostream);
         ostream.flush();
     }

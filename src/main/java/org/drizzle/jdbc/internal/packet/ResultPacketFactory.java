@@ -19,8 +19,6 @@ public class ResultPacketFactory {
     private final static byte EOF = (byte)0xfe;
 
     public static ResultPacket createResultPacket(InputStream reader) throws IOException {
-        
-                
         switch(ReadUtil.getByteAt(reader,5)) {
             case ERROR:
                 return new ErrorPacket(reader);
@@ -32,4 +30,19 @@ public class ResultPacketFactory {
                 return new ResultSetPacket(reader);
         }
     }
+    public static ResultPacket createResultPacket(RawPacket rawPacket)  {
+        byte[] rawBytes =rawPacket.getRawBytes();
+        switch(rawBytes[0]) {
+            case ERROR:
+                return new ErrorPacket(rawBytes);
+            case OK:
+                return new OKPacket(rawBytes);
+            case EOF:
+                return new EOFPacket(rawBytes);
+            default:
+                return new ResultSetPacket(rawBytes);
+        }
+    }
+
+
 }

@@ -1,8 +1,11 @@
 package org.drizzle.jdbc.internal.packet.buffer;
 
+import org.drizzle.jdbc.internal.packet.RawPacket;
+
 import java.io.InputStream;
 import java.io.IOException;
 import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 
 /**
  .
@@ -14,7 +17,7 @@ import java.io.BufferedInputStream;
 public class Reader {
     private final InputStream reader;
     private final int length;
-    private int readBytes;
+    private int readBytes=0;
     private final byte packetSeq;
 
     public Reader(InputStream reader) throws IOException {
@@ -22,6 +25,13 @@ public class Reader {
         this.length=readLength();
         this.packetSeq = readPacketSeq();
     }
+
+    public Reader(RawPacket rawPacket) {
+        this.reader=new ByteArrayInputStream(rawPacket.getRawBytes());
+        this.length=rawPacket.getRawBytes().length;
+        this.packetSeq=0;
+    }
+
     private int readLength() throws IOException {
         byte [] lengthBuffer = new byte[3];
         for(int i =0 ;i<3;i++)

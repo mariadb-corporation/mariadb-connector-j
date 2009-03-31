@@ -30,7 +30,7 @@ public class DrizzleProtocol implements Protocol {
     private final static Logger log = LoggerFactory.getLogger(DrizzleProtocol.class);
     private boolean connected=false;
     private final Socket socket;
-    private final BufferedInputStream reader;
+    //private final BufferedInputStream reader;
     private final BufferedOutputStream writer;
     private final String version;
     private boolean readOnly=false;
@@ -41,6 +41,9 @@ public class DrizzleProtocol implements Protocol {
     private final String username;
     private final String password;
     private final List<Query> batchList;
+    private long totalTime=0;
+    private int queryCount;
+    private PacketFetcher packetFetcher;
 
     /**
      * Get a protocol instance
@@ -58,6 +61,7 @@ public class DrizzleProtocol implements Protocol {
         this.database=(database==null?"":database);
         this.username=(username==null?"":username);
         this.password=(password==null?"":password);
+
         SocketFactory socketFactory = SocketFactory.getDefault();
         try {
             socket = socketFactory.createSocket(host,port);
@@ -67,8 +71,9 @@ public class DrizzleProtocol implements Protocol {
         log.info("Connected to: {}:{}",host,port);
         batchList=new ArrayList<Query>();
         try {
-            reader = new BufferedInputStream(socket.getInputStream(),16384);
+            InputStream reader = new BufferedInputStream(socket.getInputStream(),16384);
             writer = new BufferedOutputStream(socket.getOutputStream(),16384);
+
             GreetingReadPacket greetingPacket = new GreetingReadPacket(reader);
             log.debug("Got greeting packet: {}",greetingPacket);
             this.version=greetingPacket.getServerVersion();
@@ -78,8 +83,11 @@ public class DrizzleProtocol implements Protocol {
             ClientAuthPacket cap = new ClientAuthPacket(this.username,this.password,this.database,serverCapabilities);
             cap.send(writer);
             log.debug("Sending auth packet: {}",cap);
-            ResultPacket resultPacket = ResultPacketFactory.createResultPacket(reader);
-            log.debug("Got result: {}",resultPacket);
+            //ResultPacket resultPacket = ResultPacketFactory.createResultPacket(reader);
+            packetFetcher = new PacketFetcher(reader);
+            RawPacket rawPacket = packetFetcher.getRawPacket();
+
+            //log.debug("Got result: {}",resultPacket);
             selectDB(this.database);
             setAutoCommit(true);
         } catch (IOException e) {
@@ -96,9 +104,11 @@ public class DrizzleProtocol implements Protocol {
         try {
             ClosePacket closePacket = new ClosePacket();
             closePacket.send(writer);
+            packetFetcher.shutdown();
             writer.close();
-            reader.close();
+            //reader.close();
             socket.close();
+
         } catch(IOException e){
             throw new QueryException("Could not close connection",e);
         }
@@ -123,17 +133,25 @@ public class DrizzleProtocol implements Protocol {
     private DrizzleQueryResult createDrizzleQueryResult(ResultSetPacket packet) throws IOException {
         List<ColumnInformation> columnInformation = new ArrayList<ColumnInformation>();
         for(int i=0;i<packet.getFieldCount();i++) {
-            ColumnInformation columnInfo = FieldPacket.columnInformationFactory(reader);
+            RawPacket rawPacket = packetFetcher.getRawPacket();
+            ColumnInformation columnInfo = FieldPacket.columnInformationFactory(rawPacket);
             columnInformation.add(columnInfo);
         }
-        EOFPacket eof = new EOFPacket(reader);
+        packetFetcher.getRawPacket();
         List<List<ValueObject>> valueObjects = new ArrayList<List<ValueObject>>();
+        int i=0;        
         while(true) {
-            if(ReadUtil.eofIsNext(reader)) {
-                new EOFPacket(reader);
+            RawPacket rawPacket = packetFetcher.getRawPacket();
+            System.out.println("Got packet in proto: "+rawPacket.getPacketId());
+            if(ReadUtil.eofIsNext(rawPacket)) {
+                log.info("got entire result set, returning");
+                rawPacket.debugPacket();
+
                 return new DrizzleQueryResult(columnInformation,valueObjects);
             }
-            RowPacket rowPacket = new RowPacket(reader,columnInformation);
+            log.info("getting row packet");
+            RowPacket rowPacket = new RowPacket(rawPacket,columnInformation);
+            
             valueObjects.add(rowPacket.getRow());
         }
     }
@@ -143,7 +161,8 @@ public class DrizzleProtocol implements Protocol {
         SelectDBPacket packet = new SelectDBPacket(database);
         try {
             packet.send(writer);
-            ResultPacketFactory.createResultPacket(reader);
+            RawPacket rawPacket = packetFetcher.getRawPacket();
+            ResultPacketFactory.createResultPacket(rawPacket);
         } catch (IOException e) {
             throw new QueryException("Could not select database ",e);
         }
@@ -220,7 +239,8 @@ public class DrizzleProtocol implements Protocol {
         try {
             pingPacket.send(writer);
             log.debug("Sent ping packet");
-            return ResultPacketFactory.createResultPacket(reader).getResultType()==ResultPacket.ResultType.OK;
+            RawPacket rawPacket = packetFetcher.getRawPacket();
+            return ResultPacketFactory.createResultPacket(rawPacket).getResultType()==ResultPacket.ResultType.OK;
         } catch (IOException e) {
             throw new QueryException("Could not ping",e);
         }
@@ -236,12 +256,8 @@ public class DrizzleProtocol implements Protocol {
             throw new QueryException("Could not send query",e);
         }
 
-        ResultPacket resultPacket = null;
-        try {
-            resultPacket = ResultPacketFactory.createResultPacket(reader);
-        } catch (IOException e) {
-            throw new QueryException("Could not read response",e);
-        }
+        RawPacket rawPacket = packetFetcher.getRawPacket();
+        ResultPacket resultPacket = ResultPacketFactory.createResultPacket(rawPacket);
 
         switch(resultPacket.getResultType()) {
             case ERROR:
@@ -256,7 +272,7 @@ public class DrizzleProtocol implements Protocol {
                 log.debug("OK, {}", okpacket.getAffectedRows());
                 return updateResult;
             case RESULTSET:
-                log.debug("SELECT executed, fetching result set");
+                log.debug("SELECT executed, fetching result set: "+rawPacket.getPacketId());
                 try {
                     return this.createDrizzleQueryResult((ResultSetPacket)resultPacket);
                 } catch (IOException e) {

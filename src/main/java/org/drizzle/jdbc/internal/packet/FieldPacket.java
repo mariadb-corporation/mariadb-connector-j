@@ -9,6 +9,7 @@ import org.drizzle.jdbc.internal.queryresults.DrizzleColumnInformation;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ByteArrayInputStream;
 import java.util.EnumSet;
 import java.util.Collections;
 import java.util.Set;
@@ -52,6 +53,26 @@ Bytes                      Name
                 .charsetNumber(reader.readShort())
                 .length(reader.readInt())
                 .type(/*DrizzleType.values()[reader.readByte()]*/DrizzleType.fromServer(reader.readByte()))
+                .flags(parseFlags(reader.readShort()))
+                .decimals(reader.readByte())
+                .skipMe(reader.skipBytes(2))
+                .build();
+    }
+    public static ColumnInformation columnInformationFactory(RawPacket rawPacket) throws IOException {
+        System.out.println("got col info packet: ");
+        rawPacket.debugPacket();
+        Reader reader = new Reader(rawPacket);
+        return new DrizzleColumnInformation.Builder()
+                .catalog(reader.getLengthEncodedString())
+                .db(reader.getLengthEncodedString())
+                .table(reader.getLengthEncodedString())
+                .originalTable(reader.getLengthEncodedString())
+                .name(reader.getLengthEncodedString())
+                .originalName(reader.getLengthEncodedString())
+                .skipMe(reader.skipBytes(1))
+                .charsetNumber(reader.readShort())
+                .length(reader.readInt())
+                .type(DrizzleType.fromServer(reader.readByte()))
                 .flags(parseFlags(reader.readShort()))
                 .decimals(reader.readByte())
                 .skipMe(reader.skipBytes(2))
