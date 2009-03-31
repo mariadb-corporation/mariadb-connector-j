@@ -12,13 +12,12 @@ import java.io.InputStream;
  */
 public class RawPacket {
     private final byte [] rawBytes;
-    private final int packetId;
 
-    public RawPacket(InputStream is, int packetId) throws IOException {
+
+    public RawPacket(InputStream is) throws IOException {
         int length = this.readLength(is);
         int packetSeq = this.readPacketSeq(is);
         this.rawBytes = new byte[length];
-        this.packetId=packetId;
         for(int i=0;i<length;i++)
             rawBytes[i]= (byte) is.read();
     }
@@ -34,16 +33,5 @@ public class RawPacket {
     }
     public byte[] getRawBytes() {
         return rawBytes;
-    }
-
-    public int getPacketId() {
-        return packetId;
-    }
-
-    public void debugPacket(){
-        System.out.printf("%d: [",packetId);
-        for(byte b:rawBytes)
-            System.out.printf("0x%x ",b);
-        System.out.printf("]\n");
     }
 }

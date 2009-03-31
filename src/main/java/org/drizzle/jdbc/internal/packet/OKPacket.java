@@ -2,6 +2,8 @@ package org.drizzle.jdbc.internal.packet;
 
 import org.drizzle.jdbc.internal.packet.buffer.ReadUtil;
 import org.drizzle.jdbc.internal.packet.buffer.Reader;
+import org.drizzle.jdbc.internal.packet.buffer.LengthEncodedBinary;
+import org.drizzle.jdbc.internal.packet.buffer.LengthEncodedBytes;
 import org.drizzle.jdbc.internal.ServerStatus;
 
 import java.io.IOException;
@@ -36,24 +38,23 @@ public class OKPacket extends ResultPacket {
     }
     public OKPacket(byte [] rawBytes) {
         int readBytes = 0;
-        packetSeqNum = rawBytes[readBytes++];
+        packetSeqNum = /*rawBytes[readBytes++];*/ 0;
         fieldCount = rawBytes[readBytes++];
-        long encodedBinaryLength = ReadUtil.getLengthEncodedByteLength(rawBytes,readBytes++);
-        affectedRows = ReadUtil.getLengthEncodedBinary(rawBytes,readBytes++);
-        readBytes+=encodedBinaryLength;
-        encodedBinaryLength = ReadUtil.getLengthEncodedByteLength(rawBytes, readBytes);
-        readBytes++;
-        insertId = ReadUtil.getLengthEncodedBinary(rawBytes, readBytes);
-        readBytes+=encodedBinaryLength;
-        serverStatus = ServerStatus.getServerStatusSet(ReadUtil.readShort(rawBytes,readBytes));
+        LengthEncodedBinary leb = ReadUtil.getLengthEncodedBinary(rawBytes,readBytes);
+        affectedRows=leb.getValue();
+        readBytes+=leb.getLength();
+        leb = ReadUtil.getLengthEncodedBinary(rawBytes,readBytes);
+        insertId=leb.getValue();
+        readBytes+=leb.getLength();
+        serverStatus=ServerStatus.getServerStatusSet(ReadUtil.readShort(rawBytes,readBytes));
         readBytes+=2;
-        warnings = ReadUtil.readShort(rawBytes,readBytes);
+        warnings=ReadUtil.readShort(rawBytes,readBytes);
         readBytes+=2;
-        if(readBytes < rawBytes.length)
-            message = new String(rawBytes, readBytes, rawBytes.length);
+        LengthEncodedBytes lebytes = new LengthEncodedBytes(rawBytes,readBytes);
+        if(lebytes.getLength()>0)
+            message=new String(lebytes.getBytes());
         else
             message="";
-
     }
     public ResultType getResultType() {
         return ResultType.OK;

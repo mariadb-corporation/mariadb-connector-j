@@ -35,7 +35,7 @@ public class ReadUtil {
         return b;
     }
 
-    public static boolean eofIsNext(BufferedInputStream reader) throws IOException {
+    public static boolean eofIsNext(InputStream reader) throws IOException {
         reader.mark(10);
         int length = readLength(reader);
         byte packetSeq = readPacketSeq(reader);
@@ -68,42 +68,57 @@ public class ReadUtil {
                (bytes[start+6]<<48) +
                (bytes[start+7]<<56);
     }
-    public static byte[] getLengthEncodedBytes(byte[] rawBytes, int start) {
-        byte [] actualBytes;
-        switch(getLengthEncodedByteLength(rawBytes,start)) {
+    /*public static byte[] getLengthEncodedBytes(byte[] rawBytes, int start) {
+        switch(getLengthEncodedByteType(rawBytes[start])) {
             case 0:
                 return Arrays.copyOfRange(rawBytes,start+1,rawBytes[start]);
             case -1:
                 return null;
             case 2:
-                return Arrays.copyOfRange(rawBytes,start+1,readShort(rawBytes,start+1));
+                return Arrays.copyOfRange(rawBytes,start+1,readShort(rawBytes,start+3));
             case 3:
-                return Arrays.copyOfRange(rawBytes,start+1,read24bitword(rawBytes,start+1));
+                return Arrays.copyOfRange(rawBytes,start+1,read24bitword(rawBytes,start+4));
             case 8:
-                return Arrays.copyOfRange(rawBytes,start+1,(int)readLong(rawBytes,start+1));
+                return Arrays.copyOfRange(rawBytes,start+1,(int)readLong(rawBytes,start+9));
         }
         return null;
+    } */
+
+  /*  public static long getLengthEncodedBytesLength(byte [] rawBytes, int start) {
+        byte type = rawBytes[start];
+        if(type == (byte)251)
+            return -1;
+        if(type == (byte)252)
+            return readShort(rawBytes,start+1);
+        if(type == (byte)253)
+            return read24bitword(rawBytes,start+1);
+        if(type == (byte)254)
+            return 8;
+        return 0;
+
+        
     }
-    public static byte getLengthEncodedByteLength(byte[]rawBytes, int start) {
-        System.out.println(rawBytes.length+":"+start);
-        if(start<rawBytes.length) {
-            byte type = rawBytes[start];
-            if(type == (byte)251)
-                return -1;
-            if(type == (byte)252)
-                return 2;
-            if(type == (byte)253)
-                return 3;
-            if(type == (byte)254) {
-                return 8;
-            }
-        }
-        System.out.println("mpppppppp");
+
+    public static byte getLengthEncodedByteType(byte type) {
+        if(type == (byte)251)
+            return -1;
+        if(type == (byte)252)
+            return 2;
+        if(type == (byte)253)
+            return 3;
+        if(type == (byte)254)
+            return 8;
         return 0;
     }
 
     public static long getLengthEncodedBinary(byte[] rawBytes, int start) {
         
         return 0;
+    }*/
+    public static LengthEncodedBytes getLengthEncodedBytes(byte [] rawBytes, int start) {
+        return new LengthEncodedBytes(rawBytes,start);
+    }
+    public static LengthEncodedBinary getLengthEncodedBinary(byte [] rawBytes, int start) {
+        return new LengthEncodedBinary(rawBytes,start);
     }
 }

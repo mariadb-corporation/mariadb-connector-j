@@ -47,7 +47,8 @@ public class DrizzleResultSet implements ResultSet {
 
     public void close() throws SQLException {
         this.isClosed=true;
-        this.queryResult.close();
+        if(this.queryResult!=null)
+            this.queryResult.close();
     }
 
     /**

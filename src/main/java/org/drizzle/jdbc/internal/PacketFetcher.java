@@ -21,7 +21,6 @@ public class PacketFetcher implements Runnable {
     private final InputStream inputStream;
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
     private volatile boolean shutDown=false;
-    private int packetCounter=0;
     public PacketFetcher(InputStream inputStream) {
         this.inputStream = inputStream;
         executorService.submit(this);
@@ -30,9 +29,7 @@ public class PacketFetcher implements Runnable {
     public void run() {
         while(!shutDown) {
             try {
-                RawPacket rawPacket = new RawPacket(inputStream,packetCounter++);
-                System.out.println("IN FETCHER");
-                rawPacket.debugPacket();
+                RawPacket rawPacket = new RawPacket(inputStream);
                 packet.add(rawPacket);
             } catch (IOException e) {
                 e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
@@ -54,7 +51,6 @@ public class PacketFetcher implements Runnable {
     }
 
     public void shutdown() {
-        System.out.println("shutting down");
         this.shutDown=true;
     }
 }

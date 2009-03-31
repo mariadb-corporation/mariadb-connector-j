@@ -138,9 +138,9 @@ public class DrizzleValueObject implements ValueObject {
                 return getString();
             case BLOB:
                 return getBytes(); //TODO: wrong, handle this
-        }
+        }                
         return null;
-    }
+    }         
 
     public Date getDate(Calendar cal) throws ParseException {
         if(rawBytes==null) return null;

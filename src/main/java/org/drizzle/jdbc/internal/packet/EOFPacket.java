@@ -25,7 +25,7 @@ public class EOFPacket extends ResultPacket {
         reader.readShort();
         reader.readShort();
     }
-    public EOFPacket(byte [] rawBytes) {
+    public EOFPacket() {
         packetSeq=0;
     }
 

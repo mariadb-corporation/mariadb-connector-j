@@ -59,8 +59,6 @@ Bytes                      Name
                 .build();
     }
     public static ColumnInformation columnInformationFactory(RawPacket rawPacket) throws IOException {
-        System.out.println("got col info packet: ");
-        rawPacket.debugPacket();
         Reader reader = new Reader(rawPacket);
         return new DrizzleColumnInformation.Builder()
                 .catalog(reader.getLengthEncodedString())

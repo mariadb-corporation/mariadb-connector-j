@@ -24,36 +24,7 @@ public class ResultSetPacket extends ResultPacket {
 
     public ResultSetPacket(byte [] rawBytes) {
         packetSeq = rawBytes[0];
-        byte leBinLength = ReadUtil.getLengthEncodedByteLength(rawBytes,1);
-        switch(leBinLength) {
-            case -1:
-                System.out.println("a");
-                fieldCount = 0;
-                break;
-            case 0:
-                System.out.println("b");
-                fieldCount = rawBytes[0];
-                break;
-            case 2:
-                System.out.println("c");
-
-                fieldCount = ReadUtil.readShort(rawBytes,2);
-                break;
-            case 3:
-                System.out.println("d");
-
-                fieldCount = ReadUtil.read24bitword(rawBytes,2);
-                break;
-            case 8:
-                System.out.println("e");
-
-                fieldCount = ReadUtil.readLong(rawBytes,2);
-                break;
-            default:
-                System.out.println("f");
-
-                fieldCount=0;
-        }
+        fieldCount = (ReadUtil.getLengthEncodedBinary(rawBytes,0)).getValue();
     }
 
     public ResultType getResultType() {

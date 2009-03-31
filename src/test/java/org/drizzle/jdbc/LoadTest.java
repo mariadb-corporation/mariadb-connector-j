@@ -23,11 +23,10 @@ public class LoadTest {
              }
        
           this.loadTest();
-         // this.loadMysqlTest();
+          this.loadMysqlTest();
     }
     public void loadTest() throws SQLException {
-
-        Connection connection = DriverManager.getConnection("jdbc:drizzle://localhost:3306/test_units_jdbc");
+        Connection connection = DriverManager.getConnection("jdbc:drizzle://localhost:4427/test_units_jdbc");
         Statement stmt = connection.createStatement();
         stmt.executeUpdate("drop table if exists loadsofdata");
         stmt.executeUpdate("create table loadsofdata (id int not null primary key auto_increment, data varchar(100))");
@@ -61,7 +60,7 @@ public class LoadTest {
         } catch (ClassNotFoundException e) {
             throw new SQLException("Could not load driver");
         }
-        Connection connection = DriverManager.getConnection("jdbc:mysql://localhost/test_units_jdbc","root","");
+        Connection connection = DriverManager.getConnection("jdbc:mysql://localhost/test_units_jdbc","aa","");
 
         Statement stmt = connection.createStatement();
         stmt.executeUpdate("drop table if exists loadsofdata");
