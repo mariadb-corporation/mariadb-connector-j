@@ -328,4 +328,30 @@ public class DriverTest {
         DatabaseMetaData dmd = connection.getMetaData();
         dmd.getBestRowIdentifier(null,"test_units_jdbc","t1",DatabaseMetaData.bestRowSession, true);
     }
+
+    @Test
+    public void manyColumnsTest() throws SQLException {
+        Statement stmt = connection.createStatement();
+        stmt.executeQuery("drop table if exists test_many_columns");
+        String query = "create table test_many_columns (a0 int";
+        for(int i=1;i<1000;i++) {
+            query+=",a"+i+" int";
+        }
+        query+=")";
+        stmt.executeQuery(query);
+        query="insert into test_many_columns values (0";
+        for(int i=1;i<1000;i++) {
+            query+=","+i;
+        }
+        query+=")";
+        stmt.executeQuery(query);
+        ResultSet rs = stmt.executeQuery("select * from test_many_columns");
+
+        assertEquals(true,rs.next());
+
+        for(int i=0;i<1000;i++) {
+            assertEquals(rs.getInt("a"+i),i);
+        }
+
+    }
 }

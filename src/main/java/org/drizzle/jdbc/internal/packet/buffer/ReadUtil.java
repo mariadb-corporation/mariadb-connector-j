@@ -51,70 +51,24 @@ public class ReadUtil {
 
     public static short readShort(byte[] bytes, int start) {
         if(bytes.length-start >= 2)
-            return (short) (bytes[start] + (bytes[start+1]<<8));
+            return (short) ((bytes[start]&0xff) + ((bytes[start+1]&0xff)<<8));
         return 0;
     }
     public static int read24bitword(byte[] bytes, int start) {
-        return bytes[start] + (bytes[start+1]<<8) +(bytes[start+2]<<16);
+        return (bytes[start]&0xff) + ((bytes[start+1]&0xff)<<8) +((bytes[start+2]&0xff)<<16);
     }
     public static  long readLong(byte [] bytes, int start) {
         return
-                bytes[start] +
-               (bytes[start+1]<<8) +
-               (bytes[start+2]<<16) +
-               (bytes[start+3]<<24) +
-               (bytes[start+4]<<32)+
-               (bytes[start+5]<<40)+
-               (bytes[start+6]<<48) +
-               (bytes[start+7]<<56);
+                (bytes[start]&0xff) +
+               ((bytes[start+1]&0xff)<<8) +
+               ((bytes[start+2]&0xff)<<16) +
+               ((bytes[start+3]&0xff)<<24) +
+               ((bytes[start+4]&0xff)<<32)+
+               ((bytes[start+5]&0xff)<<40)+
+               ((bytes[start+6]&0xff)<<48) +
+               ((bytes[start+7]&0xff)<<56);
     }
-    /*public static byte[] getLengthEncodedBytes(byte[] rawBytes, int start) {
-        switch(getLengthEncodedByteType(rawBytes[start])) {
-            case 0:
-                return Arrays.copyOfRange(rawBytes,start+1,rawBytes[start]);
-            case -1:
-                return null;
-            case 2:
-                return Arrays.copyOfRange(rawBytes,start+1,readShort(rawBytes,start+3));
-            case 3:
-                return Arrays.copyOfRange(rawBytes,start+1,read24bitword(rawBytes,start+4));
-            case 8:
-                return Arrays.copyOfRange(rawBytes,start+1,(int)readLong(rawBytes,start+9));
-        }
-        return null;
-    } */
-
-  /*  public static long getLengthEncodedBytesLength(byte [] rawBytes, int start) {
-        byte type = rawBytes[start];
-        if(type == (byte)251)
-            return -1;
-        if(type == (byte)252)
-            return readShort(rawBytes,start+1);
-        if(type == (byte)253)
-            return read24bitword(rawBytes,start+1);
-        if(type == (byte)254)
-            return 8;
-        return 0;
-
-        
-    }
-
-    public static byte getLengthEncodedByteType(byte type) {
-        if(type == (byte)251)
-            return -1;
-        if(type == (byte)252)
-            return 2;
-        if(type == (byte)253)
-            return 3;
-        if(type == (byte)254)
-            return 8;
-        return 0;
-    }
-
-    public static long getLengthEncodedBinary(byte[] rawBytes, int start) {
-        
-        return 0;
-    }*/
+ 
     public static LengthEncodedBytes getLengthEncodedBytes(byte [] rawBytes, int start) {
         return new LengthEncodedBytes(rawBytes,start);
     }

@@ -18,7 +18,7 @@ import java.io.IOException;
 public class RowPacket {
       private final List<ValueObject> columns;
 
-    public RowPacket(RawPacket rawPacket, List<ColumnInformation> columnInformation) throws IOException {
+    public RowPacket(RawPacket rawPacket, List<ColumnInformation> columnInformation) {
         //int fieldCount = columnInformation.size();
         columns = new ArrayList<ValueObject>(columnInformation.size());
         byte [] rawBytes = rawPacket.getRawBytes();
@@ -26,6 +26,7 @@ public class RowPacket {
         for (ColumnInformation currentColumn : columnInformation) {
             LengthEncodedBytes leb = ReadUtil.getLengthEncodedBytes(rawBytes, readBytes);
             readBytes += leb.getLength();
+
             DrizzleValueObject dvo = new DrizzleValueObject(leb.getBytes(), currentColumn.getType());
             columns.add(dvo);
             currentColumn.updateDisplaySize(dvo.getDisplayLength());

@@ -5,10 +5,7 @@ import org.drizzle.jdbc.internal.packet.commands.*;
 import org.drizzle.jdbc.internal.packet.buffer.ReadUtil;
 import org.drizzle.jdbc.internal.query.Query;
 import org.drizzle.jdbc.internal.query.drizzle.DrizzleQuery;
-import org.drizzle.jdbc.internal.queryresults.DrizzleQueryResult;
-import org.drizzle.jdbc.internal.queryresults.DrizzleUpdateResult;
-import org.drizzle.jdbc.internal.queryresults.QueryResult;
-import org.drizzle.jdbc.internal.queryresults.ColumnInformation;
+import org.drizzle.jdbc.internal.queryresults.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,7 +27,6 @@ public class DrizzleProtocol implements Protocol {
     private final static Logger log = LoggerFactory.getLogger(DrizzleProtocol.class);
     private boolean connected=false;
     private final Socket socket;
-    //private final BufferedInputStream reader;
     private final BufferedOutputStream writer;
     private final String version;
     private boolean readOnly=false;
@@ -83,7 +79,7 @@ public class DrizzleProtocol implements Protocol {
             ClientAuthPacket cap = new ClientAuthPacket(this.username,this.password,this.database,serverCapabilities);
             cap.send(writer);
             log.debug("Sending auth packet: {}",cap);
-            packetFetcher = new PacketFetcher(reader);
+            packetFetcher = new AsyncPacketFetcher(reader);
             packetFetcher.getRawPacket();
             selectDB(this.database);
             setAutoCommit(true);
@@ -101,7 +97,7 @@ public class DrizzleProtocol implements Protocol {
         try {
             ClosePacket closePacket = new ClosePacket();
             closePacket.send(writer);
-            packetFetcher.shutdown();
+            packetFetcher.close();
             writer.close();
             //reader.close();
             socket.close();
@@ -126,7 +122,7 @@ public class DrizzleProtocol implements Protocol {
      * @return a DrizzleQueryResult
      * @throws IOException when something goes wrong while reading/writing from the server
      */
-    private DrizzleQueryResult createDrizzleQueryResult(ResultSetPacket packet) throws IOException {
+    private QueryResult createDrizzleQueryResult(ResultSetPacket packet) throws IOException {
         List<ColumnInformation> columnInformation = new ArrayList<ColumnInformation>();
         for(int i=0;i<packet.getFieldCount();i++) {
             RawPacket rawPacket = packetFetcher.getRawPacket();
@@ -135,7 +131,7 @@ public class DrizzleProtocol implements Protocol {
         }
         packetFetcher.getRawPacket();
         List<List<ValueObject>> valueObjects = new ArrayList<List<ValueObject>>();
-        int i=0;        
+  
         while(true) {
             RawPacket rawPacket = packetFetcher.getRawPacket();
             if(ReadUtil.eofIsNext(rawPacket)) {

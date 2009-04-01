@@ -21,24 +21,30 @@ public class LoadTest {
              } catch (ClassNotFoundException e) {
                  throw new SQLException("Could not load driver");
              }
-       
-          this.loadTest();
-          this.loadMysqlTest();
+      long sum = 0;
+      int i;
+      for(i =0;i<1;i++)
+          sum+=this.loadTest();
+/*      System.out.println("AVG: "+(sum/i));
+      sum=0;
+      for(i =0;i<10;i++)
+          sum+=this.loadMysqlTest();
+      System.out.println("MyAVG: "+(sum/i));*/
     }
-    public void loadTest() throws SQLException {
+    public long loadTest() throws SQLException {
         Connection connection = DriverManager.getConnection("jdbc:drizzle://localhost:4427/test_units_jdbc");
         Statement stmt = connection.createStatement();
         stmt.executeUpdate("drop table if exists loadsofdata");
-        stmt.executeUpdate("create table loadsofdata (id int not null primary key auto_increment, data varchar(100))");
+        stmt.executeUpdate("create table loadsofdata (id int not null primary key auto_increment, data varchar(250))");
         stmt.close();
         long startTime=System.currentTimeMillis();
         for(int i=0;i<1000;i++) {
             stmt=connection.createStatement();
-            stmt.executeUpdate("insert into loadsofdata (data) values ('x"+i+"')");
+            stmt.executeUpdate("insert into loadsofdata (data) values ('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"+i+"')");
             stmt.close();
         }
-        System.out.println("--------------- "+(System.currentTimeMillis()-startTime)+" milli seconds");
-        startTime=System.currentTimeMillis();
+       // System.out.println(System.currentTimeMillis()-startTime));
+       // startTime=System.currentTimeMillis();
         for(int i=0;i<1000;i++){
             stmt=connection.createStatement();
 
@@ -52,9 +58,9 @@ public class LoadTest {
             rs.close();
             stmt.close();
         }
-        System.out.println("--------------- "+(System.currentTimeMillis()-startTime)+" milli seconds");
+        return System.currentTimeMillis()-startTime;
     }
-    public void loadMysqlTest() throws SQLException {
+    public long loadMysqlTest() throws SQLException {
         try {
             Class.forName("com.mysql.jdbc.Driver");
         } catch (ClassNotFoundException e) {
@@ -64,16 +70,16 @@ public class LoadTest {
 
         Statement stmt = connection.createStatement();
         stmt.executeUpdate("drop table if exists loadsofdata");
-        stmt.executeUpdate("create table loadsofdata (id int not null primary key auto_increment, data varchar(100)) engine=innodb");
+        stmt.executeUpdate("create table loadsofdata (id int not null primary key auto_increment, data varchar(250)) engine=innodb");
         stmt.close();
         long startTime = System.currentTimeMillis();
         for(int i=0;i<1000;i++) {
             stmt=connection.createStatement();
-            stmt.executeUpdate("insert into loadsofdata (data) values ('x"+i+"')");
+            stmt.executeUpdate("insert into loadsofdata (data) values ('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"+i+"')");
             stmt.close();
         }
-        System.out.println("--------------- "+(System.currentTimeMillis()-startTime)+" milli seconds");
-        startTime=System.currentTimeMillis();
+//        System.out.println("--------------- "+(System.currentTimeMillis()-startTime)+" milli seconds");
+//        startTime=System.currentTimeMillis();
         for(int i=0;i<1000;i++) {
             stmt=connection.createStatement();
 
@@ -87,6 +93,6 @@ public class LoadTest {
             rs.close();
             stmt.close();
         }
-        System.out.println("--------------- "+(System.currentTimeMillis()-startTime)+" milli seconds");
+        return System.currentTimeMillis()-startTime;
     }
 }

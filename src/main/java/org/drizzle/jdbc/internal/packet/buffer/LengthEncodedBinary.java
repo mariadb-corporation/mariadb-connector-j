@@ -15,25 +15,25 @@ public class LengthEncodedBinary {
 
     public LengthEncodedBinary(byte[] rawBytes, int start) {
         if(start<rawBytes.length) {
-            switch(rawBytes[start]) {
-              case (byte)251:
+            switch(rawBytes[start]&0xff) {
+              case 251:
                   this.length=1;
                   this.value=-1;
                   break;
-              case (byte)252:
+              case 252:
                   value = ReadUtil.readShort(rawBytes, start+1);
                   this.length=3;
                   break;
-              case (byte)253:
+              case 253:
                   value = ReadUtil.read24bitword(rawBytes, start+1);
                   this.length=4;
                   break;
-              case (byte)254:
+              case 254:
                   value = ReadUtil.readLong(rawBytes, start+1);
                   this.length=9;
                   break;
               default:
-                  value=rawBytes[start];
+                  value=rawBytes[start]&0xff;
                   this.length=1;
             }
         }

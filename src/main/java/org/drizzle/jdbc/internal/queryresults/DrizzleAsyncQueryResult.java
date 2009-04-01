@@ -1,6 +1,10 @@
 package org.drizzle.jdbc.internal.queryresults;
 
 import org.drizzle.jdbc.internal.ValueObject;
+import org.drizzle.jdbc.internal.PacketFetcher;
+import org.drizzle.jdbc.internal.packet.RawPacket;
+import org.drizzle.jdbc.internal.packet.RowPacket;
+import org.drizzle.jdbc.internal.packet.buffer.ReadUtil;
 
 import java.util.*;
 
@@ -11,16 +15,17 @@ import java.util.*;
  * Date: Jan 23, 2009
  * Time: 8:15:55 PM
  */
-public class DrizzleQueryResult implements SelectQueryResult {
+public class DrizzleAsyncQueryResult implements SelectQueryResult {
     private final List<ColumnInformation> columnInformation;
-    private final List<List<ValueObject>> resultSet;
+    private List<ValueObject> currentRow;
     private final Map<String, Integer> columnNameMap;
     private int rowPointer;
+    private final PacketFetcher packetFetcher;
+    private boolean hasReadEOF=false;
 
-    public DrizzleQueryResult(List<ColumnInformation> columnInformation, List<List<ValueObject>> valueObjects) {
+    public DrizzleAsyncQueryResult(List<ColumnInformation> columnInformation, PacketFetcher packetFetcher) {
         this.columnInformation = Collections.unmodifiableList(columnInformation);
-        this.resultSet=Collections.unmodifiableList(valueObjects);
-
+        this.packetFetcher=packetFetcher;
         columnNameMap=new HashMap<String,Integer>();
         rowPointer =-1;
         int i=0;
@@ -28,14 +33,26 @@ public class DrizzleQueryResult implements SelectQueryResult {
             columnNameMap.put(ci.getName().toLowerCase(),i++);
         }
     }
-    
+
     public boolean next() {
+        RawPacket rawPacket = packetFetcher.getRawPacket();
+        if(ReadUtil.eofIsNext(rawPacket)) {
+            hasReadEOF=true;
+            return false;
+        }
+        RowPacket rowPacket = new RowPacket(rawPacket,columnInformation);
+        currentRow=rowPacket.getRow();
         rowPointer++;
-        return rowPointer < resultSet.size();
+        return true;
     }
 
     public void close() {
-        
+        while(!hasReadEOF) {
+            RawPacket rp  = packetFetcher.getRawPacket();
+            if(ReadUtil.eofIsNext(rp)) {
+                this.hasReadEOF=true;
+            }
+        }
     }
 
     public short getWarnings() {
@@ -56,9 +73,9 @@ public class DrizzleQueryResult implements SelectQueryResult {
      * @return
      */
     public ValueObject getValueObject(int i) throws NoSuchColumnException {
-        if(i<0 || i > resultSet.get(rowPointer).size())
+        if(i<0 || i > currentRow.size())
             throw new NoSuchColumnException("No such column: "+i);
-        return resultSet.get(rowPointer).get(i);
+        return currentRow.get(i);
     }
 
     public ValueObject getValueObject(String column) throws NoSuchColumnException {
@@ -68,7 +85,7 @@ public class DrizzleQueryResult implements SelectQueryResult {
     }
 
     public int getRows() {
-        return resultSet.size();
+        return -1;
     }
 
     public int getColumnId(String columnLabel) throws NoSuchColumnException {
