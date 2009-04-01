@@ -37,4 +37,8 @@ public class ReadAheadInputStream extends InputStream {
             buffer[endOfBuffer++] = (byte) inputStream.read();
         }
     }
+    @Override
+    public void close() throws IOException {
+        this.inputStream.close();
+    }
 }

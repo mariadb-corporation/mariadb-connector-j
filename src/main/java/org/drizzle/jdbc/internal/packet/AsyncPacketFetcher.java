@@ -22,8 +22,8 @@ public class AsyncPacketFetcher implements Runnable, PacketFetcher {
     private final BlockingQueue<RawPacket> packet = new LinkedBlockingQueue<RawPacket>();
     private final InputStream inputStream;
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
-   
     private volatile boolean shutDown=false;
+
     public AsyncPacketFetcher(InputStream inputStream) {
         this.inputStream = new ReadAheadInputStream(inputStream);
         executorService.submit(this);
@@ -35,11 +35,13 @@ public class AsyncPacketFetcher implements Runnable, PacketFetcher {
                 RawPacket rawPacket = new RawPacket(inputStream);
                 packet.add(rawPacket);
             } catch (IOException e) {
+                //TODO: how do i handle ioexceptions when async? shutdown?
                 e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
             }
         }
         try {
-            inputStream.close();
+            executorService.shutdown();
+            inputStream.close();            
         } catch (IOException e) {
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         }
