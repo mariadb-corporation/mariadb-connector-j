@@ -317,12 +317,7 @@ public class DrizzleResultSet implements ResultSet {
      * @deprecated use <code>getCharacterStream</code> instead
      */
     public InputStream getUnicodeStream(String columnLabel) throws SQLException {
-        try {
-            return getValueObject(columnLabel).getInputStream("UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            throw new SQLException("Could not convert to UTF-8");
-        }
-
+        return getValueObject(columnLabel).getInputStream();
     }
 
     /**

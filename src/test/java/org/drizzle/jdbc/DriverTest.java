@@ -354,4 +354,41 @@ public class DriverTest {
         }
 
     }
+
+    @Test
+    public void bigAutoIncTest() throws SQLException {
+        Statement stmt = connection.createStatement();
+        stmt.executeQuery("drop table if exists test_big_autoinc");
+        stmt.executeQuery("create table test_big_autoinc (id int not null primary key auto_increment, test varchar(10))");
+        stmt.executeQuery("alter table test_big_autoinc auto_increment = 1000");
+        ResultSet rs = stmt.executeQuery("insert into test_big_autoinc values (null, 'hej')");
+        ResultSet rsGen = stmt.getGeneratedKeys();
+        assertEquals(true,rsGen.next());
+        assertEquals(1000,rsGen.getInt(1));
+        stmt.executeQuery("alter table test_big_autoinc auto_increment = "+Short.MAX_VALUE);
+        stmt.executeQuery("insert into test_big_autoinc values (null, 'hej')");
+        rsGen = stmt.getGeneratedKeys();
+        assertEquals(true,rsGen.next());
+        assertEquals(Short.MAX_VALUE,rsGen.getInt(1));
+        stmt.executeQuery("alter table test_big_autoinc auto_increment = "+Integer.MAX_VALUE);
+        stmt.executeQuery("insert into test_big_autoinc values (null, 'hej')");
+        rsGen = stmt.getGeneratedKeys();
+        assertEquals(true,rsGen.next());
+        assertEquals(Integer.MAX_VALUE,rsGen.getInt(1));
+    }
+
+    @Test
+    public void bigUpdateCountTest() throws SQLException {
+        Statement stmt = connection.createStatement();
+        stmt.executeQuery("drop table if exists test_big_update");
+        stmt.executeQuery("create table test_big_update (id int)");
+        for(int i=0;i<40000;i++) {
+            stmt.executeQuery("insert into test_big_update values ("+i+")");
+        }
+        ResultSet rs = stmt.executeQuery("select count(*) from test_big_update");
+        assertEquals(true,rs.next());
+        assertEquals(40000,rs.getInt(1));
+        int updateCount = stmt.executeUpdate("update test_big_update set id=id+1");
+        assertEquals(40000,updateCount);
+    }
 }

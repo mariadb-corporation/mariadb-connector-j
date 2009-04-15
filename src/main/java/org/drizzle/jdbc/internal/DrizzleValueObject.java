@@ -102,11 +102,6 @@ public class DrizzleValueObject implements ValueObject {
         if(rawBytes==null) return null;
         return new ByteArrayInputStream(getString().getBytes());
     }
-    public InputStream getInputStream(String s) throws UnsupportedEncodingException {
-        if(rawBytes==null) return null;      
-        return new ByteArrayInputStream(getString().getBytes("UTF-8"));
-
-    }
 
     public Object getObject() throws ParseException {
         if(this.getBytes()==null)

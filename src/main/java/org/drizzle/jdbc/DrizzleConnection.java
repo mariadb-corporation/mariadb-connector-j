@@ -300,7 +300,7 @@ public class DrizzleConnection implements Connection {
      * @since 1.2
      */
     public Statement createStatement(int resultSetType, int resultSetConcurrency) throws SQLException {
-        // for nwo resultSetType and resultSetConcurrency are ignored
+        // for now resultSetType and resultSetConcurrency are ignored
         // TODO: fix
         return createStatement();
     }
@@ -338,7 +338,7 @@ public class DrizzleConnection implements Connection {
      * @since 1.2
      */
     public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency) throws SQLException {
-        // for nwo resultSetType and resultSetConcurrency are ignored
+        // for now resultSetType and resultSetConcurrency are ignored
         // TODO: fix
         return prepareStatement(sql);
     }

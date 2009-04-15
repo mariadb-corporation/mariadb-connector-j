@@ -29,7 +29,6 @@ public interface ValueObject {
     Date getDate() throws ParseException;
     Time getTime() throws ParseException;
     InputStream getInputStream();
-    InputStream getInputStream(String s) throws UnsupportedEncodingException;
     Object getObject() throws ParseException;
     Date getDate(Calendar cal) throws ParseException;
     Time getTime(Calendar cal) throws ParseException;

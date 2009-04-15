@@ -21,7 +21,7 @@ public class LengthEncodedBinary {
                   this.value=-1;
                   break;
               case 252:
-                  value = ReadUtil.readShort(rawBytes, start+1);
+                  value = ReadUtil.readShort(rawBytes, start+1) & 0xffff;
                   this.length=3;
                   break;
               case 253:
