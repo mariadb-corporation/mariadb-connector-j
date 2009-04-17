@@ -1,7 +1,7 @@
 package org.drizzle.jdbc;
 
 import org.junit.Test;
-import static org.drizzle.jdbc.internal.Utils.countChars;
+import static org.drizzle.jdbc.internal.common.Utils.countChars;
 import static junit.framework.Assert.assertEquals;
 
 /**

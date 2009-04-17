@@ -1,16 +1,15 @@
 package org.drizzle.jdbc;
 
-import org.drizzle.jdbc.internal.queryresults.QueryResult;
-import org.drizzle.jdbc.internal.queryresults.ResultSetType;
-import org.drizzle.jdbc.internal.queryresults.SelectQueryResult;
-import org.drizzle.jdbc.internal.queryresults.NoSuchColumnException;
-import org.drizzle.jdbc.internal.ValueObject;
+import org.drizzle.jdbc.internal.common.queryresults.QueryResult;
+import org.drizzle.jdbc.internal.common.queryresults.ResultSetType;
+import org.drizzle.jdbc.internal.common.queryresults.SelectQueryResult;
+import org.drizzle.jdbc.internal.common.queryresults.NoSuchColumnException;
+import org.drizzle.jdbc.internal.common.ValueObject;
 
 import java.sql.*;
 import java.math.BigDecimal;
 import java.io.InputStream;
 import java.io.Reader;
-import java.io.UnsupportedEncodingException;
 import java.io.StringReader;
 import java.util.Map;
 import java.util.Calendar;

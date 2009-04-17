@@ -1,15 +1,14 @@
 package org.drizzle.jdbc;
 
-import org.drizzle.jdbc.internal.Protocol;
-import org.drizzle.jdbc.internal.queryresults.QueryResult;
-import org.drizzle.jdbc.internal.queryresults.ModifyQueryResult;
-import org.drizzle.jdbc.internal.queryresults.ResultSetType;
-import org.drizzle.jdbc.internal.QueryException;
-import org.drizzle.jdbc.internal.query.QueryFactory;
+import org.drizzle.jdbc.internal.common.Protocol;
+import org.drizzle.jdbc.internal.common.queryresults.QueryResult;
+import org.drizzle.jdbc.internal.common.queryresults.ModifyQueryResult;
+import org.drizzle.jdbc.internal.common.queryresults.ResultSetType;
+import org.drizzle.jdbc.internal.drizzle.QueryException;
+import org.drizzle.jdbc.internal.common.query.QueryFactory;
 
 import java.sql.*;
 import java.util.List;
-import java.util.LinkedList;
 
 /**
  * User: marcuse
@@ -64,7 +63,7 @@ public class DrizzleStatement implements Statement {
             setUpdateCount(((ModifyQueryResult)dqr).getUpdateCount());
             return false;
         } catch (QueryException e) {
-            throw new SQLException("Could not execute query: "+e.getMessage());
+            throw new SQLException("Could not execute query: ",e);
         }
     }
     public QueryFactory getQueryFactory(){

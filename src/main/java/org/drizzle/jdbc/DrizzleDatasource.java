@@ -1,8 +1,8 @@
 package org.drizzle.jdbc;
 
-import org.drizzle.jdbc.internal.DrizzleProtocol;
-import org.drizzle.jdbc.internal.QueryException;
-import org.drizzle.jdbc.internal.query.drizzle.DrizzleQueryFactory;
+import org.drizzle.jdbc.internal.drizzle.DrizzleProtocol;
+import org.drizzle.jdbc.internal.drizzle.QueryException;
+import org.drizzle.jdbc.internal.common.query.drizzle.DrizzleQueryFactory;
 
 import javax.sql.DataSource;
 import java.sql.Connection;

@@ -1,8 +1,7 @@
 package org.drizzle.jdbc;
 
-import org.drizzle.jdbc.internal.packet.FieldPacket;
-import org.drizzle.jdbc.internal.queryresults.ColumnInformation;
-import org.drizzle.jdbc.internal.queryresults.ColumnFlags;
+import org.drizzle.jdbc.internal.common.queryresults.ColumnInformation;
+import org.drizzle.jdbc.internal.common.queryresults.ColumnFlags;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

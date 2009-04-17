@@ -1,11 +1,11 @@
 package org.drizzle.jdbc;
 
-import org.drizzle.jdbc.internal.Protocol;
-import org.drizzle.jdbc.internal.queryresults.QueryResult;
-import org.drizzle.jdbc.internal.queryresults.ResultSetType;
-import org.drizzle.jdbc.internal.queryresults.ModifyQueryResult;
-import org.drizzle.jdbc.internal.QueryException;
-import org.drizzle.jdbc.internal.query.*;
+import org.drizzle.jdbc.internal.common.Protocol;
+import org.drizzle.jdbc.internal.drizzle.QueryException;
+import org.drizzle.jdbc.internal.common.queryresults.QueryResult;
+import org.drizzle.jdbc.internal.common.queryresults.ResultSetType;
+import org.drizzle.jdbc.internal.common.queryresults.ModifyQueryResult;
+import org.drizzle.jdbc.internal.common.query.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

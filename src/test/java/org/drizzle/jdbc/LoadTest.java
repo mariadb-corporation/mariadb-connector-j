@@ -23,7 +23,7 @@ public class LoadTest {
              }
       long sum = 0;
       int i;
-      for(i =0;i<1;i++)
+      for(i =0;i<100;i++)
           sum+=this.loadTest();
 /*      System.out.println("AVG: "+(sum/i));
       sum=0;
