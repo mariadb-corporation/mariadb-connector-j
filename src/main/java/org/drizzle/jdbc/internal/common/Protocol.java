@@ -3,8 +3,11 @@ package org.drizzle.jdbc.internal.common;
 import org.drizzle.jdbc.internal.common.query.Query;
 import org.drizzle.jdbc.internal.common.queryresults.QueryResult;
 import org.drizzle.jdbc.internal.drizzle.QueryException;
+import org.drizzle.jdbc.internal.drizzle.packet.RawPacket;
 
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import java.io.IOException;
 
 /**
  * User: marcuse
@@ -162,4 +165,5 @@ public interface Protocol {
      */
     void clearBatch();
 
+    List<RawPacket> startBinlogDump(int startPos, String filename) throws BinlogDumpException;
 }

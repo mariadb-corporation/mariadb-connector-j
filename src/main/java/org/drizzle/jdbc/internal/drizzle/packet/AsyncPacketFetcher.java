@@ -4,10 +4,7 @@ import org.drizzle.jdbc.internal.drizzle.packet.RawPacket;
 import org.drizzle.jdbc.internal.common.PacketFetcher;
 import org.drizzle.jdbc.internal.drizzle.packet.ReadAheadInputStream;
 
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 import java.io.InputStream;
 import java.io.IOException;
 
@@ -23,7 +20,7 @@ public class AsyncPacketFetcher implements Runnable, PacketFetcher {
     private final InputStream inputStream;
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
     private volatile boolean shutDown=false;
-
+    private CountDownLatch shutdownLatch = new CountDownLatch(1);
     public AsyncPacketFetcher(InputStream inputStream) {
         this.inputStream = new ReadAheadInputStream(inputStream);
         executorService.submit(this);
@@ -41,7 +38,8 @@ public class AsyncPacketFetcher implements Runnable, PacketFetcher {
         }
         try {
             executorService.shutdown();
-            inputStream.close();            
+            inputStream.close();
+            shutdownLatch.countDown();
         } catch (IOException e) {
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         }
@@ -57,5 +55,10 @@ public class AsyncPacketFetcher implements Runnable, PacketFetcher {
 
     public void close() {
         this.shutDown=true;
+/*        try {
+            shutdownLatch.await();
+        } catch (InterruptedException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }*/
     }
 }

@@ -101,6 +101,7 @@ public class DrizzleProtocol implements Protocol {
             ClosePacket closePacket = new ClosePacket();
             closePacket.send(writer);
             packetFetcher.close();
+
             writer.close();
             //reader.close();
             socket.close();
@@ -293,5 +294,9 @@ public class DrizzleProtocol implements Protocol {
 
     public void clearBatch() {
         batchList.clear();
+    }
+
+    public List<RawPacket> startBinlogDump(int startPos, String filename) {
+        return null;  //To change body of implemented methods use File | Settings | File Templates.
     }
 }

@@ -53,6 +53,10 @@ public class DrizzleAsyncQueryResult implements SelectQueryResult {
                 this.hasReadEOF=true;
             }
         }
+        columnInformation.clear();
+        currentRow.clear();
+        columnNameMap.clear();
+        
     }
 
     public short getWarnings() {

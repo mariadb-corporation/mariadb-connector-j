@@ -9,9 +9,11 @@ import org.drizzle.jdbc.internal.common.queryresults.*;
 import org.drizzle.jdbc.internal.common.PacketFetcher;
 import org.drizzle.jdbc.internal.common.Protocol;
 import org.drizzle.jdbc.internal.common.ValueObject;
+import org.drizzle.jdbc.internal.common.BinlogDumpException;
 import org.drizzle.jdbc.internal.drizzle.*;
 import org.drizzle.jdbc.internal.mysql.packet.commands.MySQLClientAuthPacket;
 import org.drizzle.jdbc.internal.mysql.packet.commands.MySQLPingPacket;
+import org.drizzle.jdbc.internal.mysql.packet.commands.MySQLBinlogDumpPacket;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -298,5 +300,23 @@ public class MySQLProtocol implements Protocol {
 
     public void clearBatch() {
         batchList.clear();
+    }
+
+    public List<RawPacket> startBinlogDump(int startPos, String filename) throws BinlogDumpException {
+        log.info("starting binlog ({}) dump at pos {}", filename,startPos);
+        MySQLBinlogDumpPacket mbdp = new MySQLBinlogDumpPacket(startPos, filename);
+        try {
+            mbdp.send(writer);
+            List<RawPacket> rpList = new LinkedList<RawPacket>();
+            while(true) {
+                RawPacket rp = this.packetFetcher.getRawPacket();
+                if(ReadUtil.eofIsNext(rp)) {
+                    return rpList;
+                }
+                rpList.add(rp);
+            }
+        } catch (IOException e) {
+            throw new BinlogDumpException("Could not read binlog",e);
+        }
     }
 }

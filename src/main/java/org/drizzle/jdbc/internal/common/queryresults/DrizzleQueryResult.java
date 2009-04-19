@@ -18,8 +18,8 @@ public class DrizzleQueryResult implements SelectQueryResult {
     private int rowPointer;
 
     public DrizzleQueryResult(List<ColumnInformation> columnInformation, List<List<ValueObject>> valueObjects) {
-        this.columnInformation = Collections.unmodifiableList(columnInformation);
-        this.resultSet=Collections.unmodifiableList(valueObjects);
+        this.columnInformation = columnInformation;
+        this.resultSet=valueObjects;
 
         columnNameMap=new HashMap<String,Integer>();
         rowPointer =-1;
@@ -35,7 +35,9 @@ public class DrizzleQueryResult implements SelectQueryResult {
     }
 
     public void close() {
-        
+        columnInformation.clear();
+        resultSet.clear();
+        columnNameMap.clear();        
     }
 
     public short getWarnings() {

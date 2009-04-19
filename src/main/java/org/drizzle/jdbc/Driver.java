@@ -32,7 +32,6 @@ public class Driver implements java.sql.Driver {
 
     static {
         try {
-            System.out.println("yup");
             DriverManager.registerDriver(new Driver());
         } catch (SQLException e) {
             throw new RuntimeException("Could not register driver",e);
@@ -87,7 +86,6 @@ public class Driver implements java.sql.Driver {
             if(this.databaseType.equals("drizzle")) {
                 return new DrizzleProtocol(this.hostname,this.port,this.database,this.username,this.password);
             } else {
-                System.out.println("yup");
                 return new MySQLProtocol(this.hostname,this.port,this.database,this.username,this.password);
             }
         } else {

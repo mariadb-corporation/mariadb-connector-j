@@ -35,6 +35,7 @@ public class DrizzleStatement implements Statement {
 
     public ResultSet executeQuery(String s) throws SQLException {
         try {
+            if(dqr!=null) dqr.close();
             dqr = protocol.executeQuery(queryFactory.createQuery(s));
             warningsCleared = false;
             return new DrizzleResultSet(dqr,this);
@@ -45,6 +46,7 @@ public class DrizzleStatement implements Statement {
 
     public int executeUpdate(String s) throws SQLException {
         try {
+            if(dqr!=null) dqr.close();
             warningsCleared=false;
             dqr = protocol.executeQuery(queryFactory.createQuery(s));
             return (int) ((ModifyQueryResult)dqr).getUpdateCount();
@@ -55,6 +57,7 @@ public class DrizzleStatement implements Statement {
 
     public boolean execute(String query) throws SQLException {
         try {
+            if(dqr!=null) dqr.close();
             dqr = protocol.executeQuery(queryFactory.createQuery(query));
             if(dqr.getRows() > 0) {
                 setResultSet(new DrizzleResultSet(dqr,this));

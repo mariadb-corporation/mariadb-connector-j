@@ -3,9 +3,11 @@ package org.drizzle.jdbc;
 import org.junit.Test;
 import org.junit.After;
 import org.drizzle.jdbc.internal.drizzle.packet.buffer.WriteBuffer;
+import org.drizzle.jdbc.internal.drizzle.packet.RawPacket;
 import org.apache.log4j.BasicConfigurator;
 
 import java.sql.*;
+import java.util.List;
 
 import static junit.framework.Assert.assertEquals;
 
@@ -17,7 +19,7 @@ import static junit.framework.Assert.assertEquals;
 public class DriverTest {
     public static String host = "localhost";
     private Connection connection;
-    static { BasicConfigurator.configure(); }
+  //  static { BasicConfigurator.configure(); }
 
     public DriverTest() throws SQLException {
         try {
@@ -25,7 +27,9 @@ public class DriverTest {
         } catch (ClassNotFoundException e) {
             throw new SQLException("Could not load driver");
         }
-        connection = DriverManager.getConnection("jdbc:mysqldriz://"+host+":3306/test_units_jdbc");
+        //connection = DriverManager.getConnection("jdbc:mysqldriz://mr_slave@"+host+":3306/test_units_jdbc");
+        connection = DriverManager.getConnection("jdbc:drizzle://"+host+":4427/test_units_jdbc");
+
         Statement stmt = connection.createStatement();
         try { stmt.execute("drop table t1"); } catch (Exception e) {}
         stmt.execute("create table t1 (id int not null primary key auto_increment, test varchar(20))");
@@ -390,5 +394,19 @@ public class DriverTest {
         assertEquals(40000,rs.getInt(1));
         int updateCount = stmt.executeUpdate("update test_big_update set id=id+1");
         assertEquals(40000,updateCount);
+    }
+
+    //@Test
+    public void testBinlogDumping() throws SQLException {
+        assertEquals(true, connection.isWrapperFor(ReplicationConnection.class));
+
+        ReplicationConnection rc = connection.unwrap(ReplicationConnection.class);
+        List<RawPacket> rpList = rc.startBinlogDump(891,"mysqld-bin.000001");
+        for(RawPacket rp : rpList) {
+            for(byte b:rp.getRawBytes()) {
+                System.out.printf("%x ",b);
+            }
+            System.out.printf("\n");
+        }
     }
 }

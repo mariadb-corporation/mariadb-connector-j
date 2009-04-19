@@ -33,6 +33,7 @@ public class DrizzleUpdateResult implements ModifyQueryResult {
     }
 
     public void close() {
+        generatedKeysResult.close();
     }
 
     public short getWarnings() {

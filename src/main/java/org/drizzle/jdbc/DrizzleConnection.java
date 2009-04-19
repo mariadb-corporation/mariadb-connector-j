@@ -1,19 +1,23 @@
 package org.drizzle.jdbc;
 
 import org.drizzle.jdbc.internal.common.Protocol;
+import org.drizzle.jdbc.internal.common.BinlogDumpException;
 import org.drizzle.jdbc.internal.drizzle.QueryException;
+import org.drizzle.jdbc.internal.drizzle.packet.RawPacket;
 import org.drizzle.jdbc.internal.common.query.QueryFactory;
 
 import java.sql.*;
 import java.util.Map;
 import java.util.Properties;
+import java.util.List;
+import java.io.IOException;
 
 /**
  * User: marcuse
  * Date: Jan 14, 2009
  * Time: 7:47:37 AM
  */
-public class DrizzleConnection implements Connection {
+public class DrizzleConnection implements Connection, ReplicationConnection {
     private final Protocol protocol;
     private int savepointCount = 0;
     private final Properties clientInfoProperties;
@@ -1169,7 +1173,7 @@ public class DrizzleConnection implements Connection {
      * @since 1.6
      */
     public <T> T unwrap(Class<T> iface) throws SQLException {
-        return null;  
+        return iface.cast(this);  
     }
 
     /**
@@ -1188,6 +1192,8 @@ public class DrizzleConnection implements Connection {
      * @since 1.6
      */
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
+        if(iface.isInstance(this))
+            return true;
         return false;
     }
 
@@ -1210,5 +1216,12 @@ public class DrizzleConnection implements Connection {
 
     public String getDatabase() {
         return protocol.getDatabase();
+    }
+    public List<RawPacket> startBinlogDump(int position, String logfile) throws SQLException {
+        try {
+            return this.protocol.startBinlogDump(position,logfile);
+        } catch (BinlogDumpException e) {
+            throw new SQLException("Could not dump binlog",e);            
+        }
     }
 }
