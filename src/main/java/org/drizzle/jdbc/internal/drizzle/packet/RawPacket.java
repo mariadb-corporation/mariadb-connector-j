@@ -4,15 +4,12 @@ import java.io.IOException;
 import java.io.InputStream;
 
 /**
- * Created by IntelliJ IDEA.
  * User: marcuse
  * Date: Mar 31, 2009
  * Time: 2:06:47 PM
- * To change this template use File | Settings | File Templates.
  */
 public class RawPacket {
     private final byte [] rawBytes;
-
 
     public RawPacket(InputStream is) throws IOException {
         int length = this.readLength(is);

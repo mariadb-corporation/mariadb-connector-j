@@ -15,7 +15,7 @@ import static junit.framework.Assert.assertEquals;
  * To change this template use File | Settings | File Templates.
  */
 public class UnicodeTest {
-       static { BasicConfigurator.configure(); }
+      // static { BasicConfigurator.configure(); }
     @Test
     public void firstTest() throws SQLException {
         try {
