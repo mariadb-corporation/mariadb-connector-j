@@ -22,11 +22,7 @@ import java.util.regex.Pattern;
  * Time: 7:46:09 AM
  */
 public class Driver implements java.sql.Driver {
-    private String hostname;
-    private int port;
-    private String username;
-    private String password;
-    private String database;
+    private JDBCUrl jdbcUrl;
     private static final Logger log = LoggerFactory.getLogger(Driver.class);
     private String databaseType;
 
@@ -44,58 +40,26 @@ public class Driver implements java.sql.Driver {
         log.debug("Connecting to: {} ",url);
 
         try {
-            Protocol protocol = this.parseUrl(url);
+            jdbcUrl = new JDBCUrl(url);
+            Protocol protocol;
+            if(jdbcUrl.getDBType()==JDBCUrl.DBType.DRIZZLE)
+                protocol=new DrizzleProtocol(jdbcUrl.getHostname(),jdbcUrl.getPort(),jdbcUrl.getDatabase(),jdbcUrl.getUsername(),jdbcUrl.getPassword());
+            else
+                protocol = new MySQLProtocol(jdbcUrl.getHostname(),jdbcUrl.getPort(),jdbcUrl.getDatabase(),jdbcUrl.getUsername(),jdbcUrl.getPassword());
             return new DrizzleConnection(protocol, new DrizzleQueryFactory());
         } catch (QueryException e) {
             throw new SQLException("Could not connect",e);
         }
     }
 
-    /**
-     * TODO: BUGGY
-     * Syntax for connection url is:
-     * jdbc:drizzle://username:password@host:port/database
-     * @param url the url to parse
-     * @throws SQLException if the connection string is bad
-     */
-    private Protocol parseUrl(String url) throws SQLException, QueryException {
-        System.out.println("parsing url: "+url);
-        Pattern p = Pattern.compile("^jdbc:(drizzle|mysqldriz)://((\\w+)(:(\\w+))?@)?([^/:]+)(:(\\d+))?(/(\\w+))?");
-        Matcher m=p.matcher(url);        
-        if(m.find()) {
-            this.databaseType = m.group(1);
-            this.username = m.group(3);
-            log.debug("found username: {}",username);
-            this.password = m.group(5);
-            log.debug("found password: {}",password);
-            this.hostname = m.group(6);
-            log.debug("Found hostname: {}",hostname);
+/*    public static JDBCUrl parseUrl(String url) {
 
-            if(m.group(8) != null) {
-                this.port = Integer.parseInt(m.group(8));
-                log.debug("Found port: {}",port);
-            } else {
+        return null;
+    }*/
 
-                if(this.databaseType.equals("drizzle"))
-                    this.port=4427;
-                else
-                    this.port=3306;
-            }
-            this.database = m.group(10);
-            log.debug("Found database: {}",database);
-            if(this.databaseType.equals("drizzle")) {
-                return new DrizzleProtocol(this.hostname,this.port,this.database,this.username,this.password);
-            } else {
-                return new MySQLProtocol(this.hostname,this.port,this.database,this.username,this.password);
-            }
-        } else {
-            log.debug("Could not parse connection string");
-            throw new SQLException("Could not parse connection string...");
-        }
-    }
 
     public boolean acceptsURL(String url) throws SQLException {
-        return url.startsWith("jdbc:drizzle://") || url.startsWith("jdbc:mysqldriz://");
+        return url.startsWith("jdbc:drizzle://") || url.startsWith("jdbc:mysql:thin://");
     }
 
     public DriverPropertyInfo[] getPropertyInfo(String url, Properties info) throws SQLException {

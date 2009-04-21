@@ -27,7 +27,7 @@ public class DriverTest {
         } catch (ClassNotFoundException e) {
             throw new SQLException("Could not load driver");
         }
-        //connection = DriverManager.getConnection("jdbc:mysqldriz://mr_slave@"+host+":3306/test_units_jdbc");
+        //connection = DriverManager.getConnection("jdbc:mysql:thin://mr_slave@"+host+":3306/test_units_jdbc");
         connection = DriverManager.getConnection("jdbc:drizzle://"+host+":4427/test_units_jdbc");
 
         Statement stmt = connection.createStatement();
@@ -37,7 +37,6 @@ public class DriverTest {
         stmt.execute("insert into t1 (test) values (\"hej2\")");
         stmt.execute("insert into t1 (test) values (\"hej3\")");
         stmt.execute("insert into t1 (test) values (null)");
-        
     }
     @After
     public void close() throws SQLException {
@@ -172,7 +171,7 @@ public class DriverTest {
     public void savepointTest() throws SQLException {
         Statement stmt = connection.createStatement();
         stmt.executeUpdate("drop table if exists t4");
-        stmt.executeUpdate("create table t4 (id int not null primary key auto_increment, test varchar(20))");
+        stmt.executeUpdate("create table t4 (id int not null primary key auto_increment, test varchar(20)) engine=innodb");
         connection.setAutoCommit(false);
         stmt.executeUpdate("INSERT INTO t4 (test) values('hej1')");
         stmt.executeUpdate("INSERT INTO t4 (test) values('hej2')");
@@ -210,55 +209,123 @@ public class DriverTest {
     public void isValidTest() throws SQLException {
         assertEquals(true,connection.isValid(0));
     }
-/*
+
     @Test
     public void connectionStringTest() throws SQLException {
-        DrizzleConnection con = (DrizzleConnection)DriverManager.getConnection("jdbc:drizzle://"+host+":4427/mmm");
-        assertEquals("",con.getUsername());
-        assertEquals("",con.getPassword());
-        assertEquals(""+host+"",con.getHostname());
-        assertEquals(4427,con.getPort());
-        assertEquals("mmm",con.getDatabase());
-        con.close();
-        con = (DrizzleConnection)DriverManager.getConnection("jdbc:drizzle://whoa@"+host+":4427/mmm");
-        assertEquals("whoa",con.getUsername());
-        assertEquals("",con.getPassword());
-        assertEquals(""+host+"",con.getHostname());
-        assertEquals(4427,con.getPort());
-        assertEquals("mmm",con.getDatabase());
-        con = (DrizzleConnection)DriverManager.getConnection("jdbc:drizzle://whoa:pass@"+host+":4427/mmm");
-        assertEquals("whoa",con.getUsername());
-        assertEquals("pass",con.getPassword());
-        assertEquals(""+host+"",con.getHostname());
-        assertEquals(4427,con.getPort());
-        assertEquals("mmm",con.getDatabase());
-        con = (DrizzleConnection)DriverManager.getConnection("jdbc:drizzle://whoa:pass@"+host+"/aa");
+        JDBCUrl url = new JDBCUrl("jdbc:drizzle://www.drizzle.org:4427/mmm");
+        assertEquals("",url.getUsername());
+        assertEquals("",url.getPassword());
+        assertEquals("www.drizzle.org",url.getHostname());
+        assertEquals(4427,url.getPort());
+        assertEquals("mmm",url.getDatabase());
+        assertEquals(JDBCUrl.DBType.DRIZZLE, url.getDBType());
 
-        assertEquals("whoa",con.getUsername());
-        assertEquals("pass",con.getPassword());
-        assertEquals(""+host+"",con.getHostname());
-        assertEquals(4427,con.getPort());
-        assertEquals("",con.getDatabase());
-        con = (DrizzleConnection)DriverManager.getConnection("jdbc:drizzle://whoa:pass@"+host+"/cc");
-        assertEquals("whoa",con.getUsername());
-        assertEquals("pass",con.getPassword());
-        assertEquals(""+host+"",con.getHostname());
-        assertEquals(4427,con.getPort());
-        assertEquals("",con.getDatabase());
-        con = (DrizzleConnection)DriverManager.getConnection("jdbc:drizzle://whoa:pass@"+host+"/bbb");
-        assertEquals("whoa",con.getUsername());
-        assertEquals("pass",con.getPassword());
-        assertEquals(""+host+"",con.getHostname());
-        assertEquals(4427,con.getPort());
-        assertEquals("bbb",con.getDatabase());
-        con = (DrizzleConnection)DriverManager.getConnection("jdbc:drizzle://whoa:pass@"+host+"/bbb/");
-        assertEquals("whoa",con.getUsername());
-        assertEquals("pass",con.getPassword());
-        assertEquals(""+host+"",con.getHostname());
-        assertEquals(4427,con.getPort());
-        assertEquals("bbb",con.getDatabase());
+        url = new JDBCUrl("jdbc:mysql:thin://www.drizzle.org:3306/mmm");
+        assertEquals("",url.getUsername());
+        assertEquals("",url.getPassword());
+        assertEquals("www.drizzle.org",url.getHostname());
+        assertEquals(3306,url.getPort());
+        assertEquals("mmm",url.getDatabase());
+        assertEquals(JDBCUrl.DBType.MYSQL, url.getDBType());
+
+        url = new JDBCUrl("jdbc:drizzle://whoa@www.drizzle.org:4427/mmm");
+        assertEquals("whoa",url.getUsername());
+        assertEquals("",url.getPassword());
+        assertEquals("www.drizzle.org",url.getHostname());
+        assertEquals(4427,url.getPort());
+        assertEquals("mmm",url.getDatabase());
+        assertEquals(JDBCUrl.DBType.DRIZZLE, url.getDBType());
+
+        url = new JDBCUrl("jdbc:mysql:thin://whoa@www.drizzle.org:4427/mmm");
+        assertEquals("whoa",url.getUsername());
+        assertEquals("",url.getPassword());
+        assertEquals("www.drizzle.org",url.getHostname());
+        assertEquals(4427,url.getPort());
+        assertEquals("mmm",url.getDatabase());
+        assertEquals(JDBCUrl.DBType.MYSQL, url.getDBType());
+
+        url = new JDBCUrl("jdbc:drizzle://whoa:pass@www.drizzle.org:4427/mmm");
+        assertEquals("whoa",url.getUsername());
+        assertEquals("pass",url.getPassword());
+        assertEquals("www.drizzle.org",url.getHostname());
+        assertEquals(4427,url.getPort());
+        assertEquals("mmm",url.getDatabase());
+        assertEquals(JDBCUrl.DBType.DRIZZLE, url.getDBType());
+
+        url = new JDBCUrl("jdbc:mysql:thin://whoa:pass@www.drizzle.org:4427/mmm");
+        assertEquals("whoa",url.getUsername());
+        assertEquals("pass",url.getPassword());
+        assertEquals("www.drizzle.org",url.getHostname());
+        assertEquals(4427,url.getPort());
+        assertEquals("mmm",url.getDatabase());
+        assertEquals(JDBCUrl.DBType.MYSQL, url.getDBType());
+
+        url = new JDBCUrl("jdbc:drizzle://whoa:pass@www.drizzle.org/aa");
+        assertEquals("whoa",url.getUsername());
+        assertEquals("pass",url.getPassword());
+        assertEquals("www.drizzle.org",url.getHostname());
+        assertEquals(4427,url.getPort());
+        assertEquals("aa",url.getDatabase());
+        assertEquals(JDBCUrl.DBType.DRIZZLE, url.getDBType());
+
+        url = new JDBCUrl("jdbc:mysql:thin://whoa:pass@www.drizzle.org/aa");
+        assertEquals("whoa",url.getUsername());
+        assertEquals("pass",url.getPassword());
+        assertEquals("www.drizzle.org",url.getHostname());
+        assertEquals(3306,url.getPort());
+        assertEquals("aa",url.getDatabase());
+        assertEquals(JDBCUrl.DBType.MYSQL, url.getDBType());
+
+        url = new JDBCUrl("jdbc:drizzle://whoa:pass@www.drizzle.org/cc");
+        assertEquals("whoa",url.getUsername());
+        assertEquals("pass",url.getPassword());
+        assertEquals("www.drizzle.org",url.getHostname());
+        assertEquals(4427,url.getPort());
+        assertEquals("cc",url.getDatabase());
+        assertEquals(JDBCUrl.DBType.DRIZZLE, url.getDBType());
+
+        url = new JDBCUrl("jdbc:mysql:thin://whoa:pass@www.drizzle.org/cc");
+        assertEquals("whoa",url.getUsername());
+        assertEquals("pass",url.getPassword());
+        assertEquals("www.drizzle.org",url.getHostname());
+        assertEquals(3306,url.getPort());
+        assertEquals("cc",url.getDatabase());
+        assertEquals(JDBCUrl.DBType.MYSQL, url.getDBType());
+
+        url = new JDBCUrl("jdbc:drizzle://whoa:pass@www.drizzle.org/bbb");
+        assertEquals("whoa",url.getUsername());
+        assertEquals("pass",url.getPassword());
+        assertEquals("www.drizzle.org",url.getHostname());
+        assertEquals(4427,url.getPort());
+        assertEquals("bbb",url.getDatabase());
+        assertEquals(JDBCUrl.DBType.DRIZZLE, url.getDBType());
+
+        url = new JDBCUrl("jdbc:mysql:thin://whoa:pass@www.drizzle.org/bbb");
+        assertEquals("whoa",url.getUsername());
+        assertEquals("pass",url.getPassword());
+        assertEquals("www.drizzle.org",url.getHostname());
+        assertEquals(3306,url.getPort());
+        assertEquals("bbb",url.getDatabase());
+        assertEquals(JDBCUrl.DBType.MYSQL, url.getDBType());
+
+        url = new JDBCUrl("jdbc:drizzle://whoa:pass@www.drizzle.org/bbb/");
+        assertEquals("whoa",url.getUsername());
+        assertEquals("pass",url.getPassword());
+        assertEquals("www.drizzle.org",url.getHostname());
+        assertEquals(4427,url.getPort());
+        assertEquals("bbb",url.getDatabase());
+        assertEquals(JDBCUrl.DBType.DRIZZLE, url.getDBType());
+
+        url = new JDBCUrl("jdbc:mysql:thin://whoa:pass@www.drizzle.org/bbb/");
+        assertEquals("whoa",url.getUsername());
+        assertEquals("pass",url.getPassword());
+        assertEquals("www.drizzle.org",url.getHostname());
+        assertEquals(3306,url.getPort());
+        assertEquals("bbb",url.getDatabase());
+        assertEquals(JDBCUrl.DBType.MYSQL, url.getDBType());
+
     }
-*/
+
     @Test
     public void testEscapes() throws SQLException {
         String query = "select * from t1 where test = ?";
