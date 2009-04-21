@@ -37,9 +37,9 @@ public class AsyncPacketFetcher implements Runnable, PacketFetcher {
             }
         }
         try {
-            executorService.shutdown();
+            executorService.shutdownNow();
             inputStream.close();
-            shutdownLatch.countDown();
+            //shutdownLatch.countDown();
         } catch (IOException e) {
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         }
