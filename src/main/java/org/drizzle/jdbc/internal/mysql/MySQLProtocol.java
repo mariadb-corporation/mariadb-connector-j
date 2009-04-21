@@ -252,7 +252,12 @@ public class MySQLProtocol implements Protocol {
             throw new QueryException("Could not send query",e);
         }
 
-        RawPacket rawPacket = packetFetcher.getRawPacket();
+        RawPacket rawPacket = null;
+        try {
+            rawPacket = packetFetcher.getRawPacket();
+        } catch (IOException e) {
+            throw new QueryException("Could not fetch query result",e);
+        }
         ResultPacket resultPacket = ResultPacketFactory.createResultPacket(rawPacket);
 
         switch(resultPacket.getResultType()) {

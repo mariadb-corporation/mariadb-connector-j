@@ -98,12 +98,11 @@ public class DrizzleProtocol implements Protocol {
     public void close() throws QueryException {
         log.debug("Closing...");
         try {
+            packetFetcher.close(); // by sending the close packet now, the response will act as a poison pill for the reading thread
             ClosePacket closePacket = new ClosePacket();
             closePacket.send(writer);
-            packetFetcher.close();
-
+            packetFetcher.awaitTermination();
             writer.close();
-            //reader.close();
             socket.close();
 
         } catch(IOException e){
@@ -246,7 +245,12 @@ public class DrizzleProtocol implements Protocol {
             throw new QueryException("Could not send query",e);
         }
 
-        RawPacket rawPacket = packetFetcher.getRawPacket();
+        RawPacket rawPacket = null;
+        try {
+            rawPacket = packetFetcher.getRawPacket();
+        } catch (IOException e) {
+            throw new QueryException("Could not fetch query result",e);
+        }
         ResultPacket resultPacket = ResultPacketFactory.createResultPacket(rawPacket);
 
         switch(resultPacket.getResultType()) {

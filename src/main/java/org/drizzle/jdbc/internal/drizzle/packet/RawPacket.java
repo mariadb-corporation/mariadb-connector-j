@@ -18,6 +18,9 @@ public class RawPacket {
         for(int i=0;i<length;i++)
             rawBytes[i]= (byte) is.read();
     }
+    public RawPacket() {
+        this.rawBytes=null;
+    }
 
     private  byte readPacketSeq(InputStream reader) throws IOException {
         return (byte)reader.read();

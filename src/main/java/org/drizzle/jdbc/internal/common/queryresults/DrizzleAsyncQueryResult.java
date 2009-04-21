@@ -7,6 +7,7 @@ import org.drizzle.jdbc.internal.drizzle.packet.RowPacket;
 import org.drizzle.jdbc.internal.drizzle.packet.buffer.ReadUtil;
 
 import java.util.*;
+import java.io.IOException;
 
 /**
  * TODO: refactor, badly need to split this into two/three different classes, one for insert/update/ddl, one for selects and one for generated keys?
@@ -35,7 +36,12 @@ public class DrizzleAsyncQueryResult implements SelectQueryResult {
     }
 
     public boolean next() {
-        RawPacket rawPacket = packetFetcher.getRawPacket();
+        RawPacket rawPacket = null;
+        try {
+            rawPacket = packetFetcher.getRawPacket();
+        } catch (IOException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
         if(ReadUtil.eofIsNext(rawPacket)) {
             hasReadEOF=true;
             return false;
@@ -48,7 +54,12 @@ public class DrizzleAsyncQueryResult implements SelectQueryResult {
 
     public void close() {
         while(!hasReadEOF) {
-            RawPacket rp  = packetFetcher.getRawPacket();
+            RawPacket rp  = null;
+            try {
+                rp = packetFetcher.getRawPacket();
+            } catch (IOException e) {
+                e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+            }
             if(ReadUtil.eofIsNext(rp)) {
                 this.hasReadEOF=true;
             }

@@ -12,6 +12,7 @@ import java.io.IOException;
  * To change this template use File | Settings | File Templates.
  */
 public interface PacketFetcher {
-    RawPacket getRawPacket();
+    RawPacket getRawPacket() throws IOException;
     void close() throws IOException;
+    void awaitTermination();
 }

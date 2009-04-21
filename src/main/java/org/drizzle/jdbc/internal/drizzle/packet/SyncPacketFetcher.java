@@ -19,15 +19,15 @@ public class SyncPacketFetcher implements PacketFetcher {
     public SyncPacketFetcher(InputStream is) {
         this.inputStream = new ReadAheadInputStream(is);
     }
-    public RawPacket getRawPacket() {
-        try {
-            return new RawPacket(inputStream);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    public RawPacket getRawPacket() throws IOException {
+        return new RawPacket(inputStream);
     }
 
     public void close() throws IOException {
         inputStream.close();
     }
+
+    public void awaitTermination() {
+    }
+
 }
