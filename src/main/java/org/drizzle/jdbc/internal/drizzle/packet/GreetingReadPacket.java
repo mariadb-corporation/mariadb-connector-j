@@ -7,6 +7,7 @@ import org.drizzle.jdbc.internal.drizzle.ServerCapabilities;
 import java.io.InputStream;
 import java.io.IOException;
 import java.util.Set;
+import java.util.Arrays;
 
 /**
  * Greeting from drizzle looks like this
@@ -18,31 +19,34 @@ public class GreetingReadPacket {
     private final String serverVersion;
     private final byte protocolVersion;
     private final long serverThreadID;
-    private final byte[] seed1;
-    private final byte[] seed2;
+    //private final byte[] seed1;
+    //private final byte[] seed2;
     private final Set<ServerCapabilities> serverCapabilities ;
     private final byte serverLanguage;
     private final Set<ServerStatus> serverStatus;
+    private final byte[] seed;
 
     public GreetingReadPacket(InputStream istream) throws IOException {
         Reader reader = new Reader(istream);
         protocolVersion = reader.readByte();
         serverVersion = reader.readString("ASCII");
         serverThreadID = reader.readInt();
-        seed1 = reader.readRawBytes(8);
+        byte [] seed1 = reader.readRawBytes(8);
         reader.skipByte();
         serverCapabilities = ServerCapabilities.getServerCapabilitiesSet(reader.readShort());
         serverLanguage = reader.readByte();
         serverStatus = ServerStatus.getServerStatusSet(reader.readShort());
         reader.skipBytes(13);
-        seed2=reader.readRawBytes(13);
+        byte [] seed2=reader.readRawBytes(13);
+        seed = Arrays.copyOf(seed1, seed1.length+seed2.length);
+        System.arraycopy(seed2,0,seed,seed1.length,seed2.length);
     }
     @Override
     public String toString(){
         return protocolVersion+":"+
                 serverVersion+":"+
                 serverThreadID+":"+
-                seed1+":"+
+                seed+":"+
                 serverCapabilities+":"+
                 serverLanguage+":"+
                 serverStatus;
@@ -63,31 +67,19 @@ public class GreetingReadPacket {
         return serverThreadID;
     }
 
-
-
-    public byte[] getSeed1() {
-        return seed1;
+    public byte[] getSeed() {
+        return seed;
     }
 
     public Set<ServerCapabilities> getServerCapabilities() {
         return serverCapabilities;
     }
 
-
-
     public byte getServerLanguage() {
         return serverLanguage;
     }
-
-
-
+    
     public Set<ServerStatus> getServerStatus() {
         return serverStatus;
     }
-
-
-    public byte[] getSeed2() {
-        return seed2;
-    }
-
 }

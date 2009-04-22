@@ -32,7 +32,6 @@ public class DrizzleResultSetMetaData implements ResultSetMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public int getColumnCount() throws SQLException {
-        log.debug("Getting column count: "+fieldPackets.size());
         return fieldPackets.size();
     }
 
@@ -92,7 +91,6 @@ public class DrizzleResultSetMetaData implements ResultSetMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public int isNullable(int column) throws SQLException {
-        log.debug("Checking if col is nullable");
         if(getColumnInformation(column).getFlags().contains(ColumnFlags.NOT_NULL))
             return ResultSetMetaData.columnNoNulls;
         else
@@ -107,7 +105,6 @@ public class DrizzleResultSetMetaData implements ResultSetMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public boolean isSigned(int column) throws SQLException {
-        log.debug("Checking if col is signed");
         return true; //only signed numbers in drizzle
     }
 

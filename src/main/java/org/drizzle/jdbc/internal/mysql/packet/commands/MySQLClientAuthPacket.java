@@ -4,10 +4,12 @@ import org.drizzle.jdbc.internal.drizzle.packet.buffer.WriteBuffer;
 import org.drizzle.jdbc.internal.drizzle.packet.CommandPacket;
 import org.drizzle.jdbc.internal.drizzle.ServerCapabilities;
 import org.drizzle.jdbc.internal.mysql.MySQLServerCapabilities;
+import org.drizzle.jdbc.internal.common.Utils;
 
 import java.util.Set;
 import java.io.OutputStream;
 import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
 
 /**
  4                            client_flags
@@ -54,30 +56,37 @@ public class MySQLClientAuthPacket implements CommandPacket {
     private final String password;
     private final String database;
 
-    public MySQLClientAuthPacket(String username,String password,String database, Set<MySQLServerCapabilities> serverCapabilities) {
+    public MySQLClientAuthPacket(String username,String password,String database, Set<MySQLServerCapabilities> serverCapabilities, byte[] seed) {
         writeBuffer = new WriteBuffer();
         this.username=username;
         this.password=password;
         this.database=database;
         this.serverCapabilities=serverCapabilities;
+        byte [] scrambledPassword;
+        try {
+            scrambledPassword = Utils.encryptPassword(password,seed);
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("Could not use SHA-1, failing",e); 
+        }
         writeBuffer.writeInt(MySQLServerCapabilities.fromSet(serverCapabilities)).
-                writeInt(4+4+1+23+username.length()+1+1+1+database.length()+1).
+                writeInt(4+4+1+23+username.length()+1+scrambledPassword.length+1+database.length()+1).
                     writeByte(serverLanguage). //1
-                    writeBytes((byte)0,23).    //4
+                    writeBytes((byte)0,23).    //23
                     writeString(username).     //strlen username
                     writeByte((byte)0).        //1
-                    //writeString(scramblePassword(password)) //strlen(scramb)
-                    writeByte((byte)0).        //1
-                    writeByte((byte)0).
+                    writeByte((byte)scrambledPassword.length).
+                    writeByteArray(scrambledPassword). //scrambledPassword.length
                     writeString(database).     //strlen(database)
                     writeByte((byte)0);
+        System.out.println(scrambledPassword.length);
     }
 
 
     public void send(OutputStream os) throws IOException {
         byte [] buff = writeBuffer.toByteArrayWithLength((byte)1);
-        for(byte b:buff)
+        for(byte b:buff){
             os.write(b);
+        }
         os.flush();
     }
 }

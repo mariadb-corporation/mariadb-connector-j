@@ -19,7 +19,7 @@ import static junit.framework.Assert.assertEquals;
 public class DriverTest {
     public static String host = "localhost";
     private Connection connection;
-  //  static { BasicConfigurator.configure(); }
+    static { BasicConfigurator.configure(); }
 
     public DriverTest() throws SQLException {
         try {
@@ -27,8 +27,8 @@ public class DriverTest {
         } catch (ClassNotFoundException e) {
             throw new SQLException("Could not load driver");
         }
-        //connection = DriverManager.getConnection("jdbc:mysql:thin://mr_slave@"+host+":3306/test_units_jdbc");
-        connection = DriverManager.getConnection("jdbc:drizzle://"+host+":4427/test_units_jdbc");
+        connection = DriverManager.getConnection("jdbc:mysql:thin://aaa:bbb@"+host+":3306/test_units_jdbc");
+        //connection = DriverManager.getConnection("jdbc:drizzle://"+host+":4427/test_units_jdbc");
 
         Statement stmt = connection.createStatement();
         try { stmt.execute("drop table t1"); } catch (Exception e) {}

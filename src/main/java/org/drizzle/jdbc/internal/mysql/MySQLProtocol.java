@@ -78,20 +78,23 @@ public class MySQLProtocol implements Protocol {
         try {
             InputStream reader = new BufferedInputStream(socket.getInputStream(),1638);
             writer = new BufferedOutputStream(socket.getOutputStream(),1638);
-
             GreetingReadPacket greetingPacket = new GreetingReadPacket(reader);
             log.debug("Got greeting packet: {}",greetingPacket);
             this.version=greetingPacket.getServerVersion();
-/*            Set<ServerCapabilities> serverCapabilities = greetingPacket.getServerCapabilities();
-            serverCapabilities.removeAll(EnumSet.of(ServerCapabilities.SSL, ServerCapabilities.ODBC, ServerCapabilities.NO_SCHEMA));
-            serverCapabilities.addAll(EnumSet.of(ServerCapabilities.CONNECT_WITH_DB));*/
-            Set<MySQLServerCapabilities> capabilities = EnumSet.of(MySQLServerCapabilities.LONG_PASSWORD,MySQLServerCapabilities.CONNECT_WITH_DB,MySQLServerCapabilities.IGNORE_SPACE,MySQLServerCapabilities.CLIENT_PROTOCOL_41, MySQLServerCapabilities.TRANSACTIONS);
-            MySQLClientAuthPacket cap = new MySQLClientAuthPacket(this.username,this.password,this.database,capabilities);
+            Set<MySQLServerCapabilities> capabilities = EnumSet.of(MySQLServerCapabilities.LONG_PASSWORD,MySQLServerCapabilities.CONNECT_WITH_DB,MySQLServerCapabilities.IGNORE_SPACE,MySQLServerCapabilities.CLIENT_PROTOCOL_41, MySQLServerCapabilities.TRANSACTIONS,MySQLServerCapabilities.SECURE_CONNECTION);
+            MySQLClientAuthPacket cap = new MySQLClientAuthPacket(this.username,this.password,this.database,capabilities,greetingPacket.getSeed());
             cap.send(writer);
             log.debug("Sending auth packet: {}",cap);
             packetFetcher = new AsyncPacketFetcher(reader);
             RawPacket rp = packetFetcher.getRawPacket();
-            selectDB(this.database);
+            ResultPacket resultPacket = ResultPacketFactory.createResultPacket(rp);
+            if(resultPacket.getResultType()==ResultPacket.ResultType.ERROR){
+                ErrorPacket ep = (ErrorPacket)resultPacket;
+                String message = ((ErrorPacket)resultPacket).getMessage();
+                throw new QueryException("Could not connect: "+message);
+            } else {
+                System.out.println(resultPacket);
+            }
             setAutoCommit(true);
         } catch (IOException e) {
             throw new QueryException("Could not connect",e);

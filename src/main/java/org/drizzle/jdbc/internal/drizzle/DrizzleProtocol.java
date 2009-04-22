@@ -77,15 +77,22 @@ public class DrizzleProtocol implements Protocol {
             log.debug("Got greeting packet: {}",greetingPacket);
             this.version=greetingPacket.getServerVersion();
             Set<ServerCapabilities> serverCapabilities = greetingPacket.getServerCapabilities();
+
             serverCapabilities.removeAll(EnumSet.of(ServerCapabilities.SSL, ServerCapabilities.ODBC, ServerCapabilities.NO_SCHEMA));
             serverCapabilities.addAll(EnumSet.of(ServerCapabilities.CONNECT_WITH_DB));
             ClientAuthPacket cap = new ClientAuthPacket(this.username,this.password,this.database,serverCapabilities);
             cap.send(writer);
             log.debug("Sending auth packet: {}",cap);
             packetFetcher = new AsyncPacketFetcher(reader);
-            packetFetcher.getRawPacket();
-            selectDB(this.database);
-            setAutoCommit(true);
+            RawPacket rawPacket = packetFetcher.getRawPacket();
+            ResultPacket rp = ResultPacketFactory.createResultPacket(rawPacket);
+            if(rp.getResultType()==ResultPacket.ResultType.ERROR){
+                String message = ((ErrorPacket)rp).getMessage();
+                throw new QueryException("Could not connect: "+message);
+            }
+            // default when connecting is to have autocommit = 1.
+            if(!((OKPacket)rp).getServerStatus().contains(ServerStatus.AUTOCOMMIT))
+                setAutoCommit(true);
         } catch (IOException e) {
             throw new QueryException("Could not connect",e);
         }

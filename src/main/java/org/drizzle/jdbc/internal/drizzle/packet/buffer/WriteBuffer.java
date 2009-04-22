@@ -17,6 +17,10 @@ public class WriteBuffer {
         buffer.add(theByte);
         return this;
     }
+    public WriteBuffer writeByteArray(byte [] bytes) {
+        for(byte b:bytes) this.writeByte(b);
+        return this;
+    }
     public WriteBuffer writeBytes(byte theByte, int count) {
         for(int i=0;i<count;i++)
             this.writeByte(theByte);

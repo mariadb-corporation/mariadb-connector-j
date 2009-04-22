@@ -60,14 +60,14 @@ public class ClientAuthPacket implements CommandPacket {
         this.database=database;
         this.serverCapabilities=serverCapabilities;
         writeBuffer.writeInt(ServerCapabilities.fromSet(serverCapabilities)).
-                writeInt(4+4+1+23+username.length()+1+1+1+database.length()+1).
+                writeInt(4+4+1+23+username.length()+1+1+database.length()+1).
                     writeByte(serverLanguage). //1
-                    writeBytes((byte)0,23).    //4
+                    writeBytes((byte)0,23).    //23
                     writeString(username).     //strlen username
                     writeByte((byte)0).        //1
                     //writeString(scramblePassword(password)) //strlen(scramb)
                     writeByte((byte)0).        //1
-                    writeByte((byte)0).
+                    //writeByte((byte)0).
                     writeString(database).     //strlen(database)
                     writeByte((byte)0);
     }
