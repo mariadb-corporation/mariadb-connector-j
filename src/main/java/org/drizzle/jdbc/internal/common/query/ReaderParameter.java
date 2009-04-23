@@ -1,5 +1,7 @@
 package org.drizzle.jdbc.internal.common.query;
 
+import static org.drizzle.jdbc.internal.common.Utils.needsEscaping;
+
 import java.io.Reader;
 import java.io.OutputStream;
 import java.io.IOException;
@@ -11,20 +13,24 @@ import java.io.IOException;
  */
 public class ReaderParameter implements ParameterHolder {
     private final long length;
-    private Reader reader;
-
-    public ReaderParameter(Reader reader, long length) {
-        this.reader=reader;
-        this.length=length+2; // beginning and ending "
+    private final byte[] buffer;
+    public ReaderParameter(Reader reader, long length) throws IOException {
+        buffer = new byte[(int) (length*2) + 2];
+        int pos=0;
+        buffer[pos++] = '"';
+        for(int i = 0;i<length;i++) {
+            byte b = (byte) reader.read();
+            if(needsEscaping(b))
+                buffer[pos++]='\\';
+            buffer[pos++]=b;
+        }
+        buffer[pos++] = '"';
+        this.length = pos;
     }
 
     public void writeTo(OutputStream os) throws IOException {
-        int ch;
-        os.write('"');
-        while((ch=reader.read())!=-1) {
-            os.write(ch);
-        }
-        os.write('"');
+        os.write(buffer,0, (int) length);
+        os.flush();
     }
 
     public long length() {

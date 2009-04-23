@@ -22,6 +22,7 @@ public class BufferedStreamParameter implements ParameterHolder{
         byte b;
         byte [] tempByteRepresentation=new byte[1000];
         int pos = 0;
+        tempByteRepresentation[pos++]='"';
         while((b= (byte) is.read())!=-1) {
             if(pos>tempByteRepresentation.length-2) { //need two places in worst case
                 tempByteRepresentation=Arrays.copyOf(tempByteRepresentation,tempByteRepresentation.length*2);
@@ -30,15 +31,14 @@ public class BufferedStreamParameter implements ParameterHolder{
                 tempByteRepresentation[pos++]='\\';
             tempByteRepresentation[pos++]=b;
         }
+        tempByteRepresentation[pos++]='"';
         length=pos;
         byteRepresentation=tempByteRepresentation;
 
     }
 
     public void writeTo(OutputStream os) throws IOException {
-        for(byte b: byteRepresentation) {
-            os.write(b);
-        }
+        os.write(byteRepresentation,0,length);
     }
 
     public long length() {

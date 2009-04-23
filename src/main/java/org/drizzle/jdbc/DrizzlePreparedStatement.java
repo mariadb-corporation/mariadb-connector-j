@@ -151,7 +151,12 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      */
     public void setCharacterStream(int parameterIndex, Reader reader, int length) throws SQLException {
         log.info("Setting char stream at {}",parameterIndex);
-        setParameter(parameterIndex, new ReaderParameter(reader,length));
+        try {
+            setParameter(parameterIndex, new ReaderParameter(reader,length));
+        } catch (IOException e) {
+            throw new SQLException("Could not read stream: "+e.getMessage(),e);
+
+        }
     }
 
     /**
@@ -190,7 +195,11 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      */
     public void setBlob(int parameterIndex, Blob x) throws SQLException {
         log.info("Setting blob at {}",parameterIndex);
-        setParameter(parameterIndex, new StreamParameter(x.getBinaryStream(),x.length()));
+        try {
+            setParameter(parameterIndex, new StreamParameter(x.getBinaryStream(),x.length()));
+        } catch (IOException e) {
+            throw new SQLException("Could not read stream",e);
+        }
     }
 
     /**
@@ -556,7 +565,11 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.6
      */
     public void setBlob(int parameterIndex, InputStream inputStream, long length) throws SQLException {
-        setParameter(parameterIndex, new StreamParameter(inputStream,length));
+        try {
+            setParameter(parameterIndex, new StreamParameter(inputStream,length));
+        } catch (IOException e) {
+            throw new SQLException("Could not read stream",e);
+        }
     }
 
     /**
@@ -689,7 +702,11 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.6
      */
     public void setAsciiStream(int parameterIndex, InputStream x, long length) throws SQLException {
-        setParameter(parameterIndex, new StreamParameter(x,length));
+        try {
+            setParameter(parameterIndex, new StreamParameter(x,length));
+        } catch (IOException e) {
+            throw new SQLException("Could not read stream",e);
+        }
     }
 
     /**
@@ -713,7 +730,11 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.6
      */
     public void setBinaryStream(int parameterIndex, InputStream x, long length) throws SQLException {
-        setParameter(parameterIndex, new StreamParameter(x,length));
+        try {
+            setParameter(parameterIndex, new StreamParameter(x,length));
+        } catch (IOException e) {
+            throw new SQLException("Could not read stream",e);
+        }
     }
 
     /**
@@ -739,7 +760,11 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.6
      */
     public void setCharacterStream(int parameterIndex, Reader reader, long length) throws SQLException {
-        setParameter(parameterIndex, new ReaderParameter(reader,length));
+        try {
+            setParameter(parameterIndex, new ReaderParameter(reader,length));
+        } catch (IOException e) {
+            throw new SQLException("Could not read stream: "+e.getMessage(),e);
+        }
     }//-----
     /**
      * This function reads up the entire stream and stores it in memory since
@@ -1087,7 +1112,11 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      *                               this method is called on a closed <code>PreparedStatement</code>
      */
     public void setAsciiStream(int parameterIndex, InputStream x, int length) throws SQLException {
-        setParameter(parameterIndex,new StreamParameter(x,length));
+        try {
+            setParameter(parameterIndex,new StreamParameter(x,length));
+        } catch (IOException e) {
+            throw new SQLException("Could not read stream",e);
+        }
     }
 
     /**
@@ -1120,7 +1149,11 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @deprecated
      */
     public void setUnicodeStream(int parameterIndex, InputStream x, int length) throws SQLException {
-        setParameter(parameterIndex,new StreamParameter(x,length));
+        try {
+            setParameter(parameterIndex,new StreamParameter(x,length));
+        } catch (IOException e) {
+            throw new SQLException("Could not read stream",e);
+        }
     }
 
     /**
@@ -1143,7 +1176,11 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      *                               this method is called on a closed <code>PreparedStatement</code>
      */
     public void setBinaryStream(int parameterIndex, InputStream x, int length) throws SQLException {
-        setParameter(parameterIndex,new StreamParameter(x,length));
+        try {
+            setParameter(parameterIndex,new StreamParameter(x,length));
+        } catch (IOException e) {
+            throw new SQLException("Could not read stream",e);
+        }
     }
 
     /**

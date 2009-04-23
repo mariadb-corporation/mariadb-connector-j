@@ -93,6 +93,7 @@ public class DrizzleResultSet implements ResultSet {
         }
         throw new SQLException("Cannot get data from update-result sets");
     }
+    
     private ValueObject getValueObject(String column) throws SQLException {
         if(queryResult.getResultSetType()== ResultSetType.SELECT) {
             ValueObject vo = null;

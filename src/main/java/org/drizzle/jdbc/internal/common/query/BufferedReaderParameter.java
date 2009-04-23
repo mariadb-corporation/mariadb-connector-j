@@ -22,6 +22,7 @@ public class BufferedReaderParameter implements ParameterHolder {
         byte b;
         byte [] tempByteRepresentation=new byte[1000];
         int pos = 0;
+        tempByteRepresentation[pos++]=(byte)'"';
         while((b= (byte) reader.read())!=-1) {
             if(pos>tempByteRepresentation.length-2) { //need two places in worst case
                 tempByteRepresentation= Arrays.copyOf(tempByteRepresentation,tempByteRepresentation.length*2);
@@ -30,6 +31,7 @@ public class BufferedReaderParameter implements ParameterHolder {
                 tempByteRepresentation[pos++]='\\';
             tempByteRepresentation[pos++]=b;
         }
+        tempByteRepresentation[pos++]=(byte)'"';
         length=pos;
         byteRepresentation=tempByteRepresentation;
     }

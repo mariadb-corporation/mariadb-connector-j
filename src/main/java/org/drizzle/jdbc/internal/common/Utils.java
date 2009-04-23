@@ -62,6 +62,25 @@ public class Utils {
         }
         return count;
     }
+
+    /**
+     * encrypts a password
+     *
+     * protocol for authentication is like this:
+     * 1. mysql server sends a random array of bytes (the seed)
+     * 2. client makes a sha1 digest of the password
+     * 3. client hashes the output of 2
+     * 4. client digests the seed
+     * 5. client updates the digest with the output from 3
+     * 6. an xor of the output of 5 and 2 is sent to server
+     * 7. server does the same thing and verifies that the scrambled passwords match
+     * 
+     *
+     * @param password the password to encrypt
+     * @param seed the seed to use
+     * @return a scrambled password
+     * @throws NoSuchAlgorithmException if SHA1 is not available on the platform we are using
+     */
     public static byte[] encryptPassword(String password, byte [] seed) throws NoSuchAlgorithmException {
         if(password == null || password.equals("")) return new byte[0];
         

@@ -245,6 +245,7 @@ public class DrizzleProtocol implements Protocol {
     public QueryResult executeQuery(Query dQuery) throws QueryException {
         log.debug("Executing streamed query: {}",dQuery);
         StreamedQueryPacket packet = new StreamedQueryPacket(dQuery);
+
         int i=0;
         try {
             packet.send(writer);

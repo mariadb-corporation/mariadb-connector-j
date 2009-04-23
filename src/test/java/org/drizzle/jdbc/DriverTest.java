@@ -8,6 +8,7 @@ import org.apache.log4j.BasicConfigurator;
 
 import java.sql.*;
 import java.util.List;
+import java.io.*;
 
 import static junit.framework.Assert.assertEquals;
 
@@ -474,6 +475,86 @@ public class DriverTest {
                 System.out.printf("%x ",b);
             }
             System.out.printf("\n");
+        }
+    }
+    
+    @Test
+    public void testCharacterStreams() throws SQLException, IOException {
+        connection.createStatement().execute("drop table if exists streamtest");
+        connection.createStatement().execute("create table streamtest (id int, strm text)");
+        PreparedStatement stmt = connection.prepareStatement("insert into streamtest (id, strm) values (?,?)");
+        stmt.setInt(1,2);
+        String toInsert = "abcdefgh\njklmn\"";
+        Reader reader = new StringReader(toInsert);
+        stmt.setCharacterStream(2, reader);
+        stmt.execute();
+        ResultSet rs = connection.createStatement().executeQuery("select * from streamtest");
+        rs.next();
+        Reader rdr = rs.getCharacterStream("strm");
+        StringBuilder sb = new StringBuilder();
+        int ch;
+        while((ch = rdr.read()) != -1) {
+            sb.append((char)ch);
+        }
+        assertEquals(sb.toString(),(toInsert));
+    }
+    @Test
+    public void testCharacterStreamWithLength() throws SQLException, IOException {
+        connection.createStatement().execute("drop table if exists streamtest2");
+        connection.createStatement().execute("create table streamtest2 (id int, strm text)");
+        PreparedStatement stmt = connection.prepareStatement("insert into streamtest2 (id, strm) values (?,?)");
+        stmt.setInt(1,2);
+        String toInsert = "abcdefgh\njklmn\"";
+        Reader reader = new StringReader(toInsert);
+        stmt.setCharacterStream(2, reader, 5);
+        stmt.execute();
+        ResultSet rs = connection.createStatement().executeQuery("select * from streamtest2");
+        rs.next();
+        Reader rdr = rs.getCharacterStream("strm");
+        StringBuilder sb = new StringBuilder();
+        int ch;
+        while((ch = rdr.read()) != -1) {
+            sb.append((char)ch);
+        }
+        assertEquals(sb.toString(),toInsert.substring(0,5));
+    }
+
+    @Test
+    public void testBlob() throws SQLException, IOException {
+        connection.createStatement().execute("drop table if exists blobtest");
+        connection.createStatement().execute("create table blobtest (id int, strm blob)");
+        PreparedStatement stmt = connection.prepareStatement("insert into blobtest (id, strm) values (?,?)");
+        byte [] theBlob = {1,2,3,4,5,6};
+        InputStream stream = new ByteArrayInputStream(theBlob);
+        stmt.setInt(1,1);
+        stmt.setBlob(2,stream);
+        stmt.execute();
+        ResultSet rs = connection.createStatement().executeQuery("select * from blobtest");
+        rs.next();
+        InputStream readStuff = rs.getBlob("strm").getBinaryStream();
+        int ch;
+        int pos=0;
+        while((ch = readStuff.read())!=-1) {
+            assertEquals(theBlob[pos++],ch);
+        }
+    }
+   @Test
+    public void testBlobWithLength() throws SQLException, IOException {
+        connection.createStatement().execute("drop table if exists blobtest");
+        connection.createStatement().execute("create table blobtest (id int, strm blob)");
+        PreparedStatement stmt = connection.prepareStatement("insert into blobtest (id, strm) values (?,?)");
+        byte [] theBlob = {1,2,3,4,5,6};
+        InputStream stream = new ByteArrayInputStream(theBlob);
+        stmt.setInt(1,1);
+        stmt.setBlob(2,stream,4);
+        stmt.execute();
+        ResultSet rs = connection.createStatement().executeQuery("select * from blobtest");
+        rs.next();
+        InputStream readStuff = rs.getBlob("strm").getBinaryStream();
+        int ch;
+        int pos=0;
+        while((ch = readStuff.read())!=-1) {
+            assertEquals(theBlob[pos++],ch);
         }
     }
 }

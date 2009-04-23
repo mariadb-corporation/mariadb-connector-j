@@ -6,6 +6,7 @@ import java.sql.SQLFeatureNotSupportedException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.IOException;
+import java.io.ByteArrayInputStream;
 import java.util.Arrays;
 
 /**
@@ -17,7 +18,6 @@ import java.util.Arrays;
 public class DrizzleBlob extends OutputStream implements Blob {
     private byte [] blobContent;
     private int actualSize;
-    private InputStream inputStream;
 
     public DrizzleBlob(){
     }
@@ -113,7 +113,7 @@ public class DrizzleBlob extends OutputStream implements Blob {
      * @since 1.2
      */
     public InputStream getBinaryStream() throws SQLException {
-        return this.inputStream;
+        return new ByteArrayInputStream(this.blobContent);
     }
 
     /**
@@ -356,6 +356,6 @@ public class DrizzleBlob extends OutputStream implements Blob {
      * @since 1.6
      */
     public InputStream getBinaryStream(long pos, long length) throws SQLException {
-        return inputStream;
+        return new ByteArrayInputStream(Arrays.copyOfRange(blobContent,(int)pos,(int)length));
     }
 }
