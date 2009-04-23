@@ -94,7 +94,7 @@ public class DrizzleProtocol implements Protocol {
             if(!((OKPacket)rp).getServerStatus().contains(ServerStatus.AUTOCOMMIT))
                 setAutoCommit(true);
         } catch (IOException e) {
-            throw new QueryException("Could not connect",e);
+            throw new QueryException("Could not connect: "+e.getMessage(),e);
         }
     }
 

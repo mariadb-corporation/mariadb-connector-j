@@ -76,8 +76,8 @@ public class MySQLProtocol implements Protocol {
         log.info("Connected to: {}:{}",host,port);
         batchList=new ArrayList<Query>();
         try {
-            InputStream reader = new BufferedInputStream(socket.getInputStream(),1638);
-            writer = new BufferedOutputStream(socket.getOutputStream(),1638);
+            InputStream reader = new BufferedInputStream(socket.getInputStream(),16384);
+            writer = new BufferedOutputStream(socket.getOutputStream(),16384);
             GreetingReadPacket greetingPacket = new GreetingReadPacket(reader);
             log.debug("Got greeting packet: {}",greetingPacket);
             this.version=greetingPacket.getServerVersion();
@@ -92,10 +92,12 @@ public class MySQLProtocol implements Protocol {
                 ErrorPacket ep = (ErrorPacket)resultPacket;
                 String message = ((ErrorPacket)resultPacket).getMessage();
                 throw new QueryException("Could not connect: "+message);
-            } else {
-                System.out.println(resultPacket);
+            } else if(resultPacket.getResultType()==ResultPacket.ResultType.OK) {
+                OKPacket okp = (OKPacket)resultPacket;
+                if(!okp.getServerStatus().contains(ServerStatus.AUTOCOMMIT))
+                    setAutoCommit(true);
             }
-            setAutoCommit(true);
+
         } catch (IOException e) {
             throw new QueryException("Could not connect",e);
         }

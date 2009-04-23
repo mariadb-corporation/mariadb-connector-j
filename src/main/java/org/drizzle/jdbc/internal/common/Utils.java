@@ -62,21 +62,23 @@ public class Utils {
         }
         return count;
     }
-    public static byte[] encryptPassword(String password, byte[] seed) throws NoSuchAlgorithmException {
+    public static byte[] encryptPassword(String password, byte [] seed) throws NoSuchAlgorithmException {
         if(password == null || password.equals("")) return new byte[0];
         
         MessageDigest messageDigest = MessageDigest.getInstance("SHA-1");
         byte [] stage1 = messageDigest.digest(password.getBytes());
         messageDigest.reset();
+
         byte [] stage2 = messageDigest.digest(stage1);
         messageDigest.reset();
 
         messageDigest.update(seed);
         messageDigest.update(stage2);
+        
         byte[] digest = messageDigest.digest();
-        byte [] returnBytes = new byte[digest.length];
+        byte[] returnBytes = new byte[digest.length];
         for(int i = 0 ; i<digest.length; i++) {
-            returnBytes[i] = (byte) (digest[i]^stage1[i]);            
+            returnBytes[i] = (byte) (stage1[i]^digest[i]);            
         }
         return returnBytes;
     }

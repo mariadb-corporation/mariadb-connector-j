@@ -37,9 +37,10 @@ public class GreetingReadPacket {
         serverLanguage = reader.readByte();
         serverStatus = ServerStatus.getServerStatusSet(reader.readShort());
         reader.skipBytes(13);
-        byte [] seed2=reader.readRawBytes(13);
+        byte [] seed2=reader.readRawBytes(12);
         seed = Arrays.copyOf(seed1, seed1.length+seed2.length);
         System.arraycopy(seed2,0,seed,seed1.length,seed2.length);
+        reader.readByte(); // seems the seed is null terminated
     }
     @Override
     public String toString(){
