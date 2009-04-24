@@ -1,8 +1,22 @@
 <project>
     <modelVersion>4.0.0</modelVersion>
-    <groupId>org.drizzle</groupId>
+    <groupId>org.drizzle.jdbc</groupId>
     <artifactId>drizzle-jdbc</artifactId>
+    <packaging>jar</packaging>
+    <name>Drizzle-JDBC</name>
     <version>0.1</version>
+    <description>BSD Licensed JDBC driver for Drizzle</description>
+    <url>http://launchpad.net/drizzle-jdbc/</url>
+    <licenses>
+        <license>
+            <name>BSD</name>
+            <url>http://www.linfo.org/bsdlicense.html</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+    <scm>
+        <url>scm:bazaar:lp:drizzle-jdbc</url>
+    </scm> 
     <build>
         <plugins>
             <plugin>
@@ -70,10 +84,14 @@
             </plugin>
         </plugins>
     </reporting>
-    <pluginRepositories>
-       <pluginRepository>
-          <id>snapshots.repository.codehaus.org</id>
-          <url>http://snapshots.repository.codehaus.org</url>
-       </pluginRepository>
-    </pluginRepositories>    
+
+    <distributionManagement>
+        <repository>
+          <uniqueVersion>false</uniqueVersion>
+          <id>marcuslocal</id>
+          <name>Marcus Local Repo</name>
+          <url>scp://marcus.no-ip.biz:/var/www/html/mavenrepo/</url>
+          <layout>default</layout>
+        </repository>
+    </distributionManagement>
 </project>
