@@ -557,4 +557,10 @@ public class DriverTest {
             assertEquals(theBlob[pos++],ch);
         }
     }
+    @Test
+    public void testEmptyResultSet() throws SQLException {
+        connection.createStatement().execute("drop table if exists emptytest");
+        connection.createStatement().execute("create table emptytest (id int)");
+        connection.createStatement().execute("SELECT * FROM emptytest");
+    }
 }

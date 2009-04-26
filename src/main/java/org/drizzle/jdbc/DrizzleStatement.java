@@ -59,7 +59,7 @@ public class DrizzleStatement implements Statement {
         try {
             if(dqr!=null) dqr.close();
             dqr = protocol.executeQuery(queryFactory.createQuery(query));
-            if(dqr.getRows() > 0) {
+            if(dqr.getResultSetType() == ResultSetType.SELECT) {
                 setResultSet(new DrizzleResultSet(dqr,this));
                 return true;
             }
