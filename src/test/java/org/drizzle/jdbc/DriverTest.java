@@ -561,6 +561,8 @@ public class DriverTest {
     public void testEmptyResultSet() throws SQLException {
         connection.createStatement().execute("drop table if exists emptytest");
         connection.createStatement().execute("create table emptytest (id int)");
-        connection.createStatement().execute("SELECT * FROM emptytest");
+        Statement stmt = connection.createStatement();
+        assertEquals(true,stmt.execute("SELECT * FROM emptytest"));
+        assertEquals(false,stmt.getResultSet().next());
     }
 }
