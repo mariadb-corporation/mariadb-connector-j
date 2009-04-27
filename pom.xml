@@ -17,6 +17,34 @@
     <scm>
         <url>scm:bazaar:lp:drizzle-jdbc</url>
     </scm> 
+
+    <ciManagement>
+      <system>hudson</system>
+      <url>http://marcus.no-ip.biz/hudson/</url>
+    </ciManagement>
+    <issueManagement>
+      <system>Launchpad</system>
+      <url>http://bugs.launchpad.net/drizzle-jdbc/</url>
+    </issueManagement>
+    <mailingLists>
+      <mailingList>
+	<name>drizzle-discuss</name>
+	<archive>https://lists.launchpad.net/drizzle-discuss/</archive>
+      </mailingList>
+    </mailingLists>
+    <developers>
+      <developer>
+	<id>marcuse</id>
+	<name>Marcus ERiksson</name>
+	<email>krummas@gmail.com</email>
+	<url>http://developian.blogspot.com</url>
+	<roles>
+          <role>developer</role>
+	</roles>
+	<timezone>+1</timezone>
+      </developer>
+    </developers>
+
     <build>
         <plugins>
             <plugin>
@@ -88,10 +116,15 @@
     <distributionManagement>
         <repository>
           <uniqueVersion>false</uniqueVersion>
-          <id>marcuslocal</id>
-          <name>Marcus Local Repo</name>
-          <url>scp://marcus.no-ip.biz:/var/www/html/mavenrepo/</url>
+          <id>local</id>
+          <name>Local Repo</name>
+          <url>scp://jdbc.drizzle.org/var/www/html/drizzle-jdbc/mavenrepo/releases/</url>
           <layout>default</layout>
         </repository>
+	<site>
+	  <id>drizzle-jdbc.website</id>
+	  <name>Drizzle JDBC website</name>
+	  <url>scp://jdbc.drizzle.org/var/www/html/drizzle-jdbc/</url>
+	</site>
     </distributionManagement>
 </project>
