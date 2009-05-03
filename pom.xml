@@ -15,8 +15,8 @@
         </license>
     </licenses>
     <scm>
-        <url>scm:bazaar:lp:drizzle-jdbc</url>
-	<developerConnection>scm:bazaar:lp:drizzle-jdbc</developerConnection>
+        <url>scm:bazaar:sftp://bazaar.launchpad.net/~krummas/drizzle-jdbc/</url>
+	<developerConnection>scm:bazaar:sftp://bazaar.launchpad.net/~krummas/drizzle-jdbc/</developerConnection>
     </scm> 
 
     <ciManagement>
