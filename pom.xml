@@ -4,7 +4,7 @@
     <artifactId>drizzle-jdbc</artifactId>
     <packaging>jar</packaging>
     <name>Drizzle-JDBC</name>
-    <version>0.1</version>
+    <version>0.1-SNAPSHOT</version>
     <description>BSD Licensed JDBC driver for Drizzle</description>
     <url>http://launchpad.net/drizzle-jdbc/</url>
     <licenses>
@@ -15,8 +15,10 @@
         </license>
     </licenses>
     <scm>
-        <url>scm:bazaar:sftp://krummas@bazaar.launchpad.net/~krummas/drizzle-jdbc/trunk</url>
-	<developerConnection>scm:bazaar:sftp://krummas@bazaar.launchpad.net/~krummas/drizzle-jdbc/trunk/</developerConnection>
+        <connection>scm:bazaar:sftp://krummas@bazaar.launchpad.net/~krummas/drizzle-jdbc/trunk/</connection>
+        <url>http://code.launchpad.net/drizzle-jdbc</url>
+	    <developerConnection>scm:bazaar:sftp://krummas@bazaar.launchpad.net/~krummas/drizzle-jdbc/trunk/</developerConnection>
+        <tag>HEAD</tag>
     </scm> 
 
     <ciManagement>
@@ -35,14 +37,14 @@
     </mailingLists>
     <developers>
       <developer>
-	<id>marcuse</id>
-	<name>Marcus ERiksson</name>
-	<email>krummas@gmail.com</email>
-	<url>http://developian.blogspot.com</url>
-	<roles>
+	    <id>marcuse</id>
+	    <name>Marcus Eriksson</name>
+	    <email>krummas@gmail.com</email>
+	    <url>http://developian.blogspot.com</url>
+	    <roles>
           <role>developer</role>
-	</roles>
-	<timezone>+1</timezone>
+    	</roles>
+	    <timezone>+1</timezone>
       </developer>
     </developers>
 
@@ -117,12 +119,18 @@
     <distributionManagement>
         <repository>
           <uniqueVersion>false</uniqueVersion>
-          <id>local</id>
-          <name>Local Repo</name>
+          <id>local.release</id>
+          <name>Local release repo</name>
           <url>scp://jdbc.drizzle.org/var/www/html/drizzle-jdbc/mavenrepo/releases/</url>
           <layout>default</layout>
         </repository>
-	<site>
+        <snapshotRepository>
+            <id>local.snapshot</id>
+            <name>Local snapshot repo</name>
+            <url>scp://jdbc.drizzle.org/var/www/html/drizzle-jdbc/mavenrepo/snapshots/</url>
+            <layout>default</layout>
+        </snapshotRepository>
+    <site>
 	  <id>drizzle-jdbc.website</id>
 	  <name>Drizzle JDBC website</name>
 	  <url>scp://jdbc.drizzle.org/var/www/html/drizzle-jdbc/</url>
