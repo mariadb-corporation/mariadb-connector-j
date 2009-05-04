@@ -565,4 +565,19 @@ public class DriverTest {
         assertEquals(true,stmt.execute("SELECT * FROM emptytest"));
         assertEquals(false,stmt.getResultSet().next());
     }
+    @Test
+    public void testLongColName() throws SQLException {
+        connection.createStatement().execute("drop table if exists longcol");
+        DatabaseMetaData dbmd = connection.getMetaData();
+        String str="";
+        for(int i =0;i<dbmd.getMaxColumnNameLength();i++) {
+            str+="x";   
+        }
+        connection.createStatement().execute("create table longcol ("+str+" int)");
+        connection.createStatement().execute("insert into longcol values (1)");
+        ResultSet rs = connection.createStatement().executeQuery("select * from longcol");
+        assertEquals(true,rs.next());
+        assertEquals(1, rs.getInt(1));
+        assertEquals(1,rs.getInt(str));
+    }
 }

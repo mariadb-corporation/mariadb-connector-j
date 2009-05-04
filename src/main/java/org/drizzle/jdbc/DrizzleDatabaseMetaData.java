@@ -313,7 +313,7 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
     }
 
     /**
-     * Retrieves a comma-separated list of all of this database's SQL keywords
+     *Retrieves a comma-separated list of all of this database's SQL keywords
      * that are NOT also SQL:2003 keywords.
      *
      * @return the list of this database's keywords that are not also
@@ -746,7 +746,7 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public boolean isCatalogAtStart() throws SQLException {
-        return false;
+        return true;
     }
 
     /**
@@ -757,7 +757,7 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public String getCatalogSeparator() throws SQLException {
-        return "";
+        return ".";
     }
 
     /**
@@ -1530,7 +1530,7 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @see #getSearchStringEscape
      */
     public ResultSet getProcedureColumns(String catalog, String schemaPattern, String procedureNamePattern, String columnNamePattern) throws SQLException {
-log.info("getting empty result set, proc columns");
+        log.info("getting empty result set, proc columns");
         return getEmptyResultSet();
     }
 
