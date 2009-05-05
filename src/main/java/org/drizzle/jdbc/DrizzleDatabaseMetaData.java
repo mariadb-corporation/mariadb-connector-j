@@ -1994,7 +1994,7 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      */
     public ResultSet getVersionColumns(String catalog, String schema, String table) throws SQLException {
         //TODO: check this!
-    log.info("getting empty result set, version columns");
+        log.info("getting empty result set, version columns");
         return getEmptyResultSet();
     }
 
@@ -2028,12 +2028,16 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public ResultSet getPrimaryKeys(String catalog, String schema, String table) throws SQLException {
-        String query = "SELECT null table_cat, " +
-                        "table_schema table_schem, " +
+        // TODO: REDO
+        String query = "SELECT table_catalog TABLE_CAT, " +
+                        "table_schema TABLE_SCHEM, " +
                         "table_name, " +
                         "column_name, " +
-                        "1 key_seq," +
-                        "null pk_name FROM information_schema.columns WHERE table_name='"+table+"' AND column_key='pri'";
+                        "ordinal_position KEY_SEQ," +
+                        "null pk_name " +
+                "FROM information_schema.columns " +
+                "WHERE table_name='"+table+"' AND column_key='pri'";
+
         if(schema!=null)
             query += " AND table_schema = '"+schema+"'";
         query+=" ORDER BY column_name";
@@ -2128,6 +2132,41 @@ s
      * given table's primary key columns (the foreign keys exported by a
      * table).  They are ordered by FKTABLE_CAT, FKTABLE_SCHEM,
      * FKTABLE_NAME, and KEY_SEQ.
+     *
+     *  THE QUERY:
+SELECT null PKTABLE_CAT, 
+	kcu.referenced_table_schema PKTABLE_SCHEM,
+	kcu.referenced_table_name PKTABLE_NAME,
+	kcu.referenced_column_name PKCOLUMN_NAME,
+	null FKTABLE_CAT,
+	kcu.table_schema FKTABLE_SCHEM,
+	kcu.table_name FKTABLE_NAME,
+	kcu.column_name FKCOLUMN_NAME,
+	kcu.position_in_unique_constraint KEY_SEQ,
+	CASE update_rule
+		WHEN 'RESTRICT' THEN 1
+		WHEN 'NO ACTION' THEN 3
+		WHEN 'CASCADE' THEN 0
+		WHEN 'SET NULL' THEN 2
+		WHEN 'SET DEFAULT' THEN 4
+	END UPDATE_RULE,
+	CASE delete_rule
+		WHEN 'RESTRICT' THEN 1
+		WHEN 'NO ACTION' THEN 3
+		WHEN 'CASCADE' THEN 0
+		WHEN 'SET NULL' THEN 2
+		WHEN 'SET DEFAULT' THEN 4
+	END UPDATE_RULE,
+	rc.constraint_name FK_NAME,
+	null PK_NAME,
+	6 DEFERRABILITY
+FROM information_schema.key_column_usage kcu
+INNER JOIN information_schema.referential_constraints rc
+ON kcu.constraint_schema=rc.constraint_schema
+AND kcu.constraint_name=rc.constraint_name
+WHERE kcu.table_schema='key_tests' AND kcu.referenced_table_name='a'
+ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ
+     *
      * <p/>
      * <P>Each foreign key column description has the following columns:
      * <OL>
@@ -2200,9 +2239,40 @@ s
      * @see #getImportedKeys
      */
     public ResultSet getExportedKeys(String catalog, String schema, String table) throws SQLException {
-        //TODO: FIX
-        log.info("getting empty result set, exported keys");
-        return getEmptyResultSet();
+        String query = "SELECT null PKTABLE_CAT, \n" +
+                "kcu.referenced_table_schema PKTABLE_SCHEM, \n" +
+                "kcu.referenced_table_name PKTABLE_NAME, \n" +
+                "kcu.referenced_column_name PKCOLUMN_NAME, \n" +
+                "null FKTABLE_CAT, \n" +
+                "kcu.table_schema FKTABLE_SCHEM, \n" +
+                "kcu.table_name FKTABLE_NAME, \n" +
+                "kcu.column_name FKCOLUMN_NAME, \n" +
+                "kcu.position_in_unique_constraint KEY_SEQ,\n" +
+                "CASE update_rule \n" +
+                "   WHEN 'RESTRICT' THEN 1\n" +
+                "   WHEN 'NO ACTION' THEN 3\n" +
+                "   WHEN 'CASCADE' THEN 0\n" +
+                "   WHEN 'SET NULL' THEN 2\n" +
+                "   WHEN 'SET DEFAULT' THEN 4\n" +
+                "END UPDATE_RULE,\n" +
+                "CASE delete_rule \n" +
+                "   WHEN 'RESTRICT' THEN 1\n" +
+                "   WHEN 'NO ACTION' THEN 3\n" +
+                "   WHEN 'CASCADE' THEN 0\n" +
+                "   WHEN 'SET NULL' THEN 2\n" +
+                "   WHEN 'SET DEFAULT' THEN 4\n" +
+                "END UPDATE_RULE,\n" +
+                "rc.constraint_name FK_NAME,\n" +
+                "null PK_NAME,\n" +
+                "6 DEFERRABILITY\n" +
+                "FROM information_schema.key_column_usage kcu\n" +
+                "INNER JOIN information_schema.referential_constraints rc\n" +
+                "ON kcu.constraint_schema=rc.constraint_schema\n" +
+                "AND kcu.constraint_name=rc.constraint_name\n" +
+                "WHERE "+(schema!=null?"kcu.table_schema='"+schema+"' AND ":"")+"kcu.referenced_table_name='"+table+"'" +
+                "ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ";
+        Statement stmt = connection.createStatement();
+        return stmt.executeQuery(query);
     }
 
     /**
