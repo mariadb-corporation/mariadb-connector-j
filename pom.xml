@@ -37,14 +37,14 @@
     </mailingLists>
     <developers>
       <developer>
-	    <id>marcuse</id>
-	    <name>Marcus Eriksson</name>
-	    <email>krummas@gmail.com</email>
-	    <url>http://developian.blogspot.com</url>
-	    <roles>
+	<id>marcuse</id>
+	<name>Marcus Eriksson</name>
+	<email>krummas@gmail.com</email>
+	<url>http://developian.blogspot.com</url>
+	<roles>
           <role>developer</role>
     	</roles>
-	    <timezone>+1</timezone>
+	<timezone>+1</timezone>
       </developer>
     </developers>
 
@@ -63,6 +63,20 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>2.4.2</version>
             </plugin>
+	    <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-gpg-plugin</artifactId>
+              <executions>
+		<execution>
+		  <id>sign-artifacts</id>
+		  <phase>verify</phase>
+		  <goals>
+		    <goal>sign</goal>
+		  </goals>
+		</execution>
+              </executions>
+	    </plugin>
+      
 <!--            <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>emma-maven-plugin</artifactId>
@@ -117,7 +131,9 @@
     </reporting>
 
     <distributionManagement>
+
         <repository>
+
           <uniqueVersion>false</uniqueVersion>
           <id>local.release</id>
           <name>Local release repo</name>
