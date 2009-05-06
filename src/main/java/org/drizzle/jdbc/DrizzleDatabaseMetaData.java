@@ -2028,7 +2028,6 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public ResultSet getPrimaryKeys(String catalog, String schema, String table) throws SQLException {
-        // TODO: REDO
         String query = "SELECT table_catalog TABLE_CAT, " +
                         "table_schema TABLE_SCHEM, " +
                         "table_name, " +
@@ -2122,9 +2121,40 @@ s
      * @see #getExportedKeys
      */
     public ResultSet getImportedKeys(String catalog, String schema, String table) throws SQLException {
-        //TODO: FIX!
-        log.info("getting empty result set, imported keys");
-        return getEmptyResultSet();
+        String query = "SELECT null PKTABLE_CAT, \n" +
+                "kcu.referenced_table_schema PKTABLE_SCHEM, \n" +
+                "kcu.referenced_table_name PKTABLE_NAME, \n" +
+                "kcu.referenced_column_name PKCOLUMN_NAME, \n" +
+                "null FKTABLE_CAT, \n" +
+                "kcu.table_schema FKTABLE_SCHEM, \n" +
+                "kcu.table_name FKTABLE_NAME, \n" +
+                "kcu.column_name FKCOLUMN_NAME, \n" +
+                "kcu.position_in_unique_constraint KEY_SEQ,\n" +
+                "CASE update_rule \n" +
+                "   WHEN 'RESTRICT' THEN 1\n" +
+                "   WHEN 'NO ACTION' THEN 3\n" +
+                "   WHEN 'CASCADE' THEN 0\n" +
+                "   WHEN 'SET NULL' THEN 2\n" +
+                "   WHEN 'SET DEFAULT' THEN 4\n" +
+                "END UPDATE_RULE,\n" +
+                "CASE delete_rule \n" +
+                "   WHEN 'RESTRICT' THEN 1\n" +
+                "   WHEN 'NO ACTION' THEN 3\n" +
+                "   WHEN 'CASCADE' THEN 0\n" +
+                "   WHEN 'SET NULL' THEN 2\n" +
+                "   WHEN 'SET DEFAULT' THEN 4\n" +
+                "END UPDATE_RULE,\n" +
+                "rc.constraint_name FK_NAME,\n" +
+                "null PK_NAME,\n" +
+                "6 DEFERRABILITY\n" +
+                "FROM information_schema.key_column_usage kcu\n" +
+                "INNER JOIN information_schema.referential_constraints rc\n" +
+                "ON kcu.constraint_schema=rc.constraint_schema\n" +
+                "AND kcu.constraint_name=rc.constraint_name\n" +
+                "WHERE "+(schema!=null?"kcu.table_schema='"+schema+"' AND ":"")+"kcu.table_name='"+table+"'" +
+                "ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ";
+        Statement stmt = connection.createStatement();
+        return stmt.executeQuery(query);
     }
 
     /**
@@ -2269,7 +2299,7 @@ ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ
                 "INNER JOIN information_schema.referential_constraints rc\n" +
                 "ON kcu.constraint_schema=rc.constraint_schema\n" +
                 "AND kcu.constraint_name=rc.constraint_name\n" +
-                "WHERE "+(schema!=null?"kcu.table_schema='"+schema+"' AND ":"")+"kcu.referenced_table_name='"+table+"'" +
+                "WHERE "+(schema!=null?"kcu.referenced_table_schema='"+schema+"' AND ":"")+"kcu.referenced_table_name='"+table+"'" +
                 "ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ";
         Statement stmt = connection.createStatement();
         return stmt.executeQuery(query);
@@ -2440,8 +2470,6 @@ ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ
      * <p/>
      * <P>Each index column description has the following columns:
      * <OL>
-
-       
      * <LI><B>TABLE_CAT</B> String => table catalog (may be <code>null</code>)
      * <LI><B>TABLE_SCHEM</B> String => table schema (may be <code>null</code>)
      * <LI><B>TABLE_NAME</B> String => table name
@@ -3167,7 +3195,8 @@ SELECT null table_cat,       table_schema table_schem,       table_name,       n
         String query = "SELECT schema_name table_schem, " +
                 "null table_catalog " +
                 "FROM information_schema.schemata " +
-                (schemaPattern!=null?"WHERE schema_name like '"+schemaPattern+"'":"");
+                (schemaPattern!=null?"WHERE schema_name like '"+schemaPattern+"'":"")+
+                " ORDER BY table_schem";
         return connection.createStatement().executeQuery(query);
     }
 

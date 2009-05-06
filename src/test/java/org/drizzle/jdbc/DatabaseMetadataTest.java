@@ -64,4 +64,44 @@ public class DatabaseMetadataTest {
         }
         assertEquals(2,i);
     }
+    @Test
+    public void importedKeysTest() throws SQLException {
+        Statement stmt = connection.createStatement();
+        stmt.execute("drop table if exists fore_key0");
+        stmt.execute("drop table if exists fore_key1");
+        stmt.execute("drop table if exists prim_key");
+
+
+        stmt.execute("create table prim_key (id int not null primary key, " +
+                                            "val varchar(20))");
+        stmt.execute("create table fore_key0 (id int not null primary key, " +
+                                            "id_ref0 int, foreign key (id_ref0) references prim_key(id))");
+        stmt.execute("create table fore_key1 (id int not null primary key, " +
+                                            "id_ref1 int, foreign key (id_ref1) references prim_key(id) on update cascade)");
+
+
+        DatabaseMetaData dbmd = connection.getMetaData();
+        ResultSet rs = dbmd.getImportedKeys("","test_units_jdbc","fore_key0");
+        int i =0 ;
+        while(rs.next()) {
+            assertEquals("id",rs.getString("pkcolumn_name"));
+            assertEquals("prim_key",rs.getString("pktable_name"));
+            i++;
+       }
+        assertEquals(1,i);
+    }
+    @Test
+    public void testGetSchemas() throws SQLException {
+        DatabaseMetaData dbmd = connection.getMetaData();
+        ResultSet rs = dbmd.getSchemas(null,"information_schema");
+        assertEquals(true,rs.next());
+        assertEquals("information_schema",rs.getString("table_schem"));
+        assertEquals(false,rs.next());
+        rs = dbmd.getSchemas(null,"test_units_jdbc");
+        assertEquals(true,rs.next());
+        assertEquals("test_units_jdbc",rs.getString("table_schem"));
+        assertEquals(false,rs.next());
+
+    }
+
 }
