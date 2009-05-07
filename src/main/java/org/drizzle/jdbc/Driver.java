@@ -33,7 +33,6 @@ import java.util.regex.Pattern;
 public class Driver implements java.sql.Driver {
     private JDBCUrl jdbcUrl;
     private static final Logger log = LoggerFactory.getLogger(Driver.class);
-    private String databaseType;
 
     static {
         try {
@@ -43,6 +42,16 @@ public class Driver implements java.sql.Driver {
         }
     }
 
+    /**
+     * Connect to the given connection string
+     *
+     * the properties are currently ignored
+     *
+     * @param url the url to connect to
+     * @param info the properties of the connection - ignored at the moment
+     * @return a connection
+     * @throws SQLException if it is not possible to connect
+     */
     public Connection connect(String url, Properties info) throws SQLException {
         // TODO: handle the properties!
         // TODO: define what props we support!
@@ -61,19 +70,27 @@ public class Driver implements java.sql.Driver {
         }
     }
 
-/*    public static JDBCUrl parseUrl(String url) {
-
-        return null;
-    }*/
-
-
+    /**
+     * returns true if the driver can accept the url
+     * @param url the url to test
+     * @return true if the url is valid for this driver
+     * @throws SQLException not in this implementation
+     */
     public boolean acceptsURL(String url) throws SQLException {
         return url.startsWith("jdbc:drizzle://") || url.startsWith("jdbc:mysql:thin://");
     }
 
+    /**
+     * get the property info
+     * @param url
+     * @param info
+     * @return
+     * @throws SQLException
+     */
     public DriverPropertyInfo[] getPropertyInfo(String url, Properties info) throws SQLException {
         return new DriverPropertyInfo[0];
     }
+
 
     public int getMajorVersion() {
         return 0;

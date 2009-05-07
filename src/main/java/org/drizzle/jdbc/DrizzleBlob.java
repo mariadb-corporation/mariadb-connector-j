@@ -33,9 +33,11 @@ public class DrizzleBlob extends OutputStream implements Blob {
 
     public DrizzleBlob(byte[] bytes) {
         this.blobContent=bytes;
+        this.actualSize=bytes.length;
     }
 
     /**
+     *
      * Writes the specified byte to this output stream. The general
      * contract for <code>write</code> is that one byte is written
      * to the output stream. The byte to be written is the eight
@@ -102,10 +104,9 @@ public class DrizzleBlob extends OutputStream implements Blob {
      * @since 1.2
      */
     public byte[] getBytes(long pos, int length) throws SQLException {
-        if(pos+length<blobContent.length) {
-            return Arrays.copyOfRange(blobContent, (int)pos, (int) (pos + length));
-        }
-        return null;
+        if(pos<1) throw new SQLException("Pos starts at 1");
+        if(pos+length > actualSize) throw new SQLException("Out of bounds");
+        return Arrays.copyOfRange(blobContent, (int)pos, (int) (pos + length));
     }
 
     /**
@@ -144,7 +145,22 @@ public class DrizzleBlob extends OutputStream implements Blob {
      * @since 1.2
      */
     public long position(byte pattern[], long start) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Not yet supported");
+        if(start < 1) throw new SQLException("Start should be > 0, first position is 1...");
+        if(start > actualSize) throw new SQLException("Start should be <= "+actualSize);
+        long actualStart = start -1;
+        for(int i= (int) actualStart;i<actualSize;i++) {
+            if(blobContent[i] == pattern[0]){
+                boolean isEqual=true;
+                for(int j=1;j<pattern.length;j++) {
+                    if(i+j >= actualSize) return -1;
+                    if(blobContent[i+j]!=pattern[j]) {
+                        isEqual=false;
+                    }
+                }
+                if(isEqual) return i+1;
+            }
+        }
+        return -1;
     }
 
     /**
@@ -166,7 +182,7 @@ public class DrizzleBlob extends OutputStream implements Blob {
      * @since 1.2
      */
     public long position(Blob pattern, long start) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Not yet supported");
+        return position(pattern.getBytes(1, (int) pattern.length()),start);
     }
 
     /**
