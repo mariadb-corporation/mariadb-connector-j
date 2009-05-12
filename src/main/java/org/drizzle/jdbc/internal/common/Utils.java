@@ -116,23 +116,36 @@ public class Utils {
      *
      * format:
      * <pre>
-     * 5 bytes| 6 bytes | 6 bytes  | the rest    |
-     * 0 .. 4 | 5 .. 11 | 12 .. 17 | 18 .. 32    |
-     *  hours | minutes | seconds  | millis      |
+     * The part of the day, stored in a 4 byte integer as follows:
+     *
+     * | 31 | 30 | 29 | 28 | 27 | 26 | 25 | 24 |
+     * | mS | mS | mS | mS | mS | mS | mS | mS |
+     * | 23 | 22 | 21 | 20 | 19 | 18 | 17 | 16 |
+     * | mS | mS | mS | mS | mS | mS | mS | SS |
+     * | 15 | 14 | 13 | 12 | 11 | 10 | 09 | 08 |
+     * | SS | SS | SS | SS | SS | MM | MM | MM |
+     * | 07 | 06 | 05 | 04 | 03 | 02 | 01 | 00 |
+     * | MM | MM | MM | HH | HH | HH | HH | HH |
      * </pre>
      * @param milliseconds the milliseconds to pack
      * @return a packed integer containing the time
      */
 
     public static int packTime(long milliseconds) {
+        static int START_BIT_MILLISECONDS = 17;
+        static int START_BIT_SECONDS = 11;
+        static int START_BIT_MINUTES = 5;
+
         int millis = (int) (milliseconds%1000);
         int seconds = (int) ((milliseconds/1000)%60);
         int minutes= (int) ((milliseconds/(1000*60))%60);
         int hours = (int) ((milliseconds/(1000*60*60))%24);
-        int storeVal = hours<<(32-5); // five bytes
-        storeVal = storeVal | (minutes << (32-11)); // 6 bytes
-        storeVal = storeVal | (seconds << (32-17)); // 6 bytes
-        storeVal = storeVal | millis;  // the rest
+
+        /* OK, now we pack the pieces into a 4-byte integer */
+        int storeVal = ((int) millis * (2 << START_BIT_MILLISECONDS))
+                     + ((int) seconds * (2 << START_BIT_SECONDS))
+                     + ((int) minutes * (2 << START_BIT_MINUTES))
+                     + hours;
         return storeVal;
     }
 
@@ -143,15 +156,24 @@ public class Utils {
      * @return a millisecond time
      */
     public static long unpackTime(int packedTime) {
-        long hours = (packedTime >> 32-5)&0x1f;
-        int last6bits = 0x3f;
-        long minutes = packedTime >> ((32 - 11)) & last6bits;
-        long seconds = packedTime >> ((32 - 17)) & last6bits;
-        long millis = packedTime & 0xfff;
-        long returnValue = (hours * 60*60*1000);
-        returnValue += (minutes*60*1000);
-        returnValue += seconds * 1000;
-        returnValue += millis;
+        /* 
+         * These masks allow us to "cut up" the packed integer into 
+         * its components.
+         */
+        static int MASK_HOURS         = 0x0000001F;
+        static int MASK_MINUTES       = 0x000007D0;
+        static int MASK_SECONDS       = 0x0001F800;
+        static int MASK_MILLISECONDS  = 0xFFF70000;
+
+        int hours = (packedTime & MASK_HOURS);
+        int minutes = (packedTime & MASK_MINUTES);
+        int seconds = (packedTime & MASK_SECONDS);
+        int millis = (packedTime & MASK_MILLISECONDS);
+
+        long returnValue = (long) (hours * 60*60*1000);
+        returnValue += (long) (minutes*60*1000);
+        returnValue += (long) seconds * 1000;
+        returnValue += (long) millis;
         return returnValue;
     }
 }
