@@ -110,4 +110,48 @@ public class Utils {
         }
         return returnBytes;
     }
+
+    /**
+     * packs the time portion of a millisecond time stamp into an int
+     *
+     * format:
+     * <pre>
+     * 5 bytes| 6 bytes | 6 bytes  | the rest    |
+     * 0 .. 4 | 5 .. 11 | 12 .. 17 | 18 .. 32    |
+     *  hours | minutes | seconds  | millis      |
+     * </pre>
+     * @param milliseconds the milliseconds to pack
+     * @return a packed integer containing the time
+     */
+
+    public static int packTime(long milliseconds) {
+        int millis = (int) (milliseconds%1000);
+        int seconds = (int) ((milliseconds/1000)%60);
+        int minutes= (int) ((milliseconds/(1000*60))%60);
+        int hours = (int) ((milliseconds/(1000*60*60))%24);
+        int storeVal = hours<<(32-5); // five bytes
+        storeVal = storeVal | (minutes << (32-11)); // 6 bytes
+        storeVal = storeVal | (seconds << (32-17)); // 6 bytes
+        storeVal = storeVal | millis;  // the rest
+        return storeVal;
+    }
+
+    /**
+     * unpacks an integer packed by packTime
+     * @see Utils#packTime(long)
+     * @param packedTime the packed time
+     * @return a millisecond time
+     */
+    public static long unpackTime(int packedTime) {
+        long hours = (packedTime >> 32-5)&0x1f;
+        int last6bits = 0x3f;
+        long minutes = packedTime >> ((32 - 11)) & last6bits;
+        long seconds = packedTime >> ((32 - 17)) & last6bits;
+        long millis = packedTime & 0xfff;
+        long returnValue = (hours * 60*60*1000);
+        returnValue += (minutes*60*1000);
+        returnValue += seconds * 1000;
+        returnValue += millis;
+        return returnValue;
+    }
 }

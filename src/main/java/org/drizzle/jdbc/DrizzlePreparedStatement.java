@@ -328,9 +328,9 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.2
      */
     public void setTime(int parameterIndex, Time time, Calendar cal) throws SQLException {
-        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
-        sdf.setCalendar(cal);
-        setParameter(parameterIndex,new StringParameter(sdf.format(time)));
+//        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+//        sdf.setCalendar(cal);
+        setParameter(parameterIndex,new TimeParameter(time.getTime()));
     }
 
     /**
@@ -1069,6 +1069,10 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
     }
 
     /**
+     * Since Drizzle has no TIME datatype, time in milliseconds is stored in a packed integer
+     * @see org.drizzle.jdbc.internal.common.Utils#packTime(long)
+     * @see org.drizzle.jdbc.internal.common.Utils#unpackTime(int)
+     *
      * Sets the designated parameter to the given <code>java.sql.Time</code> value.
      * The driver converts this
      * to an SQL <code>TIME</code> value when it sends it to the database.
@@ -1080,8 +1084,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      *                               this method is called on a closed <code>PreparedStatement</code>
      */
     public void setTime(int parameterIndex, Time x) throws SQLException {
-        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:dd");
-        setParameter(parameterIndex,new StringParameter(sdf.format(x)));
+        setParameter(parameterIndex,new TimeParameter(x.getTime()));
     }
 
     /**

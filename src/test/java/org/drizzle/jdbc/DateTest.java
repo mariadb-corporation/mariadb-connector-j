@@ -1,8 +1,12 @@
 package org.drizzle.jdbc;
 
 import org.junit.Test;
+import org.drizzle.jdbc.internal.common.Utils;
 
 import java.sql.*;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.TimeZone;
 
 import static junit.framework.Assert.assertEquals;
 
@@ -25,23 +29,37 @@ public class DateTest {
 
         Statement stmt = connection.createStatement();
         stmt.executeUpdate("drop table if exists date_test");
-        stmt.executeUpdate("create table date_test (d_test date,dt_test datetime)");
+        stmt.executeUpdate("create table date_test (d_test date,dt_test datetime, t_test int)");
         Date date = Date.valueOf("2009-01-17");
-//        Time time = Time.valueOf("15:41:01");
         Timestamp timestamp = Timestamp.valueOf("2009-01-17 15:41:01");
-        PreparedStatement ps = connection.prepareStatement("insert into date_test values (?,?)");
+        Time time = Time.valueOf("23:59:59");
+        PreparedStatement ps = connection.prepareStatement("insert into date_test values (?,?,?)");
         ps.setDate(1,date);
-//        ps.setTime(2,time);
         ps.setTimestamp(2,timestamp);
+        ps.setTime(3,time);
         ps.executeUpdate();
         ResultSet rs = stmt.executeQuery("select * from date_test");
         assertEquals(true,rs.next());
         Date date2 = rs.getDate(1);
-//        Time time2=rs.getTime(2);
+        Time time2=rs.getTime(3);
         Timestamp timestamp2=rs.getTimestamp(2);
         assertEquals(date.toString(), date2.toString());
-//        assertEquals(time.toString(), time2.toString());
+        assertEquals(time.toString(), time2.toString());
         assertEquals(timestamp.toString(), timestamp2.toString());
 
+    }
+
+    @Test
+    public void timePackTest() {
+        for(int hours = 0;hours<24;hours++) {
+            for(int minutes=0;minutes<60;minutes++) {
+                for(int seconds = 0;seconds<60;seconds++) {
+                    long millis = hours*60*60*1000 + minutes*60*1000 + seconds*1000;
+                    int packed = Utils.packTime(millis);
+                    long unPacked = Utils.unpackTime(packed);
+                    assertEquals(millis, unPacked);
+                }
+            }
+        }
     }
 }

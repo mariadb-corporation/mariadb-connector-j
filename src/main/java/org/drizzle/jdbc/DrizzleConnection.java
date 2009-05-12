@@ -134,7 +134,6 @@ public class DrizzleConnection implements Connection, ReplicationConnection {
      * <p/>
      * If the driver does not support catalogs, it will
      * silently ignore this request.
-     * TODO: Explain the wrapper interface to be able to change database
      *
      * @param catalog the name of a catalog (subspace in this
      *                <code>Connection</code> object's database) in which to work

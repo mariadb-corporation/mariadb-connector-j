@@ -88,12 +88,19 @@ public class DrizzleValueObject implements ValueObject {
         return new Date(utilDate.getTime());
     }
 
+    /**
+     * Since drizzle has no TIME datatype, JDBC Time is stored in a packed integer
+     * 
+     * @see Utils#packTime(long)
+     * @see Utils#unpackTime(int) 
+     * @return the time
+     * @throws ParseException
+     */
     public Time getTime() throws ParseException {
         if(rawBytes==null) return null;
-        String rawValue = getString();
-        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
-        java.util.Date utilTime = sdf.parse(rawValue);
-        return new Time(utilTime.getTime());
+        int packedValue = getInt();
+        long timestamp = Utils.unpackTime(packedValue);
+        return new Time(timestamp);
     }
     public Timestamp getTimestamp() throws ParseException {
         if(rawBytes==null) return null;
