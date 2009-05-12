@@ -18,6 +18,18 @@ import java.security.NoSuchAlgorithmException;
  * Time: 8:40:51 PM
  */
 public class Utils {
+    private static final int START_BIT_MILLISECONDS = 17;
+    private static final  int START_BIT_SECONDS = 11;
+    private static final  int START_BIT_MINUTES = 5;
+    /*
+     * These masks allow us to "cut up" the packed integer into
+     * its components.
+     */
+    private static final int MASK_HOURS         = 0x0000001F;
+    private static final int MASK_MINUTES       = 0x000007E0;
+    private static final int MASK_SECONDS       = 0x0001F800;
+    private static final int MASK_MILLISECONDS  = 0xFFFE0000;
+
     /**
      * returns true if the byte b needs to be escaped
      * @param b the byte to check
@@ -131,24 +143,19 @@ public class Utils {
      * @return a packed integer containing the time
      */
 
-    public static int packTime(long milliseconds) {
-        static int START_BIT_MILLISECONDS = 17;
-        static int START_BIT_SECONDS = 11;
-        static int START_BIT_MINUTES = 5;
 
+    public static int packTime(long milliseconds) {
         int millis = (int) (milliseconds%1000);
         int seconds = (int) ((milliseconds/1000)%60);
         int minutes= (int) ((milliseconds/(1000*60))%60);
         int hours = (int) ((milliseconds/(1000*60*60))%24);
-
         /* OK, now we pack the pieces into a 4-byte integer */
-        int storeVal = ((int) millis * (2 << START_BIT_MILLISECONDS))
-                     + ((int) seconds * (2 << START_BIT_SECONDS))
-                     + ((int) minutes * (2 << START_BIT_MINUTES))
+        int storeVal = ((int) millis * (1 << START_BIT_MILLISECONDS))
+                     + ((int) seconds * (1 << START_BIT_SECONDS))
+                     + ((int) minutes * (1 << START_BIT_MINUTES))
                      + hours;
         return storeVal;
     }
-
     /**
      * unpacks an integer packed by packTime
      * @see Utils#packTime(long)
@@ -156,20 +163,10 @@ public class Utils {
      * @return a millisecond time
      */
     public static long unpackTime(int packedTime) {
-        /* 
-         * These masks allow us to "cut up" the packed integer into 
-         * its components.
-         */
-        static int MASK_HOURS         = 0x0000001F;
-        static int MASK_MINUTES       = 0x000007D0;
-        static int MASK_SECONDS       = 0x0001F800;
-        static int MASK_MILLISECONDS  = 0xFFF70000;
-
         int hours = (packedTime & MASK_HOURS);
-        int minutes = (packedTime & MASK_MINUTES);
-        int seconds = (packedTime & MASK_SECONDS);
-        int millis = (packedTime & MASK_MILLISECONDS);
-
+        int minutes = (packedTime & MASK_MINUTES) >> (START_BIT_MINUTES);
+        int seconds = (packedTime & MASK_SECONDS) >> (START_BIT_SECONDS);
+        int millis = (packedTime & MASK_MILLISECONDS) >> (START_BIT_MILLISECONDS);
         long returnValue = (long) (hours * 60*60*1000);
         returnValue += (long) (minutes*60*1000);
         returnValue += (long) seconds * 1000;
