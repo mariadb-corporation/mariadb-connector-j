@@ -7,9 +7,10 @@
  * Use and distribution licensed under the BSD license.
  */
 
-package org.drizzle.jdbc.internal.common.query;
+package org.drizzle.jdbc.internal.common.query.parameters;
 
 import static org.drizzle.jdbc.internal.common.Utils.sqlEscapeString;
+import org.drizzle.jdbc.internal.common.query.parameters.ParameterHolder;
 
 import java.io.OutputStream;
 import java.io.IOException;

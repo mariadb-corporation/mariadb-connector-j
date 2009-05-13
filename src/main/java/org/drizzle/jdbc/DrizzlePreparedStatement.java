@@ -15,6 +15,7 @@ import org.drizzle.jdbc.internal.common.queryresults.QueryResult;
 import org.drizzle.jdbc.internal.common.queryresults.ResultSetType;
 import org.drizzle.jdbc.internal.common.queryresults.ModifyQueryResult;
 import org.drizzle.jdbc.internal.common.query.*;
+import org.drizzle.jdbc.internal.common.query.parameters.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,7 +26,6 @@ import java.io.Reader;
 import java.io.IOException;
 import java.util.Calendar;
 import java.net.URL;
-import java.text.SimpleDateFormat;
 
 /**
  * User: marcuse
@@ -302,10 +302,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.2
      */
     public void setDate(int parameterIndex, Date date, Calendar cal) throws SQLException {
-        // todo: move this to protocol?
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-        sdf.setCalendar(cal);
-        setParameter(parameterIndex,new StringParameter(sdf.format(date)));
+        setParameter(parameterIndex,new DateParameter(date.getTime(),cal));
     }
 
     /**
@@ -353,9 +350,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.2
      */
     public void setTimestamp(int parameterIndex, Timestamp x, Calendar cal) throws SQLException {
-        //TODO: use cal
-
-        setParameter(parameterIndex,new LongParameter(x.getTime()));
+        setParameter(parameterIndex,new TimestampParameter(x.getTime(), cal));
     }
 
     /**
@@ -1064,8 +1059,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      *                               this method is called on a closed <code>PreparedStatement</code>
      */
     public void setDate(int parameterIndex, Date date) throws SQLException {
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-        setParameter(parameterIndex,new StringParameter(sdf.format(date)));
+        setParameter(parameterIndex,new DateParameter(date.getTime()));
     }
 
     /**
@@ -1100,7 +1094,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      *                               this method is called on a closed <code>PreparedStatement</code>
      */
     public void setTimestamp(int parameterIndex, Timestamp x) throws SQLException {
-        setParameter(parameterIndex,new StringParameter(x.toString().substring(0,19)));
+        setParameter(parameterIndex,new TimestampParameter(x.getTime()));
     }
 
     /**

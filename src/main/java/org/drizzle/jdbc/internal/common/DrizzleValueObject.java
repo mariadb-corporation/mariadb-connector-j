@@ -23,6 +23,9 @@ import java.util.Calendar;
 
 /**
  * Contains the raw value returned from the server
+ *
+ * Is immutable
+ *
  * User: marcuse
  * Date: Feb 16, 2009
  * Time: 9:18:26 PM
@@ -32,8 +35,8 @@ public class DrizzleValueObject implements ValueObject {
     private final DrizzleType dataType;
 
     public DrizzleValueObject(byte [] rawBytes, DrizzleType dataType) {
-        this.rawBytes= rawBytes;
-        this.dataType=dataType;
+        this.rawBytes = rawBytes;
+        this.dataType = dataType;
     }
 
     public String getString() {
@@ -159,12 +162,14 @@ public class DrizzleValueObject implements ValueObject {
      }
 
      public Time getTime(Calendar cal) throws ParseException {
+         // TODO: FIX! USE CAL!
+
          if(rawBytes==null) return null;
-         String rawValue = getString();
+         int packedTime = getInt();
+         long millis = Utils.unpackTime(packedTime);
          SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
          sdf.setCalendar(cal);
-         java.util.Date utilTime = sdf.parse(rawValue);
-         return new Time(utilTime.getTime());
+         return new Time(millis);
      }
      public Timestamp getTimestamp(Calendar cal) throws ParseException {
          if(rawBytes==null) return null;

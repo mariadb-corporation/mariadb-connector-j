@@ -9,6 +9,8 @@
 
 package org.drizzle.jdbc.internal.common.query;
 
+import org.drizzle.jdbc.internal.common.query.parameters.ParameterHolder;
+
 /**
  .
  * User: marcuse

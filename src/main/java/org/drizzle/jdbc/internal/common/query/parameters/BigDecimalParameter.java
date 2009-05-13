@@ -7,7 +7,9 @@
  * Use and distribution licensed under the BSD license.
  */
 
-package org.drizzle.jdbc.internal.common.query;
+package org.drizzle.jdbc.internal.common.query.parameters;
+
+import org.drizzle.jdbc.internal.common.query.parameters.ParameterHolder;
 
 import java.math.BigDecimal;
 import java.io.OutputStream;

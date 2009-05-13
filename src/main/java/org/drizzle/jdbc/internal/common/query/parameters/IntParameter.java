@@ -7,24 +7,25 @@
  * Use and distribution licensed under the BSD license.
  */
 
-package org.drizzle.jdbc.internal.common.query;
+package org.drizzle.jdbc.internal.common.query.parameters;
 
-import org.drizzle.jdbc.internal.common.Utils;
+import org.drizzle.jdbc.internal.common.query.parameters.ParameterHolder;
 
 import java.io.OutputStream;
 import java.io.IOException;
 
 /**
- * Since drizzle has no time datatype, jdbc time is stored in a packed integer
- *
- * @see Utils#packTime(long) 
+ .
+ * User: marcuse
+ * Date: Feb 19, 2009
+ * Time: 8:48:15 PM
+
  */
-public class TimeParameter implements ParameterHolder{
+public class IntParameter implements ParameterHolder {
     private final byte [] byteRepresentation;
-    
-    public TimeParameter(long timestamp) {
-        int packedTime = Utils.packTime(timestamp);
-        byteRepresentation = String.valueOf(packedTime).getBytes();
+    private byte bytePointer=0;
+    public IntParameter(int theInt) {
+        byteRepresentation = String.valueOf(theInt).getBytes();
     }
 
     public void writeTo(OutputStream os) throws IOException {

@@ -11,7 +11,7 @@ package org.drizzle.jdbc.internal.common.query.drizzle;
 
 import static org.drizzle.jdbc.internal.common.Utils.countChars;
 import org.drizzle.jdbc.internal.common.query.ParameterizedQuery;
-import org.drizzle.jdbc.internal.common.query.ParameterHolder;
+import org.drizzle.jdbc.internal.common.query.parameters.ParameterHolder;
 import org.drizzle.jdbc.internal.common.query.IllegalParameterException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

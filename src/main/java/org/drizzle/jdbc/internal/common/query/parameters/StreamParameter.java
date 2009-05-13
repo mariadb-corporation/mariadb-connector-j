@@ -7,9 +7,10 @@
  * Use and distribution licensed under the BSD license.
  */
 
-package org.drizzle.jdbc.internal.common.query;
+package org.drizzle.jdbc.internal.common.query.parameters;
 
 import static org.drizzle.jdbc.internal.common.Utils.needsEscaping;
+import org.drizzle.jdbc.internal.common.query.parameters.ParameterHolder;
 
 import java.io.InputStream;
 import java.io.IOException;
@@ -20,7 +21,7 @@ import java.io.OutputStream;
  * Date: Feb 19, 2009
  * Time: 8:53:14 PM
  */
-public class StreamParameter implements ParameterHolder{
+public class StreamParameter implements ParameterHolder {
     //private final InputStream stream;
     private final long length;
     private final byte [] buffer;
