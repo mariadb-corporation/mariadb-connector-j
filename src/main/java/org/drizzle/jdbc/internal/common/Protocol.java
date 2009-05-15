@@ -11,12 +11,10 @@ package org.drizzle.jdbc.internal.common;
 
 import org.drizzle.jdbc.internal.common.query.Query;
 import org.drizzle.jdbc.internal.common.queryresults.QueryResult;
-import org.drizzle.jdbc.internal.drizzle.QueryException;
-import org.drizzle.jdbc.internal.drizzle.packet.RawPacket;
+import org.drizzle.jdbc.internal.common.QueryException;
+import org.drizzle.jdbc.internal.common.packet.RawPacket;
 
 import java.util.List;
-import java.util.concurrent.BlockingQueue;
-import java.io.IOException;
 
 /**
  * User: marcuse
@@ -26,7 +24,7 @@ import java.io.IOException;
 public interface Protocol {
     /**
      * closes the connection to the server
-     * @throws org.drizzle.jdbc.internal.drizzle.QueryException if there is a communication problem with the server
+     * @throws QueryException if there is a communication problem with the server
      */
     void close() throws QueryException;
 

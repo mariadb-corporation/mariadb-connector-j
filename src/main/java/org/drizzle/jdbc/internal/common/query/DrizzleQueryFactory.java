@@ -7,7 +7,7 @@
  * Use and distribution licensed under the BSD license.
  */
 
-package org.drizzle.jdbc.internal.common.query.drizzle;
+package org.drizzle.jdbc.internal.common.query;
 
 import org.drizzle.jdbc.internal.common.query.QueryFactory;
 import org.drizzle.jdbc.internal.common.query.Query;

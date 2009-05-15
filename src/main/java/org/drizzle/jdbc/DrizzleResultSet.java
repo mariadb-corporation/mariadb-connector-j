@@ -2167,6 +2167,9 @@ public class DrizzleResultSet implements ResultSet {
     }
 
     /**
+     * According to the JDBC4 spec, this is only required for UDT's, and since drizzle does
+     * not support UDTs, this method ignores the map parameter
+     *
      * Retrieves the value of the designated column in the current row
      * of this <code>ResultSet</code> object as an <code>Object</code>
      * in the Java programming language.
@@ -2190,8 +2193,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public Object getObject(int columnIndex, Map<String, Class<?>> map) throws SQLException {
-        //TODO: implement this for types we know
-        throw new SQLFeatureNotSupportedException("Getting object using type map not supported");        
+        return getObject(columnIndex);        
     }
 
     /**
@@ -2276,6 +2278,9 @@ public class DrizzleResultSet implements ResultSet {
     }
 
     /**
+     * According to the JDBC4 spec, this is only required for UDT's, and since drizzle does
+     * not support UDTs, this method ignores the map parameter
+     * 
      * Retrieves the value of the designated column in the current row
      * of this <code>ResultSet</code> object as an <code>Object</code>
      * in the Java programming language.

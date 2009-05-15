@@ -11,15 +11,14 @@ package org.drizzle.jdbc;
 
 import org.drizzle.jdbc.internal.common.Protocol;
 import org.drizzle.jdbc.internal.common.BinlogDumpException;
-import org.drizzle.jdbc.internal.drizzle.QueryException;
-import org.drizzle.jdbc.internal.drizzle.packet.RawPacket;
+import org.drizzle.jdbc.internal.common.QueryException;
+import org.drizzle.jdbc.internal.common.packet.RawPacket;
 import org.drizzle.jdbc.internal.common.query.QueryFactory;
 
 import java.sql.*;
 import java.util.Map;
 import java.util.Properties;
 import java.util.List;
-import java.io.IOException;
 
 /**
  * User: marcuse

@@ -7,11 +7,11 @@
  * Use and distribution licensed under the BSD license.
  */
 
-package org.drizzle.jdbc.internal.drizzle.packet;
+package org.drizzle.jdbc.internal.common.packet;
 
-import org.drizzle.jdbc.internal.drizzle.packet.RawPacket;
+import org.drizzle.jdbc.internal.common.packet.RawPacket;
 import org.drizzle.jdbc.internal.common.PacketFetcher;
-import org.drizzle.jdbc.internal.drizzle.packet.ReadAheadInputStream;
+import org.drizzle.jdbc.internal.common.packet.ReadAheadInputStream;
 
 import java.util.concurrent.*;
 import java.io.InputStream;

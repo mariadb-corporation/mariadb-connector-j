@@ -10,10 +10,10 @@
 package org.drizzle.jdbc;
 
 import org.drizzle.jdbc.internal.common.Protocol;
+import org.drizzle.jdbc.internal.common.QueryException;
 import org.drizzle.jdbc.internal.common.queryresults.QueryResult;
 import org.drizzle.jdbc.internal.common.queryresults.ModifyQueryResult;
 import org.drizzle.jdbc.internal.common.queryresults.ResultSetType;
-import org.drizzle.jdbc.internal.drizzle.QueryException;
 import org.drizzle.jdbc.internal.common.query.QueryFactory;
 
 import java.sql.*;

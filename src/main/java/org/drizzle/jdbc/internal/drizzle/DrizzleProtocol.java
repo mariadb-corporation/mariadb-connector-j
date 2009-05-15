@@ -9,15 +9,15 @@
 
 package org.drizzle.jdbc.internal.drizzle;
 
-import org.drizzle.jdbc.internal.drizzle.packet.*;
-import org.drizzle.jdbc.internal.drizzle.packet.commands.*;
-import org.drizzle.jdbc.internal.drizzle.packet.buffer.ReadUtil;
+import org.drizzle.jdbc.internal.common.packet.*;
+import org.drizzle.jdbc.internal.common.packet.commands.*;
+import org.drizzle.jdbc.internal.common.packet.buffer.ReadUtil;
 import org.drizzle.jdbc.internal.common.query.Query;
-import org.drizzle.jdbc.internal.common.query.drizzle.DrizzleQuery;
+import org.drizzle.jdbc.internal.common.query.DrizzleQuery;
 import org.drizzle.jdbc.internal.common.queryresults.*;
-import org.drizzle.jdbc.internal.common.PacketFetcher;
-import org.drizzle.jdbc.internal.common.Protocol;
-import org.drizzle.jdbc.internal.common.ValueObject;
+import org.drizzle.jdbc.internal.common.*;
+import org.drizzle.jdbc.internal.drizzle.packet.commands.ClientAuthPacket;
+import org.drizzle.jdbc.internal.drizzle.packet.commands.PingPacket;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

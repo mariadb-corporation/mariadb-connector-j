@@ -10,7 +10,7 @@
 package org.drizzle.jdbc;
 
 import org.drizzle.jdbc.internal.common.Protocol;
-import org.drizzle.jdbc.internal.drizzle.QueryException;
+import org.drizzle.jdbc.internal.common.QueryException;
 import org.drizzle.jdbc.internal.common.queryresults.QueryResult;
 import org.drizzle.jdbc.internal.common.queryresults.ResultSetType;
 import org.drizzle.jdbc.internal.common.queryresults.ModifyQueryResult;
@@ -18,15 +18,12 @@ import org.drizzle.jdbc.internal.common.query.*;
 import org.drizzle.jdbc.internal.common.query.parameters.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.omg.CORBA.StringHolder;
 
 import java.sql.*;
 import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.io.InputStream;
 import java.io.Reader;
 import java.io.IOException;
-import java.io.Serializable;
 import java.util.Calendar;
 import java.net.URL;
 
@@ -684,7 +681,42 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.6
      */
     public void setObject(int parameterIndex, Object x, int targetSqlType, int scaleOrLength) throws SQLException {
+        if(x==null) {
+            setNull(parameterIndex,targetSqlType);
+            return;
+        }        
+        switch(targetSqlType) {
+            case Types.ARRAY:
+            case Types.CLOB:
+            case Types.DATALINK:
+            case Types.NCHAR:
+            case Types.NCLOB:
+            case Types.NVARCHAR:
+            case Types.LONGNVARCHAR:
+            case Types.REF:
+            case Types.ROWID:
+            case Types.SQLXML:
+            case Types.STRUCT:
+                throw new SQLFeatureNotSupportedException("Datatype not supported");
+            case Types.INTEGER:
+                if(x instanceof Number) {
+                    setNumber(parameterIndex,(Number)x);
+                } else {
+                    setInt(parameterIndex,Integer.valueOf((String)x));
+                }
+        }
+
         throw new SQLFeatureNotSupportedException("Method not yet implemented");
+    }
+    private void setNumber(int parameterIndex,Number number) throws SQLException {
+        if(number instanceof Integer) {
+            setInt(parameterIndex,(Integer)number);
+        } else if(number instanceof Short) {
+            setShort(parameterIndex,(Short)number);
+        } else {
+            setLong(parameterIndex, number.longValue());
+        }
+
     }
 
     /**
@@ -772,7 +804,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
         } catch (IOException e) {
             throw new SQLException("Could not read stream: "+e.getMessage(),e);
         }
-    }//-----
+    }
     /**
      * This function reads up the entire stream and stores it in memory since
      * we need to know the length when sending it to the server
@@ -1301,6 +1333,8 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
             setBlob(parameterIndex,(Blob)x);
         else if(x instanceof InputStream)
             setBinaryStream(parameterIndex,(InputStream)x);
+        else if(x instanceof Reader)
+            setCharacterStream(parameterIndex,(Reader)x);
         else {
             try {
                 setParameter(parameterIndex, new SerializableParameter(x));

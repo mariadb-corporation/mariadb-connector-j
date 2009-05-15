@@ -7,7 +7,7 @@
  * Use and distribution licensed under the BSD license.
  */
 
-package org.drizzle.jdbc.internal.common.query.drizzle;
+package org.drizzle.jdbc.internal.common.query;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

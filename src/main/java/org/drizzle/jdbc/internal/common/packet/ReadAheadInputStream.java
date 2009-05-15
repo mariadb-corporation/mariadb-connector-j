@@ -7,7 +7,7 @@
  * Use and distribution licensed under the BSD license.
  */
 
-package org.drizzle.jdbc.internal.drizzle.packet;
+package org.drizzle.jdbc.internal.common.packet;
 
 import java.io.InputStream;
 import java.io.IOException;

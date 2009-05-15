@@ -7,13 +7,13 @@
  * Use and distribution licensed under the BSD license.
  */
 
-package org.drizzle.jdbc.internal.drizzle.packet;
+package org.drizzle.jdbc.internal.common.packet;
 
-import org.drizzle.jdbc.internal.drizzle.packet.buffer.ReadUtil;
-import org.drizzle.jdbc.internal.drizzle.packet.buffer.Reader;
-import org.drizzle.jdbc.internal.drizzle.packet.buffer.LengthEncodedBinary;
-import org.drizzle.jdbc.internal.drizzle.packet.buffer.LengthEncodedBytes;
-import org.drizzle.jdbc.internal.drizzle.ServerStatus;
+import org.drizzle.jdbc.internal.common.packet.buffer.ReadUtil;
+import org.drizzle.jdbc.internal.common.packet.buffer.Reader;
+import org.drizzle.jdbc.internal.common.packet.buffer.LengthEncodedBinary;
+import org.drizzle.jdbc.internal.common.packet.buffer.LengthEncodedBytes;
+import org.drizzle.jdbc.internal.common.ServerStatus;
 
 import java.io.IOException;
 import java.io.InputStream;

@@ -2,9 +2,8 @@ package org.drizzle.jdbc;
 
 import org.junit.Test;
 import org.junit.After;
-import org.drizzle.jdbc.internal.drizzle.packet.buffer.WriteBuffer;
-import org.drizzle.jdbc.internal.drizzle.packet.RawPacket;
-import org.apache.log4j.BasicConfigurator;
+import org.drizzle.jdbc.internal.common.packet.buffer.WriteBuffer;
+import org.drizzle.jdbc.internal.common.packet.RawPacket;
 
 import java.sql.*;
 import java.util.List;

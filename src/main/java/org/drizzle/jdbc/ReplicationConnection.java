@@ -9,7 +9,7 @@
 
 package org.drizzle.jdbc;
 
-import org.drizzle.jdbc.internal.drizzle.packet.RawPacket;
+import org.drizzle.jdbc.internal.common.packet.RawPacket;
 
 import java.sql.SQLException;
 import java.util.List;

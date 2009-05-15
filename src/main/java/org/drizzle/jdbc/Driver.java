@@ -12,9 +12,9 @@ package org.drizzle.jdbc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.drizzle.jdbc.internal.drizzle.DrizzleProtocol;
-import org.drizzle.jdbc.internal.drizzle.QueryException;
+import org.drizzle.jdbc.internal.common.QueryException;
 import org.drizzle.jdbc.internal.common.Protocol;
-import org.drizzle.jdbc.internal.common.query.drizzle.DrizzleQueryFactory;
+import org.drizzle.jdbc.internal.common.query.DrizzleQueryFactory;
 import org.drizzle.jdbc.internal.mysql.MySQLProtocol;
 
 import java.sql.Connection;
@@ -22,8 +22,6 @@ import java.sql.SQLException;
 import java.sql.DriverPropertyInfo;
 import java.sql.DriverManager;
 import java.util.Properties;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * User: marcuse

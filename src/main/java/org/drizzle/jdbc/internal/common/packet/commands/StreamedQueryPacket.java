@@ -7,11 +7,11 @@
  * Use and distribution licensed under the BSD license.
  */
 
-package org.drizzle.jdbc.internal.drizzle.packet.commands;
+package org.drizzle.jdbc.internal.common.packet.commands;
 
-import static org.drizzle.jdbc.internal.drizzle.packet.buffer.WriteBuffer.intToByteArray;
-import org.drizzle.jdbc.internal.drizzle.packet.CommandPacket;
-import org.drizzle.jdbc.internal.drizzle.QueryException;
+import static org.drizzle.jdbc.internal.common.packet.buffer.WriteBuffer.intToByteArray;
+import org.drizzle.jdbc.internal.common.packet.CommandPacket;
+import org.drizzle.jdbc.internal.common.QueryException;
 import org.drizzle.jdbc.internal.common.query.Query;
 
 import java.io.OutputStream;

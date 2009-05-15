@@ -9,7 +9,7 @@
 
 package org.drizzle.jdbc.internal.common.query;
 
-import org.drizzle.jdbc.internal.drizzle.QueryException;
+import org.drizzle.jdbc.internal.common.QueryException;
 
 import java.io.OutputStream;
 import java.io.IOException;

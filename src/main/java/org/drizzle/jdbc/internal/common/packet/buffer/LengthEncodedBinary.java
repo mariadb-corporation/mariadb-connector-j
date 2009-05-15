@@ -7,7 +7,7 @@
  * Use and distribution licensed under the BSD license.
  */
 
-package org.drizzle.jdbc.internal.drizzle.packet.buffer;
+package org.drizzle.jdbc.internal.common.packet.buffer;
 
 /**
  * Created by IntelliJ IDEA.

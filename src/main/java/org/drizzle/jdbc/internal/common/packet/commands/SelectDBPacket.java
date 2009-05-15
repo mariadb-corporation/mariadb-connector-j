@@ -7,10 +7,10 @@
  * Use and distribution licensed under the BSD license.
  */
 
-package org.drizzle.jdbc.internal.drizzle.packet.commands;
+package org.drizzle.jdbc.internal.common.packet.commands;
 
-import org.drizzle.jdbc.internal.drizzle.packet.buffer.WriteBuffer;
-import org.drizzle.jdbc.internal.drizzle.packet.CommandPacket;
+import org.drizzle.jdbc.internal.common.packet.buffer.WriteBuffer;
+import org.drizzle.jdbc.internal.common.packet.CommandPacket;
 
 import java.io.OutputStream;
 import java.io.IOException;

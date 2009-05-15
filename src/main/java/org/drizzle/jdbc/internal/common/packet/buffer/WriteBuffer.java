@@ -7,7 +7,7 @@
  * Use and distribution licensed under the BSD license.
  */
 
-package org.drizzle.jdbc.internal.drizzle.packet.buffer;
+package org.drizzle.jdbc.internal.common.packet.buffer;
 
 import java.util.List;
 import java.util.ArrayList;

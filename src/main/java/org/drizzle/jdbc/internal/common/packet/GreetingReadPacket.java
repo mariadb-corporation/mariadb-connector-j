@@ -7,10 +7,10 @@
  * Use and distribution licensed under the BSD license.
  */
 
-package org.drizzle.jdbc.internal.drizzle.packet;
+package org.drizzle.jdbc.internal.common.packet;
 
-import org.drizzle.jdbc.internal.drizzle.packet.buffer.Reader;
-import org.drizzle.jdbc.internal.drizzle.ServerStatus;
+import org.drizzle.jdbc.internal.common.packet.buffer.Reader;
+import org.drizzle.jdbc.internal.common.ServerStatus;
 import org.drizzle.jdbc.internal.drizzle.ServerCapabilities;
 
 import java.io.InputStream;

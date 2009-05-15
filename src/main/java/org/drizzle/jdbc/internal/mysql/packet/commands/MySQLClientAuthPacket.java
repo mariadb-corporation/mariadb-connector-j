@@ -9,9 +9,8 @@
 
 package org.drizzle.jdbc.internal.mysql.packet.commands;
 
-import org.drizzle.jdbc.internal.drizzle.packet.buffer.WriteBuffer;
-import org.drizzle.jdbc.internal.drizzle.packet.CommandPacket;
-import org.drizzle.jdbc.internal.drizzle.ServerCapabilities;
+import org.drizzle.jdbc.internal.common.packet.buffer.WriteBuffer;
+import org.drizzle.jdbc.internal.common.packet.CommandPacket;
 import org.drizzle.jdbc.internal.mysql.MySQLServerCapabilities;
 import org.drizzle.jdbc.internal.common.Utils;
 

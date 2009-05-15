@@ -9,17 +9,13 @@
 
 package org.drizzle.jdbc.internal.mysql;
 
-import org.drizzle.jdbc.internal.drizzle.packet.*;
-import org.drizzle.jdbc.internal.drizzle.packet.commands.*;
-import org.drizzle.jdbc.internal.drizzle.packet.buffer.ReadUtil;
+import org.drizzle.jdbc.internal.common.packet.*;
+import org.drizzle.jdbc.internal.common.packet.commands.*;
+import org.drizzle.jdbc.internal.common.packet.buffer.ReadUtil;
 import org.drizzle.jdbc.internal.common.query.Query;
-import org.drizzle.jdbc.internal.common.query.drizzle.DrizzleQuery;
+import org.drizzle.jdbc.internal.common.query.DrizzleQuery;
 import org.drizzle.jdbc.internal.common.queryresults.*;
-import org.drizzle.jdbc.internal.common.PacketFetcher;
-import org.drizzle.jdbc.internal.common.Protocol;
-import org.drizzle.jdbc.internal.common.ValueObject;
-import org.drizzle.jdbc.internal.common.BinlogDumpException;
-import org.drizzle.jdbc.internal.drizzle.*;
+import org.drizzle.jdbc.internal.common.*;
 import org.drizzle.jdbc.internal.mysql.packet.commands.MySQLClientAuthPacket;
 import org.drizzle.jdbc.internal.mysql.packet.commands.MySQLPingPacket;
 import org.drizzle.jdbc.internal.mysql.packet.commands.MySQLBinlogDumpPacket;
@@ -66,7 +62,7 @@ public class MySQLProtocol implements Protocol {
      * @param database the initial database
      * @param username the username
      * @param password the password
-     * @throws org.drizzle.jdbc.internal.drizzle.QueryException if there is a problem reading / sending the packets
+     * @throws org.drizzle.jdbc.internal.common.QueryException if there is a problem reading / sending the packets
      */
     public MySQLProtocol(String host, int port, String database, String username, String password) throws QueryException {
         log.info("initiating a mysql protocol");
@@ -114,7 +110,7 @@ public class MySQLProtocol implements Protocol {
 
     /**
      * Closes socket and stream readers/writers
-     * @throws org.drizzle.jdbc.internal.drizzle.QueryException if the socket or readers/writes cannot be closed
+     * @throws org.drizzle.jdbc.internal.common.QueryException if the socket or readers/writes cannot be closed
      */
     public void close() throws QueryException {
         log.debug("Closing...");

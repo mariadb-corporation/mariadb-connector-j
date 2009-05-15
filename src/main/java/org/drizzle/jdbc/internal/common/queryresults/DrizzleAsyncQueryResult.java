@@ -11,9 +11,9 @@ package org.drizzle.jdbc.internal.common.queryresults;
 
 import org.drizzle.jdbc.internal.common.ValueObject;
 import org.drizzle.jdbc.internal.common.PacketFetcher;
-import org.drizzle.jdbc.internal.drizzle.packet.RawPacket;
-import org.drizzle.jdbc.internal.drizzle.packet.RowPacket;
-import org.drizzle.jdbc.internal.drizzle.packet.buffer.ReadUtil;
+import org.drizzle.jdbc.internal.common.packet.RawPacket;
+import org.drizzle.jdbc.internal.common.packet.RowPacket;
+import org.drizzle.jdbc.internal.common.packet.buffer.ReadUtil;
 
 import java.util.*;
 import java.io.IOException;
