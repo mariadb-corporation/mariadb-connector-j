@@ -9,6 +9,8 @@
 
 package org.drizzle.jdbc.internal.common.query;
 
+import org.drizzle.jdbc.internal.drizzle.QueryException;
+
 import java.io.OutputStream;
 import java.io.IOException;
 
@@ -22,6 +24,6 @@ import java.io.IOException;
 public interface Query {
     int length();
 
-    void writeTo(OutputStream os) throws IOException;
+    void writeTo(OutputStream os) throws IOException, QueryException;
     String getQuery();
 }

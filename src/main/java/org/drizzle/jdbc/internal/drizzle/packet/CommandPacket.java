@@ -9,6 +9,8 @@
 
 package org.drizzle.jdbc.internal.drizzle.packet;
 
+import org.drizzle.jdbc.internal.drizzle.QueryException;
+
 import java.io.OutputStream;
 import java.io.IOException;
 
@@ -20,5 +22,5 @@ import java.io.IOException;
 
  */
 public interface CommandPacket {
-    public void send(OutputStream os) throws IOException;
+    public void send(OutputStream os) throws IOException, QueryException;
 }

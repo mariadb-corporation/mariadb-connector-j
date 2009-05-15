@@ -13,6 +13,7 @@ import static org.drizzle.jdbc.internal.common.Utils.countChars;
 import org.drizzle.jdbc.internal.common.query.ParameterizedQuery;
 import org.drizzle.jdbc.internal.common.query.parameters.ParameterHolder;
 import org.drizzle.jdbc.internal.common.query.IllegalParameterException;
+import org.drizzle.jdbc.internal.drizzle.QueryException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,21 +69,20 @@ public class DrizzleParameterizedQuery implements ParameterizedQuery {
         return length;
     }
 
-    public void writeTo(OutputStream os) throws IOException {
-//        log.info("Sending query to outputstream");
+    public void writeTo(OutputStream os) throws IOException, QueryException {
+        if(paramCount != this.parameters.size())
+            throw new QueryException("You need to set exactly "+paramCount+" parameters on the prepared statement");
         StringReader strReader = new StringReader(query);
         int ch;
         int paramCounter=0;
         while((ch=strReader.read())!=-1) {
             if(ch=='?') {
- //               log.debug("Found '?', sending parameter {}",parameters.get(paramCounter).toString());
                 parameters.get(paramCounter++).writeTo(os);
             } else {
                 os.write(ch);
             }
         }
     }
-
 
     public String getQuery() {
         return query;

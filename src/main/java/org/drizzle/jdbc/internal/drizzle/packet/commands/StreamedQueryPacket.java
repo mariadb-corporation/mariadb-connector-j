@@ -11,6 +11,7 @@ package org.drizzle.jdbc.internal.drizzle.packet.commands;
 
 import static org.drizzle.jdbc.internal.drizzle.packet.buffer.WriteBuffer.intToByteArray;
 import org.drizzle.jdbc.internal.drizzle.packet.CommandPacket;
+import org.drizzle.jdbc.internal.drizzle.QueryException;
 import org.drizzle.jdbc.internal.common.query.Query;
 
 import java.io.OutputStream;
@@ -33,8 +34,7 @@ public class StreamedQueryPacket implements CommandPacket {
         byteHeader = Arrays.copyOf(intToByteArray(query.length()+1),5); //
         byteHeader[4]=(byte)0x03;
     }
-    public void send(OutputStream ostream) throws IOException {
-
+    public void send(OutputStream ostream) throws IOException, QueryException {
         ostream.write(byteHeader);
         query.writeTo(ostream);
         ostream.flush();

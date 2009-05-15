@@ -11,6 +11,7 @@ import java.util.List;
 import java.io.*;
 
 import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertTrue;
 
 /**
  * User: marcuse
@@ -580,4 +581,44 @@ public class DriverTest {
         assertEquals(1, rs.getInt(1));
         assertEquals(1,rs.getInt(str));
     }
+
+    @Test(expected = SQLException.class)
+    public void testBadParamlist() throws SQLException {
+        PreparedStatement ps = connection.prepareStatement("insert into blah values (?)");
+        ps.execute();
+    }
+
+    @Test
+    public void setobjectTest() throws SQLException, IOException, ClassNotFoundException {
+        connection.createStatement().execute("drop table if exists objecttest");
+        connection.createStatement().execute(
+                "create table objecttest (int_test int, string_test varchar(30), timestamp_test timestamp, serial_test blob)");
+        PreparedStatement ps = connection.prepareStatement("insert into objecttest values (?,?,?,?)");
+        ps.setObject(1, 5);
+        ps.setObject(2, "aaa");
+        ps.setObject(3, Timestamp.valueOf("2009-01-17 15:41:01"));
+        ps.setObject(4, new SerializableClass("testing",8));
+        ps.execute();
+
+        ResultSet rs = connection.createStatement().executeQuery("select * from objecttest");
+        assertEquals(true,rs.next());
+        Object theInt = rs.getObject(1);
+        assertTrue(theInt instanceof Long);
+        Object theString = rs.getObject(2);
+        assertTrue(theString instanceof String);
+        Object theTimestamp = rs.getObject(3);
+        assertTrue(theTimestamp instanceof Timestamp);
+        Object theBlob = rs.getObject(4);
+        assertTrue(theBlob instanceof Blob);
+
+        byte [] rawBytes = rs.getBytes(4);
+        ByteArrayInputStream bais = new ByteArrayInputStream(rawBytes);
+        ObjectInputStream ois = new ObjectInputStream(bais);
+        SerializableClass sc = (SerializableClass)ois.readObject();
+
+        assertEquals(sc.getVal(), "testing");
+        assertEquals(sc.getVal2(), 8);
+    }
+    
+    
 }

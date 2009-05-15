@@ -18,12 +18,15 @@ import org.drizzle.jdbc.internal.common.query.*;
 import org.drizzle.jdbc.internal.common.query.parameters.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.omg.CORBA.StringHolder;
 
 import java.sql.*;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.io.InputStream;
 import java.io.Reader;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.Calendar;
 import java.net.URL;
 
@@ -681,7 +684,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.6
      */
     public void setObject(int parameterIndex, Object x, int targetSqlType, int scaleOrLength) throws SQLException {
-
+        throw new SQLFeatureNotSupportedException("Method not yet implemented");
     }
 
     /**
@@ -1227,7 +1230,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @see java.sql.Types
      */
     public void setObject(int parameterIndex, Object x, int targetSqlType) throws SQLException {
-
+        throw new SQLFeatureNotSupportedException("Method not yet implemented");
     }
 
     /**
@@ -1270,6 +1273,41 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      *                               or the type of the given object is ambiguous
      */
     public void setObject(int parameterIndex, Object x) throws SQLException {
+        if(x instanceof String)
+            setString(parameterIndex,(String)x);
+        else if(x instanceof Integer)
+            setInt(parameterIndex,(Integer)x);
+        else if(x instanceof Long)
+            setLong(parameterIndex, (Long)x);
+        else if(x instanceof Short)
+            setShort(parameterIndex,(Short)x);
+        else if(x instanceof Double)
+            setDouble(parameterIndex,(Double)x);
+        else if(x instanceof Float)
+            setFloat(parameterIndex,(Float)x);
+        else if(x instanceof Byte)
+            setByte(parameterIndex,(Byte)x);
+        else if(x instanceof byte[])
+            setBytes(parameterIndex,(byte[])x);
+        else if(x instanceof Date)
+            setDate(parameterIndex,(Date)x);
+        else if(x instanceof Time)
+            setTime(parameterIndex,(Time)x);
+        else if(x instanceof Timestamp)
+            setTimestamp(parameterIndex,(Timestamp)x);
+        else if(x instanceof Boolean)
+            setBoolean(parameterIndex,(Boolean)x);
+        else if(x instanceof Blob)
+            setBlob(parameterIndex,(Blob)x);
+        else if(x instanceof InputStream)
+            setBinaryStream(parameterIndex,(InputStream)x);
+        else {
+            try {
+                setParameter(parameterIndex, new SerializableParameter(x));
+            } catch (IOException e) {
+                throw new SQLException("Could not set serializable parameter in setObject: "+e.getMessage(),e);
+            }
+        }
 
     }
 

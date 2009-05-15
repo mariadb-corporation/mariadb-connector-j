@@ -10,6 +10,7 @@
 package org.drizzle.jdbc.internal.common;
 
 import org.drizzle.jdbc.internal.drizzle.DrizzleType;
+import org.drizzle.jdbc.DrizzleBlob;
 
 import java.math.BigDecimal;
 import java.sql.Date;
@@ -147,7 +148,7 @@ public class DrizzleValueObject implements ValueObject {
             case ENUM:
                 return getString();
             case BLOB:
-                return getBytes(); //TODO: wrong, handle this
+                return new DrizzleBlob(getBytes());
         }                
         return null;
     }         
