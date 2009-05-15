@@ -49,9 +49,7 @@ public class DrizzleProtocol implements Protocol {
     private final String username;
     private final String password;
     private final List<Query> batchList;
-    private long totalTime=0;
-    private int queryCount;
-    private PacketFetcher packetFetcher;
+    private final PacketFetcher packetFetcher;
 
     /**
      * Get a protocol instance
@@ -79,7 +77,9 @@ public class DrizzleProtocol implements Protocol {
         log.info("Connected to: {}:{}",host,port);
         batchList=new ArrayList<Query>();
         try {
-            InputStream reader = new BufferedInputStream(socket.getInputStream(),1638);
+            InputStream reader = socket.getInputStream();
+            //InputStream reader = new BufferedInputStream(socket.getInputStream(),1638);
+
             writer = new BufferedOutputStream(socket.getOutputStream(),1638);
 
             GreetingReadPacket greetingPacket = new GreetingReadPacket(reader);
