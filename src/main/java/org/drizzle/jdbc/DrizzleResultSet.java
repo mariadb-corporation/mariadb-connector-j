@@ -353,7 +353,7 @@ public class DrizzleResultSet implements ResultSet {
      *                               called on a closed result set
      */
     public InputStream getBinaryStream(String columnLabel) throws SQLException {
-        return getAsciiStream(columnLabel);
+        return getValueObject(columnLabel).getBinaryInputStream();
 
     }
 
@@ -4255,7 +4255,7 @@ public class DrizzleResultSet implements ResultSet {
      *                               called on a closed result set
      */
     public InputStream getBinaryStream(int columnIndex) throws SQLException {
-        return getValueObject(columnIndex).getInputStream();
+        return getValueObject(columnIndex).getBinaryInputStream();
 
     }
 

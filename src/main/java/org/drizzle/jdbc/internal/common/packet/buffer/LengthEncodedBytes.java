@@ -32,17 +32,17 @@ public class LengthEncodedBytes {
               case 252:
                   tempLength = ReadUtil.readShort(rawBytes, start+1);
                   this.theBytes = Arrays.copyOfRange(rawBytes,start+3,tempLength+start+3);
-                  this.length=tempLength+theBytes.length+2;
+                  this.length=tempLength+3;
                   break;
               case 253:
                   tempLength = ReadUtil.read24bitword(rawBytes, start+1);
                   this.theBytes = Arrays.copyOfRange(rawBytes,start+4,tempLength+start+4);
-                  this.length=tempLength+theBytes.length+3;
+                  this.length=tempLength+4;
                   break;
               case 254:
-                  tempLength = (int)ReadUtil.readLong(rawBytes, start+1); // todo: yeah i need to fix this
+                  tempLength = (int)ReadUtil.readLong(rawBytes, start+1);
                   this.theBytes = Arrays.copyOfRange(rawBytes,start+9,tempLength+start+9);
-                  this.length=tempLength+theBytes.length+9;
+                  this.length=tempLength+9;
                   break;
               default:
                   this.theBytes=Arrays.copyOfRange(rawBytes,start+1,start+1+(rawBytes[start]&0xff));

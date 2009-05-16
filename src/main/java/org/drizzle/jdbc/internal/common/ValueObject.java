@@ -38,6 +38,8 @@ public interface ValueObject {
     Date getDate() throws ParseException;
     Time getTime() throws ParseException;
     InputStream getInputStream();
+    InputStream getBinaryInputStream();
+
     Object getObject() throws ParseException;
     Date getDate(Calendar cal) throws ParseException;
     Time getTime(Calendar cal) throws ParseException;

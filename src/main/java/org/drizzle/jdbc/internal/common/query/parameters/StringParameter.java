@@ -14,6 +14,7 @@ import org.drizzle.jdbc.internal.common.query.parameters.ParameterHolder;
 
 import java.io.OutputStream;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 
 /**
  * User: marcuse
@@ -25,7 +26,11 @@ public class StringParameter implements ParameterHolder {
 
     public StringParameter(String parameter) {
         String tempParam = "\""+sqlEscapeString(parameter)+"\"";
-        this.byteRepresentation=tempParam.getBytes();
+        try {
+            this.byteRepresentation=tempParam.getBytes("UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException("unsupp encoding: "+e.getMessage(),e);
+        }
     }
 
     public void writeTo(OutputStream os) throws IOException {

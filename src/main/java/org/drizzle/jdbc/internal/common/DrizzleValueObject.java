@@ -114,9 +114,15 @@ public class DrizzleValueObject implements ValueObject {
         return new Timestamp(utilTime.getTime());
     }    
 
+
     public InputStream getInputStream() {
         if(rawBytes==null) return null;
         return new ByteArrayInputStream(getString().getBytes());
+    }
+
+    public InputStream getBinaryInputStream() {
+        if(rawBytes==null) return null;
+        return new ByteArrayInputStream(rawBytes);
     }
 
     public Object getObject() throws ParseException {

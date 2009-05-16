@@ -51,6 +51,6 @@ public class SerializableParameter implements ParameterHolder {
             buffer[i++] = b;
         }
         buffer[i++]='\"';
-        return Arrays.copyOf(buffer,i);
+        return Arrays.copyOf(buffer,i); 
     }
 }

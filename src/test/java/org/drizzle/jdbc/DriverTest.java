@@ -618,6 +618,36 @@ public class DriverTest {
         assertEquals(sc.getVal(), "testing");
         assertEquals(sc.getVal2(), 8);
     }
-    
-    
+    @Test
+    public void binTest() throws SQLException, IOException {
+        connection.createStatement().execute("drop table if exists bintest");
+        connection.createStatement().execute(
+                "create table bintest (bin1 blob, bin2 varbinary(600))");
+        byte [] allBytes = new byte[256];
+        for(int i=0;i<256;i++) {
+            allBytes[i]=(byte) (i&0xff);
+        }
+        ByteArrayInputStream bais = new ByteArrayInputStream(allBytes);
+        PreparedStatement ps = connection.prepareStatement("insert into bintest (bin1,bin2) values (?,?)");
+        ps.setBytes(1,allBytes);
+        ps.setBinaryStream(2, bais);
+        ps.execute();
+
+        ResultSet rs = connection.createStatement().executeQuery("select * from bintest");
+        assertTrue(rs.next());
+        Blob blob = rs.getBlob(1);
+        InputStream is = rs.getBinaryStream(1);
+
+        for(int i=0;i<256;i++) {
+            int read = is.read();
+            assertEquals(i,read);
+        }
+        is = rs.getBinaryStream(2);
+
+        for(int i=0;i<256;i++) {
+            int read = is.read();
+            assertEquals(i,read);
+        }
+
+    }
 }

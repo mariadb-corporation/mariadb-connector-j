@@ -37,7 +37,7 @@ public class Utils {
      */
 
     public static boolean needsEscaping(byte b) {
-        if((b <= (byte)127)) { // ascii signs are below 127
+        if((b & 0x80) == 0) {
             switch(b) {
                 case '"':
                 case 0:
@@ -45,11 +45,31 @@ public class Utils {
                 case '\r':
                 case '\\':
                 case '\'':
+                case '\032':
                     return true;
             }
         }
         return false;
     }
+
+    /*public static byte [] escape(byte [] input) {
+        byte [] buffer = new byte[input.length*2];
+        for(byte b:buffer) {
+            if(b <= (byte)127) {
+                switch(b) {
+                    case 0:
+                    case '"':
+                    case '\n':
+                    case '\r':
+                    case '\\':
+                    case '\'':
+                    case '\032':
+                    
+                }
+            }
+        }
+
+    } */
    /**
      * escapes the given string, new string length is at most twice the length of str 
      * @param str the string to escape

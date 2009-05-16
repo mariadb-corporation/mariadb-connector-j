@@ -272,8 +272,15 @@ public class DrizzleProtocol implements Protocol {
 
         switch(resultPacket.getResultType()) {
             case ERROR:
-                log.warn("Could not execute query {}: {}",dQuery, ((ErrorPacket)resultPacket).getMessage());
-                throw new QueryException("Could not execute query: "+((ErrorPacket)resultPacket).getMessage());
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                try {
+                    dQuery.writeTo(baos);
+                    log.warn("Could not execute query {}: {}",baos.toString(), ((ErrorPacket)resultPacket).getMessage());
+                    throw new QueryException("Could not execute query: "+((ErrorPacket)resultPacket).getMessage());
+
+                } catch (IOException e) {
+                    throw new QueryException("Could not execute query: "+((ErrorPacket)resultPacket).getMessage());                
+                }
             case OK:
                 OKPacket okpacket = (OKPacket)resultPacket;
                 QueryResult updateResult = new DrizzleUpdateResult(okpacket.getAffectedRows(),

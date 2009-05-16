@@ -29,17 +29,17 @@ public class BufferedStreamParameter implements ParameterHolder {
     private int length;
 
     public BufferedStreamParameter(InputStream is) throws IOException {
-        byte b;
+        int b;
         byte [] tempByteRepresentation=new byte[1000];
         int pos = 0;
         tempByteRepresentation[pos++]='"';
-        while((b= (byte) is.read())!=-1) {
+        while((b=  is.read())!=-1) {
             if(pos>tempByteRepresentation.length-2) { //need two places in worst case
                 tempByteRepresentation=Arrays.copyOf(tempByteRepresentation,tempByteRepresentation.length*2);
             }
-            if(needsEscaping(b))
+            if(needsEscaping((byte)(b&0xff)))
                 tempByteRepresentation[pos++]='\\';
-            tempByteRepresentation[pos++]=b;
+            tempByteRepresentation[pos++]=(byte)(b&0xff);
         }
         tempByteRepresentation[pos++]='"';
         length=pos;
