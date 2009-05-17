@@ -9,12 +9,9 @@
 
 package org.drizzle.jdbc.internal.common.query;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.drizzle.jdbc.internal.common.query.Query;
-
 import java.io.OutputStream;
 import java.io.IOException;
+import java.util.logging.Logger;
 
 /**
  .
@@ -24,7 +21,7 @@ import java.io.IOException;
 
  */
 public class DrizzleQuery implements Query {
-    private final static Logger log = LoggerFactory.getLogger(DrizzleQuery.class);
+    private final static Logger log = Logger.getLogger(DrizzleQuery.class.toString());
     protected final String query;
     public DrizzleQuery(String query) {
         this.query=query;
@@ -37,13 +34,8 @@ public class DrizzleQuery implements Query {
 
     public void writeTo(OutputStream os) throws IOException {
         log.info("writing query to outputstream");
-/*        StringReader strReader = new StringReader(query);
-        int ch;*/
         byte [] b = query.getBytes();
         os.write(b,0,length());
-        /*while((ch=strReader.read())!=-1) {
-            os.write(ch);
-        }*/
     }
 
     public String getQuery() {

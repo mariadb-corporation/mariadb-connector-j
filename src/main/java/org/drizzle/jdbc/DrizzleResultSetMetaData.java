@@ -11,12 +11,11 @@ package org.drizzle.jdbc;
 
 import org.drizzle.jdbc.internal.common.queryresults.ColumnInformation;
 import org.drizzle.jdbc.internal.common.queryresults.ColumnFlags;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.logging.Logger;
 
 
 /**
@@ -28,7 +27,7 @@ import java.util.List;
 
  */
 public class DrizzleResultSetMetaData implements ResultSetMetaData {
-    private final static Logger log = LoggerFactory.getLogger(DrizzleResultSetMetaData.class);
+    private final static Logger log = Logger.getLogger(DrizzleResultSetMetaData.class.toString());
     private final List<ColumnInformation> fieldPackets;
 
     public DrizzleResultSetMetaData(List<ColumnInformation> fieldPackets) {
@@ -52,7 +51,7 @@ public class DrizzleResultSetMetaData implements ResultSetMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public boolean isAutoIncrement(int column) throws SQLException {
-        log.debug("Getting is auto inc");
+        log.finest("Getting is auto inc");
         return getColumnInformation(column).getFlags().contains(ColumnFlags.AUTO_INCREMENT);
     }
 
@@ -64,7 +63,6 @@ public class DrizzleResultSetMetaData implements ResultSetMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public boolean isCaseSensitive(int column) throws SQLException {
-        log.debug("Getting is case sensitive");
         return getColumnInformation(column).getFlags().contains(ColumnFlags.BINARY); //TODO: of course not this simple
     }
 

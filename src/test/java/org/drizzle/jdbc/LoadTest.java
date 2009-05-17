@@ -4,6 +4,8 @@ import org.junit.Test;
 //import org.apache.log4j.BasicConfigurator;
 
 import java.sql.*;
+import java.util.logging.Logger;
+import java.util.logging.Level;
 
 import static junit.framework.Assert.assertEquals;
 
@@ -13,7 +15,7 @@ import static junit.framework.Assert.assertEquals;
  * Time: 9:53:59 PM
  */
 public class LoadTest {
-  //  static { BasicConfigurator.resetConfiguration();}
+static { Logger.getLogger("").setLevel(Level.OFF); }
     @Test
     public void tm() throws SQLException {
       try {

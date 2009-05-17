@@ -10,16 +10,13 @@
 package org.drizzle.jdbc.internal.common.query;
 
 import static org.drizzle.jdbc.internal.common.Utils.countChars;
-import org.drizzle.jdbc.internal.common.query.ParameterizedQuery;
 import org.drizzle.jdbc.internal.common.query.parameters.ParameterHolder;
-import org.drizzle.jdbc.internal.common.query.IllegalParameterException;
 import org.drizzle.jdbc.internal.common.QueryException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  .
@@ -29,7 +26,7 @@ import java.util.List;
 
  */
 public class DrizzleParameterizedQuery implements ParameterizedQuery {
-    private final static Logger log = LoggerFactory.getLogger(DrizzleParameterizedQuery.class);
+    private final static Logger log = Logger.getLogger(DrizzleParameterizedQuery.class.toString());
     private List<ParameterHolder> parameters;
     private final int paramCount;
     private final String query;
@@ -37,7 +34,7 @@ public class DrizzleParameterizedQuery implements ParameterizedQuery {
     public DrizzleParameterizedQuery(String query) {
         this.query=query;
         this.paramCount=countChars(query,'?');
-        log.debug("Found {} questionmarks",paramCount);
+        log.finest("Found "+paramCount+" questionmarks");
         parameters=new ArrayList<ParameterHolder>(paramCount);
     }
     
@@ -45,11 +42,11 @@ public class DrizzleParameterizedQuery implements ParameterizedQuery {
         this.query=query.getQuery();
         this.paramCount=query.getParamCount();
         parameters=new ArrayList<ParameterHolder>(paramCount);
-        log.debug("Copying an existing parameterized query");    
+        log.finest("Copying an existing parameterized query");
     }
 
     public void setParameter(int position, ParameterHolder parameter) throws IllegalParameterException {
-        log.info("Setting parameter {} at position {}",parameter.toString(),position);
+        log.finest("Setting parameter "+parameter.toString()+" at position "+position);
         if(position>=0 && position<paramCount)
             this.parameters.add(position,parameter);
         else

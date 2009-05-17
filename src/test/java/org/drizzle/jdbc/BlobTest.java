@@ -5,6 +5,8 @@ import static org.junit.Assert.assertEquals;
 
 import java.sql.Blob;
 import java.sql.SQLException;
+import java.util.logging.Logger;
+import java.util.logging.Level;
 
 /**
  * Created by IntelliJ IDEA.
@@ -14,6 +16,7 @@ import java.sql.SQLException;
  * To change this template use File | Settings | File Templates.
  */
 public class BlobTest {
+    static { Logger.getLogger("").setLevel(Level.OFF); }
     @Test
     public void testPosition() throws SQLException {
         byte[] blobContent = new byte[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};

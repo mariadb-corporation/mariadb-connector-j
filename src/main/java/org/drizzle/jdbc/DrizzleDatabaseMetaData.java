@@ -9,10 +9,8 @@
 
 package org.drizzle.jdbc;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.sql.*;
+import java.util.logging.Logger;
 
 /**
  * TODO: complete it!
@@ -25,7 +23,7 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
     private final String url;
     private final String username;
     private final Connection connection;
-    private final static Logger log = LoggerFactory.getLogger(DrizzleDatabaseMetaData.class);
+    private final static Logger log = Logger.getLogger(DrizzleDatabaseMetaData.class.toString());
 
     /**
      * Retrieves whether the current user can call all the procedures

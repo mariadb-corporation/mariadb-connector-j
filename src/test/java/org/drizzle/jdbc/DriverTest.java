@@ -7,6 +7,8 @@ import org.drizzle.jdbc.internal.common.packet.RawPacket;
 
 import java.sql.*;
 import java.util.List;
+import java.util.logging.Logger;
+import java.util.logging.Level;
 import java.io.*;
 
 import static junit.framework.Assert.assertEquals;
@@ -20,7 +22,7 @@ import static junit.framework.Assert.assertTrue;
 public class DriverTest {
     public static String host = "localhost";
     private Connection connection;
-    //static { BasicConfigurator.configure(); }
+    static { Logger.getLogger("").setLevel(Level.OFF); }
 
     public DriverTest() throws SQLException {
         try {
@@ -28,7 +30,7 @@ public class DriverTest {
         } catch (ClassNotFoundException e) {
             throw new SQLException("Could not load driver");
         }
-        //connection = DriverManager.getConnection("jdbc:mysql:thin://aaa:bbb@"+host+":3306/test_units_jdbc");
+        //connection = DriverManager.getConnection("jdbc:mysql:thin://ccc:ddd@localhost:3306/test_units_jdbc");
         connection = DriverManager.getConnection("jdbc:drizzle://"+host+":4427/test_units_jdbc");
 
         Statement stmt = connection.createStatement();
@@ -650,4 +652,37 @@ public class DriverTest {
         }
 
     }
+    @Test
+    public void binTest2() throws SQLException, IOException {
+        connection.createStatement().execute("drop table if exists bintest2");
+        connection.createStatement().execute(
+                "create table bintest2 (bin1 blob)");
+
+        byte [] buf=new byte[1000000];
+        for(int i=0;i<1000000;i++) {
+            buf[i]=(byte)i;
+        }
+        InputStream is = new ByteArrayInputStream(buf);
+        PreparedStatement ps = connection.prepareStatement("insert into bintest2 (bin1) values (?)");
+        ps.setBinaryStream(1, is);
+        ps.execute();
+        ps = connection.prepareStatement("insert into bintest2 (bin1) values (?)");
+        is = new ByteArrayInputStream(buf);
+        ps.setBinaryStream(1, is);
+        ps.execute();
+        ResultSet rs = connection.createStatement().executeQuery("select * from bintest2");
+        assertEquals(true,rs.next());
+        byte [] buf2 = rs.getBytes(1);
+        for(int i=0;i<1000000;i++) {
+            assertEquals((byte)i,buf2[i]);
+        }
+
+        assertEquals(true,rs.next());
+        buf2 = rs.getBytes(1);
+        for(int i=0;i<1000000;i++) {
+            assertEquals((byte)i,buf2[i]);
+        }
+        assertEquals(false,rs.next());
+    }
+
 }

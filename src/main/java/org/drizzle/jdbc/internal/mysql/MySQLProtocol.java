@@ -19,13 +19,13 @@ import org.drizzle.jdbc.internal.common.*;
 import org.drizzle.jdbc.internal.mysql.packet.commands.MySQLClientAuthPacket;
 import org.drizzle.jdbc.internal.mysql.packet.commands.MySQLPingPacket;
 import org.drizzle.jdbc.internal.mysql.packet.commands.MySQLBinlogDumpPacket;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.drizzle.jdbc.internal.mysql.packet.MySQLGreetingReadPacket;
 
 import javax.net.SocketFactory;
 import java.net.Socket;
 import java.io.*;
 import java.util.*;
+import java.util.logging.Logger;
 
 /**
  * TODO: refactor, clean up
@@ -37,7 +37,7 @@ import java.util.*;
  * Time: 4:06:26 PM
  */
 public class MySQLProtocol implements Protocol {
-    private final static Logger log = LoggerFactory.getLogger(MySQLProtocol.class);
+    private final static Logger log = Logger.getLogger(MySQLProtocol.class.toString());
     private boolean connected=false;
     private final Socket socket;
     private final BufferedOutputStream writer;
@@ -78,24 +78,24 @@ public class MySQLProtocol implements Protocol {
         } catch (IOException e) {
             throw new QueryException("Could not connect socket",e);
         }
-        log.info("Connected to: {}:{}",host,port);
+        log.info("Connected to: "+host+":"+port);
         batchList=new ArrayList<Query>();
         try {
-            InputStream reader = new BufferedInputStream(socket.getInputStream(),16384);
+            InputStream reader = socket.getInputStream();
             writer = new BufferedOutputStream(socket.getOutputStream(),16384);
-            GreetingReadPacket greetingPacket = new GreetingReadPacket(reader);
-            log.debug("Got greeting packet: {}",greetingPacket);
+            MySQLGreetingReadPacket greetingPacket = new MySQLGreetingReadPacket(reader);
+            log.finest("Got greeting packet");
             this.version=greetingPacket.getServerVersion();
             Set<MySQLServerCapabilities> capabilities = EnumSet.of(MySQLServerCapabilities.LONG_PASSWORD,MySQLServerCapabilities.CONNECT_WITH_DB,MySQLServerCapabilities.IGNORE_SPACE,MySQLServerCapabilities.CLIENT_PROTOCOL_41, MySQLServerCapabilities.TRANSACTIONS,MySQLServerCapabilities.SECURE_CONNECTION);
             MySQLClientAuthPacket cap = new MySQLClientAuthPacket(this.username,this.password,this.database,capabilities,greetingPacket.getSeed());
             cap.send(writer);
-            log.debug("Sending auth packet: {}",cap);
+            log.finest("Sending auth packet");
             packetFetcher = new AsyncPacketFetcher(reader);
             RawPacket rp = packetFetcher.getRawPacket();
             ResultPacket resultPacket = ResultPacketFactory.createResultPacket(rp);
             if(resultPacket.getResultType()==ResultPacket.ResultType.ERROR){
                 ErrorPacket ep = (ErrorPacket)resultPacket;
-                String message = ((ErrorPacket)resultPacket).getMessage();
+                String message = ep.getMessage();
                 throw new QueryException("Could not connect: "+message);
             } else if(resultPacket.getResultType()==ResultPacket.ResultType.OK) {
                 OKPacket okp = (OKPacket)resultPacket;
@@ -113,13 +113,13 @@ public class MySQLProtocol implements Protocol {
      * @throws org.drizzle.jdbc.internal.common.QueryException if the socket or readers/writes cannot be closed
      */
     public void close() throws QueryException {
-        log.debug("Closing...");
+        log.info("Closing...");
         try {
+            packetFetcher.close();
             ClosePacket closePacket = new ClosePacket();
             closePacket.send(writer);
             packetFetcher.close();
             writer.close();
-            //reader.close();
             socket.close();
 
         } catch(IOException e){
@@ -163,7 +163,7 @@ public class MySQLProtocol implements Protocol {
     }
 
     public void selectDB(String database) throws QueryException {
-        log.debug("Selecting db {}",database);
+        log.finest("Selecting db "+database);
         SelectDBPacket packet = new SelectDBPacket(database);
         try {
             packet.send(writer);
@@ -188,26 +188,26 @@ public class MySQLProtocol implements Protocol {
     }
 
     public void commit() throws QueryException {
-        log.debug("commiting transaction");
+        log.finest("commiting transaction");
         executeQuery(new DrizzleQuery("COMMIT"));
     }
 
     public void rollback() throws QueryException {
-        log.debug("rolling transaction back");
+        log.finest("rolling transaction back");
         executeQuery(new DrizzleQuery("ROLLBACK"));
     }
 
     public void rollback(String savepoint) throws QueryException {
-        log.debug("rolling back to savepoint {}",savepoint);
+        log.finest("rolling back to savepoint "+savepoint);
         executeQuery(new DrizzleQuery("ROLLBACK TO SAVEPOINT "+savepoint));
     }
 
     public void setSavepoint(String savepoint) throws QueryException {
-        log.debug("setting a savepoint named {}",savepoint);
+        log.info("setting a savepoint named "+savepoint);
         executeQuery(new DrizzleQuery("SAVEPOINT "+savepoint));
     }
     public void releaseSavepoint(String savepoint) throws QueryException {
-        log.debug("releasing savepoint named {}",savepoint);
+        log.info("releasing savepoint named "+savepoint);
         executeQuery(new DrizzleQuery("RELEASE SAVEPOINT "+savepoint));
     }
 
@@ -244,7 +244,7 @@ public class MySQLProtocol implements Protocol {
         MySQLPingPacket pingPacket = new MySQLPingPacket();
         try {
             pingPacket.send(writer);
-            log.debug("Sent ping packet");
+            log.finest("Sent ping packet");
             RawPacket rawPacket = packetFetcher.getRawPacket();
             return ResultPacketFactory.createResultPacket(rawPacket).getResultType()==ResultPacket.ResultType.OK;
         } catch (IOException e) {
@@ -253,7 +253,7 @@ public class MySQLProtocol implements Protocol {
     }
 
     public QueryResult executeQuery(Query dQuery) throws QueryException {
-        log.debug("Executing streamed query: {}",dQuery);
+        log.finest("Executing streamed query: "+dQuery);
         StreamedQueryPacket packet = new StreamedQueryPacket(dQuery);
         int i=0;
         try {
@@ -272,7 +272,7 @@ public class MySQLProtocol implements Protocol {
 
         switch(resultPacket.getResultType()) {
             case ERROR:
-                log.warn("Could not execute query {}: {}",dQuery, ((ErrorPacket)resultPacket).getMessage());
+                log.warning("Could not execute query "+dQuery+": "+ ((ErrorPacket)resultPacket).getMessage());
                 throw new QueryException("Could not execute query: "+((ErrorPacket)resultPacket).getMessage());
             case OK:
                 OKPacket okpacket = (OKPacket)resultPacket;
@@ -280,17 +280,17 @@ public class MySQLProtocol implements Protocol {
                                                                             okpacket.getWarnings(),
                                                                             okpacket.getMessage(),
                                                                             okpacket.getInsertId());
-                log.debug("OK, {}", okpacket.getAffectedRows());
+                log.fine("OK, "+ okpacket.getAffectedRows());
                 return updateResult;
             case RESULTSET:
-                log.debug("SELECT executed, fetching result set");
+                log.fine("SELECT executed, fetching result set");
                 try {
                     return this.createDrizzleQueryResult((ResultSetPacket)resultPacket);
                 } catch (IOException e) {
                     throw new QueryException("Could not get query result",e);
                 }
             default:
-                log.error("Could not parse result...");
+                log.severe("Could not parse result...");
                 throw new QueryException("Could not parse result");
         }
 
@@ -318,7 +318,7 @@ public class MySQLProtocol implements Protocol {
     }
 
     public List<RawPacket> startBinlogDump(int startPos, String filename) throws BinlogDumpException {
-        log.info("starting binlog ({}) dump at pos {}", filename,startPos);
+        log.info("starting binlog ("+filename+") dump at pos "+startPos);
         MySQLBinlogDumpPacket mbdp = new MySQLBinlogDumpPacket(startPos, filename);
         try {
             mbdp.send(writer);

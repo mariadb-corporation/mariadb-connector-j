@@ -16,8 +16,6 @@ import org.drizzle.jdbc.internal.common.queryresults.ResultSetType;
 import org.drizzle.jdbc.internal.common.queryresults.ModifyQueryResult;
 import org.drizzle.jdbc.internal.common.query.*;
 import org.drizzle.jdbc.internal.common.query.parameters.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.sql.*;
 import java.math.BigDecimal;
@@ -25,6 +23,7 @@ import java.io.InputStream;
 import java.io.Reader;
 import java.io.IOException;
 import java.util.Calendar;
+import java.util.logging.Logger;
 import java.net.URL;
 
 /**
@@ -33,12 +32,12 @@ import java.net.URL;
  * Time: 10:49:42 PM
  */
 public class DrizzlePreparedStatement extends DrizzleStatement implements PreparedStatement  {
-    private final static Logger log = LoggerFactory.getLogger(DrizzlePreparedStatement.class);
+    private final static Logger log = Logger.getLogger(DrizzlePreparedStatement.class.toString());
     private ParameterizedQuery dQuery;
 
     public DrizzlePreparedStatement(Protocol protocol, DrizzleConnection drizzleConnection, String query, QueryFactory queryFactory) {
         super(protocol, drizzleConnection, queryFactory);
-        log.info("Creating prepared statement for {}",query);
+        log.info("Creating prepared statement for "+query);
         dQuery = queryFactory.createParameterizedQuery(query);
     }
 
@@ -96,7 +95,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      *                               this data type
      */
     public void setNull(int parameterIndex, int sqlType) throws SQLException {
-        log.info("Setting null at index {}",parameterIndex);
+        log.info("Setting null at index "+parameterIndex);
 
         setParameter(parameterIndex,new NullParameter());
     }
@@ -131,7 +130,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.2
      */
     public void addBatch() throws SQLException {
-        log.info("Adding query {} to batch",dQuery);
+        log.fine("Adding query to batch");
         this.getProtocol().addToBatch(dQuery);
         dQuery=getQueryFactory().createParameterizedQuery(dQuery);
     }
@@ -159,7 +158,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.2
      */
     public void setCharacterStream(int parameterIndex, Reader reader, int length) throws SQLException {
-        log.info("Setting char stream at {}",parameterIndex);
+        log.info("Setting char stream at "+parameterIndex);
         try {
             setParameter(parameterIndex, new ReaderParameter(reader,length));
         } catch (IOException e) {
@@ -203,7 +202,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.2
      */
     public void setBlob(int parameterIndex, Blob x) throws SQLException {
-        log.info("Setting blob at {}",parameterIndex);
+        log.info("Setting blob at "+parameterIndex);
         try {
             setParameter(parameterIndex, new StreamParameter(x.getBinaryStream(),x.length()));
         } catch (IOException e) {

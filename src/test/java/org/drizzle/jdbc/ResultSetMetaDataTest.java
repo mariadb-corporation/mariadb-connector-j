@@ -3,6 +3,8 @@ package org.drizzle.jdbc;
 import static junit.framework.Assert.assertEquals;
 
 import java.sql.*;
+import java.util.logging.Logger;
+import java.util.logging.Level;
 
 import org.junit.Test;
 
@@ -12,6 +14,7 @@ import org.junit.Test;
  * Time: 10:12:52 PM
  */
 public class ResultSetMetaDataTest {
+    static { Logger.getLogger("").setLevel(Level.OFF); }
     @Test
     public void metaDataTest() throws SQLException {
         try {

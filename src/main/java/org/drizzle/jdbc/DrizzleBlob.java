@@ -105,7 +105,7 @@ public class DrizzleBlob extends OutputStream implements Blob {
      */
     public byte[] getBytes(long pos, int length) throws SQLException {
         if(pos<1) throw new SQLException("Pos starts at 1");
-        if(pos+length > actualSize) throw new SQLException("Out of bounds");
+       // if(pos+length > actualSize) throw new SQLException("Out of bounds");
         return Arrays.copyOfRange(blobContent, (int)pos, (int) (pos + length));
     }
 

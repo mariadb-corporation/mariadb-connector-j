@@ -9,8 +9,6 @@
 
 package org.drizzle.jdbc;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.drizzle.jdbc.internal.drizzle.DrizzleProtocol;
 import org.drizzle.jdbc.internal.common.QueryException;
 import org.drizzle.jdbc.internal.common.Protocol;
@@ -22,6 +20,7 @@ import java.sql.SQLException;
 import java.sql.DriverPropertyInfo;
 import java.sql.DriverManager;
 import java.util.Properties;
+import java.util.logging.Logger;
 
 /**
  * User: marcuse
@@ -30,7 +29,7 @@ import java.util.Properties;
  */
 public class Driver implements java.sql.Driver {
     private JDBCUrl jdbcUrl;
-    private static final Logger log = LoggerFactory.getLogger(Driver.class);
+    private static final Logger log = Logger.getLogger(Driver.class.toString());
 
     static {
         try {
@@ -53,7 +52,7 @@ public class Driver implements java.sql.Driver {
     public Connection connect(String url, Properties info) throws SQLException {
         // TODO: handle the properties!
         // TODO: define what props we support!
-        log.debug("Connecting to: {} ",url);
+        log.finest("Connecting to: "+url);
 
         try {
             jdbcUrl = new JDBCUrl(url);

@@ -1,9 +1,10 @@
 package org.drizzle.jdbc;
 
 import org.junit.Test;
-import org.apache.log4j.BasicConfigurator;
 
 import java.sql.*;
+import java.util.logging.Logger;
+import java.util.logging.Level;
 
 import static junit.framework.Assert.assertEquals;
 
@@ -15,7 +16,8 @@ import static junit.framework.Assert.assertEquals;
  * To change this template use File | Settings | File Templates.
  */
 public class UnicodeTest {
-     //  static { BasicConfigurator.configure(); }
+static { Logger.getLogger("").setLevel(Level.OFF); }
+
     @Test
     public void firstTest() throws SQLException {
         try {
