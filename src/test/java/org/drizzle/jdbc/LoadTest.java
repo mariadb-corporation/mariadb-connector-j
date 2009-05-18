@@ -18,11 +18,6 @@ public class LoadTest {
 static { Logger.getLogger("").setLevel(Level.OFF); }
     @Test
     public void tm() throws SQLException {
-      try {
-                 Class.forName("org.drizzle.jdbc.Driver");
-             } catch (ClassNotFoundException e) {
-                 throw new SQLException("Could not load driver");
-             }
       Connection drizConnection = DriverManager.getConnection("jdbc:drizzle://localhost:4427/test_units_jdbc");
       //Connection mysqlConnection = DriverManager.getConnection("jdbc:mysql:thin://localhost/test_units_jdbc","","");
 

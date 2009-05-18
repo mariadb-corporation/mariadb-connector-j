@@ -23,11 +23,6 @@ public class DateTest {
     static { Logger.getLogger("").setLevel(Level.OFF); }
     @Test
     public void dateTest() throws SQLException {
-        try {
-            Class.forName("org.drizzle.jdbc.Driver");
-        } catch (ClassNotFoundException e) {
-            throw new SQLException("Could not load driver");
-        }
         Connection connection = DriverManager.getConnection("jdbc:drizzle://"+DriverTest.host+":4427/test_units_jdbc");
 
         Statement stmt = connection.createStatement();

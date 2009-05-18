@@ -20,11 +20,7 @@ static { Logger.getLogger("").setLevel(Level.OFF); }
 
     @Test
     public void firstTest() throws SQLException {
-        try {
-            Class.forName("org.drizzle.jdbc.Driver");
-        } catch (ClassNotFoundException e) {
-            throw new SQLException("Could not load driver");
-        }
+
         Connection connection = DriverManager.getConnection("jdbc:drizzle://"+DriverTest.host+":4427/test_units_jdbc");
         String jaString = "\u65e5\u672c\u8a9e\u6587\u5b57\u5217"; // hmm wonder what this means...
         Statement stmt = connection.createStatement();
