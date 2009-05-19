@@ -42,7 +42,7 @@ public class DrizzleValueObject implements ValueObject {
 
     public String getString() {
         if(rawBytes==null)
-            return "NULL";
+            return null;
         return new String(rawBytes);
     }
 

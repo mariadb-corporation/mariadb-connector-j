@@ -30,7 +30,7 @@ public class DatabaseMetadataTest {
         int i=0;
         while(rs.next()) {
             i++;
-            assertEquals("NULL",rs.getString("table_cat"));
+            assertEquals(null,rs.getString("table_cat"));
             assertEquals("test_units_jdbc",rs.getString("table_schem"));
             assertEquals("pk_test",rs.getString("table_name"));
             assertEquals("id"+i,rs.getString("column_name"));

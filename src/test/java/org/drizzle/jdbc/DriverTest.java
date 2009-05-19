@@ -25,9 +25,9 @@ public class DriverTest {
     static { Logger.getLogger("").setLevel(Level.OFF); }
 
     public DriverTest() throws SQLException {
-        //connection = DriverManager.getConnection("jdbc:mysql:thin://ccc:ddd@localhost:3306/test_units_jdbc");
+        //connection = DriverManager.getConnection("jdbc:mysql:thin://localhost:3306/test_units_jdbc");
         connection = DriverManager.getConnection("jdbc:drizzle://"+host+":4427/test_units_jdbc");
-
+        //connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/test_units_jdbc");
         Statement stmt = connection.createStatement();
         try { stmt.execute("drop table t1"); } catch (Exception e) {}
         stmt.execute("create table t1 (id int not null primary key auto_increment, test varchar(20))");
@@ -50,7 +50,7 @@ public class DriverTest {
             assertEquals("hej"+i,rs.getString("test"));
         }
         rs.next();
-        assertEquals("NULL",rs.getString("test"));
+        assertEquals(null,rs.getString("test"));
     }
     @Test(expected = SQLException.class)
     public void askForBadColumnTest() throws SQLException{
@@ -343,7 +343,7 @@ public class DriverTest {
         pstmt.setNull(1,1);
         ResultSet rs = pstmt.executeQuery();
         assertEquals(true,rs.next());
-        assertEquals("NULL",rs.getString("test"));
+        assertEquals(null,rs.getString("test"));
         assertEquals(true,rs.wasNull());
     }
 
@@ -619,7 +619,7 @@ public class DriverTest {
     public void binTest() throws SQLException, IOException {
         connection.createStatement().execute("drop table if exists bintest");
         connection.createStatement().execute(
-                "create table bintest (bin1 blob, bin2 varbinary(600))");
+                "create table bintest (bin1 varbinary(300), bin2 varbinary(300))");
         byte [] allBytes = new byte[256];
         for(int i=0;i<256;i++) {
             allBytes[i]=(byte) (i&0xff);
