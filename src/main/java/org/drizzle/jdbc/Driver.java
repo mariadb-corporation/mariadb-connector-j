@@ -14,6 +14,7 @@ import org.drizzle.jdbc.internal.common.QueryException;
 import org.drizzle.jdbc.internal.common.Protocol;
 import org.drizzle.jdbc.internal.common.query.DrizzleQueryFactory;
 import org.drizzle.jdbc.internal.mysql.MySQLProtocol;
+import org.drizzle.jdbc.internal.SQLExceptionMapper;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -28,7 +29,6 @@ import java.util.logging.Logger;
  * Time: 7:46:09 AM
  */
 public class Driver implements java.sql.Driver {
-    private JDBCUrl jdbcUrl;
     private static final Logger log = Logger.getLogger(Driver.class.toString());
 
     static {
@@ -55,15 +55,15 @@ public class Driver implements java.sql.Driver {
         log.finest("Connecting to: "+url);
 
         try {
-            jdbcUrl = new JDBCUrl(url);
+            JDBCUrl jdbcUrl = new JDBCUrl(url);
             Protocol protocol;
             if(jdbcUrl.getDBType()==JDBCUrl.DBType.DRIZZLE)
-                protocol=new DrizzleProtocol(jdbcUrl.getHostname(),jdbcUrl.getPort(),jdbcUrl.getDatabase(),jdbcUrl.getUsername(),jdbcUrl.getPassword());
+                protocol = new DrizzleProtocol(jdbcUrl.getHostname(), jdbcUrl.getPort(), jdbcUrl.getDatabase(), jdbcUrl.getUsername(), jdbcUrl.getPassword());
             else
-                protocol = new MySQLProtocol(jdbcUrl.getHostname(),jdbcUrl.getPort(),jdbcUrl.getDatabase(),jdbcUrl.getUsername(),jdbcUrl.getPassword());
+                protocol = new MySQLProtocol(jdbcUrl.getHostname(), jdbcUrl.getPort(), jdbcUrl.getDatabase(), jdbcUrl.getUsername(), jdbcUrl.getPassword());
             return new DrizzleConnection(protocol, new DrizzleQueryFactory());
         } catch (QueryException e) {
-            throw new SQLException("Could not connect",e);
+            throw SQLExceptionMapper.get(e);
         }
     }
 

@@ -78,8 +78,6 @@ public class DrizzleProtocol implements Protocol {
         batchList=new ArrayList<Query>();
         try {
             InputStream reader = socket.getInputStream();
-            //InputStream reader = new BufferedInputStream(socket.getInputStream(),1638);
-
             writer = new BufferedOutputStream(socket.getOutputStream(),1638);
 
             GreetingReadPacket greetingPacket = new GreetingReadPacket(reader);
@@ -96,8 +94,9 @@ public class DrizzleProtocol implements Protocol {
             RawPacket rawPacket = packetFetcher.getRawPacket();
             ResultPacket rp = ResultPacketFactory.createResultPacket(rawPacket);
             if(rp.getResultType()==ResultPacket.ResultType.ERROR){
-                String message = ((ErrorPacket)rp).getMessage();
-                throw new QueryException("Could not connect: "+message);
+                ErrorPacket ep = (ErrorPacket)rp;
+                String message = ep.getMessage();
+                throw new QueryException("Could not connect: "+message, ep.getErrorNumber(), ep.getSqlState());
             }
             // default when connecting is to have autocommit = 1.
             if(!((OKPacket)rp).getServerStatus().contains(ServerStatus.AUTOCOMMIT))
@@ -135,32 +134,7 @@ public class DrizzleProtocol implements Protocol {
         return !this.connected;
     }
 
-    /**
-     * create a DrizzleQueryResult - precondition is that a result set packet has been read
-     * @param packet the result set packet from the server
-     * @return a DrizzleQueryResult
-     * @throws IOException when something goes wrong while reading/writing from the server
-     */
-    private QueryResult createDrizzleQueryResult(ResultSetPacket packet) throws IOException {
-        List<ColumnInformation> columnInformation = new ArrayList<ColumnInformation>();
-        for(int i=0;i<packet.getFieldCount();i++) {
-            RawPacket rawPacket = packetFetcher.getRawPacket();
-            ColumnInformation columnInfo = FieldPacket.columnInformationFactory(rawPacket);
-            columnInformation.add(columnInfo);
-        }
-        packetFetcher.getRawPacket();
-        List<List<ValueObject>> valueObjects = new ArrayList<List<ValueObject>>();
-  
-        while(true) {
-            RawPacket rawPacket = packetFetcher.getRawPacket();
-            if(ReadUtil.eofIsNext(rawPacket)) {
-                return new DrizzleQueryResult(columnInformation,valueObjects);
-            }
-            RowPacket rowPacket = new RowPacket(rawPacket,columnInformation);
-            valueObjects.add(rowPacket.getRow());
-        }
-    }
-    
+
     public void selectDB(String database) throws QueryException {
         log.finest("Selecting db "+database);
         SelectDBPacket packet = new SelectDBPacket(database);
@@ -254,7 +228,6 @@ public class DrizzleProtocol implements Protocol {
     public QueryResult executeQuery(Query dQuery) throws QueryException {
         log.finest("Executing streamed query: "+dQuery);
         StreamedQueryPacket packet = new StreamedQueryPacket(dQuery);
-
         int i=0;
         try {
             packet.send(writer);
@@ -273,11 +246,11 @@ public class DrizzleProtocol implements Protocol {
         switch(resultPacket.getResultType()) {
             case ERROR:
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                ErrorPacket ep = (ErrorPacket)resultPacket;
                 try {
                     dQuery.writeTo(baos);
-                    log.warning("Could not execute query "+baos.toString()+": "+((ErrorPacket)resultPacket).getMessage());
-                    throw new QueryException("Could not execute query: "+((ErrorPacket)resultPacket).getMessage());
-
+                    log.warning("Could not execute query "+baos.toString()+": "+ep.getMessage());
+                    throw new QueryException("Could not execute query: "+ep.getMessage(), ep.getErrorNumber(), ep.getSqlState());
                 } catch (IOException e) {
                     throw new QueryException("Could not execute query: "+((ErrorPacket)resultPacket).getMessage());                
                 }
@@ -301,6 +274,31 @@ public class DrizzleProtocol implements Protocol {
                 throw new QueryException("Could not parse result");
         }
 
+    }
+    /**
+     * create a DrizzleQueryResult - precondition is that a result set packet has been read
+     * @param packet the result set packet from the server
+     * @return a DrizzleQueryResult
+     * @throws IOException when something goes wrong while reading/writing from the server
+     */
+    private QueryResult createDrizzleQueryResult(ResultSetPacket packet) throws IOException {
+        List<ColumnInformation> columnInformation = new ArrayList<ColumnInformation>();
+        for(int i=0;i<packet.getFieldCount();i++) {
+            RawPacket rawPacket = packetFetcher.getRawPacket();
+            ColumnInformation columnInfo = FieldPacket.columnInformationFactory(rawPacket);
+            columnInformation.add(columnInfo);
+        }
+        packetFetcher.getRawPacket();
+        List<List<ValueObject>> valueObjects = new ArrayList<List<ValueObject>>();
+
+        while(true) {
+            RawPacket rawPacket = packetFetcher.getRawPacket();
+            if(ReadUtil.eofIsNext(rawPacket)) {
+                return new DrizzleQueryResult(columnInformation,valueObjects);
+            }
+            RowPacket rowPacket = new RowPacket(rawPacket,columnInformation);
+            valueObjects.add(rowPacket.getRow());
+        }
     }
 
     public void addToBatch(Query dQuery) {

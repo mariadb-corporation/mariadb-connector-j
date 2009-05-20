@@ -15,6 +15,7 @@ import org.drizzle.jdbc.internal.common.queryresults.QueryResult;
 import org.drizzle.jdbc.internal.common.queryresults.ModifyQueryResult;
 import org.drizzle.jdbc.internal.common.queryresults.ResultSetType;
 import org.drizzle.jdbc.internal.common.query.QueryFactory;
+import org.drizzle.jdbc.internal.SQLExceptionMapper;
 
 import java.sql.*;
 import java.util.List;
@@ -75,7 +76,7 @@ public class DrizzleStatement implements Statement {
             setUpdateCount(((ModifyQueryResult)dqr).getUpdateCount());
             return false;
         } catch (QueryException e) {
-            throw new SQLException("Could not execute query: ",e);
+            throw SQLExceptionMapper.get(e);
         }
     }
     public QueryFactory getQueryFactory(){

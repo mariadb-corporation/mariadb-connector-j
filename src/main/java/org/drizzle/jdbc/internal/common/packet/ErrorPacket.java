@@ -57,4 +57,12 @@ public class ErrorPacket extends ResultPacket {
     public byte getPacketSeq() {
         return packetSeq;
     }
+
+    public short getErrorNumber() {
+        return errorNumber;
+    }
+
+    public String getSqlState() {
+        return new String(sqlState);
+    }
 }
