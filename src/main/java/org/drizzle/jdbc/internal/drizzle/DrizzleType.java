@@ -28,11 +28,9 @@ public enum DrizzleType {
     NULL(java.sql.Types.NULL,null),
     TIMESTAMP(java.sql.Types.TIMESTAMP, Long.class),
     LONGLONG(java.sql.Types.BIGINT,Long.class),
-    TIME(java.sql.Types.TIME, Time.class),
     DATETIME(java.sql.Types.DATE, Date.class),
     DATE(java.sql.Types.DATE,Date.class),
     VARCHAR(java.sql.Types.VARCHAR,String.class),
-    VIRTUAL(java.sql.Types.OTHER,null),
     NEWDECIMAL(java.sql.Types.DECIMAL, BigDecimal.class),
     ENUM(java.sql.Types.VARCHAR,String.class),
     BLOB(java.sql.Types.BLOB, Blob.class),
@@ -54,7 +52,7 @@ public enum DrizzleType {
     public static DrizzleType fromServer(byte typeValue) {
         switch(typeValue) {
             case 0:
-            return TINY;
+                return TINY;
             case 1:
                 return LONG;
             case 2:
@@ -72,18 +70,19 @@ public enum DrizzleType {
             case 8:
                 return VARCHAR;
             case 9:
-                return VIRTUAL;
-            case 10:
                 return NEWDECIMAL;
-            case 11:
+            case 10:
                 return ENUM;
+            case 11:
+                return BLOB;
             case 12:
                 return BLOB;
-            case 13:
-                return BLOB;
             default:
-            return VARCHAR;
+                return VARCHAR;
         }
+        //./configure --prefix=/home/marcuse/libdrizzle_bin/
+        //./configure  --with-libdrizzle-prefix=/home/marcuse/libdrizzle_bin/
+        
         
     }
 }

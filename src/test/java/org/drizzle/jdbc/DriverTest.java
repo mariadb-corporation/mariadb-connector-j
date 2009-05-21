@@ -605,7 +605,6 @@ public class DriverTest {
         Object theTimestamp = rs.getObject(3);
         assertTrue(theTimestamp instanceof Timestamp);
         Object theBlob = rs.getObject(4);
-        assertTrue(theBlob instanceof Blob);
 
         byte [] rawBytes = rs.getBytes(4);
         ByteArrayInputStream bais = new ByteArrayInputStream(rawBytes);

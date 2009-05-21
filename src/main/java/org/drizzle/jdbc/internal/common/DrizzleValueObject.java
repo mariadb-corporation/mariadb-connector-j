@@ -139,15 +139,11 @@ public class DrizzleValueObject implements ValueObject {
                 return getTimestamp();
             case LONGLONG:
                 return getLong();
-            case TIME:
-                return getTime();
             case DATETIME:
                 return getTimestamp();
             case DATE:
                 return getDate();
             case VARCHAR:
-                return getString();
-            case VIRTUAL:
                 return getString();
             case NEWDECIMAL:
                 return getBigDecimal();
