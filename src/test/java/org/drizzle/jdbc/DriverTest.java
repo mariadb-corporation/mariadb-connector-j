@@ -679,13 +679,12 @@ public class DriverTest {
         }
         assertEquals(false,rs.next());
     }
-    @Test
+    @Test(expected=SQLIntegrityConstraintViolationException.class)
     public void testException1() throws SQLException {
         connection.createStatement().execute("drop table if exists extest");
         connection.createStatement().execute(
                 "create table extest (id int not null primary key)");
         connection.createStatement().execute("insert into extest values (1)");
         connection.createStatement().execute("insert into extest values (1)");
-        
     }
 }

@@ -50,7 +50,7 @@ public class DrizzleStatement implements Statement {
             warningsCleared = false;
             return new DrizzleResultSet(dqr,this);
         } catch (QueryException e) {
-            throw new SQLException("Could not execute query",e);
+            throw SQLExceptionMapper.get(e);
         }
     }
 
@@ -61,7 +61,7 @@ public class DrizzleStatement implements Statement {
             dqr = protocol.executeQuery(queryFactory.createQuery(s));
             return (int) ((ModifyQueryResult)dqr).getUpdateCount();
         } catch (QueryException e) {
-            throw new SQLException("Could not execute update ",e);
+            throw SQLExceptionMapper.get(e);
         }
     }
 
@@ -935,7 +935,7 @@ public class DrizzleStatement implements Statement {
             }
             return retVals;
         } catch (QueryException e) {
-            throw new SQLException("Could not execute batch",e);
+            throw SQLExceptionMapper.get(e);
         }
     }
 

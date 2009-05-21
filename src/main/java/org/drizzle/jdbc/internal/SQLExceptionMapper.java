@@ -2,8 +2,7 @@ package org.drizzle.jdbc.internal;
 
 import org.drizzle.jdbc.internal.common.QueryException;
 
-import java.sql.SQLException;
-import java.sql.SQLIntegrityConstraintViolationException;
+import java.sql.*;
 
 /**
  * Created by IntelliJ IDEA.
@@ -14,25 +13,59 @@ import java.sql.SQLIntegrityConstraintViolationException;
  */
 public class SQLExceptionMapper {
     public enum SQLStates {
-        INTEGRITY("23");
-        private String sqlStateGroup;
+        WARNING("01"),
+        NO_DATA("02"),
+        CONNECTION_EXCEPTION("08"),
+        FEATURE_NOT_SUPPORTED("0A"),
+        CARDINALITY_VIOLATION("21"),
+        DATA_EXCEPTION("22"),
+        CONSTRAINT_VIOLATION("23"),
+        INVALID_CURSOR_STATE("24"),
+        INVALID_TRANSACTION_STATE("25"),
+        INVALID_AUTHORIZATION("28"),
+        SQL_FUNCTION_EXCEPTION("2F"),
+        TRANSACTION_ROLLBACK("40"),
+        SYNTAX_ERROR_ACCESS_RULE("42"),
+        INVALID_CATALOG("3D"),
+        INTERRUPTED_EXCEPTION("70"),
+        UNDEFINED_SQLSTATE("HY"),
+        DISTRIBUTED_TRANSACTION_ERROR("XA");
 
-        SQLStates(String sqlStateGroup) {
-            this.sqlStateGroup=sqlStateGroup;
+        private String sqlStateGroup;
+        
+        SQLStates(String s) {
+            this.sqlStateGroup = s;
         }
 
         public static SQLStates fromString(String group) {
-            if(group.startsWith("23"))
-                return INTEGRITY;
-            return INTEGRITY;
+            for(SQLStates state : SQLStates.values()) {
+                if(group.startsWith(state.sqlStateGroup))
+                    return state;
+            }
+            return UNDEFINED_SQLSTATE;
         }
     }
     public static SQLException get(QueryException e) {
         String sqlState = e.getSqlState();
         SQLStates state = SQLStates.fromString(sqlState);
         switch(state) {
-            case INTEGRITY:
+            case DATA_EXCEPTION:
+                return new SQLDataException(e.getMessage(),e);
+            case FEATURE_NOT_SUPPORTED:
+                return new SQLFeatureNotSupportedException(e.getMessage(),e);
+            case CONSTRAINT_VIOLATION:
                 return new SQLIntegrityConstraintViolationException(e.getMessage(),e);
+            case INVALID_AUTHORIZATION:
+                return new SQLInvalidAuthorizationSpecException(e.getMessage(),e);
+            case CONNECTION_EXCEPTION:
+                // TODO: check transient / non transient
+                return new SQLNonTransientConnectionException(e.getMessage(),e);
+            case SYNTAX_ERROR_ACCESS_RULE:
+                return new SQLSyntaxErrorException(e.getMessage(),e);
+            case TRANSACTION_ROLLBACK:
+                return new SQLTransactionRollbackException(e.getMessage(),e);
+            case WARNING:
+                return new SQLWarning(e.getMessage(),e);
         }
         return new SQLException(e.getMessage(),e);
     }

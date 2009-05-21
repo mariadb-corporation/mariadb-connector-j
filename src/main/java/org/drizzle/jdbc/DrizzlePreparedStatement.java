@@ -16,6 +16,7 @@ import org.drizzle.jdbc.internal.common.queryresults.ResultSetType;
 import org.drizzle.jdbc.internal.common.queryresults.ModifyQueryResult;
 import org.drizzle.jdbc.internal.common.query.*;
 import org.drizzle.jdbc.internal.common.query.parameters.*;
+import org.drizzle.jdbc.internal.SQLExceptionMapper;
 
 import java.sql.*;
 import java.math.BigDecimal;
@@ -45,7 +46,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
         try {
             return new DrizzleResultSet(getProtocol().executeQuery(dQuery),this);
         } catch (QueryException e) {
-            throw new SQLException("Could not execute query",e);
+            throw SQLExceptionMapper.get(e);
         }
     }
 
@@ -67,7 +68,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
         try {
             qr = getProtocol().executeQuery(dQuery);
         } catch (QueryException e) {
-            throw new SQLException("Could not execute query",e);
+            throw SQLExceptionMapper.get(e);
         }
         if(qr.getResultSetType()!= ResultSetType.MODIFY)
             throw new SQLException("The query returned a result set");
@@ -105,7 +106,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
         try {
             qr = getProtocol().executeQuery(dQuery);
         } catch (QueryException e) {
-            throw new SQLException("Could not execute query",e);
+            throw SQLExceptionMapper.get(e);
         }
         if(qr.getResultSetType() == ResultSetType.SELECT) {
             super.setResultSet(new DrizzleResultSet(qr,this));

@@ -14,6 +14,7 @@ import org.drizzle.jdbc.internal.common.BinlogDumpException;
 import org.drizzle.jdbc.internal.common.QueryException;
 import org.drizzle.jdbc.internal.common.packet.RawPacket;
 import org.drizzle.jdbc.internal.common.query.QueryFactory;
+import org.drizzle.jdbc.internal.SQLExceptionMapper;
 
 import java.sql.*;
 import java.util.Map;
@@ -57,7 +58,7 @@ public class DrizzleConnection implements Connection, ReplicationConnection {
         try {
             protocol.setAutoCommit(autoCommit);
         } catch (QueryException e) {
-            throw new SQLException("Could not set autocommit",e);
+            throw SQLExceptionMapper.get(e);
         }
     }
 
@@ -69,7 +70,7 @@ public class DrizzleConnection implements Connection, ReplicationConnection {
         try {
             protocol.commit();
         } catch (QueryException e) {
-            throw new SQLException("Could not commit",e);
+            throw SQLExceptionMapper.get(e);
         }
     }
 
@@ -77,7 +78,7 @@ public class DrizzleConnection implements Connection, ReplicationConnection {
         try {
             protocol.rollback();
         } catch (QueryException e) {
-            throw new SQLException("Could not roll transaction back",e);
+            throw SQLExceptionMapper.get(e);
         }
     }
 
@@ -85,7 +86,7 @@ public class DrizzleConnection implements Connection, ReplicationConnection {
         try {
             protocol.close();
         } catch (QueryException e) {
-            throw new SQLException("Could not close socket",e);
+            throw SQLExceptionMapper.get(e);
         }
 
     }
@@ -204,7 +205,7 @@ public class DrizzleConnection implements Connection, ReplicationConnection {
         try {
             protocol.executeQuery(queryFactory.createQuery(query));
         } catch (QueryException e) {
-            throw new SQLException("Could not set transaction isolation level",e);
+            throw SQLExceptionMapper.get(e);
         }
     }
 
@@ -522,7 +523,7 @@ public class DrizzleConnection implements Connection, ReplicationConnection {
         try {
             protocol.setSavepoint(drizzleSavepoint.toString());
         } catch (QueryException e) {
-            throw new SQLException("could not set savepoint",e);
+            throw SQLExceptionMapper.get(e);
         }
         return drizzleSavepoint;
 
@@ -552,7 +553,7 @@ public class DrizzleConnection implements Connection, ReplicationConnection {
         try {
             protocol.rollback(savepoint.toString());
         } catch (QueryException e) {
-            throw new SQLException("Could not rollback",e);
+            throw SQLExceptionMapper.get(e);
         }
     }
 
@@ -575,7 +576,7 @@ public class DrizzleConnection implements Connection, ReplicationConnection {
         try {
             protocol.releaseSavepoint(savepoint.toString());
         } catch (QueryException e) {
-            throw new SQLException("Could not release savepoint",e);
+            throw SQLExceptionMapper.get(e);
         }
     }
 
@@ -965,7 +966,7 @@ public class DrizzleConnection implements Connection, ReplicationConnection {
         try {
             return protocol.ping();
         } catch (QueryException e) {
-            throw new SQLException("Could not ping server",e);
+            throw SQLExceptionMapper.get(e);
         }
     }
 
