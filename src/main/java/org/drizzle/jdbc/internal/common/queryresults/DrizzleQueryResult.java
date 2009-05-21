@@ -24,12 +24,13 @@ public class DrizzleQueryResult implements SelectQueryResult {
     private final List<ColumnInformation> columnInformation;
     private final List<List<ValueObject>> resultSet;
     private final Map<String, Integer> columnNameMap;
+    private final short warningCount;
     private int rowPointer;
 
-    public DrizzleQueryResult(List<ColumnInformation> columnInformation, List<List<ValueObject>> valueObjects) {
+    public DrizzleQueryResult(List<ColumnInformation> columnInformation, List<List<ValueObject>> valueObjects, short warningCount) {
         this.columnInformation = columnInformation;
         this.resultSet=valueObjects;
-
+        this.warningCount = warningCount;
         columnNameMap=new HashMap<String,Integer>();
         rowPointer =-1;
         int i=0;
@@ -50,7 +51,7 @@ public class DrizzleQueryResult implements SelectQueryResult {
     }
 
     public short getWarnings() {
-        return 0;
+        return warningCount;
     }
 
     public String getMessage() {

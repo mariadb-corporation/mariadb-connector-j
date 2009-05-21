@@ -51,7 +51,6 @@ public class DrizzleResultSetMetaData implements ResultSetMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public boolean isAutoIncrement(int column) throws SQLException {
-        log.finest("Getting is auto inc");
         return getColumnInformation(column).getFlags().contains(ColumnFlags.AUTO_INCREMENT);
     }
 
@@ -74,7 +73,6 @@ public class DrizzleResultSetMetaData implements ResultSetMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public boolean isSearchable(int column) throws SQLException {
-
         return true;
     }
 

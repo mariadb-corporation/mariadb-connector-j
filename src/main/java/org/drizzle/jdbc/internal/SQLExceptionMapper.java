@@ -29,10 +29,11 @@ public class SQLExceptionMapper {
         INVALID_CATALOG("3D"),
         INTERRUPTED_EXCEPTION("70"),
         UNDEFINED_SQLSTATE("HY"),
-        DISTRIBUTED_TRANSACTION_ERROR("XA");
+        DISTRIBUTED_TRANSACTION_ERROR("XA"); // is this true?
 
         private String sqlStateGroup;
-        
+
+
         SQLStates(String s) {
             this.sqlStateGroup = s;
         }
@@ -44,29 +45,33 @@ public class SQLExceptionMapper {
             }
             return UNDEFINED_SQLSTATE;
         }
+
+        public String getSqlState() {
+            return sqlStateGroup;
+        }
     }
     public static SQLException get(QueryException e) {
         String sqlState = e.getSqlState();
         SQLStates state = SQLStates.fromString(sqlState);
         switch(state) {
             case DATA_EXCEPTION:
-                return new SQLDataException(e.getMessage(),e);
+                return new SQLDataException(e.getMessage(),e.getMessage(), e.getErrorCode(),e);
             case FEATURE_NOT_SUPPORTED:
-                return new SQLFeatureNotSupportedException(e.getMessage(),e);
+                return new SQLFeatureNotSupportedException(e.getMessage(),e.getMessage(), e.getErrorCode(),e);
             case CONSTRAINT_VIOLATION:
-                return new SQLIntegrityConstraintViolationException(e.getMessage(),e);
+                return new SQLIntegrityConstraintViolationException(e.getMessage(),e.getMessage(), e.getErrorCode(),e);
             case INVALID_AUTHORIZATION:
-                return new SQLInvalidAuthorizationSpecException(e.getMessage(),e);
+                return new SQLInvalidAuthorizationSpecException(e.getMessage(),e.getMessage(), e.getErrorCode(),e);
             case CONNECTION_EXCEPTION:
                 // TODO: check transient / non transient
-                return new SQLNonTransientConnectionException(e.getMessage(),e);
+                return new SQLNonTransientConnectionException(e.getMessage(),e.getMessage(), e.getErrorCode(),e);
             case SYNTAX_ERROR_ACCESS_RULE:
-                return new SQLSyntaxErrorException(e.getMessage(),e);
+                return new SQLSyntaxErrorException(e.getMessage(),e.getMessage(), e.getErrorCode(),e);
             case TRANSACTION_ROLLBACK:
-                return new SQLTransactionRollbackException(e.getMessage(),e);
+                return new SQLTransactionRollbackException(e.getMessage(),e.getMessage(), e.getErrorCode(),e);
             case WARNING:
-                return new SQLWarning(e.getMessage(),e);
+                return new SQLWarning(e.getMessage(),e.getMessage(), e.getErrorCode(),e);
         }
-        return new SQLException(e.getMessage(),e);
+        return new SQLException(e.getMessage(),e.getMessage(), e.getErrorCode(),e);
     }
 }

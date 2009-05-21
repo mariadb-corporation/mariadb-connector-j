@@ -22,12 +22,12 @@ public class QueryException extends Exception {
     private final int errorCode;
     private final String sqlState;
 
-    public QueryException(String message, Throwable cause) {
+/*    public QueryException(String message, Throwable cause) {
         super(message,cause);
         this.errorCode = -1;
         this.sqlState = "HY0000";
     }
-
+*/
     public QueryException(String message) {
         super(message);
         this.errorCode = -1;
@@ -40,6 +40,12 @@ public class QueryException extends Exception {
         this.errorCode=errorCode;
         this.sqlState=sqlState;
     }
+
+    public QueryException(String s, int errorCode, String sqlState, Throwable cause) {
+        super(s,cause);
+        this.errorCode=errorCode;
+        this.sqlState=sqlState;
+   }
 
     public int getErrorCode() {
         return errorCode;

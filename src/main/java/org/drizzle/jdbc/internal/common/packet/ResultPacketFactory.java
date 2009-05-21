@@ -39,7 +39,7 @@ public class ResultPacketFactory {
                 return new ResultSetPacket(reader);
         }
     }
-    private static EOFPacket eof = new EOFPacket();
+//    private static EOFPacket eof = new EOFPacket();
     public static ResultPacket createResultPacket(RawPacket rawPacket)  {
         byte[] rawBytes =rawPacket.getRawBytes();
         switch(rawBytes[0]) {
@@ -48,7 +48,7 @@ public class ResultPacketFactory {
             case OK:
                 return new OKPacket(rawBytes);
             case EOF:
-                return eof;
+                return new EOFPacket(rawBytes);
             default:
                 return new ResultSetPacket(rawBytes);
         }

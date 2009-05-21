@@ -18,7 +18,7 @@ package org.drizzle.jdbc.internal.common.queryresults;
  */
 public interface ModifyQueryResult extends QueryResult {
  public long getUpdateCount() ;
-    public short getWarnings() ;
+
     public String getMessage();
     public long getInsertId();
     public QueryResult getGeneratedKeysResult();     

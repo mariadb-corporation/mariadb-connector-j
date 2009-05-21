@@ -11,6 +11,7 @@ package org.drizzle.jdbc.internal.common.packet;
 
 import org.drizzle.jdbc.internal.common.packet.buffer.ReadUtil;
 import org.drizzle.jdbc.internal.common.packet.buffer.Reader;
+import org.drizzle.jdbc.internal.common.packet.buffer.LengthEncodedBinary;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -24,16 +25,14 @@ import java.io.InputStream;
  */
 public class ResultSetPacket extends ResultPacket {
     private final long fieldCount;
-    private final byte packetSeq;
     public ResultSetPacket(InputStream istream) throws IOException {
         Reader reader = new Reader(istream);
-        packetSeq = reader.getPacketSeq();
         fieldCount = reader.getLengthEncodedBinary();
     }
 
     public ResultSetPacket(byte [] rawBytes) {
-        packetSeq = rawBytes[0];
-        fieldCount = (ReadUtil.getLengthEncodedBinary(rawBytes,0)).getValue();
+        LengthEncodedBinary leb = ReadUtil.getLengthEncodedBinary(rawBytes,0);
+        fieldCount = leb.getValue();
     }
 
     public ResultType getResultType() {
@@ -41,7 +40,7 @@ public class ResultSetPacket extends ResultPacket {
     }
 
     public byte getPacketSeq() {
-        return packetSeq;
+        return 0;
     }
 
     public long getFieldCount() {

@@ -687,4 +687,17 @@ public class DriverTest {
         connection.createStatement().execute("insert into extest values (1)");
         connection.createStatement().execute("insert into extest values (1)");
     }
+    @Test
+    public void testExceptionDivByZero() throws SQLException {
+        ResultSet rs = connection.createStatement().executeQuery("select 1/0");
+        assertEquals(rs.next(),true);
+        assertEquals(null, rs.getString(1));
+        SQLWarning warning = rs.getWarnings();
+        assertEquals(warning.getMessage(), "1 warning(s)");
+    }
+    @Test(expected = SQLSyntaxErrorException.class)
+    public void testSyntaxError() throws SQLException {
+        connection.createStatement().executeQuery("create asdf b");
+
+    }
 }

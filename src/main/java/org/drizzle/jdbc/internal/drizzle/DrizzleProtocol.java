@@ -19,6 +19,7 @@ import org.drizzle.jdbc.internal.common.*;
 import org.drizzle.jdbc.internal.drizzle.packet.commands.ClientAuthPacket;
 import org.drizzle.jdbc.internal.drizzle.packet.commands.PingPacket;
 import org.drizzle.jdbc.internal.drizzle.packet.GreetingReadPacket;
+import org.drizzle.jdbc.internal.SQLExceptionMapper;
 
 import javax.net.SocketFactory;
 import java.net.Socket;
@@ -72,7 +73,7 @@ public class DrizzleProtocol implements Protocol {
         try {
             socket = socketFactory.createSocket(host,port);
         } catch (IOException e) {
-            throw new QueryException("Could not connect socket",e);
+            throw new QueryException("Could not connect: "+e.getMessage(),-1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),e);
         }
         log.info("Connected to: "+host+":"+port);
         batchList=new ArrayList<Query>();
@@ -102,7 +103,7 @@ public class DrizzleProtocol implements Protocol {
             if(!((OKPacket)rp).getServerStatus().contains(ServerStatus.AUTOCOMMIT))
                 setAutoCommit(true);
         } catch (IOException e) {
-            throw new QueryException("Could not connect: "+e.getMessage(),e);
+            throw new QueryException("Could not connect: "+e.getMessage(),-1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),e);
         }
     }
 
@@ -121,7 +122,7 @@ public class DrizzleProtocol implements Protocol {
             socket.close();
 
         } catch(IOException e){
-            throw new QueryException("Could not close connection",e);
+            throw new QueryException("Could not close socket: "+e.getMessage(),-1, "08000",e);
         }
         this.connected=false;
     }
@@ -143,7 +144,7 @@ public class DrizzleProtocol implements Protocol {
             RawPacket rawPacket = packetFetcher.getRawPacket();
             ResultPacketFactory.createResultPacket(rawPacket);
         } catch (IOException e) {
-            throw new QueryException("Could not select database ",e);
+            throw new QueryException("Could not connect: "+e.getMessage(),-1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),e);
         }
         this.database=database;
     }
@@ -221,7 +222,7 @@ public class DrizzleProtocol implements Protocol {
             RawPacket rawPacket = packetFetcher.getRawPacket();
             return ResultPacketFactory.createResultPacket(rawPacket).getResultType()==ResultPacket.ResultType.OK;
         } catch (IOException e) {
-            throw new QueryException("Could not ping",e);
+            throw new QueryException("Could not connect: "+e.getMessage(),-1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),e);
         }
     }
 
@@ -232,14 +233,14 @@ public class DrizzleProtocol implements Protocol {
         try {
             packet.send(writer);
         } catch (IOException e) {
-            throw new QueryException("Could not send query",e);
+            throw new QueryException("Could not connect: "+e.getMessage(),-1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),e);
         }
 
         RawPacket rawPacket = null;
         try {
             rawPacket = packetFetcher.getRawPacket();
         } catch (IOException e) {
-            throw new QueryException("Could not fetch query result",e);
+            throw new QueryException("Could not connect: "+e.getMessage(),-1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),e);
         }
         ResultPacket resultPacket = ResultPacketFactory.createResultPacket(rawPacket);
 
@@ -267,7 +268,7 @@ public class DrizzleProtocol implements Protocol {
                 try {
                     return this.createDrizzleQueryResult((ResultSetPacket)resultPacket);
                 } catch (IOException e) {
-                    throw new QueryException("Could not get query result",e);
+                    throw new QueryException("Could not connect: "+e.getMessage(),-1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),e);
                 }
             default:
                 log.severe("Could not parse result...");
@@ -294,7 +295,8 @@ public class DrizzleProtocol implements Protocol {
         while(true) {
             RawPacket rawPacket = packetFetcher.getRawPacket();
             if(ReadUtil.eofIsNext(rawPacket)) {
-                return new DrizzleQueryResult(columnInformation,valueObjects);
+                EOFPacket eofPacket = (EOFPacket) ResultPacketFactory.createResultPacket(rawPacket);
+                return new DrizzleQueryResult(columnInformation,valueObjects,eofPacket.getWarningCount());
             }
             RowPacket rowPacket = new RowPacket(rawPacket,columnInformation);
             valueObjects.add(rowPacket.getRow());

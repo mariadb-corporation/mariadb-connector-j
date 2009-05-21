@@ -381,7 +381,7 @@ public class DrizzleResultSet implements ResultSet {
      *                               called on a closed result set
      */
     public SQLWarning getWarnings() throws SQLException {
-        return new SQLWarning(String.valueOf(queryResult.getWarnings()));
+        return new SQLWarning(String.valueOf(queryResult.getWarnings())+" warning(s)");
     }
 
     /**
