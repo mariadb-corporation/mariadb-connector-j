@@ -85,7 +85,6 @@ public class DrizzleProtocol implements Protocol {
             log.finest("Got greeting packet: "+greetingPacket);
             this.version=greetingPacket.getServerVersion();
             Set<ServerCapabilities> serverCapabilities = greetingPacket.getServerCapabilities();
-
             serverCapabilities.removeAll(EnumSet.of(ServerCapabilities.SSL, ServerCapabilities.ODBC, ServerCapabilities.NO_SCHEMA));
             serverCapabilities.addAll(EnumSet.of(ServerCapabilities.CONNECT_WITH_DB));
             ClientAuthPacket cap = new ClientAuthPacket(this.username,this.password,this.database,serverCapabilities);
@@ -105,6 +104,7 @@ public class DrizzleProtocol implements Protocol {
         } catch (IOException e) {
             throw new QueryException("Could not connect: "+e.getMessage(),-1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),e);
         }
+        connected=true;
     }
 
     /**
@@ -119,12 +119,16 @@ public class DrizzleProtocol implements Protocol {
             closePacket.send(writer);
             packetFetcher.awaitTermination();
             writer.close();
-            socket.close();
-
         } catch(IOException e){
             throw new QueryException("Could not close socket: "+e.getMessage(),-1, "08000",e);
+        } finally {
+            try {
+                this.connected=false;
+                socket.close();
+            } catch (IOException e) {
+                log.warning("Could not close socket");                
+            }
         }
-        this.connected=false;
     }
 
     /**
@@ -222,7 +226,7 @@ public class DrizzleProtocol implements Protocol {
             RawPacket rawPacket = packetFetcher.getRawPacket();
             return ResultPacketFactory.createResultPacket(rawPacket).getResultType()==ResultPacket.ResultType.OK;
         } catch (IOException e) {
-            throw new QueryException("Could not connect: "+e.getMessage(),-1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),e);
+            throw new QueryException("Could not ping: "+e.getMessage(),-1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),e);
         }
     }
 
