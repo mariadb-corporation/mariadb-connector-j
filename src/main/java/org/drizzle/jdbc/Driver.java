@@ -29,7 +29,7 @@ import java.util.logging.Logger;
  * Time: 7:46:09 AM
  */
 public class Driver implements java.sql.Driver {
-    private static final Logger log = Logger.getLogger(Driver.class.toString());
+    private static final Logger log = Logger.getLogger(Driver.class.getName());
 
     static {
         try {

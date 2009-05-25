@@ -21,7 +21,7 @@ import java.util.logging.Logger;
 
  */
 public class DrizzleQuery implements Query {
-    private final static Logger log = Logger.getLogger(DrizzleQuery.class.toString());
+    private final static Logger log = Logger.getLogger(DrizzleQuery.class.getName());
     protected final String query;
     public DrizzleQuery(String query) {
         this.query=query;

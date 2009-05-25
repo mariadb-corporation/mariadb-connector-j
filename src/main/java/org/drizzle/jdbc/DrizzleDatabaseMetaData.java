@@ -23,7 +23,7 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
     private final String url;
     private final String username;
     private final Connection connection;
-    private final static Logger log = Logger.getLogger(DrizzleDatabaseMetaData.class.toString());
+    private final static Logger log = Logger.getLogger(DrizzleDatabaseMetaData.class.getName());
 
     /**
      * Retrieves whether the current user can call all the procedures
