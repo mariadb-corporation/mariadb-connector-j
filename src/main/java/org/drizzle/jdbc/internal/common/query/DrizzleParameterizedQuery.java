@@ -14,8 +14,8 @@ import org.drizzle.jdbc.internal.common.query.parameters.ParameterHolder;
 import org.drizzle.jdbc.internal.common.QueryException;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Logger;
 
 /**
@@ -27,7 +27,7 @@ import java.util.logging.Logger;
  */
 public class DrizzleParameterizedQuery implements ParameterizedQuery {
     private final static Logger log = Logger.getLogger(DrizzleParameterizedQuery.class.toString());
-    private List<ParameterHolder> parameters;
+    private Map<Integer, ParameterHolder> parameters;
     private final int paramCount;
     private final String query;
 
@@ -35,21 +35,21 @@ public class DrizzleParameterizedQuery implements ParameterizedQuery {
         this.query=query;
         this.paramCount=countChars(query,'?');
         log.finest("Found "+paramCount+" questionmarks");
-        parameters=new ArrayList<ParameterHolder>(paramCount);
+        parameters=new HashMap<Integer, ParameterHolder>();
     }
     
     public DrizzleParameterizedQuery(ParameterizedQuery query) {
         this.query=query.getQuery();
         this.paramCount=query.getParamCount();
-        parameters=new ArrayList<ParameterHolder>(paramCount);
+        parameters=new HashMap<Integer, ParameterHolder>();
         log.finest("Copying an existing parameterized query");
     }
 
     public void setParameter(int position, ParameterHolder parameter) throws IllegalParameterException {
         log.finest("Setting parameter "+parameter.toString()+" at position "+position);
-        if(position>=0 && position<paramCount)
-            this.parameters.add(position,parameter);
-        else
+        if(position>=0 && position<paramCount) {
+            parameters.put(position, parameter);
+        } else
             throw new IllegalParameterException("No '?' on that position");
     }
 
@@ -59,8 +59,10 @@ public class DrizzleParameterizedQuery implements ParameterizedQuery {
 
     public int length() {
         int length = query.length() - paramCount; // remove the ?s
-        for(ParameterHolder param : parameters)
-            length+=param.length();
+
+        for(Map.Entry<Integer, ParameterHolder> param : parameters.entrySet())
+            length+=param.getValue().length();
+
         return length;
     }
 
