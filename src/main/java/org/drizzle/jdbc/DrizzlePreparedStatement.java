@@ -33,7 +33,7 @@ import java.net.URL;
  * Time: 10:49:42 PM
  */
 public class DrizzlePreparedStatement extends DrizzleStatement implements PreparedStatement  {
-    private final static Logger log = Logger.getLogger(DrizzlePreparedStatement.class.toString());
+    private final static Logger log = Logger.getLogger(DrizzlePreparedStatement.class.getName());
     private ParameterizedQuery dQuery;
 
     public DrizzlePreparedStatement(Protocol protocol, DrizzleConnection drizzleConnection, String query, QueryFactory queryFactory) {

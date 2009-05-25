@@ -37,7 +37,7 @@ import java.util.logging.Logger;
  * Time: 4:06:26 PM
  */
 public class DrizzleProtocol implements Protocol {
-    private final static Logger log = Logger.getLogger(DrizzleProtocol.class.toString());
+    private final static Logger log = Logger.getLogger(DrizzleProtocol.class.getName());
     private boolean connected=false;
     private final Socket socket;
     private final BufferedOutputStream writer;

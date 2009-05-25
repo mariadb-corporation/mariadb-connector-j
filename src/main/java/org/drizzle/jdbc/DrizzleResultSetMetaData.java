@@ -27,7 +27,7 @@ import java.util.logging.Logger;
 
  */
 public class DrizzleResultSetMetaData implements ResultSetMetaData {
-    private final static Logger log = Logger.getLogger(DrizzleResultSetMetaData.class.toString());
+    private final static Logger log = Logger.getLogger(DrizzleResultSetMetaData.class.getName());
     private final List<ColumnInformation> fieldPackets;
 
     public DrizzleResultSetMetaData(List<ColumnInformation> fieldPackets) {

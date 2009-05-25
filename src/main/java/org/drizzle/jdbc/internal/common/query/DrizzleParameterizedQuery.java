@@ -26,7 +26,7 @@ import java.util.logging.Logger;
 
  */
 public class DrizzleParameterizedQuery implements ParameterizedQuery {
-    private final static Logger log = Logger.getLogger(DrizzleParameterizedQuery.class.toString());
+    private final static Logger log = Logger.getLogger(DrizzleParameterizedQuery.class.getName());
     private Map<Integer, ParameterHolder> parameters;
     private final int paramCount;
     private final String query;
