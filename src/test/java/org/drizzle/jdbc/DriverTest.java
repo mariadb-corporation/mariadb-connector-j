@@ -143,6 +143,20 @@ public class DriverTest {
 
     }
     @Test
+    public void autoIncPrepStmtTest() throws SQLException {
+        String query = "CREATE TABLE test_a_inc_prep_stmt (id int not null primary key auto_increment, test varchar(10))";
+        Statement stmt = connection.createStatement();
+        stmt.execute("DROP TABLE IF EXISTS test_a_inc_prep_stmt");
+        stmt.execute(query);
+        PreparedStatement ps = connection.prepareStatement("insert into test_a_inc_prep_stmt (test) values (?)");
+        ps.setString(1,"test123");
+        ps.execute();
+        ResultSet rs = ps.getGeneratedKeys();
+        assertTrue(rs.next());
+        assertEquals(1,rs.getInt(1));
+        assertEquals(1,rs.getInt("insert_id"));
+    }    
+    @Test
     public void transactionTest() throws SQLException {
         Statement stmt = connection.createStatement();
         stmt.executeQuery("DROP TABLE IF EXISTS t3");

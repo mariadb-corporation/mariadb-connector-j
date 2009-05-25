@@ -30,7 +30,7 @@ public class DrizzleStatement implements Statement {
     private ResultSet resultSet;
     private long updateCount;
     private final Connection connection;
-    private QueryResult dqr;
+    protected QueryResult dqr;
     private boolean warningsCleared;
     private QueryFactory queryFactory;
 
@@ -82,6 +82,7 @@ public class DrizzleStatement implements Statement {
     public QueryFactory getQueryFactory(){
         return queryFactory;
     }
+
     /**
      * Releases this <code>Statement</code> object's database
      * and JDBC resources immediately instead of waiting for
