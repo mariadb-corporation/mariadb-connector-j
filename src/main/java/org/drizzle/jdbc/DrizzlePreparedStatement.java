@@ -38,13 +38,14 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
 
     public DrizzlePreparedStatement(Protocol protocol, DrizzleConnection drizzleConnection, String query, QueryFactory queryFactory) {
         super(protocol, drizzleConnection, queryFactory);
-        log.info("Creating prepared statement for "+query);
+        log.finest("Creating prepared statement for "+query);
         dQuery = queryFactory.createParameterizedQuery(query);
     }
 
     public ResultSet executeQuery() throws SQLException {
         try {
-            return new DrizzleResultSet(getProtocol().executeQuery(dQuery),this);
+            this.dqr = getProtocol().executeQuery(dQuery);
+            return new DrizzleResultSet(this.dqr,this);
         } catch (QueryException e) {
             throw SQLExceptionMapper.get(e);
         }
@@ -64,15 +65,16 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      *                               statement returns a <code>ResultSet</code> object
      */
     public int executeUpdate() throws SQLException {
-        QueryResult qr;
         try {
-            qr = getProtocol().executeQuery(dQuery);
+
+            dqr = getProtocol().executeQuery(dQuery);
+
         } catch (QueryException e) {
             throw SQLExceptionMapper.get(e);
         }
-        if(qr.getResultSetType()!= ResultSetType.MODIFY)
+        if(dqr.getResultSetType()!= ResultSetType.MODIFY)
             throw new SQLException("The query returned a result set");
-        return (int) ((ModifyQueryResult)qr).getUpdateCount();
+        return (int) ((ModifyQueryResult)dqr).getUpdateCount();
     }
 
 
@@ -102,17 +104,16 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
     }
 
     public boolean execute() throws SQLException {
-        QueryResult qr;
         try {
-            qr = getProtocol().executeQuery(dQuery);
+            dqr = getProtocol().executeQuery(dQuery);
         } catch (QueryException e) {
             throw SQLExceptionMapper.get(e);
         }
-        if(qr.getResultSetType() == ResultSetType.SELECT) {
-            super.setResultSet(new DrizzleResultSet(qr,this));
+        if(dqr.getResultSetType() == ResultSetType.SELECT) {
+            super.setResultSet(new DrizzleResultSet(dqr,this));
             return true;
         } else {
-            setUpdateCount(((ModifyQueryResult)qr).getUpdateCount());
+            setUpdateCount(((ModifyQueryResult)dqr).getUpdateCount());
             return false;            
         }
     }
