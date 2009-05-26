@@ -28,10 +28,17 @@ public class AsyncPacketFetcher implements Runnable, PacketFetcher {
     private static final RawPacket IOEXCEPTION_PILL = new RawPacket();
     private final BlockingQueue<RawPacket> packet = new LinkedBlockingQueue<RawPacket>();
     private final InputStream inputStream;
-    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
+    private final ExecutorService executorService;
     private volatile boolean shutDown=false;
 
     public AsyncPacketFetcher(InputStream inputStream) {
+        executorService = Executors.newSingleThreadExecutor(
+               new ThreadFactory() {
+                    public Thread newThread(Runnable runnable) {
+                        return new Thread(runnable, "DrizzlePacketFetcherThread");
+                    }
+               }
+        );
         this.inputStream = new ReadAheadInputStream(inputStream);
         executorService.submit(this);
     }

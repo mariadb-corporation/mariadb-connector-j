@@ -102,11 +102,11 @@ public class DrizzleProtocol implements Protocol {
             if(!((OKPacket)rp).getServerStatus().contains(ServerStatus.AUTOCOMMIT))
                 setAutoCommit(true);
         } catch (IOException e) {
+            close();
             throw new QueryException("Could not connect: "+e.getMessage(),-1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),e);
         }
         connected=true;
     }
-
     /**
      * Closes socket and stream readers/writers
      * @throws QueryException if the socket or readers/writes cannot be closed
