@@ -9,13 +9,18 @@
 
 package org.drizzle.jdbc.internal.common.packet;
 
-import org.drizzle.jdbc.internal.common.packet.RawPacket;
 import org.drizzle.jdbc.internal.common.PacketFetcher;
-import org.drizzle.jdbc.internal.common.packet.ReadAheadInputStream;
 
-import java.util.concurrent.*;
 import java.io.InputStream;
 import java.io.IOException;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Created by IntelliJ IDEA.
@@ -44,26 +49,32 @@ public class AsyncPacketFetcher implements Runnable, PacketFetcher {
     }
 
     public void run() {
-        while(!shutDown) {
-            try {
-                RawPacket rawPacket = new RawPacket(inputStream);
-                packet.add(rawPacket);
-            } catch (IOException e) {
-                // ok got an ioexception reading that packet, lets put the IOEXCEPTION pill on the queue
-                packet.add(IOEXCEPTION_PILL);
-            }
-        }
         try {
-            inputStream.close();
-        } catch (IOException e) {
-            e.printStackTrace();  // we are closing down, ignore any exceptions 
+            while (!shutDown) {
+                try {
+                    RawPacket rawPacket = new RawPacket(inputStream);
+                    packet.add(rawPacket);
+                } catch (IOException e) {
+                    // ok got an ioexception reading that packet, lets put the IOEXCEPTION pill on the queue
+                    packet.add(IOEXCEPTION_PILL);
+                }
+            }
+            try {
+                inputStream.close();
+            } catch (IOException e) {
+                e.printStackTrace();  // we are closing down, ignore any exceptions
+            }
+        } catch (Throwable t) {
+            Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, "Got exception ", t);
         }
     }
 
     public RawPacket getRawPacket() throws IOException {
         try {
             RawPacket rawPacket = packet.take();
-            if(rawPacket == IOEXCEPTION_PILL) throw new IOException();
+            if(rawPacket == IOEXCEPTION_PILL) {
+                throw new IOException();
+            }
             return rawPacket;
         } catch (InterruptedException e) {
             throw new RuntimeException("Got interrupted while waiting for a packet",e); //Todo: fix
