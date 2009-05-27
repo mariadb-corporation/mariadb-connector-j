@@ -1610,8 +1610,7 @@ public class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public ResultSet getSchemas() throws SQLException {
-        return connection.createStatement().executeQuery("SELECT catalog_name table_catalog," +
-                                                                "schema_name table_schem " +
+        return connection.createStatement().executeQuery("SELECT schema_name table_schem, catalog_name table_catalog " +
                                                          "FROM information_schema.schemata");
     }
 

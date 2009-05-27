@@ -104,6 +104,13 @@ public class DatabaseMetadataTest {
         assertEquals("test_units_jdbc",rs.getString("table_schem"));
         assertEquals(false,rs.next());
 
+        rs = dbmd.getSchemas();
+        boolean foundTestUnitsJDBC = false;
+        while(rs.next()) {
+            if(rs.getString(1).equals("test_units_jdbc"))
+                foundTestUnitsJDBC=true;
+        }
+        assertEquals(true,foundTestUnitsJDBC);
     }
 
 }
