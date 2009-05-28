@@ -4,18 +4,27 @@
  * Copyright (C) 2009 Marcus Eriksson (krummas@gmail.com)
  * All rights reserved.
  *
+ * Copyright (C) 2009 Sun Microsystems
+ * All rights reserved.
+ *
  * Use and distribution licensed under the BSD license.
  */
 
 package org.drizzle.jdbc.internal.common.packet;
 
-import org.drizzle.jdbc.internal.common.packet.RawPacket;
+import java.io.BufferedInputStream;
 import org.drizzle.jdbc.internal.common.PacketFetcher;
-import org.drizzle.jdbc.internal.common.packet.ReadAheadInputStream;
 
-import java.util.concurrent.*;
 import java.io.InputStream;
 import java.io.IOException;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Created by IntelliJ IDEA.
@@ -25,7 +34,6 @@ import java.io.IOException;
  * To change this template use File | Settings | File Templates.
  */
 public class AsyncPacketFetcher implements Runnable, PacketFetcher {
-    private static final RawPacket IOEXCEPTION_PILL = new RawPacket();
     private final BlockingQueue<RawPacket> packet = new LinkedBlockingQueue<RawPacket>();
     private final InputStream inputStream;
     private final ExecutorService executorService;
@@ -39,31 +47,46 @@ public class AsyncPacketFetcher implements Runnable, PacketFetcher {
                     }
                }
         );
-        this.inputStream = new ReadAheadInputStream(inputStream);
+        this.inputStream = new BufferedInputStream(inputStream);
         executorService.submit(this);
     }
 
     public void run() {
-        while(!shutDown) {
-            try {
-                RawPacket rawPacket = new RawPacket(inputStream);
-                packet.add(rawPacket);
-            } catch (IOException e) {
-                // ok got an ioexception reading that packet, lets put the IOEXCEPTION pill on the queue
-                packet.add(IOEXCEPTION_PILL);
-            }
-        }
         try {
-            inputStream.close();
-        } catch (IOException e) {
-            e.printStackTrace();  // we are closing down, ignore any exceptions 
+            while (!shutDown) {
+                try {
+                    RawPacket rawPacket = RawPacket.nextPacket(inputStream);
+                    if (rawPacket != null) {
+                        packet.add(rawPacket);
+                    } else {
+                        Logger.getLogger(this.getClass().getName()).info("Connection closed");
+                        shutDown = true;
+                        packet.add(RawPacket.IOEXCEPTION_PILL);
+                    }
+                } catch (IOException e) {
+                    Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, "Got exception reading packet", e);
+                    // ok got an ioexception reading that packet, lets put the IOEXCEPTION pill on the queue
+                    packet.add(RawPacket.IOEXCEPTION_PILL);
+                    // Does it make sense to continue to use the stream?
+                    shutDown = true;
+                }
+            }
+            try {
+                inputStream.close();
+            } catch (IOException e) {
+                e.printStackTrace();  // we are closing down, ignore any exceptions
+            }
+        } catch (Throwable t) {
+            Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, "Got exception ", t);
         }
     }
 
     public RawPacket getRawPacket() throws IOException {
         try {
             RawPacket rawPacket = packet.take();
-            if(rawPacket == IOEXCEPTION_PILL) throw new IOException();
+            if(rawPacket == RawPacket.IOEXCEPTION_PILL) {
+                throw new IOException();
+            }
             return rawPacket;
         } catch (InterruptedException e) {
             throw new RuntimeException("Got interrupted while waiting for a packet",e); //Todo: fix

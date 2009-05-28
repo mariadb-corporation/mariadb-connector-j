@@ -6,11 +6,10 @@
  *
  * Use and distribution licensed under the BSD license.
  */
-
 package org.drizzle.jdbc.internal.common.packet;
 
+import java.io.BufferedInputStream;
 import org.drizzle.jdbc.internal.common.PacketFetcher;
-import org.drizzle.jdbc.internal.common.packet.ReadAheadInputStream;
 
 import java.io.InputStream;
 import java.io.IOException;
@@ -23,13 +22,15 @@ import java.io.IOException;
  * To change this template use File | Settings | File Templates.
  */
 public class SyncPacketFetcher implements PacketFetcher {
+
     private InputStream inputStream;
 
     public SyncPacketFetcher(InputStream is) {
-        this.inputStream = new ReadAheadInputStream(is);
+        this.inputStream = new BufferedInputStream(is);
     }
+
     public RawPacket getRawPacket() throws IOException {
-        return new RawPacket(inputStream);
+        return RawPacket.nextPacket(inputStream);
     }
 
     public void close() throws IOException {
@@ -38,5 +39,4 @@ public class SyncPacketFetcher implements PacketFetcher {
 
     public void awaitTermination() {
     }
-
 }
