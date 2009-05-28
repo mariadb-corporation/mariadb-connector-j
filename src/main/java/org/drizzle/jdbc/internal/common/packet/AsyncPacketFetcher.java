@@ -4,11 +4,15 @@
  * Copyright (C) 2009 Marcus Eriksson (krummas@gmail.com)
  * All rights reserved.
  *
+ * Copyright (C) 2009 Sun Microsystems
+ * All rights reserved.
+ *
  * Use and distribution licensed under the BSD license.
  */
 
 package org.drizzle.jdbc.internal.common.packet;
 
+import java.io.BufferedInputStream;
 import org.drizzle.jdbc.internal.common.PacketFetcher;
 
 import java.io.InputStream;
@@ -30,7 +34,6 @@ import java.util.logging.Logger;
  * To change this template use File | Settings | File Templates.
  */
 public class AsyncPacketFetcher implements Runnable, PacketFetcher {
-    private static final RawPacket IOEXCEPTION_PILL = new RawPacket();
     private final BlockingQueue<RawPacket> packet = new LinkedBlockingQueue<RawPacket>();
     private final InputStream inputStream;
     private final ExecutorService executorService;
@@ -44,7 +47,7 @@ public class AsyncPacketFetcher implements Runnable, PacketFetcher {
                     }
                }
         );
-        this.inputStream = new ReadAheadInputStream(inputStream);
+        this.inputStream = new BufferedInputStream(inputStream);
         executorService.submit(this);
     }
 
@@ -52,11 +55,20 @@ public class AsyncPacketFetcher implements Runnable, PacketFetcher {
         try {
             while (!shutDown) {
                 try {
-                    RawPacket rawPacket = new RawPacket(inputStream);
-                    packet.add(rawPacket);
+                    RawPacket rawPacket = RawPacket.nextPacket(inputStream);
+                    if (rawPacket != null) {
+                        packet.add(rawPacket);
+                    } else {
+                        Logger.getLogger(this.getClass().getName()).info("Connection closed");
+                        shutDown = true;
+                        packet.add(RawPacket.IOEXCEPTION_PILL);
+                    }
                 } catch (IOException e) {
+                    Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, "Got exception reading packet", e);
                     // ok got an ioexception reading that packet, lets put the IOEXCEPTION pill on the queue
-                    packet.add(IOEXCEPTION_PILL);
+                    packet.add(RawPacket.IOEXCEPTION_PILL);
+                    // Does it make sense to continue to use the stream?
+                    shutDown = true;
                 }
             }
             try {
@@ -72,7 +84,7 @@ public class AsyncPacketFetcher implements Runnable, PacketFetcher {
     public RawPacket getRawPacket() throws IOException {
         try {
             RawPacket rawPacket = packet.take();
-            if(rawPacket == IOEXCEPTION_PILL) {
+            if(rawPacket == RawPacket.IOEXCEPTION_PILL) {
                 throw new IOException();
             }
             return rawPacket;
