@@ -15,70 +15,138 @@ import org.drizzle.jdbc.internal.common.queryresults.QueryResult;
 import org.drizzle.jdbc.internal.common.queryresults.ModifyQueryResult;
 import org.drizzle.jdbc.internal.common.queryresults.ResultSetType;
 import org.drizzle.jdbc.internal.common.query.QueryFactory;
+import org.drizzle.jdbc.internal.common.query.Query;
 import org.drizzle.jdbc.internal.SQLExceptionMapper;
 
 import java.sql.*;
 import java.util.List;
 
 /**
+ * A sql statement.
+ *
  * User: marcuse
  * Date: Jan 19, 2009
  * Time: 10:10:58 PM
  */
 public class DrizzleStatement implements Statement {
+    /**
+     * the protocol used to talk to the server.
+     */
     private final Protocol protocol;
+    /**
+     * the result set produced by execute().
+     */
     private ResultSet resultSet;
+
+    /**
+     * how many rows were updated.
+     */
     private long updateCount;
+    /**
+     * the sql Connection object.
+     */
     private final Connection connection;
-    protected QueryResult dqr;
+
+
+
+    /**
+     * The actual query result.
+     */
+    private QueryResult queryResult;
+    /**
+     * are warnings cleared?
+     */
     private boolean warningsCleared;
+    /**
+     * creates queries.
+     */
     private QueryFactory queryFactory;
 
-    public DrizzleStatement(Protocol protocol, Connection connection, QueryFactory queryFactory) {
-        this.protocol=protocol;
-        this.connection=connection;
+    /**
+     * Creates a new Statement.
+     * @param protocol the protocol to use.
+     * @param connection the connection to return in getConnection.
+     * @param queryFactory the query factory to produce internal queries.
+     */
+
+    public DrizzleStatement(final Protocol protocol,
+                            final Connection connection,
+                            final QueryFactory queryFactory) {
+        this.protocol = protocol;
+        this.connection = connection;
         this.queryFactory = queryFactory;
     }
+
+    /**
+     * returns the protocol.
+     * @return the protocol used.
+     */
     public Protocol getProtocol() {
         return protocol;
     }
 
-    public ResultSet executeQuery(String s) throws SQLException {
+    /**
+     * executes a select query.
+     * @param query the query to send to the server
+     * @return a result set
+     * @throws SQLException if something went wrong
+     */
+    public ResultSet executeQuery(final String query) throws SQLException {
         try {
-            if(dqr!=null) dqr.close();
-            dqr = protocol.executeQuery(queryFactory.createQuery(s));
+            if (queryResult != null) {
+                queryResult.close();
+            }
+            Query queryToSend = queryFactory.createQuery(query);
+            queryResult = protocol.executeQuery(queryToSend);
             warningsCleared = false;
-            return new DrizzleResultSet(dqr,this);
+            return new DrizzleResultSet(queryResult, this);
         } catch (QueryException e) {
             throw SQLExceptionMapper.get(e);
         }
     }
 
-    public int executeUpdate(String s) throws SQLException {
+    /**
+     * Executes an update.
+     * @param query the update query.
+     * @return update count
+     * @throws SQLException if the query could not be sent to server.
+     */
+    public int executeUpdate(String query) throws SQLException {
         try {
-            if(dqr!=null) dqr.close();
+            if(queryResult != null) {
+                queryResult.close();
+            }
             warningsCleared=false;
-            dqr = protocol.executeQuery(queryFactory.createQuery(s));
-            return (int) ((ModifyQueryResult)dqr).getUpdateCount();
+            queryResult = protocol.executeQuery(queryFactory.createQuery(query));
+            return (int) ((ModifyQueryResult) queryResult).getUpdateCount();
         } catch (QueryException e) {
             throw SQLExceptionMapper.get(e);
         }
     }
 
+    /**
+     * executes a query.
+     * @param query the query
+     * @return true if there was a result set, false otherwise.
+     * @throws SQLException
+     */
     public boolean execute(String query) throws SQLException {
         try {
-            if(dqr!=null) dqr.close();
-            dqr = protocol.executeQuery(queryFactory.createQuery(query));
-            if(dqr.getResultSetType() == ResultSetType.SELECT) {
-                setResultSet(new DrizzleResultSet(dqr,this));
+            if(queryResult != null) {
+                queryResult.close();
+            }
+            queryResult = protocol.executeQuery(queryFactory.createQuery(query));
+            if(queryResult.getResultSetType() == ResultSetType.SELECT) {
+                setResultSet(new DrizzleResultSet(queryResult,this));
                 return true;
             }
-            setUpdateCount(((ModifyQueryResult)dqr).getUpdateCount());
+            setUpdateCount(((ModifyQueryResult) queryResult).getUpdateCount());
             return false;
         } catch (QueryException e) {
             throw SQLExceptionMapper.get(e);
         }
     }
+
     public QueryFactory getQueryFactory(){
         return queryFactory;
     }
@@ -101,8 +169,8 @@ public class DrizzleStatement implements Statement {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public void close() throws SQLException {
-        if(dqr!=null)
-            dqr.close();
+        if(queryResult !=null)
+            queryResult.close();
     }
 
     /**
@@ -273,8 +341,8 @@ public class DrizzleStatement implements Statement {
      *                               this method is called on a closed <code>Statement</code>
      */
     public SQLWarning getWarnings() throws SQLException {
-        if(!warningsCleared && dqr != null && dqr.getWarnings()>0) {
-            return new SQLWarning(dqr.getMessage());
+        if(!warningsCleared && queryResult != null && queryResult.getWarnings()>0) {
+            return new SQLWarning(queryResult.getMessage());
         }
         return null;
     }
@@ -390,8 +458,8 @@ public class DrizzleStatement implements Statement {
      * @since 1.4
      */
     public ResultSet getGeneratedKeys() throws SQLException {
-        if(dqr.getResultSetType()== ResultSetType.MODIFY) {
-            QueryResult genRes = ((ModifyQueryResult)dqr).getGeneratedKeysResult();
+        if(queryResult.getResultSetType()== ResultSetType.MODIFY) {
+            QueryResult genRes = ((ModifyQueryResult) queryResult).getGeneratedKeysResult();
             return new DrizzleResultSet(genRes,this);
         }
         return null;
@@ -986,4 +1054,11 @@ public class DrizzleStatement implements Statement {
     protected void setUpdateCount(long updateCount) {
         this.updateCount=updateCount;
     }
+    /**
+     * returns the query result.
+     * @return the queryresult
+     */
+    protected QueryResult getQueryResult() {
+        return queryResult;
+    }    
 }
