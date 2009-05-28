@@ -1060,5 +1060,13 @@ public class DrizzleStatement implements Statement {
      */
     protected QueryResult getQueryResult() {
         return queryResult;
-    }    
+    }
+
+    /**
+     * sets the current query result
+     * @param result
+     */
+    protected void setQueryResult(QueryResult result) {
+        this.queryResult=result;
+    }
 }

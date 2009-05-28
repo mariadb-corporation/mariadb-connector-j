@@ -44,8 +44,8 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
 
     public ResultSet executeQuery() throws SQLException {
         try {
-            this.dqr = getProtocol().executeQuery(dQuery);
-            return new DrizzleResultSet(this.dqr,this);
+            setQueryResult(getProtocol().executeQuery(dQuery));
+            return new DrizzleResultSet(getQueryResult(), this);
         } catch (QueryException e) {
             throw SQLExceptionMapper.get(e);
         }
@@ -67,14 +67,14 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
     public int executeUpdate() throws SQLException {
         try {
 
-            dqr = getProtocol().executeQuery(dQuery);
+            setQueryResult(getProtocol().executeQuery(dQuery));
 
         } catch (QueryException e) {
             throw SQLExceptionMapper.get(e);
         }
-        if(dqr.getResultSetType()!= ResultSetType.MODIFY)
+        if(getQueryResult().getResultSetType()!= ResultSetType.MODIFY)
             throw new SQLException("The query returned a result set");
-        return (int) ((ModifyQueryResult)dqr).getUpdateCount();
+        return (int) ((ModifyQueryResult)getQueryResult()).getUpdateCount();
     }
 
 
@@ -105,15 +105,15 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
 
     public boolean execute() throws SQLException {
         try {
-            dqr = getProtocol().executeQuery(dQuery);
+            setQueryResult(getProtocol().executeQuery(dQuery));
         } catch (QueryException e) {
             throw SQLExceptionMapper.get(e);
         }
-        if(dqr.getResultSetType() == ResultSetType.SELECT) {
-            super.setResultSet(new DrizzleResultSet(dqr,this));
+        if(getQueryResult().getResultSetType() == ResultSetType.SELECT) {
+            super.setResultSet(new DrizzleResultSet(getQueryResult(),this));
             return true;
         } else {
-            setUpdateCount(((ModifyQueryResult)dqr).getUpdateCount());
+            setUpdateCount(((ModifyQueryResult)getQueryResult()).getUpdateCount());
             return false;            
         }
     }
