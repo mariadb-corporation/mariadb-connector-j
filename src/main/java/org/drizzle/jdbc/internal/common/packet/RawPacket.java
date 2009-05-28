@@ -47,17 +47,11 @@ public class RawPacket {
 
         byte[] rawBytes = new byte[length];
 
-        int offset = 0;
-        int left = length;
-        do {
-            int nr = is.read(rawBytes, offset, left);
-            if (nr == -1) {
-                throw new IOException("EOF. Expected " + length + ", got " + offset);
-                /* EOF */
-            }
-            offset += nr;
-            left -= nr;
-        } while (left > 0);
+        int nr = safeRead(is, rawBytes, length);
+        if (nr == -1) {
+            throw new IOException("EOF. Expected " + length + ", got " + nr);
+            /* EOF */
+        }
 
         return new RawPacket(rawBytes, packetSeq);
     }
@@ -65,6 +59,22 @@ public class RawPacket {
     private RawPacket(byte[] rawBytes, int packetSeq) {
         this.rawBytes = rawBytes;
         this.packetSeq = packetSeq;
+    }
+
+
+    private static int safeRead(InputStream is, byte[] buffer, int length) throws IOException{
+        int offset = 0;
+        int left = length;
+        do {
+            int nr = is.read(buffer, offset, left);
+            if (nr == -1) {
+                return nr;
+            }
+            offset += nr;
+            left -= nr;
+        } while (left > 0);
+
+        return length;
     }
 
     private static byte readPacketSeq(InputStream reader) throws IOException {
@@ -78,7 +88,8 @@ public class RawPacket {
 
     private static int readLength(InputStream reader) throws IOException {
         byte[] lengthBuffer = new byte[3];
-        int nr = reader.read(lengthBuffer);
+
+        int nr = safeRead(reader, lengthBuffer, 3);
         if (nr == -1) {
             return -1;
         } else if (nr != 3) {
