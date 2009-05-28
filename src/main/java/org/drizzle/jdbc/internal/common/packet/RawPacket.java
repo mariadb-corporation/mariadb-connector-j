@@ -47,10 +47,9 @@ public class RawPacket {
 
         byte[] rawBytes = new byte[length];
 
-        int nr = safeRead(is, rawBytes, length);
-        if (nr == -1) {
+        int nr = safeRead(is, rawBytes);
+        if (nr != length) {
             throw new IOException("EOF. Expected " + length + ", got " + nr);
-            /* EOF */
         }
 
         return new RawPacket(rawBytes, packetSeq);
@@ -62,9 +61,19 @@ public class RawPacket {
     }
 
 
-    private static int safeRead(InputStream is, byte[] buffer, int length) throws IOException{
+    /**
+     * Read a number of bytes from the stream and store it in the buffer, and
+     * fix the problem with "incomplete" reads by doing another read if we
+     * don't have all of the data yet.
+     *
+     * @param is the input stream to read from
+     * @param buffer where to store the data
+     * @return the number of bytes read (should be == length if we didn't hit EOF)
+     * @throws java.io.IOException if an error occurs while reading the stream
+     */
+    private static int safeRead(InputStream is, byte[] buffer) throws IOException{
         int offset = 0;
-        int left = length;
+        int left = buffer.length;
         do {
             int nr = is.read(buffer, offset, left);
             if (nr == -1) {
@@ -74,7 +83,7 @@ public class RawPacket {
             left -= nr;
         } while (left > 0);
 
-        return length;
+        return buffer.length;
     }
 
     private static byte readPacketSeq(InputStream reader) throws IOException {
@@ -89,7 +98,7 @@ public class RawPacket {
     private static int readLength(InputStream reader) throws IOException {
         byte[] lengthBuffer = new byte[3];
 
-        int nr = safeRead(reader, lengthBuffer, 3);
+        int nr = safeRead(reader, lengthBuffer);
         if (nr == -1) {
             return -1;
         } else if (nr != 3) {
@@ -99,10 +108,19 @@ public class RawPacket {
         return (lengthBuffer[0] & 0xff) + ((lengthBuffer[1] & 0xff) << 8) + ((lengthBuffer[2] & 0xff) << 16);
     }
 
+
+    /**
+     * Get the raw bytes in the package
+     * @return an array with the payload of the package
+     */
     public byte[] getRawBytes() {
         return rawBytes;
     }
 
+    /**
+     * Get the package sequence number
+     * @return the sequence number of the package
+     */
     public int getPacketSeq() {
         return packetSeq;
     }
