@@ -10,10 +10,9 @@
 package org.drizzle.jdbc.internal.common.query.parameters;
 
 import static org.drizzle.jdbc.internal.common.Utils.sqlEscapeString;
-import org.drizzle.jdbc.internal.common.query.parameters.ParameterHolder;
 
-import java.io.OutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 
 /**
@@ -22,19 +21,19 @@ import java.io.UnsupportedEncodingException;
  * Time: 10:17:14 PM
  */
 public class StringParameter implements ParameterHolder {
-    private final byte [] byteRepresentation;
+    private final byte[] byteRepresentation;
 
     public StringParameter(String parameter) {
-        String tempParam = "\""+sqlEscapeString(parameter)+"\"";
+        String tempParam = "\"" + sqlEscapeString(parameter) + "\"";
         try {
-            this.byteRepresentation=tempParam.getBytes("UTF-8");
+            this.byteRepresentation = tempParam.getBytes("UTF-8");
         } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException("unsupp encoding: "+e.getMessage(),e);
+            throw new RuntimeException("unsupp encoding: " + e.getMessage(), e);
         }
     }
 
     public void writeTo(OutputStream os) throws IOException {
-        for(byte b:byteRepresentation)
+        for (byte b : byteRepresentation)
             os.write(b);
     }
 

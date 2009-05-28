@@ -9,48 +9,49 @@
 
 package org.drizzle.jdbc.internal.drizzle;
 
-import java.sql.Time;
-import java.sql.Date;
-import java.sql.Blob;
 import java.math.BigDecimal;
+import java.sql.Blob;
+import java.sql.Date;
 
 
 /**
  * User: marcuse
  * Date: Feb 23, 2009
  * Time: 10:42:02 PM
-
  */
 public enum DrizzleType {
-    TINY(java.sql.Types.SMALLINT,Short.class),
+    TINY(java.sql.Types.SMALLINT, Short.class),
     LONG(java.sql.Types.BIGINT, Long.class),
     DOUBLE(java.sql.Types.DOUBLE, Double.class),
-    NULL(java.sql.Types.NULL,null),
+    NULL(java.sql.Types.NULL, null),
     TIMESTAMP(java.sql.Types.TIMESTAMP, Long.class),
-    LONGLONG(java.sql.Types.BIGINT,Long.class),
+    LONGLONG(java.sql.Types.BIGINT, Long.class),
     DATETIME(java.sql.Types.DATE, Date.class),
-    DATE(java.sql.Types.DATE,Date.class),
-    VARCHAR(java.sql.Types.VARCHAR,String.class),
+    DATE(java.sql.Types.DATE, Date.class),
+    VARCHAR(java.sql.Types.VARCHAR, String.class),
     NEWDECIMAL(java.sql.Types.DECIMAL, BigDecimal.class),
-    ENUM(java.sql.Types.VARCHAR,String.class),
+    ENUM(java.sql.Types.VARCHAR, String.class),
     BLOB(java.sql.Types.BLOB, Blob.class),
-    MAX(java.sql.Types.BLOB,Blob.class);
+    MAX(java.sql.Types.BLOB, Blob.class);
 
     private final int sqlType;
     private final Class javaClass;
+
     DrizzleType(int sqlType, Class clazz) {
         this.javaClass = clazz;
-        this.sqlType=sqlType;
+        this.sqlType = sqlType;
     }
+
     public int getSqlType() {
         return sqlType;
     }
+
     public Class getJavaClass() {
         return javaClass;
     }
 
     public static DrizzleType fromServer(byte typeValue) {
-        switch(typeValue) {
+        switch (typeValue) {
             case 0:
                 return TINY;
             case 1:
@@ -82,7 +83,7 @@ public enum DrizzleType {
         }
         //./configure --prefix=/home/marcuse/libdrizzle_bin/
         //./configure  --with-libdrizzle-prefix=/home/marcuse/libdrizzle_bin/
-        
-        
+
+
     }
 }

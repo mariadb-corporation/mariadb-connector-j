@@ -9,29 +9,28 @@
 
 package org.drizzle.jdbc;
 
+import org.drizzle.jdbc.internal.common.ValueObject;
+import org.drizzle.jdbc.internal.common.queryresults.NoSuchColumnException;
 import org.drizzle.jdbc.internal.common.queryresults.QueryResult;
 import org.drizzle.jdbc.internal.common.queryresults.ResultSetType;
 import org.drizzle.jdbc.internal.common.queryresults.SelectQueryResult;
-import org.drizzle.jdbc.internal.common.queryresults.NoSuchColumnException;
-import org.drizzle.jdbc.internal.common.ValueObject;
 
-import java.sql.*;
-import java.math.BigDecimal;
 import java.io.InputStream;
 import java.io.Reader;
 import java.io.StringReader;
-import java.util.Map;
-import java.util.Calendar;
-import java.net.URL;
+import java.math.BigDecimal;
 import java.net.MalformedURLException;
+import java.net.URL;
+import java.sql.*;
 import java.text.ParseException;
+import java.util.Calendar;
+import java.util.Map;
 
 /**
- .
+ * .
  * User: marcuse
  * Date: Jan 19, 2009
  * Time: 10:25:00 PM
-
  */
 public class DrizzleResultSet implements ResultSet {
     private final QueryResult queryResult;
@@ -41,21 +40,21 @@ public class DrizzleResultSet implements ResultSet {
     private boolean lastGetWasNull;
 
     public DrizzleResultSet(QueryResult dqr, Statement statement) {
-        this.queryResult=dqr;
+        this.queryResult = dqr;
         this.statement = statement;
         isClosed = false;
     }
 
 
     public boolean next() throws SQLException {
-        if(queryResult.getResultSetType()== ResultSetType.SELECT)
-            return ((SelectQueryResult)queryResult).next();
+        if (queryResult.getResultSetType() == ResultSetType.SELECT)
+            return ((SelectQueryResult) queryResult).next();
         return false;
     }
 
     public void close() throws SQLException {
-        this.isClosed=true;
-        if(this.queryResult!=null)
+        this.isClosed = true;
+        if (this.queryResult != null)
             this.queryResult.close();
     }
 
@@ -90,26 +89,26 @@ public class DrizzleResultSet implements ResultSet {
     }
 
     private ValueObject getValueObject(int i) throws SQLException {
-        if(queryResult.getResultSetType()== ResultSetType.SELECT) {
+        if (queryResult.getResultSetType() == ResultSetType.SELECT) {
             ValueObject vo = null;
             try {
-                vo = ((SelectQueryResult)queryResult).getValueObject(i-1);
+                vo = ((SelectQueryResult) queryResult).getValueObject(i - 1);
             } catch (NoSuchColumnException e) {
-                throw new SQLException("No such column: "+i,e);
+                throw new SQLException("No such column: " + i, e);
             }
             this.lastGetWasNull = vo.isNull();
             return vo;
         }
         throw new SQLException("Cannot get data from update-result sets");
     }
-    
+
     private ValueObject getValueObject(String column) throws SQLException {
-        if(queryResult.getResultSetType()== ResultSetType.SELECT) {
+        if (queryResult.getResultSetType() == ResultSetType.SELECT) {
             ValueObject vo = null;
             try {
-                vo = ((SelectQueryResult)queryResult).getValueObject(column);
+                vo = ((SelectQueryResult) queryResult).getValueObject(column);
             } catch (NoSuchColumnException e) {
-                throw new SQLException("No such column: "+column,e);
+                throw new SQLException("No such column: " + column, e);
             }
             this.lastGetWasNull = vo.isNull();
             return vo;
@@ -219,7 +218,7 @@ public class DrizzleResultSet implements ResultSet {
         try {
             return getValueObject(columnLabel).getDate();
         } catch (ParseException e) {
-            throw new SQLException("Could not parse date",e);
+            throw new SQLException("Could not parse date", e);
         }
     }
 
@@ -240,7 +239,7 @@ public class DrizzleResultSet implements ResultSet {
         try {
             return getValueObject(columnLabel).getTime();
         } catch (ParseException e) {
-            throw new SQLException("Could not parse time",e);
+            throw new SQLException("Could not parse time", e);
         }
     }
 
@@ -260,7 +259,7 @@ public class DrizzleResultSet implements ResultSet {
         try {
             return getValueObject(columnLabel).getTimestamp();
         } catch (ParseException e) {
-            throw new SQLException("Could not parse column as timestamp, was: \""+getValueObject(columnLabel).getString()+"\"",e);
+            throw new SQLException("Could not parse column as timestamp, was: \"" + getValueObject(columnLabel).getString() + "\"", e);
         }
     }
 
@@ -381,7 +380,7 @@ public class DrizzleResultSet implements ResultSet {
      *                               called on a closed result set
      */
     public SQLWarning getWarnings() throws SQLException {
-        return new SQLWarning(String.valueOf(queryResult.getWarnings())+" warning(s)");
+        return new SQLWarning(String.valueOf(queryResult.getWarnings()) + " warning(s)");
     }
 
     /**
@@ -478,7 +477,7 @@ public class DrizzleResultSet implements ResultSet {
         try {
             return getValueObject(columnIndex).getObject();
         } catch (ParseException e) {
-            throw new SQLException("Could not get object: "+e.getMessage(),e);
+            throw new SQLException("Could not get object: " + e.getMessage(), e);
         }
     }
 
@@ -514,7 +513,7 @@ public class DrizzleResultSet implements ResultSet {
         try {
             return getValueObject(columnLabel).getObject();
         } catch (ParseException e) {
-            throw new SQLException("Could not get object: "+e.getMessage(),e);
+            throw new SQLException("Could not get object: " + e.getMessage(), e);
         }
     }
 
@@ -529,11 +528,11 @@ public class DrizzleResultSet implements ResultSet {
      *                               or this method is called on a closed result set
      */
     public int findColumn(String columnLabel) throws SQLException {
-        if(this.queryResult.getResultSetType()==ResultSetType.SELECT) {
+        if (this.queryResult.getResultSetType() == ResultSetType.SELECT) {
             try {
                 return ((SelectQueryResult) queryResult).getColumnId(columnLabel) + 1;
             } catch (NoSuchColumnException e) {
-                throw new SQLException("No such column: "+columnLabel,e);
+                throw new SQLException("No such column: " + columnLabel, e);
             }
         }
         throw new SQLException("Cannot get column id of update result sets");
@@ -630,9 +629,9 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean isBeforeFirst() throws SQLException {
-        if(queryResult.getResultSetType()==ResultSetType.MODIFY)
+        if (queryResult.getResultSetType() == ResultSetType.MODIFY)
             return false;
-        return ((SelectQueryResult)queryResult).getRowPointer() == -1;
+        return ((SelectQueryResult) queryResult).getRowPointer() == -1;
     }
 
     /**
@@ -675,9 +674,9 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean isFirst() throws SQLException {
-        if(queryResult.getResultSetType()==ResultSetType.MODIFY)
+        if (queryResult.getResultSetType() == ResultSetType.MODIFY)
             return false;
-        return ((SelectQueryResult)queryResult).getRowPointer() == 0;
+        return ((SelectQueryResult) queryResult).getRowPointer() == 0;
     }
 
     /**
@@ -702,9 +701,9 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean isLast() throws SQLException {
-        if(queryResult.getResultSetType()==ResultSetType.MODIFY)
+        if (queryResult.getResultSetType() == ResultSetType.MODIFY)
             return false;
-        return ((SelectQueryResult)queryResult).getRowPointer() ==((SelectQueryResult)queryResult).getRows();
+        return ((SelectQueryResult) queryResult).getRowPointer() == ((SelectQueryResult) queryResult).getRows();
     }
 
     /**
@@ -721,8 +720,8 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void beforeFirst() throws SQLException {
-        if(queryResult.getResultSetType()==ResultSetType.SELECT)
-            ((SelectQueryResult)queryResult).moveRowPointerTo(-1);
+        if (queryResult.getResultSetType() == ResultSetType.SELECT)
+            ((SelectQueryResult) queryResult).moveRowPointerTo(-1);
     }
 
     /**
@@ -757,8 +756,8 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean first() throws SQLException {
-        if(queryResult.getResultSetType()==ResultSetType.MODIFY && ((SelectQueryResult)queryResult).getRows()>0){
-            ((SelectQueryResult)queryResult).moveRowPointerTo(0);
+        if (queryResult.getResultSetType() == ResultSetType.MODIFY && ((SelectQueryResult) queryResult).getRows() > 0) {
+            ((SelectQueryResult) queryResult).moveRowPointerTo(0);
             return true;
         }
         return false;
@@ -779,8 +778,8 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean last() throws SQLException {
-       if(queryResult.getResultSetType()==ResultSetType.MODIFY && ((SelectQueryResult)queryResult).getRows()>0){
-            ((SelectQueryResult)queryResult).moveRowPointerTo(queryResult.getRows());
+        if (queryResult.getResultSetType() == ResultSetType.MODIFY && ((SelectQueryResult) queryResult).getRows() > 0) {
+            ((SelectQueryResult) queryResult).moveRowPointerTo(queryResult.getRows());
             return true;
         }
         return false;
@@ -803,8 +802,8 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public int getRow() throws SQLException {
-        if(queryResult.getResultSetType()==ResultSetType.SELECT)
-            return ((SelectQueryResult)queryResult).getRowPointer()+1;//+1 since first row is 1, not 0
+        if (queryResult.getResultSetType() == ResultSetType.SELECT)
+            return ((SelectQueryResult) queryResult).getRowPointer() + 1;//+1 since first row is 1, not 0
         return 0;
     }
 
@@ -849,16 +848,16 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean absolute(int row) throws SQLException {
-        if(queryResult.getResultSetType()!=ResultSetType.SELECT)
+        if (queryResult.getResultSetType() != ResultSetType.SELECT)
             return false;
-        SelectQueryResult sqr = (SelectQueryResult)queryResult; 
-        if(sqr.getRows() > 0) {
-            if(row >= 0 && row <= sqr.getRows()) {
-                sqr.moveRowPointerTo(row+1);
+        SelectQueryResult sqr = (SelectQueryResult) queryResult;
+        if (sqr.getRows() > 0) {
+            if (row >= 0 && row <= sqr.getRows()) {
+                sqr.moveRowPointerTo(row + 1);
                 return true;
             }
-            if(row<0) {
-                sqr.moveRowPointerTo(sqr.getRows()+row+1); //+1 since rows start at 1 in jdbc
+            if (row < 0) {
+                sqr.moveRowPointerTo(sqr.getRows() + row + 1); //+1 since rows start at 1 in jdbc
             }
             return true;
         }
@@ -891,13 +890,13 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean relative(int rows) throws SQLException {
-        if(queryResult.getResultSetType()!=ResultSetType.SELECT)
+        if (queryResult.getResultSetType() != ResultSetType.SELECT)
             return false;
-        SelectQueryResult sqr = (SelectQueryResult)queryResult;
-        if(queryResult.getRows()>0) {
+        SelectQueryResult sqr = (SelectQueryResult) queryResult;
+        if (queryResult.getRows() > 0) {
             int newPos = sqr.getRowPointer() + rows;
-            if(newPos > -1 && newPos<=queryResult.getRows()) {
-                sqr.moveRowPointerTo(newPos+1);
+            if (newPos > -1 && newPos <= queryResult.getRows()) {
+                sqr.moveRowPointerTo(newPos + 1);
                 return true;
             }
         }
@@ -929,11 +928,11 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean previous() throws SQLException {
-        if(queryResult.getResultSetType()!=ResultSetType.SELECT)
+        if (queryResult.getResultSetType() != ResultSetType.SELECT)
             return false;
-        SelectQueryResult sqr = (SelectQueryResult)queryResult;
-        if(sqr.getRows()>=0) {
-            sqr.moveRowPointerTo(sqr.getRowPointer()-1);
+        SelectQueryResult sqr = (SelectQueryResult) queryResult;
+        if (sqr.getRows() >= 0) {
+            sqr.moveRowPointerTo(sqr.getRowPointer() - 1);
             return true;
         }
         return false;
@@ -974,7 +973,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public int getFetchDirection() throws SQLException {
-        return ResultSet.FETCH_UNKNOWN; 
+        return ResultSet.FETCH_UNKNOWN;
     }
 
     /**
@@ -2169,7 +2168,7 @@ public class DrizzleResultSet implements ResultSet {
     /**
      * According to the JDBC4 spec, this is only required for UDT's, and since drizzle does
      * not support UDTs, this method ignores the map parameter
-     *
+     * <p/>
      * Retrieves the value of the designated column in the current row
      * of this <code>ResultSet</code> object as an <code>Object</code>
      * in the Java programming language.
@@ -2193,7 +2192,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public Object getObject(int columnIndex, Map<String, Class<?>> map) throws SQLException {
-        return getObject(columnIndex);        
+        return getObject(columnIndex);
     }
 
     /**
@@ -2280,7 +2279,7 @@ public class DrizzleResultSet implements ResultSet {
     /**
      * According to the JDBC4 spec, this is only required for UDT's, and since drizzle does
      * not support UDTs, this method ignores the map parameter
-     * 
+     * <p/>
      * Retrieves the value of the designated column in the current row
      * of this <code>ResultSet</code> object as an <code>Object</code>
      * in the Java programming language.
@@ -2859,7 +2858,7 @@ public class DrizzleResultSet implements ResultSet {
      */
     public void updateRowId(String columnLabel, RowId x) throws SQLException {
         throw new SQLFeatureNotSupportedException("Updates are not supported");
-        
+
     }
 
     /**
@@ -4039,11 +4038,11 @@ public class DrizzleResultSet implements ResultSet {
 
     public boolean getBoolean(int i) throws SQLException {
         String rawResult = getString(i);
-        if(rawResult.equals("1"))
+        if (rawResult.equals("1"))
             return true;
-        if(rawResult.toLowerCase().equals("true"))
+        if (rawResult.toLowerCase().equals("true"))
             return true;
-        
+
         return false;
     }
 
@@ -4121,7 +4120,7 @@ public class DrizzleResultSet implements ResultSet {
         try {
             return getValueObject(columnIndex).getDate();
         } catch (ParseException e) {
-            throw new SQLException("Could not parse field as date",e);
+            throw new SQLException("Could not parse field as date", e);
         }
     }
 
@@ -4369,6 +4368,6 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
-        return false;  
+        return false;
     }
 }

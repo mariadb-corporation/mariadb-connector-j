@@ -9,40 +9,37 @@
 
 package org.drizzle.jdbc.internal.common.query.parameters;
 
-import org.drizzle.jdbc.internal.common.query.parameters.ParameterHolder;
 import static org.drizzle.jdbc.internal.common.Utils.needsEscaping;
 
-import java.io.OutputStream;
 import java.io.IOException;
-import java.util.Arrays;
+import java.io.OutputStream;
 
 /**
- .
+ * .
  * User: marcuse
  * Date: Feb 27, 2009
  * Time: 9:56:17 PM
-
  */
 public class ByteParameter implements ParameterHolder {
     private final byte[] buffer;
     private final int length;
 
     public ByteParameter(byte[] x) {
-        buffer = new byte[x.length*2+2];
-        int pos=0;
+        buffer = new byte[x.length * 2 + 2];
+        int pos = 0;
         buffer[pos++] = '"';
-        for(byte b:x) {
-            if(needsEscaping(b))
-                buffer[pos++]='\\';
-            buffer[pos++]=b; 
+        for (byte b : x) {
+            if (needsEscaping(b))
+                buffer[pos++] = '\\';
+            buffer[pos++] = b;
         }
         buffer[pos++] = '"';
-        this.length = pos; 
+        this.length = pos;
     }
 
 
     public void writeTo(OutputStream os) throws IOException {
-        os.write(buffer,0,length);
+        os.write(buffer, 0, length);
     }
 
     public long length() {

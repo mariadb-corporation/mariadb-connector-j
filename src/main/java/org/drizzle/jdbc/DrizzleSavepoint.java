@@ -9,23 +9,22 @@
 
 package org.drizzle.jdbc;
 
-import java.sql.Savepoint;
 import java.sql.SQLException;
+import java.sql.Savepoint;
 
 /**
- .
+ * .
  * User: marcuse
  * Date: Feb 6, 2009
  * Time: 9:56:55 PM
-
  */
 public class DrizzleSavepoint implements Savepoint {
     private final int savepointId;
     private final String name;
 
     public DrizzleSavepoint(String name, int savepointId) {
-        this.savepointId=savepointId;
-        this.name=name;
+        this.savepointId = savepointId;
+        this.name = name;
     }
 
     /**
@@ -54,6 +53,6 @@ public class DrizzleSavepoint implements Savepoint {
 
     @Override
     public String toString() {
-        return name+savepointId;
+        return name + savepointId;
     }
 }

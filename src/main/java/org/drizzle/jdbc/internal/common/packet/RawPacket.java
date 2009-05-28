@@ -18,7 +18,6 @@ import java.io.InputStream;
  * Class to represent a raw packet as transferred over the wire. First we
  * got 3 bytes specifying the actual length, then one byte packet sequence
  * number and then n bytes with user data.
- *
  */
 public class RawPacket {
 
@@ -66,12 +65,12 @@ public class RawPacket {
      * fix the problem with "incomplete" reads by doing another read if we
      * don't have all of the data yet.
      *
-     * @param is the input stream to read from
+     * @param is     the input stream to read from
      * @param buffer where to store the data
      * @return the number of bytes read (should be == length if we didn't hit EOF)
      * @throws java.io.IOException if an error occurs while reading the stream
      */
-    private static int safeRead(InputStream is, byte[] buffer) throws IOException{
+    private static int safeRead(InputStream is, byte[] buffer) throws IOException {
         int offset = 0;
         int left = buffer.length;
         do {
@@ -111,6 +110,7 @@ public class RawPacket {
 
     /**
      * Get the raw bytes in the package
+     *
      * @return an array with the payload of the package
      */
     public byte[] getRawBytes() {
@@ -119,6 +119,7 @@ public class RawPacket {
 
     /**
      * Get the package sequence number
+     *
      * @return the sequence number of the package
      */
     public int getPacketSeq() {

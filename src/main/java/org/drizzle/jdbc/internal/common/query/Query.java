@@ -11,19 +11,19 @@ package org.drizzle.jdbc.internal.common.query;
 
 import org.drizzle.jdbc.internal.common.QueryException;
 
-import java.io.OutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 
 /**
- .
+ * .
  * User: marcuse
  * Date: Feb 20, 2009
  * Time: 10:48:45 PM
-
  */
 public interface Query {
     int length();
 
     void writeTo(OutputStream os) throws IOException, QueryException;
+
     String getQuery();
 }

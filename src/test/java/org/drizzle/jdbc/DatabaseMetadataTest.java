@@ -84,12 +84,12 @@ public class DatabaseMetadataTest {
 
         DatabaseMetaData dbmd = connection.getMetaData();
         ResultSet rs = dbmd.getImportedKeys("","test_units_jdbc","fore_key0");
-        int i =0 ;
+        int i = 0;
         while(rs.next()) {
             assertEquals("id",rs.getString("pkcolumn_name"));
             assertEquals("prim_key",rs.getString("pktable_name"));
             i++;
-       }
+        }
         assertEquals(1,i);
     }
     @Test

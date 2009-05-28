@@ -12,17 +12,12 @@
 
 package org.drizzle.jdbc.internal.common.packet;
 
-import java.io.BufferedInputStream;
 import org.drizzle.jdbc.internal.common.PacketFetcher;
 
-import java.io.InputStream;
+import java.io.BufferedInputStream;
 import java.io.IOException;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
+import java.io.InputStream;
+import java.util.concurrent.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -37,15 +32,15 @@ public class AsyncPacketFetcher implements Runnable, PacketFetcher {
     private final BlockingQueue<RawPacket> packet = new LinkedBlockingQueue<RawPacket>();
     private final InputStream inputStream;
     private final ExecutorService executorService;
-    private volatile boolean shutDown=false;
+    private volatile boolean shutDown = false;
 
     public AsyncPacketFetcher(InputStream inputStream) {
         executorService = Executors.newSingleThreadExecutor(
-               new ThreadFactory() {
+                new ThreadFactory() {
                     public Thread newThread(Runnable runnable) {
                         return new Thread(runnable, "DrizzlePacketFetcherThread");
                     }
-               }
+                }
         );
         this.inputStream = new BufferedInputStream(inputStream);
         executorService.submit(this);
@@ -84,23 +79,25 @@ public class AsyncPacketFetcher implements Runnable, PacketFetcher {
     public RawPacket getRawPacket() throws IOException {
         try {
             RawPacket rawPacket = packet.take();
-            if(rawPacket == RawPacket.IOEXCEPTION_PILL) {
+            if (rawPacket == RawPacket.IOEXCEPTION_PILL) {
                 throw new IOException();
             }
             return rawPacket;
         } catch (InterruptedException e) {
-            throw new RuntimeException("Got interrupted while waiting for a packet",e); //Todo: fix
+            throw new RuntimeException("Got interrupted while waiting for a packet", e); //Todo: fix
         }
     }
+
     public void awaitTermination() {
         try {
-            executorService.awaitTermination(1,TimeUnit.SECONDS);
+            executorService.awaitTermination(1, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
-            throw new IllegalStateException("executorService shutdown problem",e);
+            throw new IllegalStateException("executorService shutdown problem", e);
         }
     }
+
     public void close() {
-        this.shutDown=true;
+        this.shutDown = true;
         executorService.shutdownNow();
     }
 }

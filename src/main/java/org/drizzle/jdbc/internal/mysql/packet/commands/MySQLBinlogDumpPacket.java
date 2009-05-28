@@ -12,8 +12,8 @@ package org.drizzle.jdbc.internal.mysql.packet.commands;
 import org.drizzle.jdbc.internal.common.packet.CommandPacket;
 import org.drizzle.jdbc.internal.common.packet.buffer.WriteBuffer;
 
-import java.io.OutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 
 /**
  * Created by IntelliJ IDEA.
@@ -24,6 +24,7 @@ import java.io.IOException;
  */
 public class MySQLBinlogDumpPacket implements CommandPacket {
     private final WriteBuffer writeBuffer;
+
     public MySQLBinlogDumpPacket(int startPos, String filename) {
         writeBuffer = new WriteBuffer();
         writeBuffer.writeByte((byte) 18);
@@ -34,8 +35,8 @@ public class MySQLBinlogDumpPacket implements CommandPacket {
     }
 
     public void send(OutputStream os) throws IOException {
-        byte [] buff = writeBuffer.toByteArrayWithLength((byte)0);
-        for(byte b:buff)
+        byte[] buff = writeBuffer.toByteArrayWithLength((byte) 0);
+        for (byte b : buff)
             os.write(b);
         os.flush();
     }

@@ -11,15 +11,14 @@ package org.drizzle.jdbc.internal.common.packet;
 
 import org.drizzle.jdbc.internal.common.QueryException;
 
-import java.io.OutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 
 /**
- .
+ * .
  * User: marcuse
  * Date: Mar 25, 2009
  * Time: 9:37:59 PM
-
  */
 public interface CommandPacket {
     public void send(OutputStream os) throws IOException, QueryException;

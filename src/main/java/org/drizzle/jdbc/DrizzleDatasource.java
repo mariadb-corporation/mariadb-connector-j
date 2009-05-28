@@ -9,15 +9,15 @@
 
 package org.drizzle.jdbc;
 
-import org.drizzle.jdbc.internal.drizzle.DrizzleProtocol;
+import org.drizzle.jdbc.internal.SQLExceptionMapper;
 import org.drizzle.jdbc.internal.common.QueryException;
 import org.drizzle.jdbc.internal.common.query.DrizzleQueryFactory;
-import org.drizzle.jdbc.internal.SQLExceptionMapper;
+import org.drizzle.jdbc.internal.drizzle.DrizzleProtocol;
 
 import javax.sql.DataSource;
+import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.io.PrintWriter;
 
 /**
  * User: marcuse
@@ -29,11 +29,12 @@ public class DrizzleDatasource implements DataSource {
     private final int port;
     private final String database;
 
-    public DrizzleDatasource(String hostname, int port,String database) {
-        this.hostname=hostname;
-        this.port=port;
-        this.database=database;
+    public DrizzleDatasource(String hostname, int port, String database) {
+        this.hostname = hostname;
+        this.port = port;
+        this.database = database;
     }
+
     /**
      * <p>Attempts to establish a connection with the data source that
      * this <code>DataSource</code> object represents.
@@ -43,7 +44,7 @@ public class DrizzleDatasource implements DataSource {
      */
     public Connection getConnection() throws SQLException {
         try {
-            return new DrizzleConnection(new DrizzleProtocol(hostname,port,database,null,null), new DrizzleQueryFactory());
+            return new DrizzleConnection(new DrizzleProtocol(hostname, port, database, null, null), new DrizzleQueryFactory());
         } catch (QueryException e) {
             throw SQLExceptionMapper.get(e);
         }
@@ -62,7 +63,7 @@ public class DrizzleDatasource implements DataSource {
      */
     public Connection getConnection(String username, String password) throws SQLException {
         try {
-            return new DrizzleConnection(new DrizzleProtocol(hostname,port,database,username,password), new DrizzleQueryFactory());
+            return new DrizzleConnection(new DrizzleProtocol(hostname, port, database, username, password), new DrizzleQueryFactory());
         } catch (QueryException e) {
             throw SQLExceptionMapper.get(e);
         }

@@ -9,16 +9,11 @@
 
 package org.drizzle.jdbc.internal.common.query;
 
-import org.drizzle.jdbc.internal.common.query.QueryFactory;
-import org.drizzle.jdbc.internal.common.query.Query;
-import org.drizzle.jdbc.internal.common.query.ParameterizedQuery;
-
 /**
- .
+ * .
  * User: marcuse
  * Date: Mar 18, 2009
  * Time: 10:14:27 PM
-
  */
 public class DrizzleQueryFactory implements QueryFactory {
     public Query createQuery(String query) {

@@ -9,21 +9,21 @@
 
 package org.drizzle.jdbc;
 
+import org.drizzle.jdbc.internal.SQLExceptionMapper;
 import org.drizzle.jdbc.internal.common.Protocol;
 import org.drizzle.jdbc.internal.common.QueryException;
-import org.drizzle.jdbc.internal.common.queryresults.QueryResult;
-import org.drizzle.jdbc.internal.common.queryresults.ModifyQueryResult;
-import org.drizzle.jdbc.internal.common.queryresults.ResultSetType;
-import org.drizzle.jdbc.internal.common.query.QueryFactory;
 import org.drizzle.jdbc.internal.common.query.Query;
-import org.drizzle.jdbc.internal.SQLExceptionMapper;
+import org.drizzle.jdbc.internal.common.query.QueryFactory;
+import org.drizzle.jdbc.internal.common.queryresults.ModifyQueryResult;
+import org.drizzle.jdbc.internal.common.queryresults.QueryResult;
+import org.drizzle.jdbc.internal.common.queryresults.ResultSetType;
 
 import java.sql.*;
 import java.util.List;
 
 /**
  * A sql statement.
- *
+ * <p/>
  * User: marcuse
  * Date: Jan 19, 2009
  * Time: 10:10:58 PM
@@ -48,7 +48,6 @@ public class DrizzleStatement implements Statement {
     private final Connection connection;
 
 
-
     /**
      * The actual query result.
      */
@@ -64,8 +63,9 @@ public class DrizzleStatement implements Statement {
 
     /**
      * Creates a new Statement.
-     * @param protocol the protocol to use.
-     * @param connection the connection to return in getConnection.
+     *
+     * @param protocol     the protocol to use.
+     * @param connection   the connection to return in getConnection.
      * @param queryFactory the query factory to produce internal queries.
      */
 
@@ -79,6 +79,7 @@ public class DrizzleStatement implements Statement {
 
     /**
      * returns the protocol.
+     *
      * @return the protocol used.
      */
     public Protocol getProtocol() {
@@ -87,6 +88,7 @@ public class DrizzleStatement implements Statement {
 
     /**
      * executes a select query.
+     *
      * @param query the query to send to the server
      * @return a result set
      * @throws SQLException if something went wrong
@@ -107,16 +109,17 @@ public class DrizzleStatement implements Statement {
 
     /**
      * Executes an update.
+     *
      * @param query the update query.
      * @return update count
      * @throws SQLException if the query could not be sent to server.
      */
     public int executeUpdate(String query) throws SQLException {
         try {
-            if(queryResult != null) {
+            if (queryResult != null) {
                 queryResult.close();
             }
-            warningsCleared=false;
+            warningsCleared = false;
             queryResult = protocol.executeQuery(queryFactory.createQuery(query));
             return (int) ((ModifyQueryResult) queryResult).getUpdateCount();
         } catch (QueryException e) {
@@ -126,18 +129,19 @@ public class DrizzleStatement implements Statement {
 
     /**
      * executes a query.
+     *
      * @param query the query
      * @return true if there was a result set, false otherwise.
      * @throws SQLException
      */
     public boolean execute(String query) throws SQLException {
         try {
-            if(queryResult != null) {
+            if (queryResult != null) {
                 queryResult.close();
             }
             queryResult = protocol.executeQuery(queryFactory.createQuery(query));
-            if(queryResult.getResultSetType() == ResultSetType.SELECT) {
-                setResultSet(new DrizzleResultSet(queryResult,this));
+            if (queryResult.getResultSetType() == ResultSetType.SELECT) {
+                setResultSet(new DrizzleResultSet(queryResult, this));
                 return true;
             }
             setUpdateCount(((ModifyQueryResult) queryResult).getUpdateCount());
@@ -147,7 +151,7 @@ public class DrizzleStatement implements Statement {
         }
     }
 
-    public QueryFactory getQueryFactory(){
+    public QueryFactory getQueryFactory() {
         return queryFactory;
     }
 
@@ -169,7 +173,7 @@ public class DrizzleStatement implements Statement {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public void close() throws SQLException {
-        if(queryResult !=null)
+        if (queryResult != null)
             queryResult.close();
     }
 
@@ -341,7 +345,7 @@ public class DrizzleStatement implements Statement {
      *                               this method is called on a closed <code>Statement</code>
      */
     public SQLWarning getWarnings() throws SQLException {
-        if(!warningsCleared && queryResult != null && queryResult.getWarnings()>0) {
+        if (!warningsCleared && queryResult != null && queryResult.getWarnings() > 0) {
             return new SQLWarning(queryResult.getMessage());
         }
         return null;
@@ -391,6 +395,7 @@ public class DrizzleStatement implements Statement {
 
     /**
      * gets the connection that created this statement
+     *
      * @return the connection
      * @throws SQLException
      */
@@ -458,9 +463,9 @@ public class DrizzleStatement implements Statement {
      * @since 1.4
      */
     public ResultSet getGeneratedKeys() throws SQLException {
-        if(queryResult.getResultSetType()== ResultSetType.MODIFY) {
+        if (queryResult.getResultSetType() == ResultSetType.MODIFY) {
             QueryResult genRes = ((ModifyQueryResult) queryResult).getGeneratedKeysResult();
-            return new DrizzleResultSet(genRes,this);
+            return new DrizzleResultSet(genRes, this);
         }
         return null;
     }
@@ -646,6 +651,7 @@ public class DrizzleStatement implements Statement {
     public boolean execute(String sql, int columnIndexes[]) throws SQLException {
         throw new SQLFeatureNotSupportedException("Not supported");
     }
+
     /**
      * Executes the given SQL statement, which may return multiple results,
      * and signals the driver that the
@@ -765,11 +771,11 @@ public class DrizzleStatement implements Statement {
 
 
     public ResultSet getResultSet() throws SQLException {
-        return resultSet; 
+        return resultSet;
     }
 
     public int getUpdateCount() throws SQLException {
-        return (int)updateCount;
+        return (int) updateCount;
     }
 
     /**
@@ -792,7 +798,7 @@ public class DrizzleStatement implements Statement {
      * @see #execute
      */
     public boolean getMoreResults() throws SQLException {
-        return false;  
+        return false;
     }
 
     /**
@@ -992,13 +998,13 @@ public class DrizzleStatement implements Statement {
      */
     public int[] executeBatch() throws SQLException {
         try {
-            
+
             List<QueryResult> queryRes = protocol.executeBatch();
-            int [] retVals = new int[queryRes.size()];
+            int[] retVals = new int[queryRes.size()];
             int i = 0;
-            for(QueryResult qr : queryRes){
-                if(qr.getResultSetType()==ResultSetType.MODIFY)
-                    retVals[i++] = (int) ((ModifyQueryResult)qr).getUpdateCount(); //TODO: this needs to be handled according to javadoc
+            for (QueryResult qr : queryRes) {
+                if (qr.getResultSetType() == ResultSetType.MODIFY)
+                    retVals[i++] = (int) ((ModifyQueryResult) qr).getUpdateCount(); //TODO: this needs to be handled according to javadoc
                 else
                     retVals[i++] = SUCCESS_NO_INFO;
             }
@@ -1051,11 +1057,14 @@ public class DrizzleStatement implements Statement {
     protected void setResultSet(DrizzleResultSet drizzleResultSet) {
         this.resultSet = drizzleResultSet;
     }
+
     protected void setUpdateCount(long updateCount) {
-        this.updateCount=updateCount;
+        this.updateCount = updateCount;
     }
+
     /**
      * returns the query result.
+     *
      * @return the queryresult
      */
     protected QueryResult getQueryResult() {
@@ -1064,9 +1073,10 @@ public class DrizzleStatement implements Statement {
 
     /**
      * sets the current query result
+     *
      * @param result
      */
     protected void setQueryResult(QueryResult result) {
-        this.queryResult=result;
+        this.queryResult = result;
     }
 }

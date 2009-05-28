@@ -9,8 +9,8 @@
 
 package org.drizzle.jdbc;
 
-import org.drizzle.jdbc.internal.common.queryresults.ColumnInformation;
 import org.drizzle.jdbc.internal.common.queryresults.ColumnFlags;
+import org.drizzle.jdbc.internal.common.queryresults.ColumnInformation;
 
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -20,11 +20,10 @@ import java.util.logging.Logger;
 
 /**
  * TODO: finish implem.
-
+ * <p/>
  * User: marcuse
  * Date: Feb 8, 2009
  * Time: 9:48:12 PM
-
  */
 public class DrizzleResultSetMetaData implements ResultSetMetaData {
     private final static Logger log = Logger.getLogger(DrizzleResultSetMetaData.class.getName());
@@ -33,6 +32,7 @@ public class DrizzleResultSetMetaData implements ResultSetMetaData {
     public DrizzleResultSetMetaData(List<ColumnInformation> fieldPackets) {
         this.fieldPackets = fieldPackets;
     }
+
     /**
      * Returns the number of columns in this <code>ResultSet</code> object.
      *
@@ -96,7 +96,7 @@ public class DrizzleResultSetMetaData implements ResultSetMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public int isNullable(int column) throws SQLException {
-        if(getColumnInformation(column).getFlags().contains(ColumnFlags.NOT_NULL))
+        if (getColumnInformation(column).getFlags().contains(ColumnFlags.NOT_NULL))
             return ResultSetMetaData.columnNoNulls;
         else
             return ResultSetMetaData.columnNullable;
@@ -246,7 +246,7 @@ public class DrizzleResultSetMetaData implements ResultSetMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public boolean isReadOnly(int column) throws SQLException {
-        return false; 
+        return false;
     }
 
     /**
@@ -291,8 +291,8 @@ public class DrizzleResultSetMetaData implements ResultSetMetaData {
     }
 
     private ColumnInformation getColumnInformation(int column) throws SQLException {
-        if(column-1>=0 && column-1<=fieldPackets.size())
-            return fieldPackets.get(column-1);
+        if (column - 1 >= 0 && column - 1 <= fieldPackets.size())
+            return fieldPackets.get(column - 1);
         throw new SQLException("No such column");
     }
 

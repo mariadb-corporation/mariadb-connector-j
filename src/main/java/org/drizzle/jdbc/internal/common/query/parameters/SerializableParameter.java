@@ -9,11 +9,12 @@
 
 package org.drizzle.jdbc.internal.common.query.parameters;
 
-import static org.drizzle.jdbc.internal.common.Utils.needsEscaping;
-import org.drizzle.jdbc.internal.common.query.parameters.ParameterHolder;
 import org.drizzle.jdbc.internal.common.Utils;
 
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.util.Arrays;
 
 /**
@@ -34,23 +35,23 @@ public class SerializableParameter implements ParameterHolder {
     }
 
     public void writeTo(OutputStream os) throws IOException {
-        os.write(rawBytes,0,length);
+        os.write(rawBytes, 0, length);
     }
 
     public long length() {
         return length;
     }
 
-    private static byte [] escapeBytes(byte[] input) {
-        byte [] buffer = new byte[input.length*2+2];
-        int i=0;
-        buffer[i++]='\"';
-        for(byte b : input) {
-            if(Utils.needsEscaping(b))
+    private static byte[] escapeBytes(byte[] input) {
+        byte[] buffer = new byte[input.length * 2 + 2];
+        int i = 0;
+        buffer[i++] = '\"';
+        for (byte b : input) {
+            if (Utils.needsEscaping(b))
                 buffer[i++] = '\\';
             buffer[i++] = b;
         }
-        buffer[i++]='\"';
-        return Arrays.copyOf(buffer,i); 
+        buffer[i++] = '\"';
+        return Arrays.copyOf(buffer, i);
     }
 }

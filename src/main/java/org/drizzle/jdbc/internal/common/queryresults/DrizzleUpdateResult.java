@@ -12,11 +12,10 @@ package org.drizzle.jdbc.internal.common.queryresults;
 import java.util.List;
 
 /**
- .
+ * .
  * User: marcuse
  * Date: Mar 9, 2009
  * Time: 8:20:04 PM
-
  */
 public class DrizzleUpdateResult implements ModifyQueryResult {
     private final long updateCount;
@@ -27,9 +26,9 @@ public class DrizzleUpdateResult implements ModifyQueryResult {
 
     public DrizzleUpdateResult(long updateCount, short warnings, String message, long insertId) {
         this.updateCount = updateCount;
-        this.warnings=warnings;
-        this.message=message;
-        this.insertId=insertId;
+        this.warnings = warnings;
+        this.message = message;
+        this.insertId = insertId;
         generatedKeysResult = new DrizzleInsertIdQueryResult(insertId);
     }
 
@@ -58,7 +57,7 @@ public class DrizzleUpdateResult implements ModifyQueryResult {
     }
 
     public int getRows() {
-        return 0; 
+        return 0;
     }
 
     public long getInsertId() {

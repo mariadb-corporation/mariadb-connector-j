@@ -8,11 +8,11 @@
  */
 package org.drizzle.jdbc.internal.common.packet;
 
-import java.io.BufferedInputStream;
 import org.drizzle.jdbc.internal.common.PacketFetcher;
 
-import java.io.InputStream;
+import java.io.BufferedInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 
 /**
  * Created by IntelliJ IDEA.

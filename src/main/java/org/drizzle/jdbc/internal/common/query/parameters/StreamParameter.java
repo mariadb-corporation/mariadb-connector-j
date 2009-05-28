@@ -10,8 +10,8 @@ package org.drizzle.jdbc.internal.common.query.parameters;
 
 import static org.drizzle.jdbc.internal.common.Utils.needsEscaping;
 
-import java.io.InputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 
 /**
@@ -28,11 +28,12 @@ public class StreamParameter implements ParameterHolder {
     /**
      * the actual bytes to send.
      */
-    private final byte [] buffer;
+    private final byte[] buffer;
 
     /**
      * Create a new StreamParameter.
-     * @param is the input stream to create the parameter from
+     *
+     * @param is         the input stream to create the parameter from
      * @param readLength the length to read
      * @throws IOException if we cannot read the stream
      */
@@ -54,6 +55,7 @@ public class StreamParameter implements ParameterHolder {
 
     /**
      * Writes the parameter to an outputstream.
+     *
      * @param os the outputstream to write to
      * @throws IOException if we cannot write to the stream
      */
@@ -65,6 +67,7 @@ public class StreamParameter implements ParameterHolder {
     /**
      * Returns the length of the parameter - this is the total
      * amount of bytes that will be sent.
+     *
      * @return the length of the parameter
      */
     @Override

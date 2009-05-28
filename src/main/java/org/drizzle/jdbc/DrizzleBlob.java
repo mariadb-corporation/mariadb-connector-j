@@ -9,35 +9,54 @@
 
 package org.drizzle.jdbc;
 
-import java.sql.Blob;
-import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.IOException;
-import java.io.ByteArrayInputStream;
+import java.sql.Blob;
+import java.sql.SQLException;
 import java.util.Arrays;
 
 /**
- * very untested and unused in general, use with greatest care
+ * Represents a Blob.
+ *
  * User: marcuse
  * Date: Feb 14, 2009
  * Time: 9:40:54 PM
  */
-public class DrizzleBlob extends OutputStream implements Blob {
-    private byte [] blobContent;
+public final class DrizzleBlob extends OutputStream implements Blob {
+    /**
+     * the actual blob content.
+     */
+    private byte[] blobContent;
+    /**
+     * the size of the blob.
+     */
     private int actualSize;
 
-    public DrizzleBlob(){
-    }
+    /**
+     * How big the blob should be initially.
+     *
+     *
+     */
+    private static final int INITIAL_BLOB_CONTENT_SIZE = 100;
 
-    public DrizzleBlob(byte[] bytes) {
-        this.blobContent=bytes;
-        this.actualSize=bytes.length;
+    /**
+     * creates an empty blob.
+     */
+    public DrizzleBlob() {
     }
 
     /**
-     *
+     * creates a blob with content.
+     * @param bytes the content for the blob.
+     */
+    public DrizzleBlob(byte[] bytes) {
+        this.blobContent = bytes;
+        this.actualSize = bytes.length;
+    }
+
+    /**
      * Writes the specified byte to this output stream. The general
      * contract for <code>write</code> is that one byte is written
      * to the output stream. The byte to be written is the eight
@@ -49,15 +68,17 @@ public class DrizzleBlob extends OutputStream implements Blob {
      *
      * @param b the <code>byte</code>.
      * @throws java.io.IOException if an I/O error occurs. In particular,
-     *                             an <code>IOException</code> may be thrown if the
-     *                             output stream has been closed.
+     *                 an <code>IOException</code> may be thrown if the
+     *                output stream has been closed.
      */
     public void write(int b) throws IOException {
-        if(this.blobContent == null)
-            this.blobContent = new byte[100];
-        
-        if(this.blobContent.length == actualSize) {
-            this.blobContent = Arrays.copyOf(this.blobContent, this.blobContent.length*2);
+        if (this.blobContent == null) {
+            this.blobContent = new byte[INITIAL_BLOB_CONTENT_SIZE];
+        }
+
+        if (this.blobContent.length == actualSize) {
+            this.blobContent = Arrays.copyOf(this.blobContent,
+                                             this.blobContent.length * 2);
         }
 
         this.blobContent[actualSize++] = (byte) b;
@@ -70,10 +91,6 @@ public class DrizzleBlob extends OutputStream implements Blob {
      * @return length of the <code>BLOB</code> in bytes
      * @throws java.sql.SQLException if there is an error accessing the
      *                               length of the <code>BLOB</code>
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support
-     *                               this method
-     * @since 1.2
      */
     public long length() throws SQLException {
         return actualSize;
@@ -86,7 +103,7 @@ public class DrizzleBlob extends OutputStream implements Blob {
      * consecutive bytes starting at position <code>pos</code>.
      *
      * @param pos    the ordinal position of the first byte in the
-     *               <code>BLOB</code> value to be extracted; the first byte is at
+     *           <code>BLOB</code> value to be extracted; the first byte is at
      *               position 1
      * @param length the number of consecutive bytes to be copied; the value
      *               for length must be 0 or greater
@@ -95,18 +112,16 @@ public class DrizzleBlob extends OutputStream implements Blob {
      *         by this <code>Blob</code> object, starting with the
      *         byte at position <code>pos</code>
      * @throws java.sql.SQLException if there is an error accessing the
-     *                               <code>BLOB</code> value; if pos is less than 1 or length is
+     *               <code>BLOB</code> value; if pos is less than 1 or length is
      *                               less than 0
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support
-     *                               this method
      * @see #setBytes
      * @since 1.2
      */
     public byte[] getBytes(long pos, int length) throws SQLException {
-        if(pos<1) throw new SQLException("Pos starts at 1");
-       // if(pos+length > actualSize) throw new SQLException("Out of bounds");
-        return Arrays.copyOfRange(blobContent, (int)pos, (int) (pos + length));
+        if (pos < 1) {
+            throw new SQLException("Pos starts at 1");
+        }
+        return Arrays.copyOfRange(blobContent, (int) pos, (int) (pos + length));
     }
 
     /**
@@ -114,13 +129,8 @@ public class DrizzleBlob extends OutputStream implements Blob {
      * <code>Blob</code> instance as a stream.
      *
      * @return a stream containing the <code>BLOB</code> data
-     * @throws java.sql.SQLException if there is an error accessing the
-     *                               <code>BLOB</code> value
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support
-     *                               this method
      * @see #setBinaryStream
-     * @since 1.2
+     * @throws SQLException if something went wrong
      */
     public InputStream getBinaryStream() throws SQLException {
         return new ByteArrayInputStream(this.blobContent);
@@ -137,27 +147,25 @@ public class DrizzleBlob extends OutputStream implements Blob {
      * @param start   the position at which to begin searching; the
      *                first position is 1
      * @return the position at which the pattern appears, else -1
-     * @throws java.sql.SQLException if there is an error accessing the
-     *                               <code>BLOB</code> or if start is less than 1
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support
-     *                               this method
-     * @since 1.2
      */
-    public long position(byte pattern[], long start) throws SQLException {
-        if(start < 1) throw new SQLException("Start should be > 0, first position is 1...");
-        if(start > actualSize) throw new SQLException("Start should be <= "+actualSize);
-        long actualStart = start -1;
-        for(int i= (int) actualStart;i<actualSize;i++) {
-            if(blobContent[i] == pattern[0]){
-                boolean isEqual=true;
-                for(int j=1;j<pattern.length;j++) {
-                    if(i+j >= actualSize) return -1;
-                    if(blobContent[i+j]!=pattern[j]) {
-                        isEqual=false;
+    public long position(byte [] pattern, long start) throws SQLException {
+        if (start < 1) {
+            throw new SQLException("Start should be > 0, first position is 1.");
+        }
+        if (start > actualSize) {
+            throw new SQLException("Start should be <= " + actualSize);
+        }
+        long actualStart = start - 1;
+        for (int i = (int) actualStart; i < actualSize; i++) {
+            if (blobContent[i] == pattern[0]) {
+                boolean isEqual = true;
+                for (int j = 1; j < pattern.length; j++) {
+                    if (i + j >= actualSize) return -1;
+                    if (blobContent[i + j] != pattern[j]) {
+                        isEqual = false;
                     }
                 }
-                if(isEqual) return i+1;
+                if (isEqual) return i + 1;
             }
         }
         return -1;
@@ -174,15 +182,9 @@ public class DrizzleBlob extends OutputStream implements Blob {
      * @param start   the position in the <code>BLOB</code> value
      *                at which to begin searching; the first position is 1
      * @return the position at which the pattern begins, else -1
-     * @throws java.sql.SQLException if there is an error accessing the
-     *                               <code>BLOB</code> value or if start is less than 1
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support
-     *                               this method
-     * @since 1.2
      */
     public long position(Blob pattern, long start) throws SQLException {
-        return position(pattern.getBytes(1, (int) pattern.length()),start);
+        return position(pattern.getBytes(1, (int) pattern.length()), start);
     }
 
     /**
@@ -206,29 +208,24 @@ public class DrizzleBlob extends OutputStream implements Blob {
      * @param bytes the array of bytes to be written to the <code>BLOB</code>
      *              value that this <code>Blob</code> object represents
      * @return the number of bytes written
-     * @throws java.sql.SQLException if there is an error accessing the
-     *                               <code>BLOB</code> value or if pos is less than 1
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support
-     *                               this method
      * @see #getBytes
      * @since 1.4
      */
     public int setBytes(long pos, byte[] bytes) throws SQLException {
-        int bytesWritten=0;
-        if(blobContent==null) {
-            this.blobContent=new byte[(int) (pos+bytes.length)];
-            for(int i= (int) pos;i<pos+bytes.length;i++) {
+        int bytesWritten = 0;
+        if (blobContent == null) {
+            this.blobContent = new byte[(int) (pos + bytes.length)];
+            for (int i = (int) pos; i < pos + bytes.length; i++) {
                 this.blobContent[((int) (pos + i))] = bytes[i];
                 bytesWritten++;
             }
-        } else if(blobContent.length < pos+bytes.length) {
-            for(int i= (int) pos;i<pos+bytes.length;i++) {
+        } else if (blobContent.length < pos + bytes.length) {
+            for (int i = (int) pos; i < pos + bytes.length; i++) {
                 this.blobContent[((int) (pos + i))] = bytes[i];
                 bytesWritten++;
             }
         }
-        this.actualSize+=bytesWritten;
+        this.actualSize += bytesWritten;
         return bytesWritten;
     }
 
@@ -241,7 +238,7 @@ public class DrizzleBlob extends OutputStream implements Blob {
      * The array of bytes will overwrite the existing bytes
      * in the <code>Blob</code> object starting at the position
      * <code>pos</code>.  If the end of the <code>Blob</code> value is reached
-     * while writing the array of bytes, then the length of the <code>Blob</code>
+     *while writing the array of bytes, then the length of the <code>Blob</code>
      * value will be increased to accomodate the extra bytes.
      * <p/>
      * <b>Note:</b> If the value specified for <code>pos</code>
@@ -261,27 +258,26 @@ public class DrizzleBlob extends OutputStream implements Blob {
      * @return the number of bytes written
      * @throws java.sql.SQLException if there is an error accessing the
      *                               <code>BLOB</code> value or if pos is less than 1
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support
-     *                               this method
      * @see #getBytes
-     * @since 1.4
      */
-    public int setBytes(long pos, byte[] bytes, int offset, int len) throws SQLException {
-        int bytesWritten=0;
-        if(blobContent==null) {
-            this.blobContent=new byte[(int) (pos+bytes.length) - (len - offset)];
-            for(int i= (int) pos+offset;i<len;i++) {
+    public int setBytes(long pos,
+                        byte[] bytes,
+                        int offset,
+                        int len) throws SQLException {
+        int bytesWritten = 0;
+        if (blobContent == null) {
+            this.blobContent = new byte[(int) (pos + bytes.length) - (len - offset)];
+            for (int i = (int) pos + offset; i < len; i++) {
                 this.blobContent[((int) (pos + i))] = bytes[i];
                 bytesWritten++;
             }
-        } else if(this.blobContent.length < (pos+bytes.length) - (len - offset)) {
-            for(int i= (int) pos+offset;i<len;i++) {
+        } else if (this.blobContent.length < (pos + bytes.length) - (len - offset)) {
+            for (int i = (int) pos + offset; i < len; i++) {
                 this.blobContent[((int) (pos + i))] = bytes[i];
                 bytesWritten++;
             }
         }
-        this.actualSize+=bytesWritten;
+        this.actualSize += bytesWritten;
         return bytesWritten;
     }
 
@@ -306,15 +302,16 @@ public class DrizzleBlob extends OutputStream implements Blob {
      * @return a <code>java.io.OutputStream</code> object to which data can
      *         be written
      * @throws java.sql.SQLException if there is an error accessing the
-     *                               <code>BLOB</code> value or if pos is less than 1
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support
-     *                               this method
+     *                <code>BLOB</code> value or if pos is less than 1
      * @see #getBinaryStream
      * @since 1.4
      */
     public OutputStream setBinaryStream(long pos) throws SQLException {
-        return new DrizzleBlob(Arrays.copyOfRange(blobContent, (int) pos,blobContent.length));
+        if (pos < 1) {
+            throw new SQLException("Invalid position in blob");
+        }
+        return new DrizzleBlob(Arrays.copyOfRange(blobContent,
+                (int) pos - 1, blobContent.length + 1));
     }
 
     /**
@@ -331,14 +328,10 @@ public class DrizzleBlob extends OutputStream implements Blob {
      *            that this <code>Blob</code> object represents should be truncated
      * @throws java.sql.SQLException if there is an error accessing the
      *                               <code>BLOB</code> value or if len is less than 0
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support
-     *                               this method
-     * @since 1.4
      */
     public void truncate(long len) throws SQLException {
         this.blobContent = Arrays.copyOf(this.blobContent, (int) len);
-        this.actualSize= (int) len;
+        this.actualSize = (int) len;
     }
 
     /**
@@ -351,17 +344,10 @@ public class DrizzleBlob extends OutputStream implements Blob {
      * being thrown.  If <code>free</code> is called multiple times, the subsequent
      * calls to <code>free</code> are treated as a no-op.
      * <p/>
-     *
-     * @throws java.sql.SQLException if an error occurs releasing
-     *                               the Blob's resources
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support
-     *                               this method
-     * @since 1.6
      */
-    public void free() throws SQLException {
-        this.blobContent=null;
-        this.actualSize=0;
+    public void free() {
+        this.blobContent = null;
+        this.actualSize = 0;
     }
 
     /**
@@ -373,14 +359,16 @@ public class DrizzleBlob extends OutputStream implements Blob {
      * @param length the length in bytes of the partial value to be retrieved
      * @return <code>InputStream</code> through which the partial <code>Blob</code> value can be read.
      * @throws java.sql.SQLException if pos is less than 1 or if pos is greater than the number of bytes
-     *                               in the <code>Blob</code> or if pos + length is greater than the number of bytes
-     *                               in the <code>Blob</code>
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support
-     *                               this method
-     * @since 1.6
+     *               in the <code>Blob</code> or if pos + length is greater than the number of bytes
+     *               in the <code>Blob</code>
      */
     public InputStream getBinaryStream(long pos, long length) throws SQLException {
-        return new ByteArrayInputStream(Arrays.copyOfRange(blobContent,(int)pos,(int)length));
+        if (pos < 1 || pos > actualSize || pos + length > actualSize) {
+            throw new SQLException("Out of range");
+        }
+
+        return new ByteArrayInputStream(Arrays.copyOfRange(blobContent,
+                                        (int) pos,
+                                        (int) length));
     }
 }

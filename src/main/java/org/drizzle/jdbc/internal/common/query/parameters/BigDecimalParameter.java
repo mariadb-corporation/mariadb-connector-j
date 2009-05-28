@@ -9,17 +9,14 @@
 
 package org.drizzle.jdbc.internal.common.query.parameters;
 
-import org.drizzle.jdbc.internal.common.query.parameters.ParameterHolder;
-
-import java.math.BigDecimal;
-import java.io.OutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.math.BigDecimal;
 
 /**
  * User: marcuse
  * Date: Feb 27, 2009
  * Time: 10:07:00 PM
-
  */
 public class BigDecimalParameter implements ParameterHolder {
     private final byte[] rawBytes;
@@ -29,7 +26,7 @@ public class BigDecimalParameter implements ParameterHolder {
     }
 
     public void writeTo(OutputStream os) throws IOException {
-        for(byte theByte : rawBytes)
+        for (byte theByte : rawBytes)
             os.write(theByte);
     }
 

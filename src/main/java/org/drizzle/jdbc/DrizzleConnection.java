@@ -9,51 +9,102 @@
 
 package org.drizzle.jdbc;
 
-import org.drizzle.jdbc.internal.common.Protocol;
+import org.drizzle.jdbc.internal.SQLExceptionMapper;
 import org.drizzle.jdbc.internal.common.BinlogDumpException;
+import org.drizzle.jdbc.internal.common.Protocol;
 import org.drizzle.jdbc.internal.common.QueryException;
 import org.drizzle.jdbc.internal.common.packet.RawPacket;
 import org.drizzle.jdbc.internal.common.query.QueryFactory;
-import org.drizzle.jdbc.internal.SQLExceptionMapper;
 
 import java.sql.*;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.List;
 
 /**
+ * A JDBC Connection.
+ *
  * User: marcuse
  * Date: Jan 14, 2009
  * Time: 7:47:37 AM
  */
-public class DrizzleConnection implements Connection, ReplicationConnection {
+public final class DrizzleConnection
+        implements Connection, ReplicationConnection {
+    /**
+     * the protocol to communicate with.
+     */
     private final Protocol protocol;
+    /**
+     * save point count - to generate good names for the savepoints.
+     */
     private int savepointCount = 0;
+    /**
+     * the properties for the client.
+     */
     private final Properties clientInfoProperties;
+    /**
+     * a query factory. 
+     */
     private final QueryFactory queryFactory;
 
+    /**
+     * Creates a new connection with a given protocol and query factory.
+     * @param protocol the protocol to use.
+     * @param queryFactory the query factory to use.
+     */
     public DrizzleConnection(Protocol protocol, QueryFactory queryFactory) {
-        this.protocol=protocol;
-        clientInfoProperties=new Properties();
-        this.queryFactory=queryFactory;
+        this.protocol = protocol;
+        clientInfoProperties = new Properties();
+        this.queryFactory = queryFactory;
     }
 
+    /**
+     * creates a new statement.
+     * @return a statement
+     * @throws SQLException if we cannot create the statement.
+     */
     public Statement createStatement() throws SQLException {
-        return new DrizzleStatement(protocol,this, queryFactory);
+        return new DrizzleStatement(protocol, this, queryFactory);
     }
 
+    /**
+     * creates a new prepared statement. Only client side prepared statement
+     * emulation right now.
+     * @param sql the query.
+     * @return a prepared statement.
+     * @throws SQLException if there is a problem preparing the statement.
+     */
     public PreparedStatement prepareStatement(String sql) throws SQLException {
-        return new DrizzlePreparedStatement(protocol,this,sql, queryFactory);
+        return new DrizzlePreparedStatement(protocol, this, sql, queryFactory);
     }
 
+    /**
+     * not implemented.
+     * @param sql unused
+     * @return nothing.
+     * @throws SQLException always since this is not implemented.
+     */
     public CallableStatement prepareCall(String sql) throws SQLException {
         throw new SQLFeatureNotSupportedException("Stored procedures not supported");
     }
 
+    /**
+     * currently does nothing.
+     * //TODO: implement
+     * @param sql
+     * @return
+     * @throws SQLException
+     */
     public String nativeSQL(String sql) throws SQLException {
         return sql;
     }
 
+    /**
+     * Sets whether this connection is auto commited.
+     * @param autoCommit if it should be auto commited.
+     * @throws SQLException if something goes wrong
+     * talking to the server.
+     */
     public void setAutoCommit(boolean autoCommit) throws SQLException {
         try {
             protocol.setAutoCommit(autoCommit);
@@ -62,10 +113,20 @@ public class DrizzleConnection implements Connection, ReplicationConnection {
         }
     }
 
+    /**
+     * returns true if statements on this connection are
+     * auto commited.
+     * @return true if auto commit is on.
+     * @throws SQLException
+     */
     public boolean getAutoCommit() throws SQLException {
         return protocol.getAutoCommit();
     }
 
+    /**
+     * sends commit to the server.
+     * @throws SQLException if there is an error commiting.        
+     */
     public void commit() throws SQLException {
         try {
             protocol.commit();
@@ -74,6 +135,10 @@ public class DrizzleConnection implements Connection, ReplicationConnection {
         }
     }
 
+    /**
+     * rolls back a transaction.
+     * @throws SQLException if there is an error rolling back.
+     */
     public void rollback() throws SQLException {
         try {
             protocol.rollback();
@@ -82,6 +147,10 @@ public class DrizzleConnection implements Connection, ReplicationConnection {
         }
     }
 
+    /**
+     * close the connection.
+     * @throws SQLException if there is a problem talking to the server.
+     */
     public void close() throws SQLException {
         try {
             protocol.close();
@@ -92,7 +161,8 @@ public class DrizzleConnection implements Connection, ReplicationConnection {
     }
 
     /**
-     * checks if the connection is closed
+     * checks if the connection is closed.
+     *
      * @return true if the connection is closed
      * @throws SQLException if the connection cannot be closed.
      */
@@ -100,16 +170,26 @@ public class DrizzleConnection implements Connection, ReplicationConnection {
         return protocol.isClosed();
     }
 
+    /**
+     * returns the meta data about the database.
+     * @return meta data about the db.
+     * @throws SQLException if there is a problem creating the meta data.
+     */
     public DatabaseMetaData getMetaData() throws SQLException {
         return new DrizzleDatabaseMetaData.Builder(this).
-                                        url("jdbc:drizzle://"+protocol.getHost()+
-                                                           ":"+protocol.getPort()+
-                                                           "/"+protocol.getDatabase()).
-                                        username(protocol.getUsername()).
-                                        version(protocol.getVersion()).
-                                        build();
+                url("jdbc:drizzle://" + protocol.getHost()
+                        + ":" + protocol.getPort()
+                        + "/" + protocol.getDatabase()).
+                username(protocol.getUsername()).
+                version(protocol.getVersion()).
+                build();
     }
 
+    /**
+     * Sets whether this connection is read only.
+     * @param readOnly true if it should be read only.
+     * @throws SQLException if there is a problem
+     */
     public void setReadOnly(boolean readOnly) throws SQLException {
         protocol.setReadonly(readOnly);
     }
@@ -147,9 +227,9 @@ public class DrizzleConnection implements Connection, ReplicationConnection {
 
     /**
      * Retrieves this <code>Connection</code> object's current catalog name.
-     *
+     * <p/>
      * catalogs are not supported in drizzle
-     *
+     * <p/>
      * TODO: Explain the wrapper interface to be able to change database
      *
      * @return the current catalog name or <code>null</code> if there is none
@@ -186,18 +266,18 @@ public class DrizzleConnection implements Connection, ReplicationConnection {
      */
     public void setTransactionIsolation(int level) throws SQLException {
         String query = "SET SESSION TRANSACTION ISOLATION LEVEL";
-        switch(level){
+        switch (level) {
             case Connection.TRANSACTION_READ_UNCOMMITTED:
-                query+=" READ UNCOMMITTED";
+                query += " READ UNCOMMITTED";
                 break;
             case Connection.TRANSACTION_READ_COMMITTED:
-                query+=" READ COMMITTED";
+                query += " READ COMMITTED";
                 break;
             case Connection.TRANSACTION_REPEATABLE_READ:
-                query+=" REPEATABLE READ";
+                query += " REPEATABLE READ";
                 break;
             case Connection.TRANSACTION_SERIALIZABLE:
-                query+=" SERIALIZABLE";
+                query += " SERIALIZABLE";
                 break;
             default:
                 throw new SQLException("Unsupported transaction isolation level");
@@ -229,23 +309,27 @@ public class DrizzleConnection implements Connection, ReplicationConnection {
         ResultSet rs = stmt.executeQuery("SELECT @@tx_isolation");
         rs.next();
         String response = rs.getString(1);
-        if(response.equals( "REPEATABLE-READ"))
-            return  Connection.TRANSACTION_REPEATABLE_READ;
-        if(response.equals( "READ-UNCOMMITTED"))
-            return  Connection.TRANSACTION_READ_UNCOMMITTED;
-        if(response.equals( "READ-COMMITTED"))
-            return  Connection.TRANSACTION_READ_COMMITTED;
-        if(response.equals( "SERIALIZABLE"))
-            return  Connection.TRANSACTION_SERIALIZABLE;
-        
+        if (response.equals("REPEATABLE-READ")) {
+            return Connection.TRANSACTION_REPEATABLE_READ;
+        }
+        if (response.equals("READ-UNCOMMITTED")) {
+            return Connection.TRANSACTION_READ_UNCOMMITTED;
+        }
+        if (response.equals("READ-COMMITTED")) {
+            return Connection.TRANSACTION_READ_COMMITTED;
+        }
+        if (response.equals("SERIALIZABLE")) {
+            return Connection.TRANSACTION_SERIALIZABLE;
+        }
+
         throw new SQLException("Could not get transaction isolation level");
     }
 
     /**
      * Not yet implemented:
      * Protocol needs to store any warnings related to connections
-     *
-     *
+     * <p/>
+     * <p/>
      * Retrieves the first warning reported by calls on this
      * <code>Connection</code> object.  If there is more than one
      * warning, subsequent warnings will be chained to the first one
@@ -305,11 +389,6 @@ public class DrizzleConnection implements Connection, ReplicationConnection {
      *                               method is called on a closed connection
      *                               or the given parameters are not <code>ResultSet</code>
      *                               constants indicating type and concurrency
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support
-     *                               this method or this method is not supported for the specified result
-     *                               set type and result set concurrency.
-     * @since 1.2
      */
     public Statement createStatement(int resultSetType, int resultSetConcurrency) throws SQLException {
         // for now resultSetType and resultSetConcurrency are ignored
@@ -343,11 +422,6 @@ public class DrizzleConnection implements Connection, ReplicationConnection {
      *                               method is called on a closed connection
      *                               or the given parameters are not <code>ResultSet</code>
      *                               constants indicating type and concurrency
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support
-     *                               this method or this method is not supported for the specified result
-     *                               set type and result set concurrency.
-     * @since 1.2
      */
     public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency) throws SQLException {
         // for now resultSetType and resultSetConcurrency are ignored
@@ -384,7 +458,6 @@ public class DrizzleConnection implements Connection, ReplicationConnection {
      *                               if the JDBC driver does not support
      *                               this method or this method is not supported for the specified result
      *                               set type and result set concurrency.
-     * @since 1.2
      */
     public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency) throws SQLException {
         throw new SQLFeatureNotSupportedException("Stored procedures not supported");
@@ -426,7 +499,6 @@ public class DrizzleConnection implements Connection, ReplicationConnection {
      *                               if the JDBC driver does not support
      *                               this method
      * @see #getTypeMap
-     * @since 1.2
      */
     public void setTypeMap(Map<String, Class<?>> map) throws SQLException {
         throw new SQLFeatureNotSupportedException("Not yet supported");
@@ -453,8 +525,9 @@ public class DrizzleConnection implements Connection, ReplicationConnection {
      * @since 1.4
      */
     public void setHoldability(int holdability) throws SQLException {
-        if(holdability != ResultSet.HOLD_CURSORS_OVER_COMMIT)
+        if (holdability != ResultSet.HOLD_CURSORS_OVER_COMMIT) {
             throw new SQLFeatureNotSupportedException("Only holding cursors over commit is supported");
+        }
     }
 
     /**
@@ -519,7 +592,7 @@ public class DrizzleConnection implements Connection, ReplicationConnection {
      * @since 1.4
      */
     public Savepoint setSavepoint(String name) throws SQLException {
-        Savepoint drizzleSavepoint = new DrizzleSavepoint(name,savepointCount++);
+        Savepoint drizzleSavepoint = new DrizzleSavepoint(name, savepointCount++);
         try {
             protocol.setSavepoint(drizzleSavepoint.toString());
         } catch (QueryException e) {
@@ -616,10 +689,12 @@ public class DrizzleConnection implements Connection, ReplicationConnection {
      * @since 1.4
      */
     public Statement createStatement(int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
-        if(resultSetConcurrency != ResultSet.CONCUR_READ_ONLY)
+        if (resultSetConcurrency != ResultSet.CONCUR_READ_ONLY) {
             throw new SQLFeatureNotSupportedException("Only read-only result sets allowed");
-        if(resultSetHoldability != ResultSet.HOLD_CURSORS_OVER_COMMIT)
+        }
+        if (resultSetHoldability != ResultSet.HOLD_CURSORS_OVER_COMMIT) {
             throw new SQLFeatureNotSupportedException("Cursors are always kept when sending commit (they are only client-side)");
+        }
         return createStatement();
     }
 
@@ -664,10 +739,12 @@ public class DrizzleConnection implements Connection, ReplicationConnection {
      * @since 1.4
      */
     public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
-        if(resultSetConcurrency != ResultSet.CONCUR_READ_ONLY)
+        if (resultSetConcurrency != ResultSet.CONCUR_READ_ONLY) {
             throw new SQLFeatureNotSupportedException("Only read-only result sets allowed");
-        if(resultSetHoldability != ResultSet.HOLD_CURSORS_OVER_COMMIT)
+        }
+        if (resultSetHoldability != ResultSet.HOLD_CURSORS_OVER_COMMIT) {
             throw new SQLFeatureNotSupportedException("Cursors are always kept when sending commit (they are only client-side)");
+        }
         // resultSetType is ignored since we always are scroll insensitive
         return prepareStatement(sql);
     }
@@ -806,9 +883,10 @@ public class DrizzleConnection implements Connection, ReplicationConnection {
      *                               this method
      * @since 1.4
      */
-    public PreparedStatement prepareStatement(String sql, int columnIndexes[]) throws SQLException {
-        if(columnIndexes!=null && columnIndexes.length==1 && columnIndexes[0]==1)
+    public PreparedStatement prepareStatement(String sql, int [] columnIndexes) throws SQLException {
+        if (columnIndexes != null && columnIndexes.length == 1 && columnIndexes[0] == 1) {
             return prepareStatement(sql);
+        }
         throw new SQLException("Only one auto generated key is supported, and it is on position 1");
     }
 
@@ -857,9 +935,10 @@ public class DrizzleConnection implements Connection, ReplicationConnection {
      *                               this method
      * @since 1.4
      */
-    public PreparedStatement prepareStatement(String sql, String columnNames[]) throws SQLException {
-        if(columnNames!=null && columnNames.length==1 && columnNames[0].equals("insert_id"))
+    public PreparedStatement prepareStatement(String sql, String [] columnNames) throws SQLException {
+        if (columnNames != null && columnNames.length == 1 && columnNames[0].equals("insert_id")) {
             return prepareStatement(sql);
+        }
         throw new SQLException("Only one auto generated key is supported, and it is called insert_id");
     }
 
@@ -1026,7 +1105,7 @@ public class DrizzleConnection implements Connection, ReplicationConnection {
      * @since 1.6
      */
     public void setClientInfo(String name, String value) throws SQLClientInfoException {
-        this.clientInfoProperties.setProperty(name,value);
+        this.clientInfoProperties.setProperty(name, value);
     }
 
     /**
@@ -1062,8 +1141,8 @@ public class DrizzleConnection implements Connection, ReplicationConnection {
      */
     public void setClientInfo(Properties properties) throws SQLClientInfoException {
         // TODO: actually use these!
-        for(String key : properties.stringPropertyNames()) {
-            this.clientInfoProperties.setProperty(key,properties.getProperty(key));
+        for (String key : properties.stringPropertyNames()) {
+            this.clientInfoProperties.setProperty(key, properties.getProperty(key));
         }
     }
 
@@ -1181,7 +1260,7 @@ public class DrizzleConnection implements Connection, ReplicationConnection {
      * @since 1.6
      */
     public <T> T unwrap(Class<T> iface) throws SQLException {
-        return iface.cast(this);  
+        return iface.cast(this);
     }
 
     /**
@@ -1200,36 +1279,61 @@ public class DrizzleConnection implements Connection, ReplicationConnection {
      * @since 1.6
      */
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
-        if(iface.isInstance(this))
-            return true;
-        return false;
+        return iface.isInstance(this);
     }
 
-    
+    /**
+     * returns the username for the connection.
+     * @return the username.
+     */
     public String getUsername() {
         return protocol.getUsername();
     }
 
+    /**
+     * returns the password for the connection.
+     * @return the password.
+     */
     public String getPassword() {
         return protocol.getPassword();
     }
 
+    /**
+     * returns the hostname for the connection.
+     * @return the hostname.
+     */
     public String getHostname() {
         return protocol.getHost();
     }
 
+    /**
+     * returns the port for the connection.
+     * @return the port
+     */
     public int getPort() {
         return protocol.getPort();
     }
 
+    /**
+     * returns the database.
+     * @return the database
+     */
     public String getDatabase() {
         return protocol.getDatabase();
     }
+
+    /**
+     * returns a list of binlog entries.
+     * @param position the position to start at
+     * @param logfile the log file to use
+     * @return a list of rawpackets from the server
+     * @throws SQLException if there is a problem talking to the server.
+     */
     public List<RawPacket> startBinlogDump(int position, String logfile) throws SQLException {
         try {
-            return this.protocol.startBinlogDump(position,logfile);
+            return this.protocol.startBinlogDump(position, logfile);
         } catch (BinlogDumpException e) {
-            throw new SQLException("Could not dump binlog",e);            
+            throw new SQLException("Could not dump binlog", e);
         }
     }
 }

@@ -20,6 +20,6 @@ import java.io.IOException;
  */
 public class BinlogDumpException extends Throwable {
     public BinlogDumpException(String s, IOException e) {
-        super(s,e);
+        super(s, e);
     }
 }

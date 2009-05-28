@@ -9,43 +9,41 @@
 
 package org.drizzle.jdbc.internal.common.query.parameters;
 
-import org.drizzle.jdbc.internal.common.query.parameters.ParameterHolder;
-
-import java.io.OutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.Calendar;
+import java.util.Date;
 
 /**
  * Represents a time stamp
- *
+ * <p/>
  * User: marcuse
  * Date: Feb 19, 2009
  * Time: 8:50:52 PM
-
  */
 public class TimestampParameter implements ParameterHolder {
-    private final byte [] byteRepresentation;
+    private final byte[] byteRepresentation;
 
     /**
      * Represents a timestamp, constructed with time in millis since epoch
+     *
      * @param timestamp the time in millis since epoch
      */
     public TimestampParameter(long timestamp) {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        byteRepresentation = String.valueOf("\""+sdf.format(new Date(timestamp))+"\"").getBytes();
+        byteRepresentation = String.valueOf("\"" + sdf.format(new Date(timestamp)) + "\"").getBytes();
     }
 
     public TimestampParameter(long timestamp, Calendar cal) {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         sdf.setCalendar(cal);
-        byteRepresentation = String.valueOf("\""+sdf.format(new Date(timestamp))+"\"").getBytes();
+        byteRepresentation = String.valueOf("\"" + sdf.format(new Date(timestamp)) + "\"").getBytes();
 
     }
 
     public void writeTo(OutputStream os) throws IOException {
-        for(byte b:byteRepresentation)
+        for (byte b : byteRepresentation)
             os.write(b);
     }
 

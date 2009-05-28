@@ -77,21 +77,6 @@
               </executions>
 	    </plugin>
       
-<!--            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>emma-maven-plugin</artifactId>
-                <version>1.0-SNAPSHOT</version>
-                <inherited>true</inherited>
-                <executions>
-                    <execution>
-                        <id>instrument</id>
-                        <phase>pre-site</phase>
-                        <goals>
-                            <goal>instrument</goal>
-                        </goals>
-                    </execution> 
-                </executions>
-            </plugin>-->
         </plugins>
     </build>
     <dependencies>
@@ -104,12 +89,35 @@
     </dependencies>
     <reporting>
         <plugins>
-<!--            <plugin>
+            <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>emma-maven-plugin</artifactId>
-                <version>1.0-SNAPSHOT</version>
                 <inherited>true</inherited>
-            </plugin>-->
+            </plugin>
+            <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-checkstyle-plugin</artifactId>
+            </plugin>
+            <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-javadoc-plugin</artifactId>
+            </plugin>
+            <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-pmd-plugin</artifactId>
+            <configuration>
+                     <sourceEncoding>utf-8</sourceEncoding>
+                     <minimumTokens>100</minimumTokens>
+                     <targetJdk>1.6</targetJdk>
+            </configuration>
+
+            </plugin>
+            <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-surefire-report-plugin</artifactId>
+            </plugin>
+            
+
         </plugins>
     </reporting>
 

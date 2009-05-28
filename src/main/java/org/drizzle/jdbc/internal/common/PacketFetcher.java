@@ -22,6 +22,8 @@ import java.io.IOException;
  */
 public interface PacketFetcher {
     RawPacket getRawPacket() throws IOException;
+
     void close() throws IOException;
+
     void awaitTermination();
 }

@@ -9,14 +9,14 @@
 
 package org.drizzle.jdbc.internal.common.packet;
 
-import org.drizzle.jdbc.internal.common.packet.buffer.ReadUtil;
-import org.drizzle.jdbc.internal.common.packet.buffer.LengthEncodedBytes;
-import org.drizzle.jdbc.internal.common.ValueObject;
 import org.drizzle.jdbc.internal.common.DrizzleValueObject;
+import org.drizzle.jdbc.internal.common.ValueObject;
+import org.drizzle.jdbc.internal.common.packet.buffer.LengthEncodedBytes;
+import org.drizzle.jdbc.internal.common.packet.buffer.ReadUtil;
 import org.drizzle.jdbc.internal.common.queryresults.ColumnInformation;
 
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * User: marcuse
@@ -24,13 +24,13 @@ import java.util.ArrayList;
  * Time: 9:28:43 PM
  */
 public class RowPacket {
-      private final List<ValueObject> columns;
+    private final List<ValueObject> columns;
 
     public RowPacket(RawPacket rawPacket, List<ColumnInformation> columnInformation) {
         //int fieldCount = columnInformation.size();
         columns = new ArrayList<ValueObject>(columnInformation.size());
-        byte [] rawBytes = rawPacket.getRawBytes();
-        int readBytes=0;
+        byte[] rawBytes = rawPacket.getRawBytes();
+        int readBytes = 0;
         for (ColumnInformation currentColumn : columnInformation) {
             LengthEncodedBytes leb = ReadUtil.getLengthEncodedBytes(rawBytes, readBytes);
             readBytes += leb.getLength();

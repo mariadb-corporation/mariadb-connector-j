@@ -11,8 +11,8 @@ package org.drizzle.jdbc.internal.common.packet;
 
 import org.drizzle.jdbc.internal.common.packet.buffer.ReadUtil;
 
-import java.io.InputStream;
 import java.io.IOException;
+import java.io.InputStream;
 
 /**
  * Creates result packets
@@ -23,12 +23,12 @@ import java.io.IOException;
  * Time: 1:12:23 PM
  */
 public class ResultPacketFactory {
-    private final static byte ERROR=(byte)0xff;
-    private final static byte OK=(byte)0x00;
-    private final static byte EOF = (byte)0xfe;
+    private final static byte ERROR = (byte) 0xff;
+    private final static byte OK = (byte) 0x00;
+    private final static byte EOF = (byte) 0xfe;
 
     public static ResultPacket createResultPacket(InputStream reader) throws IOException {
-        switch(ReadUtil.getByteAt(reader,5)) {
+        switch (ReadUtil.getByteAt(reader, 5)) {
             case ERROR:
                 return new ErrorPacket(reader);
             case OK:
@@ -39,10 +39,11 @@ public class ResultPacketFactory {
                 return new ResultSetPacket(reader);
         }
     }
-//    private static EOFPacket eof = new EOFPacket();
-    public static ResultPacket createResultPacket(RawPacket rawPacket)  {
-        byte[] rawBytes =rawPacket.getRawBytes();
-        switch(rawBytes[0]) {
+
+    //    private static EOFPacket eof = new EOFPacket();
+    public static ResultPacket createResultPacket(RawPacket rawPacket) {
+        byte[] rawBytes = rawPacket.getRawBytes();
+        switch (rawBytes[0]) {
             case ERROR:
                 return new ErrorPacket(rawBytes);
             case OK:

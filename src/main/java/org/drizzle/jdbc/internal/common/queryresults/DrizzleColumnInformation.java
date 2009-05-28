@@ -11,15 +11,14 @@ package org.drizzle.jdbc.internal.common.queryresults;
 
 import org.drizzle.jdbc.internal.drizzle.DrizzleType;
 
-import java.util.Set;
 import java.util.Collections;
+import java.util.Set;
 
 
 /**
  * User: marcuse
  * Date: Mar 9, 2009
  * Time: 8:53:40 PM
-
  */
 public class DrizzleColumnInformation implements ColumnInformation {
     private final String catalog;
@@ -33,20 +32,20 @@ public class DrizzleColumnInformation implements ColumnInformation {
     private final DrizzleType type;
     private final byte decimals;
     private final Set<ColumnFlags> flags;
-    private int displayWidth=0;
-    
+    private int displayWidth = 0;
+
     private DrizzleColumnInformation(Builder builder) {
-        this.catalog=builder.catalog;
-        this.db=builder.db;
-        this.table=builder.table;
-        this.orgTable=builder.originalTable;
+        this.catalog = builder.catalog;
+        this.db = builder.db;
+        this.table = builder.table;
+        this.orgTable = builder.originalTable;
         this.name = builder.name;
-        this.orgName=builder.originalName;
-        this.charsetNumber=builder.charsetNumber;
-        this.length=builder.length;
+        this.orgName = builder.originalName;
+        this.charsetNumber = builder.charsetNumber;
+        this.length = builder.length;
         this.type = builder.type;
-        this.decimals=builder.decimals;
-        this.flags= Collections.unmodifiableSet(builder.flags);
+        this.decimals = builder.decimals;
+        this.flags = Collections.unmodifiableSet(builder.flags);
     }
 
     public String getCatalog() {
@@ -94,8 +93,8 @@ public class DrizzleColumnInformation implements ColumnInformation {
     }
 
     public void updateDisplaySize(int displayLength) {
-        if(displayLength>displayWidth)
-            this.displayWidth=displayLength;
+        if (displayLength > displayWidth)
+            this.displayWidth = displayLength;
     }
 
     public static class Builder {
@@ -117,27 +116,27 @@ public class DrizzleColumnInformation implements ColumnInformation {
         }
 
         public Builder db(String db) {
-            this.db=db;
+            this.db = db;
             return this;
         }
 
         public Builder table(String table) {
-            this.table=table;
+            this.table = table;
             return this;
         }
 
         public Builder originalTable(String orgTable) {
-            this.originalTable=orgTable;
+            this.originalTable = orgTable;
             return this;
         }
 
         public Builder name(String name) {
-            this.name=name;
+            this.name = name;
             return this;
         }
 
         public Builder originalName(String orgName) {
-            this.originalName=orgName;
+            this.originalName = orgName;
             return this;
         }
 
@@ -146,27 +145,27 @@ public class DrizzleColumnInformation implements ColumnInformation {
         }
 
         public Builder charsetNumber(short charsetNumber) {
-            this.charsetNumber=charsetNumber;
+            this.charsetNumber = charsetNumber;
             return this;
         }
 
         public Builder length(int length) {
-            this.length=length;
+            this.length = length;
             return this;
         }
 
         public Builder type(DrizzleType drizzleType) {
-            this.type=drizzleType;
+            this.type = drizzleType;
             return this;
         }
 
         public Builder flags(Set<ColumnFlags> columnFlags) {
-            this.flags=columnFlags;
+            this.flags = columnFlags;
             return this;
         }
 
         public Builder decimals(byte decimals) {
-            this.decimals=decimals;
+            this.decimals = decimals;
             return this;
         }
 
