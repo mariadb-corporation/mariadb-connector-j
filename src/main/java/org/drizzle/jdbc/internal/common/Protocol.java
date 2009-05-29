@@ -48,7 +48,7 @@ public interface Protocol {
      *
      * @return
      */
-    String getVersion();
+    String getServerVersion();
 
     /**
      * sets whether this connection should be read only

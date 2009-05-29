@@ -187,7 +187,7 @@ public class MySQLProtocol implements Protocol {
         this.database = database;
     }
 
-    public String getVersion() {
+    public String getServerVersion() {
         return version;
     }
 

@@ -19,7 +19,7 @@ import java.io.InputStream;
  * got 3 bytes specifying the actual length, then one byte packet sequence
  * number and then n bytes with user data.
  */
-public class RawPacket {
+public final class RawPacket {
 
     static final RawPacket IOEXCEPTION_PILL = new RawPacket(null, -1);
     private final byte[] rawBytes;

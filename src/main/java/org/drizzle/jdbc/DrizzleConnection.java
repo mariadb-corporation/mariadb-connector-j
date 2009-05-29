@@ -181,7 +181,7 @@ public final class DrizzleConnection
                         + ":" + protocol.getPort()
                         + "/" + protocol.getDatabase()).
                 username(protocol.getUsername()).
-                version(protocol.getVersion()).
+                version(protocol.getServerVersion()).
                 build();
     }
 

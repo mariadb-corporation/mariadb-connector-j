@@ -27,10 +27,7 @@ import org.drizzle.jdbc.internal.drizzle.packet.commands.ClientAuthPacket;
 import org.drizzle.jdbc.internal.drizzle.packet.commands.PingPacket;
 
 import javax.net.SocketFactory;
-import java.io.BufferedOutputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -47,20 +44,65 @@ import java.util.logging.Logger;
  * Date: Jan 14, 2009
  * Time: 4:06:26 PM
  */
-public class DrizzleProtocol implements Protocol {
+public final class DrizzleProtocol implements Protocol {
+    /**
+     * The logger.
+     */
     private final static Logger log = Logger.getLogger(DrizzleProtocol.class.getName());
+    /**
+     * true if we are connected.
+     */
     private boolean connected = false;
+
+    /**
+     * the socket to use to communicate.
+     */
     private final Socket socket;
+    /**
+     * write to the server using this.
+     */
     private final BufferedOutputStream writer;
-    private final String version;
+    /**
+     * version of the server.
+     */
+    private final String serverVersion;
+    /**
+     * if the connection is read only.
+     * //TODO: not used - need to parse queries etc.
+     */
     private boolean readOnly = false;
+    /**
+     * if we are in autocommit mode.
+     */
     private boolean autoCommit;
+    /**
+     * the host we are connected to.
+     */
     private final String host;
+    /**
+     * the port.
+     */
     private final int port;
+    /**
+     * current database.
+     */
     private String database;
+    /**
+     * the username we authenticated as.
+     */
     private final String username;
+    /**
+     * the password used to connect.
+     */
     private final String password;
+    /**
+     * the list of batch queries.
+     */
     private final List<Query> batchList;
+    /**
+     * the packet fetcher. Fetches packets and gives them
+     * back to the protocol class.
+     */
     private final PacketFetcher packetFetcher;
 
     /**
@@ -76,9 +118,21 @@ public class DrizzleProtocol implements Protocol {
     public DrizzleProtocol(String host, int port, String database, String username, String password) throws QueryException {
         this.host = host;
         this.port = port;
-        this.database = (database == null ? "" : database);
-        this.username = (username == null ? "" : username);
-        this.password = (password == null ? "" : password);
+        if (database == null) {
+            this.database = "";
+        } else {
+            this.database = database;
+        }
+        if (username == null) {
+            this.username = "";
+        } else {
+            this.username = username;
+        }
+        if (password == null) {
+            this.password = "";
+        } else {
+            this.password = password;
+        }
 
         SocketFactory socketFactory = SocketFactory.getDefault();
         try {
@@ -89,29 +143,42 @@ public class DrizzleProtocol implements Protocol {
         log.info("Connected to: " + host + ":" + port);
         batchList = new ArrayList<Query>();
         try {
+            //BufferedInputStream reader = new BufferedInputStream(socket.getInputStream(), 65536);
             InputStream reader = socket.getInputStream();
-            writer = new BufferedOutputStream(socket.getOutputStream(), 1638);
-
+            writer = new BufferedOutputStream(socket.getOutputStream(), 65536);
             GreetingReadPacket greetingPacket = new GreetingReadPacket(reader);
             log.finest("Got greeting packet: " + greetingPacket);
-            this.version = greetingPacket.getServerVersion();
-            Set<ServerCapabilities> serverCapabilities = greetingPacket.getServerCapabilities();
-            serverCapabilities.removeAll(EnumSet.of(ServerCapabilities.SSL, ServerCapabilities.ODBC, ServerCapabilities.NO_SCHEMA));
-            serverCapabilities.addAll(EnumSet.of(ServerCapabilities.CONNECT_WITH_DB));
-            ClientAuthPacket cap = new ClientAuthPacket(this.username, this.password, this.database, serverCapabilities);
+
+            this.serverVersion = greetingPacket.getServerVersion();
+
+            Set<ServerCapabilities> serverCapabilities =
+                    EnumSet.of(ServerCapabilities.LONG_PASSWORD,
+                               ServerCapabilities.CONNECT_WITH_DB,
+                               ServerCapabilities.IGNORE_SPACE,
+                               ServerCapabilities.CLIENT_PROTOCOL_41,
+                               ServerCapabilities.SECURE_CONNECTION);
+
+            ClientAuthPacket cap = new ClientAuthPacket(this.username,
+                                                        this.password,
+                                                        this.database,
+                                                        serverCapabilities);
             cap.send(writer);
+
             log.finest("Sending auth packet");
             packetFetcher = new AsyncPacketFetcher(reader);
             RawPacket rawPacket = packetFetcher.getRawPacket();
             ResultPacket rp = ResultPacketFactory.createResultPacket(rawPacket);
+
             if (rp.getResultType() == ResultPacket.ResultType.ERROR) {
                 ErrorPacket ep = (ErrorPacket) rp;
                 String message = ep.getMessage();
-                throw new QueryException("Could not connect: " + message, ep.getErrorNumber(), ep.getSqlState());
+                throw new QueryException("Could not connect: "
+                        + message, ep.getErrorNumber(), ep.getSqlState());
             }
             // default when connecting is to have autocommit = 1.
-            if (!((OKPacket) rp).getServerStatus().contains(ServerStatus.AUTOCOMMIT))
+            if (!((OKPacket) rp).getServerStatus().contains(ServerStatus.AUTOCOMMIT)) {
                 setAutoCommit(true);
+            }
         } catch (IOException e) {
             close();
             throw new QueryException("Could not connect: " + e.getMessage(), -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), e);
@@ -120,7 +187,7 @@ public class DrizzleProtocol implements Protocol {
     }
 
     /**
-     * Closes socket and stream readers/writers
+     * Closes socket and stream readers/writers.
      *
      * @throws QueryException if the socket or readers/writes cannot be closed
      */
@@ -145,13 +212,18 @@ public class DrizzleProtocol implements Protocol {
     }
 
     /**
+     * has this connection been closed.
      * @return true if the connection is closed
      */
     public boolean isClosed() {
         return !this.connected;
     }
 
-
+    /**
+     * selects the database.
+     * @param database the database
+     * @throws QueryException if we could not select the db.
+     */
     public void selectDB(String database) throws QueryException {
         log.finest("Selecting db " + database);
         SelectDBPacket packet = new SelectDBPacket(database);
@@ -165,72 +237,146 @@ public class DrizzleProtocol implements Protocol {
         this.database = database;
     }
 
-    public String getVersion() {
-        return version;
+    /**
+     * returns the server version.
+     * @return the server version.
+     */
+    public String getServerVersion() {
+        return serverVersion;
     }
 
+    /**
+     * sets whether this connection is read only.
+     * //TODO: use!
+     * @param readOnly if the connection should be read only
+     */
     public void setReadonly(boolean readOnly) {
         this.readOnly = readOnly;
     }
 
+    /**
+     * returns true if this connection is read only.
+     * @return true if the connection is RO.
+     */
     public boolean getReadonly() {
         return readOnly;
     }
 
+    /**
+     * commits the current transaction.
+     * @throws QueryException true if it was not possible to commit the transaction.
+     */
     public void commit() throws QueryException {
         log.finest("commiting transaction");
         executeQuery(new DrizzleQuery("COMMIT"));
     }
 
+    /**
+     * rolls back the current transaction.
+     * @throws QueryException if there is a problem rolling back.
+     */
     public void rollback() throws QueryException {
         log.finest("rolling transaction back");
         executeQuery(new DrizzleQuery("ROLLBACK"));
     }
 
+    /**
+     * rolls back a transaction to the given savepoint.
+     * @param savepoint the save point to roll back to
+     * @throws QueryException if there is a problem rolling back.
+     */
     public void rollback(String savepoint) throws QueryException {
         log.finest("rolling back to savepoint: " + savepoint);
         executeQuery(new DrizzleQuery("ROLLBACK TO SAVEPOINT " + savepoint));
     }
 
+    /**
+     * sets a savepoint with the given name.
+     * @param savepoint the save point name
+     * @throws QueryException if there is a problem setting the save point.
+     */
     public void setSavepoint(String savepoint) throws QueryException {
         log.finest("setting a savepoint named " + savepoint);
         executeQuery(new DrizzleQuery("SAVEPOINT " + savepoint));
     }
 
+    /**
+     * releases a save point.
+     * @param savepoint the name of the savepoint to release
+     * @throws QueryException if there is a problem releasing the savepoint.
+     */
     public void releaseSavepoint(String savepoint) throws QueryException {
         log.finest("releasing savepoint named " + savepoint);
         executeQuery(new DrizzleQuery("RELEASE SAVEPOINT " + savepoint));
     }
 
+    /**
+     * sets whether statements should be autocommitted.
+     * @param autoCommit true if they should be autocommitted
+     * @throws QueryException if there is a problem talking to drizzled
+     */
     public void setAutoCommit(boolean autoCommit) throws QueryException {
         this.autoCommit = autoCommit;
-        executeQuery(new DrizzleQuery("SET autocommit=" + (autoCommit ? "1" : "0")));
+        String boolStr = "0";
+        if(autoCommit) {
+            boolStr = "1";
+        }
+        executeQuery(new DrizzleQuery("SET autocommit=" + boolStr));
     }
 
+    /**
+     * if this connection is in autoCommit mode.
+     * @return true if we are autoCommiting statements.
+     */
     public boolean getAutoCommit() {
         return autoCommit;
     }
 
+    /**
+     * returns the host we are connected to.
+     * @return the host
+     */
     public String getHost() {
         return host;
     }
 
+    /**
+     * returns the current port.
+     * @return the port
+     */
     public int getPort() {
         return port;
     }
 
+    /**
+     * returns the current database.
+     * @return the database.
+     */
     public String getDatabase() {
         return database;
     }
 
+    /**
+     * returns the username of the connection.
+     * @return the username
+     */
     public String getUsername() {
         return username;
     }
 
+    /**
+     * returns the password.
+     * @return the password
+     */
     public String getPassword() {
         return password;
     }
 
+    /**
+     * pings the server.
+     * @return true if it can ping, false otherwise.
+     * @throws QueryException there was a problem pinging the server.
+     */
     public boolean ping() throws QueryException {
         PingPacket pingPacket = new PingPacket();
         try {
@@ -243,6 +389,13 @@ public class DrizzleProtocol implements Protocol {
         }
     }
 
+    /**
+     * executes a query.
+     * @param dQuery the query to execute
+     * @return the result of the query.
+     * @throws QueryException if anything goes wrong when sending
+     * the query or reading back the results
+     */
     public QueryResult executeQuery(Query dQuery) throws QueryException {
         log.finest("Executing streamed query: " + dQuery);
         StreamedQueryPacket packet = new StreamedQueryPacket(dQuery);
@@ -295,7 +448,7 @@ public class DrizzleProtocol implements Protocol {
     }
 
     /**
-     * create a DrizzleQueryResult - precondition is that a result set packet has been read
+     * create a DrizzleQueryResult - precondition is that a result set packet has been read.
      *
      * @param packet the result set packet from the server
      * @return a DrizzleQueryResult
@@ -322,11 +475,21 @@ public class DrizzleProtocol implements Protocol {
         }
     }
 
+    /**
+     * adds a query to the batch.
+     * //TODO: this needs optimization
+     * @param dQuery the query to add
+     */
     public void addToBatch(Query dQuery) {
         log.fine("Adding query to batch");
         batchList.add(dQuery);
     }
 
+    /**
+     * sends the batch to the server.
+     * @return a list of query results.
+     * @throws QueryException if something goes wrong with the queries.
+     */
     public List<QueryResult> executeBatch() throws QueryException {
         log.fine("executing batch");
         List<QueryResult> retList = new ArrayList<QueryResult>(batchList.size());
@@ -340,11 +503,20 @@ public class DrizzleProtocol implements Protocol {
 
     }
 
+    /**
+     * removes all queries in the batch.
+     */
     public void clearBatch() {
         batchList.clear();
     }
 
+    /**
+     * not yet supported in drizzle.
+     * @param startPos starting position in binlog
+     * @param filename binlog file name
+     * @return a list of raw binlog entries
+     */
     public List<RawPacket> startBinlogDump(int startPos, String filename) {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return null;
     }
 }
