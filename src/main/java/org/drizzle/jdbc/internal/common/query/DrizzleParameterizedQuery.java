@@ -18,6 +18,7 @@ import java.io.OutputStream;
 import java.io.StringReader;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Collections;
 import java.util.logging.Logger;
 
 /**
@@ -52,6 +53,11 @@ public class DrizzleParameterizedQuery implements ParameterizedQuery {
             parameters.put(position, parameter);
         } else
             throw new IllegalParameterException("No '?' on that position");
+    }
+
+    public Map<Integer, ParameterHolder> getParameters() {
+        // TODO: defensive copy perhaps?
+        return parameters;
     }
 
     public void clearParameters() {
