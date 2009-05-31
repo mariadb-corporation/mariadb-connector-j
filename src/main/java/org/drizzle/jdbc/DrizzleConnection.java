@@ -10,9 +10,7 @@
 package org.drizzle.jdbc;
 
 import org.drizzle.jdbc.internal.SQLExceptionMapper;
-import org.drizzle.jdbc.internal.common.BinlogDumpException;
-import org.drizzle.jdbc.internal.common.Protocol;
-import org.drizzle.jdbc.internal.common.QueryException;
+import org.drizzle.jdbc.internal.common.*;
 import org.drizzle.jdbc.internal.common.packet.RawPacket;
 import org.drizzle.jdbc.internal.common.query.QueryFactory;
 
@@ -47,6 +45,8 @@ public final class DrizzleConnection
      */
     private final QueryFactory queryFactory;
 
+    private Class<? extends ParameterizedBatchHandler> parameterizedBatchHandlerClass;
+
     /**
      * Creates a new connection with a given protocol and query factory.
      * @param protocol the protocol to use.
@@ -75,7 +75,16 @@ public final class DrizzleConnection
      * @throws SQLException if there is a problem preparing the statement.
      */
     public PreparedStatement prepareStatement(String sql) throws SQLException {
-        return new DrizzlePreparedStatement(protocol, this, sql, queryFactory);
+        if(parameterizedBatchHandlerClass == null) {
+            parameterizedBatchHandlerClass = DefaultParameterizedBatchHandler.class;
+        }
+        try {
+            return new DrizzlePreparedStatement(protocol, this, sql, queryFactory, parameterizedBatchHandlerClass.newInstance());
+        } catch (InstantiationException e) {
+            throw new SQLException("Could not instantiate batch handler class: "+e.getMessage(),e);
+        } catch (IllegalAccessException e) {
+            throw new SQLException("Could not instantiate batch handler class: "+e.getMessage(),e);
+        }
     }
 
     /**
@@ -1335,5 +1344,9 @@ public final class DrizzleConnection
         } catch (BinlogDumpException e) {
             throw new SQLException("Could not dump binlog", e);
         }
+    }
+
+    public void setBatchQueryHandler(Class<? extends ParameterizedBatchHandler> batchHandler) {
+        this.parameterizedBatchHandlerClass = batchHandler;
     }
 }

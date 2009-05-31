@@ -10,6 +10,7 @@
 package org.drizzle.jdbc;
 
 import org.drizzle.jdbc.internal.SQLExceptionMapper;
+import org.drizzle.jdbc.internal.common.ParameterizedBatchHandler;
 import org.drizzle.jdbc.internal.common.Protocol;
 import org.drizzle.jdbc.internal.common.QueryException;
 import org.drizzle.jdbc.internal.common.query.IllegalParameterException;
@@ -36,11 +37,12 @@ import java.util.logging.Logger;
 public class DrizzlePreparedStatement extends DrizzleStatement implements PreparedStatement {
     private final static Logger log = Logger.getLogger(DrizzlePreparedStatement.class.getName());
     private ParameterizedQuery dQuery;
-
-    public DrizzlePreparedStatement(Protocol protocol, DrizzleConnection drizzleConnection, String query, QueryFactory queryFactory) {
+    private final ParameterizedBatchHandler parameterizedBatchHandler;
+    public DrizzlePreparedStatement(Protocol protocol, DrizzleConnection drizzleConnection, String query, QueryFactory queryFactory, ParameterizedBatchHandler parameterizedBatchHandler) {
         super(protocol, drizzleConnection, queryFactory);
         log.finest("Creating prepared statement for " + query);
         dQuery = queryFactory.createParameterizedQuery(query);
+        this.parameterizedBatchHandler = parameterizedBatchHandler;
     }
 
     public ResultSet executeQuery() throws SQLException {
@@ -67,14 +69,13 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      */
     public int executeUpdate() throws SQLException {
         try {
-
             setQueryResult(getProtocol().executeQuery(dQuery));
-
         } catch (QueryException e) {
             throw SQLExceptionMapper.get(e);
         }
-        if (getQueryResult().getResultSetType() != ResultSetType.MODIFY)
+        if (getQueryResult().getResultSetType() != ResultSetType.MODIFY) {
             throw new SQLException("The query returned a result set");
+        }
         return (int) ((ModifyQueryResult) getQueryResult()).getUpdateCount();
     }
 
@@ -124,7 +125,6 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * object's batch of commands.
      * <p/>
      * <p/>
-     * this implementation clears the current list of parameters (TODO: desired behaviour?)
      *
      * @throws java.sql.SQLException if a database access error occurs or
      *                               this method is called on a closed <code>PreparedStatement</code>
@@ -133,9 +133,20 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      */
     public void addBatch() throws SQLException {
         log.fine("Adding query to batch");
-        this.getProtocol().addToBatch(dQuery);
+        parameterizedBatchHandler.addToBatch(dQuery);
         dQuery = getQueryFactory().createParameterizedQuery(dQuery);
     }
+
+
+    @Override
+    public int[] executeBatch() throws SQLException {
+        try {
+            return parameterizedBatchHandler.executeBatch(getProtocol());
+        } catch (QueryException e) {
+            throw SQLExceptionMapper.get(e);
+        }
+    }
+    
 
     /**
      * Sets the designated parameter to the given <code>Reader</code>

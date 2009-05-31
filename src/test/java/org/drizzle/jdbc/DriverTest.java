@@ -4,6 +4,10 @@ import org.junit.Test;
 import org.junit.After;
 import org.drizzle.jdbc.internal.common.packet.buffer.WriteBuffer;
 import org.drizzle.jdbc.internal.common.packet.RawPacket;
+import org.drizzle.jdbc.internal.common.ParameterizedBatchHandler;
+import org.drizzle.jdbc.internal.common.Protocol;
+import org.drizzle.jdbc.internal.common.QueryException;
+import org.drizzle.jdbc.internal.common.query.ParameterizedQuery;
 
 import java.sql.*;
 import java.util.List;
@@ -100,6 +104,18 @@ public class DriverTest {
         }
         assertEquals("hej1",res);        
     }
+    @Test
+    public void preparedTest2() throws SQLException {
+        Statement stmt = connection.createStatement();
+        stmt.executeQuery("DROP TABLE IF EXISTS prep_test");
+        stmt.executeQuery("CREATE TABLE prep_test (id int not null primary key auto_increment, test varchar(20)) engine=innodb");
+        PreparedStatement prepStmt = connection.prepareStatement("insert into prep_test (test) values (?) ");
+        for(int i=0;i<1000;i++) {
+            prepStmt.setString(1,"mee");
+            prepStmt.execute();
+        }
+    }
+
     @Test
     public void updateTest() throws SQLException {
         String query = "UPDATE t1 SET test = ? where id = ?";
@@ -408,6 +424,34 @@ public class DriverTest {
             assertEquals("hej"+i,rs.getString(2));
         }
         assertEquals(false,rs.next());
+
+    }
+    @Test
+    public void testChangeBatchHandler() throws SQLException {
+        connection.createStatement().executeQuery("drop table if exists test_batch3");
+        connection.createStatement().executeQuery("create table test_batch3 (id int not null primary key auto_increment, test varchar(10))");
+
+        if(connection.isWrapperFor(DrizzleConnection.class)) {
+            DrizzleConnection dc = connection.unwrap(DrizzleConnection.class);
+            dc.setBatchQueryHandler(TestNoopBatchHandler.class);
+        }
+        PreparedStatement ps = connection.prepareStatement("insert into test_batch3 (test) values (?)");
+        PreparedStatement ps2 = connection.prepareStatement("insert into test_batch3 (test) values (?)");
+        ps.setString(1,"From nr1");
+        ps.addBatch();
+
+        ps2.setString(1,"From nr2");
+        ps2.addBatch();
+
+        ps2.setString(1,"from nr2 2");
+        ps.setString(1,"from nr1 2");
+        ps.addBatch();
+        ps2.addBatch();
+
+        ps2.executeBatch();
+        ps.executeBatch();
+
+
 
     }
 
