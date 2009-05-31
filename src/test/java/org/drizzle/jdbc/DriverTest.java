@@ -365,7 +365,6 @@ public class DriverTest {
     public void batchTest() throws SQLException {
         connection.createStatement().executeQuery("drop table if exists test_batch");
         connection.createStatement().executeQuery("create table test_batch (id int not null primary key auto_increment, test varchar(10))");
-
         PreparedStatement ps = connection.prepareStatement("insert into test_batch values (null, ?)");
         ps.setString(1, "aaa");
         ps.addBatch();
@@ -390,6 +389,25 @@ public class DriverTest {
         assertEquals("bbb",rs.getString(2));
         assertEquals(true,rs.next());
         assertEquals("ccc",rs.getString(2));
+
+    }
+    @Test
+    public void batchTestStmt() throws SQLException {
+        connection.createStatement().executeQuery("drop table if exists test_batch2");
+        connection.createStatement().executeQuery("create table test_batch2 (id int not null primary key auto_increment, test varchar(10))");
+        Statement stmt = connection.createStatement();
+        stmt.addBatch("insert into test_batch2 values (null, 'hej1')");
+        stmt.addBatch("insert into test_batch2 values (null, 'hej2')");
+        stmt.addBatch("insert into test_batch2 values (null, 'hej3')");
+        stmt.addBatch("insert into test_batch2 values (null, 'hej4')");
+        stmt.executeBatch();
+        ResultSet rs = connection.createStatement().executeQuery("select * from test_batch2");
+        for(int i=1;i<=4;i++) {
+            assertEquals(true,rs.next());
+            assertEquals(i, rs.getInt(1));
+            assertEquals("hej"+i,rs.getString(2));
+        }
+        assertEquals(false,rs.next());
 
     }
 
