@@ -100,8 +100,6 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      *                               this data type
      */
     public void setNull(int parameterIndex, int sqlType) throws SQLException {
-        log.info("Setting null at index " + parameterIndex);
-
         setParameter(parameterIndex, new NullParameter());
     }
 
@@ -132,7 +130,6 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.2
      */
     public void addBatch() throws SQLException {
-        log.fine("Adding query to batch");
         parameterizedBatchHandler.addToBatch(dQuery);
         dQuery = getQueryFactory().createParameterizedQuery(dQuery);
     }
@@ -171,7 +168,6 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.2
      */
     public void setCharacterStream(int parameterIndex, Reader reader, int length) throws SQLException {
-        log.info("Setting char stream at " + parameterIndex);
         try {
             setParameter(parameterIndex, new ReaderParameter(reader, length));
         } catch (IOException e) {
@@ -215,7 +211,6 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.2
      */
     public void setBlob(int parameterIndex, Blob x) throws SQLException {
-        log.info("Setting blob at " + parameterIndex);
         try {
             setParameter(parameterIndex, new StreamParameter(x.getBinaryStream(), x.length()));
         } catch (IOException e) {
@@ -238,7 +233,6 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.2
      */
     public void setClob(int parameterIndex, Clob x) throws SQLException {
-        log.info("Clobs not supported");
         throw new SQLFeatureNotSupportedException("Clobs not supported");
     }
 
@@ -257,7 +251,6 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.2
      */
     public void setArray(int parameterIndex, Array x) throws SQLException {
-        log.info("Arrays not supported");
         throw new SQLFeatureNotSupportedException("Arrays not supported");
     }
 

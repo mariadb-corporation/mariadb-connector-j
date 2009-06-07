@@ -58,8 +58,6 @@ public class MySQLProtocol implements Protocol {
     private final String username;
     private final String password;
     private final List<Query> batchList;
-    private long totalTime = 0;
-    private int queryCount;
     private PacketFetcher packetFetcher;
 
     /**
