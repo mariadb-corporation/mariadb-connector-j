@@ -188,7 +188,7 @@ public final class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @return JDBC driver minor version number
      */
     public int getDriverMinorVersion() {
-        return 1;
+        return 3;
     }
 
     /**
@@ -356,7 +356,7 @@ public final class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public String getSystemFunctions() throws SQLException {
-        return "DATABASE,USER,SYSTEM_USER,SESSION_USER,PASSWORD,ENCRYPT,LAST_INSERT_ID,VERSION";
+        return "DATABASE,USER,SYSTEM_USER,SESSION_USER,LAST_INSERT_ID,VERSION";
     }
 
 
@@ -1581,19 +1581,21 @@ public final class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @see #getSearchStringEscape
      */
     public ResultSet getTables(String catalog, String schemaPattern, String tableNamePattern, String types[]) throws SQLException {
-        return connection.createStatement().
-                executeQuery("SELECT table_catalog table_cat, "
-                        + "table_schema table_schem, "
-                        + "table_name, "
-                        + "table_type, "
-                        + "table_comment as remarks,"
-                        + "null as type_cat, "
-                        + "null as type_schem,"
-                        + "null as type_name, "
-                        + "null as self_referencing_col_name,"
-                        + "null as ref_generation "
-                        + "FROM information_schema.tables "
-                        + "WHERE table_schema=database()");
+        Statement stmt = connection.createStatement();
+        ResultSet rs =  stmt.
+            executeQuery("SELECT table_catalog table_cat, "
+                    + "table_schema table_schem, "
+                    + "table_name, "
+                    + "table_type, "
+                    + "table_comment as remarks,"
+                    + "null as type_cat, "
+                    + "null as type_schem,"
+                    + "null as type_name, "
+                    + "null as self_referencing_col_name,"
+                    + "null as ref_generation "
+                    + "FROM information_schema.tables "
+                    + "WHERE table_schema LIKE \""+schemaPattern+"\"");
+        return rs;
     }
 
     /**
@@ -1612,7 +1614,8 @@ public final class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public ResultSet getSchemas() throws SQLException {
-        return connection.createStatement().executeQuery("SELECT schema_name table_schem, catalog_name table_catalog " +
+        Statement stmt = connection.createStatement();
+        return stmt.executeQuery("SELECT schema_name table_schem, catalog_name table_catalog " +
                 "FROM information_schema.schemata");
     }
 
@@ -1630,7 +1633,8 @@ public final class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public ResultSet getCatalogs() throws SQLException {
-        return connection.createStatement().executeQuery("SELECT null as table_cat");
+        Statement stmt = connection.createStatement();
+        return stmt.executeQuery("SELECT null as table_cat");
     }
 
     /**
@@ -1649,7 +1653,8 @@ public final class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public ResultSet getTableTypes() throws SQLException {
-        return connection.createStatement().executeQuery("SELECT DISTINCT(table_type) FROM information_schema.tables");
+        Statement stmt = connection.createStatement();
+        return stmt.executeQuery("SELECT DISTINCT(table_type) FROM information_schema.tables");
     }
 
     /**
@@ -1769,7 +1774,8 @@ public final class DrizzleDatabaseMetaData implements DatabaseMetaData {
                 " AND table_name LIKE '" + ((tableNamePattern == null) ? "%" : tableNamePattern) + "'" +
                 " AND column_name LIKE '" + ((columnNamePattern == null) ? "%" : columnNamePattern) + "'" +
                 " ORDER BY table_cat, table_schem, table_name, ordinal_position";
-        return connection.createStatement().executeQuery(query);
+        Statement stmt = connection.createStatement();
+        return stmt.executeQuery(query);
     }
 
     /**
@@ -1854,17 +1860,19 @@ public final class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @see #getSearchStringEscape
      */
     public ResultSet getTablePrivileges(String catalog, String schemaPattern, String tableNamePattern) throws SQLException {
-        return connection.createStatement()
-                .executeQuery("SELECT null table_cat, " +
-                        "table_schema table_schem, " +
-                        "table_name, " +
-                        "null grantor, " +
-                        "user() grantee, " +
-                        "'update' privilege, " +
-                        "'yes' is_grantable " +
-                        "FROM information_schema.columns " +
-                        "WHERE table_schema LIKE '" + ((schemaPattern == null) ? "%" : schemaPattern) + "'" +
-                        " AND table_name LIKE '" + ((tableNamePattern == null) ? "%" : tableNamePattern) + "'");
+        Statement stmt = connection.createStatement();
+        final String query = "SELECT null table_cat, " +
+                            "table_schema table_schem, " +
+                            "table_name, " +
+                            "null grantor, " +
+                            "user() grantee, " +
+                            "'update' privilege, " +
+                            "'yes' is_grantable " +
+                            "FROM information_schema.columns " +
+                            "WHERE table_schema LIKE '" + ((schemaPattern == null) ? "%" : schemaPattern) + "'" +
+                            " AND table_name LIKE '" + ((tableNamePattern == null) ? "%" : tableNamePattern) + "'";
+
+        return stmt.executeQuery(query);
     }
 
     /**
@@ -1919,7 +1927,7 @@ public final class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
 
-    private String dataTypeClause =
+    private final String dataTypeClause =
             " CASE data_type" +
                     " WHEN 'int' THEN " + Types.INTEGER +
                     " WHEN 'varchar' THEN " + Types.VARCHAR +
@@ -1931,19 +1939,20 @@ public final class DrizzleDatabaseMetaData implements DatabaseMetaData {
                     " END";
 
     public ResultSet getBestRowIdentifier(String catalog, String schema, String table, int scope, boolean nullable) throws SQLException {
-        String query = "SELECT " + bestRowSession + " scope," +
+        String query = "SELECT " + DatabaseMetaData.bestRowSession + " scope," +
                 "column_name," +
                 dataTypeClause + " data_type," +
                 "data_type type_name," +
                 "if(numeric_precision is null, character_maximum_length, numeric_precision) column_size," +
                 "0 buffer_length," +
                 "numeric_scale decimal_digits," +
-                bestRowNotPseudo + " pseudo_column" +
+                DatabaseMetaData.bestRowNotPseudo + " pseudo_column" +
                 " FROM information_schema.columns" +
                 " WHERE column_key in('PRI', 'MUL', 'UNI') " +
                 " AND table_schema like " + (schema != null ? "'%'" : "'" + schema + "'") +
                 " AND table_name='" + table + "' ORDER BY scope";
-        return connection.createStatement().executeQuery(query);
+        Statement stmt = connection.createStatement();
+        return stmt.executeQuery(query);
     }
 
     //    SELECT 2 scope,column_name, CASE data_type WHEN 'int' THEN 4 WHEN 'varchar' THEN 12 WHEN 'datetime' THEN 93 WHEN 'date' THEN 91 WHEN 'time' THEN 92 WHEN 'text' THEN 12 WHEN 'double' THEN 8 END data_type,data_type type_name,if(numeric_precision is null, character_maximum_length, numeric_precision) column_size,0 buffer_length,numeric_scale decimal_digits,1 pseudo_column FROM information_schema.columns WHERE column_key in('PRI', 'MUL', 'UNI')  AND table_schema like '%' AND table_name='t1'
@@ -2040,8 +2049,8 @@ public final class DrizzleDatabaseMetaData implements DatabaseMetaData {
         if (schema != null)
             query += " AND table_schema = '" + schema + "'";
         query += " ORDER BY column_name";
-        return connection.createStatement()
-                .executeQuery(query);
+        Statement stmt = connection.createStatement();
+        return stmt.executeQuery(query);
     }
 
     /**
@@ -2541,7 +2550,8 @@ public final class DrizzleDatabaseMetaData implements DatabaseMetaData {
                 " FROM information_schema.statistics" +
                 " WHERE table_name='" + table + "' AND table_schema like '" + schema + "' " + (unique ? " AND NON_UNIQUE!=0" : "") +
                 " ORDER BY NON_UNIQUE, TYPE, INDEX_NAME, ORDINAL_POSITION";
-        return connection.createStatement().executeQuery(query);
+        Statement stmt = connection.createStatement();
+        return stmt.executeQuery(query);
     }
 
     /**
@@ -2792,8 +2802,8 @@ public final class DrizzleDatabaseMetaData implements DatabaseMetaData {
     }
 
     private ResultSet getEmptyResultSet() throws SQLException {
-        return connection.createStatement().executeQuery("select * from information_schema.statistics where 1=2");
-
+        Statement stmt = connection.createStatement();
+        return stmt.executeQuery("select * from information_schema.statistics where 1=2");
     }
 
     /**
@@ -3199,7 +3209,8 @@ public final class DrizzleDatabaseMetaData implements DatabaseMetaData {
                 "FROM information_schema.schemata " +
                 (schemaPattern != null ? "WHERE schema_name like '" + schemaPattern + "'" : "") +
                 " ORDER BY table_schem";
-        return connection.createStatement().executeQuery(query);
+        Statement stmt = connection.createStatement();
+        return stmt.executeQuery(query);
     }
 
     /**

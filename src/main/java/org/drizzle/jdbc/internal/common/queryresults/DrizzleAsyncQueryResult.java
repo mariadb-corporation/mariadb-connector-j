@@ -52,7 +52,7 @@ public class DrizzleAsyncQueryResult implements SelectQueryResult {
         try {
             rawPacket = packetFetcher.getRawPacket();
         } catch (IOException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+            throw new RuntimeException("Could not fetch packet",e); 
         }
         if (ReadUtil.eofIsNext(rawPacket)) {
             hasReadEOF = true;
@@ -70,7 +70,7 @@ public class DrizzleAsyncQueryResult implements SelectQueryResult {
             try {
                 rp = packetFetcher.getRawPacket();
             } catch (IOException e) {
-                e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+                throw new RuntimeException("Could not fetch packet",e);
             }
             if (ReadUtil.eofIsNext(rp)) {
                 this.hasReadEOF = true;

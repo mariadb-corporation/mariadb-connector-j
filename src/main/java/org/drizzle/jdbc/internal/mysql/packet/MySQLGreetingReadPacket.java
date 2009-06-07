@@ -57,7 +57,7 @@ public class MySQLGreetingReadPacket {
         return protocolVersion + ":" +
                 serverVersion + ":" +
                 serverThreadID + ":" +
-                seed + ":" +
+                new String(seed) + ":" +
                 serverCapabilities + ":" +
                 serverLanguage + ":" +
                 serverStatus;

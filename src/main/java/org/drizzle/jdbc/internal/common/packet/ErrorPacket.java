@@ -28,7 +28,6 @@ public class ErrorPacket extends ResultPacket {
     private final byte sqlStateMarker;
     private final byte[] sqlState;
     private final String message;
-    private final byte packetSeq = 0;
 
     public ErrorPacket(InputStream istream) throws IOException {
         Reader reader = new Reader(istream);
@@ -56,7 +55,8 @@ public class ErrorPacket extends ResultPacket {
     }
 
     public byte getPacketSeq() {
-        return packetSeq;
+        return 0;
+        //return packetSeq;
     }
 
     public short getErrorNumber() {

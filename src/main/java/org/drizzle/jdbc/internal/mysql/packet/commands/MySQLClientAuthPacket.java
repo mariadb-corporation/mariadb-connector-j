@@ -58,7 +58,6 @@ import java.util.Set;
 public class MySQLClientAuthPacket implements CommandPacket {
     private final WriteBuffer writeBuffer;
     private final Set<MySQLServerCapabilities> serverCapabilities;
-    private final byte serverLanguage = 45;
     private final String username;
     private final String password;
     private final String database;
@@ -76,6 +75,7 @@ public class MySQLClientAuthPacket implements CommandPacket {
             throw new RuntimeException("Could not use SHA-1, failing", e);
         }
         int packetLength = 4 + 4 + 1 + 23 + username.length() + 1 + scrambledPassword.length + 1 + database.length() + 1;
+        byte serverLanguage = 45;
         writeBuffer.writeInt(MySQLServerCapabilities.fromSet(serverCapabilities)).
                 writeInt(packetLength).
                 writeByte(serverLanguage). //1

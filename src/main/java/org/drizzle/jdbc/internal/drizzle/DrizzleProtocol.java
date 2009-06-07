@@ -143,8 +143,7 @@ public final class DrizzleProtocol implements Protocol {
         log.info("Connected to: " + host + ":" + port);
         batchList = new ArrayList<Query>();
         try {
-            //BufferedInputStream reader = new BufferedInputStream(socket.getInputStream(), 65536);
-            InputStream reader = socket.getInputStream();
+            BufferedInputStream reader = new BufferedInputStream(socket.getInputStream(), 65536);
             writer = new BufferedOutputStream(socket.getOutputStream(), 65536);
             GreetingReadPacket greetingPacket = new GreetingReadPacket(reader);
             log.finest("Got greeting packet: " + greetingPacket);
@@ -166,6 +165,7 @@ public final class DrizzleProtocol implements Protocol {
 
             log.finest("Sending auth packet");
             packetFetcher = new AsyncPacketFetcher(reader);
+            packetFetcher.start();
             RawPacket rawPacket = packetFetcher.getRawPacket();
             ResultPacket rp = ResultPacketFactory.createResultPacket(rawPacket);
 

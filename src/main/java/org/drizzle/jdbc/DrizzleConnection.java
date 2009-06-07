@@ -45,7 +45,7 @@ public final class DrizzleConnection
      */
     private final QueryFactory queryFactory;
 
-    private Class<? extends ParameterizedBatchHandler> parameterizedBatchHandlerClass;
+    private ParameterizedBatchHandlerFactory parameterizedBatchHandlerFactory;
 
     /**
      * Creates a new connection with a given protocol and query factory.
@@ -75,16 +75,11 @@ public final class DrizzleConnection
      * @throws SQLException if there is a problem preparing the statement.
      */
     public PreparedStatement prepareStatement(String sql) throws SQLException {
-        if(parameterizedBatchHandlerClass == null) {
-            parameterizedBatchHandlerClass = DefaultParameterizedBatchHandler.class;
+        if(parameterizedBatchHandlerFactory == null) {
+            this.parameterizedBatchHandlerFactory = new DefaultParameterizedBatchHandlerFactory();
         }
-        try {
-            return new DrizzlePreparedStatement(protocol, this, sql, queryFactory, parameterizedBatchHandlerClass.newInstance());
-        } catch (InstantiationException e) {
-            throw new SQLException("Could not instantiate batch handler class: "+e.getMessage(),e);
-        } catch (IllegalAccessException e) {
-            throw new SQLException("Could not instantiate batch handler class: "+e.getMessage(),e);
-        }
+        //System.out.println(parameterizedBatchHandlerFactory.getClass().getName());
+        return new DrizzlePreparedStatement(protocol, this, sql, queryFactory, parameterizedBatchHandlerFactory.get());
     }
 
     /**
@@ -315,22 +310,25 @@ public final class DrizzleConnection
      */
     public int getTransactionIsolation() throws SQLException {
         Statement stmt = createStatement();
-        ResultSet rs = stmt.executeQuery("SELECT @@tx_isolation");
-        rs.next();
-        String response = rs.getString(1);
-        if (response.equals("REPEATABLE-READ")) {
-            return Connection.TRANSACTION_REPEATABLE_READ;
+        try {
+            ResultSet rs = stmt.executeQuery("SELECT @@tx_isolation");
+            rs.next();
+            String response = rs.getString(1);
+            if (response.equals("REPEATABLE-READ")) {
+                return Connection.TRANSACTION_REPEATABLE_READ;
+            }
+            if (response.equals("READ-UNCOMMITTED")) {
+                return Connection.TRANSACTION_READ_UNCOMMITTED;
+            }
+            if (response.equals("READ-COMMITTED")) {
+                return Connection.TRANSACTION_READ_COMMITTED;
+            }
+            if (response.equals("SERIALIZABLE")) {
+                return Connection.TRANSACTION_SERIALIZABLE;
+            }
+        } finally {
+            stmt.close();
         }
-        if (response.equals("READ-UNCOMMITTED")) {
-            return Connection.TRANSACTION_READ_UNCOMMITTED;
-        }
-        if (response.equals("READ-COMMITTED")) {
-            return Connection.TRANSACTION_READ_COMMITTED;
-        }
-        if (response.equals("SERIALIZABLE")) {
-            return Connection.TRANSACTION_SERIALIZABLE;
-        }
-
         throw new SQLException("Could not get transaction isolation level");
     }
 
@@ -1346,7 +1344,7 @@ public final class DrizzleConnection
         }
     }
 
-    public void setBatchQueryHandler(Class<? extends ParameterizedBatchHandler> batchHandler) {
-        this.parameterizedBatchHandlerClass = batchHandler;
+    public void setBatchQueryHandlerFactory(ParameterizedBatchHandlerFactory batchHandlerFactory) {
+        this.parameterizedBatchHandlerFactory = batchHandlerFactory;
     }
 }

@@ -433,7 +433,7 @@ public class DriverTest {
 
         if(connection.isWrapperFor(DrizzleConnection.class)) {
             DrizzleConnection dc = connection.unwrap(DrizzleConnection.class);
-            dc.setBatchQueryHandler(TestNoopBatchHandler.class);
+            dc.setBatchQueryHandlerFactory(new NoopBatchHandlerFactory());
         }
         PreparedStatement ps = connection.prepareStatement("insert into test_batch3 (test) values (?)");
         PreparedStatement ps2 = connection.prepareStatement("insert into test_batch3 (test) values (?)");

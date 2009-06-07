@@ -20,7 +20,6 @@ import java.io.OutputStream;
  */
 public class NullParameter implements ParameterHolder {
     private final byte[] byteRepresentation;
-    private int bytePointer = 0;
 
     public NullParameter() {
         this.byteRepresentation = "NULL".getBytes();

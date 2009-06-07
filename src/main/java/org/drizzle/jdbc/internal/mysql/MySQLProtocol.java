@@ -100,6 +100,7 @@ public class MySQLProtocol implements Protocol {
             cap.send(writer);
             log.finest("Sending auth packet");
             packetFetcher = new AsyncPacketFetcher(reader);
+            packetFetcher.start();
             RawPacket rp = packetFetcher.getRawPacket();
             ResultPacket resultPacket = ResultPacketFactory.createResultPacket(rp);
             if (resultPacket.getResultType() == ResultPacket.ResultType.ERROR) {

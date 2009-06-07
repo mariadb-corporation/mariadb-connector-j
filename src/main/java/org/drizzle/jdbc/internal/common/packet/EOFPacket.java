@@ -53,4 +53,8 @@ public class EOFPacket extends ResultPacket {
     public short getWarningCount() {
         return warningCount;
     }
+
+    public short getStatusFlags() {
+        return statusFlags;
+    }
 }

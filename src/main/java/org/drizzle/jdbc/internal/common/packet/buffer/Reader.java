@@ -82,7 +82,7 @@ public class Reader {
         tempBuf[0] = (byte) reader.read();
         tempBuf[1] = (byte) reader.read();
         readBytes += 2;
-        return (short) (tempBuf[0] + (tempBuf[1] << 8));
+        return (short) ((tempBuf[0]&0xff) + ((tempBuf[1]&0xff) << 8));
     }
 
     /**
@@ -99,7 +99,7 @@ public class Reader {
         for (int i = 0; i < 4; i++)
             tempBuf[i] = (byte) reader.read();
         readBytes += 4;
-        return tempBuf[0] + (tempBuf[1] << 8) + (tempBuf[2] << 16) + (tempBuf[3] << 24);
+        return (tempBuf[0]&0xff) + ((tempBuf[1]&0xff) << 8) + ((tempBuf[2]&0xff) << 16) + ((tempBuf[3]&0xff) << 24);
     }
 
     /**
@@ -117,14 +117,14 @@ public class Reader {
             tempBuf[i] = (byte) reader.read();
         readBytes += 8;
         return
-                tempBuf[0] +
-                        (tempBuf[1] << 8) +
-                        (tempBuf[2] << 16) +
-                        (tempBuf[3] << 24) +
-                        (tempBuf[4] << 32) +
-                        (tempBuf[5] << 40) +
-                        (tempBuf[6] << 48) +
-                        (tempBuf[7] << 56);
+                ((long)(tempBuf[0]&0xff)) +
+                        (((long)(tempBuf[1]&0xff)) << 8) +
+                        (((long)(tempBuf[2]&0xff)) << 16) +
+                        (((long)(tempBuf[3]&0xff)) << 24) +
+                        (((long)(tempBuf[4]&0xff)) << 32) +
+                        (((long)(tempBuf[5]&0xff)) << 40) +
+                        (((long)(tempBuf[6]&0xff)) << 48) +
+                        (((long)(tempBuf[7]&0xff)) << 56);
     }
 
 
@@ -171,7 +171,7 @@ public class Reader {
         for (int i = 0; i < 3; i++)
             tmpArr[i] = (byte) reader.read();
         readBytes += 3;
-        return tmpArr[0] + (tmpArr[1] << 8) + (tmpArr[2] << 16);
+        return (tmpArr[0]&0xff) + ((tmpArr[1]&0xff) << 8) + ((tmpArr[2]&0xff) << 16);
     }
 
     public long getLengthEncodedBinary() throws IOException {
@@ -180,17 +180,21 @@ public class Reader {
         byte type = (byte) reader.read();
         readBytes += 1;
 
-        if (type == (byte) 251)
+        if ((type&0xff) == 251) {
             return -1;
-        if (type == (byte) 252)
+        }
+        if ((type&0xff) == 252) {
             return (long) readShort();
-        if (type == (byte) 253)
+        }
+        if ((type&0xff) == 253) {
             return read24bitword();
-        if (type == (byte) 254) {
+        }
+        if ((type&0xff) == 254) {
             return readLong();
         }
-        if (type <= 250)
+        if ((type & 0xff) <= 250) {
             return (long) type;
+        }
 
         return 0;
     }
@@ -228,7 +232,10 @@ public class Reader {
 
     public byte getByteAt(int i) throws IOException {
         reader.mark(i + 1);
-        reader.skip(i - 1);
+        long skipped = reader.skip(i - 1);
+        if(skipped != i - 1) {
+            throw new IOException("Could not skip the requested amount of bytes");
+        }
         byte b = (byte) reader.read();
         reader.reset();
         return b;

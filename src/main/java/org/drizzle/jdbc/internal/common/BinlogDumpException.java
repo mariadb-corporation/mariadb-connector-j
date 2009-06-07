@@ -18,7 +18,7 @@ import java.io.IOException;
  * Time: 9:24:33 AM
  * To change this template use File | Settings | File Templates.
  */
-public class BinlogDumpException extends Throwable {
+public class BinlogDumpException extends Exception {
     public BinlogDumpException(String s, IOException e) {
         super(s, e);
     }

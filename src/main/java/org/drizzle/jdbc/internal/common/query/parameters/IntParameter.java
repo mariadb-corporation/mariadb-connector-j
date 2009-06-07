@@ -20,7 +20,6 @@ import java.io.OutputStream;
  */
 public class IntParameter implements ParameterHolder {
     private final byte[] byteRepresentation;
-    private byte bytePointer = 0;
 
     public IntParameter(int theInt) {
         byteRepresentation = String.valueOf(theInt).getBytes();

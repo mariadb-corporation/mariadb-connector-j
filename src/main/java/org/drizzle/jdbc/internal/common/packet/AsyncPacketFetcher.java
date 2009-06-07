@@ -42,9 +42,13 @@ public class AsyncPacketFetcher implements Runnable, PacketFetcher {
                     }
                 }
         );
-        this.inputStream = new BufferedInputStream(inputStream);
+        this.inputStream = inputStream;
+    }
+
+    public void start() {
         executorService.submit(this);
     }
+
 
     public void run() {
         try {
@@ -87,6 +91,7 @@ public class AsyncPacketFetcher implements Runnable, PacketFetcher {
             throw new RuntimeException("Got interrupted while waiting for a packet", e); //Todo: fix
         }
     }
+
 
     public void awaitTermination() {
         try {

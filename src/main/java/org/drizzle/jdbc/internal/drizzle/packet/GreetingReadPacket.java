@@ -57,7 +57,7 @@ public class GreetingReadPacket {
         return protocolVersion + ":" +
                 serverVersion + ":" +
                 serverThreadID + ":" +
-                seed + ":" +
+                new String(seed) + ":" +
                 serverCapabilities + ":" +
                 serverLanguage + ":" +
                 serverStatus;

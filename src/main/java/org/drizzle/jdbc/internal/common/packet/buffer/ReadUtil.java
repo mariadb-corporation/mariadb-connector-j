@@ -34,8 +34,10 @@ public class ReadUtil {
 
     public static byte getByteAt(InputStream reader, int i) throws IOException {
         reader.mark(i + 1);
-        reader.skip(i - 1);
-
+        long skipped = reader.skip(i - 1);
+        if(skipped != i-1) {
+            throw new IOException("Could not skip the requested number of bytes.");
+        }
 
         byte b = (byte) reader.read();
         reader.reset();
@@ -45,7 +47,6 @@ public class ReadUtil {
     public static boolean eofIsNext(InputStream reader) throws IOException {
         reader.mark(10);
         int length = readLength(reader);
-        byte packetSeq = readPacketSeq(reader);
         byte packetType = (byte) reader.read();
         reader.reset();
         return (packetType == (byte) 0xfe) && length < 9;
@@ -69,14 +70,14 @@ public class ReadUtil {
 
     public static long readLong(byte[] bytes, int start) {
         return
-                (bytes[start] & 0xff) +
-                        ((bytes[start + 1] & 0xff) << 8) +
-                        ((bytes[start + 2] & 0xff) << 16) +
-                        ((bytes[start + 3] & 0xff) << 24) +
-                        ((bytes[start + 4] & 0xff) << 32) +
-                        ((bytes[start + 5] & 0xff) << 40) +
-                        ((bytes[start + 6] & 0xff) << 48) +
-                        ((bytes[start + 7] & 0xff) << 56);
+                ((long)bytes[start] & 0xff) +
+                        ((long)(bytes[start + 1] & 0xff) << 8) +
+                        ((long)(bytes[start + 2] & 0xff) << 16) +
+                        ((long)(bytes[start + 3] & 0xff) << 24) +
+                        ((long)(bytes[start + 4] & 0xff) << 32) +
+                        ((long)(bytes[start + 5] & 0xff) << 40) +
+                        ((long)(bytes[start + 6] & 0xff) << 48) +
+                        ((long)(bytes[start + 7] & 0xff) << 56);
     }
 
     public static LengthEncodedBytes getLengthEncodedBytes(byte[] rawBytes, int start) {

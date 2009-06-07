@@ -173,11 +173,10 @@ public class Utils {
         int minutes = (int) ((milliseconds / (1000 * 60)) % 60);
         int hours = (int) ((milliseconds / (1000 * 60 * 60)) % 24);
         /* OK, now we pack the pieces into a 4-byte integer */
-        int storeVal = ((int) millis * (1 << START_BIT_MILLISECONDS))
+        return ((int) millis * (1 << START_BIT_MILLISECONDS))
                 + ((int) seconds * (1 << START_BIT_SECONDS))
                 + ((int) minutes * (1 << START_BIT_MINUTES))
                 + hours;
-        return storeVal;
     }
 
     /**
@@ -192,8 +191,8 @@ public class Utils {
         int minutes = (packedTime & MASK_MINUTES) >> (START_BIT_MINUTES);
         int seconds = (packedTime & MASK_SECONDS) >> (START_BIT_SECONDS);
         int millis = (packedTime & MASK_MILLISECONDS) >> (START_BIT_MILLISECONDS);
-        long returnValue = (long) (hours * 60 * 60 * 1000);
-        returnValue += (long) (minutes * 60 * 1000);
+        long returnValue = (long) hours * 60 * 60 * 1000;
+        returnValue += (long) minutes * 60 * 1000;
         returnValue += (long) seconds * 1000;
         returnValue += (long) millis;
         return returnValue;
