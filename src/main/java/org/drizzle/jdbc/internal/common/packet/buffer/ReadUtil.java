@@ -11,8 +11,10 @@ package org.drizzle.jdbc.internal.common.packet.buffer;
 
 import org.drizzle.jdbc.internal.common.packet.RawPacket;
 
+import java.io.InterruptedIOException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.IOException;
 
 /**
  * .
@@ -23,9 +25,40 @@ import java.io.InputStream;
 public class ReadUtil {
     private static int readLength(InputStream reader) throws IOException {
         byte[] lengthBuffer = new byte[3];
-        for (int i = 0; i < 3; i++)
-            lengthBuffer[i] = (byte) reader.read();
-        return (lengthBuffer[0] & 0xff) + (lengthBuffer[1] << 8) + (lengthBuffer[2] << 16);
+        if (safeRead(reader, lengthBuffer) != 3) {
+            throw new IOException("Incomplete read!");
+        }
+        /* The & 0xff is to correctly convert unsigned byte to int ;-) */
+        return (lengthBuffer[0] & 0xff) + ((lengthBuffer[1] & 0xff) << 8) + ((lengthBuffer[2] & 0xff) << 16);
+    }
+
+     /**
+     * Read a number of bytes from the stream and store it in the buffer, and
+     * fix the problem with "incomplete" reads by doing another read if we
+     * don't have all of the data yet.
+     *
+     * @param is     the input stream to read from
+     * @param buffer where to store the data
+     * @return the number of bytes read (should be == length if we didn't hit EOF)
+     * @throws java.io.IOException if an error occurs while reading the stream
+     */
+    public static int safeRead(InputStream is, byte[] buffer) throws IOException {
+        int offset = 0;
+        int left = buffer.length;
+        do {
+            try {
+                int nr = is.read(buffer, offset, left);
+                if (nr == -1) {
+                    return nr;
+                }
+                offset += nr;
+                left -= nr;
+            } catch (InterruptedIOException exp) {
+               /* Ignore, just retry */
+            }
+        } while (left > 0);
+
+        return buffer.length;
     }
 
     private static byte readPacketSeq(InputStream reader) throws IOException {
@@ -58,27 +91,42 @@ public class ReadUtil {
     }
 
     public static short readShort(byte[] bytes, int start) {
-        if (bytes.length - start >= 2)
-            return (short) ((bytes[start] & 0xff) + ((bytes[start + 1] & 0xff) << 8));
-        return 0;
+        short length = 0;
+
+        if(bytes.length-start >= 2) {
+            length = (short)((bytes[start] & (short)0xff) + (short)((bytes[start + 1] & (short)0xff) << 8));
+        }
+        
+        return length;
+    }
+
+    public static int read16bitword(byte[] bytes, int start) {
+        int length = 0;
+
+        if(bytes.length-start >= 2) {
+            length = ((bytes[start] & 0xff) + ((bytes[start + 1] & 0xff) << 8));
+        }
+
+        return length;
     }
 
     public static int read24bitword(byte[] bytes, int start) {
         return (bytes[start] & 0xff) + ((bytes[start + 1] & 0xff) << 8) + ((bytes[start + 2] & 0xff) << 16);
     }
 
-    public static long readLong(byte[] bytes, int start) {
-        return
-                (bytes[start] & 0xff) +
-                        ((bytes[start + 1] & 0xff) << 8) +
-                        ((bytes[start + 2] & 0xff) << 16) +
-                        ((bytes[start + 3] & 0xff) << 24) +
-                        ((bytes[start + 4] & 0xff) << 32) +
-                        ((bytes[start + 5] & 0xff) << 40) +
-                        ((bytes[start + 6] & 0xff) << 48) +
-                        ((bytes[start + 7] & 0xff) << 56);
+    public static  long readLong(byte [] bytes, int start) {
+        long length = 
+                (bytes[start]& (long)0xff) +
+               ((bytes[start+1]&(long)0xff)<<8) +
+               ((bytes[start+2]&(long)0xff)<<16) +
+               ((bytes[start+3]&(long)0xff)<<24) +
+               ((bytes[start+4]&(long)0xff)<<32)+
+               ((bytes[start+5]&(long)0xff)<<40)+
+               ((bytes[start+6]&(long)0xff)<<48) +
+               ((bytes[start+7]&(long)0xff)<<56);
+        return length;
     }
-
+ 
     public static LengthEncodedBytes getLengthEncodedBytes(byte[] rawBytes, int start) {
         return new LengthEncodedBytes(rawBytes, start);
     }
