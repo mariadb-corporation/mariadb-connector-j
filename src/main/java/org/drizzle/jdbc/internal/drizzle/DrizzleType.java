@@ -81,9 +81,5 @@ public enum DrizzleType {
             default:
                 return VARCHAR;
         }
-        //./configure --prefix=/home/marcuse/libdrizzle_bin/
-        //./configure  --with-libdrizzle-prefix=/home/marcuse/libdrizzle_bin/
-
-
     }
 }

@@ -34,7 +34,6 @@ public class RowPacket {
         for (ColumnInformation currentColumn : columnInformation) {
             LengthEncodedBytes leb = ReadUtil.getLengthEncodedBytes(rawBytes, readBytes);
             readBytes += leb.getLength();
-
             DrizzleValueObject dvo = new DrizzleValueObject(leb.getBytes(), currentColumn.getType());
             columns.add(dvo);
             currentColumn.updateDisplaySize(dvo.getDisplayLength());
