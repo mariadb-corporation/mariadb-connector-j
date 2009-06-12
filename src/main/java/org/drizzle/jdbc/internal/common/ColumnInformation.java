@@ -7,9 +7,9 @@
  * Use and distribution licensed under the BSD license.
  */
 
-package org.drizzle.jdbc.internal.common.queryresults;
+package org.drizzle.jdbc.internal.common;
 
-import org.drizzle.jdbc.internal.drizzle.DrizzleType;
+import org.drizzle.jdbc.internal.common.queryresults.ColumnFlags;
 
 import java.util.Set;
 
@@ -36,7 +36,7 @@ public interface ColumnInformation {
 
     long getLength();
 
-    DrizzleType getType();
+    DataType getType();
 
     byte getDecimals();
 

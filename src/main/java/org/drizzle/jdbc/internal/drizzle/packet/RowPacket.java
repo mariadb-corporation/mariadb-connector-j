@@ -7,13 +7,15 @@
  * Use and distribution licensed under the BSD license.
  */
 
-package org.drizzle.jdbc.internal.common.packet;
+package org.drizzle.jdbc.internal.drizzle.packet;
 
-import org.drizzle.jdbc.internal.common.DrizzleValueObject;
+import org.drizzle.jdbc.internal.drizzle.DrizzleValueObject;
 import org.drizzle.jdbc.internal.common.ValueObject;
+import org.drizzle.jdbc.internal.common.ColumnInformation;
 import org.drizzle.jdbc.internal.common.packet.buffer.LengthEncodedBytes;
 import org.drizzle.jdbc.internal.common.packet.buffer.ReadUtil;
-import org.drizzle.jdbc.internal.common.queryresults.ColumnInformation;
+import org.drizzle.jdbc.internal.common.packet.RawPacket;
+import org.drizzle.jdbc.internal.drizzle.DrizzleType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,14 +29,13 @@ public class RowPacket {
     private final List<ValueObject> columns;
 
     public RowPacket(RawPacket rawPacket, List<ColumnInformation> columnInformation) {
-        //int fieldCount = columnInformation.size();
         columns = new ArrayList<ValueObject>(columnInformation.size());
         byte[] rawBytes = rawPacket.getRawBytes();
         int readBytes = 0;
         for (ColumnInformation currentColumn : columnInformation) {
             LengthEncodedBytes leb = ReadUtil.getLengthEncodedBytes(rawBytes, readBytes);
             readBytes += leb.getLength();
-            DrizzleValueObject dvo = new DrizzleValueObject(leb.getBytes(), currentColumn.getType());
+            DrizzleValueObject dvo = new DrizzleValueObject(leb.getBytes(), (DrizzleType) currentColumn.getType());
             columns.add(dvo);
             currentColumn.updateDisplaySize(dvo.getDisplayLength());
         }

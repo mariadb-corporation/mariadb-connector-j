@@ -7,12 +7,13 @@
  * Use and distribution licensed under the BSD license.
  */
 
-package org.drizzle.jdbc.internal.common.packet;
+package org.drizzle.jdbc.internal.drizzle.packet;
 
 import org.drizzle.jdbc.internal.common.packet.buffer.Reader;
+import org.drizzle.jdbc.internal.common.packet.RawPacket;
 import org.drizzle.jdbc.internal.common.queryresults.ColumnFlags;
-import org.drizzle.jdbc.internal.common.queryresults.ColumnInformation;
-import org.drizzle.jdbc.internal.common.queryresults.DrizzleColumnInformation;
+import org.drizzle.jdbc.internal.common.ColumnInformation;
+import org.drizzle.jdbc.internal.drizzle.DrizzleColumnInformation;
 import org.drizzle.jdbc.internal.drizzle.DrizzleType;
 
 import java.io.IOException;

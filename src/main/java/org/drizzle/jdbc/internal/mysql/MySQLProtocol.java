@@ -18,11 +18,13 @@ import org.drizzle.jdbc.internal.common.packet.commands.SelectDBPacket;
 import org.drizzle.jdbc.internal.common.packet.commands.StreamedQueryPacket;
 import org.drizzle.jdbc.internal.common.query.DrizzleQuery;
 import org.drizzle.jdbc.internal.common.query.Query;
-import org.drizzle.jdbc.internal.common.queryresults.ColumnInformation;
+import org.drizzle.jdbc.internal.common.ColumnInformation;
 import org.drizzle.jdbc.internal.common.queryresults.DrizzleQueryResult;
 import org.drizzle.jdbc.internal.common.queryresults.DrizzleUpdateResult;
 import org.drizzle.jdbc.internal.common.queryresults.QueryResult;
 import org.drizzle.jdbc.internal.mysql.packet.MySQLGreetingReadPacket;
+import org.drizzle.jdbc.internal.mysql.packet.MySQLFieldPacket;
+import org.drizzle.jdbc.internal.mysql.packet.MySQLRowPacket;
 import org.drizzle.jdbc.internal.mysql.packet.commands.MySQLBinlogDumpPacket;
 import org.drizzle.jdbc.internal.mysql.packet.commands.MySQLClientAuthPacket;
 import org.drizzle.jdbc.internal.mysql.packet.commands.MySQLPingPacket;
@@ -156,7 +158,7 @@ public class MySQLProtocol implements Protocol {
         List<ColumnInformation> columnInformation = new ArrayList<ColumnInformation>();
         for (int i = 0; i < packet.getFieldCount(); i++) {
             RawPacket rawPacket = packetFetcher.getRawPacket();
-            ColumnInformation columnInfo = FieldPacket.columnInformationFactory(rawPacket);
+            ColumnInformation columnInfo = MySQLFieldPacket.columnInformationFactory(rawPacket);
             columnInformation.add(columnInfo);
         }
         packetFetcher.getRawPacket();
@@ -168,7 +170,7 @@ public class MySQLProtocol implements Protocol {
                 EOFPacket eofPacket = (EOFPacket) ResultPacketFactory.createResultPacket(rawPacket);
                 return new DrizzleQueryResult(columnInformation, valueObjects, eofPacket.getWarningCount());
             }
-            RowPacket rowPacket = new RowPacket(rawPacket, columnInformation);
+            MySQLRowPacket rowPacket = new MySQLRowPacket(rawPacket, columnInformation);
             valueObjects.add(rowPacket.getRow());
         }
     }

@@ -9,6 +9,8 @@
 
 package org.drizzle.jdbc.internal.common.queryresults;
 
+import org.drizzle.jdbc.internal.common.ColumnInformation;
+
 import java.util.List;
 
 /**

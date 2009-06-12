@@ -63,4 +63,6 @@ public interface ValueObject {
     boolean getBoolean();
 
     boolean isNull();
+
+    int getDisplayLength();
 }

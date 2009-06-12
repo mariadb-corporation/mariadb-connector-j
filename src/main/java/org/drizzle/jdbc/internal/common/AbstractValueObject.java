@@ -1,43 +1,39 @@
 /*
  * Drizzle JDBC
  *
- * Copyright (C) 2009 Marcus Eriksson (krummas@gmail.com)
- * All rights reserved.
+ *  Copyright (C) 2009 Marcus Eriksson (krummas@gmail.com)
+ *  All rights reserved.
  *
- * Use and distribution licensed under the BSD license.
+ *  Use and distribution licensed under the BSD license.
  */
 
 package org.drizzle.jdbc.internal.common;
 
-import org.drizzle.jdbc.DrizzleBlob;
-import org.drizzle.jdbc.internal.drizzle.DrizzleType;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.io.InputStream;
+import java.io.ByteArrayInputStream;
 import java.util.Calendar;
 
 /**
- * Contains the raw value returned from the server
- * <p/>
- * Is immutable
- * <p/>
+ * Created by IntelliJ IDEA.
  * User: marcuse
- * Date: Feb 16, 2009
- * Time: 9:18:26 PM
+ * Date: Jun 10, 2009
+ * Time: 4:13:03 PM
+ * To change this template use File | Settings | File Templates.
  */
-public class DrizzleValueObject implements ValueObject {
-    private final byte[] rawBytes;
-    private final DrizzleType dataType;
+public abstract class AbstractValueObject implements ValueObject {
+    protected final byte[] rawBytes;
+    protected final DataType dataType;
 
-    public DrizzleValueObject(byte[] rawBytes, DrizzleType dataType) {
-        this.rawBytes = rawBytes;
+    public AbstractValueObject(byte[] rawBytes,DataType dataType) {
         this.dataType = dataType;
+        this.rawBytes = rawBytes;
     }
 
     public String getString() {
@@ -97,7 +93,7 @@ public class DrizzleValueObject implements ValueObject {
      * Since drizzle has no TIME datatype, JDBC Time is stored in a packed integer
      *
      * @return the time
-     * @throws ParseException
+     * @throws java.text.ParseException
      * @see Utils#packTime(long)
      * @see Utils#unpackTime(int)
      */
@@ -116,7 +112,6 @@ public class DrizzleValueObject implements ValueObject {
         return new Timestamp(utilTime.getTime());
     }
 
-
     public InputStream getInputStream() {
         if (rawBytes == null) return null;
         return new ByteArrayInputStream(getString().getBytes());
@@ -127,35 +122,7 @@ public class DrizzleValueObject implements ValueObject {
         return new ByteArrayInputStream(rawBytes);
     }
 
-    public Object getObject() throws ParseException {
-        if (this.getBytes() == null)
-            return null;
-        switch (dataType) {
-            case TINY:
-                return getShort();
-            case LONG:
-                return getLong();
-            case DOUBLE:
-                return getDouble();
-            case TIMESTAMP:
-                return getTimestamp();
-            case LONGLONG:
-                return getLong();
-            case DATETIME:
-                return getTimestamp();
-            case DATE:
-                return getDate();
-            case VARCHAR:
-                return getString();
-            case NEWDECIMAL:
-                return getBigDecimal();
-            case ENUM:
-                return getString();
-            case BLOB:
-                return new DrizzleBlob(getBytes());
-        }
-        return null;
-    }
+    public abstract Object getObject() throws ParseException;
 
     public Date getDate(Calendar cal) throws ParseException {
         if (rawBytes == null) return null;
@@ -199,15 +166,7 @@ public class DrizzleValueObject implements ValueObject {
         return rawBytes == null;
     }
 
-    /**
-     * for generated keys...
-     *
-     * @param theLong the long to save int this VO
-     * @return a new VO
-     */
-    public static ValueObject fromLong(long theLong) {
-        return new DrizzleValueObject(String.valueOf(theLong).getBytes(), DrizzleType.LONG);
-    }
+
 
     public int getDisplayLength() {
         if (rawBytes != null)

@@ -7,9 +7,10 @@
  * Use and distribution licensed under the BSD license.
  */
 
-package org.drizzle.jdbc.internal.common.queryresults;
+package org.drizzle.jdbc.internal.drizzle;
 
-import org.drizzle.jdbc.internal.drizzle.DrizzleType;
+import org.drizzle.jdbc.internal.common.ColumnInformation;
+import org.drizzle.jdbc.internal.common.queryresults.ColumnFlags;
 
 import java.util.Collections;
 import java.util.Set;

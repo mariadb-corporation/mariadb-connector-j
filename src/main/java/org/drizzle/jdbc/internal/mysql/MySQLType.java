@@ -7,7 +7,7 @@
  *  Use and distribution licensed under the BSD license.
  */
 
-package org.drizzle.jdbc.internal.drizzle;
+package org.drizzle.jdbc.internal.mysql;
 
 import org.drizzle.jdbc.internal.common.DataType;
 
@@ -21,10 +21,10 @@ import java.sql.Date;
  * Date: Feb 23, 2009
  * Time: 10:42:02 PM
  */
-public class DrizzleType implements DataType {
+public class MySQLType implements DataType {
     private final Type type;
 
-    public DrizzleType(Type type) {
+    public MySQLType(Type type) {
         this.type = type;
     }
 
@@ -34,6 +34,10 @@ public class DrizzleType implements DataType {
 
     public int getSqlType() {
         return type.getSqlType();
+    }
+
+    public Type getType() {
+        return type;
     }
 
 
@@ -68,40 +72,36 @@ public class DrizzleType implements DataType {
         }
     }
 
-    public Type getType() {
-        return type;
-    }
-
-    public static DrizzleType fromServer(byte typeValue) {
+    public static MySQLType fromServer(byte typeValue) {
         switch (typeValue) {
             case 0:
-                return new DrizzleType(Type.TINY);
+                return new MySQLType(Type.TINY);
             case 1:
-                return new DrizzleType(Type.LONG);
+                return new MySQLType(Type.LONG);
             case 2:
-                return new DrizzleType(Type.DOUBLE);
+                return new MySQLType(Type.DOUBLE);
             case 3:
-                return new DrizzleType(Type.NULL);
+                return new MySQLType(Type.NULL);
             case 4:
-                return new DrizzleType(Type.TIMESTAMP);
+                return new MySQLType(Type.TIMESTAMP);
             case 5:
-                return new DrizzleType(Type.LONGLONG);
+                return new MySQLType(Type.LONGLONG);
             case 6:
-                return new DrizzleType(Type.DATETIME);
+                return new MySQLType(Type.DATETIME);
             case 7:
-                return new DrizzleType(Type.DATE);
+                return new MySQLType(Type.DATE);
             case 8:
-                return new DrizzleType(Type.VARCHAR);
+                return new MySQLType(Type.VARCHAR);
             case 9:
-                return new DrizzleType(Type.NEWDECIMAL);
+                return new MySQLType(Type.NEWDECIMAL);
             case 10:
-                return new DrizzleType(Type.ENUM);
+                return new MySQLType(Type.ENUM);
             case 11:
-                return new DrizzleType(Type.BLOB);
+                return new MySQLType(Type.BLOB);
             case 12:
-                return new DrizzleType(Type.BLOB);
+                return new MySQLType(Type.BLOB);
             default:
-                return new DrizzleType(Type.VARCHAR);
+                return new MySQLType(Type.VARCHAR);
         }
     }
 }

@@ -18,11 +18,13 @@ import org.drizzle.jdbc.internal.common.packet.commands.SelectDBPacket;
 import org.drizzle.jdbc.internal.common.packet.commands.StreamedQueryPacket;
 import org.drizzle.jdbc.internal.common.query.DrizzleQuery;
 import org.drizzle.jdbc.internal.common.query.Query;
-import org.drizzle.jdbc.internal.common.queryresults.ColumnInformation;
+import org.drizzle.jdbc.internal.common.ColumnInformation;
 import org.drizzle.jdbc.internal.common.queryresults.DrizzleQueryResult;
 import org.drizzle.jdbc.internal.common.queryresults.DrizzleUpdateResult;
 import org.drizzle.jdbc.internal.common.queryresults.QueryResult;
 import org.drizzle.jdbc.internal.drizzle.packet.GreetingReadPacket;
+import org.drizzle.jdbc.internal.drizzle.packet.FieldPacket;
+import org.drizzle.jdbc.internal.drizzle.packet.RowPacket;
 import org.drizzle.jdbc.internal.drizzle.packet.commands.ClientAuthPacket;
 import org.drizzle.jdbc.internal.drizzle.packet.commands.PingPacket;
 

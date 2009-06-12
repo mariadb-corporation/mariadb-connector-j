@@ -24,12 +24,12 @@ import java.sql.SQLException;
  * Date: Feb 7, 2009
  * Time: 10:53:22 PM
  */
-public class DrizzleDatasource implements DataSource {
+public class DrizzleDataSource implements DataSource {
     private final String hostname;
     private final int port;
     private final String database;
 
-    public DrizzleDatasource(String hostname, int port, String database) {
+    public DrizzleDataSource(String hostname, int port, String database) {
         this.hostname = hostname;
         this.port = port;
         this.database = database;

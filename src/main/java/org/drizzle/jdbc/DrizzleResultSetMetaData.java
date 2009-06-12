@@ -10,7 +10,7 @@
 package org.drizzle.jdbc;
 
 import org.drizzle.jdbc.internal.common.queryresults.ColumnFlags;
-import org.drizzle.jdbc.internal.common.queryresults.ColumnInformation;
+import org.drizzle.jdbc.internal.common.ColumnInformation;
 
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -287,7 +287,7 @@ public class DrizzleResultSetMetaData implements ResultSetMetaData {
      * @since 1.2
      */
     public String getColumnClassName(int column) throws SQLException {
-        return getColumnInformation(column).getType().getJavaClass().getName();
+        return getColumnInformation(column).getType().getJavaType().getName();
     }
 
     private ColumnInformation getColumnInformation(int column) throws SQLException {

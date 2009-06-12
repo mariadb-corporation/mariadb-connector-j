@@ -9,12 +9,9 @@
 
 package org.drizzle.jdbc.internal.common.queryresults;
 
-import org.drizzle.jdbc.internal.common.DrizzleValueObject;
 import org.drizzle.jdbc.internal.common.ValueObject;
-import org.drizzle.jdbc.internal.drizzle.DrizzleType;
-
-import java.util.Arrays;
-import java.util.EnumSet;
+import org.drizzle.jdbc.internal.common.ColumnInformation;
+import org.drizzle.jdbc.internal.common.GeneratedIdValueObject;
 import java.util.List;
 
 /**
@@ -24,24 +21,25 @@ import java.util.List;
  * Time: 8:34:44 PM
  */
 public class DrizzleInsertIdQueryResult implements SelectQueryResult {
-    private final List<ColumnInformation> columnInformation;
+
     private final long insertId;
 
     public DrizzleInsertIdQueryResult(long insertId) {
         this.insertId = insertId;
-        ColumnInformation ci = new DrizzleColumnInformation.Builder().catalog("").charsetNumber((short) 0).db("").decimals((byte) 0).flags(EnumSet.of(ColumnFlags.AUTO_INCREMENT)).length(10).name("insert_id").originalName("insert_id").originalTable("").type(DrizzleType.LONG).build();
-        columnInformation = Arrays.asList(ci);
+
     }
 
     public ValueObject getValueObject(int index) throws NoSuchColumnException {
         if (index != 0) throw new NoSuchColumnException("No such column: " + index);
-        return DrizzleValueObject.fromLong(insertId);
+        //TODO: FIX!!!!!!!!!
+//        return DrizzleValueObject.fromLong(insertId);
+        return new GeneratedIdValueObject(insertId);
     }
 
     public ValueObject getValueObject(String columnName) throws NoSuchColumnException {
         if (!columnName.toLowerCase().equals("insert_id"))
             throw new NoSuchColumnException("No such column: " + columnName);
-        return DrizzleValueObject.fromLong(insertId);
+        return new GeneratedIdValueObject(insertId);
     }
 
     public int getRows() {
@@ -66,7 +64,7 @@ public class DrizzleInsertIdQueryResult implements SelectQueryResult {
     }
 
     public List<ColumnInformation> getColumnInformation() {
-        return columnInformation;
+        return null;
     }
 
     public ResultSetType getResultSetType() {

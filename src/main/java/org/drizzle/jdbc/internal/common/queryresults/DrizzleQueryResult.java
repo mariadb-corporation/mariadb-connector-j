@@ -10,6 +10,7 @@
 package org.drizzle.jdbc.internal.common.queryresults;
 
 import org.drizzle.jdbc.internal.common.ValueObject;
+import org.drizzle.jdbc.internal.common.ColumnInformation;
 
 import java.util.HashMap;
 import java.util.List;
