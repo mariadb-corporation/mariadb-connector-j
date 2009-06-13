@@ -18,7 +18,7 @@ public class LoadTest {
 static { Logger.getLogger("").setLevel(Level.OFF); }
     @Test
     public void tm() throws SQLException {
-      Connection drizConnection = DriverManager.getConnection("jdbc:drizzle://localhost:4427/test_units_jdbc");
+      Connection drizConnection = DriverManager.getConnection("jdbc:drizzle://"+DriverTest.host+":4427/test_units_jdbc");
       //Connection mysqlConnection = DriverManager.getConnection("jdbc:mysql:thin://localhost/test_units_jdbc","","");
 
       long sum = 0;

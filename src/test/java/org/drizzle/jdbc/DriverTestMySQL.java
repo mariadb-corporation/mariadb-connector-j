@@ -1,6 +1,7 @@
 package org.drizzle.jdbc;
 
 import org.junit.After;
+import org.junit.Test;
 
 import java.sql.SQLException;
 import java.sql.DriverManager;
@@ -22,5 +23,8 @@ public class DriverTestMySQL extends DriverTest {
     @Override
     public Connection getConnection() {
         return connection;
+    }
+    @Test
+    public void a() {
     }
 }
