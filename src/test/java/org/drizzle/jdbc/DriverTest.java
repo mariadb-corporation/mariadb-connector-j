@@ -29,8 +29,8 @@ public class DriverTest {
     static { Logger.getLogger("").setLevel(Level.OFF); }
 
     public DriverTest() throws SQLException {
-        connection = DriverManager.getConnection("jdbc:mysql:thin://localhost:3306/test_units_jdbc");
-        //connection = DriverManager.getConnection("jdbc:drizzle://"+host+":4427/test_units_jdbc");
+        //connection = DriverManager.getConnection("jdbc:mysql:thin://localhost:3306/test_units_jdbc");
+        connection = DriverManager.getConnection("jdbc:drizzle://"+host+":4427/test_units_jdbc");
         //connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/test_units_jdbc");
         Statement stmt = connection.createStatement();
         try { stmt.execute("drop table t1"); } catch (Exception e) {}
