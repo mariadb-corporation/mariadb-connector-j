@@ -13,6 +13,10 @@ package org.drizzle.jdbc.internal.common.packet;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.drizzle.jdbc.internal.common.packet.buffer.ReadUtil;
+
 
 /**
  * Class to represent a raw packet as transferred over the wire. First we
@@ -46,7 +50,7 @@ public final class RawPacket {
 
         byte[] rawBytes = new byte[length];
 
-        int nr = safeRead(is, rawBytes);
+        int nr = ReadUtil.safeRead(is, rawBytes);
         if (nr != length) {
             throw new IOException("EOF. Expected " + length + ", got " + nr);
         }
@@ -57,32 +61,6 @@ public final class RawPacket {
     private RawPacket(byte[] rawBytes, int packetSeq) {
         this.rawBytes = rawBytes;
         this.packetSeq = packetSeq;
-    }
-
-
-    /**
-     * Read a number of bytes from the stream and store it in the buffer, and
-     * fix the problem with "incomplete" reads by doing another read if we
-     * don't have all of the data yet.
-     *
-     * @param is     the input stream to read from
-     * @param buffer where to store the data
-     * @return the number of bytes read (should be == length if we didn't hit EOF)
-     * @throws java.io.IOException if an error occurs while reading the stream
-     */
-    private static int safeRead(InputStream is, byte[] buffer) throws IOException {
-        int offset = 0;
-        int left = buffer.length;
-        do {
-            int nr = is.read(buffer, offset, left);
-            if (nr == -1) {
-                return nr;
-            }
-            offset += nr;
-            left -= nr;
-        } while (left > 0);
-
-        return buffer.length;
     }
 
     private static byte readPacketSeq(InputStream reader) throws IOException {
@@ -97,7 +75,7 @@ public final class RawPacket {
     private static int readLength(InputStream reader) throws IOException {
         byte[] lengthBuffer = new byte[3];
 
-        int nr = safeRead(reader, lengthBuffer);
+        int nr = ReadUtil.safeRead(reader, lengthBuffer);
         if (nr == -1) {
             return -1;
         } else if (nr != 3) {
@@ -106,7 +84,6 @@ public final class RawPacket {
 
         return (lengthBuffer[0] & 0xff) + ((lengthBuffer[1] & 0xff) << 8) + ((lengthBuffer[2] & 0xff) << 16);
     }
-
 
     /**
      * Get the raw bytes in the package
