@@ -24,7 +24,7 @@ import static junit.framework.Assert.assertTrue;
  * Time: 7:58:11 AM
  */
 public class DriverTest {
-    public static String host = "localhost";
+    public static String host = "10.100.100.50";
     private Connection connection;
     static { Logger.getLogger("").setLevel(Level.OFF); }
 
@@ -725,8 +725,14 @@ public class DriverTest {
     @Test
     public void binTest2() throws SQLException, IOException {
         connection.createStatement().execute("drop table if exists bintest2");
-        connection.createStatement().execute(
-                "create table bintest2 (bin1 blob)");
+
+        if(connection.getMetaData().getDatabaseProductName().toLowerCase().equals("mysql")) {
+            connection.createStatement().execute(
+                "create table bintest2 (bin1 longblob) engine=innodb");
+        } else {
+            connection.createStatement().execute(
+                "create table bintest2 (bin1 blob)");            
+        }
 
         byte [] buf=new byte[1000000];
         for(int i=0;i<1000000;i++) {
@@ -762,17 +768,30 @@ public class DriverTest {
         connection.createStatement().execute("insert into extest values (1)");
         connection.createStatement().execute("insert into extest values (1)");
     }
+
     @Test
     public void testExceptionDivByZero() throws SQLException {
         ResultSet rs = connection.createStatement().executeQuery("select 1/0");
         assertEquals(rs.next(),true);
         assertEquals(null, rs.getString(1));
-        SQLWarning warning = rs.getWarnings();
-        assertEquals(warning.getMessage(), "1 warning(s)");
+        if(connection.getMetaData().getDatabaseProductName().toLowerCase().equals("drizzle")) {
+            SQLWarning warning = rs.getWarnings();
+            assertEquals(warning.getMessage(), "1 warning(s)");
+        }
     }
     @Test(expected = SQLSyntaxErrorException.class)
     public void testSyntaxError() throws SQLException {
         connection.createStatement().executeQuery("create asdf b");
 
+    }
+
+
+    @Test
+    public void testaaa() throws SQLException {
+        ResultSet rs = connection.createStatement().executeQuery("show variables like '%packet%'");
+        while (rs.next()){
+            System.out.println(rs.getString(1));
+            System.out.println(rs.getString(2));
+        }
     }
 }

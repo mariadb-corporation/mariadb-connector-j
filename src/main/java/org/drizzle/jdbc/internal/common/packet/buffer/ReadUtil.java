@@ -60,7 +60,7 @@ public class ReadUtil {
 
     public static short readShort(byte[] bytes, int start) {
         if (bytes.length - start >= 2)
-            return (short) ((bytes[start] & 0xff) + ((bytes[start + 1] & 0xff) << 8));
+            return (short) ((bytes[start] & (short)0xff) + ((bytes[start + 1] & (short)0xff) << 8));
         return 0;
     }
 

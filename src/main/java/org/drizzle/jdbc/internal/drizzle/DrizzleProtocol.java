@@ -521,4 +521,9 @@ public final class DrizzleProtocol implements Protocol {
     public List<RawPacket> startBinlogDump(int startPos, String filename) {
         return null;
     }
+
+    public SupportedDatabases getDatabaseType() {
+        return SupportedDatabases.DRIZZLE;
+    }
+
 }

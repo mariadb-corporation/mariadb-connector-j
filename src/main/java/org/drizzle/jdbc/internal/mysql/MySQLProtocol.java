@@ -286,8 +286,9 @@ public class MySQLProtocol implements Protocol {
 
         switch (resultPacket.getResultType()) {
             case ERROR:
+                ErrorPacket ep = (ErrorPacket) resultPacket;
                 log.warning("Could not execute query " + dQuery + ": " + ((ErrorPacket) resultPacket).getMessage());
-                throw new QueryException("Could not execute query: " + ((ErrorPacket) resultPacket).getMessage());
+                throw new QueryException("Could not execute query: " + ep.getMessage(), ep.getErrorNumber(), ep.getSqlState());
             case OK:
                 OKPacket okpacket = (OKPacket) resultPacket;
                 QueryResult updateResult = new DrizzleUpdateResult(okpacket.getAffectedRows(),
@@ -349,4 +350,9 @@ public class MySQLProtocol implements Protocol {
             throw new BinlogDumpException("Could not read binlog", e);
         }
     }
+    
+    public SupportedDatabases getDatabaseType() {
+        return SupportedDatabases.MYSQL;
+    }
+
 }

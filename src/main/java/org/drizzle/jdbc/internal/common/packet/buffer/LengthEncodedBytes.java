@@ -31,7 +31,7 @@ public class LengthEncodedBytes {
                     this.length = 1;
                     break;
                 case 252:
-                    tempLength = ReadUtil.readShort(rawBytes, start + 1);
+                    tempLength = (ReadUtil.readShort(rawBytes, start + 1)&0xffff);
                     this.theBytes = Arrays.copyOfRange(rawBytes, start + 3, tempLength + start + 3);
                     this.length = tempLength + 3;
                     break;

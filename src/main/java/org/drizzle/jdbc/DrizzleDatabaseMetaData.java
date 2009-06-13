@@ -24,6 +24,7 @@ public final class DrizzleDatabaseMetaData implements DatabaseMetaData {
     private final String username;
     private final Connection connection;
     private final static Logger log = Logger.getLogger(DrizzleDatabaseMetaData.class.getName());
+    private final String databaseProductName;
 
     /**
      * Retrieves whether the current user can call all the procedures
@@ -140,7 +141,8 @@ public final class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public String getDatabaseProductName() throws SQLException {
-        return "Drizzle"; // TODO: get from constants file
+
+        return databaseProductName; // TODO: get from constants file
     }
 
     /**
@@ -3465,6 +3467,7 @@ public final class DrizzleDatabaseMetaData implements DatabaseMetaData {
         private String url;
         private String username;
         private Connection connection;
+        private String databaseProductName;
 
         public Builder(Connection connection) {
             this.connection = connection;
@@ -3485,6 +3488,11 @@ public final class DrizzleDatabaseMetaData implements DatabaseMetaData {
             return this;
         }
 
+        public Builder databaseProductName(String name) {
+            this.databaseProductName = name;
+            return this;
+        }
+
         public DrizzleDatabaseMetaData build() {
             return new DrizzleDatabaseMetaData(this);
         }
@@ -3496,6 +3504,7 @@ public final class DrizzleDatabaseMetaData implements DatabaseMetaData {
         this.url = builder.url;
         this.username = builder.username;
         this.connection = builder.connection;
+        this.databaseProductName = builder.databaseProductName;
     }
 
 

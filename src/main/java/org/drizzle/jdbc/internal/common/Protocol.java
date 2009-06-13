@@ -192,4 +192,6 @@ public interface Protocol {
     void clearBatch();
 
     List<RawPacket> startBinlogDump(int startPos, String filename) throws BinlogDumpException;
+
+    SupportedDatabases getDatabaseType();
 }

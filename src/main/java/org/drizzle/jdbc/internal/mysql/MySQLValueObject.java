@@ -29,7 +29,7 @@ public class MySQLValueObject extends AbstractValueObject {
         super(rawBytes,dataType);
     }
    public Object getObject() throws ParseException  {
-        if (this.getBytes() == null)
+       if (this.getBytes() == null)
             return null;
         switch (((MySQLType)dataType).getType()) {
             case TINY:

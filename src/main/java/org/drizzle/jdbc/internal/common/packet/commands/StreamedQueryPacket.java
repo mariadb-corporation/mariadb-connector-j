@@ -30,7 +30,7 @@ public class StreamedQueryPacket implements CommandPacket {
 
     public StreamedQueryPacket(Query query) {
         this.query = query;
-        byteHeader = Arrays.copyOf(intToByteArray(query.length() + 1), 5); //
+        byteHeader = Arrays.copyOf(intToByteArray(query.length() + 1), 5);
         byteHeader[4] = (byte) 0x03;
     }
 

@@ -56,23 +56,23 @@ public class SQLExceptionMapper {
         SQLStates state = SQLStates.fromString(sqlState);
         switch (state) {
             case DATA_EXCEPTION:
-                return new SQLDataException(e.getMessage(), e.getMessage(), e.getErrorCode(), e);
+                return new SQLDataException(e.getMessage(), sqlState, e.getErrorCode(), e);
             case FEATURE_NOT_SUPPORTED:
-                return new SQLFeatureNotSupportedException(e.getMessage(), e.getMessage(), e.getErrorCode(), e);
+                return new SQLFeatureNotSupportedException(e.getMessage(), sqlState, e.getErrorCode(), e);
             case CONSTRAINT_VIOLATION:
-                return new SQLIntegrityConstraintViolationException(e.getMessage(), e.getMessage(), e.getErrorCode(), e);
+                return new SQLIntegrityConstraintViolationException(e.getMessage(), sqlState, e.getErrorCode(), e);
             case INVALID_AUTHORIZATION:
-                return new SQLInvalidAuthorizationSpecException(e.getMessage(), e.getMessage(), e.getErrorCode(), e);
+                return new SQLInvalidAuthorizationSpecException(e.getMessage(),sqlState, e.getErrorCode(), e);
             case CONNECTION_EXCEPTION:
                 // TODO: check transient / non transient
-                return new SQLNonTransientConnectionException(e.getMessage(), e.getMessage(), e.getErrorCode(), e);
+                return new SQLNonTransientConnectionException(e.getMessage(), sqlState, e.getErrorCode(), e);
             case SYNTAX_ERROR_ACCESS_RULE:
-                return new SQLSyntaxErrorException(e.getMessage(), e.getMessage(), e.getErrorCode(), e);
+                return new SQLSyntaxErrorException(e.getMessage(), sqlState, e.getErrorCode(), e);
             case TRANSACTION_ROLLBACK:
-                return new SQLTransactionRollbackException(e.getMessage(), e.getMessage(), e.getErrorCode(), e);
+                return new SQLTransactionRollbackException(e.getMessage(), sqlState, e.getErrorCode(), e);
             case WARNING:
-                return new SQLWarning(e.getMessage(), e.getMessage(), e.getErrorCode(), e);
-        }
-        return new SQLException(e.getMessage(), e.getMessage(), e.getErrorCode(), e);
+                return new SQLWarning(e.getMessage(),sqlState, e.getErrorCode(), e);
+        }        
+        return new SQLException(e.getMessage(), sqlState, e.getErrorCode(), e);
     }
 }
