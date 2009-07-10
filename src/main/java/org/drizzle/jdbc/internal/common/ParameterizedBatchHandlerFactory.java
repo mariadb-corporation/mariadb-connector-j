@@ -16,7 +16,8 @@ public interface ParameterizedBatchHandlerFactory {
     /**
      * returns a parameterized batch handler. Called every
      * time prepareStatement is called on the Connection.
+     * @param query the query to create the handler for
      * @return a parameterized batch handler
      */
-    ParameterizedBatchHandler get();
+    ParameterizedBatchHandler get(String query);
 }

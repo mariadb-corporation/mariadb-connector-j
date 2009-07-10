@@ -20,7 +20,7 @@ import org.drizzle.jdbc.internal.common.ParameterizedBatchHandler;
  * To change this template use File | Settings | File Templates.
  */
 public class NoopBatchHandlerFactory implements ParameterizedBatchHandlerFactory {
-    public ParameterizedBatchHandler get() {
+    public ParameterizedBatchHandler get(String sql) {
         return new TestNoopBatchHandler();
     }
 }

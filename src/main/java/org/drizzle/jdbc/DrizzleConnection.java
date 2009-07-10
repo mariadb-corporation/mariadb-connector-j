@@ -78,7 +78,7 @@ public final class DrizzleConnection
         if(parameterizedBatchHandlerFactory == null) {
             this.parameterizedBatchHandlerFactory = new DefaultParameterizedBatchHandlerFactory();
         }
-        return new DrizzlePreparedStatement(protocol, this, sql, queryFactory, parameterizedBatchHandlerFactory.get());
+        return new DrizzlePreparedStatement(protocol, this, sql, queryFactory, parameterizedBatchHandlerFactory.get(sql));
     }
 
     /**

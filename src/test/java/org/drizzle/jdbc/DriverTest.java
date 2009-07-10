@@ -24,7 +24,7 @@ import static junit.framework.Assert.assertTrue;
  * Time: 7:58:11 AM
  */
 public class DriverTest {
-    public static String host = "10.100.100.50";
+    public static String host = "localhost";
     private Connection connection;
     static { Logger.getLogger("").setLevel(Level.OFF); }
 
