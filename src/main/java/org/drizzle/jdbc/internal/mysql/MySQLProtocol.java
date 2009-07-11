@@ -74,7 +74,6 @@ public class MySQLProtocol implements Protocol {
      *          if there is a problem reading / sending the packets
      */
     public MySQLProtocol(String host, int port, String database, String username, String password) throws QueryException {
-        log.info("initiating a mysql protocol");
         this.host = host;
         this.port = port;
         this.database = (database == null ? "" : database);
@@ -216,12 +215,10 @@ public class MySQLProtocol implements Protocol {
     }
 
     public void setSavepoint(String savepoint) throws QueryException {
-        log.info("setting a savepoint named " + savepoint);
         executeQuery(new DrizzleQuery("SAVEPOINT " + savepoint));
     }
 
     public void releaseSavepoint(String savepoint) throws QueryException {
-        log.info("releasing savepoint named " + savepoint);
         executeQuery(new DrizzleQuery("RELEASE SAVEPOINT " + savepoint));
     }
 
@@ -312,16 +309,13 @@ public class MySQLProtocol implements Protocol {
     }
 
     public void addToBatch(Query dQuery) {
-        log.info("Adding query to batch");
         batchList.add(dQuery);
     }
 
     public List<QueryResult> executeBatch() throws QueryException {
-        log.info("executing batch");
         List<QueryResult> retList = new ArrayList<QueryResult>(batchList.size());
         int i = 0;
         for (Query query : batchList) {
-            log.info("executing batch query");
             retList.add(executeQuery(query));
         }
         clearBatch();
@@ -334,7 +328,6 @@ public class MySQLProtocol implements Protocol {
     }
 
     public List<RawPacket> startBinlogDump(int startPos, String filename) throws BinlogDumpException {
-        log.info("starting binlog (" + filename + ") dump at pos " + startPos);
         MySQLBinlogDumpPacket mbdp = new MySQLBinlogDumpPacket(startPos, filename);
         try {
             mbdp.send(writer);

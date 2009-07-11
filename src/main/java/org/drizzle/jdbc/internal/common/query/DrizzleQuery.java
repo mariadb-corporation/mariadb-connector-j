@@ -25,7 +25,6 @@ public class DrizzleQuery implements Query {
 
     public DrizzleQuery(String query) {
         this.query = query;
-        log.info("Creating query: " + query);
     }
 
     public int length() {
@@ -33,7 +32,6 @@ public class DrizzleQuery implements Query {
     }
 
     public void writeTo(OutputStream os) throws IOException {
-        log.info("writing query to outputstream");
         byte[] b = query.getBytes();
         os.write(b, 0, length());
     }
