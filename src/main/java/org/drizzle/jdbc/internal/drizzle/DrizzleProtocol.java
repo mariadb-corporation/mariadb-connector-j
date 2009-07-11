@@ -479,7 +479,6 @@ public final class DrizzleProtocol implements Protocol {
 
     /**
      * adds a query to the batch.
-     * //TODO: this needs optimization
      * @param dQuery the query to add
      */
     public void addToBatch(Query dQuery) {

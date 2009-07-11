@@ -17,12 +17,17 @@ import java.util.LinkedList;
  */
 public final class DefaultParameterizedBatchHandler implements ParameterizedBatchHandler {
     private final List<ParameterizedQuery> queries = new LinkedList<ParameterizedQuery>();
+    private final Protocol protocol;
+
+    public DefaultParameterizedBatchHandler(Protocol protocol) {
+        this.protocol = protocol;
+    }
 
     public void addToBatch(ParameterizedQuery query) {
         queries.add(query);
     }
 
-    public int [] executeBatch(Protocol protocol) throws QueryException {
+    public int [] executeBatch() throws QueryException {
         int [] retArray = new int[queries.size()];
         int i = 0;
         for(ParameterizedQuery query : queries) {

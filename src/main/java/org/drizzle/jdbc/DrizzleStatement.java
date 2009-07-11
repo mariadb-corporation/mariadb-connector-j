@@ -59,7 +59,7 @@ public class DrizzleStatement implements Statement {
     /**
      * creates queries.
      */
-    private QueryFactory queryFactory;
+    private final QueryFactory queryFactory;
 
     /**
      * Creates a new Statement.

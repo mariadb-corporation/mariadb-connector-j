@@ -32,9 +32,8 @@ public interface ParameterizedBatchHandler {
     /**
      * execute the batch using protocol. Return an array of update counts
      * or -2 (Statement.SUCCESS_NO_INFO) if the update count is unknown.
-     * @param protocol the protocol to use.
      * @return a list of update counts
      * @throws QueryException if something goes wrong executing the query.
      */
-    int [] executeBatch(Protocol protocol) throws QueryException;
+    int [] executeBatch() throws QueryException;
 }

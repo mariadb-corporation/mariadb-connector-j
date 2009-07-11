@@ -19,7 +19,7 @@ public class TestNoopBatchHandler implements ParameterizedBatchHandler {
     public void addToBatch(ParameterizedQuery query) {
     }
 
-    public int[] executeBatch(Protocol protocol) throws QueryException {
+    public int[] executeBatch() throws QueryException {
         return null;
     }
 }

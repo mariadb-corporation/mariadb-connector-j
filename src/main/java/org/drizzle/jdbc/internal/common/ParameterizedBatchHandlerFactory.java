@@ -19,5 +19,5 @@ public interface ParameterizedBatchHandlerFactory {
      * @param query the query to create the handler for
      * @return a parameterized batch handler
      */
-    ParameterizedBatchHandler get(String query);
+    ParameterizedBatchHandler get(String query, Protocol protocol);
 }

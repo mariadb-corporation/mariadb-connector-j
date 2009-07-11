@@ -11,6 +11,7 @@ package org.drizzle.jdbc;
 
 import org.drizzle.jdbc.internal.common.ParameterizedBatchHandlerFactory;
 import org.drizzle.jdbc.internal.common.ParameterizedBatchHandler;
+import org.drizzle.jdbc.internal.common.Protocol;
 
 /**
  * Created by IntelliJ IDEA.
@@ -20,7 +21,7 @@ import org.drizzle.jdbc.internal.common.ParameterizedBatchHandler;
  * To change this template use File | Settings | File Templates.
  */
 public class NoopBatchHandlerFactory implements ParameterizedBatchHandlerFactory {
-    public ParameterizedBatchHandler get(String sql) {
+    public ParameterizedBatchHandler get(String sql, Protocol protocol) {
         return new TestNoopBatchHandler();
     }
 }

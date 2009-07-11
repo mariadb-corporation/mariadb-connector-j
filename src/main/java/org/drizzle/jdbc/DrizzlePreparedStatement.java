@@ -38,7 +38,13 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
     private final static Logger log = Logger.getLogger(DrizzlePreparedStatement.class.getName());
     private ParameterizedQuery dQuery;
     private final ParameterizedBatchHandler parameterizedBatchHandler;
-    public DrizzlePreparedStatement(Protocol protocol, DrizzleConnection drizzleConnection, String query, QueryFactory queryFactory, ParameterizedBatchHandler parameterizedBatchHandler) {
+
+    public DrizzlePreparedStatement(Protocol protocol,
+                                    DrizzleConnection drizzleConnection,
+                                    String query,
+                                    QueryFactory queryFactory,
+                                    ParameterizedBatchHandler parameterizedBatchHandler) {
+        
         super(protocol, drizzleConnection, queryFactory);
         log.finest("Creating prepared statement for " + query);
         dQuery = queryFactory.createParameterizedQuery(query);
@@ -138,7 +144,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
     @Override
     public int[] executeBatch() throws SQLException {
         try {
-            return parameterizedBatchHandler.executeBatch(getProtocol());
+            return parameterizedBatchHandler.executeBatch();
         } catch (QueryException e) {
             throw SQLExceptionMapper.get(e);
         }
