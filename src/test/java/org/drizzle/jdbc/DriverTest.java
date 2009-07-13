@@ -7,6 +7,7 @@ import org.drizzle.jdbc.internal.common.packet.RawPacket;
 import org.drizzle.jdbc.internal.common.ParameterizedBatchHandler;
 import org.drizzle.jdbc.internal.common.Protocol;
 import org.drizzle.jdbc.internal.common.QueryException;
+import org.drizzle.jdbc.internal.common.RewriteParameterizedBatchHandlerFactory;
 import org.drizzle.jdbc.internal.common.query.ParameterizedQuery;
 
 import java.sql.*;
@@ -804,6 +805,33 @@ public class DriverTest {
     @Test(expected = SQLSyntaxErrorException.class)
     public void testSyntaxError() throws SQLException {
         getConnection().createStatement().executeQuery("create asdf b");
+    }
+
+    @Test
+    public void testRewriteBatchHander() throws SQLException {
+        getConnection().createStatement().execute("drop table if exists rewritetest");
+        getConnection().createStatement().execute(
+                "create table rewritetest (id int not null, a varchar(10), b int)");
+
+        if(getConnection().isWrapperFor(DrizzleConnection.class)) {
+            DrizzleConnection dc = getConnection().unwrap(DrizzleConnection.class);
+            dc.setBatchQueryHandlerFactory(new RewriteParameterizedBatchHandlerFactory());
+        }
+
+        PreparedStatement ps = connection.prepareStatement("insert into rewritetest (id,a,b) values (?,?,?)");
+        for(int i = 0;i<1000;i++) {
+            ps.setInt(1,i);
+            ps.setString(2,"bbb"+i);
+            ps.setInt(3,30+i);
+            ps.addBatch();
+        }
+        ps.executeBatch();
+        ResultSet rs = getConnection().createStatement().executeQuery("select * from rewritetest");
+        int i = 0;
+        while(rs.next()) {
+            assertEquals(i++, rs.getInt("id"));
+        }
+        assertEquals(1000,i);
 
     }
 }
