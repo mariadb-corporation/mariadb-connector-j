@@ -13,7 +13,6 @@ import static junit.framework.Assert.assertEquals;
 
 import javax.sql.DataSource;
 
-import com.mysql.jdbc.jdbc2.optional.MysqlDataSource;
 
 /**
  * User: marcuse
