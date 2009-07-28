@@ -121,7 +121,8 @@ public final class DrizzleBlob extends OutputStream implements Blob {
         if (pos < 1) {
             throw new SQLException("Pos starts at 1");
         }
-        return Arrays.copyOfRange(blobContent, (int) pos, (int) (pos + length));
+        int arrayPos = (int) (pos-1);
+        return Arrays.copyOfRange(blobContent, arrayPos, arrayPos + length);
     }
 
     /**
@@ -212,20 +213,23 @@ public final class DrizzleBlob extends OutputStream implements Blob {
      * @since 1.4
      */
     public int setBytes(long pos, byte[] bytes) throws SQLException {
+        int arrayPos = (int)pos-1;
         int bytesWritten = 0;
+
         if (blobContent == null) {
-            this.blobContent = new byte[(int) (pos + bytes.length)];
-            for (int i = (int) pos; i < pos + bytes.length; i++) {
-                this.blobContent[((int) (pos + i))] = bytes[i];
-                bytesWritten++;
-            }
-        } else if (blobContent.length < pos + bytes.length) {
-            for (int i = (int) pos; i < pos + bytes.length; i++) {
-                this.blobContent[((int) (pos + i))] = bytes[i];
-                bytesWritten++;
-            }
+            this.blobContent = new byte[arrayPos + bytes.length];
+            bytesWritten = blobContent.length;
+            this.actualSize = bytesWritten;
+        } else if (blobContent.length > arrayPos + bytes.length) {
+            bytesWritten = bytes.length;
+        } else {
+            blobContent = Arrays.copyOf(blobContent, arrayPos+bytes.length);
+            actualSize = blobContent.length;
+            bytesWritten = bytes.length;
         }
-        this.actualSize += bytesWritten;
+
+        System.arraycopy(bytes, 0, this.blobContent, arrayPos, bytes.length);
+        
         return bytesWritten;
     }
 
