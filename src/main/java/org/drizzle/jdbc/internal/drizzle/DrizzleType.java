@@ -36,6 +36,10 @@ public class DrizzleType implements DataType {
         return type.getSqlType();
     }
 
+    public String getTypeName() {
+        return type.name();
+    }
+
 
     public enum Type  {
         TINY(java.sql.Types.SMALLINT, Short.class),

@@ -19,4 +19,5 @@ package org.drizzle.jdbc.internal.common;
 public interface DataType {
     public Class getJavaType();
     public int getSqlType();
+    public String getTypeName();
 }

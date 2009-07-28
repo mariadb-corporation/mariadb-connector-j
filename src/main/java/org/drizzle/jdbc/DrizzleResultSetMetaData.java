@@ -235,7 +235,7 @@ public class DrizzleResultSetMetaData implements ResultSetMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public String getColumnTypeName(int column) throws SQLException {
-        return getColumnInformation(column).getType().toString();
+        return getColumnInformation(column).getType().getTypeName();
     }
 
     /**

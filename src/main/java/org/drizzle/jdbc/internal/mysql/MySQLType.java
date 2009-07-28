@@ -37,6 +37,10 @@ public class MySQLType implements DataType {
         return type.getSqlType();
     }
 
+    public String getTypeName() {
+        return type.name();
+    }
+
     public Type getType() {
         return type;
     }

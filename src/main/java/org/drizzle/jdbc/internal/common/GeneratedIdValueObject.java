@@ -28,6 +28,10 @@ public class GeneratedIdValueObject extends AbstractValueObject {
             public int getSqlType() {
                 return java.sql.Types.INTEGER;
             }
+
+            public String getTypeName() {
+                return "INTEGER";
+            }
         });
     }
 
