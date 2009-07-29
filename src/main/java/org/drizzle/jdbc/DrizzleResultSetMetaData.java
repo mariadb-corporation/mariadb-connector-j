@@ -62,7 +62,7 @@ public class DrizzleResultSetMetaData implements ResultSetMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public boolean isCaseSensitive(int column) throws SQLException {
-        return getColumnInformation(column).getFlags().contains(ColumnFlags.BINARY); //TODO: of course not this simple
+        return getColumnInformation(column).getFlags().contains(ColumnFlags.BINARY);
     }
 
     /**
@@ -122,8 +122,7 @@ public class DrizzleResultSetMetaData implements ResultSetMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public int getColumnDisplaySize(int column) throws SQLException {
-        //return getColumnInformation(column).getDisplaySize();
-        return 0;
+        return (int) getColumnInformation(column).getLength();
     }
 
     /**
@@ -176,7 +175,7 @@ public class DrizzleResultSetMetaData implements ResultSetMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public int getPrecision(int column) throws SQLException {
-        return 0;
+        return (int) getColumnInformation(column).getLength();
     }
 
     /**

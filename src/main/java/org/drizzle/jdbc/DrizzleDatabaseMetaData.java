@@ -1747,12 +1747,13 @@ public final class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      * @see #getSearchStringEscape
      */
+
     public ResultSet getColumns(String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern) throws SQLException {
         String query = "     SELECT null as table_cat," +
                 "            table_schema as table_schem," +
                 "            table_name," +
                 "            column_name," +
-                "            if(data_type='int',4,12) data_type," +
+                dataTypeClause + " data_type," +
                 "            data_type type_name," +
                 "            character_maximum_length column_size," +
                 "            0 buffer_length," +
@@ -1937,6 +1938,9 @@ public final class DrizzleDatabaseMetaData implements DatabaseMetaData {
                     " WHEN 'date' THEN " + Types.DATE +
                     " WHEN 'time' THEN " + Types.TIME +
                     " WHEN 'text' THEN " + Types.VARCHAR +
+                    " WHEN 'bigint' THEN " + Types.BIGINT +
+                    " WHEN 'varbinary' THEN " + Types.VARBINARY +
+                    " WHEN 'timestamp' THEN " + Types.TIMESTAMP +
                     " WHEN 'double' THEN " + Types.DOUBLE +
                     " END";
 
@@ -2532,10 +2536,8 @@ public final class DrizzleDatabaseMetaData implements DatabaseMetaData {
      *                    accurate
      * @return <code>ResultSet</code> - each row is an index column description
      * @throws java.sql.SQLException if a database access error occurs
-     *                               SELECT null table_cat,       table_schema table_schem,       table_name,       non_unique,       table_schema index_qualifier,       index_name,       3 type,       seq_in_index ordinal_position,       column_name,       collation asc_or_desc,       cardinality,       null as pages,       null as filter_condition FROM information_schema.statistics WHERE table_name='t1' AND schema like 'test_units_jdbc'
      */
     public ResultSet getIndexInfo(String catalog, String schema, String table, boolean unique, boolean approximate) throws SQLException {
-        log.info("getting index info");
         String query = "SELECT null table_cat," +
                 "       table_schema table_schem," +
                 "       table_name," +
@@ -2550,7 +2552,9 @@ public final class DrizzleDatabaseMetaData implements DatabaseMetaData {
                 "       null as pages," +
                 "       null as filter_condition" +
                 " FROM information_schema.statistics" +
-                " WHERE table_name='" + table + "' AND table_schema like '" + schema + "' " + (unique ? " AND NON_UNIQUE!=0" : "") +
+                " WHERE table_name='" + table + "' " +
+                ((schema != null)?(" AND table_schema like '" + schema + "' "):"") + 
+                  (unique ? " AND NON_UNIQUE = 0" : "") +
                 " ORDER BY NON_UNIQUE, TYPE, INDEX_NAME, ORDINAL_POSITION";
         Statement stmt = connection.createStatement();
         return stmt.executeQuery(query);
