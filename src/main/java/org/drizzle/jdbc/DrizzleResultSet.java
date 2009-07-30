@@ -629,7 +629,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean isBeforeFirst() throws SQLException {
-        if (queryResult.getResultSetType() == ResultSetType.MODIFY)
+        if (queryResult.getResultSetType() == ResultSetType.MODIFY || queryResult.getRows() == 0)
             return false;
         return ((SelectQueryResult) queryResult).getRowPointer() == -1;
     }
