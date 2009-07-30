@@ -107,7 +107,14 @@ public abstract class AbstractValueObject implements ValueObject {
     public Timestamp getTimestamp() throws ParseException {
         if (rawBytes == null) return null;
         String rawValue = getString();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        SimpleDateFormat sdf;
+        if(rawValue.length() > 11) {
+            sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        }
+        else {
+            sdf = new SimpleDateFormat("yyyy-MM-dd");
+        }
+
         java.util.Date utilTime = sdf.parse(rawValue);
         return new Timestamp(utilTime.getTime());
     }
