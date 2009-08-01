@@ -29,17 +29,21 @@ public class RewriteParameterizedBatchHandler implements ParameterizedBatchHandl
     private StringBuilder queryBuilder = new StringBuilder();
     private boolean firstWritten = false;
     private int queryCount = 0;
+    private final String onDupKeyPart;
 
     /**
      * Constructs a new handler
      * @param protocol the protocol to use to send the query.
      * @param baseQuery the base of the query, i.e. everything including .*VALUES
      * @param queryValuePart the value part (?,?..)
+     * @param onDupKeyPart the duplicate key part of the query
      */
-    public RewriteParameterizedBatchHandler(Protocol protocol, String baseQuery, String queryValuePart) {
+    public RewriteParameterizedBatchHandler(Protocol protocol, String baseQuery, String queryValuePart, String onDupKeyPart) {
         this.baseQuery = baseQuery;
         this.queryValuePart = queryValuePart;
+        this.onDupKeyPart = (onDupKeyPart == null?"":onDupKeyPart);
         queryBuilder.append(baseQuery);
+
         this.protocol = protocol;
     }
 
@@ -65,10 +69,12 @@ public class RewriteParameterizedBatchHandler implements ParameterizedBatchHandl
         }
         String replaced = replacedValuePart.toString();
 
-        if(queryBuilder.length() + replaced.length() > MAX_QUERY_LENGTH) {
+        if(queryBuilder.length() + replaced.length() + onDupKeyPart.length() > MAX_QUERY_LENGTH) {
+            queryBuilder.append(onDupKeyPart);
             queriesToSend.add(queryBuilder.toString());
             queryBuilder = new StringBuilder();
             queryBuilder.append(baseQuery);
+
             firstWritten = false;
         }
 
@@ -82,6 +88,7 @@ public class RewriteParameterizedBatchHandler implements ParameterizedBatchHandl
     }
 
     public int[] executeBatch() throws QueryException {
+        queryBuilder.append(onDupKeyPart);
         String lastQuery = queryBuilder.toString();
 
         if(firstWritten) {
@@ -91,6 +98,7 @@ public class RewriteParameterizedBatchHandler implements ParameterizedBatchHandl
         for(String query : queriesToSend) {
             protocol.executeQuery(new DrizzleQuery(query));
         }
+
         log.finest("Rewrote "+queryCount+" queries to "+queriesToSend.size()+" queries");
         int [] returnArray = new int[queryCount];
         Arrays.fill(returnArray, Statement.SUCCESS_NO_INFO);

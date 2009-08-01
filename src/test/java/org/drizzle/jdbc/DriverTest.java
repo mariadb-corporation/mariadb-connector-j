@@ -4,11 +4,9 @@ import org.junit.Test;
 import org.junit.After;
 import org.drizzle.jdbc.internal.common.packet.buffer.WriteBuffer;
 import org.drizzle.jdbc.internal.common.packet.RawPacket;
-import org.drizzle.jdbc.internal.common.ParameterizedBatchHandler;
-import org.drizzle.jdbc.internal.common.Protocol;
-import org.drizzle.jdbc.internal.common.QueryException;
-import org.drizzle.jdbc.internal.common.RewriteParameterizedBatchHandlerFactory;
+import org.drizzle.jdbc.internal.common.*;
 import org.drizzle.jdbc.internal.common.query.ParameterizedQuery;
+import static org.mockito.Mockito.mock;
 
 import java.sql.*;
 import java.util.List;
@@ -818,8 +816,8 @@ public class DriverTest {
             dc.setBatchQueryHandlerFactory(new RewriteParameterizedBatchHandlerFactory());
         }
 
-        PreparedStatement ps = connection.prepareStatement("insert into rewritetest (id,a,b) values (?,?,?)");
-        for(int i = 0;i<1000;i++) {
+        PreparedStatement ps = connection.prepareStatement("insert into rewritetest values (?,?,?)");
+        for(int i = 0;i<100000;i++) {
             ps.setInt(1,i);
             ps.setString(2,"bbb"+i);
             ps.setInt(3,30+i);
@@ -831,7 +829,37 @@ public class DriverTest {
         while(rs.next()) {
             assertEquals(i++, rs.getInt("id"));
         }
-        assertEquals(1000,i);
+        assertEquals(100000,i);
+    }
+    @Test
+    public void testRewriteBatchHandlerWithDupKey() throws SQLException {
+        getConnection().createStatement().execute("drop table if exists rewritetest2");
+        getConnection().createStatement().execute(
+                "create table rewritetest2 (id int not null primary key, a varchar(10), b int)");
+                
+        if(getConnection().isWrapperFor(DrizzleConnection.class)) {
+            DrizzleConnection dc = getConnection().unwrap(DrizzleConnection.class);
+            dc.setBatchQueryHandlerFactory(new RewriteParameterizedBatchHandlerFactory());
+        }
+
+        long startTime = System.currentTimeMillis();
+        PreparedStatement ps = connection.prepareStatement("insert into rewritetest2 values (?,?,?) on duplicate key update a=values(a)");
+        for(int i = 0;i<1000000;i++) {
+            ps.setInt(1,0);
+            ps.setString(2,"bbb"+i);
+            ps.setInt(3,30+i);
+            ps.addBatch();
+        }
+        ps.executeBatch();
+        System.out.println("time: "+(System.currentTimeMillis() - startTime));
+        ResultSet rs = getConnection().createStatement().executeQuery("select * from rewritetest2");
+        int i = 0;
+        while(rs.next()) {
+            assertEquals(i++, rs.getInt("id"));
+        }
+        assertEquals(1,i);
 
     }
+
+
 }
