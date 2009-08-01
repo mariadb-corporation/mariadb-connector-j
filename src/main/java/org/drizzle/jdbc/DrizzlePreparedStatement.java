@@ -26,7 +26,8 @@ import java.io.Reader;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.*;
-import java.util.Calendar;
+import java.sql.Date;
+import java.util.*;
 import java.util.logging.Logger;
 
 /**
@@ -1340,6 +1341,9 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
             setTime(parameterIndex, (Time) x);
         else if (x instanceof Timestamp)
             setTimestamp(parameterIndex, (Timestamp) x);
+        else if (x instanceof java.util.Date) {
+            setTimestamp(parameterIndex, new Timestamp(((java.util.Date)x).getTime()));
+        }
         else if (x instanceof Boolean)
             setBoolean(parameterIndex, (Boolean) x);
         else if (x instanceof Blob)
