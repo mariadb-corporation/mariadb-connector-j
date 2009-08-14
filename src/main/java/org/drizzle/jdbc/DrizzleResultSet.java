@@ -10,10 +10,8 @@
 package org.drizzle.jdbc;
 
 import org.drizzle.jdbc.internal.common.ValueObject;
-import org.drizzle.jdbc.internal.common.queryresults.NoSuchColumnException;
-import org.drizzle.jdbc.internal.common.queryresults.QueryResult;
-import org.drizzle.jdbc.internal.common.queryresults.ResultSetType;
-import org.drizzle.jdbc.internal.common.queryresults.SelectQueryResult;
+import org.drizzle.jdbc.internal.common.ColumnInformation;
+import org.drizzle.jdbc.internal.common.queryresults.*;
 
 import java.io.InputStream;
 import java.io.Reader;
@@ -25,6 +23,8 @@ import java.sql.*;
 import java.text.ParseException;
 import java.util.Calendar;
 import java.util.Map;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * .
@@ -33,6 +33,7 @@ import java.util.Map;
  * Time: 10:25:00 PM
  */
 public class DrizzleResultSet implements ResultSet {
+    public final static DrizzleResultSet EMPTY = createEmptyResultSet();
     private final QueryResult queryResult;
     private final Statement statement;
     // dont want these, but jdbc forces them with "lastGetWasNull" etc...
@@ -45,6 +46,12 @@ public class DrizzleResultSet implements ResultSet {
         isClosed = false;
     }
 
+    private static DrizzleResultSet createEmptyResultSet() {
+        List<ColumnInformation> colList = Collections.emptyList();
+        List<List<ValueObject>> voList = Collections.emptyList();
+        QueryResult qr = new DrizzleQueryResult(colList,voList,(short)0);
+        return new DrizzleResultSet(qr, null);
+    }
 
     public boolean next() throws SQLException {
         if (queryResult.getResultSetType() == ResultSetType.SELECT)
@@ -2516,7 +2523,7 @@ public class DrizzleResultSet implements ResultSet {
      */
     public Timestamp getTimestamp(int columnIndex, Calendar cal) throws SQLException {
         try {
-            return new Timestamp(getValueObject(columnIndex).getTime(cal).getTime());
+            return new Timestamp(getValueObject(columnIndex).getTimestamp(cal).getTime());
         } catch (ParseException e) {
             throw new SQLException("Could not parse as time");
         }
@@ -2543,7 +2550,7 @@ public class DrizzleResultSet implements ResultSet {
      */
     public Timestamp getTimestamp(String columnLabel, Calendar cal) throws SQLException {
         try {
-            return new Timestamp(getValueObject(columnLabel).getTime(cal).getTime());
+            return new Timestamp(getValueObject(columnLabel).getTimestamp(cal).getTime());
         } catch (ParseException e) {
             throw new SQLException("Could not parse as time");
         }
