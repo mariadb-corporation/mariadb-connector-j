@@ -463,11 +463,11 @@ public class DrizzleStatement implements Statement {
      * @since 1.4
      */
     public ResultSet getGeneratedKeys() throws SQLException {
-        if (queryResult.getResultSetType() == ResultSetType.MODIFY) {
+        if (queryResult != null && queryResult.getResultSetType() == ResultSetType.MODIFY) {
             QueryResult genRes = ((ModifyQueryResult) queryResult).getGeneratedKeysResult();
             return new DrizzleResultSet(genRes, this);
         }
-        return null;
+        return DrizzleResultSet.EMPTY;
     }
 
     /**
