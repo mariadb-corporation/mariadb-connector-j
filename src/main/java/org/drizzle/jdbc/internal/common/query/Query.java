@@ -26,4 +26,6 @@ public interface Query {
     void writeTo(OutputStream os) throws IOException, QueryException;
 
     String getQuery();
+
+    QueryType getQueryType();
 }

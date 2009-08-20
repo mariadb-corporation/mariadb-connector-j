@@ -21,7 +21,7 @@ import java.util.logging.Logger;
  */
 public class DrizzleQuery implements Query {
     private final static Logger log = Logger.getLogger(DrizzleQuery.class.getName());
-    protected final String query;
+    private final String query;
 
     public DrizzleQuery(String query) {
         this.query = query;
@@ -40,6 +40,10 @@ public class DrizzleQuery implements Query {
         return query;
     }
 
+    public QueryType getQueryType() {
+        return QueryType.classifyQuery(query);
+    }
+
     @Override
     public boolean equals(Object otherObj) {
         if(otherObj instanceof DrizzleQuery) {
@@ -47,5 +51,6 @@ public class DrizzleQuery implements Query {
         }
         return false;
     }
+
 
 }

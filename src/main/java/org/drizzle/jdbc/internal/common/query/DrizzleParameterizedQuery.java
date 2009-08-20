@@ -11,6 +11,7 @@ package org.drizzle.jdbc.internal.common.query;
 
 import org.drizzle.jdbc.internal.common.QueryException;
 import static org.drizzle.jdbc.internal.common.Utils.countChars;
+import static org.drizzle.jdbc.internal.common.Utils.stripQuery;
 import org.drizzle.jdbc.internal.common.query.parameters.ParameterHolder;
 
 import java.io.IOException;
@@ -29,26 +30,26 @@ import java.util.logging.Logger;
  */
 public class DrizzleParameterizedQuery implements ParameterizedQuery {
     private final static Logger log = Logger.getLogger(DrizzleParameterizedQuery.class.getName());
-    private Map<Integer, ParameterHolder> parameters;
+    private final Map<Integer, ParameterHolder> parameters;
     private final int paramCount;
     private final String query;
+    private final String strippedQuery;
 
     public DrizzleParameterizedQuery(String query) {
         this.query = query;
-        this.paramCount = countChars(query, '?');
-        log.finest("Found " + paramCount + " questionmarks");
-        parameters = new HashMap<Integer, ParameterHolder>();
+        this.strippedQuery = stripQuery(query);
+        this.paramCount = countChars(strippedQuery, '?');
+        parameters = new HashMap<Integer, ParameterHolder>(this.paramCount);
     }
 
     public DrizzleParameterizedQuery(ParameterizedQuery query) {
         this.query = query.getQuery();
         this.paramCount = query.getParamCount();
-        parameters = new HashMap<Integer, ParameterHolder>();
-        log.finest("Copying an existing parameterized query");
+        this.strippedQuery = query.getStrippedQuery();
+        parameters = new HashMap<Integer, ParameterHolder>(this.paramCount);
     }
 
     public void setParameter(int position, ParameterHolder parameter) throws IllegalParameterException {
-        log.finest("Setting parameter " + parameter.toString() + " at position " + position);
         if (position >= 0 && position < paramCount) {
             parameters.put(position, parameter);
         } else
@@ -65,10 +66,11 @@ public class DrizzleParameterizedQuery implements ParameterizedQuery {
     }
 
     public int length() {
-        int length = query.length() - paramCount; // remove the ?s
+        int length = strippedQuery.length() - paramCount; // remove the ?s
 
-        for (Map.Entry<Integer, ParameterHolder> param : parameters.entrySet())
+        for (Map.Entry<Integer, ParameterHolder> param : parameters.entrySet()) {
             length += param.getValue().length();
+        }
 
         return length;
     }
@@ -76,11 +78,26 @@ public class DrizzleParameterizedQuery implements ParameterizedQuery {
     public void writeTo(OutputStream os) throws IOException, QueryException {
         if (paramCount != this.parameters.size())
             throw new QueryException("You need to set exactly " + paramCount + " parameters on the prepared statement");
-        StringReader strReader = new StringReader(query);
+        StringReader strReader = new StringReader(strippedQuery);
         int ch;
         int paramCounter = 0;
+        boolean isWithinQuotes = false;
+        boolean isWithinDoubleQuotes = false;
         while ((ch = strReader.read()) != -1) {
-            if (ch == '?') {
+            if(ch == '"' && !isWithinQuotes && !isWithinDoubleQuotes) {
+                isWithinDoubleQuotes = true;
+            } else if(ch == '"' && !isWithinQuotes) {
+                isWithinDoubleQuotes = false;
+            }
+
+            if(ch == '\'' && !isWithinQuotes && !isWithinDoubleQuotes) {
+                isWithinQuotes = true;
+            } else if(ch == '\'' && !isWithinDoubleQuotes) {
+                isWithinQuotes = false;
+            }
+
+
+            if (ch == '?' && !isWithinDoubleQuotes && !isWithinQuotes) {
                 parameters.get(paramCounter++).writeTo(os);
             } else {
                 os.write(ch);
@@ -92,7 +109,15 @@ public class DrizzleParameterizedQuery implements ParameterizedQuery {
         return query;
     }
 
+    public QueryType getQueryType() {
+        return QueryType.classifyQuery(strippedQuery);
+    }
+
     public int getParamCount() {
         return paramCount;
+    }
+
+    public String getStrippedQuery() {
+        return strippedQuery;
     }
 }

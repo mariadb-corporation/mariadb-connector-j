@@ -93,7 +93,9 @@ public class Utils {
     }
 
     /**
-     * returns count of characters c in str
+     * returns count of characters c in str.
+     *
+     * Does not count chars enclosed in single or double quotes
      *
      * @param str the string to count
      * @param c   the character
@@ -101,12 +103,87 @@ public class Utils {
      */
     public static int countChars(String str, char c) {
         int count = 0;
+        boolean isWithinDoubleQuotes = false;
+        boolean isWithinQuotes = false;
+
         for (byte b : str.getBytes()) {
-            if (c == b) count++;
+            if(b == '"' && !isWithinQuotes && !isWithinDoubleQuotes) {
+                isWithinDoubleQuotes = true;
+            } else if(b == '"' && !isWithinQuotes) {
+                isWithinDoubleQuotes = false;
+            }
+            
+            if(b == '\'' && !isWithinQuotes && !isWithinDoubleQuotes) {
+                isWithinQuotes = true;
+            } else if(b == '\'' && !isWithinDoubleQuotes) {
+                isWithinQuotes = false;
+            }
+
+            if(!isWithinDoubleQuotes && !isWithinQuotes) {
+                if (c == b) {
+                    count++;
+                }
+            }
         }
         return count;
     }
 
+    private enum ParsingState {
+        WITHIN_COMMENT,WITHIN_QUOTES, WITHIN_DOUBLE_QUOTES, NORMAL
+    }
+    
+    public static String stripQuery(String query) {
+        StringBuilder sb = new StringBuilder();
+        ParsingState parsingState=ParsingState.NORMAL;
+        ParsingState nextParsingState = ParsingState.NORMAL;
+        byte [] queryBytes = query.getBytes();
+        
+        for (int i = 0;i<queryBytes.length;i++) {
+            byte b = queryBytes[i];
+            byte nextByte=0;
+
+            if(i < queryBytes.length-1) {
+                nextByte = queryBytes[i+1];
+            }
+
+            switch(parsingState) {
+                case WITHIN_DOUBLE_QUOTES:
+                    if(b == '"') {
+                        nextParsingState = ParsingState.NORMAL;
+                    }
+                    break;
+                case WITHIN_QUOTES:
+                    if(b == '\'') {
+                        nextParsingState = ParsingState.NORMAL;
+                    }
+                    break;
+                case NORMAL:
+                    if(b=='\'') {
+                        nextParsingState = ParsingState.WITHIN_QUOTES;
+                    } else if (b=='"') {
+                        nextParsingState = ParsingState.WITHIN_DOUBLE_QUOTES;
+                    } else if (b=='/' && nextByte == '*') {
+                        nextParsingState = ParsingState.WITHIN_COMMENT;
+                        parsingState = ParsingState.WITHIN_COMMENT;
+                    } else if (b=='#') {
+                        return sb.toString();
+                    }
+                    break;
+                case WITHIN_COMMENT:
+                    if(b=='*' && nextByte=='/') {
+                        nextParsingState = ParsingState.NORMAL;
+                        i++;
+                    }
+                    break;
+            }
+
+            if(parsingState != ParsingState.WITHIN_COMMENT) {
+                sb.append((char)b);
+            }
+            parsingState = nextParsingState;
+        }
+        return sb.toString();
+    }
     /**
      * encrypts a password
      * <p/>

@@ -42,5 +42,5 @@ public interface ParameterizedQuery extends Query {
             throws IllegalParameterException;
 
     Map<Integer, ParameterHolder> getParameters();
-
+    String getStrippedQuery(); 
 }

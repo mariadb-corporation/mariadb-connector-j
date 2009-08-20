@@ -858,8 +858,58 @@ public class DriverTest {
             assertEquals(i++, rs.getInt("id"));
         }
         assertEquals(1,i);
-
+    }
+    @Test
+    public void testStripQueryWithComments() {
+        String q = "select 'some query without comments'";
+        String expectedQ = q;
+        assertEquals(q, Utils.stripQuery(q));
+        q = "select 1 /*this should be removed*/ from b";
+        expectedQ = "select 1  from b";
+        assertEquals(expectedQ,Utils.stripQuery(q));
+        q = "select 1 /*this should be # removed*/ from b# crap";
+        expectedQ = "select 1  from b";
+        assertEquals(expectedQ,Utils.stripQuery(q));
+        q = "select \"1 /*this should not be # removed*/\" from b# crap";
+        expectedQ = "select \"1 /*this should not be # removed*/\" from b";
+        assertEquals(expectedQ,Utils.stripQuery(q));
+        q = "/**/select \"1 /*this should not be # removed*/\" from b# crap/**/";
+        expectedQ = "select \"1 /*this should not be # removed*/\" from b";
+        assertEquals(expectedQ,Utils.stripQuery(q));
+        q = "/**/select '1 /*this should not be # removed*/' from b# crap/**/";
+        expectedQ = "select '1 /*this should not be # removed*/' from b";
+        assertEquals(expectedQ,Utils.stripQuery(q));
     }
 
+    @Test
+    public void testPreparedStatementsWithComments() throws SQLException {
+        getConnection().createStatement().execute("drop table if exists commentPreparedStatements");
+        getConnection().createStatement().execute(
+                        "create table commentPreparedStatements (id int not null primary key auto_increment, a varchar(10))");
+
+        String query = "INSERT INTO commentPreparedStatements (a) VALUES (?) # ?";
+        PreparedStatement pstmt = getConnection().prepareStatement(query);
+        pstmt.setString(1,"yeah");
+        pstmt.execute();
+    }
+    @Test
+    public void testPreparedStatementsWithQuotes() throws SQLException {
+        getConnection().createStatement().execute("drop table if exists quotesPreparedStatements");
+        getConnection().createStatement().execute(
+                        "create table quotesPreparedStatements (id int not null primary key auto_increment, a varchar(10))");
+
+        String query = "INSERT INTO quotesPreparedStatements (a) VALUES (\"hellooo?\") # ?";
+        PreparedStatement pstmt = getConnection().prepareStatement(query);
+
+        pstmt.execute();
+    }
+
+    @Test
+    public void testCountChars() {
+        assertEquals(1, Utils.countChars("?",'?'));
+        assertEquals(2, Utils.countChars("??",'?'));
+        assertEquals(1, Utils.countChars("?'?'",'?'));
+        assertEquals(1, Utils.countChars("?\"?\"",'?'));
+    }
 
 }
