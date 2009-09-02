@@ -11,7 +11,6 @@ package org.drizzle.jdbc.internal.common.query;
 
 import org.drizzle.jdbc.internal.common.QueryException;
 import static org.drizzle.jdbc.internal.common.Utils.countChars;
-import static org.drizzle.jdbc.internal.common.Utils.stripQuery;
 import org.drizzle.jdbc.internal.common.query.parameters.ParameterHolder;
 
 import java.io.IOException;
@@ -19,7 +18,6 @@ import java.io.OutputStream;
 import java.io.StringReader;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Collections;
 import java.util.logging.Logger;
 
 /**
@@ -32,20 +30,18 @@ public class DrizzleParameterizedQuery implements ParameterizedQuery {
     private final static Logger log = Logger.getLogger(DrizzleParameterizedQuery.class.getName());
     private final Map<Integer, ParameterHolder> parameters;
     private final int paramCount;
+//    private final String query;
     private final String query;
-    private final String strippedQuery;
 
     public DrizzleParameterizedQuery(String query) {
         this.query = query;
-        this.strippedQuery = stripQuery(query);
-        this.paramCount = countChars(strippedQuery, '?');
+        this.paramCount = countChars(this.query, '?');
         parameters = new HashMap<Integer, ParameterHolder>(this.paramCount);
     }
 
     public DrizzleParameterizedQuery(ParameterizedQuery query) {
-        this.query = query.getQuery();
         this.paramCount = query.getParamCount();
-        this.strippedQuery = query.getStrippedQuery();
+        this.query = query.getQuery();
         parameters = new HashMap<Integer, ParameterHolder>(this.paramCount);
     }
 
@@ -66,7 +62,7 @@ public class DrizzleParameterizedQuery implements ParameterizedQuery {
     }
 
     public int length() {
-        int length = strippedQuery.length() - paramCount; // remove the ?s
+        int length = query.length() - paramCount; // remove the ?s
 
         for (Map.Entry<Integer, ParameterHolder> param : parameters.entrySet()) {
             length += param.getValue().length();
@@ -78,7 +74,7 @@ public class DrizzleParameterizedQuery implements ParameterizedQuery {
     public void writeTo(OutputStream os) throws IOException, QueryException {
         if (paramCount != this.parameters.size())
             throw new QueryException("You need to set exactly " + paramCount + " parameters on the prepared statement");
-        StringReader strReader = new StringReader(strippedQuery);
+        StringReader strReader = new StringReader(query);
         int ch;
         int paramCounter = 0;
         boolean isWithinQuotes = false;
@@ -110,14 +106,11 @@ public class DrizzleParameterizedQuery implements ParameterizedQuery {
     }
 
     public QueryType getQueryType() {
-        return QueryType.classifyQuery(strippedQuery);
+        return QueryType.classifyQuery(query);
     }
 
     public int getParamCount() {
         return paramCount;
     }
 
-    public String getStrippedQuery() {
-        return strippedQuery;
-    }
 }

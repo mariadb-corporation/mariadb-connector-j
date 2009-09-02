@@ -78,11 +78,12 @@ public final class DrizzleConnection
         if(parameterizedBatchHandlerFactory == null) {
             this.parameterizedBatchHandlerFactory = new DefaultParameterizedBatchHandlerFactory();
         }
+        String strippedQuery = Utils.stripQuery(sql);
         return new DrizzlePreparedStatement(protocol,
                                             this,
-                                            sql,
+                                            strippedQuery,
                                             queryFactory,
-                                            parameterizedBatchHandlerFactory.get(sql,protocol));
+                                            parameterizedBatchHandlerFactory.get(strippedQuery,protocol));
     }
 
     /**
