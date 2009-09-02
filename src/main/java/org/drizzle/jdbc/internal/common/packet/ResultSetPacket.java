@@ -25,13 +25,15 @@ import java.io.InputStream;
 public class ResultSetPacket extends ResultPacket {
     private final long fieldCount;
 
-    public ResultSetPacket(InputStream istream) throws IOException {
-        Reader reader = new Reader(istream);
+    public ResultSetPacket(final InputStream istream) throws IOException {
+        super();
+        final Reader reader = new Reader(istream);
         fieldCount = reader.getLengthEncodedBinary();
     }
 
-    public ResultSetPacket(byte[] rawBytes) {
-        LengthEncodedBinary leb = ReadUtil.getLengthEncodedBinary(rawBytes, 0);
+    public ResultSetPacket(final byte[] rawBytes) {
+        super();
+        final LengthEncodedBinary leb = ReadUtil.getLengthEncodedBinary(rawBytes, 0);
         fieldCount = leb.getValue();
     }
 

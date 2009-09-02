@@ -10,20 +10,9 @@
 package org.drizzle.jdbc.internal.drizzle;
 
 import org.drizzle.jdbc.DrizzleBlob;
-import org.drizzle.jdbc.internal.drizzle.DrizzleType;
-import org.drizzle.jdbc.internal.common.ValueObject;
-import org.drizzle.jdbc.internal.common.Utils;
 import org.drizzle.jdbc.internal.common.AbstractValueObject;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.math.BigDecimal;
-import java.sql.Date;
-import java.sql.Time;
-import java.sql.Timestamp;
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
 
 /**
  * Contains the raw value returned from the server
@@ -36,13 +25,14 @@ import java.util.Calendar;
  */
 public class DrizzleValueObject extends AbstractValueObject {
 
-    public DrizzleValueObject(byte[] rawBytes, DrizzleType dataType) {
+    public DrizzleValueObject(final byte[] rawBytes, final DrizzleType dataType) {
         super(rawBytes,dataType);
     }
 
     public Object getObject() throws ParseException  {
-        if (this.getBytes() == null)
+        if (this.getBytes() == null) {
             return null;
+        }
         switch (((DrizzleType)dataType).getType()) {
             case TINY:
                 return getShort();
@@ -66,7 +56,8 @@ public class DrizzleValueObject extends AbstractValueObject {
                 return getString();
             case BLOB:
                 return new DrizzleBlob(getBytes());
+            default:
+                return null;
         }
-        return null;
     }
 }

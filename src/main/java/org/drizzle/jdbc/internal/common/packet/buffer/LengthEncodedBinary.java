@@ -20,7 +20,7 @@ public class LengthEncodedBinary {
     private final int length;
     private final long value;
 
-    public LengthEncodedBinary(byte[] rawBytes, int start) {
+    public LengthEncodedBinary(final byte[] rawBytes, final int start) {
         if (start < rawBytes.length) {
             switch (rawBytes[start] & 0xff) {
                 case 251:

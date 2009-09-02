@@ -31,34 +31,43 @@ public abstract class AbstractValueObject implements ValueObject {
     protected final byte[] rawBytes;
     protected final DataType dataType;
 
-    public AbstractValueObject(byte[] rawBytes,DataType dataType) {
+    public AbstractValueObject(final byte[] rawBytes,final DataType dataType) {
         this.dataType = dataType;
         this.rawBytes = rawBytes;
     }
 
     public String getString() {
-        if (rawBytes == null)
+        if (rawBytes == null) {
             return null;
+        }
         return new String(rawBytes);
     }
 
     public long getLong() {
-        if (rawBytes == null) return 0;
+        if (rawBytes == null) {
+            return 0;
+        }
         return Long.valueOf(getString());
     }
 
     public int getInt() {
-        if (rawBytes == null) return 0;
+        if (rawBytes == null) {
+            return 0;
+        }
         return Integer.valueOf(getString());
     }
 
     public short getShort() {
-        if (rawBytes == null) return 0;
+        if (rawBytes == null) {
+            return 0;
+        }
         return Short.valueOf(getString());
     }
 
     public byte getByte() {
-        if (rawBytes == null) return 0;
+        if (rawBytes == null) {
+            return 0;
+        }
         return Byte.valueOf(getString());
     }
 
@@ -67,25 +76,33 @@ public abstract class AbstractValueObject implements ValueObject {
     }
 
     public float getFloat() {
-        if (rawBytes == null) return 0;
+        if (rawBytes == null) {
+            return 0;
+        }
         return Float.valueOf(getString());
     }
 
     public double getDouble() {
-        if (rawBytes == null) return 0;
+        if (rawBytes == null) {
+            return 0;
+        }
         return Double.valueOf(getString());
     }
 
     public BigDecimal getBigDecimal() {
-        if (rawBytes == null) return null;
+        if (rawBytes == null) {
+            return null;
+        }
         return new BigDecimal(getString());
     }
 
     public Date getDate() throws ParseException {
-        if (rawBytes == null) return null;
-        String rawValue = getString();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-        java.util.Date utilDate = sdf.parse(rawValue);
+        if (rawBytes == null) {
+            return null;
+        }
+        final String rawValue = getString();
+        final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        final java.util.Date utilDate = sdf.parse(rawValue);
         return new Date(utilDate.getTime());
     }
 
@@ -98,15 +115,19 @@ public abstract class AbstractValueObject implements ValueObject {
      * @see Utils#unpackTime(int)
      */
     public Time getTime() throws ParseException {
-        if (rawBytes == null) return null;
-        int packedValue = getInt();
-        long timestamp = Utils.unpackTime(packedValue);
+        if (rawBytes == null) {
+            return null;
+        }
+        final int packedValue = getInt();
+        final long timestamp = Utils.unpackTime(packedValue);
         return new Time(timestamp);
     }
 
     public Timestamp getTimestamp() throws ParseException {
-        if (rawBytes == null) return null;
-        String rawValue = getString();
+        if (rawBytes == null) {
+            return null;
+        }
+        final String rawValue = getString();
         SimpleDateFormat sdf;
         if(rawValue.length() > 11) {
             sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -115,57 +136,70 @@ public abstract class AbstractValueObject implements ValueObject {
             sdf = new SimpleDateFormat("yyyy-MM-dd");
         }
 
-        java.util.Date utilTime = sdf.parse(rawValue);
+        final java.util.Date utilTime = sdf.parse(rawValue);
         return new Timestamp(utilTime.getTime());
     }
 
     public InputStream getInputStream() {
-        if (rawBytes == null) return null;
+        if (rawBytes == null) {
+            return null;
+        }
         return new ByteArrayInputStream(getString().getBytes());
     }
 
     public InputStream getBinaryInputStream() {
-        if (rawBytes == null) return null;
+        if (rawBytes == null) {
+            return null;
+        }
         return new ByteArrayInputStream(rawBytes);
     }
 
     public abstract Object getObject() throws ParseException;
 
-    public Date getDate(Calendar cal) throws ParseException {
-        if (rawBytes == null) return null;
-        String rawValue = getString();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+    public Date getDate(final Calendar cal) throws ParseException {
+        if (rawBytes == null) {
+            return null;
+        }
+        final String rawValue = getString();
+        final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
         sdf.setCalendar(cal);
-        java.util.Date utilDate = sdf.parse(rawValue);
+        final java.util.Date utilDate = sdf.parse(rawValue);
         return new Date(utilDate.getTime());
     }
 
-    public Time getTime(Calendar cal) throws ParseException {
+    public Time getTime(final Calendar cal) throws ParseException {
         // TODO: FIX! USE CAL!
 
-        if (rawBytes == null) return null;
-        int packedTime = getInt();
-        long millis = Utils.unpackTime(packedTime);
-        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+        if (rawBytes == null) {
+            return null;
+        }
+        final int packedTime = getInt();
+        final long millis = Utils.unpackTime(packedTime);
+        final SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
         sdf.setCalendar(cal);
         return new Time(millis);
     }
 
-    public Timestamp getTimestamp(Calendar cal) throws ParseException {
-        if (rawBytes == null) return null;
-        String rawValue = getString();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    public Timestamp getTimestamp(final Calendar cal) throws ParseException {
+        if (rawBytes == null) {
+            return null;
+        }
+        final String rawValue = getString();
+        final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         sdf.setCalendar(cal);
-        java.util.Date utilTime = sdf.parse(rawValue);
+        final java.util.Date utilTime = sdf.parse(rawValue);
         return new Timestamp(utilTime.getTime());
     }
 
     public boolean getBoolean() {
-        if (rawBytes == null) return false;
+        if (rawBytes == null) {
+            return false;
+        }
 
-        String rawVal = getString();
-        if (rawVal.toLowerCase().equals("true") || rawVal.toLowerCase().equals("1"))
+        final String rawVal = getString();
+        if (rawVal.equalsIgnoreCase("true") || rawVal.equalsIgnoreCase("1")) {
             return true;
+        }
         return false;
     }
 
@@ -176,8 +210,9 @@ public abstract class AbstractValueObject implements ValueObject {
 
 
     public int getDisplayLength() {
-        if (rawBytes != null)
+        if (rawBytes != null) {
             return rawBytes.length;
+        }
         return 4; //NULL
     }
 

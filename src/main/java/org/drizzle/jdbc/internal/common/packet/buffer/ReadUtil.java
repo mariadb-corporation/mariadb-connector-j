@@ -14,7 +14,6 @@ import org.drizzle.jdbc.internal.common.packet.RawPacket;
 import java.io.InterruptedIOException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.IOException;
 
 /**
  * .
@@ -22,9 +21,12 @@ import java.io.IOException;
  * Date: Jan 16, 2009
  * Time: 8:27:38 PM
  */
-public class ReadUtil {
-    private static int readLength(InputStream reader) throws IOException {
-        byte[] lengthBuffer = new byte[3];
+public final class ReadUtil {
+    private ReadUtil() {
+        
+    }
+    private static int readLength(final InputStream reader) throws IOException {
+        final byte[] lengthBuffer = new byte[3];
         if (safeRead(reader, lengthBuffer) != 3) {
             throw new IOException("Incomplete read!");
         }
@@ -37,17 +39,17 @@ public class ReadUtil {
      * fix the problem with "incomplete" reads by doing another read if we
      * don't have all of the data yet.
      *
-     * @param is     the input stream to read from
+     * @param inputStream     the input stream to read from
      * @param buffer where to store the data
      * @return the number of bytes read (should be == length if we didn't hit EOF)
      * @throws java.io.IOException if an error occurs while reading the stream
      */
-    public static int safeRead(InputStream is, byte[] buffer) throws IOException {
+    public static int safeRead(final InputStream inputStream, final byte[] buffer) throws IOException {
         int offset = 0;
         int left = buffer.length;
         do {
             try {
-                int nr = is.read(buffer, offset, left);
+                final int nr = inputStream.read(buffer, offset, left);
                 if (nr == -1) {
                     return nr;
                 }
@@ -61,37 +63,33 @@ public class ReadUtil {
         return buffer.length;
     }
 
-    private static byte readPacketSeq(InputStream reader) throws IOException {
-        return (byte) reader.read();
-    }
-
-    public static byte getByteAt(InputStream reader, int i) throws IOException {
-        reader.mark(i + 1);
-        long skipped = reader.skip(i - 1);
-        if(skipped != i-1) {
+    public static byte getByteAt(final InputStream reader, final int position) throws IOException {
+        reader.mark(position + 1);
+        final long skipped = reader.skip(position - 1);
+        if(skipped != position-1) {
             throw new IOException("Could not skip the requested number of bytes.");
         }
 
-        byte b = (byte) reader.read();
+        final byte readByte = (byte) reader.read();
         reader.reset();
-        return b;
+        return readByte;
     }
 
-    public static boolean eofIsNext(InputStream reader) throws IOException {
+    public static boolean eofIsNext(final InputStream reader) throws IOException {
         reader.mark(10);
-        int length = readLength(reader);
-        byte packetType = (byte) reader.read();
+        final int length = readLength(reader);
+        final byte packetType = (byte) reader.read();
         reader.reset();
         return (packetType == (byte) 0xfe) && length < 9;
     }
 
-    public static boolean eofIsNext(RawPacket rawPacket) {
-        byte[] rawBytes = rawPacket.getRawBytes();
+    public static boolean eofIsNext(final RawPacket rawPacket) {
+        final byte[] rawBytes = rawPacket.getRawBytes();
         return (rawBytes[0] == (byte) 0xfe && rawBytes.length < 9);
 
     }
 
-    public static short readShort(byte[] bytes, int start) {
+    public static short readShort(final byte[] bytes, final int start) {
         short length = 0;
 
         if(bytes.length-start >= 2) {
@@ -101,7 +99,7 @@ public class ReadUtil {
         return length;
     }
 
-    public static int read16bitword(byte[] bytes, int start) {
+    public static int read16bitword(final byte[] bytes, final int start) {
         int length = 0;
 
         if(bytes.length-start >= 2) {
@@ -111,12 +109,12 @@ public class ReadUtil {
         return length;
     }
 
-    public static int read24bitword(byte[] bytes, int start) {
+    public static int read24bitword(final byte[] bytes, final int start) {
         return (bytes[start] & 0xff) + ((bytes[start + 1] & 0xff) << 8) + ((bytes[start + 2] & 0xff) << 16);
     }
 
-    public static  long readLong(byte [] bytes, int start) {
-        long length = 
+    public static  long readLong(final byte [] bytes, final int start) {
+        final long length = 
                 (bytes[start]& (long)0xff) +
                ((bytes[start+1]&(long)0xff)<<8) +
                ((bytes[start+2]&(long)0xff)<<16) +
@@ -128,11 +126,11 @@ public class ReadUtil {
         return length;
     }
  
-    public static LengthEncodedBytes getLengthEncodedBytes(byte[] rawBytes, int start) {
+    public static LengthEncodedBytes getLengthEncodedBytes(final byte[] rawBytes, final int start) {
         return new LengthEncodedBytes(rawBytes, start);
     }
 
-    public static LengthEncodedBinary getLengthEncodedBinary(byte[] rawBytes, int start) {
+    public static LengthEncodedBinary getLengthEncodedBinary(final byte[] rawBytes, final int start) {
         return new LengthEncodedBinary(rawBytes, start);
     }
 }

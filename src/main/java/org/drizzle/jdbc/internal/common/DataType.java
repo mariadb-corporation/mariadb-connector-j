@@ -17,7 +17,7 @@ package org.drizzle.jdbc.internal.common;
  * To change this template use File | Settings | File Templates.
  */
 public interface DataType {
-    public Class getJavaType();
-    public int getSqlType();
-    public String getTypeName();
+    Class getJavaType();
+    int getSqlType();
+    String getTypeName();
 }

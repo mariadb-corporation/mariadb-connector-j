@@ -16,11 +16,11 @@ package org.drizzle.jdbc.internal.common.queryresults;
  * Time: 9:51:19 PM
  */
 public interface ModifyQueryResult extends QueryResult {
-    public long getUpdateCount();
+    long getUpdateCount();
 
-    public String getMessage();
+    String getMessage();
 
-    public long getInsertId();
+    long getInsertId();
 
-    public QueryResult getGeneratedKeysResult();
+    QueryResult getGeneratedKeysResult();
 }

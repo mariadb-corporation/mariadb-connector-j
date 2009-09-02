@@ -26,7 +26,7 @@ final public class DefaultParameterizedBatchHandlerFactory implements Parameteri
      * @param query the query to create the handler for
      * @return
      */
-    public ParameterizedBatchHandler get(String query, Protocol protocol) {
+    public ParameterizedBatchHandler get(final String query, final Protocol protocol) {
         return new DefaultParameterizedBatchHandler(protocol);
     }
 }

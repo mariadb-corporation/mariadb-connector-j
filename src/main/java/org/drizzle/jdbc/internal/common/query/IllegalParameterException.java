@@ -16,7 +16,7 @@ package org.drizzle.jdbc.internal.common.query;
  * Time: 10:11:54 PM
  */
 public class IllegalParameterException extends Exception {
-    public IllegalParameterException(String s) {
+    public IllegalParameterException(final String s) {
         super(s);
     }
 }

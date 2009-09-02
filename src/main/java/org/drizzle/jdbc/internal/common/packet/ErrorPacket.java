@@ -23,23 +23,23 @@ import java.util.Arrays;
  * Time: 4:20:30 PM
  */
 public class ErrorPacket extends ResultPacket {
-    private final byte fieldCount;
     private final short errorNumber;
     private final byte sqlStateMarker;
     private final byte[] sqlState;
     private final String message;
 
-    public ErrorPacket(InputStream istream) throws IOException {
-        Reader reader = new Reader(istream);
-        this.fieldCount = reader.readByte();
+    public ErrorPacket(final InputStream istream) throws IOException {
+        super();
+        final Reader reader = new Reader(istream);
+        reader.readByte();
         this.errorNumber = reader.readShort();
         this.sqlStateMarker = reader.readByte();
         this.sqlState = reader.readRawBytes(5);
         this.message = reader.readString("ASCII");
     }
 
-    public ErrorPacket(byte[] rawBytes) {
-        this.fieldCount = rawBytes[0];
+    public ErrorPacket(final byte[] rawBytes) {
+        super();
         this.errorNumber = ReadUtil.readShort(rawBytes, 1);
         this.sqlStateMarker = rawBytes[3];
         this.sqlState = Arrays.copyOfRange(rawBytes, 4, 5 + 4);
@@ -65,5 +65,9 @@ public class ErrorPacket extends ResultPacket {
 
     public String getSqlState() {
         return new String(sqlState);
+    }
+
+    public byte getSqlStateMarker() {
+        return sqlStateMarker;
     }
 }

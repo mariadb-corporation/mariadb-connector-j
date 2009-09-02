@@ -19,7 +19,7 @@ import java.text.ParseException;
  * To change this template use File | Settings | File Templates.
  */
 public class GeneratedIdValueObject extends AbstractValueObject {
-    public GeneratedIdValueObject(long insertId) {
+    public GeneratedIdValueObject(final long insertId) {
         super(String.valueOf(insertId).getBytes(), new DataType() {
             public Class getJavaType() {
                 return Long.class;

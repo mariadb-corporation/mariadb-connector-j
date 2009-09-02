@@ -53,13 +53,13 @@ public final class Driver implements java.sql.Driver {
      * @return a connection
      * @throws SQLException if it is not possible to connect
      */
-    public Connection connect(String url, Properties info) throws SQLException {
+    public Connection connect(final String url, final Properties info) throws SQLException {
         // TODO: handle the properties!
         // TODO: define what props we support!
         log.finest("Connecting to: " + url);
 
         try {
-            JDBCUrl jdbcUrl = new JDBCUrl(url);
+            final JDBCUrl jdbcUrl = new JDBCUrl(url);
             Protocol protocol;
             if (jdbcUrl.getDBType() == JDBCUrl.DBType.DRIZZLE) {
                 protocol = new DrizzleProtocol(jdbcUrl.getHostname(),
@@ -83,7 +83,7 @@ public final class Driver implements java.sql.Driver {
      * @return true if the url is valid for this driver
      * @throws SQLException not in this implementation
      */
-    public boolean acceptsURL(String url) throws SQLException {
+    public boolean acceptsURL(final String url) throws SQLException {
         return url.startsWith("jdbc:drizzle://")
                 || url.startsWith("jdbc:mysql:thin://");
     }
@@ -96,8 +96,8 @@ public final class Driver implements java.sql.Driver {
      * @return something - not implemented
      * @throws SQLException if there is a problem getting the property info
      */
-    public DriverPropertyInfo[] getPropertyInfo(String url,
-                                                Properties info)
+    public DriverPropertyInfo[] getPropertyInfo(final String url,
+                                                final Properties info)
             throws SQLException {
         return new DriverPropertyInfo[0];
     }

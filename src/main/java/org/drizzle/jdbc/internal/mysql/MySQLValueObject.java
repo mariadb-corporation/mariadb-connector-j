@@ -25,12 +25,13 @@ import java.text.ParseException;
  * Time: 9:18:26 PM
  */
 public class MySQLValueObject extends AbstractValueObject {
-    public MySQLValueObject(byte[] rawBytes, DataType dataType) {
+    public MySQLValueObject(final byte[] rawBytes, final DataType dataType) {
         super(rawBytes,dataType);
     }
    public Object getObject() throws ParseException  {
-       if (this.getBytes() == null)
+       if (this.getBytes() == null) {
             return null;
+       }
         switch (((MySQLType)dataType).getType()) {
             case TINY:
                 return getShort();

@@ -23,9 +23,9 @@ import java.io.InputStream;
  */
 public class SyncPacketFetcher implements PacketFetcher {
 
-    private InputStream inputStream;
+    private final InputStream inputStream;
 
-    public SyncPacketFetcher(InputStream is) {
+    public SyncPacketFetcher(final InputStream is) {
         this.inputStream = new BufferedInputStream(is);
     }
 

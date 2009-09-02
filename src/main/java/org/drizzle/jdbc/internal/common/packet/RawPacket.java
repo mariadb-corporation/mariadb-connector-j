@@ -13,8 +13,6 @@ package org.drizzle.jdbc.internal.common.packet;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.drizzle.jdbc.internal.common.packet.buffer.ReadUtil;
 
 
@@ -36,8 +34,8 @@ public final class RawPacket {
      * @return The next packet from the stream, or NULL if the stream is closed
      * @throws java.io.IOException if an error occurs while reading data
      */
-    static RawPacket nextPacket(InputStream is) throws IOException {
-        int length = readLength(is);
+    static RawPacket nextPacket(final InputStream is) throws IOException {
+        final int length = readLength(is);
         if (length == -1) {
             return null;
         }
@@ -46,11 +44,11 @@ public final class RawPacket {
             throw new IOException("Got negative packet size: " + length);
         }
 
-        int packetSeq = readPacketSeq(is);
+        final int packetSeq = readPacketSeq(is);
 
-        byte[] rawBytes = new byte[length];
+        final byte[] rawBytes = new byte[length];
 
-        int nr = ReadUtil.safeRead(is, rawBytes);
+        final int nr = ReadUtil.safeRead(is, rawBytes);
         if (nr != length) {
             throw new IOException("EOF. Expected " + length + ", got " + nr);
         }
@@ -58,13 +56,13 @@ public final class RawPacket {
         return new RawPacket(rawBytes, packetSeq);
     }
 
-    private RawPacket(byte[] rawBytes, int packetSeq) {
+    private RawPacket(final byte[] rawBytes, final int packetSeq) {
         this.rawBytes = rawBytes;
         this.packetSeq = packetSeq;
     }
 
-    private static byte readPacketSeq(InputStream reader) throws IOException {
-        int val = reader.read();
+    private static byte readPacketSeq(final InputStream reader) throws IOException {
+        final int val = reader.read();
         if (val == -1) {
             throw new IOException("EOF");
         }
@@ -72,10 +70,10 @@ public final class RawPacket {
         return (byte) val;
     }
 
-    private static int readLength(InputStream reader) throws IOException {
-        byte[] lengthBuffer = new byte[3];
+    private static int readLength(final InputStream reader) throws IOException {
+        final byte[] lengthBuffer = new byte[3];
 
-        int nr = ReadUtil.safeRead(reader, lengthBuffer);
+        final int nr = ReadUtil.safeRead(reader, lengthBuffer);
         if (nr == -1) {
             return -1;
         } else if (nr != 3) {

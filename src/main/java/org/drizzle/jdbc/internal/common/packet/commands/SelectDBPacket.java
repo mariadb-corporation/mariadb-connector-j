@@ -24,16 +24,16 @@ import java.io.OutputStream;
 public class SelectDBPacket implements CommandPacket {
     private final WriteBuffer buffer = new WriteBuffer();
 
-    public SelectDBPacket(String database) {
+    public SelectDBPacket(final String database) {
         buffer.writeByte((byte) 0x02);
         buffer.writeString(database);
     }
 
-    public void send(OutputStream os) throws IOException {
-        byte[] buff = buffer.toByteArrayWithLength((byte) 0);
-        os.write(buff);
+    public void send(final OutputStream outputStream) throws IOException {
+        final byte[] buff = buffer.toByteArrayWithLength((byte) 0);
+        outputStream.write(buff);
 //        for(byte b: buff)
-//            os.write(b);
-        os.flush();
+//            outputStream.write(b);
+        outputStream.flush();
     }
 }

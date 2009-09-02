@@ -51,7 +51,7 @@ public final class DrizzleBlob extends OutputStream implements Blob {
      * creates a blob with content.
      * @param bytes the content for the blob.
      */
-    public DrizzleBlob(byte[] bytes) {
+    public DrizzleBlob(final byte[] bytes) {
         this.blobContent = bytes;
         this.actualSize = bytes.length;
     }
@@ -71,7 +71,7 @@ public final class DrizzleBlob extends OutputStream implements Blob {
      *                 an <code>IOException</code> may be thrown if the
      *                output stream has been closed.
      */
-    public void write(int b) throws IOException {
+    public void write(final int b) throws IOException {
         if (this.blobContent == null) {
             this.blobContent = new byte[INITIAL_BLOB_CONTENT_SIZE];
         }
@@ -117,11 +117,11 @@ public final class DrizzleBlob extends OutputStream implements Blob {
      * @see #setBytes
      * @since 1.2
      */
-    public byte[] getBytes(long pos, int length) throws SQLException {
+    public byte[] getBytes(final long pos, final int length) throws SQLException {
         if (pos < 1) {
             throw new SQLException("Pos starts at 1");
         }
-        int arrayPos = (int) (pos-1);
+        final int arrayPos = (int) (pos-1);
         return Arrays.copyOfRange(blobContent, arrayPos, arrayPos + length);
     }
 
@@ -149,24 +149,28 @@ public final class DrizzleBlob extends OutputStream implements Blob {
      *                first position is 1
      * @return the position at which the pattern appears, else -1
      */
-    public long position(byte [] pattern, long start) throws SQLException {
+    public long position(final byte [] pattern, final long start) throws SQLException {
         if (start < 1) {
             throw new SQLException("Start should be > 0, first position is 1.");
         }
         if (start > actualSize) {
             throw new SQLException("Start should be <= " + actualSize);
         }
-        long actualStart = start - 1;
+        final long actualStart = start - 1;
         for (int i = (int) actualStart; i < actualSize; i++) {
             if (blobContent[i] == pattern[0]) {
                 boolean isEqual = true;
                 for (int j = 1; j < pattern.length; j++) {
-                    if (i + j >= actualSize) return -1;
+                    if (i + j >= actualSize) {
+                        return -1;
+                    }
                     if (blobContent[i + j] != pattern[j]) {
                         isEqual = false;
                     }
                 }
-                if (isEqual) return i + 1;
+                if (isEqual) {
+                    return i + 1;
+                }
             }
         }
         return -1;
@@ -184,7 +188,7 @@ public final class DrizzleBlob extends OutputStream implements Blob {
      *                at which to begin searching; the first position is 1
      * @return the position at which the pattern begins, else -1
      */
-    public long position(Blob pattern, long start) throws SQLException {
+    public long position(final Blob pattern, final long start) throws SQLException {
         return position(pattern.getBytes(1, (int) pattern.length()), start);
     }
 
@@ -212,8 +216,8 @@ public final class DrizzleBlob extends OutputStream implements Blob {
      * @see #getBytes
      * @since 1.4
      */
-    public int setBytes(long pos, byte[] bytes) throws SQLException {
-        int arrayPos = (int)pos-1;
+    public int setBytes(final long pos, final byte[] bytes) throws SQLException {
+        final int arrayPos = (int)pos-1;
         int bytesWritten = 0;
 
         if (blobContent == null) {
@@ -264,10 +268,10 @@ public final class DrizzleBlob extends OutputStream implements Blob {
      *                               <code>BLOB</code> value or if pos is less than 1
      * @see #getBytes
      */
-    public int setBytes(long pos,
-                        byte[] bytes,
-                        int offset,
-                        int len) throws SQLException {
+    public int setBytes(final long pos,
+                        final byte[] bytes,
+                        final int offset,
+                        final int len) throws SQLException {
         int bytesWritten = 0;
         if (blobContent == null) {
             this.blobContent = new byte[(int) (pos + bytes.length) - (len - offset)];
@@ -310,7 +314,7 @@ public final class DrizzleBlob extends OutputStream implements Blob {
      * @see #getBinaryStream
      * @since 1.4
      */
-    public OutputStream setBinaryStream(long pos) throws SQLException {
+    public OutputStream setBinaryStream(final long pos) throws SQLException {
         if (pos < 1) {
             throw new SQLException("Invalid position in blob");
         }
@@ -333,7 +337,7 @@ public final class DrizzleBlob extends OutputStream implements Blob {
      * @throws java.sql.SQLException if there is an error accessing the
      *                               <code>BLOB</code> value or if len is less than 0
      */
-    public void truncate(long len) throws SQLException {
+    public void truncate(final long len) throws SQLException {
         this.blobContent = Arrays.copyOf(this.blobContent, (int) len);
         this.actualSize = (int) len;
     }
@@ -366,7 +370,7 @@ public final class DrizzleBlob extends OutputStream implements Blob {
      *               in the <code>Blob</code> or if pos + length is greater than the number of bytes
      *               in the <code>Blob</code>
      */
-    public InputStream getBinaryStream(long pos, long length) throws SQLException {
+    public InputStream getBinaryStream(final long pos, final long length) throws SQLException {
         if (pos < 1 || pos > actualSize || pos + length > actualSize) {
             throw new SQLException("Out of range");
         }

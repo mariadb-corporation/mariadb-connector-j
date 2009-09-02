@@ -22,7 +22,7 @@ public class LengthEncodedBytes {
     private final byte[] theBytes;
     private final int length;
 
-    public LengthEncodedBytes(byte[] rawBytes, int start) {
+    public LengthEncodedBytes(final byte[] rawBytes, final int start) {
         if (start < rawBytes.length) {
             int tempLength;
             switch (rawBytes[start] & 0xff) {

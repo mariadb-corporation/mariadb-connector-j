@@ -21,5 +21,5 @@ import java.io.OutputStream;
  * Time: 9:37:59 PM
  */
 public interface CommandPacket {
-    public void send(OutputStream os) throws IOException, QueryException;
+    void send(OutputStream os) throws IOException, QueryException;
 }

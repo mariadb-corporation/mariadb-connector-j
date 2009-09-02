@@ -19,7 +19,7 @@ import java.io.IOException;
  * To change this template use File | Settings | File Templates.
  */
 public class BinlogDumpException extends Exception {
-    public BinlogDumpException(String s, IOException e) {
+    public BinlogDumpException(final String s, final IOException e) {
         super(s, e);
     }
 }

@@ -17,7 +17,7 @@ package org.drizzle.jdbc.internal.common.queryresults;
  * To change this template use File | Settings | File Templates.
  */
 public class NoSuchColumnException extends Exception {
-    public NoSuchColumnException(String reason) {
+    public NoSuchColumnException(final String reason) {
         super(reason);
     }
 }
