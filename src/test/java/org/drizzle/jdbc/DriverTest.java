@@ -806,18 +806,18 @@ public class DriverTest {
     }
 
     @Test
-    public void testRewriteBatchHander() throws SQLException {
+    public void testRewriteBatchHandler() throws SQLException {
         getConnection().createStatement().execute("drop table if exists rewritetest");
         getConnection().createStatement().execute(
-                "create table rewritetest (id int not null, a varchar(10), b int)");
+                "create table rewritetest (id int not null, a varchar(10), b int) engine=innodb");
 
         if(getConnection().isWrapperFor(DrizzleConnection.class)) {
             DrizzleConnection dc = getConnection().unwrap(DrizzleConnection.class);
             dc.setBatchQueryHandlerFactory(new RewriteParameterizedBatchHandlerFactory());
         }
 
-        PreparedStatement ps = connection.prepareStatement("insert into rewritetest values (?,?,?)");
-        for(int i = 0;i<100000;i++) {
+        PreparedStatement ps = getConnection().prepareStatement("insert into rewritetest values (?,?,?)");
+        for(int i = 0;i<10000;i++) {
             ps.setInt(1,i);
             ps.setString(2,"bbb"+i);
             ps.setInt(3,30+i);
@@ -829,13 +829,13 @@ public class DriverTest {
         while(rs.next()) {
             assertEquals(i++, rs.getInt("id"));
         }
-        assertEquals(100000,i);
+        assertEquals(10000,i);
     }
     @Test
     public void testRewriteBatchHandlerWithDupKey() throws SQLException {
         getConnection().createStatement().execute("drop table if exists rewritetest2");
         getConnection().createStatement().execute(
-                "create table rewritetest2 (id int not null primary key, a varchar(10), b int)");
+                "create table rewritetest2 (id int not null primary key, a varchar(10), b int) engine=innodb");
                 
         if(getConnection().isWrapperFor(DrizzleConnection.class)) {
             DrizzleConnection dc = getConnection().unwrap(DrizzleConnection.class);
@@ -843,8 +843,8 @@ public class DriverTest {
         }
 
         long startTime = System.currentTimeMillis();
-        PreparedStatement ps = connection.prepareStatement("insert into rewritetest2 values (?,?,?) on duplicate key update a=values(a)");
-        for(int i = 0;i<1000000;i++) {
+        PreparedStatement ps = getConnection().prepareStatement("insert into rewritetest2 values (?,?,?) on duplicate key update a=values(a)");
+        for(int i = 0;i<10000;i++) {
             ps.setInt(1,0);
             ps.setString(2,"bbb"+i);
             ps.setInt(3,30+i);
