@@ -979,8 +979,5 @@ public class DriverTest {
         assertEquals(4,rs.getInt(1));
         rs.first();
         assertEquals(1,rs.getInt(1));
-        rs.afterLast();
-        assertTrue(rs.isAfterLast());
-
     }
 }
