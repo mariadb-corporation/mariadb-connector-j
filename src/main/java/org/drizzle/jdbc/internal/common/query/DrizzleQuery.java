@@ -46,10 +46,7 @@ public class DrizzleQuery implements Query {
 
     @Override
     public boolean equals(Object otherObj) {
-        if(otherObj instanceof DrizzleQuery) {
-            return (((DrizzleQuery)otherObj).query).equals(query);
-        }
-        return false;
+        return otherObj instanceof DrizzleQuery && (((DrizzleQuery) otherObj).query).equals(query);
     }
 
 

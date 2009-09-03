@@ -60,7 +60,7 @@ public class Reader {
      * @throws java.io.IOException if it is not possible to create the string from the buffer
      */
     public String readString(final String charset) throws IOException {
-        int ch = 0;
+        int ch;
         byte[] tempArr = new byte[length - readBytes]; //todo: fix!
         int i = 0;
         while (readBytes < length && ((ch = inputReader.read()) != 0)) {

@@ -114,16 +114,14 @@ public final class ReadUtil {
     }
 
     public static  long readLong(final byte [] bytes, final int start) {
-        final long length = 
-                (bytes[start]& (long)0xff) +
-               ((bytes[start+1]&(long)0xff)<<8) +
-               ((bytes[start+2]&(long)0xff)<<16) +
-               ((bytes[start+3]&(long)0xff)<<24) +
-               ((bytes[start+4]&(long)0xff)<<32)+
-               ((bytes[start+5]&(long)0xff)<<40)+
-               ((bytes[start+6]&(long)0xff)<<48) +
-               ((bytes[start+7]&(long)0xff)<<56);
-        return length;
+        return (bytes[start]& (long)0xff) +
+       ((bytes[start+1]&(long)0xff)<<8) +
+       ((bytes[start+2]&(long)0xff)<<16) +
+       ((bytes[start+3]&(long)0xff)<<24) +
+       ((bytes[start+4]&(long)0xff)<<32)+
+       ((bytes[start+5]&(long)0xff)<<40)+
+       ((bytes[start+6]&(long)0xff)<<48) +
+       ((bytes[start+7]&(long)0xff)<<56);
     }
  
     public static LengthEncodedBytes getLengthEncodedBytes(final byte[] rawBytes, final int start) {

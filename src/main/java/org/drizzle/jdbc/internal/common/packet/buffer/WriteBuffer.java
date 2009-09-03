@@ -19,7 +19,7 @@ import java.util.List;
  * Time: 8:10:24 PM
  */
 public class WriteBuffer {
-    private List<Byte> buffer = new ArrayList<Byte>();
+    private final List<Byte> buffer = new ArrayList<Byte>();
 
     public WriteBuffer writeByte(byte theByte) {
         buffer.add(theByte);

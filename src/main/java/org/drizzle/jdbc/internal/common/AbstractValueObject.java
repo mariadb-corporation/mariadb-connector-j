@@ -28,10 +28,10 @@ import java.util.Calendar;
  * To change this template use File | Settings | File Templates.
  */
 public abstract class AbstractValueObject implements ValueObject {
-    protected final byte[] rawBytes;
+    private final byte[] rawBytes;
     protected final DataType dataType;
 
-    public AbstractValueObject(final byte[] rawBytes,final DataType dataType) {
+    protected AbstractValueObject(final byte[] rawBytes,final DataType dataType) {
         this.dataType = dataType;
         this.rawBytes = rawBytes;
     }
@@ -114,7 +114,7 @@ public abstract class AbstractValueObject implements ValueObject {
      * @see Utils#packTime(long)
      * @see Utils#unpackTime(int)
      */
-    public Time getTime() throws ParseException {
+    public Time getTime() {
         if (rawBytes == null) {
             return null;
         }
@@ -167,7 +167,7 @@ public abstract class AbstractValueObject implements ValueObject {
         return new Date(utilDate.getTime());
     }
 
-    public Time getTime(final Calendar cal) throws ParseException {
+    public Time getTime(final Calendar cal) {
         // TODO: FIX! USE CAL!
 
         if (rawBytes == null) {
@@ -197,10 +197,7 @@ public abstract class AbstractValueObject implements ValueObject {
         }
 
         final String rawVal = getString();
-        if (rawVal.equalsIgnoreCase("true") || rawVal.equalsIgnoreCase("1")) {
-            return true;
-        }
-        return false;
+        return rawVal.equalsIgnoreCase("true") || rawVal.equalsIgnoreCase("1");
     }
 
     public boolean isNull() {

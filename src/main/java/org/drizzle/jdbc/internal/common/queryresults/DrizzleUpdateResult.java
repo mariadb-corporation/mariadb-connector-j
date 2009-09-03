@@ -31,7 +31,7 @@ public class DrizzleUpdateResult implements ModifyQueryResult {
         this.warnings = warnings;
         this.message = message;
         this.insertId = insertId;
-        generatedKeysResult = new DrizzleInsertIdQueryResult(insertId);
+        generatedKeysResult = new DrizzleInsertIdQueryResult(insertId,updateCount, message);
     }
 
     public long getUpdateCount() {

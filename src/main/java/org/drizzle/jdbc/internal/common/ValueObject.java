@@ -44,7 +44,7 @@ public interface ValueObject {
 
     Date getDate() throws ParseException;
 
-    Time getTime() throws ParseException;
+    Time getTime();
 
     InputStream getInputStream();
 
@@ -54,7 +54,7 @@ public interface ValueObject {
 
     Date getDate(Calendar cal) throws ParseException;
 
-    Time getTime(Calendar cal) throws ParseException;
+    Time getTime(Calendar cal);
 
     Timestamp getTimestamp(Calendar cal) throws ParseException;
 

@@ -43,7 +43,6 @@ public class RewriteParameterizedBatchHandler implements ParameterizedBatchHandl
         this.queryValuePart = queryValuePart;
         this.onDupKeyPart = (onDupKeyPart == null?"":onDupKeyPart);
         queryBuilder.append(baseQuery);
-
         this.protocol = protocol;
     }
 

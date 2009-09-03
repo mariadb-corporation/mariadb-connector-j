@@ -266,14 +266,14 @@ public class MySQLProtocol implements Protocol {
     public QueryResult executeQuery(Query dQuery) throws QueryException {
         log.finest("Executing streamed query: " + dQuery);
         StreamedQueryPacket packet = new StreamedQueryPacket(dQuery);
-        int i = 0;
+
         try {
             packet.send(writer);
         } catch (IOException e) {
             throw new QueryException("Could not send query: " + e.getMessage(), -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), e);
         }
 
-        RawPacket rawPacket = null;
+        RawPacket rawPacket;
         try {
             rawPacket = packetFetcher.getRawPacket();
         } catch (IOException e) {
@@ -314,7 +314,7 @@ public class MySQLProtocol implements Protocol {
 
     public List<QueryResult> executeBatch() throws QueryException {
         List<QueryResult> retList = new ArrayList<QueryResult>(batchList.size());
-        int i = 0;
+
         for (Query query : batchList) {
             retList.add(executeQuery(query));
         }

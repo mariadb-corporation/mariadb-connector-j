@@ -401,14 +401,13 @@ public final class DrizzleProtocol implements Protocol {
     public QueryResult executeQuery(Query dQuery) throws QueryException {
         log.finest("Executing streamed query: " + dQuery);
         StreamedQueryPacket packet = new StreamedQueryPacket(dQuery);
-        int i = 0;
         try {
             packet.send(writer);
         } catch (IOException e) {
             throw new QueryException("Could not connect: " + e.getMessage(), -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), e);
         }
 
-        RawPacket rawPacket = null;
+        RawPacket rawPacket;
         try {
             rawPacket = packetFetcher.getRawPacket();
         } catch (IOException e) {
@@ -494,7 +493,7 @@ public final class DrizzleProtocol implements Protocol {
     public List<QueryResult> executeBatch() throws QueryException {
         log.fine("executing batch");
         List<QueryResult> retList = new ArrayList<QueryResult>(batchList.size());
-        int i = 0;
+
         for (Query query : batchList) {
             log.finest("executing batch query");
             retList.add(executeQuery(query));

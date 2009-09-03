@@ -1584,7 +1584,7 @@ public final class DrizzleDatabaseMetaData implements DatabaseMetaData {
      */
     public ResultSet getTables(String catalog, String schemaPattern, String tableNamePattern, String types[]) throws SQLException {
         Statement stmt = connection.createStatement();
-        ResultSet rs =  stmt.
+        return stmt.
             executeQuery("SELECT table_catalog table_cat, "
                     + "table_schema table_schem, "
                     + "table_name, "
@@ -1597,7 +1597,6 @@ public final class DrizzleDatabaseMetaData implements DatabaseMetaData {
                     + "null as ref_generation "
                     + "FROM information_schema.tables "
                     + "WHERE table_schema LIKE \""+schemaPattern+"\"");
-        return rs;
     }
 
     /**

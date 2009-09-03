@@ -16,15 +16,16 @@ package org.drizzle.jdbc.internal.common.query;
  * Time: 10:14:27 PM
  */
 public class DrizzleQueryFactory implements QueryFactory {
-    public Query createQuery(final String query) {
+    
+    public Query createQuery(String query) {
         return new DrizzleQuery(query);
     }
 
-    public ParameterizedQuery createParameterizedQuery(final String query) {
+    public ParameterizedQuery createParameterizedQuery(String query) {
         return new DrizzleParameterizedQuery(query);
     }
 
-    public ParameterizedQuery createParameterizedQuery(final ParameterizedQuery dQuery) {
+    public ParameterizedQuery createParameterizedQuery(ParameterizedQuery dQuery) {
         return new DrizzleParameterizedQuery(dQuery);
     }
 }

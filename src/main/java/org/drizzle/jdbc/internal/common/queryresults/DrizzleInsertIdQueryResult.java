@@ -23,27 +23,30 @@ import java.util.List;
 public class DrizzleInsertIdQueryResult implements SelectQueryResult {
 
     private final long insertId;
+    private int rowPointer = 0;
+    private final long rows;
+    private final String message;
 
-    public DrizzleInsertIdQueryResult(long insertId) {
+    public DrizzleInsertIdQueryResult(long insertId, long rows, String message) {
         this.insertId = insertId;
-
+        
+        this.message = message;
+        this.rows = rows;
     }
 
     public ValueObject getValueObject(int index) throws NoSuchColumnException {
         if (index != 0) throw new NoSuchColumnException("No such column: " + index);
-        //TODO: FIX!!!!!!!!!
-//        return DrizzleValueObject.fromLong(insertId);
         return new GeneratedIdValueObject(insertId);
     }
 
     public ValueObject getValueObject(String columnName) throws NoSuchColumnException {
         if (!columnName.toLowerCase().equals("insert_id"))
             throw new NoSuchColumnException("No such column: " + columnName);
-        return new GeneratedIdValueObject(insertId);
+        return new GeneratedIdValueObject(insertId+rowPointer-1);
     }
 
     public int getRows() {
-        return 1;
+        return (int) rows;
     }
 
     public int getColumnId(String columnLabel) throws NoSuchColumnException {
@@ -56,11 +59,11 @@ public class DrizzleInsertIdQueryResult implements SelectQueryResult {
     }
 
     public int getRowPointer() {
-        return 0;
+        return rowPointer;
     }
 
     public boolean next() {
-        return true;
+        return rowPointer++ < rows;
     }
 
     public List<ColumnInformation> getColumnInformation() {

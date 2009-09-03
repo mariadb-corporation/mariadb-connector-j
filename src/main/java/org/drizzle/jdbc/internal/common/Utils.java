@@ -250,9 +250,9 @@ public class Utils {
         int minutes = (int) ((milliseconds / (1000 * 60)) % 60);
         int hours = (int) ((milliseconds / (1000 * 60 * 60)) % 24);
         /* OK, now we pack the pieces into a 4-byte integer */
-        return ((int) millis * (1 << START_BIT_MILLISECONDS))
-                + ((int) seconds * (1 << START_BIT_SECONDS))
-                + ((int) minutes * (1 << START_BIT_MINUTES))
+        return (millis * (1 << START_BIT_MILLISECONDS))
+                + (seconds * (1 << START_BIT_SECONDS))
+                + (minutes * (1 << START_BIT_MINUTES))
                 + hours;
     }
 

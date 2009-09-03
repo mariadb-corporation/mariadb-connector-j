@@ -55,17 +55,9 @@ import java.util.Set;
  */
 public class ClientAuthPacket implements CommandPacket {
     private final WriteBuffer writeBuffer;
-    private final Set<ServerCapabilities> serverCapabilities;
-    private final String username;
-    private final String password;
-    private final String database;
 
     public ClientAuthPacket(String username, String password, String database, Set<ServerCapabilities> serverCapabilities) {
         writeBuffer = new WriteBuffer();
-        this.username = username;
-        this.password = password;
-        this.database = database;
-        this.serverCapabilities = serverCapabilities;
         byte serverLanguage = 45;
         writeBuffer.writeInt(ServerCapabilities.fromSet(serverCapabilities)).
                 writeInt(4 + 4 + 1 + 23 + username.length() + 1 + 1 + database.length() + 1).

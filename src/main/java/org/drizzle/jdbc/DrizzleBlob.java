@@ -218,7 +218,7 @@ public final class DrizzleBlob extends OutputStream implements Blob {
      */
     public int setBytes(final long pos, final byte[] bytes) throws SQLException {
         final int arrayPos = (int)pos-1;
-        int bytesWritten = 0;
+        int bytesWritten;
 
         if (blobContent == null) {
             this.blobContent = new byte[arrayPos + bytes.length];

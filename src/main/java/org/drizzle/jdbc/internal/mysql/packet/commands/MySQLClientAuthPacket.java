@@ -57,17 +57,9 @@ import java.util.Set;
  */
 public class MySQLClientAuthPacket implements CommandPacket {
     private final WriteBuffer writeBuffer;
-    private final Set<MySQLServerCapabilities> serverCapabilities;
-    private final String username;
-    private final String password;
-    private final String database;
 
     public MySQLClientAuthPacket(String username, String password, String database, Set<MySQLServerCapabilities> serverCapabilities, byte[] seed) {
         writeBuffer = new WriteBuffer();
-        this.username = username;
-        this.password = password;
-        this.database = database;
-        this.serverCapabilities = serverCapabilities;
         byte[] scrambledPassword;
         try {
             scrambledPassword = Utils.encryptPassword(password, seed);

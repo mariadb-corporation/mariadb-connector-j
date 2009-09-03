@@ -32,7 +32,7 @@ public enum ServerStatus {
     QUERY_WAS_SLOW((short) 1024);
 
 
-    private short bitmapFlag;
+    private final short bitmapFlag;
 
     ServerStatus(short i) {
         this.bitmapFlag = i;

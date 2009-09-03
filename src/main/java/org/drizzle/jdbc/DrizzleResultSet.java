@@ -54,9 +54,8 @@ public class DrizzleResultSet implements ResultSet {
     }
 
     public boolean next() throws SQLException {
-        if (queryResult.getResultSetType() == ResultSetType.SELECT)
-            return ((SelectQueryResult) queryResult).next();
-        return false;
+        return queryResult.getResultSetType() == ResultSetType.SELECT
+                && ((SelectQueryResult) queryResult).next();
     }
 
     public void close() throws SQLException {
@@ -97,7 +96,7 @@ public class DrizzleResultSet implements ResultSet {
 
     private ValueObject getValueObject(int i) throws SQLException {
         if (queryResult.getResultSetType() == ResultSetType.SELECT) {
-            ValueObject vo = null;
+            ValueObject vo;
             try {
                 vo = ((SelectQueryResult) queryResult).getValueObject(i - 1);
             } catch (NoSuchColumnException e) {
@@ -111,7 +110,7 @@ public class DrizzleResultSet implements ResultSet {
 
     private ValueObject getValueObject(String column) throws SQLException {
         if (queryResult.getResultSetType() == ResultSetType.SELECT) {
-            ValueObject vo = null;
+            ValueObject vo;
             try {
                 vo = ((SelectQueryResult) queryResult).getValueObject(column);
             } catch (NoSuchColumnException e) {
@@ -243,11 +242,7 @@ public class DrizzleResultSet implements ResultSet {
      *                               called on a closed result set
      */
     public Time getTime(String columnLabel) throws SQLException {
-        try {
-            return getValueObject(columnLabel).getTime();
-        } catch (ParseException e) {
-            throw new SQLException("Could not parse time", e);
-        }
+        return getValueObject(columnLabel).getTime();
     }
 
     /**
@@ -636,9 +631,8 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean isBeforeFirst() throws SQLException {
-        if (queryResult.getResultSetType() == ResultSetType.MODIFY || queryResult.getRows() == 0)
-            return false;
-        return ((SelectQueryResult) queryResult).getRowPointer() == -1;
+        return !(queryResult.getResultSetType() == ResultSetType.MODIFY || queryResult.getRows() == 0)
+                && ((SelectQueryResult) queryResult).getRowPointer() == -1;
     }
 
     /**
@@ -681,9 +675,8 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean isFirst() throws SQLException {
-        if (queryResult.getResultSetType() == ResultSetType.MODIFY)
-            return false;
-        return ((SelectQueryResult) queryResult).getRowPointer() == 0;
+        return queryResult.getResultSetType() != ResultSetType.MODIFY
+                && ((SelectQueryResult) queryResult).getRowPointer() == 0;
     }
 
     /**
@@ -708,9 +701,8 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean isLast() throws SQLException {
-        if (queryResult.getResultSetType() == ResultSetType.MODIFY)
-            return false;
-        return ((SelectQueryResult) queryResult).getRowPointer() == ((SelectQueryResult) queryResult).getRows();
+        return queryResult.getResultSetType() != ResultSetType.MODIFY
+                && ((SelectQueryResult) queryResult).getRowPointer() == queryResult.getRows();
     }
 
     /**
@@ -763,7 +755,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean first() throws SQLException {
-        if (queryResult.getResultSetType() == ResultSetType.MODIFY && ((SelectQueryResult) queryResult).getRows() > 0) {
+        if (queryResult.getResultSetType() == ResultSetType.MODIFY && queryResult.getRows() > 0) {
             ((SelectQueryResult) queryResult).moveRowPointerTo(0);
             return true;
         }
@@ -785,7 +777,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean last() throws SQLException {
-        if (queryResult.getResultSetType() == ResultSetType.MODIFY && ((SelectQueryResult) queryResult).getRows() > 0) {
+        if (queryResult.getResultSetType() == ResultSetType.MODIFY && queryResult.getRows() > 0) {
             ((SelectQueryResult) queryResult).moveRowPointerTo(queryResult.getRows());
             return true;
         }
@@ -2468,11 +2460,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public Time getTime(int columnIndex, Calendar cal) throws SQLException {
-        try {
-            return getValueObject(columnIndex).getTime(cal);
-        } catch (ParseException e) {
-            throw new SQLException("Could not parse as time");
-        }
+        return getValueObject(columnIndex).getTime(cal);
     }
 
     /**
@@ -2495,11 +2483,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public Time getTime(String columnLabel, Calendar cal) throws SQLException {
-        try {
-            return getValueObject(columnLabel).getTime(cal);
-        } catch (ParseException e) {
-            throw new SQLException("Could not parse as time");
-        }
+        return getValueObject(columnLabel).getTime(cal);
     }
 
     /**
@@ -4045,12 +4029,8 @@ public class DrizzleResultSet implements ResultSet {
 
     public boolean getBoolean(int i) throws SQLException {
         String rawResult = getString(i);
-        if (rawResult.equals("1"))
-            return true;
-        if (rawResult.toLowerCase().equals("true"))
-            return true;
+        return rawResult.equals("1") || rawResult.equalsIgnoreCase("true");
 
-        return false;
     }
 
     public byte getByte(int i) throws SQLException {
@@ -4144,11 +4124,7 @@ public class DrizzleResultSet implements ResultSet {
      *                               called on a closed result set
      */
     public Time getTime(int columnIndex) throws SQLException {
-        try {
-            return getValueObject(columnIndex).getTime();
-        } catch (ParseException e) {
-            throw new SQLException("Could not parse field as time");
-        }
+        return getValueObject(columnIndex).getTime();
     }
 
     /**

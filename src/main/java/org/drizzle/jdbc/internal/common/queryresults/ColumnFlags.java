@@ -29,7 +29,7 @@ public enum ColumnFlags {
     TIMESTAMP((short) 1024),
     SET((short) 2048);
 
-    private short flag;
+    private final short flag;
 
     ColumnFlags(short i) {
         this.flag = i;

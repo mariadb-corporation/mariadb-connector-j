@@ -39,7 +39,7 @@ public enum MySQLServerCapabilities {
     MULTI_STATEMENTS((short) (1L << 16)), /* Enable/disable multi-stmt support */
     MULTI_RESULTS((short) (1L << 17)); /* Enable/disable multi-results */
 
-    private short bitmapFlag;
+    private final short bitmapFlag;
 
     MySQLServerCapabilities(short i) {
         this.bitmapFlag = i;

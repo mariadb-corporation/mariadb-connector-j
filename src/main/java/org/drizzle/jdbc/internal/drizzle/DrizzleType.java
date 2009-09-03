@@ -55,8 +55,8 @@ public class DrizzleType implements DataType {
         ENUM(java.sql.Types.VARCHAR, String.class),
         BLOB(java.sql.Types.BLOB, Blob.class),
         MAX(java.sql.Types.BLOB, Blob.class);
-        private int sqlType;
-        private Class<?> javaClass;
+        private final int sqlType;
+        private final Class<?> javaClass;
 
         Type(int sqlType, Class<?> javaClass) {
             this.sqlType = sqlType;

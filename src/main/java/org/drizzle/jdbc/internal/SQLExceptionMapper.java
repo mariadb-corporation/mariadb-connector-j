@@ -31,7 +31,7 @@ public class SQLExceptionMapper {
         UNDEFINED_SQLSTATE("HY"),
         DISTRIBUTED_TRANSACTION_ERROR("XA"); // is this true?
 
-        private String sqlStateGroup;
+        private final String sqlStateGroup;
 
 
         SQLStates(String s) {
