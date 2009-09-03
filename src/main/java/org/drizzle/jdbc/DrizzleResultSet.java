@@ -654,7 +654,8 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean isAfterLast() throws SQLException {
-        return false;
+        return queryResult.getResultSetType() != ResultSetType.MODIFY
+                && ((SelectQueryResult) queryResult).getRowPointer() >= queryResult.getRows();
     }
 
     /**
@@ -755,7 +756,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean first() throws SQLException {
-        if (queryResult.getResultSetType() == ResultSetType.MODIFY && queryResult.getRows() > 0) {
+        if (queryResult.getResultSetType() == ResultSetType.SELECT && queryResult.getRows() > 0) {
             ((SelectQueryResult) queryResult).moveRowPointerTo(0);
             return true;
         }
@@ -777,8 +778,8 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean last() throws SQLException {
-        if (queryResult.getResultSetType() == ResultSetType.MODIFY && queryResult.getRows() > 0) {
-            ((SelectQueryResult) queryResult).moveRowPointerTo(queryResult.getRows());
+        if (queryResult.getResultSetType() == ResultSetType.SELECT && queryResult.getRows() > 0) {
+            ((SelectQueryResult) queryResult).moveRowPointerTo(queryResult.getRows()-1);
             return true;
         }
         return false;
@@ -852,11 +853,11 @@ public class DrizzleResultSet implements ResultSet {
         SelectQueryResult sqr = (SelectQueryResult) queryResult;
         if (sqr.getRows() > 0) {
             if (row >= 0 && row <= sqr.getRows()) {
-                sqr.moveRowPointerTo(row + 1);
+                sqr.moveRowPointerTo(row - 1);
                 return true;
             }
             if (row < 0) {
-                sqr.moveRowPointerTo(sqr.getRows() + row + 1); //+1 since rows start at 1 in jdbc
+                sqr.moveRowPointerTo(sqr.getRows() + row - 1); //-1 since rows start at 1 in jdbc
             }
             return true;
         }
@@ -895,7 +896,7 @@ public class DrizzleResultSet implements ResultSet {
         if (queryResult.getRows() > 0) {
             int newPos = sqr.getRowPointer() + rows;
             if (newPos > -1 && newPos <= queryResult.getRows()) {
-                sqr.moveRowPointerTo(newPos + 1);
+                sqr.moveRowPointerTo(newPos);
                 return true;
             }
         }

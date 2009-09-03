@@ -28,15 +28,7 @@ public class ErrorPacket extends ResultPacket {
     private final byte[] sqlState;
     private final String message;
 
-    public ErrorPacket(final InputStream istream) throws IOException {
-        super();
-        final Reader reader = new Reader(istream);
-        reader.readByte();
-        this.errorNumber = reader.readShort();
-        this.sqlStateMarker = reader.readByte();
-        this.sqlState = reader.readRawBytes(5);
-        this.message = reader.readString("ASCII");
-    }
+
 
     public ErrorPacket(final byte[] rawBytes) {
         super();

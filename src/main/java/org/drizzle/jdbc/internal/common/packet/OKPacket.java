@@ -34,16 +34,7 @@ public class OKPacket extends ResultPacket {
     private final String message;
     private final byte packetSeqNum;
 
-    public OKPacket(InputStream istream) throws IOException {
-        Reader reader = new Reader(istream);
-        packetSeqNum = reader.getPacketSeq();
-        fieldCount = reader.readByte();
-        affectedRows = reader.getLengthEncodedBinary();
-        insertId = reader.getLengthEncodedBinary();
-        serverStatus = ServerStatus.getServerStatusSet(reader.readShort());
-        warnings = reader.readShort();
-        message = reader.readString("ASCII");
-    }
+
 
     public OKPacket(byte[] rawBytes) {
         int readBytes = 0;

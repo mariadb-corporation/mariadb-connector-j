@@ -25,12 +25,6 @@ import java.io.InputStream;
 public class ResultSetPacket extends ResultPacket {
     private final long fieldCount;
 
-    public ResultSetPacket(final InputStream istream) throws IOException {
-        super();
-        final Reader reader = new Reader(istream);
-        fieldCount = reader.getLengthEncodedBinary();
-    }
-
     public ResultSetPacket(final byte[] rawBytes) {
         super();
         final LengthEncodedBinary leb = ReadUtil.getLengthEncodedBinary(rawBytes, 0);

@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.logging.Logger;
 import java.util.logging.Level;
 import java.io.*;
+import java.math.BigDecimal;
 
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertTrue;
@@ -911,5 +912,75 @@ public class DriverTest {
         assertEquals(1, Utils.countChars("?'?'",'?'));
         assertEquals(1, Utils.countChars("?\"?\"",'?'));
     }
+    @Test
+    public void bigDecimalTest() throws SQLException {
+        BigDecimal bd = BigDecimal.TEN;
+        getConnection().createStatement().execute("drop table if exists bigdectest");
+        getConnection().createStatement().execute(
+                        "create table bigdectest (bd decimal) engine=innodb");
+        PreparedStatement ps = getConnection().prepareStatement("insert into bigdectest values (?)");
+        ps.setBigDecimal(1,bd);
+        ps.executeQuery();
 
+        ResultSet rs=getConnection().createStatement().executeQuery("select * from bigdectest");
+        assertTrue(rs.next());
+        Object bb = rs.getObject(1);
+        assertEquals(bd, bb);
+    }
+
+    @Test
+    public void longTest() throws SQLException {
+        getConnection().createStatement().execute("drop table if exists longtest");
+        getConnection().createStatement().execute(
+                        "create table longtest (ll bigint) engine=innodb");
+        PreparedStatement ps = getConnection().prepareStatement("insert into longtest values (?)");
+        ps.setLong(1,Long.MAX_VALUE);
+        ps.execute();
+        ResultSet rs=getConnection().createStatement().executeQuery("select * from longtest");
+        assertTrue(rs.next());
+        Object bb = rs.getObject(1);
+        Long bc = rs.getLong(1);
+
+        assertEquals(Long.MAX_VALUE, bb);
+        assertEquals(bb, bc);
+
+
+    }
+
+    @Test
+    public void testResultSetPositions() throws SQLException {
+        getConnection().createStatement().execute("drop table if exists ressetpos");
+        getConnection().createStatement().execute(
+                        "create table ressetpos (i int) engine=innodb");
+        getConnection().createStatement().execute("insert into ressetpos values (1),(2),(3),(4)");
+
+        ResultSet rs =getConnection().createStatement().executeQuery("select * from ressetpos");
+        assertTrue(rs.isBeforeFirst());
+        rs.next();
+        assertTrue(!rs.isBeforeFirst());
+        rs.beforeFirst();
+        assertTrue(rs.isBeforeFirst());
+        while(rs.next());
+        assertTrue(rs.isAfterLast());
+        rs.absolute(4);
+        assertTrue(!rs.isAfterLast());
+        rs.absolute(2);
+        assertEquals(2,rs.getInt(1));
+        rs.relative(2);
+        assertEquals(4,rs.getInt(1));
+        assertTrue(!rs.next());
+        rs.previous();
+        assertEquals(4,rs.getInt(1));
+        rs.relative(-3);
+        assertEquals(1,rs.getInt(1));
+        assertEquals(false,rs.relative(-1));
+        assertEquals(1,rs.getInt(1));
+        rs.last();
+        assertEquals(4,rs.getInt(1));
+        rs.first();
+        assertEquals(1,rs.getInt(1));
+        rs.afterLast();
+        assertTrue(rs.isAfterLast());
+
+    }
 }

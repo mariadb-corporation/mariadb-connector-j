@@ -26,17 +26,7 @@ public class EOFPacket extends ResultPacket {
     private final short warningCount;
     private short statusFlags;
 
-    public EOFPacket(final InputStream istream) throws IOException {
-        super();
-        final Reader reader = new Reader(istream);
-        packetSeq = reader.getPacketSeq();
-        final byte packetType = reader.readByte();
-        if (packetType != (byte) 0xfe) {
-            throw new IOException("Could not create EOF packet");
-        }
-        warningCount = reader.readShort();
-        reader.readShort();
-    }
+ 
 
     public EOFPacket(final byte[] rawBytes) {
         super();

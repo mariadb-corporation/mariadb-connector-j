@@ -29,18 +29,6 @@ public class ResultPacketFactory {
     private ResultPacketFactory() {
         
     }
-    public static ResultPacket createResultPacket(final InputStream reader) throws IOException {
-        switch (ReadUtil.getByteAt(reader, 5)) {
-            case ERROR:
-                return new ErrorPacket(reader);
-            case OK:
-                return new OKPacket(reader);
-            case EOF:
-                return new EOFPacket(reader);
-            default:
-                return new ResultSetPacket(reader);
-        }
-    }
 
     //    private static EOFPacket eof = new EOFPacket();
     public static ResultPacket createResultPacket(final RawPacket rawPacket) {

@@ -47,24 +47,6 @@ n (Length Coded String)    org_name
 n (Length Coded Binary)    default
 
     */
-    public static ColumnInformation columnInformationFactory(InputStream istream) throws IOException {
-        Reader reader = new Reader(istream);
-        return new MySQLColumnInformation.Builder()
-                .catalog(reader.getLengthEncodedString())
-                .db(reader.getLengthEncodedString())
-                .table(reader.getLengthEncodedString())
-                .originalTable(reader.getLengthEncodedString())
-                .name(reader.getLengthEncodedString())
-                .originalName(reader.getLengthEncodedString())
-                .skipMe(reader.skipBytes(1))
-                .charsetNumber(reader.readShort())
-                .length(reader.readInt())
-                .type(MySQLType.fromServer(reader.readByte()))
-                .flags(parseFlags(reader.readShort()))
-                .decimals(reader.readByte())
-                .skipMe(reader.skipBytes(2))
-                .build();
-    }
 
     public static ColumnInformation columnInformationFactory(RawPacket rawPacket) throws IOException {
         Reader reader = new Reader(rawPacket);
