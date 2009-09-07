@@ -997,7 +997,8 @@ public class DriverTest {
         getConnection().createStatement().execute(
                         "create table doubletest (a double) engine=innodb");
         PreparedStatement ps = getConnection().prepareStatement("insert into doubletest values (?)");
-        ps.setDouble(1,Double.MAX_VALUE);
+        double d = 1.5;
+        ps.setDouble(1,d);
         ps.execute();
         ResultSet rs=getConnection().createStatement().executeQuery("select * from doubletest");
         assertTrue(rs.next());
@@ -1006,7 +1007,7 @@ public class DriverTest {
         Double bc = rs.getDouble(1);
         Double bc2 = rs.getDouble("a");
 
-        assertTrue(Double.MAX_VALUE == bc);
+        assertTrue(d == bc);
         assertEquals(bc2, bc);
 
 
