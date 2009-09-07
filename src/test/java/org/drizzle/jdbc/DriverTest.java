@@ -926,6 +926,10 @@ public class DriverTest {
         assertTrue(rs.next());
         Object bb = rs.getObject(1);
         assertEquals(bd, bb);
+        BigDecimal bigD = rs.getBigDecimal(1);
+        assertEquals(bd,bigD);
+        bigD = rs.getBigDecimal("bd");
+        assertEquals(bd,bigD);
     }
 
     @Test
@@ -948,6 +952,68 @@ public class DriverTest {
     }
 
     @Test
+    public void byteTest() throws SQLException {
+        getConnection().createStatement().execute("drop table if exists bytetest");
+        getConnection().createStatement().execute(
+                        "create table bytetest (a int) engine=innodb");
+        PreparedStatement ps = getConnection().prepareStatement("insert into bytetest values (?)");
+        ps.setByte(1,Byte.MAX_VALUE);
+        ps.execute();
+        ResultSet rs=getConnection().createStatement().executeQuery("select * from bytetest");
+        assertTrue(rs.next());
+
+        Byte bc = rs.getByte(1);
+        Byte bc2 = rs.getByte("a");
+
+        assertTrue(Byte.MAX_VALUE == bc);
+        assertEquals(bc2, bc);
+
+
+    }
+
+
+    @Test
+    public void shortTest() throws SQLException {
+        getConnection().createStatement().execute("drop table if exists shorttest");
+        getConnection().createStatement().execute(
+                        "create table shorttest (a int) engine=innodb");
+        PreparedStatement ps = getConnection().prepareStatement("insert into shorttest values (?)");
+        ps.setShort(1,Short.MAX_VALUE);
+        ps.execute();
+        ResultSet rs=getConnection().createStatement().executeQuery("select * from shorttest");
+        assertTrue(rs.next());
+
+        Short bc = rs.getShort(1);
+        Short bc2 = rs.getShort("a");
+
+        assertTrue(Short.MAX_VALUE == bc);
+        assertEquals(bc2, bc);
+
+
+    }
+   @Test
+    public void doubleTest() throws SQLException {
+        getConnection().createStatement().execute("drop table if exists doubletest");
+        getConnection().createStatement().execute(
+                        "create table doubletest (a double) engine=innodb");
+        PreparedStatement ps = getConnection().prepareStatement("insert into doubletest values (?)");
+        ps.setDouble(1,Double.MAX_VALUE);
+        ps.execute();
+        ResultSet rs=getConnection().createStatement().executeQuery("select * from doubletest");
+        assertTrue(rs.next());
+        Object b = rs.getObject(1);
+        assertEquals(b.getClass(),Double.class);
+        Double bc = rs.getDouble(1);
+        Double bc2 = rs.getDouble("a");
+
+        assertTrue(Double.MAX_VALUE == bc);
+        assertEquals(bc2, bc);
+
+
+    }
+
+
+    @Test
     public void testResultSetPositions() throws SQLException {
         getConnection().createStatement().execute("drop table if exists ressetpos");
         getConnection().createStatement().execute(
@@ -958,6 +1024,7 @@ public class DriverTest {
         assertTrue(rs.isBeforeFirst());
         rs.next();
         assertTrue(!rs.isBeforeFirst());
+        assertTrue(rs.isFirst());
         rs.beforeFirst();
         assertTrue(rs.isBeforeFirst());
         while(rs.next());
@@ -977,7 +1044,13 @@ public class DriverTest {
         assertEquals(1,rs.getInt(1));
         rs.last();
         assertEquals(4,rs.getInt(1));
+        assertEquals(4,rs.getRow());
+        assertTrue(rs.isLast());
         rs.first();
         assertEquals(1,rs.getInt(1));
+        assertEquals(1,rs.getRow());
+        rs.absolute(-1);
+        assertEquals(4,rs.getRow());
+        assertEquals(4,rs.getInt(1));
     }
 }

@@ -703,7 +703,7 @@ public class DrizzleResultSet implements ResultSet {
      */
     public boolean isLast() throws SQLException {
         return queryResult.getResultSetType() != ResultSetType.MODIFY
-                && ((SelectQueryResult) queryResult).getRowPointer() == queryResult.getRows();
+                && ((SelectQueryResult) queryResult).getRowPointer() == queryResult.getRows()-1;
     }
 
     /**
@@ -857,7 +857,7 @@ public class DrizzleResultSet implements ResultSet {
                 return true;
             }
             if (row < 0) {
-                sqr.moveRowPointerTo(sqr.getRows() + row - 1); //-1 since rows start at 1 in jdbc
+                sqr.moveRowPointerTo(sqr.getRows() + row);
             }
             return true;
         }
