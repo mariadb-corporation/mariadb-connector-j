@@ -15,9 +15,7 @@ import java.util.Set;
 /**
  * Represents what the server is capable of
  * <p/>
- * User: marcuse
- * Date: Feb 27, 2009
- * Time: 9:01:29 PM
+ * User: marcuse Date: Feb 27, 2009 Time: 9:01:29 PM
  */
 public enum MySQLServerCapabilities {
     LONG_PASSWORD((short) 1),       /* new more secure passwords */
@@ -41,7 +39,7 @@ public enum MySQLServerCapabilities {
 
     private final short bitmapFlag;
 
-    MySQLServerCapabilities(short i) {
+    MySQLServerCapabilities(final short i) {
         this.bitmapFlag = i;
     }
 
@@ -51,11 +49,13 @@ public enum MySQLServerCapabilities {
      * @param i the value from the server
      * @return an enum set containing the flags in i
      */
-    public static Set<MySQLServerCapabilities> getServerCapabilitiesSet(short i) {
-        Set<MySQLServerCapabilities> statusSet = EnumSet.noneOf(MySQLServerCapabilities.class);
-        for (MySQLServerCapabilities value : MySQLServerCapabilities.values())
-            if ((i & value.getBitmapFlag()) == value.getBitmapFlag())
+    public static Set<MySQLServerCapabilities> getServerCapabilitiesSet(final short i) {
+        final Set<MySQLServerCapabilities> statusSet = EnumSet.noneOf(MySQLServerCapabilities.class);
+        for (final MySQLServerCapabilities value : MySQLServerCapabilities.values()) {
+            if ((i & value.getBitmapFlag()) == value.getBitmapFlag()) {
                 statusSet.add(value);
+            }
+        }
         return statusSet;
     }
 
@@ -74,9 +74,9 @@ public enum MySQLServerCapabilities {
      * @param capabilities
      * @return
      */
-    public static short fromSet(Set<MySQLServerCapabilities> capabilities) {
+    public static short fromSet(final Set<MySQLServerCapabilities> capabilities) {
         short retVal = 0;
-        for (MySQLServerCapabilities cap : capabilities) {
+        for (final MySQLServerCapabilities cap : capabilities) {
             retVal = (short) (retVal | cap.getBitmapFlag());
         }
         return retVal;

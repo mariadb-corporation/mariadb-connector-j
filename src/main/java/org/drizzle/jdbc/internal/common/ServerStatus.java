@@ -15,9 +15,7 @@ import java.util.Set;
 /**
  * Represents the server status
  * <p/>
- * User: marcuse
- * Date: Feb 27, 2009
- * Time: 8:36:46 PM
+ * User: marcuse Date: Feb 27, 2009 Time: 8:36:46 PM
  */
 public enum ServerStatus {
     IN_TRANSACTION((short) 1),
@@ -34,7 +32,7 @@ public enum ServerStatus {
 
     private final short bitmapFlag;
 
-    ServerStatus(short i) {
+    ServerStatus(final short i) {
         this.bitmapFlag = i;
     }
 
@@ -53,11 +51,13 @@ public enum ServerStatus {
      * @param i the bitmasked field
      * @return an enum set with the flags defined by i
      */
-    public static Set<ServerStatus> getServerStatusSet(short i) {
-        Set<ServerStatus> statusSet = EnumSet.noneOf(ServerStatus.class);
-        for (ServerStatus value : ServerStatus.values())
-            if ((i & value.getBitmapFlag()) == value.getBitmapFlag())
+    public static Set<ServerStatus> getServerStatusSet(final short i) {
+        final Set<ServerStatus> statusSet = EnumSet.noneOf(ServerStatus.class);
+        for (final ServerStatus value : ServerStatus.values()) {
+            if ((i & value.getBitmapFlag()) == value.getBitmapFlag()) {
                 statusSet.add(value);
+            }
+        }
         return statusSet;
     }
 }

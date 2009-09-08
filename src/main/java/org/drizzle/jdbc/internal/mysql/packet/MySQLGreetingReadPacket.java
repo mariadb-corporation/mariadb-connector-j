@@ -19,10 +19,7 @@ import java.util.Arrays;
 import java.util.Set;
 
 /**
- * Greeting from drizzle looks like this
- * User: marcuse
- * Date: Jan 15, 2009
- * Time: 3:18:11 PM
+ * Greeting from drizzle looks like this User: marcuse Date: Jan 15, 2009 Time: 3:18:11 PM
  */
 public class MySQLGreetingReadPacket {
     private final String serverVersion;
@@ -35,18 +32,18 @@ public class MySQLGreetingReadPacket {
     private final Set<ServerStatus> serverStatus;
     private final byte[] seed;
 
-    public MySQLGreetingReadPacket(InputStream istream) throws IOException {
-        Reader reader = new Reader(istream);
+    public MySQLGreetingReadPacket(final InputStream istream) throws IOException {
+        final Reader reader = new Reader(istream);
         protocolVersion = reader.readByte();
         serverVersion = reader.readString("ASCII");
         serverThreadID = reader.readInt();
-        byte[] seed1 = reader.readRawBytes(8);
+        final byte[] seed1 = reader.readRawBytes(8);
         reader.skipByte();
         serverCapabilities = MySQLServerCapabilities.getServerCapabilitiesSet(reader.readShort());
         serverLanguage = reader.readByte();
         serverStatus = ServerStatus.getServerStatusSet(reader.readShort());
         reader.skipBytes(13);
-        byte[] seed2 = reader.readRawBytes(12);
+        final byte[] seed2 = reader.readRawBytes(12);
         seed = Arrays.copyOf(seed1, seed1.length + seed2.length);
         System.arraycopy(seed2, 0, seed, seed1.length, seed2.length);
         reader.readByte(); // seems the seed is null terminated

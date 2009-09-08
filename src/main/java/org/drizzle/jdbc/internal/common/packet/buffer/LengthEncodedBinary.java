@@ -10,11 +10,8 @@
 package org.drizzle.jdbc.internal.common.packet.buffer;
 
 /**
- * Created by IntelliJ IDEA.
- * User: marcuse
- * Date: Mar 31, 2009
- * Time: 7:11:54 PM
- * To change this template use File | Settings | File Templates.
+ * Created by IntelliJ IDEA. User: marcuse Date: Mar 31, 2009 Time: 7:11:54 PM To change this template use File |
+ * Settings | File Templates.
  */
 public class LengthEncodedBinary {
     private final int length;

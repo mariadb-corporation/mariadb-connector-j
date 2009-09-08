@@ -20,21 +20,19 @@ import java.util.Arrays;
 
 
 /**
- * User: marcuse
- * Date: Jan 19, 2009
- * Time: 10:14:32 PM
+ * User: marcuse Date: Jan 19, 2009 Time: 10:14:32 PM
  */
 public class StreamedQueryPacket implements CommandPacket {
     private final Query query;
     private final byte[] byteHeader;
 
-    public StreamedQueryPacket(Query query) {
+    public StreamedQueryPacket(final Query query) {
         this.query = query;
         byteHeader = Arrays.copyOf(intToByteArray(query.length() + 1), 5);
         byteHeader[4] = (byte) 0x03;
     }
 
-    public void send(OutputStream ostream) throws IOException, QueryException {
+    public void send(final OutputStream ostream) throws IOException, QueryException {
         ostream.write(byteHeader);
         query.writeTo(ostream);
         ostream.flush();

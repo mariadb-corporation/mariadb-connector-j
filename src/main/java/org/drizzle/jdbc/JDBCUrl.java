@@ -15,10 +15,8 @@ import java.util.regex.Pattern;
 
 /**
  * Parses a jdbc url.
- * 
- * User: marcuse
- * Date: Apr 21, 2009
- * Time: 9:32:34 AM
+ * <p/>
+ * User: marcuse Date: Apr 21, 2009 Time: 9:32:34 AM
  */
 public class JDBCUrl {
     private final DBType dbType;
@@ -33,9 +31,9 @@ public class JDBCUrl {
     }
 
 
-    public JDBCUrl(String url) throws SQLException {
-        Pattern p = Pattern.compile("^jdbc:(drizzle|mysql:thin)://((\\w+)(:(\\w+))?@)?([^/:]+)(:(\\d+))?(/(\\w+))?");
-        Matcher m = p.matcher(url);
+    public JDBCUrl(final String url) throws SQLException {
+        final Pattern p = Pattern.compile("^jdbc:(drizzle|mysql:thin)://((\\w+)(:(\\w+))?@)?([^/:]+)(:(\\d+))?(/(\\w+))?");
+        final Matcher m = p.matcher(url);
         if (m.find()) {
             if (m.group(1).equals("mysql:thin")) {
                 this.dbType = DBType.MYSQL;
@@ -49,10 +47,11 @@ public class JDBCUrl {
             if (m.group(8) != null) {
                 this.port = Integer.parseInt(m.group(8));
             } else {
-                if (this.dbType == DBType.DRIZZLE)
+                if (this.dbType == DBType.DRIZZLE) {
                     this.port = 4427;
-                else
+                } else {
                     this.port = 3306;
+                }
             }
             this.database = m.group(10);
         } else {

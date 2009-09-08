@@ -15,9 +15,7 @@ import java.util.Set;
 /**
  * Represents what the server is capable of
  * <p/>
- * User: marcuse
- * Date: Feb 27, 2009
- * Time: 9:01:29 PM
+ * User: marcuse Date: Feb 27, 2009 Time: 9:01:29 PM
  */
 public enum ServerCapabilities {
     LONG_PASSWORD((short) 1),       /* new more secure passwords */
@@ -39,7 +37,7 @@ public enum ServerCapabilities {
 
     private final short bitmapFlag;
 
-    ServerCapabilities(short i) {
+    ServerCapabilities(final short i) {
         this.bitmapFlag = i;
     }
 
@@ -49,11 +47,13 @@ public enum ServerCapabilities {
      * @param i the value from the server
      * @return an enum set containing the flags in i
      */
-    public static Set<ServerCapabilities> getServerCapabilitiesSet(short i) {
-        Set<ServerCapabilities> statusSet = EnumSet.noneOf(ServerCapabilities.class);
-        for (ServerCapabilities value : ServerCapabilities.values())
-            if ((i & value.getBitmapFlag()) == value.getBitmapFlag())
+    public static Set<ServerCapabilities> getServerCapabilitiesSet(final short i) {
+        final Set<ServerCapabilities> statusSet = EnumSet.noneOf(ServerCapabilities.class);
+        for (final ServerCapabilities value : ServerCapabilities.values()) {
+            if ((i & value.getBitmapFlag()) == value.getBitmapFlag()) {
                 statusSet.add(value);
+            }
+        }
         return statusSet;
     }
 
@@ -72,9 +72,9 @@ public enum ServerCapabilities {
      * @param capabilities
      * @return
      */
-    public static short fromSet(Set<ServerCapabilities> capabilities) {
+    public static short fromSet(final Set<ServerCapabilities> capabilities) {
         short retVal = 0;
-        for (ServerCapabilities cap : capabilities) {
+        for (final ServerCapabilities cap : capabilities) {
             retVal = (short) (retVal | cap.getBitmapFlag());
         }
         return retVal;

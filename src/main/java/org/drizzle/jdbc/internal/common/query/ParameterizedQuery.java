@@ -14,14 +14,12 @@ import org.drizzle.jdbc.internal.common.query.parameters.ParameterHolder;
 import java.util.Map;
 
 /**
- * .
- * User: marcuse
- * Date: Mar 18, 2009
- * Time: 10:07:57 PM
+ * . User: marcuse Date: Mar 18, 2009 Time: 10:07:57 PM
  */
 public interface ParameterizedQuery extends Query {
     /**
      * get the number of parameters in this query.
+     *
      * @return number of parameters
      */
     int getParamCount();
@@ -33,15 +31,15 @@ public interface ParameterizedQuery extends Query {
 
     /**
      * Sets a parameter at a position. The positions start at 0.
-     * @param position the position to set it at
+     *
+     * @param position  the position to set it at
      * @param parameter the parameter to set
-     * @throws IllegalParameterException if, for example, the position
-     * is out of bounds
+     * @throws IllegalParameterException if, for example, the position is out of bounds
      */
     void setParameter(int position, ParameterHolder parameter)
             throws IllegalParameterException;
 
     Map<Integer, ParameterHolder> getParameters();
-    
+
     String getQuery();
 }

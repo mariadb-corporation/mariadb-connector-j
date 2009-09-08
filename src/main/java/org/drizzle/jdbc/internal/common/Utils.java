@@ -13,9 +13,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 /**
- * User: marcuse
- * Date: Feb 19, 2009
- * Time: 8:40:51 PM
+ * User: marcuse Date: Feb 19, 2009 Time: 8:40:51 PM
  */
 public class Utils {
     private static final int START_BIT_MILLISECONDS = 17;
@@ -37,7 +35,7 @@ public class Utils {
      * @return true if the byte needs escaping
      */
 
-    public static boolean needsEscaping(byte b) {
+    public static boolean needsEscaping(final byte b) {
         if ((b & 0x80) == 0) {
             switch (b) {
                 case '"':
@@ -77,11 +75,11 @@ public class Utils {
      * @param str the string to escape
      * @return an escaped string
      */
-    public static String sqlEscapeString(String str) {
-        byte[] strBytes = str.getBytes();
-        byte[] outBytes = new byte[strBytes.length * 2]; //overkill but safe, streams need to be escaped on-the-fly
+    public static String sqlEscapeString(final String str) {
+        final byte[] strBytes = str.getBytes();
+        final byte[] outBytes = new byte[strBytes.length * 2]; //overkill but safe, streams need to be escaped on-the-fly
         int bytePointer = 0;
-        for (byte b : strBytes) {
+        for (final byte b : strBytes) {
             if (needsEscaping(b)) {
                 outBytes[bytePointer++] = '\\';
                 outBytes[bytePointer++] = b;
@@ -94,32 +92,32 @@ public class Utils {
 
     /**
      * returns count of characters c in str.
-     *
+     * <p/>
      * Does not count chars enclosed in single or double quotes
      *
      * @param str the string to count
      * @param c   the character
      * @return the number of chars c in str
      */
-    public static int countChars(String str, char c) {
+    public static int countChars(final String str, final char c) {
         int count = 0;
         boolean isWithinDoubleQuotes = false;
         boolean isWithinQuotes = false;
 
-        for (byte b : str.getBytes()) {
-            if(b == '"' && !isWithinQuotes && !isWithinDoubleQuotes) {
+        for (final byte b : str.getBytes()) {
+            if (b == '"' && !isWithinQuotes && !isWithinDoubleQuotes) {
                 isWithinDoubleQuotes = true;
-            } else if(b == '"' && !isWithinQuotes) {
+            } else if (b == '"' && !isWithinQuotes) {
                 isWithinDoubleQuotes = false;
             }
-            
-            if(b == '\'' && !isWithinQuotes && !isWithinDoubleQuotes) {
+
+            if (b == '\'' && !isWithinQuotes && !isWithinDoubleQuotes) {
                 isWithinQuotes = true;
-            } else if(b == '\'' && !isWithinDoubleQuotes) {
+            } else if (b == '\'' && !isWithinDoubleQuotes) {
                 isWithinQuotes = false;
             }
 
-            if(!isWithinDoubleQuotes && !isWithinQuotes) {
+            if (!isWithinDoubleQuotes && !isWithinQuotes) {
                 if (c == b) {
                     count++;
                 }
@@ -129,93 +127,92 @@ public class Utils {
     }
 
     private enum ParsingState {
-        WITHIN_COMMENT,WITHIN_QUOTES, WITHIN_DOUBLE_QUOTES, NORMAL
+        WITHIN_COMMENT, WITHIN_QUOTES, WITHIN_DOUBLE_QUOTES, NORMAL
     }
-    
-    public static String stripQuery(String query) {
-        StringBuilder sb = new StringBuilder();
-        ParsingState parsingState=ParsingState.NORMAL;
-        ParsingState nextParsingState = ParsingState.NORMAL;
-        byte [] queryBytes = query.getBytes();
-        
-        for (int i = 0;i<queryBytes.length;i++) {
-            byte b = queryBytes[i];
-            byte nextByte=0;
 
-            if(i < queryBytes.length-1) {
-                nextByte = queryBytes[i+1];
+    public static String stripQuery(final String query) {
+        final StringBuilder sb = new StringBuilder();
+        ParsingState parsingState = ParsingState.NORMAL;
+        ParsingState nextParsingState = ParsingState.NORMAL;
+        final byte[] queryBytes = query.getBytes();
+
+        for (int i = 0; i < queryBytes.length; i++) {
+            final byte b = queryBytes[i];
+            byte nextByte = 0;
+
+            if (i < queryBytes.length - 1) {
+                nextByte = queryBytes[i + 1];
             }
 
-            switch(parsingState) {
+            switch (parsingState) {
                 case WITHIN_DOUBLE_QUOTES:
-                    if(b == '"') {
+                    if (b == '"') {
                         nextParsingState = ParsingState.NORMAL;
                     }
                     break;
                 case WITHIN_QUOTES:
-                    if(b == '\'') {
+                    if (b == '\'') {
                         nextParsingState = ParsingState.NORMAL;
                     }
                     break;
                 case NORMAL:
-                    if(b=='\'') {
+                    if (b == '\'') {
                         nextParsingState = ParsingState.WITHIN_QUOTES;
-                    } else if (b=='"') {
+                    } else if (b == '"') {
                         nextParsingState = ParsingState.WITHIN_DOUBLE_QUOTES;
-                    } else if (b=='/' && nextByte == '*') {
+                    } else if (b == '/' && nextByte == '*') {
                         nextParsingState = ParsingState.WITHIN_COMMENT;
                         parsingState = ParsingState.WITHIN_COMMENT;
-                    } else if (b=='#') {
+                    } else if (b == '#') {
                         return sb.toString();
                     }
                     break;
                 case WITHIN_COMMENT:
-                    if(b=='*' && nextByte=='/') {
+                    if (b == '*' && nextByte == '/') {
                         nextParsingState = ParsingState.NORMAL;
                         i++;
                     }
                     break;
             }
 
-            if(parsingState != ParsingState.WITHIN_COMMENT) {
-                sb.append((char)b);
+            if (parsingState != ParsingState.WITHIN_COMMENT) {
+                sb.append((char) b);
             }
             parsingState = nextParsingState;
         }
         return sb.toString();
     }
+
     /**
      * encrypts a password
      * <p/>
-     * protocol for authentication is like this:
-     * 1. mysql server sends a random array of bytes (the seed)
-     * 2. client makes a sha1 digest of the password
-     * 3. client hashes the output of 2
-     * 4. client digests the seed
-     * 5. client updates the digest with the output from 3
-     * 6. an xor of the output of 5 and 2 is sent to server
-     * 7. server does the same thing and verifies that the scrambled passwords match
+     * protocol for authentication is like this: 1. mysql server sends a random array of bytes (the seed) 2. client
+     * makes a sha1 digest of the password 3. client hashes the output of 2 4. client digests the seed 5. client updates
+     * the digest with the output from 3 6. an xor of the output of 5 and 2 is sent to server 7. server does the same
+     * thing and verifies that the scrambled passwords match
      *
      * @param password the password to encrypt
      * @param seed     the seed to use
      * @return a scrambled password
      * @throws NoSuchAlgorithmException if SHA1 is not available on the platform we are using
      */
-    public static byte[] encryptPassword(String password, byte[] seed) throws NoSuchAlgorithmException {
-        if (password == null || password.equals("")) return new byte[0];
+    public static byte[] encryptPassword(final String password, final byte[] seed) throws NoSuchAlgorithmException {
+        if (password == null || password.equals("")) {
+            return new byte[0];
+        }
 
-        MessageDigest messageDigest = MessageDigest.getInstance("SHA-1");
-        byte[] stage1 = messageDigest.digest(password.getBytes());
+        final MessageDigest messageDigest = MessageDigest.getInstance("SHA-1");
+        final byte[] stage1 = messageDigest.digest(password.getBytes());
         messageDigest.reset();
 
-        byte[] stage2 = messageDigest.digest(stage1);
+        final byte[] stage2 = messageDigest.digest(stage1);
         messageDigest.reset();
 
         messageDigest.update(seed);
         messageDigest.update(stage2);
 
-        byte[] digest = messageDigest.digest();
-        byte[] returnBytes = new byte[digest.length];
+        final byte[] digest = messageDigest.digest();
+        final byte[] returnBytes = new byte[digest.length];
         for (int i = 0; i < digest.length; i++) {
             returnBytes[i] = (byte) (stage1[i] ^ digest[i]);
         }
@@ -244,11 +241,11 @@ public class Utils {
      */
 
 
-    public static int packTime(long milliseconds) {
-        int millis = (int) (milliseconds % 1000);
-        int seconds = (int) ((milliseconds / 1000) % 60);
-        int minutes = (int) ((milliseconds / (1000 * 60)) % 60);
-        int hours = (int) ((milliseconds / (1000 * 60 * 60)) % 24);
+    public static int packTime(final long milliseconds) {
+        final int millis = (int) (milliseconds % 1000);
+        final int seconds = (int) ((milliseconds / 1000) % 60);
+        final int minutes = (int) ((milliseconds / (1000 * 60)) % 60);
+        final int hours = (int) ((milliseconds / (1000 * 60 * 60)) % 24);
         /* OK, now we pack the pieces into a 4-byte integer */
         return (millis * (1 << START_BIT_MILLISECONDS))
                 + (seconds * (1 << START_BIT_SECONDS))
@@ -263,11 +260,11 @@ public class Utils {
      * @return a millisecond time
      * @see Utils#packTime(long)
      */
-    public static long unpackTime(int packedTime) {
-        int hours = (packedTime & MASK_HOURS);
-        int minutes = (packedTime & MASK_MINUTES) >> (START_BIT_MINUTES);
-        int seconds = (packedTime & MASK_SECONDS) >> (START_BIT_SECONDS);
-        int millis = (packedTime & MASK_MILLISECONDS) >> (START_BIT_MILLISECONDS);
+    public static long unpackTime(final int packedTime) {
+        final int hours = (packedTime & MASK_HOURS);
+        final int minutes = (packedTime & MASK_MINUTES) >> (START_BIT_MINUTES);
+        final int seconds = (packedTime & MASK_SECONDS) >> (START_BIT_SECONDS);
+        final int millis = (packedTime & MASK_MILLISECONDS) >> (START_BIT_MILLISECONDS);
         long returnValue = (long) hours * 60 * 60 * 1000;
         returnValue += (long) minutes * 60 * 1000;
         returnValue += (long) seconds * 1000;

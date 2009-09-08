@@ -14,10 +14,7 @@ import org.drizzle.jdbc.internal.common.ColumnInformation;
 import java.util.List;
 
 /**
- * .
- * User: marcuse
- * Date: Mar 9, 2009
- * Time: 8:20:04 PM
+ * . User: marcuse Date: Mar 9, 2009 Time: 8:20:04 PM
  */
 public class DrizzleUpdateResult implements ModifyQueryResult {
     private final long updateCount;
@@ -26,12 +23,12 @@ public class DrizzleUpdateResult implements ModifyQueryResult {
     private final long insertId;
     private final QueryResult generatedKeysResult;
 
-    public DrizzleUpdateResult(long updateCount, short warnings, String message, long insertId) {
+    public DrizzleUpdateResult(final long updateCount, final short warnings, final String message, final long insertId) {
         this.updateCount = updateCount;
         this.warnings = warnings;
         this.message = message;
         this.insertId = insertId;
-        generatedKeysResult = new DrizzleInsertIdQueryResult(insertId,updateCount, message);
+        generatedKeysResult = new DrizzleInsertIdQueryResult(insertId, updateCount, message);
     }
 
     public long getUpdateCount() {

@@ -10,10 +10,7 @@
 package org.drizzle.jdbc.internal.common;
 
 /**
- * .
- * User: marcuse
- * Date: Feb 7, 2009
- * Time: 10:16:17 PM
+ * . User: marcuse Date: Feb 7, 2009 Time: 10:16:17 PM
  */
 public class QueryException extends Exception {
     /**
@@ -26,8 +23,8 @@ public class QueryException extends Exception {
     private final String sqlState;
 
     /**
-     * Creates a default query exception with errorCode -1 and
-     * sqlState HY0000.
+     * Creates a default query exception with errorCode -1 and sqlState HY0000.
+     *
      * @param message the message to set
      */
     public QueryException(final String message) {
@@ -39,9 +36,10 @@ public class QueryException extends Exception {
 
     /**
      * Creates a query exception with a message.
-     * @param message the message
+     *
+     * @param message   the message
      * @param errorCode the error code
-     * @param sqlState the sqlstate
+     * @param sqlState  the sqlstate
      */
     public QueryException(final String message,
                           final short errorCode,
@@ -53,10 +51,11 @@ public class QueryException extends Exception {
 
     /**
      * creates a query exception with a message and a cause.
-     * @param message the exception message
+     *
+     * @param message   the exception message
      * @param errorCode the error code
-     * @param sqlState the sql state
-     * @param cause the cause of the exception
+     * @param sqlState  the sql state
+     * @param cause     the cause of the exception
      */
     public QueryException(final String message,
                           final int errorCode,
@@ -69,6 +68,7 @@ public class QueryException extends Exception {
 
     /**
      * returns the error code.
+     *
      * @return the error code
      */
     public final int getErrorCode() {
@@ -77,6 +77,7 @@ public class QueryException extends Exception {
 
     /**
      * gets the sql state.
+     *
      * @return the sql state
      */
     public final String getSqlState() {

@@ -10,10 +10,7 @@
 package org.drizzle.jdbc.internal.common.packet;
 
 /**
- * .
- * User: marcuse
- * Date: Jan 16, 2009
- * Time: 4:24:44 PM
+ * . User: marcuse Date: Jan 16, 2009 Time: 4:24:44 PM
  */
 public abstract class ResultPacket {
 

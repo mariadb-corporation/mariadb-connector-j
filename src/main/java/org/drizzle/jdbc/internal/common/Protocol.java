@@ -16,9 +16,7 @@ import org.drizzle.jdbc.internal.common.queryresults.QueryResult;
 import java.util.List;
 
 /**
- * User: marcuse
- * Date: Jan 14, 2009
- * Time: 4:05:47 PM
+ * User: marcuse Date: Jan 14, 2009 Time: 4:05:47 PM
  */
 public interface Protocol {
     /**

@@ -10,28 +10,25 @@
 package org.drizzle.jdbc.internal.common;
 
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.io.InputStream;
-import java.io.ByteArrayInputStream;
 import java.util.Calendar;
 
 /**
- * Created by IntelliJ IDEA.
- * User: marcuse
- * Date: Jun 10, 2009
- * Time: 4:13:03 PM
- * To change this template use File | Settings | File Templates.
+ * Created by IntelliJ IDEA. User: marcuse Date: Jun 10, 2009 Time: 4:13:03 PM To change this template use File |
+ * Settings | File Templates.
  */
 public abstract class AbstractValueObject implements ValueObject {
     private final byte[] rawBytes;
     protected final DataType dataType;
 
-    protected AbstractValueObject(final byte[] rawBytes,final DataType dataType) {
+    protected AbstractValueObject(final byte[] rawBytes, final DataType dataType) {
         this.dataType = dataType;
         this.rawBytes = rawBytes;
     }
@@ -128,11 +125,10 @@ public abstract class AbstractValueObject implements ValueObject {
             return null;
         }
         final String rawValue = getString();
-        SimpleDateFormat sdf;
-        if(rawValue.length() > 11) {
+        final SimpleDateFormat sdf;
+        if (rawValue.length() > 11) {
             sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        }
-        else {
+        } else {
             sdf = new SimpleDateFormat("yyyy-MM-dd");
         }
 
@@ -203,7 +199,6 @@ public abstract class AbstractValueObject implements ValueObject {
     public boolean isNull() {
         return rawBytes == null;
     }
-
 
 
     public int getDisplayLength() {

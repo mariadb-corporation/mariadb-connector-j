@@ -19,21 +19,19 @@ import java.text.ParseException;
  * <p/>
  * Is immutable
  * <p/>
- * User: marcuse
- * Date: Feb 16, 2009
- * Time: 9:18:26 PM
+ * User: marcuse Date: Feb 16, 2009 Time: 9:18:26 PM
  */
 public class DrizzleValueObject extends AbstractValueObject {
 
     public DrizzleValueObject(final byte[] rawBytes, final DrizzleType dataType) {
-        super(rawBytes,dataType);
+        super(rawBytes, dataType);
     }
 
-    public Object getObject() throws ParseException  {
+    public Object getObject() throws ParseException {
         if (this.getBytes() == null) {
             return null;
         }
-        switch (((DrizzleType)dataType).getType()) {
+        switch (((DrizzleType) dataType).getType()) {
             case TINY:
                 return getShort();
             case LONG:

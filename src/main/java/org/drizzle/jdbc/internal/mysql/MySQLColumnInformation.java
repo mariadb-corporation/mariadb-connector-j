@@ -18,9 +18,7 @@ import java.util.Set;
 
 
 /**
- * User: marcuse
- * Date: Mar 9, 2009
- * Time: 8:53:40 PM
+ * User: marcuse Date: Mar 9, 2009 Time: 8:53:40 PM
  */
 public class MySQLColumnInformation implements ColumnInformation {
     private final String catalog;
@@ -36,7 +34,7 @@ public class MySQLColumnInformation implements ColumnInformation {
     private final Set<ColumnFlags> flags;
     private int displayWidth = 0;
 
-    private MySQLColumnInformation(Builder builder) {
+    private MySQLColumnInformation(final Builder builder) {
         this.catalog = builder.catalog;
         this.db = builder.db;
         this.table = builder.table;
@@ -94,9 +92,10 @@ public class MySQLColumnInformation implements ColumnInformation {
         return flags;
     }
 
-    public void updateDisplaySize(int displayLength) {
-        if (displayLength > displayWidth)
+    public void updateDisplaySize(final int displayLength) {
+        if (displayLength > displayWidth) {
             this.displayWidth = displayLength;
+        }
     }
 
     public static class Builder {
@@ -112,61 +111,61 @@ public class MySQLColumnInformation implements ColumnInformation {
         private Set<ColumnFlags> flags;
         private byte decimals;
 
-        public Builder catalog(String catalog) {
+        public Builder catalog(final String catalog) {
             this.catalog = catalog;
             return this;
         }
 
-        public Builder db(String db) {
+        public Builder db(final String db) {
             this.db = db;
             return this;
         }
 
-        public Builder table(String table) {
+        public Builder table(final String table) {
             this.table = table;
             return this;
         }
 
-        public Builder originalTable(String orgTable) {
+        public Builder originalTable(final String orgTable) {
             this.originalTable = orgTable;
             return this;
         }
 
-        public Builder name(String name) {
+        public Builder name(final String name) {
             this.name = name;
             return this;
         }
 
-        public Builder originalName(String orgName) {
+        public Builder originalName(final String orgName) {
             this.originalName = orgName;
             return this;
         }
 
-        public Builder skipMe(long bytesSkipped) {
+        public Builder skipMe(final long bytesSkipped) {
             return this;
         }
 
-        public Builder charsetNumber(short charsetNumber) {
+        public Builder charsetNumber(final short charsetNumber) {
             this.charsetNumber = charsetNumber;
             return this;
         }
 
-        public Builder length(int length) {
+        public Builder length(final int length) {
             this.length = length;
             return this;
         }
 
-        public Builder type(DataType dataType) {
+        public Builder type(final DataType dataType) {
             this.type = dataType;
             return this;
         }
 
-        public Builder flags(Set<ColumnFlags> columnFlags) {
+        public Builder flags(final Set<ColumnFlags> columnFlags) {
             this.flags = columnFlags;
             return this;
         }
 
-        public Builder decimals(byte decimals) {
+        public Builder decimals(final byte decimals) {
             this.decimals = decimals;
             return this;
         }

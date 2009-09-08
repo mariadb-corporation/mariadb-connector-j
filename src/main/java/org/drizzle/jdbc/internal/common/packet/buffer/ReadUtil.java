@@ -11,20 +11,18 @@ package org.drizzle.jdbc.internal.common.packet.buffer;
 
 import org.drizzle.jdbc.internal.common.packet.RawPacket;
 
-import java.io.InterruptedIOException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InterruptedIOException;
 
 /**
- * .
- * User: marcuse
- * Date: Jan 16, 2009
- * Time: 8:27:38 PM
+ * . User: marcuse Date: Jan 16, 2009 Time: 8:27:38 PM
  */
 public final class ReadUtil {
     private ReadUtil() {
-        
+
     }
+
     private static int readLength(final InputStream reader) throws IOException {
         final byte[] lengthBuffer = new byte[3];
         if (safeRead(reader, lengthBuffer) != 3) {
@@ -34,13 +32,12 @@ public final class ReadUtil {
         return (lengthBuffer[0] & 0xff) + ((lengthBuffer[1] & 0xff) << 8) + ((lengthBuffer[2] & 0xff) << 16);
     }
 
-     /**
-     * Read a number of bytes from the stream and store it in the buffer, and
-     * fix the problem with "incomplete" reads by doing another read if we
-     * don't have all of the data yet.
+    /**
+     * Read a number of bytes from the stream and store it in the buffer, and fix the problem with "incomplete" reads by
+     * doing another read if we don't have all of the data yet.
      *
-     * @param inputStream     the input stream to read from
-     * @param buffer where to store the data
+     * @param inputStream the input stream to read from
+     * @param buffer      where to store the data
      * @return the number of bytes read (should be == length if we didn't hit EOF)
      * @throws java.io.IOException if an error occurs while reading the stream
      */
@@ -56,7 +53,7 @@ public final class ReadUtil {
                 offset += nr;
                 left -= nr;
             } catch (InterruptedIOException exp) {
-               /* Ignore, just retry */
+                /* Ignore, just retry */
             }
         } while (left > 0);
 
@@ -66,7 +63,7 @@ public final class ReadUtil {
     public static byte getByteAt(final InputStream reader, final int position) throws IOException {
         reader.mark(position + 1);
         final long skipped = reader.skip(position - 1);
-        if(skipped != position-1) {
+        if (skipped != position - 1) {
             throw new IOException("Could not skip the requested number of bytes.");
         }
 
@@ -92,17 +89,17 @@ public final class ReadUtil {
     public static short readShort(final byte[] bytes, final int start) {
         short length = 0;
 
-        if(bytes.length-start >= 2) {
-            length = (short)((bytes[start] & (short)0xff) + (short)((bytes[start + 1] & (short)0xff) << 8));
+        if (bytes.length - start >= 2) {
+            length = (short) ((bytes[start] & (short) 0xff) + (short) ((bytes[start + 1] & (short) 0xff) << 8));
         }
-        
+
         return length;
     }
 
     public static int read16bitword(final byte[] bytes, final int start) {
         int length = 0;
 
-        if(bytes.length-start >= 2) {
+        if (bytes.length - start >= 2) {
             length = ((bytes[start] & 0xff) + ((bytes[start + 1] & 0xff) << 8));
         }
 
@@ -113,17 +110,17 @@ public final class ReadUtil {
         return (bytes[start] & 0xff) + ((bytes[start + 1] & 0xff) << 8) + ((bytes[start + 2] & 0xff) << 16);
     }
 
-    public static  long readLong(final byte [] bytes, final int start) {
-        return (bytes[start]& (long)0xff) +
-       ((bytes[start+1]&(long)0xff)<<8) +
-       ((bytes[start+2]&(long)0xff)<<16) +
-       ((bytes[start+3]&(long)0xff)<<24) +
-       ((bytes[start+4]&(long)0xff)<<32)+
-       ((bytes[start+5]&(long)0xff)<<40)+
-       ((bytes[start+6]&(long)0xff)<<48) +
-       ((bytes[start+7]&(long)0xff)<<56);
+    public static long readLong(final byte[] bytes, final int start) {
+        return (bytes[start] & (long) 0xff) +
+                ((bytes[start + 1] & (long) 0xff) << 8) +
+                ((bytes[start + 2] & (long) 0xff) << 16) +
+                ((bytes[start + 3] & (long) 0xff) << 24) +
+                ((bytes[start + 4] & (long) 0xff) << 32) +
+                ((bytes[start + 5] & (long) 0xff) << 40) +
+                ((bytes[start + 6] & (long) 0xff) << 48) +
+                ((bytes[start + 7] & (long) 0xff) << 56);
     }
- 
+
     public static LengthEncodedBytes getLengthEncodedBytes(final byte[] rawBytes, final int start) {
         return new LengthEncodedBytes(rawBytes, start);
     }

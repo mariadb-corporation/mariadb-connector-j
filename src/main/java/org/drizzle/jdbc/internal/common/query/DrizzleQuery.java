@@ -14,16 +14,13 @@ import java.io.OutputStream;
 import java.util.logging.Logger;
 
 /**
- * .
- * User: marcuse
- * Date: Feb 20, 2009
- * Time: 10:43:58 PM
+ * . User: marcuse Date: Feb 20, 2009 Time: 10:43:58 PM
  */
 public class DrizzleQuery implements Query {
     private final static Logger log = Logger.getLogger(DrizzleQuery.class.getName());
     private final String query;
 
-    public DrizzleQuery(String query) {
+    public DrizzleQuery(final String query) {
         this.query = query;
     }
 
@@ -31,8 +28,8 @@ public class DrizzleQuery implements Query {
         return query.length();
     }
 
-    public void writeTo(OutputStream os) throws IOException {
-        byte[] b = query.getBytes();
+    public void writeTo(final OutputStream os) throws IOException {
+        final byte[] b = query.getBytes();
         os.write(b, 0, length());
     }
 
@@ -45,7 +42,7 @@ public class DrizzleQuery implements Query {
     }
 
     @Override
-    public boolean equals(Object otherObj) {
+    public boolean equals(final Object otherObj) {
         return otherObj instanceof DrizzleQuery && (((DrizzleQuery) otherObj).query).equals(query);
     }
 

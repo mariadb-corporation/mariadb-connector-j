@@ -14,10 +14,7 @@ import org.drizzle.jdbc.internal.common.queryresults.ColumnFlags;
 import java.util.Set;
 
 /**
- * .
- * User: marcuse
- * Date: Mar 9, 2009
- * Time: 8:55:30 PM
+ * . User: marcuse Date: Mar 9, 2009 Time: 8:55:30 PM
  */
 public interface ColumnInformation {
     String getCatalog();

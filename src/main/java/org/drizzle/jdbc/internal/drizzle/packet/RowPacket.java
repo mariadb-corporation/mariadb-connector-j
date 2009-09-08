@@ -9,33 +9,31 @@
 
 package org.drizzle.jdbc.internal.drizzle.packet;
 
-import org.drizzle.jdbc.internal.drizzle.DrizzleValueObject;
-import org.drizzle.jdbc.internal.common.ValueObject;
 import org.drizzle.jdbc.internal.common.ColumnInformation;
+import org.drizzle.jdbc.internal.common.ValueObject;
+import org.drizzle.jdbc.internal.common.packet.RawPacket;
 import org.drizzle.jdbc.internal.common.packet.buffer.LengthEncodedBytes;
 import org.drizzle.jdbc.internal.common.packet.buffer.ReadUtil;
-import org.drizzle.jdbc.internal.common.packet.RawPacket;
 import org.drizzle.jdbc.internal.drizzle.DrizzleType;
+import org.drizzle.jdbc.internal.drizzle.DrizzleValueObject;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * User: marcuse
- * Date: Jan 23, 2009
- * Time: 9:28:43 PM
+ * User: marcuse Date: Jan 23, 2009 Time: 9:28:43 PM
  */
 public class RowPacket {
     private final List<ValueObject> columns;
 
-    public RowPacket(RawPacket rawPacket, List<ColumnInformation> columnInformation) {
+    public RowPacket(final RawPacket rawPacket, final List<ColumnInformation> columnInformation) {
         columns = new ArrayList<ValueObject>(columnInformation.size());
-        byte[] rawBytes = rawPacket.getRawBytes();
+        final byte[] rawBytes = rawPacket.getRawBytes();
         int readBytes = 0;
-        for (ColumnInformation currentColumn : columnInformation) {
-            LengthEncodedBytes leb = ReadUtil.getLengthEncodedBytes(rawBytes, readBytes);
+        for (final ColumnInformation currentColumn : columnInformation) {
+            final LengthEncodedBytes leb = ReadUtil.getLengthEncodedBytes(rawBytes, readBytes);
             readBytes += leb.getLength();
-            DrizzleValueObject dvo = new DrizzleValueObject(leb.getBytes(), (DrizzleType) currentColumn.getType());
+            final DrizzleValueObject dvo = new DrizzleValueObject(leb.getBytes(), (DrizzleType) currentColumn.getType());
             columns.add(dvo);
             currentColumn.updateDisplaySize(dvo.getDisplayLength());
         }
