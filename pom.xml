@@ -7,6 +7,9 @@
     <version>0.5-SNAPSHOT</version>
     <description>BSD Licensed JDBC driver for Drizzle</description>
     <url>http://launchpad.net/drizzle-jdbc/</url>
+    <properties>
+      <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
     <licenses>
         <license>
             <name>BSD</name>
