@@ -9,23 +9,19 @@
 
 package org.drizzle.jdbc.internal.mysql.packet;
 
-import org.drizzle.jdbc.internal.common.packet.buffer.Reader;
-import org.drizzle.jdbc.internal.common.packet.RawPacket;
-import org.drizzle.jdbc.internal.common.queryresults.ColumnFlags;
 import org.drizzle.jdbc.internal.common.ColumnInformation;
+import org.drizzle.jdbc.internal.common.packet.RawPacket;
+import org.drizzle.jdbc.internal.common.packet.buffer.Reader;
+import org.drizzle.jdbc.internal.common.queryresults.ColumnFlags;
 import org.drizzle.jdbc.internal.mysql.MySQLColumnInformation;
 import org.drizzle.jdbc.internal.mysql.MySQLType;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.EnumSet;
 import java.util.Set;
 
 /**
- * Creates column information from field packets
- * User: marcuse
- * Date: Jan 21, 2009
- * Time: 10:49:15 PM
+ * Creates column information from field packets.
  */
 public class MySQLFieldPacket {
     /*
@@ -48,8 +44,8 @@ n (Length Coded Binary)    default
 
     */
 
-    public static ColumnInformation columnInformationFactory(RawPacket rawPacket) throws IOException {
-        Reader reader = new Reader(rawPacket);
+    public static ColumnInformation columnInformationFactory(final RawPacket rawPacket) throws IOException {
+        final Reader reader = new Reader(rawPacket);
         return new MySQLColumnInformation.Builder()
                 .catalog(reader.getLengthEncodedString())
                 .db(reader.getLengthEncodedString())
@@ -67,11 +63,12 @@ n (Length Coded Binary)    default
                 .build();
     }
 
-    private static Set<ColumnFlags> parseFlags(short i) {
-        Set<ColumnFlags> retFlags = EnumSet.noneOf(ColumnFlags.class);
-        for (ColumnFlags fieldFlag : ColumnFlags.values()) {
-            if ((i & fieldFlag.flag()) == fieldFlag.flag())
+    private static Set<ColumnFlags> parseFlags(final short i) {
+        final Set<ColumnFlags> retFlags = EnumSet.noneOf(ColumnFlags.class);
+        for (final ColumnFlags fieldFlag : ColumnFlags.values()) {
+            if ((i & fieldFlag.flag()) == fieldFlag.flag()) {
                 retFlags.add(fieldFlag);
+            }
         }
         return retFlags;
     }

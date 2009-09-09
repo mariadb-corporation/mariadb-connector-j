@@ -16,29 +16,28 @@ import java.io.OutputStream;
 import java.io.Reader;
 
 /**
- * User: marcuse
- * Date: Feb 27, 2009
- * Time: 9:35:10 PM
+ * User: marcuse Date: Feb 27, 2009 Time: 9:35:10 PM
  */
 public class ReaderParameter implements ParameterHolder {
     private final long length;
     private final byte[] buffer;
 
-    public ReaderParameter(Reader reader, long length) throws IOException {
+    public ReaderParameter(final Reader reader, final long length) throws IOException {
         buffer = new byte[(int) (length * 2) + 2];
         int pos = 0;
         buffer[pos++] = '"';
         for (int i = 0; i < length; i++) {
-            byte b = (byte) reader.read();
-            if (needsEscaping(b))
+            final byte b = (byte) reader.read();
+            if (needsEscaping(b)) {
                 buffer[pos++] = '\\';
+            }
             buffer[pos++] = b;
         }
         buffer[pos++] = '"';
         this.length = pos;
     }
 
-    public void writeTo(OutputStream os) throws IOException {
+    public void writeTo(final OutputStream os) throws IOException {
         os.write(buffer, 0, (int) length);
         os.flush();
     }

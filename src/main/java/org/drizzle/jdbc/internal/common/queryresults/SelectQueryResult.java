@@ -12,9 +12,7 @@ package org.drizzle.jdbc.internal.common.queryresults;
 import org.drizzle.jdbc.internal.common.ValueObject;
 
 /**
- * User: marcuse
- * Date: Mar 9, 2009
- * Time: 8:42:45 PM
+ * User: marcuse Date: Mar 9, 2009 Time: 8:42:45 PM
  */
 public interface SelectQueryResult extends QueryResult {
 

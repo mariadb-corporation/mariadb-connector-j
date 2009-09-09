@@ -12,11 +12,8 @@ package org.drizzle.jdbc.internal.common;
 import java.text.ParseException;
 
 /**
- * Created by IntelliJ IDEA.
- * User: marcuse
- * Date: Jun 12, 2009
- * Time: 4:16:09 PM
- * To change this template use File | Settings | File Templates.
+ * Created by IntelliJ IDEA. User: marcuse Date: Jun 12, 2009 Time: 4:16:09 PM To change this template use File |
+ * Settings | File Templates.
  */
 public class GeneratedIdValueObject extends AbstractValueObject {
     public GeneratedIdValueObject(final long insertId) {

@@ -16,10 +16,7 @@ import java.io.IOException;
 import java.io.InputStream;
 
 /**
- * .
- * User: marcuse
- * Date: Jan 16, 2009
- * Time: 8:27:38 PM
+ * . User: marcuse Date: Jan 16, 2009 Time: 8:27:38 PM
  */
 public class Reader {
     private final InputStream inputReader;
@@ -40,7 +37,7 @@ public class Reader {
     }
 
     private int readLength() throws IOException {
-        byte[] lengthBuffer = new byte[3];
+        final byte[] lengthBuffer = new byte[3];
         for (int i = 0; i < 3; i++) {
             lengthBuffer[i] = (byte) inputReader.read();
         }
@@ -61,7 +58,7 @@ public class Reader {
      */
     public String readString(final String charset) throws IOException {
         int ch;
-        byte[] tempArr = new byte[length - readBytes]; //todo: fix!
+        final byte[] tempArr = new byte[length - readBytes]; //todo: fix!
         int i = 0;
         while (readBytes < length && ((ch = inputReader.read()) != 0)) {
             readBytes++;
@@ -80,11 +77,11 @@ public class Reader {
         if (readBytes + 2 > length) {
             throw new IOException("Could not read short");
         }
-        byte[] tempBuf = new byte[2];
+        final byte[] tempBuf = new byte[2];
         tempBuf[0] = (byte) inputReader.read();
         tempBuf[1] = (byte) inputReader.read();
         readBytes += 2;
-        return (short) ((tempBuf[0]&0xff) + ((tempBuf[1]&0xff) << 8));
+        return (short) ((tempBuf[0] & 0xff) + ((tempBuf[1] & 0xff) << 8));
     }
 
     /**
@@ -98,12 +95,15 @@ public class Reader {
             throw new IOException("Could not read int");
         }
 
-        byte[] tempBuf = new byte[4];
+        final byte[] tempBuf = new byte[4];
         for (int i = 0; i < 4; i++) {
             tempBuf[i] = (byte) inputReader.read();
         }
         readBytes += 4;
-        return (tempBuf[0]&0xff) + ((tempBuf[1]&0xff) << 8) + ((tempBuf[2]&0xff) << 16) + ((tempBuf[3]&0xff) << 24);
+        return (tempBuf[0] & 0xff) +
+                ((tempBuf[1] & 0xff) << 8) +
+                ((tempBuf[2] & 0xff) << 16) +
+                ((tempBuf[3] & 0xff) << 24);
     }
 
     /**
@@ -117,20 +117,20 @@ public class Reader {
             throw new IOException("Could not read short");
         }
 
-        byte[] tempBuf = new byte[8];
+        final byte[] tempBuf = new byte[8];
         for (int i = 0; i < 8; i++) {
             tempBuf[i] = (byte) inputReader.read();
         }
         readBytes += 8;
         return
-                ((long)(tempBuf[0]&0xff)) +
-                        (((long)(tempBuf[1]&0xff)) << 8) +
-                        (((long)(tempBuf[2]&0xff)) << 16) +
-                        (((long)(tempBuf[3]&0xff)) << 24) +
-                        (((long)(tempBuf[4]&0xff)) << 32) +
-                        (((long)(tempBuf[5]&0xff)) << 40) +
-                        (((long)(tempBuf[6]&0xff)) << 48) +
-                        (((long)(tempBuf[7]&0xff)) << 56);
+                ((long) (tempBuf[0] & 0xff)) +
+                        (((long) (tempBuf[1] & 0xff)) << 8) +
+                        (((long) (tempBuf[2] & 0xff)) << 16) +
+                        (((long) (tempBuf[3] & 0xff)) << 24) +
+                        (((long) (tempBuf[4] & 0xff)) << 32) +
+                        (((long) (tempBuf[5] & 0xff)) << 40) +
+                        (((long) (tempBuf[6] & 0xff)) << 48) +
+                        (((long) (tempBuf[7] & 0xff)) << 56);
     }
 
 
@@ -152,7 +152,7 @@ public class Reader {
         if (readBytes + numberOfBytes >= length) {
             throw new IOException("Could not read bytes");
         }
-        byte[] tmpArr = new byte[numberOfBytes];
+        final byte[] tmpArr = new byte[numberOfBytes];
         for (int i = 0; i < numberOfBytes; i++) {
             tmpArr[i] = (byte) inputReader.read();
         }
@@ -177,12 +177,12 @@ public class Reader {
         if (readBytes + 3 >= length) {
             throw new IOException("Could not read 3 bytes");
         }
-        byte[] tmpArr = new byte[3];
+        final byte[] tmpArr = new byte[3];
         for (int i = 0; i < 3; i++) {
             tmpArr[i] = (byte) inputReader.read();
         }
         readBytes += 3;
-        return (tmpArr[0]&0xff) + ((tmpArr[1]&0xff) << 8) + ((tmpArr[2]&0xff) << 16);
+        return (tmpArr[0] & 0xff) + ((tmpArr[1] & 0xff) << 8) + ((tmpArr[2] & 0xff) << 16);
     }
 
     public long getLengthEncodedBinary() throws IOException {
@@ -192,16 +192,16 @@ public class Reader {
         final byte type = (byte) inputReader.read();
         readBytes += 1;
 
-        if ((type&0xff) == 251) {
+        if ((type & 0xff) == 251) {
             return -1;
         }
-        if ((type&0xff) == 252) {
+        if ((type & 0xff) == 252) {
             return (long) readShort();
         }
-        if ((type&0xff) == 253) {
+        if ((type & 0xff) == 253) {
             return read24bitword();
         }
-        if ((type&0xff) == 254) {
+        if ((type & 0xff) == 254) {
             return readLong();
         }
         if ((type & 0xff) <= 250) {
@@ -224,9 +224,15 @@ public class Reader {
             return null;
         }
         if (readBytes + encLength > length) {
-            throw new IOException("Could not read length encoded binary (" + readBytes + ")(" + encLength + ")(" + length + ")");
+            throw new IOException("Could not read length encoded binary (" +
+                    readBytes +
+                    ")(" +
+                    encLength +
+                    ")(" +
+                    length +
+                    ")");
         }
-        byte[] tmpBuf = new byte[(int) encLength];
+        final byte[] tmpBuf = new byte[(int) encLength];
         for (int i = 0; i < encLength; i++) {
             tmpBuf[i] = (byte) inputReader.read();
         }
@@ -240,9 +246,15 @@ public class Reader {
             return null;
         }
         if (readBytes + encLength > length) {
-            throw new IOException("Could not read length encoded binary (" + readBytes + ")(" + encLength + ")(" + length + ")");
+            throw new IOException("Could not read length encoded binary (" +
+                    readBytes +
+                    ")(" +
+                    encLength +
+                    ")(" +
+                    length +
+                    ")");
         }
-        byte[] tmpBuf = new byte[(int) encLength];
+        final byte[] tmpBuf = new byte[(int) encLength];
         for (int i = 0; i < encLength; i++) {
             tmpBuf[i] = (byte) inputReader.read();
         }
@@ -253,7 +265,7 @@ public class Reader {
     public byte getByteAt(final int i) throws IOException {
         inputReader.mark(i + 1);
         final long skipped = inputReader.skip(i - 1);
-        if(skipped != i - 1) {
+        if (skipped != i - 1) {
             throw new IOException("Could not skip the requested amount of bytes");
         }
         final byte b = (byte) inputReader.read();

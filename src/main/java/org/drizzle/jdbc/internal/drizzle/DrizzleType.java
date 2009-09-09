@@ -17,14 +17,12 @@ import java.sql.Date;
 
 
 /**
- * User: marcuse
- * Date: Feb 23, 2009
- * Time: 10:42:02 PM
+ * User: marcuse Date: Feb 23, 2009 Time: 10:42:02 PM
  */
 public class DrizzleType implements DataType {
     private final Type type;
 
-    public DrizzleType(Type type) {
+    public DrizzleType(final Type type) {
         this.type = type;
     }
 
@@ -41,7 +39,7 @@ public class DrizzleType implements DataType {
     }
 
 
-    public enum Type  {
+    public enum Type {
         TINY(java.sql.Types.SMALLINT, Short.class),
         LONG(java.sql.Types.BIGINT, Long.class),
         DOUBLE(java.sql.Types.DOUBLE, Double.class),
@@ -58,7 +56,7 @@ public class DrizzleType implements DataType {
         private final int sqlType;
         private final Class<?> javaClass;
 
-        Type(int sqlType, Class<?> javaClass) {
+        Type(final int sqlType, final Class<?> javaClass) {
             this.sqlType = sqlType;
             this.javaClass = javaClass;
         }
@@ -76,7 +74,7 @@ public class DrizzleType implements DataType {
         return type;
     }
 
-    public static DrizzleType fromServer(byte typeValue) {
+    public static DrizzleType fromServer(final byte typeValue) {
         switch (typeValue) {
             case 0:
                 return new DrizzleType(Type.TINY);

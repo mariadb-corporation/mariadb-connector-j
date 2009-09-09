@@ -21,35 +21,33 @@ import java.util.Map;
 import java.util.logging.Logger;
 
 /**
- * .
- * User: marcuse
- * Date: Feb 18, 2009
- * Time: 10:13:42 PM
+ * . User: marcuse Date: Feb 18, 2009 Time: 10:13:42 PM
  */
 public class DrizzleParameterizedQuery implements ParameterizedQuery {
     private final static Logger log = Logger.getLogger(DrizzleParameterizedQuery.class.getName());
     private final Map<Integer, ParameterHolder> parameters;
     private final int paramCount;
-//    private final String query;
+    //    private final String query;
     private final String query;
 
-    public DrizzleParameterizedQuery(String query) {
+    public DrizzleParameterizedQuery(final String query) {
         this.query = query;
         this.paramCount = countChars(this.query, '?');
         parameters = new HashMap<Integer, ParameterHolder>(this.paramCount);
     }
 
-    public DrizzleParameterizedQuery(ParameterizedQuery query) {
+    public DrizzleParameterizedQuery(final ParameterizedQuery query) {
         this.paramCount = query.getParamCount();
         this.query = query.getQuery();
         parameters = new HashMap<Integer, ParameterHolder>(this.paramCount);
     }
 
-    public void setParameter(int position, ParameterHolder parameter) throws IllegalParameterException {
+    public void setParameter(final int position, final ParameterHolder parameter) throws IllegalParameterException {
         if (position >= 0 && position < paramCount) {
             parameters.put(position, parameter);
-        } else
+        } else {
             throw new IllegalParameterException("No '?' on that position");
+        }
     }
 
     public Map<Integer, ParameterHolder> getParameters() {
@@ -64,31 +62,32 @@ public class DrizzleParameterizedQuery implements ParameterizedQuery {
     public int length() {
         int length = query.length() - paramCount; // remove the ?s
 
-        for (Map.Entry<Integer, ParameterHolder> param : parameters.entrySet()) {
+        for (final Map.Entry<Integer, ParameterHolder> param : parameters.entrySet()) {
             length += param.getValue().length();
         }
 
         return length;
     }
 
-    public void writeTo(OutputStream os) throws IOException, QueryException {
-        if (paramCount != this.parameters.size())
+    public void writeTo(final OutputStream os) throws IOException, QueryException {
+        if (paramCount != this.parameters.size()) {
             throw new QueryException("You need to set exactly " + paramCount + " parameters on the prepared statement");
-        StringReader strReader = new StringReader(query);
+        }
+        final StringReader strReader = new StringReader(query);
         int ch;
         int paramCounter = 0;
         boolean isWithinQuotes = false;
         boolean isWithinDoubleQuotes = false;
         while ((ch = strReader.read()) != -1) {
-            if(ch == '"' && !isWithinQuotes && !isWithinDoubleQuotes) {
+            if (ch == '"' && !isWithinQuotes && !isWithinDoubleQuotes) {
                 isWithinDoubleQuotes = true;
-            } else if(ch == '"' && !isWithinQuotes) {
+            } else if (ch == '"' && !isWithinQuotes) {
                 isWithinDoubleQuotes = false;
             }
 
-            if(ch == '\'' && !isWithinQuotes && !isWithinDoubleQuotes) {
+            if (ch == '\'' && !isWithinQuotes && !isWithinDoubleQuotes) {
                 isWithinQuotes = true;
-            } else if(ch == '\'' && !isWithinDoubleQuotes) {
+            } else if (ch == '\'' && !isWithinDoubleQuotes) {
                 isWithinQuotes = false;
             }
 

@@ -18,10 +18,7 @@ import java.text.ParseException;
 import java.util.Calendar;
 
 /**
- * .
- * User: marcuse
- * Date: Feb 16, 2009
- * Time: 9:16:36 PM
+ * . User: marcuse Date: Feb 16, 2009 Time: 9:16:36 PM
  */
 public interface ValueObject {
     String getString();

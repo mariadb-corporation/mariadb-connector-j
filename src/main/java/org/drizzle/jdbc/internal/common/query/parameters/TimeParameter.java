@@ -22,14 +22,15 @@ import java.io.OutputStream;
 public class TimeParameter implements ParameterHolder {
     private final byte[] byteRepresentation;
 
-    public TimeParameter(long timestamp) {
-        int packedTime = Utils.packTime(timestamp);
+    public TimeParameter(final long timestamp) {
+        final int packedTime = Utils.packTime(timestamp);
         byteRepresentation = String.valueOf(packedTime).getBytes();
     }
 
-    public void writeTo(OutputStream os) throws IOException {
-        for (byte b : byteRepresentation)
+    public void writeTo(final OutputStream os) throws IOException {
+        for (final byte b : byteRepresentation) {
             os.write(b);
+        }
     }
 
     public long length() {

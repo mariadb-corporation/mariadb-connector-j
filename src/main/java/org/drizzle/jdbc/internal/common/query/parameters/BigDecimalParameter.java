@@ -14,20 +14,19 @@ import java.io.OutputStream;
 import java.math.BigDecimal;
 
 /**
- * User: marcuse
- * Date: Feb 27, 2009
- * Time: 10:07:00 PM
+ * User: marcuse Date: Feb 27, 2009 Time: 10:07:00 PM
  */
 public class BigDecimalParameter implements ParameterHolder {
     private final byte[] rawBytes;
 
-    public BigDecimalParameter(BigDecimal x) {
+    public BigDecimalParameter(final BigDecimal x) {
         this.rawBytes = x.toPlainString().getBytes();
     }
 
-    public void writeTo(OutputStream os) throws IOException {
-        for (byte theByte : rawBytes)
+    public void writeTo(final OutputStream os) throws IOException {
+        for (final byte theByte : rawBytes) {
             os.write(theByte);
+        }
     }
 
     public long length() {

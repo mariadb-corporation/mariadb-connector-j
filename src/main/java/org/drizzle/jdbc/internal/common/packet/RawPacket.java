@@ -11,15 +11,15 @@
  */
 package org.drizzle.jdbc.internal.common.packet;
 
+import org.drizzle.jdbc.internal.common.packet.buffer.ReadUtil;
+
 import java.io.IOException;
 import java.io.InputStream;
-import org.drizzle.jdbc.internal.common.packet.buffer.ReadUtil;
 
 
 /**
- * Class to represent a raw packet as transferred over the wire. First we
- * got 3 bytes specifying the actual length, then one byte packet sequence
- * number and then n bytes with user data.
+ * Class to represent a raw packet as transferred over the wire. First we got 3 bytes specifying the actual length, then
+ * one byte packet sequence number and then n bytes with user data.
  */
 public final class RawPacket {
 

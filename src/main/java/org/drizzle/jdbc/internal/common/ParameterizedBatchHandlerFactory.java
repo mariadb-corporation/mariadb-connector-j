@@ -14,8 +14,8 @@ package org.drizzle.jdbc.internal.common;
  */
 public interface ParameterizedBatchHandlerFactory {
     /**
-     * returns a parameterized batch handler. Called every
-     * time prepareStatement is called on the Connection.
+     * returns a parameterized batch handler. Called every time prepareStatement is called on the Connection.
+     *
      * @param query the query to create the handler for
      * @return a parameterized batch handler
      */

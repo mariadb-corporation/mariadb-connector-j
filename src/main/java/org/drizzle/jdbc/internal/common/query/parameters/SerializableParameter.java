@@ -18,23 +18,21 @@ import java.io.OutputStream;
 import java.util.Arrays;
 
 /**
- * User: marcuse
- * Date: Feb 19, 2009
- * Time: 8:53:14 PM
+ * User: marcuse Date: Feb 19, 2009 Time: 8:53:14 PM
  */
 public class SerializableParameter implements ParameterHolder {
     private final byte[] rawBytes;
     private final int length;
 
-    public SerializableParameter(Object object) throws IOException {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        ObjectOutputStream oos = new ObjectOutputStream(baos);
+    public SerializableParameter(final Object object) throws IOException {
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        final ObjectOutputStream oos = new ObjectOutputStream(baos);
         oos.writeObject(object);
         rawBytes = escapeBytes(baos.toByteArray());
         length = rawBytes.length;
     }
 
-    public void writeTo(OutputStream os) throws IOException {
+    public void writeTo(final OutputStream os) throws IOException {
         os.write(rawBytes, 0, length);
     }
 
@@ -42,13 +40,14 @@ public class SerializableParameter implements ParameterHolder {
         return length;
     }
 
-    private static byte[] escapeBytes(byte[] input) {
-        byte[] buffer = new byte[input.length * 2 + 2];
+    private static byte[] escapeBytes(final byte[] input) {
+        final byte[] buffer = new byte[input.length * 2 + 2];
         int i = 0;
         buffer[i++] = '\"';
-        for (byte b : input) {
-            if (Utils.needsEscaping(b))
+        for (final byte b : input) {
+            if (Utils.needsEscaping(b)) {
                 buffer[i++] = '\\';
+            }
             buffer[i++] = b;
         }
         buffer[i++] = '\"';

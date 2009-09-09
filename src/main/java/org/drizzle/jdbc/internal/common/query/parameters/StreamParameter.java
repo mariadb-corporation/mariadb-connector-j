@@ -15,10 +15,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 /**
- * Holds a stream parameter.
- * User: marcuse
- * Date: Feb 19, 2009
- * Time: 8:53:14 PM
+ * Holds a stream parameter. User: marcuse Date: Feb 19, 2009 Time: 8:53:14 PM
  */
 public class StreamParameter implements ParameterHolder {
     /**
@@ -43,7 +40,7 @@ public class StreamParameter implements ParameterHolder {
         int pos = 0;
         buffer[pos++] = '"';
         for (int i = 0; i < readLength; i++) {
-            byte b = (byte) is.read();
+            final byte b = (byte) is.read();
             if (needsEscaping(b)) {
                 buffer[pos++] = '\\';
             }
@@ -65,8 +62,7 @@ public class StreamParameter implements ParameterHolder {
     }
 
     /**
-     * Returns the length of the parameter - this is the total
-     * amount of bytes that will be sent.
+     * Returns the length of the parameter - this is the total amount of bytes that will be sent.
      *
      * @return the length of the parameter
      */

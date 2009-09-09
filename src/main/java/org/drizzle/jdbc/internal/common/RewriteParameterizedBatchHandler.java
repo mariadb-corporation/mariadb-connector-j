@@ -1,23 +1,20 @@
 package org.drizzle.jdbc.internal.common;
 
-import org.drizzle.jdbc.internal.common.query.ParameterizedQuery;
 import org.drizzle.jdbc.internal.common.query.DrizzleQuery;
+import org.drizzle.jdbc.internal.common.query.ParameterizedQuery;
 import org.drizzle.jdbc.internal.common.query.parameters.ParameterHolder;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.Map;
-import java.util.List;
-import java.util.LinkedList;
-import java.util.Arrays;
-import java.util.logging.Logger;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.sql.Statement;
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Logger;
 
 /**
- * Rewrites queries on the form (INSERT INTO xyz (a,b,c) VALUES (?,?,?))* to
- * INSERT INTO xyz (a,b,c) VALUES ((?,?,?),)*
+ * Rewrites queries on the form (INSERT INTO xyz (a,b,c) VALUES (?,?,?))* to INSERT INTO xyz (a,b,c) VALUES ((?,?,?),)*
  */
 public class RewriteParameterizedBatchHandler implements ParameterizedBatchHandler {
     private final static Logger log = Logger.getLogger(RewriteParameterizedBatchHandler.class.getName());
@@ -33,42 +30,46 @@ public class RewriteParameterizedBatchHandler implements ParameterizedBatchHandl
 
     /**
      * Constructs a new handler
-     * @param protocol the protocol to use to send the query.
-     * @param baseQuery the base of the query, i.e. everything including .*VALUES
+     *
+     * @param protocol       the protocol to use to send the query.
+     * @param baseQuery      the base of the query, i.e. everything including .*VALUES
      * @param queryValuePart the value part (?,?..)
-     * @param onDupKeyPart the duplicate key part of the query
+     * @param onDupKeyPart   the duplicate key part of the query
      */
-    public RewriteParameterizedBatchHandler(Protocol protocol, String baseQuery, String queryValuePart, String onDupKeyPart) {
+    public RewriteParameterizedBatchHandler(final Protocol protocol,
+                                            final String baseQuery,
+                                            final String queryValuePart,
+                                            final String onDupKeyPart) {
         this.baseQuery = baseQuery;
         this.queryValuePart = queryValuePart;
-        this.onDupKeyPart = (onDupKeyPart == null?"":onDupKeyPart);
+        this.onDupKeyPart = (onDupKeyPart == null ? "" : onDupKeyPart);
         queryBuilder.append(baseQuery);
         this.protocol = protocol;
     }
 
-    public void addToBatch(ParameterizedQuery query) {
-        Map<Integer, ParameterHolder> parameters = query.getParameters();
-        StringBuilder replacedValuePart = new StringBuilder();
+    public void addToBatch(final ParameterizedQuery query) {
+        final Map<Integer, ParameterHolder> parameters = query.getParameters();
+        final StringBuilder replacedValuePart = new StringBuilder();
         int questionMarkPosition = 0;
 
-        for(int i = 0;i<queryValuePart.length();i++) {
-            char ch = queryValuePart.charAt(i);
-            if(ch == '?') {
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                ParameterHolder parameterHolder = parameters.get(questionMarkPosition++);
+        for (int i = 0; i < queryValuePart.length(); i++) {
+            final char ch = queryValuePart.charAt(i);
+            if (ch == '?') {
+                final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                final ParameterHolder parameterHolder = parameters.get(questionMarkPosition++);
                 try {
                     parameterHolder.writeTo(baos); // writeTo escapes and adds quotes etc
                 } catch (IOException e) {
-                    throw new RuntimeException("Could not write to byte array: "+e.getMessage(),e);
+                    throw new RuntimeException("Could not write to byte array: " + e.getMessage(), e);
                 }
                 replacedValuePart.append(baos.toString());
             } else {
                 replacedValuePart.append(ch);
             }
         }
-        String replaced = replacedValuePart.toString();
+        final String replaced = replacedValuePart.toString();
 
-        if(queryBuilder.length() + replaced.length() + onDupKeyPart.length() > MAX_QUERY_LENGTH) {
+        if (queryBuilder.length() + replaced.length() + onDupKeyPart.length() > MAX_QUERY_LENGTH) {
             queryBuilder.append(onDupKeyPart);
             queriesToSend.add(queryBuilder.toString());
             queryBuilder = new StringBuilder();
@@ -77,7 +78,7 @@ public class RewriteParameterizedBatchHandler implements ParameterizedBatchHandl
             firstWritten = false;
         }
 
-        if(firstWritten) {
+        if (firstWritten) {
             queryBuilder.append(",");
         }
 
@@ -88,18 +89,18 @@ public class RewriteParameterizedBatchHandler implements ParameterizedBatchHandl
 
     public int[] executeBatch() throws QueryException {
         queryBuilder.append(onDupKeyPart);
-        String lastQuery = queryBuilder.toString();
+        final String lastQuery = queryBuilder.toString();
 
-        if(firstWritten) {
+        if (firstWritten) {
             queriesToSend.add(lastQuery);
         }
 
-        for(String query : queriesToSend) {
+        for (final String query : queriesToSend) {
             protocol.executeQuery(new DrizzleQuery(query));
         }
 
-        log.finest("Rewrote "+queryCount+" queries to "+queriesToSend.size()+" queries");
-        int [] returnArray = new int[queryCount];
+        log.finest("Rewrote " + queryCount + " queries to " + queriesToSend.size() + " queries");
+        final int[] returnArray = new int[queryCount];
         Arrays.fill(returnArray, Statement.SUCCESS_NO_INFO);
         return returnArray;
     }

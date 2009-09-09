@@ -18,18 +18,20 @@ import org.drizzle.jdbc.internal.common.packet.commands.SelectDBPacket;
 import org.drizzle.jdbc.internal.common.packet.commands.StreamedQueryPacket;
 import org.drizzle.jdbc.internal.common.query.DrizzleQuery;
 import org.drizzle.jdbc.internal.common.query.Query;
-import org.drizzle.jdbc.internal.common.ColumnInformation;
 import org.drizzle.jdbc.internal.common.queryresults.DrizzleQueryResult;
 import org.drizzle.jdbc.internal.common.queryresults.DrizzleUpdateResult;
 import org.drizzle.jdbc.internal.common.queryresults.QueryResult;
-import org.drizzle.jdbc.internal.drizzle.packet.GreetingReadPacket;
 import org.drizzle.jdbc.internal.drizzle.packet.FieldPacket;
+import org.drizzle.jdbc.internal.drizzle.packet.GreetingReadPacket;
 import org.drizzle.jdbc.internal.drizzle.packet.RowPacket;
 import org.drizzle.jdbc.internal.drizzle.packet.commands.ClientAuthPacket;
 import org.drizzle.jdbc.internal.drizzle.packet.commands.PingPacket;
 
 import javax.net.SocketFactory;
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -38,13 +40,8 @@ import java.util.Set;
 import java.util.logging.Logger;
 
 /**
- * TODO: refactor, clean up
- * TODO: when should i read up the resultset?
- * TODO: thread safety?
- * TODO: exception handling
- * User: marcuse
- * Date: Jan 14, 2009
- * Time: 4:06:26 PM
+ * TODO: refactor, clean up TODO: when should i read up the resultset? TODO: thread safety? TODO: exception handling
+ * User: marcuse Date: Jan 14, 2009 Time: 4:06:26 PM
  */
 public final class DrizzleProtocol implements Protocol {
     /**
@@ -69,8 +66,7 @@ public final class DrizzleProtocol implements Protocol {
      */
     private final String serverVersion;
     /**
-     * if the connection is read only.
-     * //TODO: not used - need to parse queries etc.
+     * if the connection is read only. //TODO: not used - need to parse queries etc.
      */
     private boolean readOnly = false;
     /**
@@ -102,8 +98,7 @@ public final class DrizzleProtocol implements Protocol {
      */
     private final List<Query> batchList;
     /**
-     * the packet fetcher. Fetches packets and gives them
-     * back to the protocol class.
+     * the packet fetcher. Fetches packets and gives them back to the protocol class.
      */
     private final PacketFetcher packetFetcher;
 
@@ -117,7 +112,8 @@ public final class DrizzleProtocol implements Protocol {
      * @param password the password
      * @throws QueryException if there is a problem reading / sending the packets
      */
-    public DrizzleProtocol(String host, int port, String database, String username, String password) throws QueryException {
+    public DrizzleProtocol(final String host, final int port, final String database, final String username, final String password)
+            throws QueryException {
         this.host = host;
         this.port = port;
         if (database == null) {
@@ -136,44 +132,47 @@ public final class DrizzleProtocol implements Protocol {
             this.password = password;
         }
 
-        SocketFactory socketFactory = SocketFactory.getDefault();
+        final SocketFactory socketFactory = SocketFactory.getDefault();
         try {
             socket = socketFactory.createSocket(host, port);
         } catch (IOException e) {
-            throw new QueryException("Could not connect: " + e.getMessage(), -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), e);
+            throw new QueryException("Could not connect: " + e.getMessage(),
+                    -1,
+                    SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
+                    e);
         }
         log.info("Connected to: " + host + ":" + port);
         batchList = new ArrayList<Query>();
         try {
-            BufferedInputStream reader = new BufferedInputStream(socket.getInputStream(), 65536);
+            final BufferedInputStream reader = new BufferedInputStream(socket.getInputStream(), 65536);
             writer = new BufferedOutputStream(socket.getOutputStream(), 65536);
-            GreetingReadPacket greetingPacket = new GreetingReadPacket(reader);
+            final GreetingReadPacket greetingPacket = new GreetingReadPacket(reader);
             log.finest("Got greeting packet: " + greetingPacket);
 
             this.serverVersion = greetingPacket.getServerVersion();
 
-            Set<ServerCapabilities> serverCapabilities =
+            final Set<ServerCapabilities> serverCapabilities =
                     EnumSet.of(ServerCapabilities.LONG_PASSWORD,
-                               ServerCapabilities.CONNECT_WITH_DB,
-                               ServerCapabilities.IGNORE_SPACE,
-                               ServerCapabilities.CLIENT_PROTOCOL_41,
-                               ServerCapabilities.SECURE_CONNECTION);
+                            ServerCapabilities.CONNECT_WITH_DB,
+                            ServerCapabilities.IGNORE_SPACE,
+                            ServerCapabilities.CLIENT_PROTOCOL_41,
+                            ServerCapabilities.SECURE_CONNECTION);
 
-            ClientAuthPacket cap = new ClientAuthPacket(this.username,
-                                                        this.password,
-                                                        this.database,
-                                                        serverCapabilities);
+            final ClientAuthPacket cap = new ClientAuthPacket(this.username,
+                    this.password,
+                    this.database,
+                    serverCapabilities);
             cap.send(writer);
 
             log.finest("Sending auth packet");
             packetFetcher = new AsyncPacketFetcher(reader);
             packetFetcher.start();
-            RawPacket rawPacket = packetFetcher.getRawPacket();
-            ResultPacket rp = ResultPacketFactory.createResultPacket(rawPacket);
+            final RawPacket rawPacket = packetFetcher.getRawPacket();
+            final ResultPacket rp = ResultPacketFactory.createResultPacket(rawPacket);
 
             if (rp.getResultType() == ResultPacket.ResultType.ERROR) {
-                ErrorPacket ep = (ErrorPacket) rp;
-                String message = ep.getMessage();
+                final ErrorPacket ep = (ErrorPacket) rp;
+                final String message = ep.getMessage();
                 throw new QueryException("Could not connect: "
                         + message, ep.getErrorNumber(), ep.getSqlState());
             }
@@ -183,7 +182,10 @@ public final class DrizzleProtocol implements Protocol {
             }
         } catch (IOException e) {
             close();
-            throw new QueryException("Could not connect: " + e.getMessage(), -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), e);
+            throw new QueryException("Could not connect: " + e.getMessage(),
+                    -1,
+                    SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
+                    e);
         }
         connected = true;
     }
@@ -197,7 +199,7 @@ public final class DrizzleProtocol implements Protocol {
         log.info("Closing connection");
         try {
             packetFetcher.close(); // by sending the close packet now, the response will act as a poison pill for the reading thread
-            ClosePacket closePacket = new ClosePacket();
+            final ClosePacket closePacket = new ClosePacket();
             closePacket.send(writer);
             packetFetcher.awaitTermination();
             writer.close();
@@ -215,6 +217,7 @@ public final class DrizzleProtocol implements Protocol {
 
     /**
      * has this connection been closed.
+     *
      * @return true if the connection is closed
      */
     public boolean isClosed() {
@@ -223,24 +226,29 @@ public final class DrizzleProtocol implements Protocol {
 
     /**
      * selects the database.
+     *
      * @param database the database
      * @throws QueryException if we could not select the db.
      */
-    public void selectDB(String database) throws QueryException {
+    public void selectDB(final String database) throws QueryException {
         log.finest("Selecting db " + database);
-        SelectDBPacket packet = new SelectDBPacket(database);
+        final SelectDBPacket packet = new SelectDBPacket(database);
         try {
             packet.send(writer);
-            RawPacket rawPacket = packetFetcher.getRawPacket();
+            final RawPacket rawPacket = packetFetcher.getRawPacket();
             ResultPacketFactory.createResultPacket(rawPacket);
         } catch (IOException e) {
-            throw new QueryException("Could not connect: " + e.getMessage(), -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), e);
+            throw new QueryException("Could not connect: " + e.getMessage(),
+                    -1,
+                    SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
+                    e);
         }
         this.database = database;
     }
 
     /**
      * returns the server version.
+     *
      * @return the server version.
      */
     public String getServerVersion() {
@@ -248,16 +256,17 @@ public final class DrizzleProtocol implements Protocol {
     }
 
     /**
-     * sets whether this connection is read only.
-     * //TODO: use!
+     * sets whether this connection is read only. //TODO: use!
+     *
      * @param readOnly if the connection should be read only
      */
-    public void setReadonly(boolean readOnly) {
+    public void setReadonly(final boolean readOnly) {
         this.readOnly = readOnly;
     }
 
     /**
      * returns true if this connection is read only.
+     *
      * @return true if the connection is RO.
      */
     public boolean getReadonly() {
@@ -266,6 +275,7 @@ public final class DrizzleProtocol implements Protocol {
 
     /**
      * commits the current transaction.
+     *
      * @throws QueryException true if it was not possible to commit the transaction.
      */
     public void commit() throws QueryException {
@@ -275,6 +285,7 @@ public final class DrizzleProtocol implements Protocol {
 
     /**
      * rolls back the current transaction.
+     *
      * @throws QueryException if there is a problem rolling back.
      */
     public void rollback() throws QueryException {
@@ -284,43 +295,47 @@ public final class DrizzleProtocol implements Protocol {
 
     /**
      * rolls back a transaction to the given savepoint.
+     *
      * @param savepoint the save point to roll back to
      * @throws QueryException if there is a problem rolling back.
      */
-    public void rollback(String savepoint) throws QueryException {
+    public void rollback(final String savepoint) throws QueryException {
         log.finest("rolling back to savepoint: " + savepoint);
         executeQuery(new DrizzleQuery("ROLLBACK TO SAVEPOINT " + savepoint));
     }
 
     /**
      * sets a savepoint with the given name.
+     *
      * @param savepoint the save point name
      * @throws QueryException if there is a problem setting the save point.
      */
-    public void setSavepoint(String savepoint) throws QueryException {
+    public void setSavepoint(final String savepoint) throws QueryException {
         log.finest("setting a savepoint named " + savepoint);
         executeQuery(new DrizzleQuery("SAVEPOINT " + savepoint));
     }
 
     /**
      * releases a save point.
+     *
      * @param savepoint the name of the savepoint to release
      * @throws QueryException if there is a problem releasing the savepoint.
      */
-    public void releaseSavepoint(String savepoint) throws QueryException {
+    public void releaseSavepoint(final String savepoint) throws QueryException {
         log.finest("releasing savepoint named " + savepoint);
         executeQuery(new DrizzleQuery("RELEASE SAVEPOINT " + savepoint));
     }
 
     /**
      * sets whether statements should be autocommitted.
+     *
      * @param autoCommit true if they should be autocommitted
      * @throws QueryException if there is a problem talking to drizzled
      */
-    public void setAutoCommit(boolean autoCommit) throws QueryException {
+    public void setAutoCommit(final boolean autoCommit) throws QueryException {
         this.autoCommit = autoCommit;
         String boolStr = "0";
-        if(autoCommit) {
+        if (autoCommit) {
             boolStr = "1";
         }
         executeQuery(new DrizzleQuery("SET autocommit=" + boolStr));
@@ -328,6 +343,7 @@ public final class DrizzleProtocol implements Protocol {
 
     /**
      * if this connection is in autoCommit mode.
+     *
      * @return true if we are autoCommiting statements.
      */
     public boolean getAutoCommit() {
@@ -336,6 +352,7 @@ public final class DrizzleProtocol implements Protocol {
 
     /**
      * returns the host we are connected to.
+     *
      * @return the host
      */
     public String getHost() {
@@ -344,6 +361,7 @@ public final class DrizzleProtocol implements Protocol {
 
     /**
      * returns the current port.
+     *
      * @return the port
      */
     public int getPort() {
@@ -352,6 +370,7 @@ public final class DrizzleProtocol implements Protocol {
 
     /**
      * returns the current database.
+     *
      * @return the database.
      */
     public String getDatabase() {
@@ -360,6 +379,7 @@ public final class DrizzleProtocol implements Protocol {
 
     /**
      * returns the username of the connection.
+     *
      * @return the username
      */
     public String getUsername() {
@@ -368,6 +388,7 @@ public final class DrizzleProtocol implements Protocol {
 
     /**
      * returns the password.
+     *
      * @return the password
      */
     public String getPassword() {
@@ -376,59 +397,71 @@ public final class DrizzleProtocol implements Protocol {
 
     /**
      * pings the server.
+     *
      * @return true if it can ping, false otherwise.
      * @throws QueryException there was a problem pinging the server.
      */
     public boolean ping() throws QueryException {
-        PingPacket pingPacket = new PingPacket();
+        final PingPacket pingPacket = new PingPacket();
         try {
             pingPacket.send(writer);
             log.finest("Sent ping packet");
-            RawPacket rawPacket = packetFetcher.getRawPacket();
+            final RawPacket rawPacket = packetFetcher.getRawPacket();
             return ResultPacketFactory.createResultPacket(rawPacket).getResultType() == ResultPacket.ResultType.OK;
         } catch (IOException e) {
-            throw new QueryException("Could not ping: " + e.getMessage(), -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), e);
+            throw new QueryException("Could not ping: " + e.getMessage(),
+                    -1,
+                    SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
+                    e);
         }
     }
 
     /**
      * executes a query.
+     *
      * @param dQuery the query to execute
      * @return the result of the query.
-     * @throws QueryException if anything goes wrong when sending
-     * the query or reading back the results
+     * @throws QueryException if anything goes wrong when sending the query or reading back the results
      */
-    public QueryResult executeQuery(Query dQuery) throws QueryException {
+    public QueryResult executeQuery(final Query dQuery) throws QueryException {
         log.finest("Executing streamed query: " + dQuery);
-        StreamedQueryPacket packet = new StreamedQueryPacket(dQuery);
+        final StreamedQueryPacket packet = new StreamedQueryPacket(dQuery);
         try {
             packet.send(writer);
         } catch (IOException e) {
-            throw new QueryException("Could not connect: " + e.getMessage(), -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), e);
+            throw new QueryException("Could not connect: " + e.getMessage(),
+                    -1,
+                    SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
+                    e);
         }
 
-        RawPacket rawPacket;
+        final RawPacket rawPacket;
         try {
             rawPacket = packetFetcher.getRawPacket();
         } catch (IOException e) {
-            throw new QueryException("Could not connect: " + e.getMessage(), -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), e);
+            throw new QueryException("Could not connect: " + e.getMessage(),
+                    -1,
+                    SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
+                    e);
         }
-        ResultPacket resultPacket = ResultPacketFactory.createResultPacket(rawPacket);
+        final ResultPacket resultPacket = ResultPacketFactory.createResultPacket(rawPacket);
 
         switch (resultPacket.getResultType()) {
             case ERROR:
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                ErrorPacket ep = (ErrorPacket) resultPacket;
+                final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                final ErrorPacket ep = (ErrorPacket) resultPacket;
                 try {
                     dQuery.writeTo(baos);
                     log.warning("Could not execute query " + baos.toString() + ": " + ep.getMessage());
-                    throw new QueryException("Could not execute query: " + ep.getMessage(), ep.getErrorNumber(), ep.getSqlState());
+                    throw new QueryException("Could not execute query: " + ep.getMessage(),
+                            ep.getErrorNumber(),
+                            ep.getSqlState());
                 } catch (IOException e) {
                     throw new QueryException("Could not execute query: " + ((ErrorPacket) resultPacket).getMessage());
                 }
             case OK:
-                OKPacket okpacket = (OKPacket) resultPacket;
-                QueryResult updateResult = new DrizzleUpdateResult(okpacket.getAffectedRows(),
+                final OKPacket okpacket = (OKPacket) resultPacket;
+                final QueryResult updateResult = new DrizzleUpdateResult(okpacket.getAffectedRows(),
                         okpacket.getWarnings(),
                         okpacket.getMessage(),
                         okpacket.getInsertId());
@@ -439,7 +472,10 @@ public final class DrizzleProtocol implements Protocol {
                 try {
                     return this.createDrizzleQueryResult((ResultSetPacket) resultPacket);
                 } catch (IOException e) {
-                    throw new QueryException("Could not connect: " + e.getMessage(), -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), e);
+                    throw new QueryException("Could not connect: " + e.getMessage(),
+                            -1,
+                            SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
+                            e);
                 }
             default:
                 log.severe("Could not parse result...");
@@ -455,46 +491,48 @@ public final class DrizzleProtocol implements Protocol {
      * @return a DrizzleQueryResult
      * @throws IOException when something goes wrong while reading/writing from the server
      */
-    private QueryResult createDrizzleQueryResult(ResultSetPacket packet) throws IOException {
-        List<ColumnInformation> columnInformation = new ArrayList<ColumnInformation>();
+    private QueryResult createDrizzleQueryResult(final ResultSetPacket packet) throws IOException {
+        final List<ColumnInformation> columnInformation = new ArrayList<ColumnInformation>();
         for (int i = 0; i < packet.getFieldCount(); i++) {
-            RawPacket rawPacket = packetFetcher.getRawPacket();
-            ColumnInformation columnInfo = FieldPacket.columnInformationFactory(rawPacket);
+            final RawPacket rawPacket = packetFetcher.getRawPacket();
+            final ColumnInformation columnInfo = FieldPacket.columnInformationFactory(rawPacket);
             columnInformation.add(columnInfo);
         }
         packetFetcher.getRawPacket();
-        List<List<ValueObject>> valueObjects = new ArrayList<List<ValueObject>>();
+        final List<List<ValueObject>> valueObjects = new ArrayList<List<ValueObject>>();
 
         while (true) {
-            RawPacket rawPacket = packetFetcher.getRawPacket();
+            final RawPacket rawPacket = packetFetcher.getRawPacket();
             if (ReadUtil.eofIsNext(rawPacket)) {
-                EOFPacket eofPacket = (EOFPacket) ResultPacketFactory.createResultPacket(rawPacket);
+                final EOFPacket eofPacket = (EOFPacket) ResultPacketFactory.createResultPacket(rawPacket);
                 return new DrizzleQueryResult(columnInformation, valueObjects, eofPacket.getWarningCount());
             }
-            RowPacket rowPacket = new RowPacket(rawPacket, columnInformation);
+            final RowPacket rowPacket = new RowPacket(rawPacket, columnInformation);
             valueObjects.add(rowPacket.getRow());
         }
     }
 
     /**
      * adds a query to the batch.
+     *
      * @param dQuery the query to add
      */
-    public void addToBatch(Query dQuery) {
+    public void addToBatch(final Query dQuery) {
         log.fine("Adding query to batch");
         batchList.add(dQuery);
     }
 
     /**
      * sends the batch to the server.
+     *
      * @return a list of query results.
      * @throws QueryException if something goes wrong with the queries.
      */
     public List<QueryResult> executeBatch() throws QueryException {
         log.fine("executing batch");
-        List<QueryResult> retList = new ArrayList<QueryResult>(batchList.size());
+        final List<QueryResult> retList = new ArrayList<QueryResult>(batchList.size());
 
-        for (Query query : batchList) {
+        for (final Query query : batchList) {
             log.finest("executing batch query");
             retList.add(executeQuery(query));
         }
@@ -512,11 +550,12 @@ public final class DrizzleProtocol implements Protocol {
 
     /**
      * not yet supported in drizzle.
+     *
      * @param startPos starting position in binlog
      * @param filename binlog file name
      * @return a list of raw binlog entries
      */
-    public List<RawPacket> startBinlogDump(int startPos, String filename) {
+    public List<RawPacket> startBinlogDump(final int startPos, final String filename) {
         return null;
     }
 

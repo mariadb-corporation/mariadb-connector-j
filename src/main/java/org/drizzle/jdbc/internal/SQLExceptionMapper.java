@@ -5,11 +5,8 @@ import org.drizzle.jdbc.internal.common.QueryException;
 import java.sql.*;
 
 /**
- * Created by IntelliJ IDEA.
- * User: marcuse
- * Date: May 20, 2009
- * Time: 5:06:56 PM
- * To change this template use File | Settings | File Templates.
+ * Created by IntelliJ IDEA. User: marcuse Date: May 20, 2009 Time: 5:06:56 PM To change this template use File |
+ * Settings | File Templates.
  */
 public class SQLExceptionMapper {
     public enum SQLStates {
@@ -34,14 +31,15 @@ public class SQLExceptionMapper {
         private final String sqlStateGroup;
 
 
-        SQLStates(String s) {
+        SQLStates(final String s) {
             this.sqlStateGroup = s;
         }
 
-        public static SQLStates fromString(String group) {
-            for (SQLStates state : SQLStates.values()) {
-                if (group.startsWith(state.sqlStateGroup))
+        public static SQLStates fromString(final String group) {
+            for (final SQLStates state : SQLStates.values()) {
+                if (group.startsWith(state.sqlStateGroup)) {
                     return state;
+                }
             }
             return UNDEFINED_SQLSTATE;
         }
@@ -51,9 +49,9 @@ public class SQLExceptionMapper {
         }
     }
 
-    public static SQLException get(QueryException e) {
-        String sqlState = e.getSqlState();
-        SQLStates state = SQLStates.fromString(sqlState);
+    public static SQLException get(final QueryException e) {
+        final String sqlState = e.getSqlState();
+        final SQLStates state = SQLStates.fromString(sqlState);
         switch (state) {
             case DATA_EXCEPTION:
                 return new SQLDataException(e.getMessage(), sqlState, e.getErrorCode(), e);
@@ -62,7 +60,7 @@ public class SQLExceptionMapper {
             case CONSTRAINT_VIOLATION:
                 return new SQLIntegrityConstraintViolationException(e.getMessage(), sqlState, e.getErrorCode(), e);
             case INVALID_AUTHORIZATION:
-                return new SQLInvalidAuthorizationSpecException(e.getMessage(),sqlState, e.getErrorCode(), e);
+                return new SQLInvalidAuthorizationSpecException(e.getMessage(), sqlState, e.getErrorCode(), e);
             case CONNECTION_EXCEPTION:
                 // TODO: check transient / non transient
                 return new SQLNonTransientConnectionException(e.getMessage(), sqlState, e.getErrorCode(), e);
@@ -71,8 +69,8 @@ public class SQLExceptionMapper {
             case TRANSACTION_ROLLBACK:
                 return new SQLTransactionRollbackException(e.getMessage(), sqlState, e.getErrorCode(), e);
             case WARNING:
-                return new SQLWarning(e.getMessage(),sqlState, e.getErrorCode(), e);
-        }        
+                return new SQLWarning(e.getMessage(), sqlState, e.getErrorCode(), e);
+        }
         return new SQLException(e.getMessage(), sqlState, e.getErrorCode(), e);
     }
 }

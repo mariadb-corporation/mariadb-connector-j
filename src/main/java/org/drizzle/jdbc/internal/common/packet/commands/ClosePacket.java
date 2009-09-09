@@ -16,10 +16,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 /**
- * .
- * User: marcuse
- * Date: Feb 10, 2009
- * Time: 9:40:08 PM
+ * . User: marcuse Date: Feb 10, 2009 Time: 9:40:08 PM
  */
 public class ClosePacket implements CommandPacket {
     private final WriteBuffer writeBuffer;
@@ -29,10 +26,11 @@ public class ClosePacket implements CommandPacket {
         writeBuffer.writeByte((byte) 0x01);
     }
 
-    public void send(OutputStream os) throws IOException {
-        byte[] buff = writeBuffer.toByteArrayWithLength((byte) 0);
-        for (byte b : buff)
+    public void send(final OutputStream os) throws IOException {
+        final byte[] buff = writeBuffer.toByteArrayWithLength((byte) 0);
+        for (final byte b : buff) {
             os.write(b);
+        }
         os.flush();
     }
 }

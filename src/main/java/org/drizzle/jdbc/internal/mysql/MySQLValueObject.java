@@ -20,19 +20,18 @@ import java.text.ParseException;
  * <p/>
  * Is immutable
  * <p/>
- * User: marcuse
- * Date: Feb 16, 2009
- * Time: 9:18:26 PM
+ * User: marcuse Date: Feb 16, 2009 Time: 9:18:26 PM
  */
 public class MySQLValueObject extends AbstractValueObject {
     public MySQLValueObject(final byte[] rawBytes, final DataType dataType) {
-        super(rawBytes,dataType);
+        super(rawBytes, dataType);
     }
-   public Object getObject() throws ParseException  {
-       if (this.getBytes() == null) {
+
+    public Object getObject() throws ParseException {
+        if (this.getBytes() == null) {
             return null;
-       }
-        switch (((MySQLType)dataType).getType()) {
+        }
+        switch (((MySQLType) dataType).getType()) {
             case TINY:
                 return getShort();
             case LONG:

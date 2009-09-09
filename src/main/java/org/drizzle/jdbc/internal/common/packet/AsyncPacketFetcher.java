@@ -14,7 +14,6 @@ package org.drizzle.jdbc.internal.common.packet;
 
 import org.drizzle.jdbc.internal.common.PacketFetcher;
 
-import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.*;
@@ -22,11 +21,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Created by IntelliJ IDEA.
- * User: marcuse
- * Date: Mar 31, 2009
- * Time: 2:01:30 PM
- * To change this template use File | Settings | File Templates.
+ * Created by IntelliJ IDEA. User: marcuse Date: Mar 31, 2009 Time: 2:01:30 PM To change this template use File |
+ * Settings | File Templates.
  */
 public class AsyncPacketFetcher implements Runnable, PacketFetcher {
     private final BlockingQueue<RawPacket> packet = new LinkedBlockingQueue<RawPacket>();
@@ -34,10 +30,10 @@ public class AsyncPacketFetcher implements Runnable, PacketFetcher {
     private final ExecutorService executorService;
     private volatile boolean shutDown = false;
 
-    public AsyncPacketFetcher(InputStream inputStream) {
+    public AsyncPacketFetcher(final InputStream inputStream) {
         executorService = Executors.newSingleThreadExecutor(
                 new ThreadFactory() {
-                    public Thread newThread(Runnable runnable) {
+                    public Thread newThread(final Runnable runnable) {
                         return new Thread(runnable, "DrizzlePacketFetcherThread");
                     }
                 }
@@ -54,7 +50,7 @@ public class AsyncPacketFetcher implements Runnable, PacketFetcher {
         try {
             while (!shutDown) {
                 try {
-                    RawPacket rawPacket = RawPacket.nextPacket(inputStream);
+                    final RawPacket rawPacket = RawPacket.nextPacket(inputStream);
                     if (rawPacket != null) {
                         packet.add(rawPacket);
                     } else {
@@ -82,7 +78,7 @@ public class AsyncPacketFetcher implements Runnable, PacketFetcher {
 
     public RawPacket getRawPacket() throws IOException {
         try {
-            RawPacket rawPacket = packet.take();
+            final RawPacket rawPacket = packet.take();
             if (rawPacket == RawPacket.IOEXCEPTION_PILL) {
                 throw new IOException();
             }

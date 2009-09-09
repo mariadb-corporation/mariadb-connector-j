@@ -13,10 +13,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 /**
- * .
- * User: marcuse
- * Date: Feb 19, 2009
- * Time: 9:35:15 PM
+ * . User: marcuse Date: Feb 19, 2009 Time: 9:35:15 PM
  */
 public class NullParameter implements ParameterHolder {
     private final byte[] byteRepresentation;
@@ -25,9 +22,10 @@ public class NullParameter implements ParameterHolder {
         this.byteRepresentation = "NULL".getBytes();
     }
 
-    public void writeTo(OutputStream os) throws IOException {
-        for (byte b : byteRepresentation)
+    public void writeTo(final OutputStream os) throws IOException {
+        for (final byte b : byteRepresentation) {
             os.write(b);
+        }
     }
 
     public long length() {

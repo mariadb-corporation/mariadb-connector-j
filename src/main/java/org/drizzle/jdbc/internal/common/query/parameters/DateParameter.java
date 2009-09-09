@@ -18,9 +18,7 @@ import java.util.Date;
 /**
  * Represents a time stamp
  * <p/>
- * User: marcuse
- * Date: Feb 19, 2009
- * Time: 8:50:52 PM
+ * User: marcuse Date: Feb 19, 2009 Time: 8:50:52 PM
  */
 public class DateParameter implements ParameterHolder {
     private final byte[] byteRepresentation;
@@ -30,21 +28,22 @@ public class DateParameter implements ParameterHolder {
      *
      * @param timestamp the time in millis since epoch
      */
-    public DateParameter(long timestamp) {
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+    public DateParameter(final long timestamp) {
+        final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
         byteRepresentation = String.valueOf("\"" + sdf.format(new Date(timestamp)) + "\"").getBytes();
     }
 
-    public DateParameter(long timestamp, Calendar cal) {
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+    public DateParameter(final long timestamp, final Calendar cal) {
+        final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
         sdf.setCalendar(cal);
         byteRepresentation = String.valueOf("\"" + sdf.format(new Date(timestamp)) + "\"").getBytes();
 
     }
 
-    public void writeTo(OutputStream os) throws IOException {
-        for (byte b : byteRepresentation)
+    public void writeTo(final OutputStream os) throws IOException {
+        for (final byte b : byteRepresentation) {
             os.write(b);
+        }
     }
 
     public long length() {

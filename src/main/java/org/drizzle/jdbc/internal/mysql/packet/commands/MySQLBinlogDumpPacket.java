@@ -16,16 +16,13 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 /**
- * Created by IntelliJ IDEA.
- * User: marcuse
- * Date: Apr 18, 2009
- * Time: 10:12:29 PM
- * To change this template use File | Settings | File Templates.
+ * Created by IntelliJ IDEA. User: marcuse Date: Apr 18, 2009 Time: 10:12:29 PM To change this template use File |
+ * Settings | File Templates.
  */
 public class MySQLBinlogDumpPacket implements CommandPacket {
     private final WriteBuffer writeBuffer;
 
-    public MySQLBinlogDumpPacket(int startPos, String filename) {
+    public MySQLBinlogDumpPacket(final int startPos, final String filename) {
         writeBuffer = new WriteBuffer();
         writeBuffer.writeByte((byte) 18);
         writeBuffer.writeInt(startPos);
@@ -34,10 +31,11 @@ public class MySQLBinlogDumpPacket implements CommandPacket {
         writeBuffer.writeString(filename);
     }
 
-    public void send(OutputStream os) throws IOException {
-        byte[] buff = writeBuffer.toByteArrayWithLength((byte) 0);
-        for (byte b : buff)
+    public void send(final OutputStream os) throws IOException {
+        final byte[] buff = writeBuffer.toByteArrayWithLength((byte) 0);
+        for (final byte b : buff) {
             os.write(b);
+        }
         os.flush();
     }
 }

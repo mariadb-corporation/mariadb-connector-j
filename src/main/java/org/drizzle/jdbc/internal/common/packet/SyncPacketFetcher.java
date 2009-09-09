@@ -15,11 +15,8 @@ import java.io.IOException;
 import java.io.InputStream;
 
 /**
- * Created by IntelliJ IDEA.
- * User: marcuse
- * Date: Apr 1, 2009
- * Time: 8:26:44 AM
- * To change this template use File | Settings | File Templates.
+ * Created by IntelliJ IDEA. User: marcuse Date: Apr 1, 2009 Time: 8:26:44 AM To change this template use File |
+ * Settings | File Templates.
  */
 public class SyncPacketFetcher implements PacketFetcher {
 
@@ -34,7 +31,7 @@ public class SyncPacketFetcher implements PacketFetcher {
     }
 
     public void start() {
-        
+
     }
 
     public void close() throws IOException {

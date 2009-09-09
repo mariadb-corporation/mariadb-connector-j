@@ -18,12 +18,11 @@ import org.drizzle.jdbc.internal.common.packet.commands.SelectDBPacket;
 import org.drizzle.jdbc.internal.common.packet.commands.StreamedQueryPacket;
 import org.drizzle.jdbc.internal.common.query.DrizzleQuery;
 import org.drizzle.jdbc.internal.common.query.Query;
-import org.drizzle.jdbc.internal.common.ColumnInformation;
 import org.drizzle.jdbc.internal.common.queryresults.DrizzleQueryResult;
 import org.drizzle.jdbc.internal.common.queryresults.DrizzleUpdateResult;
 import org.drizzle.jdbc.internal.common.queryresults.QueryResult;
-import org.drizzle.jdbc.internal.mysql.packet.MySQLGreetingReadPacket;
 import org.drizzle.jdbc.internal.mysql.packet.MySQLFieldPacket;
+import org.drizzle.jdbc.internal.mysql.packet.MySQLGreetingReadPacket;
 import org.drizzle.jdbc.internal.mysql.packet.MySQLRowPacket;
 import org.drizzle.jdbc.internal.mysql.packet.commands.MySQLBinlogDumpPacket;
 import org.drizzle.jdbc.internal.mysql.packet.commands.MySQLClientAuthPacket;
@@ -38,13 +37,8 @@ import java.util.*;
 import java.util.logging.Logger;
 
 /**
- * TODO: refactor, clean up
- * TODO: when should i read up the resultset?
- * TODO: thread safety?
- * TODO: exception handling
- * User: marcuse
- * Date: Jan 14, 2009
- * Time: 4:06:26 PM
+ * TODO: refactor, clean up TODO: when should i read up the resultset? TODO: thread safety? TODO: exception handling
+ * User: marcuse Date: Jan 14, 2009 Time: 4:06:26 PM
  */
 public class MySQLProtocol implements Protocol {
     private final static Logger log = Logger.getLogger(MySQLProtocol.class.getName());
@@ -73,47 +67,64 @@ public class MySQLProtocol implements Protocol {
      * @throws org.drizzle.jdbc.internal.common.QueryException
      *          if there is a problem reading / sending the packets
      */
-    public MySQLProtocol(String host, int port, String database, String username, String password) throws QueryException {
+    public MySQLProtocol(final String host, final int port, final String database, final String username, final String password)
+            throws QueryException {
         this.host = host;
         this.port = port;
         this.database = (database == null ? "" : database);
         this.username = (username == null ? "" : username);
         this.password = (password == null ? "" : password);
 
-        SocketFactory socketFactory = SocketFactory.getDefault();
+        final SocketFactory socketFactory = SocketFactory.getDefault();
         try {
             socket = socketFactory.createSocket(host, port);
         } catch (IOException e) {
-            throw new QueryException("Could not connect: " + e.getMessage(), -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), e);
+            throw new QueryException("Could not connect: " + e.getMessage(),
+                    -1,
+                    SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
+                    e);
         }
         log.info("Connected to: " + host + ":" + port);
         batchList = new ArrayList<Query>();
         try {
-            InputStream reader = socket.getInputStream();
+            final InputStream reader = socket.getInputStream();
             writer = new BufferedOutputStream(socket.getOutputStream(), 16384);
-            MySQLGreetingReadPacket greetingPacket = new MySQLGreetingReadPacket(reader);
+            final MySQLGreetingReadPacket greetingPacket = new MySQLGreetingReadPacket(reader);
             log.finest("Got greeting packet");
             this.version = greetingPacket.getServerVersion();
-            Set<MySQLServerCapabilities> capabilities = EnumSet.of(MySQLServerCapabilities.LONG_PASSWORD, MySQLServerCapabilities.CONNECT_WITH_DB, MySQLServerCapabilities.IGNORE_SPACE, MySQLServerCapabilities.CLIENT_PROTOCOL_41, MySQLServerCapabilities.TRANSACTIONS, MySQLServerCapabilities.SECURE_CONNECTION);
-            MySQLClientAuthPacket cap = new MySQLClientAuthPacket(this.username, this.password, this.database, capabilities, greetingPacket.getSeed());
+            final Set<MySQLServerCapabilities> capabilities = EnumSet.of(MySQLServerCapabilities.LONG_PASSWORD,
+                    MySQLServerCapabilities.CONNECT_WITH_DB,
+                    MySQLServerCapabilities.IGNORE_SPACE,
+                    MySQLServerCapabilities.CLIENT_PROTOCOL_41,
+                    MySQLServerCapabilities.TRANSACTIONS,
+                    MySQLServerCapabilities.SECURE_CONNECTION);
+            final MySQLClientAuthPacket cap = new MySQLClientAuthPacket(this.username,
+                    this.password,
+                    this.database,
+                    capabilities,
+                    greetingPacket.getSeed());
             cap.send(writer);
             log.finest("Sending auth packet");
             packetFetcher = new AsyncPacketFetcher(reader);
             packetFetcher.start();
-            RawPacket rp = packetFetcher.getRawPacket();
-            ResultPacket resultPacket = ResultPacketFactory.createResultPacket(rp);
+            final RawPacket rp = packetFetcher.getRawPacket();
+            final ResultPacket resultPacket = ResultPacketFactory.createResultPacket(rp);
             if (resultPacket.getResultType() == ResultPacket.ResultType.ERROR) {
-                ErrorPacket ep = (ErrorPacket) resultPacket;
-                String message = ep.getMessage();
+                final ErrorPacket ep = (ErrorPacket) resultPacket;
+                final String message = ep.getMessage();
                 throw new QueryException("Could not connect: " + message);
             } else if (resultPacket.getResultType() == ResultPacket.ResultType.OK) {
-                OKPacket okp = (OKPacket) resultPacket;
-                if (!okp.getServerStatus().contains(ServerStatus.AUTOCOMMIT))
+                final OKPacket okp = (OKPacket) resultPacket;
+                if (!okp.getServerStatus().contains(ServerStatus.AUTOCOMMIT)) {
                     setAutoCommit(true);
+                }
             }
 
         } catch (IOException e) {
-            throw new QueryException("Could not connect: " + e.getMessage(), -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), e);
+            throw new QueryException("Could not connect: " + e.getMessage(),
+                    -1,
+                    SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
+                    e);
         }
     }
 
@@ -127,14 +138,17 @@ public class MySQLProtocol implements Protocol {
         log.info("Closing...");
         try {
             packetFetcher.close();
-            ClosePacket closePacket = new ClosePacket();
+            final ClosePacket closePacket = new ClosePacket();
             closePacket.send(writer);
             packetFetcher.close();
             writer.close();
             socket.close();
 
         } catch (IOException e) {
-            throw new QueryException("Could not close connection: " + e.getMessage(), -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), e);
+            throw new QueryException("Could not close connection: " + e.getMessage(),
+                    -1,
+                    SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
+                    e);
         }
         this.connected = false;
     }
@@ -153,36 +167,39 @@ public class MySQLProtocol implements Protocol {
      * @return a DrizzleQueryResult
      * @throws java.io.IOException when something goes wrong while reading/writing from the server
      */
-    private QueryResult createDrizzleQueryResult(ResultSetPacket packet) throws IOException {
-        List<ColumnInformation> columnInformation = new ArrayList<ColumnInformation>();
+    private QueryResult createDrizzleQueryResult(final ResultSetPacket packet) throws IOException {
+        final List<ColumnInformation> columnInformation = new ArrayList<ColumnInformation>();
         for (int i = 0; i < packet.getFieldCount(); i++) {
-            RawPacket rawPacket = packetFetcher.getRawPacket();
-            ColumnInformation columnInfo = MySQLFieldPacket.columnInformationFactory(rawPacket);
+            final RawPacket rawPacket = packetFetcher.getRawPacket();
+            final ColumnInformation columnInfo = MySQLFieldPacket.columnInformationFactory(rawPacket);
             columnInformation.add(columnInfo);
         }
         packetFetcher.getRawPacket();
-        List<List<ValueObject>> valueObjects = new ArrayList<List<ValueObject>>();
+        final List<List<ValueObject>> valueObjects = new ArrayList<List<ValueObject>>();
 
         while (true) {
-            RawPacket rawPacket = packetFetcher.getRawPacket();
+            final RawPacket rawPacket = packetFetcher.getRawPacket();
             if (ReadUtil.eofIsNext(rawPacket)) {
-                EOFPacket eofPacket = (EOFPacket) ResultPacketFactory.createResultPacket(rawPacket);
+                final EOFPacket eofPacket = (EOFPacket) ResultPacketFactory.createResultPacket(rawPacket);
                 return new DrizzleQueryResult(columnInformation, valueObjects, eofPacket.getWarningCount());
             }
-            MySQLRowPacket rowPacket = new MySQLRowPacket(rawPacket, columnInformation);
+            final MySQLRowPacket rowPacket = new MySQLRowPacket(rawPacket, columnInformation);
             valueObjects.add(rowPacket.getRow());
         }
     }
 
-    public void selectDB(String database) throws QueryException {
+    public void selectDB(final String database) throws QueryException {
         log.finest("Selecting db " + database);
-        SelectDBPacket packet = new SelectDBPacket(database);
+        final SelectDBPacket packet = new SelectDBPacket(database);
         try {
             packet.send(writer);
-            RawPacket rawPacket = packetFetcher.getRawPacket();
+            final RawPacket rawPacket = packetFetcher.getRawPacket();
             ResultPacketFactory.createResultPacket(rawPacket);
         } catch (IOException e) {
-            throw new QueryException("Could not select database: " + e.getMessage(), -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), e);
+            throw new QueryException("Could not select database: " + e.getMessage(),
+                    -1,
+                    SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
+                    e);
         }
         this.database = database;
     }
@@ -191,7 +208,7 @@ public class MySQLProtocol implements Protocol {
         return version;
     }
 
-    public void setReadonly(boolean readOnly) {
+    public void setReadonly(final boolean readOnly) {
         this.readOnly = readOnly;
     }
 
@@ -209,20 +226,20 @@ public class MySQLProtocol implements Protocol {
         executeQuery(new DrizzleQuery("ROLLBACK"));
     }
 
-    public void rollback(String savepoint) throws QueryException {
+    public void rollback(final String savepoint) throws QueryException {
         log.finest("rolling back to savepoint " + savepoint);
         executeQuery(new DrizzleQuery("ROLLBACK TO SAVEPOINT " + savepoint));
     }
 
-    public void setSavepoint(String savepoint) throws QueryException {
+    public void setSavepoint(final String savepoint) throws QueryException {
         executeQuery(new DrizzleQuery("SAVEPOINT " + savepoint));
     }
 
-    public void releaseSavepoint(String savepoint) throws QueryException {
+    public void releaseSavepoint(final String savepoint) throws QueryException {
         executeQuery(new DrizzleQuery("RELEASE SAVEPOINT " + savepoint));
     }
 
-    public void setAutoCommit(boolean autoCommit) throws QueryException {
+    public void setAutoCommit(final boolean autoCommit) throws QueryException {
         this.autoCommit = autoCommit;
         executeQuery(new DrizzleQuery("SET autocommit=" + (autoCommit ? "1" : "0")));
     }
@@ -252,43 +269,54 @@ public class MySQLProtocol implements Protocol {
     }
 
     public boolean ping() throws QueryException {
-        MySQLPingPacket pingPacket = new MySQLPingPacket();
+        final MySQLPingPacket pingPacket = new MySQLPingPacket();
         try {
             pingPacket.send(writer);
             log.finest("Sent ping packet");
-            RawPacket rawPacket = packetFetcher.getRawPacket();
+            final RawPacket rawPacket = packetFetcher.getRawPacket();
             return ResultPacketFactory.createResultPacket(rawPacket).getResultType() == ResultPacket.ResultType.OK;
         } catch (IOException e) {
-            throw new QueryException("Could not ping: " + e.getMessage(), -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), e);
+            throw new QueryException("Could not ping: " + e.getMessage(),
+                    -1,
+                    SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
+                    e);
         }
     }
 
-    public QueryResult executeQuery(Query dQuery) throws QueryException {
+    public QueryResult executeQuery(final Query dQuery) throws QueryException {
         log.finest("Executing streamed query: " + dQuery);
-        StreamedQueryPacket packet = new StreamedQueryPacket(dQuery);
+        final StreamedQueryPacket packet = new StreamedQueryPacket(dQuery);
 
         try {
             packet.send(writer);
         } catch (IOException e) {
-            throw new QueryException("Could not send query: " + e.getMessage(), -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), e);
+            throw new QueryException("Could not send query: " + e.getMessage(),
+                    -1,
+                    SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
+                    e);
         }
 
-        RawPacket rawPacket;
+        final RawPacket rawPacket;
         try {
             rawPacket = packetFetcher.getRawPacket();
         } catch (IOException e) {
-            throw new QueryException("Could not read resultset: " + e.getMessage(), -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), e);
+            throw new QueryException("Could not read resultset: " + e.getMessage(),
+                    -1,
+                    SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
+                    e);
         }
-        ResultPacket resultPacket = ResultPacketFactory.createResultPacket(rawPacket);
+        final ResultPacket resultPacket = ResultPacketFactory.createResultPacket(rawPacket);
 
         switch (resultPacket.getResultType()) {
             case ERROR:
-                ErrorPacket ep = (ErrorPacket) resultPacket;
+                final ErrorPacket ep = (ErrorPacket) resultPacket;
                 log.warning("Could not execute query " + dQuery + ": " + ((ErrorPacket) resultPacket).getMessage());
-                throw new QueryException("Could not execute query: " + ep.getMessage(), ep.getErrorNumber(), ep.getSqlState());
+                throw new QueryException("Could not execute query: " + ep.getMessage(),
+                        ep.getErrorNumber(),
+                        ep.getSqlState());
             case OK:
-                OKPacket okpacket = (OKPacket) resultPacket;
-                QueryResult updateResult = new DrizzleUpdateResult(okpacket.getAffectedRows(),
+                final OKPacket okpacket = (OKPacket) resultPacket;
+                final QueryResult updateResult = new DrizzleUpdateResult(okpacket.getAffectedRows(),
                         okpacket.getWarnings(),
                         okpacket.getMessage(),
                         okpacket.getInsertId());
@@ -299,7 +327,10 @@ public class MySQLProtocol implements Protocol {
                 try {
                     return this.createDrizzleQueryResult((ResultSetPacket) resultPacket);
                 } catch (IOException e) {
-                    throw new QueryException("Could not read result set: " + e.getMessage(), -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), e);
+                    throw new QueryException("Could not read result set: " + e.getMessage(),
+                            -1,
+                            SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
+                            e);
                 }
             default:
                 log.severe("Could not parse result...");
@@ -308,14 +339,14 @@ public class MySQLProtocol implements Protocol {
 
     }
 
-    public void addToBatch(Query dQuery) {
+    public void addToBatch(final Query dQuery) {
         batchList.add(dQuery);
     }
 
     public List<QueryResult> executeBatch() throws QueryException {
-        List<QueryResult> retList = new ArrayList<QueryResult>(batchList.size());
+        final List<QueryResult> retList = new ArrayList<QueryResult>(batchList.size());
 
-        for (Query query : batchList) {
+        for (final Query query : batchList) {
             retList.add(executeQuery(query));
         }
         clearBatch();
@@ -327,13 +358,13 @@ public class MySQLProtocol implements Protocol {
         batchList.clear();
     }
 
-    public List<RawPacket> startBinlogDump(int startPos, String filename) throws BinlogDumpException {
-        MySQLBinlogDumpPacket mbdp = new MySQLBinlogDumpPacket(startPos, filename);
+    public List<RawPacket> startBinlogDump(final int startPos, final String filename) throws BinlogDumpException {
+        final MySQLBinlogDumpPacket mbdp = new MySQLBinlogDumpPacket(startPos, filename);
         try {
             mbdp.send(writer);
-            List<RawPacket> rpList = new LinkedList<RawPacket>();
+            final List<RawPacket> rpList = new LinkedList<RawPacket>();
             while (true) {
-                RawPacket rp = this.packetFetcher.getRawPacket();
+                final RawPacket rp = this.packetFetcher.getRawPacket();
                 if (ReadUtil.eofIsNext(rp)) {
                     return rpList;
                 }
@@ -343,7 +374,7 @@ public class MySQLProtocol implements Protocol {
             throw new BinlogDumpException("Could not read binlog", e);
         }
     }
-    
+
     public SupportedDatabases getDatabaseType() {
         return SupportedDatabases.MYSQL;
     }

@@ -24,10 +24,7 @@ import java.util.Properties;
 import java.util.logging.Logger;
 
 /**
- * The base SQL Driver class.
- * User: marcuse
- * Date: Jan 14, 2009
- * Time: 7:46:09 AM
+ * The base SQL Driver class. User: marcuse Date: Jan 14, 2009 Time: 7:46:09 AM
  */
 public final class Driver implements java.sql.Driver {
     /**
@@ -60,15 +57,19 @@ public final class Driver implements java.sql.Driver {
 
         try {
             final JDBCUrl jdbcUrl = new JDBCUrl(url);
-            Protocol protocol;
+            final Protocol protocol;
             if (jdbcUrl.getDBType() == JDBCUrl.DBType.DRIZZLE) {
                 protocol = new DrizzleProtocol(jdbcUrl.getHostname(),
-                                               jdbcUrl.getPort(),
-                                               jdbcUrl.getDatabase(),
-                                               jdbcUrl.getUsername(),
-                                               jdbcUrl.getPassword());
+                        jdbcUrl.getPort(),
+                        jdbcUrl.getDatabase(),
+                        jdbcUrl.getUsername(),
+                        jdbcUrl.getPassword());
             } else {
-                protocol = new MySQLProtocol(jdbcUrl.getHostname(), jdbcUrl.getPort(), jdbcUrl.getDatabase(), jdbcUrl.getUsername(), jdbcUrl.getPassword());
+                protocol = new MySQLProtocol(jdbcUrl.getHostname(),
+                        jdbcUrl.getPort(),
+                        jdbcUrl.getDatabase(),
+                        jdbcUrl.getUsername(),
+                        jdbcUrl.getPassword());
             }
             return new DrizzleConnection(protocol, new DrizzleQueryFactory());
         } catch (QueryException e) {
@@ -89,9 +90,9 @@ public final class Driver implements java.sql.Driver {
     }
 
     /**
-     * get the property info.
-     * TODO: not implemented!
-     * @param url the url to get properties for
+     * get the property info. TODO: not implemented!
+     *
+     * @param url  the url to get properties for
      * @param info the info props
      * @return something - not implemented
      * @throws SQLException if there is a problem getting the property info
@@ -104,6 +105,7 @@ public final class Driver implements java.sql.Driver {
 
     /**
      * gets the major version of the driver.
+     *
      * @return the major versions
      */
     public int getMajorVersion() {
@@ -112,6 +114,7 @@ public final class Driver implements java.sql.Driver {
 
     /**
      * gets the minor version of the driver.
+     *
      * @return the minor version
      */
     public int getMinorVersion() {
@@ -120,6 +123,7 @@ public final class Driver implements java.sql.Driver {
 
     /**
      * checks if the driver is jdbc compliant (not yet!).
+     *
      * @return false since the driver is not compliant
      */
     public boolean jdbcCompliant() {

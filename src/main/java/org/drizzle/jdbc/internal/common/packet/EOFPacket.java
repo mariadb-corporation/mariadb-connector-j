@@ -10,23 +10,15 @@
 package org.drizzle.jdbc.internal.common.packet;
 
 import org.drizzle.jdbc.internal.common.packet.buffer.ReadUtil;
-import org.drizzle.jdbc.internal.common.packet.buffer.Reader;
-
-import java.io.IOException;
-import java.io.InputStream;
 
 /**
- * .
- * User: marcuse
- * Date: Jan 16, 2009
- * Time: 4:23:54 PM
+ * . User: marcuse Date: Jan 16, 2009 Time: 4:23:54 PM
  */
 public class EOFPacket extends ResultPacket {
     private final byte packetSeq;
     private final short warningCount;
     private short statusFlags;
 
- 
 
     public EOFPacket(final byte[] rawBytes) {
         super();

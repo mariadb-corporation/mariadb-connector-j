@@ -17,16 +17,13 @@ import java.io.Reader;
 import java.util.Arrays;
 
 /**
- * .
- * User: marcuse
- * Date: Feb 27, 2009
- * Time: 9:53:04 PM
+ * . User: marcuse Date: Feb 27, 2009 Time: 9:53:04 PM
  */
 public class BufferedReaderParameter implements ParameterHolder {
     private final int length;
     private final byte[] byteRepresentation;
 
-    public BufferedReaderParameter(Reader reader) throws IOException {
+    public BufferedReaderParameter(final Reader reader) throws IOException {
         byte b;
         byte[] tempByteRepresentation = new byte[1000];
         int pos = 0;
@@ -35,8 +32,9 @@ public class BufferedReaderParameter implements ParameterHolder {
             if (pos > tempByteRepresentation.length - 2) { //need two places in worst case
                 tempByteRepresentation = Arrays.copyOf(tempByteRepresentation, tempByteRepresentation.length * 2);
             }
-            if (needsEscaping(b))
+            if (needsEscaping(b)) {
                 tempByteRepresentation[pos++] = '\\';
+            }
             tempByteRepresentation[pos++] = b;
         }
         tempByteRepresentation[pos++] = (byte) '"';
@@ -44,7 +42,7 @@ public class BufferedReaderParameter implements ParameterHolder {
         byteRepresentation = tempByteRepresentation;
     }
 
-    public void writeTo(OutputStream os) throws IOException {
+    public void writeTo(final OutputStream os) throws IOException {
         for (int i = 0; i < length; i++) {
             os.write(byteRepresentation[i]);
         }

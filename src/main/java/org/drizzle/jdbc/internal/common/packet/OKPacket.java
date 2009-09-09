@@ -13,17 +13,11 @@ import org.drizzle.jdbc.internal.common.ServerStatus;
 import org.drizzle.jdbc.internal.common.packet.buffer.LengthEncodedBinary;
 import org.drizzle.jdbc.internal.common.packet.buffer.LengthEncodedBytes;
 import org.drizzle.jdbc.internal.common.packet.buffer.ReadUtil;
-import org.drizzle.jdbc.internal.common.packet.buffer.Reader;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.Set;
 
 /**
- * .
- * User: marcuse
- * Date: Jan 16, 2009
- * Time: 4:23:40 PM
+ * . User: marcuse Date: Jan 16, 2009 Time: 4:23:40 PM
  */
 public class OKPacket extends ResultPacket {
     private final byte fieldCount;
@@ -35,8 +29,7 @@ public class OKPacket extends ResultPacket {
     private final byte packetSeqNum;
 
 
-
-    public OKPacket(byte[] rawBytes) {
+    public OKPacket(final byte[] rawBytes) {
         int readBytes = 0;
         packetSeqNum = /*rawBytes[readBytes++];*/ 0;
         fieldCount = rawBytes[readBytes++];
@@ -50,11 +43,12 @@ public class OKPacket extends ResultPacket {
         readBytes += 2;
         warnings = ReadUtil.readShort(rawBytes, readBytes);
         readBytes += 2;
-        LengthEncodedBytes lebytes = new LengthEncodedBytes(rawBytes, readBytes);
-        if (lebytes.getLength() > 0)
+        final LengthEncodedBytes lebytes = new LengthEncodedBytes(rawBytes, readBytes);
+        if (lebytes.getLength() > 0) {
             message = new String(lebytes.getBytes());
-        else
+        } else {
             message = "";
+        }
     }
 
     public ResultType getResultType() {
@@ -67,7 +61,16 @@ public class OKPacket extends ResultPacket {
 
     @Override
     public String toString() {
-        return "affectedRows = " + affectedRows + "&insertId = " + insertId + "&serverStatus=" + serverStatus + "&warnings=" + warnings + "&message=" + message;
+        return "affectedRows = " +
+                affectedRows +
+                "&insertId = " +
+                insertId +
+                "&serverStatus=" +
+                serverStatus +
+                "&warnings=" +
+                warnings +
+                "&message=" +
+                message;
     }
 
     public long getAffectedRows() {

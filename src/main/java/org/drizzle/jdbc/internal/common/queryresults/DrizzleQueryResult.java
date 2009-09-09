@@ -9,19 +9,18 @@
 
 package org.drizzle.jdbc.internal.common.queryresults;
 
-import org.drizzle.jdbc.internal.common.ValueObject;
 import org.drizzle.jdbc.internal.common.ColumnInformation;
+import org.drizzle.jdbc.internal.common.ValueObject;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * TODO: refactor, badly need to split this into two/three different classes, one for insert/update/ddl, one for selects and one for generated keys?
+ * TODO: refactor, badly need to split this into two/three different classes, one for insert/update/ddl, one for selects
+ * and one for generated keys?
  * <p/>
- * User: marcuse
- * Date: Jan 23, 2009
- * Time: 8:15:55 PM
+ * User: marcuse Date: Jan 23, 2009 Time: 8:15:55 PM
  */
 public class DrizzleQueryResult implements SelectQueryResult {
     private final List<ColumnInformation> columnInformation;
@@ -30,14 +29,16 @@ public class DrizzleQueryResult implements SelectQueryResult {
     private final short warningCount;
     private int rowPointer;
 
-    public DrizzleQueryResult(List<ColumnInformation> columnInformation, List<List<ValueObject>> valueObjects, short warningCount) {
+    public DrizzleQueryResult(final List<ColumnInformation> columnInformation,
+                              final List<List<ValueObject>> valueObjects,
+                              final short warningCount) {
         this.columnInformation = columnInformation;
         this.resultSet = valueObjects;
         this.warningCount = warningCount;
         columnNameMap = new HashMap<String, Integer>();
         rowPointer = -1;
         int i = 0;
-        for (ColumnInformation ci : columnInformation) {
+        for (final ColumnInformation ci : columnInformation) {
             columnNameMap.put(ci.getName().toLowerCase(), i++);
         }
     }
@@ -71,15 +72,17 @@ public class DrizzleQueryResult implements SelectQueryResult {
      * @param i index, starts at 0
      * @return
      */
-    public ValueObject getValueObject(int i) throws NoSuchColumnException {
-        if (i < 0 || i > resultSet.get(rowPointer).size())
+    public ValueObject getValueObject(final int i) throws NoSuchColumnException {
+        if (i < 0 || i > resultSet.get(rowPointer).size()) {
             throw new NoSuchColumnException("No such column: " + i);
+        }
         return resultSet.get(rowPointer).get(i);
     }
 
-    public ValueObject getValueObject(String column) throws NoSuchColumnException {
-        if (columnNameMap.get(column.toLowerCase()) == null)
+    public ValueObject getValueObject(final String column) throws NoSuchColumnException {
+        if (columnNameMap.get(column.toLowerCase()) == null) {
             throw new NoSuchColumnException("No such column: " + column);
+        }
         return getValueObject(columnNameMap.get(column.toLowerCase()));
     }
 
@@ -87,13 +90,14 @@ public class DrizzleQueryResult implements SelectQueryResult {
         return resultSet.size();
     }
 
-    public int getColumnId(String columnLabel) throws NoSuchColumnException {
-        if (columnNameMap.get(columnLabel.toLowerCase()) == null)
+    public int getColumnId(final String columnLabel) throws NoSuchColumnException {
+        if (columnNameMap.get(columnLabel.toLowerCase()) == null) {
             throw new NoSuchColumnException("No such column: " + columnLabel);
+        }
         return columnNameMap.get(columnLabel.toLowerCase());
     }
 
-    public void moveRowPointerTo(int i) {
+    public void moveRowPointerTo(final int i) {
         this.rowPointer = i;
     }
 

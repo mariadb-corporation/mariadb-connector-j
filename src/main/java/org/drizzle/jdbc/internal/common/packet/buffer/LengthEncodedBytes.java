@@ -12,11 +12,8 @@ package org.drizzle.jdbc.internal.common.packet.buffer;
 import java.util.Arrays;
 
 /**
- * Created by IntelliJ IDEA.
- * User: marcuse
- * Date: Mar 31, 2009
- * Time: 6:51:36 PM
- * To change this template use File | Settings | File Templates.
+ * Created by IntelliJ IDEA. User: marcuse Date: Mar 31, 2009 Time: 6:51:36 PM To change this template use File |
+ * Settings | File Templates.
  */
 public class LengthEncodedBytes {
     private final byte[] theBytes;
@@ -24,14 +21,14 @@ public class LengthEncodedBytes {
 
     public LengthEncodedBytes(final byte[] rawBytes, final int start) {
         if (start < rawBytes.length) {
-            int tempLength;
+            final int tempLength;
             switch (rawBytes[start] & 0xff) {
                 case 251:
                     this.theBytes = null;
                     this.length = 1;
                     break;
                 case 252:
-                    tempLength = (ReadUtil.readShort(rawBytes, start + 1)&0xffff);
+                    tempLength = (ReadUtil.readShort(rawBytes, start + 1) & 0xffff);
                     this.theBytes = Arrays.copyOfRange(rawBytes, start + 3, tempLength + start + 3);
                     this.length = tempLength + 3;
                     break;

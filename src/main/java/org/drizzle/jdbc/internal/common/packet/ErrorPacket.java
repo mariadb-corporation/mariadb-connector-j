@@ -10,24 +10,17 @@
 package org.drizzle.jdbc.internal.common.packet;
 
 import org.drizzle.jdbc.internal.common.packet.buffer.ReadUtil;
-import org.drizzle.jdbc.internal.common.packet.buffer.Reader;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.Arrays;
 
 /**
- * .
- * User: marcuse
- * Date: Jan 16, 2009
- * Time: 4:20:30 PM
+ * . User: marcuse Date: Jan 16, 2009 Time: 4:20:30 PM
  */
 public class ErrorPacket extends ResultPacket {
     private final short errorNumber;
     private final byte sqlStateMarker;
     private final byte[] sqlState;
     private final String message;
-
 
 
     public ErrorPacket(final byte[] rawBytes) {

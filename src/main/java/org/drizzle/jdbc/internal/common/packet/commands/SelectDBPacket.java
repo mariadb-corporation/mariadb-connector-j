@@ -16,10 +16,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 /**
- * .
- * User: marcuse
- * Date: Jan 20, 2009
- * Time: 10:50:47 PM
+ * . User: marcuse Date: Jan 20, 2009 Time: 10:50:47 PM
  */
 public class SelectDBPacket implements CommandPacket {
     private final WriteBuffer buffer = new WriteBuffer();
