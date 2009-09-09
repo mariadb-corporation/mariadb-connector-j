@@ -79,6 +79,13 @@
                     </execution>
                   </executions>
             </plugin>
+	    <plugin>
+              <groupId>com.atlassian.maven.plugins</groupId>
+              <artifactId>maven-clover2-plugin</artifactId>
+	      <configuration>
+                <licenseLocation>/etc/clover.license</licenseLocation>
+              </configuration>
+            </plugin>
         </plugins>
     </build>
     <dependencies>
@@ -97,11 +104,11 @@
     </dependencies>
     <reporting>
         <plugins>
-            <plugin>
+<!--            <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>emma-maven-plugin</artifactId>
                 <inherited>true</inherited>
-            </plugin>
+            </plugin>-->
             <plugin>
               <groupId>org.apache.maven.plugins</groupId>
               <artifactId>maven-checkstyle-plugin</artifactId>
