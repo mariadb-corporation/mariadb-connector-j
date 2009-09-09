@@ -14,7 +14,7 @@ import java.util.logging.Level;
  * Time: 7:20:25 PM
  * To change this template use File | Settings | File Templates.
  */
-public class ResultSetUnsupportedMethods {
+public class ResultSetUnsupportedMethodsTest {
     private final ResultSet rs;
 
     static { Logger.getLogger("").setLevel(Level.OFF); }
