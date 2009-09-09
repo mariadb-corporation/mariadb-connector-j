@@ -19,7 +19,7 @@ public class ResultSetUnsupportedMethodsTest {
 
     static { Logger.getLogger("").setLevel(Level.OFF); }
 
-    public ResultSetUnsupportedMethods() throws SQLException {
+    public ResultSetUnsupportedMethodsTest() throws SQLException {
         //connection = DriverManager.getConnection("jdbc:mysql:thin://localhost:3306/test_units_jdbc");
         Connection connection = DriverManager.getConnection("jdbc:drizzle://" + DriverTest.host + ":4427/test_units_jdbc");
         //connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/test_units_jdbc");
