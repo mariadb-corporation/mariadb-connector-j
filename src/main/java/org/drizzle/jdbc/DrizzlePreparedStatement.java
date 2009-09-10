@@ -16,7 +16,22 @@ import org.drizzle.jdbc.internal.common.QueryException;
 import org.drizzle.jdbc.internal.common.query.IllegalParameterException;
 import org.drizzle.jdbc.internal.common.query.ParameterizedQuery;
 import org.drizzle.jdbc.internal.common.query.QueryFactory;
-import org.drizzle.jdbc.internal.common.query.parameters.*;
+import org.drizzle.jdbc.internal.common.query.parameters.BigDecimalParameter;
+import org.drizzle.jdbc.internal.common.query.parameters.BufferedReaderParameter;
+import org.drizzle.jdbc.internal.common.query.parameters.BufferedStreamParameter;
+import org.drizzle.jdbc.internal.common.query.parameters.ByteParameter;
+import org.drizzle.jdbc.internal.common.query.parameters.DateParameter;
+import org.drizzle.jdbc.internal.common.query.parameters.DoubleParameter;
+import org.drizzle.jdbc.internal.common.query.parameters.IntParameter;
+import org.drizzle.jdbc.internal.common.query.parameters.LongParameter;
+import org.drizzle.jdbc.internal.common.query.parameters.NullParameter;
+import org.drizzle.jdbc.internal.common.query.parameters.ParameterHolder;
+import org.drizzle.jdbc.internal.common.query.parameters.ReaderParameter;
+import org.drizzle.jdbc.internal.common.query.parameters.SerializableParameter;
+import org.drizzle.jdbc.internal.common.query.parameters.StreamParameter;
+import org.drizzle.jdbc.internal.common.query.parameters.StringParameter;
+import org.drizzle.jdbc.internal.common.query.parameters.TimeParameter;
+import org.drizzle.jdbc.internal.common.query.parameters.TimestampParameter;
 import org.drizzle.jdbc.internal.common.queryresults.ModifyQueryResult;
 import org.drizzle.jdbc.internal.common.queryresults.ResultSetType;
 
@@ -25,7 +40,23 @@ import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
 import java.net.URL;
-import java.sql.*;
+import java.sql.Array;
+import java.sql.Blob;
+import java.sql.Clob;
+import java.sql.Date;
+import java.sql.NClob;
+import java.sql.ParameterMetaData;
+import java.sql.PreparedStatement;
+import java.sql.Ref;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.RowId;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.sql.SQLXML;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.Calendar;
 import java.util.logging.Logger;
 
@@ -660,8 +691,8 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
     /**
      * Sets the designated parameter to the given input stream, which will have the specified number of bytes. When a
      * very large ASCII value is input to a <code>LONGVARCHAR</code> parameter, it may be more practical to send it via
-     * a <code>java.io.InputStream</code>. Data will be read from the stream as needed until end-of-file is reached.
-     * The JDBC driver will do any necessary conversion from ASCII to the database char format.
+     * a <code>java.io.InputStream</code>. Data will be read from the stream as needed until end-of-file is reached. The
+     * JDBC driver will do any necessary conversion from ASCII to the database char format.
      * <p/>
      * <P><B>Note:</B> This stream object can either be a standard Java stream object or your own subclass that
      * implements the standard interface.
@@ -1021,8 +1052,8 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
     /**
      * Sets the designated parameter to the given input stream, which will have the specified number of bytes. When a
      * very large ASCII value is input to a <code>LONGVARCHAR</code> parameter, it may be more practical to send it via
-     * a <code>java.io.InputStream</code>. Data will be read from the stream as needed until end-of-file is reached.
-     * The JDBC driver will do any necessary conversion from ASCII to the database char format.
+     * a <code>java.io.InputStream</code>. Data will be read from the stream as needed until end-of-file is reached. The
+     * JDBC driver will do any necessary conversion from ASCII to the database char format.
      * <p/>
      * <P><B>Note:</B> This stream object can either be a standard Java stream object or your own subclass that
      * implements the standard interface.

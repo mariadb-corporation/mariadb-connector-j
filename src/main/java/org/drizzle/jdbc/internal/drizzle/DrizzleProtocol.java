@@ -10,8 +10,21 @@
 package org.drizzle.jdbc.internal.drizzle;
 
 import org.drizzle.jdbc.internal.SQLExceptionMapper;
-import org.drizzle.jdbc.internal.common.*;
-import org.drizzle.jdbc.internal.common.packet.*;
+import org.drizzle.jdbc.internal.common.ColumnInformation;
+import org.drizzle.jdbc.internal.common.PacketFetcher;
+import org.drizzle.jdbc.internal.common.Protocol;
+import org.drizzle.jdbc.internal.common.QueryException;
+import org.drizzle.jdbc.internal.common.ServerStatus;
+import org.drizzle.jdbc.internal.common.SupportedDatabases;
+import org.drizzle.jdbc.internal.common.ValueObject;
+import org.drizzle.jdbc.internal.common.packet.AsyncPacketFetcher;
+import org.drizzle.jdbc.internal.common.packet.EOFPacket;
+import org.drizzle.jdbc.internal.common.packet.ErrorPacket;
+import org.drizzle.jdbc.internal.common.packet.OKPacket;
+import org.drizzle.jdbc.internal.common.packet.RawPacket;
+import org.drizzle.jdbc.internal.common.packet.ResultPacket;
+import org.drizzle.jdbc.internal.common.packet.ResultPacketFactory;
+import org.drizzle.jdbc.internal.common.packet.ResultSetPacket;
 import org.drizzle.jdbc.internal.common.packet.buffer.ReadUtil;
 import org.drizzle.jdbc.internal.common.packet.commands.ClosePacket;
 import org.drizzle.jdbc.internal.common.packet.commands.SelectDBPacket;

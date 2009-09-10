@@ -18,7 +18,12 @@ import org.drizzle.jdbc.internal.common.queryresults.ModifyQueryResult;
 import org.drizzle.jdbc.internal.common.queryresults.QueryResult;
 import org.drizzle.jdbc.internal.common.queryresults.ResultSetType;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.sql.SQLWarning;
+import java.sql.Statement;
 import java.util.List;
 
 /**

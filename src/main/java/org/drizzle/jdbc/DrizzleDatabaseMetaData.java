@@ -9,7 +9,13 @@
 
 package org.drizzle.jdbc;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
+import java.sql.RowIdLifetime;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Types;
 import java.util.logging.Logger;
 
 /**
@@ -1502,18 +1508,17 @@ public final class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * string when the value is enclosed in single quotes (may be <code>null</code>) <LI><B>SQL_DATA_TYPE</B> int =>
      * unused <LI><B>SQL_DATETIME_SUB</B> int => unused <LI><B>CHAR_OCTET_LENGTH</B> int => for char types the maximum
      * number of bytes in the column <LI><B>ORDINAL_POSITION</B> int => index of column in table (starting at 1)
-     * <LI><B>IS_NULLABLE</B> String  => ISO rules are used to determine the nullability for a column. <UL> <LI> YES
-     *       --- if the parameter can include NULLs <LI> NO            --- if the parameter cannot include NULLs <LI>
-     * empty string  --- if the nullability for the parameter is unknown </UL> <LI><B>SCOPE_CATLOG</B> String => catalog
-     * of table that is the scope of a reference attribute (<code>null</code> if DATA_TYPE isn't REF)
-     * <LI><B>SCOPE_SCHEMA</B> String => schema of table that is the scope of a reference attribute (<code>null</code>
-     * if the DATA_TYPE isn't REF) <LI><B>SCOPE_TABLE</B> String => table name that this the scope of a reference
-     * attribure (<code>null</code> if the DATA_TYPE isn't REF) <LI><B>SOURCE_DATA_TYPE</B> short => source type of a
-     * distinct type or user-generated Ref type, SQL type from java.sql.Types (<code>null</code> if DATA_TYPE isn't
-     * DISTINCT or user-generated REF) <LI><B>IS_AUTOINCREMENT</B> String  => Indicates whether this column is auto
-     * incremented <UL> <LI> YES           --- if the column is auto incremented <LI> NO            --- if the column is
-     * not auto incremented <LI> empty string  --- if it cannot be determined whether the column is auto incremented
-     * parameter is unknown </UL> </OL>
+     * <LI><B>IS_NULLABLE</B> String  => ISO rules are used to determine the nullability for a column. <UL> <LI> YES ---
+     * if the parameter can include NULLs <LI> NO            --- if the parameter cannot include NULLs <LI> empty string
+     *  --- if the nullability for the parameter is unknown </UL> <LI><B>SCOPE_CATLOG</B> String => catalog of table
+     * that is the scope of a reference attribute (<code>null</code> if DATA_TYPE isn't REF) <LI><B>SCOPE_SCHEMA</B>
+     * String => schema of table that is the scope of a reference attribute (<code>null</code> if the DATA_TYPE isn't
+     * REF) <LI><B>SCOPE_TABLE</B> String => table name that this the scope of a reference attribure (<code>null</code>
+     * if the DATA_TYPE isn't REF) <LI><B>SOURCE_DATA_TYPE</B> short => source type of a distinct type or user-generated
+     * Ref type, SQL type from java.sql.Types (<code>null</code> if DATA_TYPE isn't DISTINCT or user-generated REF)
+     * <LI><B>IS_AUTOINCREMENT</B> String  => Indicates whether this column is auto incremented <UL> <LI> YES
+     * --- if the column is auto incremented <LI> NO            --- if the column is not auto incremented <LI> empty
+     * string  --- if it cannot be determined whether the column is auto incremented parameter is unknown </UL> </OL>
      * <p/>
      * <p>The COLUMN_SIZE column the specified column size for the given column. For numeric data, this is the maximum
      * precision.  For character data, this is the length in characters. For datetime datatypes, this is the length in
@@ -2473,14 +2478,14 @@ public final class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * <LI><B>SQL_DATA_TYPE</B> int => unused <LI><B>SQL_DATETIME_SUB</B> int => unused <LI><B>CHAR_OCTET_LENGTH</B> int
      * => for char types the maximum number of bytes in the column <LI><B>ORDINAL_POSITION</B> int => index of the
      * attribute in the UDT (starting at 1) <LI><B>IS_NULLABLE</B> String  => ISO rules are used to determine the
-     * nullability for a attribute. <UL> <LI> YES           --- if the attribute can include NULLs <LI> NO
-     * --- if the attribute cannot include NULLs <LI> empty string  --- if the nullability for the attribute is unknown
-     * </UL> <LI><B>SCOPE_CATALOG</B> String => catalog of table that is the scope of a reference attribute
-     * (<code>null</code> if DATA_TYPE isn't REF) <LI><B>SCOPE_SCHEMA</B> String => schema of table that is the scope of
-     * a reference attribute (<code>null</code> if DATA_TYPE isn't REF) <LI><B>SCOPE_TABLE</B> String => table name that
-     * is the scope of a reference attribute (<code>null</code> if the DATA_TYPE isn't REF) <LI><B>SOURCE_DATA_TYPE</B>
-     * short => source type of a distinct type or user-generated Ref type,SQL type from java.sql.Types
-     * (<code>null</code> if DATA_TYPE isn't DISTINCT or user-generated REF) </OL>
+     * nullability for a attribute. <UL> <LI> YES           --- if the attribute can include NULLs <LI> NO --- if the
+     * attribute cannot include NULLs <LI> empty string  --- if the nullability for the attribute is unknown </UL>
+     * <LI><B>SCOPE_CATALOG</B> String => catalog of table that is the scope of a reference attribute (<code>null</code>
+     * if DATA_TYPE isn't REF) <LI><B>SCOPE_SCHEMA</B> String => schema of table that is the scope of a reference
+     * attribute (<code>null</code> if DATA_TYPE isn't REF) <LI><B>SCOPE_TABLE</B> String => table name that is the
+     * scope of a reference attribute (<code>null</code> if the DATA_TYPE isn't REF) <LI><B>SOURCE_DATA_TYPE</B> short
+     * => source type of a distinct type or user-generated Ref type,SQL type from java.sql.Types (<code>null</code> if
+     * DATA_TYPE isn't DISTINCT or user-generated REF) </OL>
      *
      * @param catalog              a catalog name; must match the catalog name as it is stored in the database; ""
      *                             retrieves those without a catalog; <code>null</code> means that the catalog name
@@ -2851,7 +2856,7 @@ public final class DrizzleDatabaseMetaData implements DatabaseMetaData {
         private String version;
         private String url;
         private String username;
-        private Connection connection;
+        private final Connection connection;
         private String databaseProductName;
 
         public Builder(final Connection connection) {

@@ -11,7 +11,11 @@ package org.drizzle.jdbc;
 
 import org.drizzle.jdbc.internal.common.ColumnInformation;
 import org.drizzle.jdbc.internal.common.ValueObject;
-import org.drizzle.jdbc.internal.common.queryresults.*;
+import org.drizzle.jdbc.internal.common.queryresults.DrizzleQueryResult;
+import org.drizzle.jdbc.internal.common.queryresults.NoSuchColumnException;
+import org.drizzle.jdbc.internal.common.queryresults.QueryResult;
+import org.drizzle.jdbc.internal.common.queryresults.ResultSetType;
+import org.drizzle.jdbc.internal.common.queryresults.SelectQueryResult;
 
 import java.io.InputStream;
 import java.io.Reader;
@@ -19,7 +23,22 @@ import java.io.StringReader;
 import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.sql.*;
+import java.sql.Array;
+import java.sql.Blob;
+import java.sql.Clob;
+import java.sql.Date;
+import java.sql.NClob;
+import java.sql.Ref;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.RowId;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.sql.SQLWarning;
+import java.sql.SQLXML;
+import java.sql.Statement;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.text.ParseException;
 import java.util.Calendar;
 import java.util.Collections;
@@ -3505,8 +3524,8 @@ public class DrizzleResultSet implements ResultSet {
     }
 
     /**
-     * Retrieves the value of the designated column in the current row of this <code>ResultSet</code> object as a
-     * stream of uninterpreted bytes. The value can then be read in chunks from the stream. This method is particularly
+     * Retrieves the value of the designated column in the current row of this <code>ResultSet</code> object as a stream
+     * of uninterpreted bytes. The value can then be read in chunks from the stream. This method is particularly
      * suitable for retrieving large <code>LONGVARBINARY</code> values.
      * <p/>
      * <P><B>Note:</B> All the data in the returned stream must be read prior to getting the value of any other column.

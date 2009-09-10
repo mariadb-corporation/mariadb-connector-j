@@ -2,7 +2,15 @@ package org.drizzle.jdbc.internal;
 
 import org.drizzle.jdbc.internal.common.QueryException;
 
-import java.sql.*;
+import java.sql.SQLDataException;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.sql.SQLIntegrityConstraintViolationException;
+import java.sql.SQLInvalidAuthorizationSpecException;
+import java.sql.SQLNonTransientConnectionException;
+import java.sql.SQLSyntaxErrorException;
+import java.sql.SQLTransactionRollbackException;
+import java.sql.SQLWarning;
 
 /**
  * Created by IntelliJ IDEA. User: marcuse Date: May 20, 2009 Time: 5:06:56 PM To change this template use File |

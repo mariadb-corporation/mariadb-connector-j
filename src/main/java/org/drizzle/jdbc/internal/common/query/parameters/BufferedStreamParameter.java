@@ -20,8 +20,8 @@ import java.util.Arrays;
  * . User: marcuse Date: Feb 19, 2009 Time: 8:56:34 PM
  */
 public class BufferedStreamParameter implements ParameterHolder {
-    private byte[] byteRepresentation;
-    private int length;
+    private final byte[] byteRepresentation;
+    private final int length;
 
     public BufferedStreamParameter(final InputStream is) throws IOException {
         int b;

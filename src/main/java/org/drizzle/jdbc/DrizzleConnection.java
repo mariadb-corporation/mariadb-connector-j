@@ -10,11 +10,32 @@
 package org.drizzle.jdbc;
 
 import org.drizzle.jdbc.internal.SQLExceptionMapper;
-import org.drizzle.jdbc.internal.common.*;
+import org.drizzle.jdbc.internal.common.BinlogDumpException;
+import org.drizzle.jdbc.internal.common.DefaultParameterizedBatchHandlerFactory;
+import org.drizzle.jdbc.internal.common.ParameterizedBatchHandlerFactory;
+import org.drizzle.jdbc.internal.common.Protocol;
+import org.drizzle.jdbc.internal.common.QueryException;
+import org.drizzle.jdbc.internal.common.Utils;
 import org.drizzle.jdbc.internal.common.packet.RawPacket;
 import org.drizzle.jdbc.internal.common.query.QueryFactory;
 
-import java.sql.*;
+import java.sql.Array;
+import java.sql.Blob;
+import java.sql.CallableStatement;
+import java.sql.Clob;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.NClob;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLClientInfoException;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.sql.SQLWarning;
+import java.sql.SQLXML;
+import java.sql.Savepoint;
+import java.sql.Statement;
+import java.sql.Struct;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;

@@ -18,9 +18,9 @@ import java.io.OutputStream;
 import java.util.Set;
 
 /**
- * 4                            client_flags 4                            max_packet_size 1 charset_number 23
- *                (filler) always 0x00... n (Null-Terminated String)   user n (Length Coded Binary)      scramble_buff
- * (1 + x bytes) 1                            (filler) always 0x00 n (Null-Terminated String) databasename
+ * 4                            client_flags 4                            max_packet_size 1 charset_number 23 (filler)
+ * always 0x00... n (Null-Terminated String)   user n (Length Coded Binary)      scramble_buff (1 + x bytes) 1 (filler)
+ * always 0x00 n (Null-Terminated String) databasename
  * <p/>
  * client_flags:            CLIENT_xxx options. The list of possible flag values is in the description of the Handshake
  * Initialisation Packet, for server_capabilities. For some of the bits, the server passed "what it's capable of". The

@@ -10,8 +10,22 @@
 package org.drizzle.jdbc.internal.mysql;
 
 import org.drizzle.jdbc.internal.SQLExceptionMapper;
-import org.drizzle.jdbc.internal.common.*;
-import org.drizzle.jdbc.internal.common.packet.*;
+import org.drizzle.jdbc.internal.common.BinlogDumpException;
+import org.drizzle.jdbc.internal.common.ColumnInformation;
+import org.drizzle.jdbc.internal.common.PacketFetcher;
+import org.drizzle.jdbc.internal.common.Protocol;
+import org.drizzle.jdbc.internal.common.QueryException;
+import org.drizzle.jdbc.internal.common.ServerStatus;
+import org.drizzle.jdbc.internal.common.SupportedDatabases;
+import org.drizzle.jdbc.internal.common.ValueObject;
+import org.drizzle.jdbc.internal.common.packet.AsyncPacketFetcher;
+import org.drizzle.jdbc.internal.common.packet.EOFPacket;
+import org.drizzle.jdbc.internal.common.packet.ErrorPacket;
+import org.drizzle.jdbc.internal.common.packet.OKPacket;
+import org.drizzle.jdbc.internal.common.packet.RawPacket;
+import org.drizzle.jdbc.internal.common.packet.ResultPacket;
+import org.drizzle.jdbc.internal.common.packet.ResultPacketFactory;
+import org.drizzle.jdbc.internal.common.packet.ResultSetPacket;
 import org.drizzle.jdbc.internal.common.packet.buffer.ReadUtil;
 import org.drizzle.jdbc.internal.common.packet.commands.ClosePacket;
 import org.drizzle.jdbc.internal.common.packet.commands.SelectDBPacket;
@@ -33,7 +47,11 @@ import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.Socket;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
 import java.util.logging.Logger;
 
 /**
@@ -54,7 +72,7 @@ public class MySQLProtocol implements Protocol {
     private final String username;
     private final String password;
     private final List<Query> batchList;
-    private PacketFetcher packetFetcher;
+    private final PacketFetcher packetFetcher;
 
     /**
      * Get a protocol instance

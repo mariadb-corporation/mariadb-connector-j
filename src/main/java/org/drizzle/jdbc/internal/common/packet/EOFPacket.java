@@ -17,7 +17,7 @@ import org.drizzle.jdbc.internal.common.packet.buffer.ReadUtil;
 public class EOFPacket extends ResultPacket {
     private final byte packetSeq;
     private final short warningCount;
-    private short statusFlags;
+    private final short statusFlags;
 
 
     public EOFPacket(final byte[] rawBytes) {
