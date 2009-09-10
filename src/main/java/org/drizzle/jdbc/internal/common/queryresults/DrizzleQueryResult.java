@@ -17,12 +17,10 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * TODO: refactor, badly need to split this into two/three different classes, one for insert/update/ddl, one for selects
- * and one for generated keys?
  * <p/>
  * User: marcuse Date: Jan 23, 2009 Time: 8:15:55 PM
  */
-public class DrizzleQueryResult implements SelectQueryResult {
+public final class DrizzleQueryResult implements SelectQueryResult {
     private final List<ColumnInformation> columnInformation;
     private final List<List<ValueObject>> resultSet;
     private final Map<String, Integer> columnNameMap;
