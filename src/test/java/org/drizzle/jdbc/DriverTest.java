@@ -14,6 +14,7 @@ import java.util.logging.Logger;
 import java.util.logging.Level;
 import java.io.*;
 import java.math.BigDecimal;
+import java.net.URL;
 
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertTrue;
@@ -488,6 +489,7 @@ public class DriverTest {
         ResultSet rs = getConnection().createStatement().executeQuery("select * from test_float");
         assertEquals(true,rs.next());
         assertEquals((float)3.99, rs.getFloat(1));
+        assertEquals((float)3.99, rs.getFloat("a"));
         assertEquals(false,rs.next());
     }
     @Test
@@ -592,6 +594,27 @@ public class DriverTest {
             sb.append((char)ch);
         }
         assertEquals(sb.toString(),(toInsert));
+        rdr = rs.getCharacterStream(2);
+        sb = new StringBuilder();
+        
+        while((ch = rdr.read()) != -1) {
+            sb.append((char)ch);
+        }
+        assertEquals(sb.toString(),(toInsert));
+        InputStream is = rs.getAsciiStream("strm");
+        sb = new StringBuilder();
+
+        while((ch = is.read()) != -1) {
+            sb.append((char)ch);
+        }
+        assertEquals(sb.toString(),(toInsert));
+        is = rs.getUnicodeStream("strm");
+        sb = new StringBuilder();
+
+        while((ch = is.read()) != -1) {
+            sb.append((char)ch);
+        }
+        assertEquals(sb.toString(),(toInsert));
     }
     @Test
     public void testCharacterStreamWithLength() throws SQLException, IOException {
@@ -629,6 +652,13 @@ public class DriverTest {
         InputStream readStuff = rs.getBlob("strm").getBinaryStream();
         int ch;
         int pos=0;
+        while((ch = readStuff.read())!=-1) {
+            assertEquals(theBlob[pos++],ch);
+        }
+
+        readStuff = rs.getBinaryStream("strm");
+
+        pos=0;
         while((ch = readStuff.read())!=-1) {
             assertEquals(theBlob[pos++],ch);
         }
@@ -698,6 +728,8 @@ public class DriverTest {
         assertEquals(true,rs.next());
         Object theInt = rs.getObject(1);
         assertTrue(theInt instanceof Long);
+        Object theInt2 = rs.getObject("int_test");
+        assertTrue(theInt2 instanceof Long);
         Object theString = rs.getObject(2);
         assertTrue(theString instanceof String);
         Object theTimestamp = rs.getObject(3);
@@ -708,6 +740,13 @@ public class DriverTest {
         ByteArrayInputStream bais = new ByteArrayInputStream(rawBytes);
         ObjectInputStream ois = new ObjectInputStream(bais);
         SerializableClass sc = (SerializableClass)ois.readObject();
+
+        assertEquals(sc.getVal(), "testing");
+        assertEquals(sc.getVal2(), 8);
+        rawBytes = rs.getBytes("serial_test");
+        bais = new ByteArrayInputStream(rawBytes);
+        ois = new ObjectInputStream(bais);
+        sc = (SerializableClass)ois.readObject();
 
         assertEquals(sc.getVal(), "testing");
         assertEquals(sc.getVal2(), 8);
@@ -927,7 +966,9 @@ public class DriverTest {
         Object bb = rs.getObject(1);
         assertEquals(bd, bb);
         BigDecimal bigD = rs.getBigDecimal(1);
+        BigDecimal bigD2 = rs.getBigDecimal("bd");
         assertEquals(bd,bigD);
+        assertEquals(bd,bigD2);
         bigD = rs.getBigDecimal("bd");
         assertEquals(bd,bigD);
     }
@@ -944,9 +985,10 @@ public class DriverTest {
         assertTrue(rs.next());
         Object bb = rs.getObject(1);
         Long bc = rs.getLong(1);
-
+        Long bc2 = rs.getLong("ll");
         assertEquals(Long.MAX_VALUE, bb);
         assertEquals(bb, bc);
+        assertEquals(bc,bc2);
 
 
     }
@@ -1054,4 +1096,45 @@ public class DriverTest {
         assertEquals(4,rs.getRow());
         assertEquals(4,rs.getInt(1));
     }
+
+    @Test(expected = SQLException.class)
+    public void findColumnTest() throws SQLException {
+        ResultSet rs = getConnection().createStatement().executeQuery("select 1 as 'hej'");
+        assertEquals(1,rs.findColumn("hej"));
+
+        rs.findColumn("nope");
+
+    }
+    @Test
+    public void getStatementTest() throws SQLException {
+        ResultSet rs = getConnection().createStatement().executeQuery("select 1 as 'hej'");
+        Statement stmt = rs.getStatement();
+    }
+    @Test
+    public void getUrlTest() throws SQLException {
+        ResultSet rs = getConnection().createStatement().executeQuery("select 'http://drizzle.org' as url");
+        rs.next();
+        URL url = rs.getURL(1);
+        assertEquals("http://drizzle.org",url.toString());
+        url = rs.getURL("url");
+        assertEquals("http://drizzle.org",url.toString());
+
+    }
+    @Test(expected = SQLException.class)
+    public void getUrlFailTest() throws SQLException {
+        ResultSet rs = getConnection().createStatement().executeQuery("select 'asdf' as url");
+        rs.next();
+        URL url = rs.getURL(1);
+        
+
+    }
+    @Test(expected = SQLException.class)
+    public void getUrlFailTest2() throws SQLException {
+        ResultSet rs = getConnection().createStatement().executeQuery("select 'asdf' as url");
+        rs.next();
+        URL url = rs.getURL("url");
+
+
+    }
+
 }

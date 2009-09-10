@@ -64,7 +64,128 @@ System.out.println("}");
 }
 }
 }
-}                                                    */
+}
+
+
+                                            */
+    @Test(expected=SQLFeatureNotSupportedException.class)
+    public void testGetRef() throws SQLException {
+       rs.getRef(1);
+    }
+    @Test(expected=SQLFeatureNotSupportedException.class)
+    public void testGetRef2() throws SQLException {
+       rs.getRef("");
+    }
+    @Test(expected=SQLFeatureNotSupportedException.class)
+    public void testGetClob() throws SQLException {
+       rs.getClob(1);
+    }
+    @Test(expected=SQLFeatureNotSupportedException.class)
+    public void testGetClob2() throws SQLException {
+       rs.getClob("");
+    }
+    @Test(expected=SQLFeatureNotSupportedException.class)
+    public void testGetNClob() throws SQLException {
+       rs.getNClob(1);
+    }
+    @Test(expected=SQLFeatureNotSupportedException.class)
+    public void testGetNClob2() throws SQLException {
+       rs.getNClob("");
+    }
+    @Test(expected=SQLFeatureNotSupportedException.class)
+    public void testRowID() throws SQLException {
+       rs.getRowId(1);
+    }
+    @Test(expected=SQLFeatureNotSupportedException.class)
+    public void testRowId2() throws SQLException {
+       rs.getRowId("");
+    }
+    @Test(expected=SQLFeatureNotSupportedException.class)
+    public void testGetArray() throws SQLException {
+       rs.getArray(1);
+    }
+    @Test(expected=SQLFeatureNotSupportedException.class)
+    public void testGetArray2() throws SQLException {
+       rs.getArray("");
+    }
+    @Test(expected=SQLFeatureNotSupportedException.class)
+    public void testInsertRow() throws SQLException {
+       rs.insertRow();
+    }
+    @Test(expected=SQLFeatureNotSupportedException.class)
+    public void testDeleteRow() throws SQLException {
+       rs.deleteRow();
+    }
+    @Test(expected=SQLFeatureNotSupportedException.class)
+    public void testUpdateRow() throws SQLException {
+       rs.updateRow();
+    }
+    @Test(expected=SQLFeatureNotSupportedException.class)
+    public void testRefreshRow() throws SQLException {
+       rs.refreshRow();
+    }
+    @Test(expected=SQLFeatureNotSupportedException.class)
+    public void testCancelRowUpdates() throws SQLException {
+       rs.cancelRowUpdates();
+    }
+    @Test(expected=SQLFeatureNotSupportedException.class)
+    public void testMoveToInsertRow() throws SQLException {
+       rs.moveToInsertRow();
+    }
+    @Test(expected=SQLFeatureNotSupportedException.class)
+    public void testMoveToCurrentRow() throws SQLException {
+       rs.moveToCurrentRow();
+    }
+
+    @Test(expected=SQLFeatureNotSupportedException.class)
+    public void testupdateBinaryStream() throws SQLException {
+       rs.updateBinaryStream(1,null,0);
+    }
+    @Test(expected=SQLFeatureNotSupportedException.class)
+    public void testupdateBinaryStream2() throws SQLException {
+       rs.updateBinaryStream("",null,0);
+    }
+    @Test(expected=SQLFeatureNotSupportedException.class)
+    public void testupdateObject() throws SQLException {
+       rs.updateObject(1,null,0);
+    }
+    @Test(expected=SQLFeatureNotSupportedException.class)
+    public void testupdateObject2() throws SQLException {
+       rs.updateObject("",null,0);
+    }
+    @Test(expected=SQLFeatureNotSupportedException.class)
+    public void testupdateCharStream() throws SQLException {
+       rs.updateCharacterStream(1,null,0);
+    }
+    @Test(expected=SQLFeatureNotSupportedException.class)
+    public void testupdateCharStream2() throws SQLException {
+       rs.updateCharacterStream("",null,0);
+    }
+    @Test(expected=SQLFeatureNotSupportedException.class)
+    public void testupdateAsciiStream() throws SQLException {
+       rs.updateAsciiStream(1,null,0);
+    }
+    @Test(expected=SQLFeatureNotSupportedException.class)
+    public void testupdateAsciiStream2() throws SQLException {
+       rs.updateAsciiStream("a",null,0);
+    }
+
+    @Test(expected=SQLFeatureNotSupportedException.class)
+    public void getRowUpdated() throws SQLException {
+       rs.rowUpdated();
+    }
+    @Test(expected=SQLFeatureNotSupportedException.class)
+    public void getRowDeleted() throws SQLException {
+       rs.rowDeleted();
+    }
+    @Test(expected=SQLFeatureNotSupportedException.class)
+    public void getRowInserte() throws SQLException {
+       rs.rowInserted();
+    }
+    @Test(expected=SQLFeatureNotSupportedException.class)
+    public void getCursorName() throws SQLException {
+       rs.getCursorName();
+    }
     @Test(expected=SQLFeatureNotSupportedException.class)
     public void testupdateNull0() throws SQLException {
        rs.updateNull(1);

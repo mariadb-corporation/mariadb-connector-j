@@ -39,13 +39,48 @@ public class DateTest {
         ResultSet rs = stmt.executeQuery("select * from date_test");
         assertEquals(true,rs.next());
         Date date2 = rs.getDate(1);
+        Date date3 = rs.getDate("d_test");
         Time time2=rs.getTime(3);
+        Time time3=rs.getTime("t_test");
         Timestamp timestamp2=rs.getTimestamp(2);
+        Timestamp timestamp3=rs.getTimestamp("dt_test");
         assertEquals(date.toString(), date2.toString());
+        assertEquals(date.toString(), date3.toString());
         assertEquals(time.toString(), time2.toString());
+        assertEquals(time.toString(), time3.toString());
         assertEquals(timestamp.toString(), timestamp2.toString());
+        assertEquals(timestamp.toString(), timestamp3.toString());
 
     }
+    @Test(expected = SQLException.class)
+    public void dateTest2() throws SQLException {
+        Connection connection = DriverManager.getConnection("jdbc:drizzle://"+DriverTest.host+":4427/test_units_jdbc");
+
+        Statement stmt = connection.createStatement();
+        ResultSet rs = stmt.executeQuery("select 1");
+        rs.next();
+        rs.getDate(1);
+    }
+
+    @Test(expected = SQLException.class)
+    public void dateTest3() throws SQLException {
+        Connection connection = DriverManager.getConnection("jdbc:drizzle://"+DriverTest.host+":4427/test_units_jdbc");
+
+        Statement stmt = connection.createStatement();
+        ResultSet rs = stmt.executeQuery("select 1 as a");
+        rs.next();
+        rs.getDate("a");
+    }
+    @Test(expected = SQLException.class)
+    public void timeTest3() throws SQLException {
+        Connection connection = DriverManager.getConnection("jdbc:drizzle://"+DriverTest.host+":4427/test_units_jdbc");
+
+        Statement stmt = connection.createStatement();
+        ResultSet rs = stmt.executeQuery("select 'aaa' as a");
+        rs.next();
+        rs.getTimestamp("a");
+    }
+
 
     @Test
     public void timePackTest() {

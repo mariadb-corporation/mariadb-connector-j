@@ -922,4 +922,5 @@ public class DrizzleStatement implements Statement {
     protected void setQueryResult(final QueryResult result) {
         this.queryResult = result;
     }
+
 }

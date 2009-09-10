@@ -2319,7 +2319,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public RowId getRowId(final int columnIndex) throws SQLException {
-        return null;
+        throw new SQLFeatureNotSupportedException("RowIDs not supported");
     }
 
     /**
@@ -2336,7 +2336,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public RowId getRowId(final String columnLabel) throws SQLException {
-        return null;
+        throw new SQLFeatureNotSupportedException("RowIDs not supported");
     }
 
     /**
