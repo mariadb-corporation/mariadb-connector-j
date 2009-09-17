@@ -9,6 +9,8 @@
 
 package org.drizzle.jdbc.internal.common.packet;
 
+import java.io.IOException;
+
 /**
  * Creates result packets only handles error, ok, eof and result set packets since field and row packets require a
  * previous result set packet User: marcuse Date: Jan 16, 2009 Time: 1:12:23 PM
@@ -23,17 +25,17 @@ public class ResultPacketFactory {
     }
 
     //    private static EOFPacket eof = new EOFPacket();
-    public static ResultPacket createResultPacket(final RawPacket rawPacket) {
+    public static ResultPacket createResultPacket(final RawPacket rawPacket) throws IOException {
         final byte[] rawBytes = rawPacket.getRawBytes();
         switch (rawBytes[0]) {
             case ERROR:
-                return new ErrorPacket(rawBytes);
+                return new ErrorPacket(rawPacket);
             case OK:
-                return new OKPacket(rawBytes);
+                return new OKPacket(rawPacket);
             case EOF:
-                return new EOFPacket(rawBytes);
+                return new EOFPacket(rawPacket);
             default:
-                return new ResultSetPacket(rawBytes);
+                return new ResultSetPacket(rawPacket);
         }
     }
 

@@ -157,11 +157,13 @@ public final class DrizzleProtocol implements Protocol {
         log.info("Connected to: " + host + ":" + port);
         batchList = new ArrayList<Query>();
         try {
-            final BufferedInputStream reader = new BufferedInputStream(socket.getInputStream(), 65536);
-            writer = new BufferedOutputStream(socket.getOutputStream(), 65536);
-            final GreetingReadPacket greetingPacket = new GreetingReadPacket(reader);
-            log.finest("Got greeting packet: " + greetingPacket);
 
+            final BufferedInputStream reader = new BufferedInputStream(socket.getInputStream(), 65536);
+            packetFetcher = new AsyncPacketFetcher(reader);
+            packetFetcher.start();            
+            writer = new BufferedOutputStream(socket.getOutputStream(), 65536);
+            final GreetingReadPacket greetingPacket = new GreetingReadPacket(packetFetcher.getRawPacket());
+            log.finest("Got greeting packet: " + greetingPacket);
             this.serverVersion = greetingPacket.getServerVersion();
 
             final Set<ServerCapabilities> serverCapabilities =
@@ -178,8 +180,7 @@ public final class DrizzleProtocol implements Protocol {
             cap.send(writer);
 
             log.finest("Sending auth packet");
-            packetFetcher = new AsyncPacketFetcher(reader);
-            packetFetcher.start();
+
             final RawPacket rawPacket = packetFetcher.getRawPacket();
             final ResultPacket rp = ResultPacketFactory.createResultPacket(rawPacket);
 
@@ -449,15 +450,17 @@ public final class DrizzleProtocol implements Protocol {
         }
 
         final RawPacket rawPacket;
+        final ResultPacket resultPacket;
         try {
             rawPacket = packetFetcher.getRawPacket();
+            resultPacket = ResultPacketFactory.createResultPacket(rawPacket);
         } catch (IOException e) {
             throw new QueryException("Could not connect: " + e.getMessage(),
                     -1,
                     SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
                     e);
         }
-        final ResultPacket resultPacket = ResultPacketFactory.createResultPacket(rawPacket);
+
 
         switch (resultPacket.getResultType()) {
             case ERROR:

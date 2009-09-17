@@ -837,7 +837,7 @@ public class DriverTest {
         assertEquals(null, rs.getString(1));
         if(getConnection().getMetaData().getDatabaseProductName().toLowerCase().equals("drizzle")) {
             SQLWarning warning = rs.getWarnings();
-            assertEquals(warning.getMessage(), "1 warning(s)");
+            assertEquals("1 warning(s)",warning.getMessage());
         }
     }
     @Test(expected = SQLSyntaxErrorException.class)

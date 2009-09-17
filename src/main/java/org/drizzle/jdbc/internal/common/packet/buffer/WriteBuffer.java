@@ -11,22 +11,30 @@ package org.drizzle.jdbc.internal.common.packet.buffer;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 /**
  * . User: marcuse Date: Jan 16, 2009 Time: 8:10:24 PM
  */
 public class WriteBuffer {
-    private final List<Byte> buffer = new ArrayList<Byte>();
+    private ByteBuffer byteBuffer = ByteBuffer.allocate(1000).order(ByteOrder.LITTLE_ENDIAN);
 
+    private void assureBufferCapacity(final int len) {
+
+        if(byteBuffer.remaining()<len) {
+            byteBuffer.limit(byteBuffer.capacity()*2);
+        }
+    }
     public WriteBuffer writeByte(final byte theByte) {
-        buffer.add(theByte);
+        assureBufferCapacity(1);
+        byteBuffer.put(theByte);
         return this;
     }
 
     public WriteBuffer writeByteArray(final byte[] bytes) {
-        for (final byte b : bytes) {
-            this.writeByte(b);
-        }
+        assureBufferCapacity(bytes.length);
+        byteBuffer.put(bytes);
         return this;
     }
 
@@ -37,51 +45,32 @@ public class WriteBuffer {
         return this;
     }
 
-    public WriteBuffer writeShort(final short theInt) {
-        final byte[] b = shortToByteArray(theInt);
-        buffer.add(b[0]);
-        buffer.add(b[1]);
+    public WriteBuffer writeShort(final short theShort) {
+        assureBufferCapacity(2);
+        byteBuffer.putShort(theShort);
         return this;
     }
 
-    public WriteBuffer writeInt(final int theLong) {
-        final byte[] b = intToByteArray(theLong);
-        for (final byte aB : b) {
-            buffer.add(aB);
-        }
+    public WriteBuffer writeInt(final int theInt) {
+        assureBufferCapacity(4);
+        byteBuffer.putInt(theInt);
         return this;
     }
 
     public WriteBuffer writeString(final String str) {
         final byte[] strBytes = str.getBytes();
-        for (final byte aByte : strBytes) {
-            buffer.add(aByte);
-        }
-        return this;
-    }
+        return writeByteArray(strBytes);
 
-    public byte[] toByteArray() {
-        final byte[] returnArray = new byte[buffer.size()];
-        int i = 0;
-        for (final Byte b : buffer) {
-            returnArray[i++] = b;
-        }
-        return returnArray;
     }
 
     public byte[] toByteArrayWithLength(final byte packetNumber) {
-        final int length = buffer.size();
-        final byte[] bufferBytes = new byte[buffer.size() + 4];
-        final byte[] lengthBytes = intToByteArray(length);
-        lengthBytes[3] = packetNumber;
-        int i = 0;
-        for (final byte aB : lengthBytes) {
-            bufferBytes[i++] = aB;
-        }
-        for (final Byte aB : buffer) {
-            bufferBytes[i++] = aB;
-        }
-        return bufferBytes;
+        final int length = byteBuffer.capacity() - byteBuffer.remaining();
+        final ByteBuffer returnBuffer = ByteBuffer.allocate(length + 4);
+        final byte [] lenArr = intToByteArray(length);
+        lenArr[3] = packetNumber;
+        returnBuffer.put(lenArr);
+        returnBuffer.put(byteBuffer.array(), 0,length);
+        return returnBuffer.array();
     }
 
     public static byte[] shortToByteArray(final short i) {

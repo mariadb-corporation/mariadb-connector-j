@@ -46,6 +46,7 @@ import javax.net.SocketFactory;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.BufferedInputStream;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -105,9 +106,11 @@ public class MySQLProtocol implements Protocol {
         log.info("Connected to: " + host + ":" + port);
         batchList = new ArrayList<Query>();
         try {
-            final InputStream reader = socket.getInputStream();
+            final BufferedInputStream reader = new BufferedInputStream(socket.getInputStream());
+            packetFetcher = new AsyncPacketFetcher(reader);
+            packetFetcher.start();
             writer = new BufferedOutputStream(socket.getOutputStream(), 16384);
-            final MySQLGreetingReadPacket greetingPacket = new MySQLGreetingReadPacket(reader);
+            final MySQLGreetingReadPacket greetingPacket = new MySQLGreetingReadPacket(packetFetcher.getRawPacket());
             log.finest("Got greeting packet");
             this.version = greetingPacket.getServerVersion();
             final Set<MySQLServerCapabilities> capabilities = EnumSet.of(MySQLServerCapabilities.LONG_PASSWORD,
@@ -123,8 +126,7 @@ public class MySQLProtocol implements Protocol {
                     greetingPacket.getSeed());
             cap.send(writer);
             log.finest("Sending auth packet");
-            packetFetcher = new AsyncPacketFetcher(reader);
-            packetFetcher.start();
+
             final RawPacket rp = packetFetcher.getRawPacket();
             final ResultPacket resultPacket = ResultPacketFactory.createResultPacket(rp);
             if (resultPacket.getResultType() == ResultPacket.ResultType.ERROR) {
@@ -315,15 +317,17 @@ public class MySQLProtocol implements Protocol {
         }
 
         final RawPacket rawPacket;
+        final ResultPacket resultPacket;
         try {
             rawPacket = packetFetcher.getRawPacket();
+            resultPacket = ResultPacketFactory.createResultPacket(rawPacket);
         } catch (IOException e) {
             throw new QueryException("Could not read resultset: " + e.getMessage(),
                     -1,
                     SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
                     e);
         }
-        final ResultPacket resultPacket = ResultPacketFactory.createResultPacket(rawPacket);
+
 
         switch (resultPacket.getResultType()) {
             case ERROR:

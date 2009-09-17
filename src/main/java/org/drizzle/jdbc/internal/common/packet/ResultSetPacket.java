@@ -11,6 +11,9 @@ package org.drizzle.jdbc.internal.common.packet;
 
 import org.drizzle.jdbc.internal.common.packet.buffer.LengthEncodedBinary;
 import org.drizzle.jdbc.internal.common.packet.buffer.ReadUtil;
+import org.drizzle.jdbc.internal.common.packet.buffer.Reader;
+
+import java.io.IOException;
 
 /**
  * . User: marcuse Date: Jan 21, 2009 Time: 10:40:03 PM
@@ -18,10 +21,10 @@ import org.drizzle.jdbc.internal.common.packet.buffer.ReadUtil;
 public class ResultSetPacket extends ResultPacket {
     private final long fieldCount;
 
-    public ResultSetPacket(final byte[] rawBytes) {
-        super();
-        final LengthEncodedBinary leb = ReadUtil.getLengthEncodedBinary(rawBytes, 0);
-        fieldCount = leb.getValue();
+    public ResultSetPacket(final RawPacket rawPacket) throws IOException {
+        final Reader reader = new Reader(rawPacket);
+        
+        fieldCount = reader.getLengthEncodedBinary();
     }
 
     public ResultType getResultType() {

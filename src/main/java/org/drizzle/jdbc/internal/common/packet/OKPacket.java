@@ -13,8 +13,10 @@ import org.drizzle.jdbc.internal.common.ServerStatus;
 import org.drizzle.jdbc.internal.common.packet.buffer.LengthEncodedBinary;
 import org.drizzle.jdbc.internal.common.packet.buffer.LengthEncodedBytes;
 import org.drizzle.jdbc.internal.common.packet.buffer.ReadUtil;
+import org.drizzle.jdbc.internal.common.packet.buffer.Reader;
 
 import java.util.Set;
+import java.io.IOException;
 
 /**
  * . User: marcuse Date: Jan 16, 2009 Time: 4:23:40 PM
@@ -29,26 +31,15 @@ public class OKPacket extends ResultPacket {
     private final byte packetSeqNum;
 
 
-    public OKPacket(final byte[] rawBytes) {
-        int readBytes = 0;
-        packetSeqNum = /*rawBytes[readBytes++];*/ 0;
-        fieldCount = rawBytes[readBytes++];
-        LengthEncodedBinary leb = ReadUtil.getLengthEncodedBinary(rawBytes, readBytes);
-        affectedRows = leb.getValue();
-        readBytes += leb.getLength();
-        leb = ReadUtil.getLengthEncodedBinary(rawBytes, readBytes);
-        insertId = leb.getValue();
-        readBytes += leb.getLength();
-        serverStatus = ServerStatus.getServerStatusSet(ReadUtil.readShort(rawBytes, readBytes));
-        readBytes += 2;
-        warnings = ReadUtil.readShort(rawBytes, readBytes);
-        readBytes += 2;
-        final LengthEncodedBytes lebytes = new LengthEncodedBytes(rawBytes, readBytes);
-        if (lebytes.getLength() > 0) {
-            message = new String(lebytes.getBytes());
-        } else {
-            message = "";
-        }
+    public OKPacket(final RawPacket rawPacket) throws IOException {
+        final Reader reader = new Reader(rawPacket);
+        packetSeqNum = 0;
+        fieldCount = reader.readByte();
+        affectedRows = reader.getLengthEncodedBinary();
+        insertId = reader.getLengthEncodedBinary();
+        serverStatus = ServerStatus.getServerStatusSet(reader.readShort());
+        warnings = reader.readShort();
+        message = new String(reader.getLengthEncodedBytes());
     }
 
     public ResultType getResultType() {

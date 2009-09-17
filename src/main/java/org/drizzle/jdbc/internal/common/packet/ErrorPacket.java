@@ -10,8 +10,10 @@
 package org.drizzle.jdbc.internal.common.packet;
 
 import org.drizzle.jdbc.internal.common.packet.buffer.ReadUtil;
+import org.drizzle.jdbc.internal.common.packet.buffer.Reader;
 
 import java.util.Arrays;
+import java.io.IOException;
 
 /**
  * . User: marcuse Date: Jan 16, 2009 Time: 4:20:30 PM
@@ -23,12 +25,13 @@ public class ErrorPacket extends ResultPacket {
     private final String message;
 
 
-    public ErrorPacket(final byte[] rawBytes) {
-        super();
-        this.errorNumber = ReadUtil.readShort(rawBytes, 1);
-        this.sqlStateMarker = rawBytes[3];
-        this.sqlState = Arrays.copyOfRange(rawBytes, 4, 5 + 4);
-        this.message = new String(rawBytes, 9, rawBytes.length - 9);
+    public ErrorPacket(final RawPacket rawPacket) throws IOException {
+        final Reader reader = new Reader(rawPacket);
+        reader.readByte();
+        this.errorNumber = reader.readShort();
+        this.sqlStateMarker = reader.readByte();
+        this.sqlState = reader.readRawBytes(5);
+        this.message = reader.readString("UTF-8");
     }
 
     public String getMessage() {

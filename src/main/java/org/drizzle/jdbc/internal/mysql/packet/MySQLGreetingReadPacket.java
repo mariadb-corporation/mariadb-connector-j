@@ -11,6 +11,7 @@ package org.drizzle.jdbc.internal.mysql.packet;
 
 import org.drizzle.jdbc.internal.common.ServerStatus;
 import org.drizzle.jdbc.internal.common.packet.buffer.Reader;
+import org.drizzle.jdbc.internal.common.packet.RawPacket;
 import org.drizzle.jdbc.internal.mysql.MySQLServerCapabilities;
 
 import java.io.IOException;
@@ -32,8 +33,8 @@ public class MySQLGreetingReadPacket {
     private final Set<ServerStatus> serverStatus;
     private final byte[] seed;
 
-    public MySQLGreetingReadPacket(final InputStream istream) throws IOException {
-        final Reader reader = new Reader(istream);
+    public MySQLGreetingReadPacket(final RawPacket rawPacket) throws IOException {
+        final Reader reader = new Reader(rawPacket);
         protocolVersion = reader.readByte();
         serverVersion = reader.readString("ASCII");
         serverThreadID = reader.readInt();

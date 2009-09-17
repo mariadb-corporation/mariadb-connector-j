@@ -66,9 +66,7 @@ public class ClientAuthPacket implements CommandPacket {
 
     public void send(final OutputStream os) throws IOException {
         final byte[] buff = writeBuffer.toByteArrayWithLength((byte) 1);
-        for (final byte b : buff) {
-            os.write(b);
-        }
+        os.write(buff);
         os.flush();
     }
 }

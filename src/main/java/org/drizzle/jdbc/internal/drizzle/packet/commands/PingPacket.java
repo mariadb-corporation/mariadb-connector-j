@@ -28,9 +28,7 @@ public class PingPacket implements CommandPacket {
 
     public void send(final OutputStream os) throws IOException {
         final byte[] buff = buffer.toByteArrayWithLength((byte) 0);
-        for (final byte b : buff) {
-            os.write(b);
-        }
+        os.write(buff);
         os.flush();
     }
 }
