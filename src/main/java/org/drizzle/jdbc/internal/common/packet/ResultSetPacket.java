@@ -9,8 +9,6 @@
 
 package org.drizzle.jdbc.internal.common.packet;
 
-import org.drizzle.jdbc.internal.common.packet.buffer.LengthEncodedBinary;
-import org.drizzle.jdbc.internal.common.packet.buffer.ReadUtil;
 import org.drizzle.jdbc.internal.common.packet.buffer.Reader;
 
 import java.io.IOException;

@@ -26,8 +26,7 @@ public class ResultPacketFactory {
 
     //    private static EOFPacket eof = new EOFPacket();
     public static ResultPacket createResultPacket(final RawPacket rawPacket) throws IOException {
-        final byte[] rawBytes = rawPacket.getRawBytes();
-        switch (rawBytes[0]) {
+        switch (rawPacket.getByteBuffer().get(0)) {
             case ERROR:
                 return new ErrorPacket(rawPacket);
             case OK:

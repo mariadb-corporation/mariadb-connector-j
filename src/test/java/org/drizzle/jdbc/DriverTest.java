@@ -568,7 +568,7 @@ public class DriverTest {
         ReplicationConnection rc = getConnection().unwrap(ReplicationConnection.class);
         List<RawPacket> rpList = rc.startBinlogDump(891,"mysqld-bin.000001");
         for(RawPacket rp : rpList) {
-            for(byte b:rp.getRawBytes()) {
+            for(byte b:rp.getByteBuffer().array()) {
                 System.out.printf("%x ",b);
             }
             System.out.printf("\n");

@@ -15,6 +15,8 @@ import org.drizzle.jdbc.internal.common.packet.buffer.ReadUtil;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 
 /**
@@ -22,9 +24,8 @@ import java.io.InputStream;
  * one byte packet sequence number and then n bytes with user data.
  */
 public final class RawPacket {
-
     static final RawPacket IOEXCEPTION_PILL = new RawPacket(null, -1);
-    private final byte[] rawBytes;
+    private final ByteBuffer byteBuffer;
     private final int packetSeq;
 
     /**
@@ -53,11 +54,17 @@ public final class RawPacket {
             throw new IOException("EOF. Expected " + length + ", got " + nr);
         }
 
-        return new RawPacket(rawBytes, packetSeq);
+        return new RawPacket(ByteBuffer.wrap(rawBytes).asReadOnlyBuffer().order(ByteOrder.LITTLE_ENDIAN),
+                             packetSeq);
     }
 
-    private RawPacket(final byte[] rawBytes, final int packetSeq) {
-        this.rawBytes = rawBytes;
+    /**
+     * create a raw packet.
+     * @param byteBuffer the byte buffer containing the packet
+     * @param packetSeq the packet sequence
+     */
+    private RawPacket(final ByteBuffer byteBuffer, final int packetSeq) {
+        this.byteBuffer = byteBuffer;
         this.packetSeq = packetSeq;
     }
 
@@ -84,12 +91,12 @@ public final class RawPacket {
     }
 
     /**
-     * Get the raw bytes in the package
+     * Get the byte buffer backing this packet
      *
-     * @return an array with the payload of the package
+     * @return a read only byte buffer
      */
-    public byte[] getRawBytes() {
-        return rawBytes;
+    public ByteBuffer getByteBuffer() {
+        return byteBuffer;
     }
 
     /**

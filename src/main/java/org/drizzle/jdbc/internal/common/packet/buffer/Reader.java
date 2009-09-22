@@ -36,7 +36,7 @@ public class Reader {
     public Reader(final RawPacket rawPacket) {
         //this.inputReader = new ByteArrayInputStream(rawPacket.getRawBytes());
         this.packetSeq = 0;
-        byteBuffer = ByteBuffer.wrap(rawPacket.getRawBytes()).order(ByteOrder.LITTLE_ENDIAN);
+        byteBuffer = rawPacket.getByteBuffer();
     }
 
    /* private int readLength() throws IOException {

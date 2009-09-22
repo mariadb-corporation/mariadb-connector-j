@@ -12,8 +12,6 @@ package org.drizzle.jdbc.internal.drizzle.packet;
 import org.drizzle.jdbc.internal.common.ColumnInformation;
 import org.drizzle.jdbc.internal.common.ValueObject;
 import org.drizzle.jdbc.internal.common.packet.RawPacket;
-import org.drizzle.jdbc.internal.common.packet.buffer.LengthEncodedBytes;
-import org.drizzle.jdbc.internal.common.packet.buffer.ReadUtil;
 import org.drizzle.jdbc.internal.common.packet.buffer.Reader;
 import org.drizzle.jdbc.internal.drizzle.DrizzleType;
 import org.drizzle.jdbc.internal.drizzle.DrizzleValueObject;
