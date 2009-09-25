@@ -111,18 +111,13 @@
 	      <licenseLocation>/etc/clover.license</licenseLocation>
             </configuration>
 	  </plugin>
-<!--            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>emma-maven-plugin</artifactId>
-                <inherited>true</inherited>
-            </plugin>-->
-            <plugin>
-              <groupId>org.apache.maven.plugins</groupId>
-              <artifactId>maven-checkstyle-plugin</artifactId>
-	      <configuration>
-		<configLocation>drizzle-jdbc-checks.xml</configLocation>
-              </configuration>
-            </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-checkstyle-plugin</artifactId>
+	    <configuration>
+	      <configLocation>drizzle-jdbc-checks.xml</configLocation>
+            </configuration>
+          </plugin>
             <plugin>
               <groupId>org.apache.maven.plugins</groupId>
               <artifactId>maven-javadoc-plugin</artifactId>
@@ -144,6 +139,9 @@
 	      <groupId>org.codehaus.mojo</groupId>
 	      <artifactId>findbugs-maven-plugin</artifactId>
 	      <version>2.1</version>
+	      <configuration>
+		<xmlOutput>true</xmlOutput>
+	      </configuration>
 	    </plugin>
         </plugins>
     </reporting>
