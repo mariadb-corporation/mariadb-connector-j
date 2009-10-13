@@ -55,7 +55,7 @@ public class JDBCUrl {
             }
             this.database = m.group(10);
         } else {
-            throw new SQLException("Could not parse connection string...");
+            throw new SQLException("Could not parse connection string: "+url);
         }
     }
 

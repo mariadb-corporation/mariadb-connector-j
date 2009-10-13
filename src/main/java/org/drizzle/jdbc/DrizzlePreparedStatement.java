@@ -1195,7 +1195,9 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      *                               <code>PreparedStatement</code> or the type of the given object is ambiguous
      */
     public void setObject(final int parameterIndex, final Object x) throws SQLException {
-        if (x instanceof String) {
+        if (x == null) {
+            setNull(parameterIndex,Types.INTEGER);
+        } else if (x instanceof String) {
             setString(parameterIndex, (String) x);
         } else if (x instanceof Integer) {
             setInt(parameterIndex, (Integer) x);
