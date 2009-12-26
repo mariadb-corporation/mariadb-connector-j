@@ -1136,5 +1136,10 @@ public class DriverTest {
 
 
     }
+    @Test
+    public void setNull() throws SQLException {
+        PreparedStatement ps = getConnection().prepareStatement("insert blabla (?)");
+        ps.setString(1,null);
+    }
 
 }

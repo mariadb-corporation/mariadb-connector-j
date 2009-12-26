@@ -235,6 +235,10 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.2
      */
     public void setBlob(final int parameterIndex, final Blob x) throws SQLException {
+        if(x == null) {
+            setNull(parameterIndex, Types.BLOB);
+            return;
+        }
         try {
             setParameter(parameterIndex, new StreamParameter(x.getBinaryStream(), x.length()));
         } catch (IOException e) {
@@ -319,6 +323,10 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.2
      */
     public void setDate(final int parameterIndex, final Date date, final Calendar cal) throws SQLException {
+        if(date == null) {
+            setNull(parameterIndex, Types.DATE);
+            return;
+        }
         setParameter(parameterIndex, new DateParameter(date.getTime(), cal));
     }
 
@@ -340,6 +348,12 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
     public void setTime(final int parameterIndex, final Time time, final Calendar cal) throws SQLException {
 //        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
 //        sdf.setCalendar(cal);
+        if(time == null) {
+            setNull(parameterIndex, Types.TIME);
+            return;
+        }
+
+
         setParameter(parameterIndex, new TimeParameter(time.getTime()));
     }
 
@@ -360,6 +374,11 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.2
      */
     public void setTimestamp(final int parameterIndex, final Timestamp x, final Calendar cal) throws SQLException {
+        if(x == null) {
+            setNull(parameterIndex, Types.TIMESTAMP);
+            return;
+        }
+
         setParameter(parameterIndex, new TimestampParameter(x.getTime(), cal));
     }
 
@@ -554,6 +573,11 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.6
      */
     public void setBlob(final int parameterIndex, final InputStream inputStream, final long length) throws SQLException {
+        if(inputStream == null) {
+            setNull(parameterIndex, Types.BLOB);
+            return;
+        }
+
         try {
             setParameter(parameterIndex, new StreamParameter(inputStream, length));
         } catch (IOException e) {
@@ -706,6 +730,11 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.6
      */
     public void setAsciiStream(final int parameterIndex, final InputStream x, final long length) throws SQLException {
+        if(x == null) {
+            setNull(parameterIndex, Types.VARCHAR);
+            return;
+        }
+
         try {
             setParameter(parameterIndex, new StreamParameter(x, length));
         } catch (IOException e) {
@@ -731,6 +760,11 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.6
      */
     public void setBinaryStream(final int parameterIndex, final InputStream x, final long length) throws SQLException {
+        if(x == null) {
+            setNull(parameterIndex, Types.BLOB);
+            return;
+        }
+
         try {
             setParameter(parameterIndex, new StreamParameter(x, length));
         } catch (IOException e) {
@@ -757,6 +791,11 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.6
      */
     public void setCharacterStream(final int parameterIndex, final Reader reader, final long length) throws SQLException {
+        if(reader == null) {
+            setNull(parameterIndex, Types.BLOB);
+            return;
+        }
+
         try {
             setParameter(parameterIndex, new ReaderParameter(reader, length));
         } catch (IOException e) {
@@ -787,6 +826,11 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.6
      */
     public void setAsciiStream(final int parameterIndex, final InputStream x) throws SQLException {
+        if(x == null) {
+            setNull(parameterIndex, Types.BLOB);
+            return;
+        }
+
         try {
             setParameter(parameterIndex, new BufferedStreamParameter(x));
         } catch (IOException e) {
@@ -816,6 +860,12 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.6
      */
     public void setBinaryStream(final int parameterIndex, final InputStream x) throws SQLException {
+        if(x == null) {
+            setNull(parameterIndex, Types.BLOB);
+            return;
+        }
+
+
         try {
             setParameter(parameterIndex, new BufferedStreamParameter(x));
         } catch (IOException e) {
@@ -843,6 +893,12 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.6
      */
     public void setCharacterStream(final int parameterIndex, final Reader reader) throws SQLException {
+        if(reader == null) {
+            setNull(parameterIndex, Types.BLOB);
+            return;
+        }
+
+
         try {
             setParameter(parameterIndex, new BufferedReaderParameter(reader));
         } catch (IOException e) {
@@ -918,6 +974,12 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.6
      */
     public void setBlob(final int parameterIndex, final InputStream inputStream) throws SQLException {
+        if(inputStream == null) {
+            setNull(parameterIndex, Types.BLOB);
+            return;
+        }
+
+
         try {
             setParameter(parameterIndex, new BufferedStreamParameter(inputStream));
         } catch (IOException e) {
@@ -984,6 +1046,11 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
     }
 
     public void setString(final int column, final String s) throws SQLException {
+        if(s == null) {
+            setNull(column, Types.VARCHAR);
+            return;
+        }
+
         setParameter(column, new StringParameter(s));
     }
 
@@ -999,6 +1066,11 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      *                               <code>PreparedStatement</code>
      */
     public void setBytes(final int parameterIndex, final byte[] x) throws SQLException {
+        if(x == null) {
+            setNull(parameterIndex, Types.BLOB);
+            return;
+        }
+
         setParameter(parameterIndex, new ByteParameter(x));
     }
 
@@ -1014,6 +1086,12 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      *                               <code>PreparedStatement</code>
      */
     public void setDate(final int parameterIndex, final Date date) throws SQLException {
+        if(date == null) {
+            setNull(parameterIndex, Types.DATE);
+            return;
+        }
+
+
         setParameter(parameterIndex, new DateParameter(date.getTime()));
     }
 
@@ -1032,6 +1110,12 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      *      SQL <code>TIME</code> value when it sends it to the database.
      */
     public void setTime(final int parameterIndex, final Time x) throws SQLException {
+        if(x == null) {
+            setNull(parameterIndex, Types.TIME);
+            return;
+        }
+
+
         setParameter(parameterIndex, new TimeParameter(x.getTime()));
     }
 
@@ -1046,6 +1130,12 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      *                               <code>PreparedStatement</code>
      */
     public void setTimestamp(final int parameterIndex, final Timestamp x) throws SQLException {
+        if(x == null) {
+            setNull(parameterIndex, Types.TIMESTAMP);
+            return;
+        }
+
+
         setParameter(parameterIndex, new TimestampParameter(x.getTime()));
     }
 
@@ -1066,6 +1156,12 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      *                               <code>PreparedStatement</code>
      */
     public void setAsciiStream(final int parameterIndex, final InputStream x, final int length) throws SQLException {
+        if(x == null) {
+            setNull(parameterIndex, Types.BLOB);
+            return;
+        }
+
+
         try {
             setParameter(parameterIndex, new StreamParameter(x, length));
         } catch (IOException e) {
@@ -1098,6 +1194,12 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @deprecated
      */
     public void setUnicodeStream(final int parameterIndex, final InputStream x, final int length) throws SQLException {
+        if(x == null) {
+            setNull(parameterIndex, Types.BLOB);
+            return;
+        }
+
+
         try {
             setParameter(parameterIndex, new StreamParameter(x, length));
         } catch (IOException e) {
@@ -1122,6 +1224,12 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      *                               <code>PreparedStatement</code>
      */
     public void setBinaryStream(final int parameterIndex, final InputStream x, final int length) throws SQLException {
+        if(x == null) {
+            setNull(parameterIndex, Types.BLOB);
+            return;
+        }
+
+
         try {
             setParameter(parameterIndex, new StreamParameter(x, length));
         } catch (IOException e) {
@@ -1233,7 +1341,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
             try {
                 setParameter(parameterIndex, new SerializableParameter(x));
             } catch (IOException e) {
-                throw new SQLException("Could not set serializable parameter in setObject: " + e.getMessage(), e);
+                throw new SQLException("Could not set serializable pa3rameter in setObject: " + e.getMessage(), e);
             }
         }
 
@@ -1296,6 +1404,11 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      *                               <code>PreparedStatement</code>
      */
     public void setBigDecimal(final int parameterIndex, final BigDecimal x) throws SQLException {
+        if(x == null) {
+            setNull(parameterIndex, Types.BIGINT);
+            return;
+        }
+
         setParameter(parameterIndex, new BigDecimalParameter(x));
     }
 }
