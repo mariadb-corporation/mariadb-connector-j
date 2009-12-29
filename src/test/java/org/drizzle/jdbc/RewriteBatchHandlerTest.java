@@ -93,4 +93,27 @@ public class RewriteBatchHandlerTest {
         verify(mockProtocol).executeQuery(new DrizzleQuery(expectedQuery));
     }
 
+    /**
+     * bug 501443
+     * @throws QueryException
+     * @throws IllegalParameterException
+     */
+    @Test
+    public void testFullyQualifiedTable() throws QueryException, IllegalParameterException {
+        RewriteParameterizedBatchHandlerFactory rpbhf = new RewriteParameterizedBatchHandlerFactory();
+        Protocol mockProtocol = mock(Protocol.class);
+        String query = "insert table1.abc (c1,c2,c3) value (?,?,?) on duplicate key update c1 = values(c1)";
+        ParameterizedBatchHandler rpbh = rpbhf.get(query, mockProtocol);
+        assertTrue(rpbh instanceof RewriteParameterizedBatchHandler);
+        for(int i = 0;i<3;i++) {
+            ParameterizedQuery pq = new DrizzleParameterizedQuery(query);
+            pq.setParameter(0, new StringParameter("a"+i));
+            pq.setParameter(1, new StringParameter("b"+i));
+            pq.setParameter(2, new StringParameter("c"+i));
+            rpbh.addToBatch(pq);
+        }
+        rpbh.executeBatch();
+        String expectedQuery = "insert table1.abc (c1,c2,c3) value(\"a0\",\"b0\",\"c0\"),(\"a1\",\"b1\",\"c1\"),(\"a2\",\"b2\",\"c2\")on duplicate key update c1 = values(c1)";
+        verify(mockProtocol).executeQuery(new DrizzleQuery(expectedQuery));
+    }
 }

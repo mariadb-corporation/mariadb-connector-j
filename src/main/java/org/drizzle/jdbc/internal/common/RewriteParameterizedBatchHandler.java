@@ -102,6 +102,12 @@ public class RewriteParameterizedBatchHandler implements ParameterizedBatchHandl
         log.finest("Rewrote " + queryCount + " queries to " + queriesToSend.size() + " queries");
         final int[] returnArray = new int[queryCount];
         Arrays.fill(returnArray, Statement.SUCCESS_NO_INFO);
+        // reset stuff
+        queriesToSend.clear();
+        queryBuilder = new StringBuilder();
+        queryBuilder.append(baseQuery);
+        firstWritten = false;
+        queryCount = 0;        
         return returnArray;
     }
 }

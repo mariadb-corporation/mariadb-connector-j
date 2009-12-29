@@ -1142,4 +1142,34 @@ public class DriverTest {
         ps.setString(1,null);
     }
 
+    @Test
+    public void testBug501452() throws SQLException {
+        Connection conn = getConnection();
+        if(conn.isWrapperFor(DrizzleConnection.class)) {
+               DrizzleConnection dc = conn.unwrap(DrizzleConnection.class);
+               dc.setBatchQueryHandlerFactory(new RewriteParameterizedBatchHandlerFactory());
+        }
+        Statement stmt = conn.createStatement();
+        stmt.executeUpdate("drop table if exists test_units_jdbc.bug501452");
+        stmt.executeUpdate("CREATE TABLE test_units_jdbc.bug501452 (id int not null primary key, value varchar(20))");
+        stmt.close();
+        PreparedStatement ps=conn.prepareStatement("insert into bug501452 (id,value) values (?,?)");
+        ps.setObject(1, 1);
+        ps.setObject(2, "value for 1");
+        ps.addBatch();
+
+        ps.executeBatch();
+
+        ps.setObject(1, 2);
+        ps.setObject(2, "value for 2");
+        ps.addBatch();
+
+        ps.executeBatch();
+
+        connection.commit();
+
+    }
+
+
+
 }
