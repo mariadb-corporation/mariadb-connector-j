@@ -27,16 +27,16 @@ public class DateTest {
 
         Statement stmt = connection.createStatement();
         stmt.executeUpdate("drop table if exists date_test");
-        stmt.executeUpdate("create table date_test (d_test date,dt_test datetime, t_test int)");
+        stmt.executeUpdate("create table date_test (id int not null primary key auto_increment, d_test date,dt_test datetime, t_test int)");
         Date date = Date.valueOf("2009-01-17");
         Timestamp timestamp = Timestamp.valueOf("2009-01-17 15:41:01");
         Time time = Time.valueOf("23:59:59");
-        PreparedStatement ps = connection.prepareStatement("insert into date_test values (?,?,?)");
+        PreparedStatement ps = connection.prepareStatement("insert into date_test (d_test, dt_test, t_test) values (?,?,?)");
         ps.setDate(1,date);
         ps.setTimestamp(2,timestamp);
         ps.setTime(3,time);
         ps.executeUpdate();
-        ResultSet rs = stmt.executeQuery("select * from date_test");
+        ResultSet rs = stmt.executeQuery("select d_test, dt_test, t_test from date_test");
         assertEquals(true,rs.next());
         Date date2 = rs.getDate(1);
         Date date3 = rs.getDate("d_test");

@@ -25,7 +25,7 @@ import static junit.framework.Assert.assertTrue;
  * Time: 7:58:11 AM
  */
 public class DriverTest {
-    public static String host = "localhost";
+    public static String host = "10.100.100.50";
     private Connection connection;
     static { Logger.getLogger("").setLevel(Level.OFF); }
 
@@ -481,12 +481,12 @@ public class DriverTest {
     @Test
     public void floatingNumbersTest() throws SQLException {
         getConnection().createStatement().executeQuery("drop table if exists test_float");
-        getConnection().createStatement().executeQuery("create table test_float (a float )");
+        getConnection().createStatement().executeQuery("create table test_float (id int not null primary key auto_increment, a float )");
 
-        PreparedStatement ps = getConnection().prepareStatement("insert into test_float values (?)");
+        PreparedStatement ps = getConnection().prepareStatement("insert into test_float (a) values (?)");
         ps.setDouble(1,3.99);
         ps.executeUpdate();
-        ResultSet rs = getConnection().createStatement().executeQuery("select * from test_float");
+        ResultSet rs = getConnection().createStatement().executeQuery("select a from test_float");
         assertEquals(true,rs.next());
         assertEquals((float)3.99, rs.getFloat(1));
         assertEquals((float)3.99, rs.getFloat("a"));
@@ -502,7 +502,7 @@ public class DriverTest {
     public void manyColumnsTest() throws SQLException {
         Statement stmt = getConnection().createStatement();
         stmt.executeQuery("drop table if exists test_many_columns");
-        String query = "create table test_many_columns (a0 int";
+        String query = "create table test_many_columns (a0 int primary key not null";
         for(int i=1;i<1000;i++) {
             query+=",a"+i+" int";
         }
@@ -517,7 +517,7 @@ public class DriverTest {
         ResultSet rs = stmt.executeQuery("select * from test_many_columns");
 
         assertEquals(true,rs.next());
-
+       
         for(int i=0;i<1000;i++) {
             assertEquals(rs.getInt("a"+i),i);
         }
@@ -550,14 +550,14 @@ public class DriverTest {
     public void bigUpdateCountTest() throws SQLException {
         Statement stmt = getConnection().createStatement();
         stmt.executeQuery("drop table if exists test_big_update");
-        stmt.executeQuery("create table test_big_update (id int)");
+        stmt.executeQuery("create table test_big_update (id int primary key not null, updateme int)");
         for(int i=0;i<40000;i++) {
-            stmt.executeQuery("insert into test_big_update values ("+i+")");
+            stmt.executeQuery("insert into test_big_update values ("+i+","+i+")");
         }
         ResultSet rs = stmt.executeQuery("select count(*) from test_big_update");
         assertEquals(true,rs.next());
         assertEquals(40000,rs.getInt(1));
-        int updateCount = stmt.executeUpdate("update test_big_update set id=id+1");
+        int updateCount = stmt.executeUpdate("update test_big_update set updateme=updateme+1");
         assertEquals(40000,updateCount);
     }
 
@@ -578,7 +578,7 @@ public class DriverTest {
     @Test
     public void testCharacterStreams() throws SQLException, IOException {
         getConnection().createStatement().execute("drop table if exists streamtest");
-        getConnection().createStatement().execute("create table streamtest (id int, strm text)");
+        getConnection().createStatement().execute("create table streamtest (id int not null primary key, strm text)");
         PreparedStatement stmt = getConnection().prepareStatement("insert into streamtest (id, strm) values (?,?)");
         stmt.setInt(1,2);
         String toInsert = "abcdefgh\njklmn\"";
@@ -619,7 +619,7 @@ public class DriverTest {
     @Test
     public void testCharacterStreamWithLength() throws SQLException, IOException {
         getConnection().createStatement().execute("drop table if exists streamtest2");
-        getConnection().createStatement().execute("create table streamtest2 (id int, strm text)");
+        getConnection().createStatement().execute("create table streamtest2 (id int primary key not null, strm text)");
         PreparedStatement stmt = getConnection().prepareStatement("insert into streamtest2 (id, strm) values (?,?)");
         stmt.setInt(1,2);
         String toInsert = "abcdefgh\njklmn\"";
@@ -640,7 +640,7 @@ public class DriverTest {
     @Test
     public void testBlob() throws SQLException, IOException {
         getConnection().createStatement().execute("drop table if exists blobtest");
-        getConnection().createStatement().execute("create table blobtest (id int, strm blob)");
+        getConnection().createStatement().execute("create table blobtest (id int not null primary key, strm blob)");
         PreparedStatement stmt = getConnection().prepareStatement("insert into blobtest (id, strm) values (?,?)");
         byte [] theBlob = {1,2,3,4,5,6};
         InputStream stream = new ByteArrayInputStream(theBlob);
@@ -666,7 +666,7 @@ public class DriverTest {
    @Test
     public void testBlobWithLength() throws SQLException, IOException {
         getConnection().createStatement().execute("drop table if exists blobtest");
-        getConnection().createStatement().execute("create table blobtest (id int, strm blob)");
+        getConnection().createStatement().execute("create table blobtest (id int not null primary key, strm blob)");
         PreparedStatement stmt = getConnection().prepareStatement("insert into blobtest (id, strm) values (?,?)");
         byte [] theBlob = {1,2,3,4,5,6};
         InputStream stream = new ByteArrayInputStream(theBlob);
@@ -698,7 +698,7 @@ public class DriverTest {
         for(int i =0;i<dbmd.getMaxColumnNameLength();i++) {
             str+="x";   
         }
-        getConnection().createStatement().execute("create table longcol ("+str+" int)");
+        getConnection().createStatement().execute("create table longcol ("+str+" int not null primary key)");
         getConnection().createStatement().execute("insert into longcol values (1)");
         ResultSet rs = getConnection().createStatement().executeQuery("select * from longcol");
         assertEquals(true,rs.next());
@@ -716,7 +716,7 @@ public class DriverTest {
     public void setobjectTest() throws SQLException, IOException, ClassNotFoundException {
         getConnection().createStatement().execute("drop table if exists objecttest");
         getConnection().createStatement().execute(
-                "create table objecttest (int_test int, string_test varchar(30), timestamp_test timestamp, serial_test blob)");
+                "create table objecttest (int_test int primary key not null, string_test varchar(30), timestamp_test timestamp, serial_test blob)");
         PreparedStatement ps = getConnection().prepareStatement("insert into objecttest values (?,?,?,?)");
         ps.setObject(1, 5);
         ps.setObject(2, "aaa");
@@ -755,7 +755,7 @@ public class DriverTest {
     public void binTest() throws SQLException, IOException {
         getConnection().createStatement().execute("drop table if exists bintest");
         getConnection().createStatement().execute(
-                "create table bintest (bin1 varbinary(300), bin2 varbinary(300))");
+                "create table bintest (id int not null primary key auto_increment, bin1 varbinary(300), bin2 varbinary(300))");
         byte [] allBytes = new byte[256];
         for(int i=0;i<256;i++) {
             allBytes[i]=(byte) (i&0xff);
@@ -766,7 +766,7 @@ public class DriverTest {
         ps.setBinaryStream(2, bais);
         ps.execute();
 
-        ResultSet rs = getConnection().createStatement().executeQuery("select * from bintest");
+        ResultSet rs = getConnection().createStatement().executeQuery("select bin1,bin2 from bintest");
         assertTrue(rs.next());
         Blob blob = rs.getBlob(1);
         InputStream is = rs.getBinaryStream(1);
@@ -792,7 +792,7 @@ public class DriverTest {
                 "create table bintest2 (bin1 longblob) engine=innodb");
         } else {
             getConnection().createStatement().execute(
-                "create table bintest2 (bin1 blob)");            
+                "create table bintest2 (id int not null primary key auto_increment, bin1 blob)");            
         }
 
         byte [] buf=new byte[1000000];
@@ -807,7 +807,7 @@ public class DriverTest {
         is = new ByteArrayInputStream(buf);
         ps.setBinaryStream(1, is);
         ps.execute();
-        ResultSet rs = getConnection().createStatement().executeQuery("select * from bintest2");
+        ResultSet rs = getConnection().createStatement().executeQuery("select bin1 from bintest2");
         assertEquals(true,rs.next());
         byte [] buf2 = rs.getBytes(1);
         for(int i=0;i<1000000;i++) {
@@ -849,7 +849,7 @@ public class DriverTest {
     public void testRewriteBatchHandler() throws SQLException {
         getConnection().createStatement().execute("drop table if exists rewritetest");
         getConnection().createStatement().execute(
-                "create table rewritetest (id int not null, a varchar(10), b int) engine=innodb");
+                "create table rewritetest (id int not null primary key, a varchar(10), b int) engine=innodb");
 
         if(getConnection().isWrapperFor(DrizzleConnection.class)) {
             DrizzleConnection dc = getConnection().unwrap(DrizzleConnection.class);
@@ -956,12 +956,12 @@ public class DriverTest {
         BigDecimal bd = BigDecimal.TEN;
         getConnection().createStatement().execute("drop table if exists bigdectest");
         getConnection().createStatement().execute(
-                        "create table bigdectest (bd decimal) engine=innodb");
-        PreparedStatement ps = getConnection().prepareStatement("insert into bigdectest values (?)");
+                        "create table bigdectest (id int not null primary key auto_increment, bd decimal) engine=innodb");
+        PreparedStatement ps = getConnection().prepareStatement("insert into bigdectest (bd) values (?)");
         ps.setBigDecimal(1,bd);
         ps.executeQuery();
 
-        ResultSet rs=getConnection().createStatement().executeQuery("select * from bigdectest");
+        ResultSet rs=getConnection().createStatement().executeQuery("select bd from bigdectest");
         assertTrue(rs.next());
         Object bb = rs.getObject(1);
         assertEquals(bd, bb);
@@ -977,11 +977,11 @@ public class DriverTest {
     public void longTest() throws SQLException {
         getConnection().createStatement().execute("drop table if exists longtest");
         getConnection().createStatement().execute(
-                        "create table longtest (ll bigint) engine=innodb");
-        PreparedStatement ps = getConnection().prepareStatement("insert into longtest values (?)");
+                        "create table longtest (id int not null primary key auto_increment,ll bigint) engine=innodb");
+        PreparedStatement ps = getConnection().prepareStatement("insert into longtest (ll) values (?)");
         ps.setLong(1,Long.MAX_VALUE);
         ps.execute();
-        ResultSet rs=getConnection().createStatement().executeQuery("select * from longtest");
+        ResultSet rs=getConnection().createStatement().executeQuery("select ll from longtest");
         assertTrue(rs.next());
         Object bb = rs.getObject(1);
         Long bc = rs.getLong(1);
@@ -997,11 +997,11 @@ public class DriverTest {
     public void byteTest() throws SQLException {
         getConnection().createStatement().execute("drop table if exists bytetest");
         getConnection().createStatement().execute(
-                        "create table bytetest (a int) engine=innodb");
-        PreparedStatement ps = getConnection().prepareStatement("insert into bytetest values (?)");
+                        "create table bytetest (id int not null primary key auto_increment, a int) engine=innodb");
+        PreparedStatement ps = getConnection().prepareStatement("insert into bytetest (a) values (?)");
         ps.setByte(1,Byte.MAX_VALUE);
         ps.execute();
-        ResultSet rs=getConnection().createStatement().executeQuery("select * from bytetest");
+        ResultSet rs=getConnection().createStatement().executeQuery("select a from bytetest");
         assertTrue(rs.next());
 
         Byte bc = rs.getByte(1);
@@ -1018,11 +1018,11 @@ public class DriverTest {
     public void shortTest() throws SQLException {
         getConnection().createStatement().execute("drop table if exists shorttest");
         getConnection().createStatement().execute(
-                        "create table shorttest (a int) engine=innodb");
-        PreparedStatement ps = getConnection().prepareStatement("insert into shorttest values (?)");
+                        "create table shorttest (id int not null primary key auto_increment,a int) engine=innodb");
+        PreparedStatement ps = getConnection().prepareStatement("insert into shorttest (a) values (?)");
         ps.setShort(1,Short.MAX_VALUE);
         ps.execute();
-        ResultSet rs=getConnection().createStatement().executeQuery("select * from shorttest");
+        ResultSet rs=getConnection().createStatement().executeQuery("select a from shorttest");
         assertTrue(rs.next());
 
         Short bc = rs.getShort(1);
@@ -1037,12 +1037,12 @@ public class DriverTest {
     public void doubleTest() throws SQLException {
         getConnection().createStatement().execute("drop table if exists doubletest");
         getConnection().createStatement().execute(
-                        "create table doubletest (a double) engine=innodb");
-        PreparedStatement ps = getConnection().prepareStatement("insert into doubletest values (?)");
+                        "create table doubletest (id int not null primary key auto_increment,a double) engine=innodb");
+        PreparedStatement ps = getConnection().prepareStatement("insert into doubletest (a) values (?)");
         double d = 1.5;
         ps.setDouble(1,d);
         ps.execute();
-        ResultSet rs=getConnection().createStatement().executeQuery("select * from doubletest");
+        ResultSet rs=getConnection().createStatement().executeQuery("select a from doubletest");
         assertTrue(rs.next());
         Object b = rs.getObject(1);
         assertEquals(b.getClass(),Double.class);
@@ -1060,7 +1060,7 @@ public class DriverTest {
     public void testResultSetPositions() throws SQLException {
         getConnection().createStatement().execute("drop table if exists ressetpos");
         getConnection().createStatement().execute(
-                        "create table ressetpos (i int) engine=innodb");
+                        "create table ressetpos (i int not null primary key) engine=innodb");
         getConnection().createStatement().execute("insert into ressetpos values (1),(2),(3),(4)");
 
         ResultSet rs =getConnection().createStatement().executeQuery("select * from ressetpos");
