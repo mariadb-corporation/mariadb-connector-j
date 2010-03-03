@@ -103,21 +103,6 @@ public interface Protocol {
     void releaseSavepoint(String savepoint) throws QueryException;
 
     /**
-     * sets whether statements should be autocommited
-     *
-     * @param autoCommit true if they should be autocommitted
-     * @throws QueryException if there is a problem setting auto commit
-     */
-    void setAutoCommit(boolean autoCommit) throws QueryException;
-
-    /**
-     * returns true if we are in auto commit mode
-     *
-     * @return true if we are in auto commit mode
-     */
-    boolean getAutoCommit();
-
-    /**
      * returns the host
      *
      * @return the host we are connected to

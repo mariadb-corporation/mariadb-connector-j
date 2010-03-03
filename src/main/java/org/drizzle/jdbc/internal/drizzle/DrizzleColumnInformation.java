@@ -97,6 +97,24 @@ public class DrizzleColumnInformation implements ColumnInformation {
         }
     }
 
+    @Override
+    public String toString() {
+        return "DrizzleColumnInformation{" +
+                "catalog='" + catalog + '\'' +
+                ", db='" + db + '\'' +
+                ", table='" + table + '\'' +
+                ", orgTable='" + orgTable + '\'' +
+                ", name='" + name + '\'' +
+                ", orgName='" + orgName + '\'' +
+                ", charsetNumber=" + charsetNumber +
+                ", length=" + length +
+                ", type=" + type +
+                ", decimals=" + decimals +
+                ", flags=" + flags +
+                ", displayWidth=" + displayWidth +
+                '}';
+    }
+
     public static class Builder {
         private String catalog;
         private String db;

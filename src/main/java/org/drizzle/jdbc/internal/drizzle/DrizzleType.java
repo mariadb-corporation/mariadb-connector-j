@@ -65,7 +65,7 @@ public class DrizzleType implements DataType {
             return javaClass;
         }
 
-        public int getSqlType() {
+        public int getSqlType() {            
             return sqlType;
         }
     }

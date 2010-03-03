@@ -136,11 +136,16 @@ public final class DrizzleConnection
      * @throws SQLException if something goes wrong talking to the server.
      */
     public void setAutoCommit(final boolean autoCommit) throws SQLException {
-        try {
-            protocol.setAutoCommit(autoCommit);
-        } catch (QueryException e) {
-            throw SQLExceptionMapper.get(e);
+        Statement stmt = createStatement();
+        String clause;
+
+        if(autoCommit) {
+            clause = "1";
+        } else {
+            clause = "0";
         }
+
+        stmt.executeUpdate("set autocommit="+clause);
     }
 
     /**
@@ -150,7 +155,13 @@ public final class DrizzleConnection
      * @throws SQLException
      */
     public boolean getAutoCommit() throws SQLException {
-        return protocol.getAutoCommit();
+        Statement stmt = createStatement();
+        ResultSet rs = stmt.executeQuery("select @@autocommit");
+        rs.next();
+        boolean autocommit = rs.getBoolean(1);
+        rs.close();
+        stmt.close();
+        return autocommit;
     }
 
     /**

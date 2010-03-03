@@ -66,7 +66,6 @@ public class MySQLProtocol implements Protocol {
     private final BufferedOutputStream writer;
     private final String version;
     private boolean readOnly = false;
-    private boolean autoCommit;
     private final String host;
     private final int port;
     private String database;
@@ -133,13 +132,7 @@ public class MySQLProtocol implements Protocol {
                 final ErrorPacket ep = (ErrorPacket) resultPacket;
                 final String message = ep.getMessage();
                 throw new QueryException("Could not connect: " + message);
-            } else if (resultPacket.getResultType() == ResultPacket.ResultType.OK) {
-                final OKPacket okp = (OKPacket) resultPacket;
-                if (!okp.getServerStatus().contains(ServerStatus.AUTOCOMMIT)) {
-                    setAutoCommit(true);
-                }
             }
-
         } catch (IOException e) {
             throw new QueryException("Could not connect: " + e.getMessage(),
                     -1,
@@ -257,15 +250,6 @@ public class MySQLProtocol implements Protocol {
 
     public void releaseSavepoint(final String savepoint) throws QueryException {
         executeQuery(new DrizzleQuery("RELEASE SAVEPOINT " + savepoint));
-    }
-
-    public void setAutoCommit(final boolean autoCommit) throws QueryException {
-        this.autoCommit = autoCommit;
-        executeQuery(new DrizzleQuery("SET autocommit=" + (autoCommit ? "1" : "0")));
-    }
-
-    public boolean getAutoCommit() {
-        return autoCommit;
     }
 
     public String getHost() {

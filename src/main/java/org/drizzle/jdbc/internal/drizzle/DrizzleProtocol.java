@@ -83,10 +83,6 @@ public final class DrizzleProtocol implements Protocol {
      */
     private boolean readOnly = false;
     /**
-     * if we are in autocommit mode.
-     */
-    private boolean autoCommit;
-    /**
      * the host we are connected to.
      */
     private final String host;
@@ -189,10 +185,6 @@ public final class DrizzleProtocol implements Protocol {
                 final String message = ep.getMessage();
                 throw new QueryException("Could not connect: "
                         + message, ep.getErrorNumber(), ep.getSqlState());
-            }
-            // default when connecting is to have autocommit = 1.
-            if (!((OKPacket) rp).getServerStatus().contains(ServerStatus.AUTOCOMMIT)) {
-                setAutoCommit(true);
             }
         } catch (IOException e) {
             close();
@@ -338,30 +330,6 @@ public final class DrizzleProtocol implements Protocol {
     public void releaseSavepoint(final String savepoint) throws QueryException {
         log.finest("releasing savepoint named " + savepoint);
         executeQuery(new DrizzleQuery("RELEASE SAVEPOINT " + savepoint));
-    }
-
-    /**
-     * sets whether statements should be autocommitted.
-     *
-     * @param autoCommit true if they should be autocommitted
-     * @throws QueryException if there is a problem talking to drizzled
-     */
-    public void setAutoCommit(final boolean autoCommit) throws QueryException {
-        this.autoCommit = autoCommit;
-        String boolStr = "0";
-        if (autoCommit) {
-            boolStr = "1";
-        }
-        executeQuery(new DrizzleQuery("SET autocommit=" + boolStr));
-    }
-
-    /**
-     * if this connection is in autoCommit mode.
-     *
-     * @return true if we are autoCommiting statements.
-     */
-    public boolean getAutoCommit() {
-        return autoCommit;
     }
 
     /**

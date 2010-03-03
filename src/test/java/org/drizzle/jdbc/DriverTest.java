@@ -6,6 +6,8 @@ import org.drizzle.jdbc.internal.common.packet.buffer.WriteBuffer;
 import org.drizzle.jdbc.internal.common.packet.RawPacket;
 import org.drizzle.jdbc.internal.common.*;
 import org.drizzle.jdbc.internal.common.query.ParameterizedQuery;
+
+import static org.junit.Assert.assertFalse;
 import static org.mockito.Mockito.mock;
 
 import java.sql.*;
@@ -1146,8 +1148,8 @@ public class DriverTest {
     public void testBug501452() throws SQLException {
         Connection conn = getConnection();
         if(conn.isWrapperFor(DrizzleConnection.class)) {
-               DrizzleConnection dc = conn.unwrap(DrizzleConnection.class);
-               dc.setBatchQueryHandlerFactory(new RewriteParameterizedBatchHandlerFactory());
+            DrizzleConnection dc = conn.unwrap(DrizzleConnection.class);
+            dc.setBatchQueryHandlerFactory(new RewriteParameterizedBatchHandlerFactory());
         }
         Statement stmt = conn.createStatement();
         stmt.executeUpdate("drop table if exists test_units_jdbc.bug501452");
@@ -1170,6 +1172,13 @@ public class DriverTest {
 
     }
 
+    @Test
+    public void testBug525946() throws SQLException {
+        Connection conn = getConnection();
+        assertTrue(conn.getAutoCommit());
+        conn.setAutoCommit(false);
+        assertFalse(conn.getAutoCommit());
+    }
 
 
 }
