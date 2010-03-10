@@ -150,7 +150,6 @@ public final class DrizzleProtocol implements Protocol {
                     SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
                     e);
         }
-        log.info("Connected to: " + host + ":" + port);
         batchList = new ArrayList<Query>();
         try {
 
@@ -202,7 +201,6 @@ public final class DrizzleProtocol implements Protocol {
      * @throws QueryException if the socket or readers/writes cannot be closed
      */
     public void close() throws QueryException {
-        log.info("Closing connection");
         try {
             packetFetcher.close(); // by sending the close packet now, the response will act as a poison pill for the reading thread
             final ClosePacket closePacket = new ClosePacket();

@@ -33,7 +33,7 @@ public class DriverTest {
 
     public DriverTest() throws SQLException {
         //connection = DriverManager.getConnection("jdbc:mysql:thin://localhost:3306/test_units_jdbc");
-        connection = DriverManager.getConnection("jdbc:drizzle://"+host+":4427/test_units_jdbc");
+        connection = DriverManager.getConnection("jdbc:drizzle://"+host+":3307/test_units_jdbc");
         //connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/test_units_jdbc");
     }
     @After
@@ -317,7 +317,7 @@ public class DriverTest {
         assertEquals("whoa",url.getUsername());
         assertEquals("pass",url.getPassword());
         assertEquals("www.drizzle.org",url.getHostname());
-        assertEquals(4427,url.getPort());
+        assertEquals(3306,url.getPort());
         assertEquals("aa",url.getDatabase());
         assertEquals(JDBCUrl.DBType.DRIZZLE, url.getDBType());
 
@@ -333,7 +333,7 @@ public class DriverTest {
         assertEquals("whoa",url.getUsername());
         assertEquals("pass",url.getPassword());
         assertEquals("www.drizzle.org",url.getHostname());
-        assertEquals(4427,url.getPort());
+        assertEquals(3306,url.getPort());
         assertEquals("cc",url.getDatabase());
         assertEquals(JDBCUrl.DBType.DRIZZLE, url.getDBType());
 
@@ -349,7 +349,7 @@ public class DriverTest {
         assertEquals("whoa",url.getUsername());
         assertEquals("pass",url.getPassword());
         assertEquals("www.drizzle.org",url.getHostname());
-        assertEquals(4427,url.getPort());
+        assertEquals(3306,url.getPort());
         assertEquals("bbb",url.getDatabase());
         assertEquals(JDBCUrl.DBType.DRIZZLE, url.getDBType());
 
@@ -365,7 +365,7 @@ public class DriverTest {
         assertEquals("whoa",url.getUsername());
         assertEquals("pass",url.getPassword());
         assertEquals("www.drizzle.org",url.getHostname());
-        assertEquals(4427,url.getPort());
+        assertEquals(3306,url.getPort());
         assertEquals("bbb",url.getDatabase());
         assertEquals(JDBCUrl.DBType.DRIZZLE, url.getDBType());
 

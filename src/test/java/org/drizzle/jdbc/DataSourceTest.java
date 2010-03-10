@@ -17,13 +17,13 @@ import java.sql.Connection;
 public class DataSourceTest {
     @Test
     public void testDrizzleDataSource() throws SQLException {
-        DataSource ds = new DrizzleDataSource("localhost",4427,"test_units_jdbc");
+        DataSource ds = new DrizzleDataSource(DriverTest.host,3307,"test_units_jdbc");
         Connection connection = ds.getConnection();
         assertEquals(connection.isValid(0),true);
     }
     @Test
     public void testDrizzleDataSource2() throws SQLException {
-        DataSource ds = new DrizzleDataSource("localhost",4427,"test_units_jdbc");
+        DataSource ds = new DrizzleDataSource(DriverTest.host,3307,"test_units_jdbc");
         Connection connection = ds.getConnection("","");
         assertEquals(connection.isValid(0),true);
     }

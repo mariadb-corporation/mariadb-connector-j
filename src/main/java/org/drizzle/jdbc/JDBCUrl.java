@@ -48,7 +48,7 @@ public class JDBCUrl {
                 this.port = Integer.parseInt(m.group(8));
             } else {
                 if (this.dbType == DBType.DRIZZLE) {
-                    this.port = 4427;
+                    this.port = 3306;
                 } else {
                     this.port = 3306;
                 }

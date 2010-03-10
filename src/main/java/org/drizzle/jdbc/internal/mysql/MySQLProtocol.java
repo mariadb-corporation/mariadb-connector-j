@@ -102,7 +102,6 @@ public class MySQLProtocol implements Protocol {
                     SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
                     e);
         }
-        log.info("Connected to: " + host + ":" + port);
         batchList = new ArrayList<Query>();
         try {
             final BufferedInputStream reader = new BufferedInputStream(socket.getInputStream());
@@ -148,7 +147,6 @@ public class MySQLProtocol implements Protocol {
      *          if the socket or readers/writes cannot be closed
      */
     public void close() throws QueryException {
-        log.info("Closing...");
         try {
             packetFetcher.close();
             final ClosePacket closePacket = new ClosePacket();

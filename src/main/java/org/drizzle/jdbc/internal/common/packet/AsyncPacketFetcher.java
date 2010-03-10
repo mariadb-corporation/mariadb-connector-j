@@ -59,7 +59,7 @@ public class AsyncPacketFetcher implements Runnable, PacketFetcher {
                     if (rawPacket != null) {
                         packet.add(rawPacket);
                     } else {
-                        Logger.getLogger(this.getClass().getName()).info("Connection closed");
+                        Logger.getLogger(this.getClass().getName()).finest("Connection closed");
                         shutDown = true;
                         packet.add(RawPacket.IOEXCEPTION_PILL);
                     }

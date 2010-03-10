@@ -217,7 +217,6 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.2
      */
     public void setRef(final int parameterIndex, final Ref x) throws SQLException {
-        log.info("REFs not supported");
         throw new SQLFeatureNotSupportedException("REF not supported");
     }
 

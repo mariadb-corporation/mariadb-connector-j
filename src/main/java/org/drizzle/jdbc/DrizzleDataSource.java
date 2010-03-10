@@ -13,6 +13,7 @@ import org.drizzle.jdbc.internal.SQLExceptionMapper;
 import org.drizzle.jdbc.internal.common.QueryException;
 import org.drizzle.jdbc.internal.common.query.DrizzleQueryFactory;
 import org.drizzle.jdbc.internal.drizzle.DrizzleProtocol;
+import org.drizzle.jdbc.internal.mysql.MySQLProtocol;
 
 import javax.sql.DataSource;
 import java.io.PrintWriter;
@@ -41,7 +42,7 @@ public class DrizzleDataSource implements DataSource {
      */
     public Connection getConnection() throws SQLException {
         try {
-            return new DrizzleConnection(new DrizzleProtocol(hostname, port, database, null, null),
+            return new DrizzleConnection(new MySQLProtocol(hostname, port, database, null, null),
                     new DrizzleQueryFactory());
         } catch (QueryException e) {
             throw SQLExceptionMapper.get(e);
@@ -59,7 +60,7 @@ public class DrizzleDataSource implements DataSource {
      */
     public Connection getConnection(final String username, final String password) throws SQLException {
         try {
-            return new DrizzleConnection(new DrizzleProtocol(hostname, port, database, username, password),
+            return new DrizzleConnection(new MySQLProtocol(hostname, port, database, username, password),
                     new DrizzleQueryFactory());
         } catch (QueryException e) {
             throw SQLExceptionMapper.get(e);

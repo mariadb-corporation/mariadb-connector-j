@@ -57,8 +57,12 @@ public final class Driver implements java.sql.Driver {
 
         try {
             final JDBCUrl jdbcUrl = new JDBCUrl(url);
-            final Protocol protocol;
-            if (jdbcUrl.getDBType() == JDBCUrl.DBType.DRIZZLE) {
+            final Protocol protocol = new MySQLProtocol(jdbcUrl.getHostname(),
+                        jdbcUrl.getPort(),
+                        jdbcUrl.getDatabase(),
+                        jdbcUrl.getUsername(),
+                        jdbcUrl.getPassword());
+           /* if (jdbcUrl.getDBType() == JDBCUrl.DBType.DRIZZLE) {
                 protocol = new DrizzleProtocol(jdbcUrl.getHostname(),
                         jdbcUrl.getPort(),
                         jdbcUrl.getDatabase(),
@@ -70,7 +74,7 @@ public final class Driver implements java.sql.Driver {
                         jdbcUrl.getDatabase(),
                         jdbcUrl.getUsername(),
                         jdbcUrl.getPassword());
-            }
+            }*/
             return new DrizzleConnection(protocol, new DrizzleQueryFactory());
         } catch (QueryException e) {
             throw SQLExceptionMapper.get(e);
