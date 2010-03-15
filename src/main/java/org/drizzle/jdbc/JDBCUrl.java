@@ -30,7 +30,6 @@ public class JDBCUrl {
         DRIZZLE, MYSQL
     }
 
-
     private JDBCUrl(DBType dbType, String username, String password, String hostname, int port, String database) {
         this.dbType = dbType;
         this.username = username;
