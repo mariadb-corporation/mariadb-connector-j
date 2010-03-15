@@ -26,6 +26,7 @@ import org.drizzle.jdbc.internal.common.packet.RawPacket;
 import org.drizzle.jdbc.internal.common.packet.ResultPacket;
 import org.drizzle.jdbc.internal.common.packet.ResultPacketFactory;
 import org.drizzle.jdbc.internal.common.packet.ResultSetPacket;
+import org.drizzle.jdbc.internal.common.packet.SyncPacketFetcher;
 import org.drizzle.jdbc.internal.common.packet.buffer.ReadUtil;
 import org.drizzle.jdbc.internal.common.packet.commands.ClosePacket;
 import org.drizzle.jdbc.internal.common.packet.commands.SelectDBPacket;
@@ -105,8 +106,7 @@ public class MySQLProtocol implements Protocol {
         batchList = new ArrayList<Query>();
         try {
             final BufferedInputStream reader = new BufferedInputStream(socket.getInputStream());
-            packetFetcher = new AsyncPacketFetcher(reader);
-            packetFetcher.start();
+            packetFetcher = new SyncPacketFetcher(reader);
             writer = new BufferedOutputStream(socket.getOutputStream(), 16384);
             final MySQLGreetingReadPacket greetingPacket = new MySQLGreetingReadPacket(packetFetcher.getRawPacket());
             log.finest("Got greeting packet");
@@ -148,18 +148,22 @@ public class MySQLProtocol implements Protocol {
      */
     public void close() throws QueryException {
         try {
-            packetFetcher.close();
             final ClosePacket closePacket = new ClosePacket();
             closePacket.send(writer);
-            packetFetcher.close();
             writer.close();
-            socket.close();
-
+            packetFetcher.close();
         } catch (IOException e) {
             throw new QueryException("Could not close connection: " + e.getMessage(),
                     -1,
                     SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
                     e);
+        } finally {
+            try {
+                this.connected = false;
+                socket.close();
+            } catch (IOException e) {
+                log.warning("Could not close socket");
+            }
         }
         this.connected = false;
     }

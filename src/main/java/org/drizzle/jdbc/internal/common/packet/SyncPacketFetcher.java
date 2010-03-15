@@ -30,14 +30,7 @@ public class SyncPacketFetcher implements PacketFetcher {
         return RawPacket.nextPacket(inputStream);
     }
 
-    public void start() {
-
-    }
-
     public void close() throws IOException {
         inputStream.close();
-    }
-
-    public void awaitTermination() {
     }
 }
