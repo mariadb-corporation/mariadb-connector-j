@@ -132,6 +132,7 @@ public class MySQLProtocol implements Protocol {
                 final String message = ep.getMessage();
                 throw new QueryException("Could not connect: " + message);
             }
+            connected = true;
         } catch (IOException e) {
             throw new QueryException("Could not connect: " + e.getMessage(),
                     -1,
