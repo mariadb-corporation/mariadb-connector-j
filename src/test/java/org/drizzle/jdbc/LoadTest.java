@@ -1,30 +1,30 @@
 package org.drizzle.jdbc;
 
+import com.mysql.jdbc.*;
 import org.junit.Test;
 
 import java.sql.*;
+import java.sql.Connection;
+import java.sql.Statement;
 
 
-/**
- * User: marcuse
- * Date: Feb 10, 2009
- * Time: 9:53:59 PM
- */
 public class LoadTest {
     @Test    
     public void tm() throws SQLException {
-        Connection drizConnection = DriverManager.getConnection("jdbc:mysql:thin://"+DriverTest.host+":4427/test_units_jdbc","test","test");
-        Connection mysqlConnection = DriverManager.getConnection("jdbc:mysql://10.100.100.50/test_units_jdbc","test","test");
+        Connection drizConnection = DriverManager.getConnection("jdbc:mysql:thin://10.100.100.50:4427/test_units_jdbc");
+        Connection mysqlConnection = DriverManager.getConnection("jdbc:mysql://10.100.100.50:4427/test_units_jdbc");
+              
         long sum = 0;
         int i;
-        for(i =0;i<10;i++)
+        for(i  =0;i<10;i++)
           sum+=this.loadTest(mysqlConnection);
         System.out.println(sum/i);
         sum = 0;
-        for(i =0;i<10;i++)
+        for(i = 0;i<10;i++)
           sum+=this.loadTest(drizConnection);
         System.out.println(sum/i);
     }
+
     public long loadTest(Connection connection) throws SQLException {
         Statement stmt = connection.createStatement();
         stmt.executeUpdate("drop table if exists loadsofdata");

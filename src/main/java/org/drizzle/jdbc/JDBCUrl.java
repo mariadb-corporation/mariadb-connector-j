@@ -31,34 +31,50 @@ public class JDBCUrl {
     }
 
 
-    public JDBCUrl(final String url) throws SQLException {
+    private JDBCUrl(DBType dbType, String username, String password, String hostname, int port, String database) {
+        this.dbType = dbType;
+        this.username = username;
+        this.password = password;
+        this.hostname = hostname;
+        this.port = port;
+        this.database = database;
+    }
+
+    public static JDBCUrl parse(final String url) {
+        final DBType dbType;
+        final String username;
+        final String password;
+        final String hostname;
+        final int port;
+        final String database;        
+
         final Pattern p = Pattern.compile("^jdbc:(drizzle|mysql:thin)://((\\w+)(:(\\w+))?@)?([^/:]+)(:(\\d+))?(/(\\w+))?");
         final Matcher m = p.matcher(url);
         if (m.find()) {
             if (m.group(1).equals("mysql:thin")) {
-                this.dbType = DBType.MYSQL;
+                dbType = DBType.MYSQL;
             } else {
-                this.dbType = DBType.DRIZZLE;
+                dbType = DBType.DRIZZLE;
             }
 
-            this.username = (m.group(3) == null ? "" : m.group(3));
-            this.password = (m.group(5) == null ? "" : m.group(5));
-            this.hostname = (m.group(6) == null ? "" : m.group(6));
+            username = (m.group(3) == null ? "" : m.group(3));
+            password = (m.group(5) == null ? "" : m.group(5));
+            hostname = (m.group(6) == null ? "" : m.group(6));
             if (m.group(8) != null) {
-                this.port = Integer.parseInt(m.group(8));
+                port = Integer.parseInt(m.group(8));
             } else {
-                if (this.dbType == DBType.DRIZZLE) {
-                    this.port = 3306;
+                if (dbType == DBType.DRIZZLE) {
+                    port = 3306;
                 } else {
-                    this.port = 3306;
+                    port = 3306;
                 }
             }
-            this.database = m.group(10);
+            database = m.group(10);
+            return new JDBCUrl(dbType, username, password, hostname, port, database);
         } else {
-            throw new SQLException("Could not parse connection string: "+url);
+            return null;
         }
     }
-
     public String getUsername() {
         return username;
     }

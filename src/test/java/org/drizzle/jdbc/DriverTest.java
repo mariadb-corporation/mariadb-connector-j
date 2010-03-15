@@ -5,7 +5,6 @@ import org.junit.After;
 import org.drizzle.jdbc.internal.common.packet.buffer.WriteBuffer;
 import org.drizzle.jdbc.internal.common.packet.RawPacket;
 import org.drizzle.jdbc.internal.common.*;
-import org.drizzle.jdbc.internal.common.query.ParameterizedQuery;
 
 import static org.junit.Assert.assertFalse;
 import static org.mockito.Mockito.mock;
@@ -265,7 +264,7 @@ public class DriverTest {
 
     @Test
     public void conStringTest() throws SQLException {
-        JDBCUrl url = new JDBCUrl("jdbc:drizzle://www.drizzle.org:4427/mmm");
+        JDBCUrl url = JDBCUrl.parse("jdbc:drizzle://www.drizzle.org:4427/mmm");
         assertEquals("",url.getUsername());
         assertEquals("",url.getPassword());
         assertEquals("www.drizzle.org",url.getHostname());
@@ -273,7 +272,7 @@ public class DriverTest {
         assertEquals("mmm",url.getDatabase());
         assertEquals(JDBCUrl.DBType.DRIZZLE, url.getDBType());
 
-        url = new JDBCUrl("jdbc:mysql:thin://www.drizzle.org:3306/mmm");
+        url = JDBCUrl.parse("jdbc:mysql:thin://www.drizzle.org:3306/mmm");
         assertEquals("",url.getUsername());
         assertEquals("",url.getPassword());
         assertEquals("www.drizzle.org",url.getHostname());
@@ -281,7 +280,7 @@ public class DriverTest {
         assertEquals("mmm",url.getDatabase());
         assertEquals(JDBCUrl.DBType.MYSQL, url.getDBType());
 
-        url = new JDBCUrl("jdbc:drizzle://whoa@www.drizzle.org:4427/mmm");
+        url = JDBCUrl.parse("jdbc:drizzle://whoa@www.drizzle.org:4427/mmm");
         assertEquals("whoa",url.getUsername());
         assertEquals("",url.getPassword());
         assertEquals("www.drizzle.org",url.getHostname());
@@ -289,7 +288,7 @@ public class DriverTest {
         assertEquals("mmm",url.getDatabase());
         assertEquals(JDBCUrl.DBType.DRIZZLE, url.getDBType());
 
-        url = new JDBCUrl("jdbc:mysql:thin://whoa@www.drizzle.org:4427/mmm");
+        url = JDBCUrl.parse("jdbc:mysql:thin://whoa@www.drizzle.org:4427/mmm");
         assertEquals("whoa",url.getUsername());
         assertEquals("",url.getPassword());
         assertEquals("www.drizzle.org",url.getHostname());
@@ -297,7 +296,7 @@ public class DriverTest {
         assertEquals("mmm",url.getDatabase());
         assertEquals(JDBCUrl.DBType.MYSQL, url.getDBType());
 
-        url = new JDBCUrl("jdbc:drizzle://whoa:pass@www.drizzle.org:4427/mmm");
+        url = JDBCUrl.parse("jdbc:drizzle://whoa:pass@www.drizzle.org:4427/mmm");
         assertEquals("whoa",url.getUsername());
         assertEquals("pass",url.getPassword());
         assertEquals("www.drizzle.org",url.getHostname());
@@ -305,7 +304,7 @@ public class DriverTest {
         assertEquals("mmm",url.getDatabase());
         assertEquals(JDBCUrl.DBType.DRIZZLE, url.getDBType());
 
-        url = new JDBCUrl("jdbc:mysql:thin://whoa:pass@www.drizzle.org:4427/mmm");
+        url = JDBCUrl.parse("jdbc:mysql:thin://whoa:pass@www.drizzle.org:4427/mmm");
         assertEquals("whoa",url.getUsername());
         assertEquals("pass",url.getPassword());
         assertEquals("www.drizzle.org",url.getHostname());
@@ -313,7 +312,7 @@ public class DriverTest {
         assertEquals("mmm",url.getDatabase());
         assertEquals(JDBCUrl.DBType.MYSQL, url.getDBType());
 
-        url = new JDBCUrl("jdbc:drizzle://whoa:pass@www.drizzle.org/aa");
+        url = JDBCUrl.parse("jdbc:drizzle://whoa:pass@www.drizzle.org/aa");
         assertEquals("whoa",url.getUsername());
         assertEquals("pass",url.getPassword());
         assertEquals("www.drizzle.org",url.getHostname());
@@ -321,7 +320,7 @@ public class DriverTest {
         assertEquals("aa",url.getDatabase());
         assertEquals(JDBCUrl.DBType.DRIZZLE, url.getDBType());
 
-        url = new JDBCUrl("jdbc:mysql:thin://whoa:pass@www.drizzle.org/aa");
+        url = JDBCUrl.parse("jdbc:mysql:thin://whoa:pass@www.drizzle.org/aa");
         assertEquals("whoa",url.getUsername());
         assertEquals("pass",url.getPassword());
         assertEquals("www.drizzle.org",url.getHostname());
@@ -329,7 +328,7 @@ public class DriverTest {
         assertEquals("aa",url.getDatabase());
         assertEquals(JDBCUrl.DBType.MYSQL, url.getDBType());
 
-        url = new JDBCUrl("jdbc:drizzle://whoa:pass@www.drizzle.org/cc");
+        url = JDBCUrl.parse("jdbc:drizzle://whoa:pass@www.drizzle.org/cc");
         assertEquals("whoa",url.getUsername());
         assertEquals("pass",url.getPassword());
         assertEquals("www.drizzle.org",url.getHostname());
@@ -337,7 +336,7 @@ public class DriverTest {
         assertEquals("cc",url.getDatabase());
         assertEquals(JDBCUrl.DBType.DRIZZLE, url.getDBType());
 
-        url = new JDBCUrl("jdbc:mysql:thin://whoa:pass@www.drizzle.org/cc");
+        url = JDBCUrl.parse("jdbc:mysql:thin://whoa:pass@www.drizzle.org/cc");
         assertEquals("whoa",url.getUsername());
         assertEquals("pass",url.getPassword());
         assertEquals("www.drizzle.org",url.getHostname());
@@ -345,7 +344,7 @@ public class DriverTest {
         assertEquals("cc",url.getDatabase());
         assertEquals(JDBCUrl.DBType.MYSQL, url.getDBType());
 
-        url = new JDBCUrl("jdbc:drizzle://whoa:pass@www.drizzle.org/bbb");
+        url = JDBCUrl.parse("jdbc:drizzle://whoa:pass@www.drizzle.org/bbb");
         assertEquals("whoa",url.getUsername());
         assertEquals("pass",url.getPassword());
         assertEquals("www.drizzle.org",url.getHostname());
@@ -353,7 +352,7 @@ public class DriverTest {
         assertEquals("bbb",url.getDatabase());
         assertEquals(JDBCUrl.DBType.DRIZZLE, url.getDBType());
 
-        url = new JDBCUrl("jdbc:mysql:thin://whoa:pass@www.drizzle.org/bbb");
+        url = JDBCUrl.parse("jdbc:mysql:thin://whoa:pass@www.drizzle.org/bbb");
         assertEquals("whoa",url.getUsername());
         assertEquals("pass",url.getPassword());
         assertEquals("www.drizzle.org",url.getHostname());
@@ -361,7 +360,7 @@ public class DriverTest {
         assertEquals("bbb",url.getDatabase());
         assertEquals(JDBCUrl.DBType.MYSQL, url.getDBType());
 
-        url = new JDBCUrl("jdbc:drizzle://whoa:pass@www.drizzle.org/bbb/");
+        url = JDBCUrl.parse("jdbc:drizzle://whoa:pass@www.drizzle.org/bbb/");
         assertEquals("whoa",url.getUsername());
         assertEquals("pass",url.getPassword());
         assertEquals("www.drizzle.org",url.getHostname());
@@ -369,7 +368,7 @@ public class DriverTest {
         assertEquals("bbb",url.getDatabase());
         assertEquals(JDBCUrl.DBType.DRIZZLE, url.getDBType());
 
-        url = new JDBCUrl("jdbc:mysql:thin://whoa:pass@www.drizzle.org/bbb/");
+        url = JDBCUrl.parse("jdbc:mysql:thin://whoa:pass@www.drizzle.org/bbb/");
         assertEquals("whoa",url.getUsername());
         assertEquals("pass",url.getPassword());
         assertEquals("www.drizzle.org",url.getHostname());

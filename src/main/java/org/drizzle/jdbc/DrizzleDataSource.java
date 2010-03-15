@@ -12,7 +12,6 @@ package org.drizzle.jdbc;
 import org.drizzle.jdbc.internal.SQLExceptionMapper;
 import org.drizzle.jdbc.internal.common.QueryException;
 import org.drizzle.jdbc.internal.common.query.DrizzleQueryFactory;
-import org.drizzle.jdbc.internal.drizzle.DrizzleProtocol;
 import org.drizzle.jdbc.internal.mysql.MySQLProtocol;
 
 import javax.sql.DataSource;

@@ -4,9 +4,6 @@ import org.junit.Test;
 import org.drizzle.jdbc.internal.common.Utils;
 
 import java.sql.*;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.TimeZone;
 import java.util.logging.Logger;
 import java.util.logging.Level;
 
