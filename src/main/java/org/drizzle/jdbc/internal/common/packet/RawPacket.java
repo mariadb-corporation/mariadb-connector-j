@@ -24,7 +24,6 @@ import java.nio.ByteOrder;
  * one byte packet sequence number and then n bytes with user data.
  */
 public final class RawPacket {
-    static final RawPacket IOEXCEPTION_PILL = new RawPacket(null, -1);
     private final ByteBuffer byteBuffer;
     private final int packetSeq;
 
