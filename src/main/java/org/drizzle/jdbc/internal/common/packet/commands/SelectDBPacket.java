@@ -19,7 +19,7 @@ import java.io.OutputStream;
  * . User: marcuse Date: Jan 20, 2009 Time: 10:50:47 PM
  */
 public class SelectDBPacket implements CommandPacket {
-    private final WriteBuffer buffer = new WriteBuffer();
+    private final WriteBuffer buffer = new WriteBuffer(100);
 
     public SelectDBPacket(final String database) {
         buffer.writeByte((byte) 0x02);
@@ -27,10 +27,8 @@ public class SelectDBPacket implements CommandPacket {
     }
 
     public void send(final OutputStream outputStream) throws IOException {
-        final byte[] buff = buffer.toByteArrayWithLength((byte) 0);
-        outputStream.write(buff);
-//        for(byte b: buff)
-//            outputStream.write(b);
+        outputStream.write(buffer.getLengthWithPacketSeq((byte) 0));
+        outputStream.write(buffer.getBuffer(),0,buffer.getLength());
         outputStream.flush();
     }
 }

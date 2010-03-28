@@ -18,7 +18,15 @@ import java.nio.ByteOrder;
  * . User: marcuse Date: Jan 16, 2009 Time: 8:10:24 PM
  */
 public class WriteBuffer {
-    private ByteBuffer byteBuffer = ByteBuffer.allocate(1000).order(ByteOrder.LITTLE_ENDIAN);
+    private final ByteBuffer byteBuffer;
+
+    public WriteBuffer() {
+         byteBuffer = ByteBuffer.allocate(1000).order(ByteOrder.LITTLE_ENDIAN);
+    }
+    
+    public WriteBuffer(int bufferSize) {
+         byteBuffer = ByteBuffer.allocate(bufferSize).order(ByteOrder.LITTLE_ENDIAN);
+    }
 
     private void assureBufferCapacity(final int len) {
 
@@ -62,6 +70,16 @@ public class WriteBuffer {
         return writeByteArray(strBytes);
 
     }
+    public byte [] getLengthWithPacketSeq(byte packetNumber) {
+        int length = getLength();
+        byte [] lenArr = intToByteArray(length);
+        lenArr[3] = packetNumber;
+        return lenArr;
+    }
+
+    public byte[] getBuffer() {
+        return byteBuffer.array();
+    }
 
     public byte[] toByteArrayWithLength(final byte packetNumber) {
         final int length = byteBuffer.capacity() - byteBuffer.remaining();
@@ -73,12 +91,6 @@ public class WriteBuffer {
         return returnBuffer.array();
     }
 
-    public static byte[] shortToByteArray(final short i) {
-        final byte[] returnArray = new byte[2];
-        returnArray[0] = (byte) (i & 0xff);
-        returnArray[1] = (byte) (i >>> 8);
-        return returnArray;
-    }
 
     public static byte[] intToByteArray(final int l) {
         final byte[] returnArray = new byte[4];
@@ -100,5 +112,9 @@ public class WriteBuffer {
         returnArray[2] = (byte) (l >>> 48);
         returnArray[3] = (byte) (l >>> 56);
         return returnArray;
+    }
+
+    public int getLength() {
+        return byteBuffer.capacity() - byteBuffer.remaining();
     }
 }

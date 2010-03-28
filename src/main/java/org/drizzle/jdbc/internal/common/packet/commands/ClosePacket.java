@@ -22,15 +22,13 @@ public class ClosePacket implements CommandPacket {
     private final WriteBuffer writeBuffer;
 
     public ClosePacket() {
-        this.writeBuffer = new WriteBuffer();
+        this.writeBuffer = new WriteBuffer(6);
         writeBuffer.writeByte((byte) 0x01);
     }
 
     public void send(final OutputStream os) throws IOException {
-        final byte[] buff = writeBuffer.toByteArrayWithLength((byte) 0);
-        for (final byte b : buff) {
-            os.write(b);
-        }
+        os.write(writeBuffer.getLengthWithPacketSeq((byte) 0));
+        os.write(writeBuffer.getBuffer(),0,writeBuffer.getLength());
         os.flush();
     }
 }

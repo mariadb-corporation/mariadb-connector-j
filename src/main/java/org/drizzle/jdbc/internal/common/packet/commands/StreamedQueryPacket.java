@@ -24,15 +24,17 @@ import java.util.Arrays;
  */
 public class StreamedQueryPacket implements CommandPacket {
     private final Query query;
-    private final byte[] byteHeader;
+
 
     public StreamedQueryPacket(final Query query) {
         this.query = query;
-        byteHeader = Arrays.copyOf(intToByteArray(query.length() + 1), 5);
-        byteHeader[4] = (byte) 0x03;
+
     }
 
     public void send(final OutputStream ostream) throws IOException, QueryException {
+        byte[] byteHeader = Arrays.copyOf(intToByteArray(query.length() + 1), 5);
+        byteHeader[3] = (byte) 0;
+        byteHeader[4] = (byte) 0x03;
         ostream.write(byteHeader);
         query.writeTo(ostream);
         ostream.flush();
