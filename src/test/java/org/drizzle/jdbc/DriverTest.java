@@ -31,7 +31,7 @@ public class DriverTest {
     static { Logger.getLogger("").setLevel(Level.OFF); }
 
     public DriverTest() throws SQLException {
-        //connection = DriverManager.getConnection("jdbc:mysql:thin://localhost:3306/test_units_jdbc");
+        //connection = DriverManager.getConnection("jdbc:mysql:thin://10.100.100.50:3306/test_units_jdbc");
         connection = DriverManager.getConnection("jdbc:drizzle://"+host+":3307/test_units_jdbc");
         //connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/test_units_jdbc");
     }
@@ -93,12 +93,7 @@ public class DriverTest {
         Statement stmt = getConnection().createStatement();
         stmt.executeQuery("whraoaooa");
     }
-    @Test
-    public void shortOperations() {
-        byte [] a = WriteBuffer.shortToByteArray((short) (99*256 + 77));
-        assertEquals(a[0],77);
-        assertEquals(a[1],99);
-    }
+
     @Test
     public void intOperations() {
         byte [] a = WriteBuffer.intToByteArray(56*256*256*256 + 11*256*256 + 77*256 + 99);

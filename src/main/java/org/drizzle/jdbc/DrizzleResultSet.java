@@ -3375,9 +3375,7 @@ public class DrizzleResultSet implements ResultSet {
     }
 
     public boolean getBoolean(final int i) throws SQLException {
-        final String rawResult = getString(i);
-        return rawResult.equals("1") || rawResult.equalsIgnoreCase("true");
-
+        return getValueObject(i).getBoolean();
     }
 
     public byte getByte(final int i) throws SQLException {

@@ -48,7 +48,7 @@ public class RewriteParameterizedBatchHandler implements ParameterizedBatchHandl
     }
 
     public void addToBatch(final ParameterizedQuery query) {
-        final Map<Integer, ParameterHolder> parameters = query.getParameters();
+        final ParameterHolder [] parameters = query.getParameters();
         final StringBuilder replacedValuePart = new StringBuilder();
         int questionMarkPosition = 0;
 
@@ -56,7 +56,7 @@ public class RewriteParameterizedBatchHandler implements ParameterizedBatchHandl
             final char ch = queryValuePart.charAt(i);
             if (ch == '?') {
                 final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                final ParameterHolder parameterHolder = parameters.get(questionMarkPosition++);
+                final ParameterHolder parameterHolder = parameters[questionMarkPosition++];
                 try {
                     parameterHolder.writeTo(baos); // writeTo escapes and adds quotes etc
                 } catch (IOException e) {

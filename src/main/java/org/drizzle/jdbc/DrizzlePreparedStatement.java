@@ -58,6 +58,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.Calendar;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -73,9 +74,11 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
                                     final String query,
                                     final QueryFactory queryFactory,
                                     final ParameterizedBatchHandler parameterizedBatchHandler) {
-
         super(protocol, drizzleConnection, queryFactory);
-        log.finest("Creating prepared statement for " + query);
+
+        if(log.isLoggable(Level.FINEST)) {
+            log.finest("Creating prepared statement for " + query);
+        }
         dQuery = queryFactory.createParameterizedQuery(query);
         this.parameterizedBatchHandler = parameterizedBatchHandler;
     }
@@ -103,6 +106,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
     public int executeUpdate() throws SQLException {
         try {
             setQueryResult(getProtocol().executeQuery(dQuery));
+            dQuery.clearParameters();
         } catch (QueryException e) {
             throw SQLExceptionMapper.get(e);
         }
@@ -138,11 +142,12 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
     public boolean execute() throws SQLException {
         try {
             setQueryResult(getProtocol().executeQuery(dQuery));
+            dQuery.clearParameters();
         } catch (QueryException e) {
             throw SQLExceptionMapper.get(e);
         }
         if (getQueryResult().getResultSetType() == ResultSetType.SELECT) {
-            super.setResultSet(new DrizzleResultSet(getQueryResult(), this));
+            setResultSet(new DrizzleResultSet(getQueryResult(), this));
             return true;
         } else {
             setUpdateCount(((ModifyQueryResult) getQueryResult()).getUpdateCount());
@@ -291,6 +296,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * <p/>
      * <B>NOTE:</B> Using this method may be expensive for some drivers due to the lack of underlying DBMS support.
      *
+     * 
      * @return the description of a <code>ResultSet</code> object's columns or <code>null</code> if the driver cannot
      *         return a <code>ResultSetMetaData</code> object
      * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed

@@ -18,7 +18,7 @@ import java.io.OutputStream;
  * . User: marcuse Date: Feb 20, 2009 Time: 10:48:45 PM
  */
 public interface Query {
-    int length();
+    int length() throws QueryException;
 
     void writeTo(OutputStream os) throws IOException, QueryException;
 

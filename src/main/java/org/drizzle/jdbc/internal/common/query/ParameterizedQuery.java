@@ -11,6 +11,7 @@ package org.drizzle.jdbc.internal.common.query;
 
 import org.drizzle.jdbc.internal.common.query.parameters.ParameterHolder;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -39,7 +40,9 @@ public interface ParameterizedQuery extends Query {
     void setParameter(int position, ParameterHolder parameter)
             throws IllegalParameterException;
 
-    Map<Integer, ParameterHolder> getParameters();
+    ParameterHolder[] getParameters();
 
     String getQuery();
+
+    List<String> getQueryParts();
 }

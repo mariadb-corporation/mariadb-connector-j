@@ -76,9 +76,8 @@ public final class DrizzleDriver implements java.sql.Driver {
      *
      * @param url the url to test
      * @return true if the url is valid for this driver
-     * @throws SQLException not in this implementation
      */
-    public boolean acceptsURL(final String url) throws SQLException {
+    public boolean acceptsURL(final String url) {
         return url.startsWith("jdbc:drizzle://")
                 || url.startsWith("jdbc:mysql:thin://");
     }

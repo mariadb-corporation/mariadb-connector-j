@@ -10,14 +10,13 @@
 package org.drizzle.jdbc.internal.common.query;
 
 import org.drizzle.jdbc.internal.common.QueryException;
-import static org.drizzle.jdbc.internal.common.Utils.countChars;
+import static org.drizzle.jdbc.internal.common.Utils.createQueryParts;
+
 import org.drizzle.jdbc.internal.common.query.parameters.ParameterHolder;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.StringReader;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 import java.util.logging.Logger;
 
 /**
@@ -25,83 +24,85 @@ import java.util.logging.Logger;
  */
 public class DrizzleParameterizedQuery implements ParameterizedQuery {
     private final static Logger log = Logger.getLogger(DrizzleParameterizedQuery.class.getName());
-    private final Map<Integer, ParameterHolder> parameters;
+    private ParameterHolder[] parameters;
     private final int paramCount;
-    //    private final String query;
     private final String query;
-
+    private List<String> queryParts;
     public DrizzleParameterizedQuery(final String query) {
         this.query = query;
-        this.paramCount = countChars(this.query, '?');
-        parameters = new HashMap<Integer, ParameterHolder>(this.paramCount);
+        queryParts = createQueryParts(query);
+        paramCount = queryParts.size() - 1;
+        parameters = new ParameterHolder[paramCount];
     }
 
     public DrizzleParameterizedQuery(final ParameterizedQuery query) {
-        this.paramCount = query.getParamCount();
         this.query = query.getQuery();
-        parameters = new HashMap<Integer, ParameterHolder>(this.paramCount);
+        this.queryParts = query.getQueryParts();
+        paramCount = queryParts.size() - 1;
+        parameters = new ParameterHolder[paramCount];
     }
 
     public void setParameter(final int position, final ParameterHolder parameter) throws IllegalParameterException {
         if (position >= 0 && position < paramCount) {
-            parameters.put(position, parameter);
+            parameters[position] = parameter;
         } else {
             throw new IllegalParameterException("No '?' on that position");
         }
     }
 
-    public Map<Integer, ParameterHolder> getParameters() {
-        // TODO: defensive copy perhaps?
+    public ParameterHolder[] getParameters() {
         return parameters;
     }
 
     public void clearParameters() {
-        this.parameters.clear();
+        this.parameters = new ParameterHolder[paramCount];
     }
 
-    public int length() {
-        int length = query.length() - paramCount; // remove the ?s
-
-        for (final Map.Entry<Integer, ParameterHolder> param : parameters.entrySet()) {
-            length += param.getValue().length();
+    public int length() throws QueryException {
+        if(containsNull(parameters)) {
+            throw new QueryException("You need to set exactly " + paramCount + " parameters on the prepared statement");
+        }
+        int length = 0;
+        for(String s : queryParts) {
+            length += s.length();
         }
 
+        for(ParameterHolder ph : parameters) {
+            length += ph.length();
+        }
         return length;
     }
 
     public void writeTo(final OutputStream os) throws IOException, QueryException {
-        if (paramCount != this.parameters.size()) {
+        if(containsNull(parameters)) {
             throw new QueryException("You need to set exactly " + paramCount + " parameters on the prepared statement");
         }
-        final StringReader strReader = new StringReader(query);
-        int ch;
-        int paramCounter = 0;
-        boolean isWithinQuotes = false;
-        boolean isWithinDoubleQuotes = false;
-        while ((ch = strReader.read()) != -1) {
-            if (ch == '"' && !isWithinQuotes && !isWithinDoubleQuotes) {
-                isWithinDoubleQuotes = true;
-            } else if (ch == '"' && !isWithinQuotes) {
-                isWithinDoubleQuotes = false;
-            }
+        if(queryParts.size() == 0) {
+            throw new AssertionError("Invalid query, queryParts was empty");
+        }
+        os.write(queryParts.get(0).getBytes());
+        for(int i = 1; i<queryParts.size(); i++) {
+            parameters[i-1].writeTo(os);
+            String queryPart = queryParts.get(i);
+            os.write(queryPart.getBytes());            
+        }
+    }
 
-            if (ch == '\'' && !isWithinQuotes && !isWithinDoubleQuotes) {
-                isWithinQuotes = true;
-            } else if (ch == '\'' && !isWithinDoubleQuotes) {
-                isWithinQuotes = false;
-            }
-
-
-            if (ch == '?' && !isWithinDoubleQuotes && !isWithinQuotes) {
-                parameters.get(paramCounter++).writeTo(os);
-            } else {
-                os.write(ch);
+    private boolean containsNull(ParameterHolder[] parameters) {
+        for(ParameterHolder ph : parameters) {
+            if(ph == null) {
+                return true;
             }
         }
+        return false;
     }
 
     public String getQuery() {
         return query;
+    }
+
+    public List<String> getQueryParts() {
+        return queryParts;
     }
 
     public QueryType getQueryType() {

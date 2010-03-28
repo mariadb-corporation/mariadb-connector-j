@@ -9,8 +9,12 @@
 
 package org.drizzle.jdbc.internal.common;
 
+import java.io.StringReader;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * User: marcuse Date: Feb 19, 2009 Time: 8:40:51 PM
@@ -79,15 +83,20 @@ public class Utils {
         final byte[] strBytes = str.getBytes();
         final byte[] outBytes = new byte[strBytes.length * 2]; //overkill but safe, streams need to be escaped on-the-fly
         int bytePointer = 0;
+        boolean neededEscaping = false;
         for (final byte b : strBytes) {
             if (needsEscaping(b)) {
+                neededEscaping = true;
                 outBytes[bytePointer++] = '\\';
                 outBytes[bytePointer++] = b;
             } else {
                 outBytes[bytePointer++] = b;
             }
         }
-        return new String(outBytes, 0, bytePointer);
+        if(neededEscaping)
+            return new String(outBytes, 0, bytePointer);
+        else
+            return str;
     }
 
     /**
@@ -126,6 +135,41 @@ public class Utils {
         return count;
     }
 
+
+    public static List<String> createQueryParts(String query) {
+        boolean isWithinDoubleQuotes = false;
+        boolean isWithinQuotes = false;
+        int queryPos = 0;
+        int lastQueryPos = 0;
+        List<String> queryParts = new LinkedList<String>();
+        for (final byte b : query.getBytes()) {
+
+            if (b == '"' && !isWithinQuotes && !isWithinDoubleQuotes) {
+                isWithinDoubleQuotes = true;
+            } else if (b == '"' && !isWithinQuotes) {
+                isWithinDoubleQuotes = false;
+            }
+
+            if (b == '\'' && !isWithinQuotes && !isWithinDoubleQuotes) {
+                isWithinQuotes = true;
+            } else if (b == '\'' && !isWithinDoubleQuotes) {
+                isWithinQuotes = false;
+            }
+
+            if (!isWithinDoubleQuotes && !isWithinQuotes) {
+                if (b == '?') {
+                    queryParts.add(query.substring(lastQueryPos, queryPos));
+                    lastQueryPos = queryPos + 1;
+                }
+            }
+            queryPos++;
+        }
+        queryParts.add(query.substring(lastQueryPos, queryPos));
+        return queryParts;
+    }
+
+
+
     private enum ParsingState {
         WITHIN_COMMENT, WITHIN_QUOTES, WITHIN_DOUBLE_QUOTES, NORMAL
     }
@@ -134,14 +178,14 @@ public class Utils {
         final StringBuilder sb = new StringBuilder();
         ParsingState parsingState = ParsingState.NORMAL;
         ParsingState nextParsingState = ParsingState.NORMAL;
-        final byte[] queryBytes = query.getBytes();
+        //final byte[] queryBytes = query.getBytes();
 
-        for (int i = 0; i < queryBytes.length; i++) {
-            final byte b = queryBytes[i];
-            byte nextByte = 0;
+        for (int i = 0; i < query.length(); i++) {
+            final int b = query.codePointAt(i);
+            int nextCodePoint = 0;
 
-            if (i < queryBytes.length - 1) {
-                nextByte = queryBytes[i + 1];
+            if (i < query.length() - 1) {
+                nextCodePoint = query.codePointAt(i + 1);
             }
 
             switch (parsingState) {
@@ -160,7 +204,7 @@ public class Utils {
                         nextParsingState = ParsingState.WITHIN_QUOTES;
                     } else if (b == '"') {
                         nextParsingState = ParsingState.WITHIN_DOUBLE_QUOTES;
-                    } else if (b == '/' && nextByte == '*') {
+                    } else if (b == '/' && nextCodePoint == '*') {
                         nextParsingState = ParsingState.WITHIN_COMMENT;
                         parsingState = ParsingState.WITHIN_COMMENT;
                     } else if (b == '#') {
@@ -168,7 +212,7 @@ public class Utils {
                     }
                     break;
                 case WITHIN_COMMENT:
-                    if (b == '*' && nextByte == '/') {
+                    if (b == '*' && nextCodePoint == '/') {
                         nextParsingState = ParsingState.NORMAL;
                         i++;
                     }
