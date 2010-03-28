@@ -75,10 +75,9 @@ public class MySQLClientAuthPacket implements CommandPacket {
 
 
     public void send(final OutputStream os) throws IOException {
-        final byte[] buff = writeBuffer.toByteArrayWithLength((byte) 1);
-        for (final byte b : buff) {
-            os.write(b);
-        }
+        os.write(writeBuffer.getLengthWithPacketSeq((byte) 1));
+        os.write(writeBuffer.getBuffer(),0,writeBuffer.getLength());
         os.flush();
+
     }
 }
