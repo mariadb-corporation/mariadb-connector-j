@@ -24,9 +24,7 @@ public class BigDecimalParameter implements ParameterHolder {
     }
 
     public void writeTo(final OutputStream os) throws IOException {
-        for (final byte theByte : rawBytes) {
-            os.write(theByte);
-        }
+        os.write(rawBytes);
     }
 
     public long length() {

@@ -102,9 +102,9 @@ public class MySQLProtocol implements Protocol {
         }
         batchList = new ArrayList<Query>();
         try {
-            final BufferedInputStream reader = new BufferedInputStream(socket.getInputStream());
+            final BufferedInputStream reader = new BufferedInputStream(socket.getInputStream(), 32768);
             packetFetcher = new SyncPacketFetcher(reader);
-            writer = new BufferedOutputStream(socket.getOutputStream(), 16384);
+            writer = new BufferedOutputStream(socket.getOutputStream(), 32768);
             final MySQLGreetingReadPacket greetingPacket = new MySQLGreetingReadPacket(packetFetcher.getRawPacket());
             log.finest("Got greeting packet");
             this.version = greetingPacket.getServerVersion();

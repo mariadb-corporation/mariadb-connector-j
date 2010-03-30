@@ -56,7 +56,6 @@ public class StreamParameter implements ParameterHolder {
      * @param os the outputstream to write to
      * @throws IOException if we cannot write to the stream
      */
-    @Override
     public final void writeTo(final OutputStream os) throws IOException {
         os.write(buffer, 0, (int) length);
     }
@@ -66,7 +65,6 @@ public class StreamParameter implements ParameterHolder {
      *
      * @return the length of the parameter
      */
-    @Override
     public final long length() {
         return length;
     }

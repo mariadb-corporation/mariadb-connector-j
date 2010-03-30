@@ -141,6 +141,7 @@ public class Utils {
         boolean isWithinQuotes = false;
         int queryPos = 0;
         int lastQueryPos = 0;
+
         List<String> queryParts = new LinkedList<String>();
         for (final byte b : query.getBytes()) {
 

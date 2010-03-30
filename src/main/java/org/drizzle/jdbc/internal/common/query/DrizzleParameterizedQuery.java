@@ -27,18 +27,23 @@ public class DrizzleParameterizedQuery implements ParameterizedQuery {
     private ParameterHolder[] parameters;
     private final int paramCount;
     private final String query;
-    private List<String> queryParts;
+    private final byte[][] queryPartsArray;
+
     public DrizzleParameterizedQuery(final String query) {
         this.query = query;
-        queryParts = createQueryParts(query);
+        List<String> queryParts = createQueryParts(query);
+        queryPartsArray = new byte[queryParts.size()][];
+        for(int i=0;i < queryParts.size(); i++) {
+            queryPartsArray[i] = queryParts.get(i).getBytes();
+        }
         paramCount = queryParts.size() - 1;
         parameters = new ParameterHolder[paramCount];
     }
 
     public DrizzleParameterizedQuery(final ParameterizedQuery query) {
         this.query = query.getQuery();
-        this.queryParts = query.getQueryParts();
-        paramCount = queryParts.size() - 1;
+        this.queryPartsArray = query.getQueryPartsArray();
+        paramCount = queryPartsArray.length - 1;
         parameters = new ParameterHolder[paramCount];
     }
 
@@ -61,10 +66,10 @@ public class DrizzleParameterizedQuery implements ParameterizedQuery {
     public int length() throws QueryException {
         if(containsNull(parameters)) {
             throw new QueryException("You need to set exactly " + paramCount + " parameters on the prepared statement");
-        }
+        }        
         int length = 0;
-        for(String s : queryParts) {
-            length += s.length();
+        for(byte[] s : queryPartsArray) {
+            length += s.length;
         }
 
         for(ParameterHolder ph : parameters) {
@@ -77,14 +82,14 @@ public class DrizzleParameterizedQuery implements ParameterizedQuery {
         if(containsNull(parameters)) {
             throw new QueryException("You need to set exactly " + paramCount + " parameters on the prepared statement");
         }
-        if(queryParts.size() == 0) {
+        if(queryPartsArray.length == 0) {
             throw new AssertionError("Invalid query, queryParts was empty");
         }
-        os.write(queryParts.get(0).getBytes());
-        for(int i = 1; i<queryParts.size(); i++) {
+        os.write(queryPartsArray[0]);
+        for(int i = 1; i<queryPartsArray.length; i++) {
             parameters[i-1].writeTo(os);
-            String queryPart = queryParts.get(i);
-            os.write(queryPart.getBytes());            
+            if(queryPartsArray[i].length != 0)
+                os.write(queryPartsArray[i]);
         }
     }
 
@@ -101,8 +106,8 @@ public class DrizzleParameterizedQuery implements ParameterizedQuery {
         return query;
     }
 
-    public List<String> getQueryParts() {
-        return queryParts;
+    public byte[][] getQueryPartsArray() {
+        return queryPartsArray;
     }
 
     public QueryType getQueryType() {

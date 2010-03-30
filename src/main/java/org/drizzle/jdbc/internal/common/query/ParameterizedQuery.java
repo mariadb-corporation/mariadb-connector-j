@@ -44,5 +44,5 @@ public interface ParameterizedQuery extends Query {
 
     String getQuery();
 
-    List<String> getQueryParts();
+    byte[][] getQueryPartsArray();
 }

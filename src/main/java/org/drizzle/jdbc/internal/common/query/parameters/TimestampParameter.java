@@ -41,9 +41,7 @@ public class TimestampParameter implements ParameterHolder {
     }
 
     public void writeTo(final OutputStream os) throws IOException {
-        for (final byte b : byteRepresentation) {
-            os.write(b);
-        }
+        os.write(byteRepresentation);
     }
 
     public long length() {
