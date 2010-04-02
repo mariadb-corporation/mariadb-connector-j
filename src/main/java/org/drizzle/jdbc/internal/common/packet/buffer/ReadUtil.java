@@ -34,21 +34,24 @@ public final class ReadUtil {
      * @throws java.io.IOException if an error occurs while reading the stream
      */
     public static int safeRead(final InputStream inputStream, final byte[] buffer) throws IOException {
-        int offset = 0;
-        int left = buffer.length;
-        do {
-            try {
-                final int nr = inputStream.read(buffer, offset, left);
-                if (nr == -1) {
-                    return nr;
+        int readBytes = inputStream.read(buffer);
+        if(readBytes < buffer.length) {
+            int offset = readBytes;
+            int left = buffer.length;
+            left = left - readBytes;
+            do {
+                try {
+                    final int nr = inputStream.read(buffer, offset, left);
+                    if (nr == -1) {
+                        return nr;
+                    }
+                    offset += nr;
+                    left -= nr;
+                } catch (InterruptedIOException exp) {
+                    /* Ignore, just retry */
                 }
-                offset += nr;
-                left -= nr;
-            } catch (InterruptedIOException exp) {
-                /* Ignore, just retry */
-            }
-        } while (left > 0);
-
+            } while (left > 0);
+        }
         return buffer.length;
     }
 

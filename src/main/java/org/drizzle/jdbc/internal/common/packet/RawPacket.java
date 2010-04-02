@@ -35,7 +35,8 @@ public final class RawPacket {
      * @throws java.io.IOException if an error occurs while reading data
      */
     static RawPacket nextPacket(final InputStream is) throws IOException {
-        final int length = readLength(is);
+        byte[] lengthBuffer = readLengthSeq(is);
+        int length = (lengthBuffer[0] & 0xff) + ((lengthBuffer[1] & 0xff) << 8) + ((lengthBuffer[2] & 0xff) << 16);
         if (length == -1) {
             return null;
         }
@@ -44,7 +45,7 @@ public final class RawPacket {
             throw new IOException("Got negative packet size: " + length);
         }
 
-        final int packetSeq = readPacketSeq(is);
+        final int packetSeq = lengthBuffer[3];
 
         final byte[] rawBytes = new byte[length];
 
@@ -75,7 +76,16 @@ public final class RawPacket {
 
         return (byte) val;
     }
+    private static byte[] readLengthSeq(final InputStream reader) throws IOException {
+        final byte[] lengthBuffer = new byte[4];
 
+        final int nr = ReadUtil.safeRead(reader, lengthBuffer);
+        if (nr != 4) {
+            throw new IOException("Incomplete read! Expected 4, got " + nr);
+        }
+
+        return lengthBuffer;
+    }
     private static int readLength(final InputStream reader) throws IOException {
         final byte[] lengthBuffer = new byte[3];
 
