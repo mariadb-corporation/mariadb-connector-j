@@ -4,7 +4,7 @@
     <artifactId>drizzle-jdbc</artifactId>
     <packaging>jar</packaging>
     <name>Drizzle-JDBC</name>
-    <version>0.6-SNAPSHOT</version>
+    <version>0.6</version>
     <description>BSD Licensed JDBC driver for Drizzle</description>
     <url>http://launchpad.net/drizzle-jdbc/</url>
     <properties>
