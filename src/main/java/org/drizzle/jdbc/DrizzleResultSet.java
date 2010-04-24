@@ -239,7 +239,13 @@ public class DrizzleResultSet implements ResultSet {
      *                               is called on a closed result set
      */
     public Time getTime(final String columnLabel) throws SQLException {
-        return getValueObject(columnLabel).getTime();
+        try {
+            return getValueObject(columnLabel).getTime();
+        } catch (ParseException e) {
+            throw new SQLException("Could not parse column as time, was: \"" +
+                    getValueObject(columnLabel).getString() +
+                    "\"", e);
+        }
     }
 
     /**
@@ -3456,7 +3462,13 @@ public class DrizzleResultSet implements ResultSet {
      *                               is called on a closed result set
      */
     public Time getTime(final int columnIndex) throws SQLException {
-        return getValueObject(columnIndex).getTime();
+        try {
+            return getValueObject(columnIndex).getTime();
+        } catch (ParseException e) {
+            throw new SQLException("Could not parse column as time, was: \"" +
+                    getValueObject(columnIndex).getString() +
+                    "\"", e);
+        }
     }
 
     /**

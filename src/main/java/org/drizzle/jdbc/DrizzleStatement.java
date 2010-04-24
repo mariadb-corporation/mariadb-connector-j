@@ -389,7 +389,9 @@ public class DrizzleStatement implements Statement {
      * @since 1.4
      */
     public boolean getMoreResults(final int current) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Multiple open results not supported");
+        return false;
+
+        //throw new SQLFeatureNotSupportedException("Multiple open results not supported");
     }
 
     /**
@@ -666,6 +668,9 @@ public class DrizzleStatement implements Statement {
     }
 
     public int getUpdateCount() throws SQLException {
+        if(queryResult.getResultSetType() == ResultSetType.SELECT) {
+            return -1;
+        }
         return (int) updateCount;
     }
 

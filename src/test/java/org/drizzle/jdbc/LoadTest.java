@@ -155,5 +155,17 @@ public class LoadTest {
         System.out.println(System.currentTimeMillis() - startTime);
 
     }
+    @Test
+    public void benchPrepare() throws SQLException {
+        Connection drizConnection = DriverManager.getConnection("jdbc:mysql:thin://10.100.100.50:3306/test_units_jdbc");
+        long startTime=System.nanoTime();
+        long x = 1000000;
+        for(int i=0; i<x; i++ ) {
+            drizConnection.prepareStatement("SELECT * FROM EH WHERE EH=? and UU=? and GG=?");
+        }
+        System.out.println((System.nanoTime() - startTime)/x);
+    }
+
+
 }
 

@@ -13,6 +13,7 @@ package org.drizzle.jdbc.internal.common;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -92,7 +93,12 @@ public abstract class AbstractValueObject implements ValueObject {
         }
         return new BigDecimal(getString());
     }
-
+    public BigInteger getBigInteger() {
+        if (rawBytes == null) {
+            return null;
+        }
+        return new BigInteger(getString());
+    }
     public Date getDate() throws ParseException {
         if (rawBytes == null) {
             return null;
@@ -111,7 +117,7 @@ public abstract class AbstractValueObject implements ValueObject {
      * @see Utils#packTime(long)
      * @see Utils#unpackTime(int)
      */
-    public Time getTime() {
+    public Time getTime() throws ParseException {
         if (rawBytes == null) {
             return null;
         }

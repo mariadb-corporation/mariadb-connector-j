@@ -11,6 +11,7 @@ package org.drizzle.jdbc.internal.common;
 
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -39,9 +40,11 @@ public interface ValueObject {
 
     BigDecimal getBigDecimal();
 
+    BigInteger getBigInteger();
+
     Date getDate() throws ParseException;
 
-    Time getTime();
+    Time getTime() throws ParseException;
 
     InputStream getInputStream();
 

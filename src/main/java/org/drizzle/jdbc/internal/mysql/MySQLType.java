@@ -12,6 +12,7 @@ package org.drizzle.jdbc.internal.mysql;
 import org.drizzle.jdbc.internal.common.DataType;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.sql.Blob;
 import java.sql.Date;
 import java.sql.Time;
@@ -53,13 +54,13 @@ public class MySQLType implements DataType {
         DOUBLE(java.sql.Types.DOUBLE, Double.class),
         NULL(java.sql.Types.NULL, null),
         TIMESTAMP(java.sql.Types.TIMESTAMP, Long.class),
-        LONGLONG(java.sql.Types.BIGINT, Long.class),
+        LONGLONG(java.sql.Types.BIGINT, BigInteger.class),
         INT24(java.sql.Types.INTEGER, Integer.class),
         DATETIME(java.sql.Types.DATE, Date.class),
         DATE(java.sql.Types.DATE, Date.class),
         TIME(java.sql.Types.TIME, Time.class),
         YEAR(java.sql.Types.SMALLINT, Short.class),
-        BIT(java.sql.Types.BIT, Byte.class),
+        BIT(java.sql.Types.BIT, Boolean.class),
         VARCHAR(java.sql.Types.VARCHAR, String.class),
         NEWDECIMAL(java.sql.Types.DECIMAL, BigDecimal.class),
         ENUM(java.sql.Types.VARCHAR, String.class),
@@ -84,7 +85,7 @@ public class MySQLType implements DataType {
         }
     }
 
-    public static MySQLType fromServer(final byte typeValue) {
+    public static MySQLType fromServer(final byte typeValue) {        
         switch (typeValue) {
             case 0:
                 return new MySQLType(Type.DECIMAL);

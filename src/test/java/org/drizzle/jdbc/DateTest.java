@@ -92,4 +92,38 @@ public class DateTest {
             }
         }
     }
+
+    @Test
+    public void yearTest() throws SQLException {
+        Connection connection = DriverManager.getConnection("jdbc:mysql:thin://"+DriverTest.host+":3306/test_units_jdbc");
+        connection.createStatement().execute("drop table if exists yeartest");
+        connection.createStatement().execute("create table yeartest (y1 year, y2 year(2))");
+        connection.createStatement().execute("insert into yeartest values (null, null), (1901, 70), (0, 0), (2155, 69)");
+        Statement stmt = connection.createStatement();
+        ResultSet rs = stmt.executeQuery("select * from yeartest");
+        while(rs.next()) {
+            System.out.println("--");
+
+            System.out.println(rs.getObject(1));
+            System.out.println(rs.getObject(2));
+
+        }
+    }
+    @Test
+    public void timeTest() throws SQLException {
+        Connection connection = DriverManager.getConnection("jdbc:mysql:thin://"+DriverTest.host+":3306/test_units_jdbc");
+        connection.createStatement().execute("drop table if exists timetest");
+        connection.createStatement().execute("create table timetest (t time)");
+        connection.createStatement().execute("insert into timetest values (null), ('-838:59:59'), ('00:00:00'), ('838:59:59')");
+        Statement stmt = connection.createStatement();
+        ResultSet rs = stmt.executeQuery("select * from timetest");
+        while(rs.next()) {
+            System.out.println("--");
+
+            System.out.println(rs.getObject(1));
+//            System.out.println(rs.getObject(2));
+
+        }
+    }
+
 }

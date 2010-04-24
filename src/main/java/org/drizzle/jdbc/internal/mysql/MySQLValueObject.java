@@ -13,7 +13,9 @@ import org.drizzle.jdbc.DrizzleBlob;
 import org.drizzle.jdbc.internal.common.AbstractValueObject;
 import org.drizzle.jdbc.internal.common.DataType;
 
+import java.sql.Time;
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
 
 /**
  * Contains the raw value returned from the server
@@ -41,7 +43,7 @@ public class MySQLValueObject extends AbstractValueObject {
             case TIMESTAMP:
                 return getTimestamp();
             case LONGLONG:
-                return getLong();
+                return getBigInteger();
             case DATETIME:
                 return getTimestamp();
             case DATE:
@@ -54,8 +56,34 @@ public class MySQLValueObject extends AbstractValueObject {
                 return getString();
             case BLOB:
                 return new DrizzleBlob(getBytes());
+            case YEAR:
+                return getString();
+            case BIT:
+                if(getBytes().length == 1) {
+                    return getBytes()[0] == 1;
+                }
+                return null;
+            case SHORT:
+            case INT24:
+                return getInt();
+            case FLOAT:
+                return getFloat();
+            case TIME:
+                return getTime();
         }
         return null;
+    }
+
+    @Override
+    public Time getTime() throws ParseException {
+        if (getBytes() == null) {
+            return null;
+        }
+        final String rawValue = getString();
+        final SimpleDateFormat sdf;
+        sdf = new SimpleDateFormat("HH:mm:ss");
+        final java.util.Date utilTime = sdf.parse(rawValue);
+        return new Time(utilTime.getTime());
     }
 
 }
