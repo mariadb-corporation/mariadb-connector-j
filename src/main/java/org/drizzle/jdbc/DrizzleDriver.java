@@ -53,17 +53,19 @@ public final class DrizzleDriver implements java.sql.Driver {
         // TODO: handle the properties!
         // TODO: define what props we support!
         log.finest("Connecting to: " + url);
-
         try {
             final JDBCUrl jdbcUrl = JDBCUrl.parse(url);
             if(jdbcUrl == null) {
                 return null;
             }
+            String userName = info.getProperty("user",jdbcUrl.getUsername());
+            String password = info.getProperty("password",jdbcUrl.getPassword());
+
             final Protocol protocol = new MySQLProtocol(jdbcUrl.getHostname(),
                         jdbcUrl.getPort(),
                         jdbcUrl.getDatabase(),
-                        jdbcUrl.getUsername(),
-                        jdbcUrl.getPassword());
+                        userName,
+                        password);
 
             return new DrizzleConnection(protocol, new DrizzleQueryFactory());
         } catch (QueryException e) {

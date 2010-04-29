@@ -9,6 +9,8 @@
 
 package org.drizzle.jdbc.internal.common;
 
+import org.drizzle.jdbc.internal.mysql.MySQLType;
+
 /**
  * Created by IntelliJ IDEA. User: marcuse Date: Jun 9, 2009 Time: 4:22:28 PM To change this template use File |
  * Settings | File Templates.
@@ -19,4 +21,6 @@ public interface DataType {
     int getSqlType();
 
     String getTypeName();
+
+    MySQLType.Type getType();    
 }

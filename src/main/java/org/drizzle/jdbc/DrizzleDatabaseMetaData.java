@@ -1478,7 +1478,7 @@ public final class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @return a <code>ResultSet</code> object in which each row has a single <code>String</code> column that is a table
      *         type
      * @throws java.sql.SQLException if a database access error occurs
-     */
+     */                                   
     public ResultSet getTableTypes() throws SQLException {
         final Statement stmt = connection.createStatement();
         return stmt.executeQuery("SELECT DISTINCT(table_type) FROM information_schema.tables");
@@ -2655,7 +2655,7 @@ public final class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @see #getSearchStringEscape
      * @since 1.6
      */
-    public ResultSet getSchemas(final String catalog, final String schemaPattern) throws SQLException {
+    public ResultSet getSchemas(final String catalog, final String schemaPattern) throws SQLException {        
         final String query = "SELECT schema_name table_schem, " +
                 "null table_catalog " +
                 "FROM information_schema.schemata " +

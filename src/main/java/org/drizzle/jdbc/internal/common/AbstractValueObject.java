@@ -66,6 +66,10 @@ public abstract class AbstractValueObject implements ValueObject {
         if (rawBytes == null) {
             return 0;
         }
+        switch(dataType.getType()) {
+            case BIT:
+                return rawBytes[0];
+        }
         return Byte.valueOf(getString());
     }
 
@@ -132,12 +136,13 @@ public abstract class AbstractValueObject implements ValueObject {
         }
         final String rawValue = getString();
         final SimpleDateFormat sdf;
+
         if (rawValue.length() > 11) {
             sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         } else {
             sdf = new SimpleDateFormat("yyyy-MM-dd");
         }
-
+        sdf.setLenient(false);
         final java.util.Date utilTime = sdf.parse(rawValue);
         return new Timestamp(utilTime.getTime());
     }

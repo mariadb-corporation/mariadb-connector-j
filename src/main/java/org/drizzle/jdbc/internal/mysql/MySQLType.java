@@ -28,6 +28,7 @@ public class MySQLType implements DataType {
         this.type = type;
     }
 
+
     public Class getJavaType() {
         return type.getDataType();
     }

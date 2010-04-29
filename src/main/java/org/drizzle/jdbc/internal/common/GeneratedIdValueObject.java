@@ -9,6 +9,8 @@
 
 package org.drizzle.jdbc.internal.common;
 
+import org.drizzle.jdbc.internal.mysql.MySQLType;
+
 import java.text.ParseException;
 
 /**
@@ -28,6 +30,10 @@ public class GeneratedIdValueObject extends AbstractValueObject {
 
             public String getTypeName() {
                 return "INTEGER";
+            }
+
+            public MySQLType.Type getType() {
+                return MySQLType.Type.LONG;
             }
         });
     }

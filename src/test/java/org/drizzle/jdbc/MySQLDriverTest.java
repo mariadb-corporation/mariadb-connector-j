@@ -7,6 +7,7 @@ import java.sql.SQLException;
 import java.sql.DriverManager;
 import java.sql.Statement;
 import java.sql.Connection;
+import java.util.Properties;
 
 /**
  * Created by IntelliJ IDEA.
@@ -19,7 +20,7 @@ public class MySQLDriverTest extends DriverTest {
     private Connection connection;
     public MySQLDriverTest() throws SQLException {
         connection = DriverManager.getConnection("jdbc:mysql:thin://10.100.100.50:3306/test_units_jdbc");
-        //connection = DriverManager.getConnection("jdbc:mysql://10.100.100.50:3306/test_units_jdbc");
+       // connection = DriverManager.getConnection("jdbc:mysql://10.100.100.50:3306/test_units_jdbc");
     }
     @Override
     public Connection getConnection() {
@@ -28,7 +29,21 @@ public class MySQLDriverTest extends DriverTest {
     
     @Test
     public void testAuthConnection() throws SQLException {
-        Connection conn = DriverManager.getConnection("jdbc:mysql:thin://test:test@localhost:3306/test_units_jdbc");
+        Connection conn = DriverManager.getConnection("jdbc:mysql:thin://test:test@10.100.100.50:3306/test_units_jdbc");
+        Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery("select * from t1");
+        rs.close();
+        stmt.close();
+        conn.close();
+    }
+
+    @Test
+    public void testAuthConnectionProperties() throws SQLException {
+        Properties props = new Properties();
+        props.setProperty("user","test");
+        props.setProperty("password","test");
+
+        Connection conn = DriverManager.getConnection("jdbc:mysql:thin://teest:teest@10.100.100.50:3306/test_units_jdbc",props);
         Statement stmt = conn.createStatement();
         ResultSet rs = stmt.executeQuery("select * from t1");
         rs.close();
@@ -44,7 +59,8 @@ public class MySQLDriverTest extends DriverTest {
         ResultSet rs = connection.createStatement().executeQuery("select * from bittest");
         while(rs.next()) {
             if(rs.getObject(1) != null)
-            System.out.println(rs.getObject(1).getClass());
+                System.out.println(rs.getObject(1).getClass());
+            System.out.println(rs.getByte(1));
         }
     }
     @Test
@@ -78,18 +94,33 @@ public class MySQLDriverTest extends DriverTest {
         }
     }
     @Test
-    public void testDatetime() throws SQLException {
+    public void testTimestamp() throws SQLException {
         Connection connection = getConnection();
         connection.createStatement().execute("drop table if exists t");
         connection.createStatement().execute("create table t (t timestamp)");
-        connection.createStatement().execute("insert into t values ('0000-00-00 00:00:00'), ('1971-01-01 01:01:01'), ('2007-12-03 15:50:18'), ('2037-12-31 23:59:59')");
+        connection.createStatement().execute("insert into t values  ('1971-01-01 01:01:01'), ('2007-12-03 15:50:18'), ('2037-12-31 23:59:59')");
         ResultSet rs = connection.createStatement().executeQuery("select * from t");
         while(rs.next()) {
-
-            System.out.println(rs.getObject(1));
-            if(rs.getObject(1) != null)
-                System.out.println(rs.getObject(1).getClass());
-            else System.out.println("---");
+            System.out.println("---");
+            System.out.println("ee "+rs.getTimestamp(1) );
+         //   if(rs.getObject(1) != null)
+           //     System.out.println("uu "+rs.getObject(1).getClass());
+            //else System.out.println("xxx");
+        }
+    }
+    @Test
+    public void testDatetime() throws SQLException {
+        Connection connection = getConnection();
+        connection.createStatement().execute("drop table if exists t");
+        connection.createStatement().execute("create table t (t datetime)");
+        connection.createStatement().execute("insert into t values (null), ('1000-01-01 00:00:00'), ('2007-12-03 15:47:32'), ('9999-12-31 23:59:59')");
+        ResultSet rs = connection.createStatement().executeQuery("select * from t");
+        while(rs.next()) {
+            System.out.println("---");
+            System.out.println("ee "+rs.getObject(1));
+         //   if(rs.getObject(1) != null)
+           //     System.out.println("uu "+rs.getObject(1).getClass());
+            //else System.out.println("xxx");
         }
     }
     @Test
@@ -123,4 +154,6 @@ public class MySQLDriverTest extends DriverTest {
             else System.out.println("---");
         }
     }
+
+ 
 }
