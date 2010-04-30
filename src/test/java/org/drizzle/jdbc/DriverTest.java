@@ -114,7 +114,8 @@ public class DriverTest {
         while(results.next()) {
             res=results.getString("test");
         }
-        assertEquals("hej1",res);        
+        assertEquals("hej1",res);
+        assertEquals(2, prepStmt.getParameterMetaData().getParameterCount());
     }
     @Test
     public void preparedTest2() throws SQLException {
@@ -970,25 +971,6 @@ public class DriverTest {
         assertEquals(bd,bigD);
     }
 
-    @Test
-    public void longTest() throws SQLException {
-        getConnection().createStatement().execute("drop table if exists longtest");
-        getConnection().createStatement().execute(
-                        "create table longtest (id int not null primary key auto_increment,ll bigint) engine=innodb");
-        PreparedStatement ps = getConnection().prepareStatement("insert into longtest (ll) values (?)");
-        ps.setLong(1,Long.MAX_VALUE);
-        ps.execute();
-        ResultSet rs=getConnection().createStatement().executeQuery("select ll from longtest");
-        assertTrue(rs.next());
-        Object bb = rs.getObject(1);
-        Long bc = rs.getLong(1);
-        Long bc2 = rs.getLong("ll");
-        assertEquals(Long.MAX_VALUE, bb);
-        assertEquals(bb, bc);
-        assertEquals(bc,bc2);
-
-
-    }
 
     @Test
     public void bigintTest() throws SQLException {

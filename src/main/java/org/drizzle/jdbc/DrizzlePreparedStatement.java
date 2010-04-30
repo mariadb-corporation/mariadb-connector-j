@@ -456,8 +456,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.4
      */
     public ParameterMetaData getParameterMetaData() throws SQLException {
-        //TODO: figure out how this works..
-        return null;
+        return new DrizzleParameterMetaData(dQuery);
     }
 
     /**
