@@ -32,9 +32,9 @@ public class DriverTest {
     static { Logger.getLogger("").setLevel(Level.OFF); }
 
     public DriverTest() throws SQLException {
-        connection = DriverManager.getConnection("jdbc:mysql:thin://10.100.100.50:3306/test_units_jdbc");
+        //connection = DriverManager.getConnection("jdbc:mysql:thin://10.100.100.50:3306/test_units_jdbc");
         //connection = DriverManager.getConnection("jdbc:drizzle://"+host+":3307/test_units_jdbc");
-       // connection = DriverManager.getConnection("jdbc:mysql://10.100.100.50:3306/test_units_jdbc");
+       connection = DriverManager.getConnection("jdbc:mysql://10.100.100.50:3306/test_units_jdbc");
     }
     @After
     public void close() throws SQLException {
@@ -116,6 +116,14 @@ public class DriverTest {
         }
         assertEquals("hej1",res);
         assertEquals(2, prepStmt.getParameterMetaData().getParameterCount());
+    }
+
+    @Test
+    public void preparedTestWithLimit() throws SQLException {
+        PreparedStatement ps = getConnection().prepareStatement("select * from t1 limit ?, ?");
+        ps.setBytes(1, "20".getBytes());
+        ps.setObject(2, 30);
+        ps.execute();
     }
     @Test
     public void preparedTest2() throws SQLException {

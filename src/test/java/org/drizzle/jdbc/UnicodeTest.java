@@ -33,4 +33,19 @@ static { Logger.getLogger("").setLevel(Level.OFF); }
         assertEquals(true,rs.next());
         assertEquals(jaString,rs.getString(1));
     }
+
+    @Test
+    public void testGermanUmlauts() throws SQLException {
+        String query = "insert into umlaut_test values('tax-1273608028038--5546415852995205209-13', 'MwSt. 7% Bücher & Lebensmittel', 7)";
+        Connection connection = DriverManager.getConnection("jdbc:mysql:thin://"+DriverTest.host+":3306/test_units_jdbc");
+        Statement stmt = connection.createStatement();
+        stmt.executeUpdate("drop table if exists umlaut_test");
+        stmt.executeUpdate("create table umlaut_test (id varchar(100), test_text varchar(100), t int)");
+        stmt.executeUpdate(query);
+
+        ResultSet rs = stmt.executeQuery("select * from umlaut_test");
+        assertEquals(true, rs.next());
+        assertEquals("MwSt. 7% Bücher & Lebensmittel", rs.getString(2));
+        assertEquals(false, rs.next());
+    }
 }

@@ -40,9 +40,9 @@ public class DrizzleParameterizedQuery implements ParameterizedQuery {
         parameters = new ParameterHolder[paramCount];
     }
 
-    public DrizzleParameterizedQuery(final ParameterizedQuery query) {
-        this.query = query.getQuery();
-        this.queryPartsArray = query.getQueryPartsArray();
+    public DrizzleParameterizedQuery(final ParameterizedQuery paramQuery) {
+        this.query = paramQuery.getQuery();
+        this.queryPartsArray = paramQuery.getQueryPartsArray();
         paramCount = queryPartsArray.length - 1;
         parameters = new ParameterHolder[paramCount];
     }

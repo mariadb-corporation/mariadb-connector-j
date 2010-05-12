@@ -19,18 +19,20 @@ import java.util.logging.Logger;
 public class DrizzleQuery implements Query {
     private final static Logger log = Logger.getLogger(DrizzleQuery.class.getName());
     private final String query;
+    private final byte[] queryToSend;
 
     public DrizzleQuery(final String query) {
         this.query = query;
+        queryToSend = query.getBytes();
     }
 
     public int length() {
-        return query.length();
+        return queryToSend.length;
     }
 
     public void writeTo(final OutputStream os) throws IOException {
-        final byte[] b = query.getBytes();
-        os.write(b, 0, length());
+        
+        os.write(queryToSend, 0, queryToSend.length);
     }
 
     public String getQuery() {
