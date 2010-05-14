@@ -47,7 +47,7 @@ public class JDBCUrl {
         final int port;
         final String database;        
 
-        final Pattern p = Pattern.compile("^jdbc:(drizzle|mysql:thin)://((\\w+)(:(\\w+))?@)?([^/:]+)(:(\\d+))?(/(\\w+))?");
+        final Pattern p = Pattern.compile("^jdbc:(drizzle|mysql:thin)://((\\w+)(:(\\w*))?@)?([^/:]+)(:(\\d+))?(/(\\w+))?");
         final Matcher m = p.matcher(url);
         if (m.find()) {
             if (m.group(1).equals("mysql:thin")) {
