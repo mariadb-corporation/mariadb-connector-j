@@ -103,9 +103,8 @@ public class DatabaseMetadataTest {
         assertEquals(true,rs.next());
         assertEquals("test_units_jdbc",rs.getString("table_schem"));
         assertEquals(false,rs.next());
-
-
     }
+    
     @Test
     public void testGetTables() throws SQLException {
         DatabaseMetaData dbmd = connection.getMetaData();
@@ -114,15 +113,23 @@ public class DatabaseMetadataTest {
         rs = dbmd.getTables(null,"test_units_jdbc","t1",null);
         assertEquals(true,rs.next());
     }
+    @Test
+    public void testGetTables2() throws SQLException {
+        DatabaseMetaData dbmd = connection.getMetaData();
+        ResultSet rs = dbmd.getTables(null,null,"TABLE_PRIVILEGES",new String[]{ "SYSTEM VIEW"});
+        assertEquals(true, rs.next());
+        assertEquals(false, rs.next());
+        rs = dbmd.getTables(null,null,"TABLE_PRIVILEGES",new String[]{"TABLE"});
+        assertEquals(false, rs.next());
 
+    }
     @Test
     public void testGetColumns() throws SQLException {
         DatabaseMetaData dbmd = connection.getMetaData();
         ResultSet rs = dbmd.getColumns(null,null,"t1",null);
         while(rs.next()){
-            System.out.println("a"+rs.getString(3));
+            System.out.println(rs.getString(3));
         }
-
     }
     @Test
     public void testGetSchemas2() throws SQLException {

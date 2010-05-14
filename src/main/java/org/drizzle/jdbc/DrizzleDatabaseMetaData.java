@@ -1422,7 +1422,7 @@ public final class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @see #getSearchStringEscape
      */
     public ResultSet getTables(final String catalog, final String schemaPattern, final String tableNamePattern, final String[] types)
-            throws SQLException {
+            throws SQLException {        
         String query = "SELECT table_catalog table_cat, "
                         + "table_schema table_schem, "
                         + "table_name, "
@@ -1434,12 +1434,37 @@ public final class DrizzleDatabaseMetaData implements DatabaseMetaData {
                         + "null as self_referencing_col_name,"
                         + "null as ref_generation "
                         + "FROM information_schema.tables "
-                        + "WHERE table_name LIKE \""+tableNamePattern+"\""
+                        + "WHERE table_name LIKE \""+(tableNamePattern == null?"%":tableNamePattern)+"\""
                         + (schemaPattern != null?" AND table_schema LIKE \"" + schemaPattern + "\"":"");
-        final Statement stmt = connection.createStatement();
-        
 
+        if(types != null) {
+            query += " AND table_type in (";
+            boolean first = true;
+            for(String s : types) {
+                String mappedType = mapTableTypes(s);
+                if(!first) {
+                    query += ",";
+                }
+                first = false;
+                query += "'"+mappedType+"'";
+            }
+            query += ")";
+        }
+
+        final Statement stmt = connection.createStatement();
         return stmt.executeQuery(query);
+    }
+
+    /**
+     * Maps standard table types to mysql ones - helper since table type is never "table" in mysql, it is "base table"
+     * @param tableType the table type defined by user
+     * @return the internal table type.
+     */
+    private String mapTableTypes(String tableType) {
+        if(tableType.equals("TABLE")) {
+            return "BASE TABLE";
+        }
+        return tableType;
     }
 
     /**
