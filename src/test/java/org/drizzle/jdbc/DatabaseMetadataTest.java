@@ -17,7 +17,7 @@ public class DatabaseMetadataTest {
     static { Logger.getLogger("").setLevel(Level.OFF); }
     private Connection connection;
     public DatabaseMetadataTest() throws ClassNotFoundException, SQLException {
-        connection = DriverManager.getConnection("jdbc:drizzle://"+DriverTest.host+":4427/test_units_jdbc");
+        connection = DriverManager.getConnection("jdbc:drizzle://"+DriverTest.host+":3306/test_units_jdbc");
 
     }
     @Test
@@ -106,7 +106,24 @@ public class DatabaseMetadataTest {
 
 
     }
-    
+    @Test
+    public void testGetTables() throws SQLException {
+        DatabaseMetaData dbmd = connection.getMetaData();
+        ResultSet rs = dbmd.getTables(null,null,"t1",null);
+        assertEquals(true,rs.next());
+        rs = dbmd.getTables(null,"test_units_jdbc","t1",null);
+        assertEquals(true,rs.next());
+    }
+
+    @Test
+    public void testGetColumns() throws SQLException {
+        DatabaseMetaData dbmd = connection.getMetaData();
+        ResultSet rs = dbmd.getColumns(null,null,"t1",null);
+        while(rs.next()){
+            System.out.println("a"+rs.getString(3));
+        }
+
+    }
     @Test
     public void testGetSchemas2() throws SQLException {
         DatabaseMetaData dbmd = connection.getMetaData();

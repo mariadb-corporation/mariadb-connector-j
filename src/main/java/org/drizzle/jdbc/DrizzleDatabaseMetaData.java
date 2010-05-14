@@ -1423,9 +1423,7 @@ public final class DrizzleDatabaseMetaData implements DatabaseMetaData {
      */
     public ResultSet getTables(final String catalog, final String schemaPattern, final String tableNamePattern, final String[] types)
             throws SQLException {
-        final Statement stmt = connection.createStatement();
-        return stmt.
-                executeQuery("SELECT table_catalog table_cat, "
+        String query = "SELECT table_catalog table_cat, "
                         + "table_schema table_schem, "
                         + "table_name, "
                         + "table_type, "
@@ -1436,7 +1434,12 @@ public final class DrizzleDatabaseMetaData implements DatabaseMetaData {
                         + "null as self_referencing_col_name,"
                         + "null as ref_generation "
                         + "FROM information_schema.tables "
-                        + "WHERE table_schema LIKE \"" + schemaPattern + "\"");
+                        + "WHERE table_name LIKE \""+tableNamePattern+"\""
+                        + (schemaPattern != null?" AND table_schema LIKE \"" + schemaPattern + "\"":"");
+        final Statement stmt = connection.createStatement();
+        
+
+        return stmt.executeQuery(query);
     }
 
     /**

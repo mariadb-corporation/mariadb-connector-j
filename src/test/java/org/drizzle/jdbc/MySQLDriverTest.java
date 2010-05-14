@@ -38,6 +38,16 @@ public class MySQLDriverTest extends DriverTest {
     }
 
     @Test
+    public void testAuthConnection2() throws SQLException {
+        Connection conn = DriverManager.getConnection("jdbc:mysql:thin://test:test@10.100.100.50:3306/test_units_jdbc");
+        Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery("select * from t1");
+        rs.close();
+        stmt.close();
+        conn.close();
+    }
+
+    @Test
     public void testAuthConnectionProperties() throws SQLException {
         Properties props = new Properties();
         props.setProperty("user","test");
