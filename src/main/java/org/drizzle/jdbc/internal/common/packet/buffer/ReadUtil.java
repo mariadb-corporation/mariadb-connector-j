@@ -35,12 +35,16 @@ public final class ReadUtil {
      */
     public static int safeRead(final InputStream inputStream, final byte[] buffer) throws IOException {
         int readBytes = inputStream.read(buffer);
+        if(readBytes == -1) {
+            return -1;
+        }
         if(readBytes < buffer.length) {
             int offset = readBytes;
             int left = buffer.length;
             left = left - readBytes;
             do {
                 try {
+                    System.out.println(buffer.length + ":"+offset+":"+left);
                     final int nr = inputStream.read(buffer, offset, left);
                     if (nr == -1) {
                         return nr;
