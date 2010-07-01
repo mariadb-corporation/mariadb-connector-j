@@ -35,10 +35,13 @@ import org.drizzle.jdbc.internal.common.query.parameters.TimestampParameter;
 import org.drizzle.jdbc.internal.common.queryresults.ModifyQueryResult;
 import org.drizzle.jdbc.internal.common.queryresults.ResultSetType;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
+import java.io.StringReader;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.net.URL;
 import java.sql.Array;
 import java.sql.Blob;
@@ -1274,7 +1277,138 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @see java.sql.Types
      */
     public void setObject(final int parameterIndex, final Object x, final int targetSqlType) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Method not yet implemented");
+        switch(targetSqlType ) {
+            case Types.ARRAY:
+            case Types.CLOB:
+            case Types.DATALINK:
+            case Types.JAVA_OBJECT:
+            case Types.NCHAR:
+            case Types.NCLOB:
+            case Types.NVARCHAR:
+            case Types.LONGNVARCHAR:
+            case Types.REF:
+            case Types.ROWID:
+            case Types.SQLXML:
+            case Types.STRUCT:
+                throw new SQLFeatureNotSupportedException("Type not supported");
+        }
+        
+        if (x == null) {
+            setNull(parameterIndex,Types.INTEGER);
+        } else if (x instanceof String) {
+            // todo: yep
+            if(targetSqlType == Types.BLOB) {
+                throw new SQLException("Cannot convert a String to a Blob");
+            }
+            String s = (String)x;
+            switch(targetSqlType) {
+                case Types.TINYINT:
+                case Types.SMALLINT:
+                case Types.INTEGER:
+                case Types.BIGINT:
+                    try {
+                        setLong(parameterIndex,Long.valueOf(s));
+                    } catch (NumberFormatException e) {
+                        throw new SQLException("Could not convert ["+s+"] to "+targetSqlType,e);
+                    }
+                    break;
+                case Types.DOUBLE:
+                    try {
+                        setDouble(parameterIndex,Double.valueOf(s));
+                    } catch (NumberFormatException e) {
+                        throw new SQLException("Could not convert ["+s+"] to "+targetSqlType,e);
+                    }
+                    break;
+                case Types.REAL:
+                case Types.FLOAT:
+                    try {
+                        setFloat(parameterIndex,Float.valueOf(s));
+                    } catch (NumberFormatException e) {
+                        throw new SQLException("Could not convert ["+s+"] to "+targetSqlType,e);
+                    }
+                    break;
+                case Types.DECIMAL:
+                case Types.NUMERIC:
+                    try {
+                        setBigDecimal(parameterIndex,new BigDecimal(s));
+                    } catch (NumberFormatException e) {
+                        throw new SQLException("Could not convert ["+s+"] to "+targetSqlType,e);
+                    }
+                    break;
+                case Types.BIT:
+                    setBoolean(parameterIndex, Boolean.valueOf(s));
+                    break;
+                case Types.CHAR:
+                case Types.VARCHAR:
+                    setString(parameterIndex, s);
+                    break;
+            }
+        } else if(x instanceof Number) {
+            testNumbers(targetSqlType);
+            Number bd = (Number) x;
+            switch(targetSqlType) {
+                case Types.TINYINT:
+                case Types.SMALLINT:
+                case Types.INTEGER:
+                case Types.BIGINT:
+                    setLong(parameterIndex,bd.longValue());
+                    break;
+                case Types.DOUBLE:
+                    setDouble(parameterIndex, bd.doubleValue());
+                    break;
+                case Types.REAL:
+                case Types.FLOAT:
+                    setFloat(parameterIndex, bd.floatValue());
+                    break;
+                case Types.DECIMAL:
+                case Types.NUMERIC:
+                    if(x instanceof BigDecimal)
+                        setBigDecimal(parameterIndex, (BigDecimal)x);
+                    else
+                        setLong(parameterIndex, bd.longValue());
+                    break;
+                case Types.BIT:
+                    setBoolean(parameterIndex, bd.shortValue() != 0);
+                    break;
+                case Types.CHAR:
+                case Types.VARCHAR:
+                    setString(parameterIndex, bd.toString());
+                    break;
+            }
+        } else if (x instanceof byte[]) {
+            if(targetSqlType == Types.BINARY || targetSqlType == Types.VARBINARY || targetSqlType == Types.LONGVARBINARY) {
+                setBytes(parameterIndex, (byte[]) x);
+            }
+            throw new SQLException("Can only convert a byte[] to BINARY, VARBINARY or LONGVARBINARY");
+        } else if (x instanceof Date) {
+            setDate(parameterIndex, (Date) x);      // works even if targetSqlType is non date-column
+        } else if (x instanceof Time) {
+            setTime(parameterIndex, (Time) x);      // it is just a string anyway
+        } else if (x instanceof Timestamp) {
+            setTimestamp(parameterIndex, (Timestamp) x);
+        } else if (x instanceof Boolean) {
+            testNumbers(targetSqlType);
+            setBoolean(parameterIndex, (Boolean) x);
+        } else if (x instanceof Blob) {
+            setBlob(parameterIndex, (Blob) x);
+        } else {
+            throw new SQLException("Could not set parameter in setObject, could not convert: " + x.getClass()+" to "+ targetSqlType);
+
+        }
+
+    }
+
+    private void testNumbers(int targetSqlType) throws SQLException {
+        switch(targetSqlType ) {
+            case Types.BINARY:
+            case Types.VARBINARY:
+            case Types.LONGVARBINARY:
+            case Types.DATE:
+            case Types.TIME:
+            case Types.TIMESTAMP:
+            case Types.BLOB:
+                throw new SQLException("Cannot convert to "+targetSqlType);
+        }
     }
 
     /**

@@ -1196,6 +1196,18 @@ public class DriverTest {
         System.out.println(stmt.getUpdateCount());
     }
 
+    @Test
+    public void testSetObject() throws SQLException {
+        Connection conn = getConnection();
+        Statement stmt = conn.createStatement();
+        stmt.executeUpdate("drop table if exists test_units_jdbc.test_setobjectconv");
+        stmt.executeUpdate("CREATE TABLE test_units_jdbc.test_setobjectconv (id int not null primary key auto_increment, v1 varchar(40), v2 varchar(40))");
+        stmt.close();
+        PreparedStatement ps = conn.prepareStatement("insert into test_setobjectconv values (null, ?, ?)");
+        ps.setObject(1,"2009-01-01 00:00:00", Types.TIMESTAMP);
+        ps.setObject(2, "33", Types.DOUBLE);
+        ps.execute();
+    }
 
 
 
