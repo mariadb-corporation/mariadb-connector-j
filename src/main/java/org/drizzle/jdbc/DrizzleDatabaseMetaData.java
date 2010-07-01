@@ -1435,8 +1435,8 @@ public final class DrizzleDatabaseMetaData implements DatabaseMetaData {
                         + "null as ref_generation "
                         + "FROM information_schema.tables "
                         + "WHERE table_name LIKE \""+(tableNamePattern == null?"%":tableNamePattern)+"\""
-                        + (schemaPattern != null?" AND table_schema LIKE \"" + schemaPattern + "\"":"");
-
+                        + getSchemaPattern(schemaPattern);
+        
         if(types != null) {
             query += " AND table_type in (";
             boolean first = true;
@@ -1450,9 +1450,21 @@ public final class DrizzleDatabaseMetaData implements DatabaseMetaData {
             }
             query += ")";
         }
-
         final Statement stmt = connection.createStatement();
         return stmt.executeQuery(query);
+    }
+
+    /**
+     * returns a schema name pattern, restricts the search to the current database
+     * @param schemaPattern the pattern, not used if null.
+     * @return  an AND clause 
+     */
+    private String getSchemaPattern(String schemaPattern) {
+        if(schemaPattern != null) {
+            return " AND table_schema LIKE \"" + schemaPattern + "\"";
+        } else {
+            return " AND table_schema LIKE IFNULL(database(), \"%\")";
+        }
     }
 
     /**

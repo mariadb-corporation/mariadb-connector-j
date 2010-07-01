@@ -18,7 +18,7 @@ public class DatabaseMetadataTest {
     private Connection connection;
     public DatabaseMetadataTest() throws ClassNotFoundException, SQLException {
         connection = DriverManager.getConnection("jdbc:drizzle://"+DriverTest.host+":3306/test_units_jdbc");
-
+        //connection = DriverManager.getConnection("jdbc:mysql://"+DriverTest.host+":3306/test_units_jdbc");
     }
     @Test
     public void primaryKeysTest() throws SQLException {
