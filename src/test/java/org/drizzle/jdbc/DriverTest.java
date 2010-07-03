@@ -33,8 +33,8 @@ public class DriverTest {
 
     public DriverTest() throws SQLException {
         //connection = DriverManager.getConnection("jdbc:mysql:thin://10.100.100.50:3306/test_units_jdbc");
-        //connection = DriverManager.getConnection("jdbc:drizzle://"+host+":3307/test_units_jdbc");
-       connection = DriverManager.getConnection("jdbc:mysql://10.100.100.50:3306/test_units_jdbc");
+       connection = DriverManager.getConnection("jdbc:drizzle://"+host+":3307/test_units_jdbc");
+       //connection = DriverManager.getConnection("jdbc:mysql://10.100.100.50:3306/test_units_jdbc");
     }
     @After
     public void close() throws SQLException {
@@ -980,30 +980,7 @@ public class DriverTest {
     }
 
 
-    @Test
-    public void bigintTest() throws SQLException {
-        getConnection().createStatement().execute("drop table if exists biginttest");
-        getConnection().createStatement().execute(
-                        "create table biginttest (i1 bigint, i2 bigint unsigned)");
-        getConnection().createStatement().execute("insert into biginttest values (null, null), (0, 0), (-1, 1), (-9223372036854775808, 9223372036854775807), (9223372036854775807, 18446744073709551615)");
-        ResultSet rs = getConnection().createStatement().executeQuery("select * from biginttest");
-        assertTrue(rs.next());
-        assertEquals(null, rs.getObject(1));
-        assertEquals(null, rs.getObject(2));
-        assertTrue(rs.next());
-        assertEquals(BigInteger.ZERO, rs.getObject(1));
-        assertEquals(BigInteger.ZERO, rs.getObject(2));
-        assertTrue(rs.next());
-        assertEquals(new BigInteger("-1"), rs.getObject(1));
-        assertEquals(BigInteger.ONE, rs.getObject(2));
-        assertTrue(rs.next());
-        assertEquals(new BigInteger("-9223372036854775808"), rs.getObject(1));
-        assertEquals(new BigInteger("9223372036854775807"), rs.getObject(2));
-        assertTrue(rs.next());
-        assertEquals(new BigInteger("9223372036854775807"), rs.getObject(1));
-        assertEquals(new BigInteger("18446744073709551615"), rs.getObject(2));
-        assertFalse(rs.next());
-    }
+   
     @Test
     public void byteTest() throws SQLException {
         getConnection().createStatement().execute("drop table if exists bytetest");

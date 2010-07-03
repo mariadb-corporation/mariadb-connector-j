@@ -1296,7 +1296,6 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
         if (x == null) {
             setNull(parameterIndex,Types.INTEGER);
         } else if (x instanceof String) {
-            // todo: yep
             if(targetSqlType == Types.BLOB) {
                 throw new SQLException("Cannot convert a String to a Blob");
             }
@@ -1340,8 +1339,13 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
                     break;
                 case Types.CHAR:
                 case Types.VARCHAR:
+                case Types.TIMESTAMP: 
+                case Types.TIME:
                     setString(parameterIndex, s);
                     break;
+                default:
+                    throw new SQLException("Could not convert ["+s+"] to "+targetSqlType);
+
             }
         } else if(x instanceof Number) {
             testNumbers(targetSqlType);
@@ -1374,12 +1378,16 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
                 case Types.VARCHAR:
                     setString(parameterIndex, bd.toString());
                     break;
+                default:
+                    throw new SQLException("Could not convert ["+bd+"] to "+targetSqlType);
+
             }
         } else if (x instanceof byte[]) {
             if(targetSqlType == Types.BINARY || targetSqlType == Types.VARBINARY || targetSqlType == Types.LONGVARBINARY) {
                 setBytes(parameterIndex, (byte[]) x);
+            } else {
+                throw new SQLException("Can only convert a byte[] to BINARY, VARBINARY or LONGVARBINARY");
             }
-            throw new SQLException("Can only convert a byte[] to BINARY, VARBINARY or LONGVARBINARY");
         } else if (x instanceof Date) {
             setDate(parameterIndex, (Date) x);      // works even if targetSqlType is non date-column
         } else if (x instanceof Time) {

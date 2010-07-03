@@ -44,7 +44,6 @@ public final class ReadUtil {
             left = left - readBytes;
             do {
                 try {
-                    System.out.println(buffer.length + ":"+offset+":"+left);
                     final int nr = inputStream.read(buffer, offset, left);
                     if (nr == -1) {
                         return nr;

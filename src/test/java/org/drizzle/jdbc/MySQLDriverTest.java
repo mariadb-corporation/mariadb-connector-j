@@ -2,12 +2,17 @@ package org.drizzle.jdbc;
 
 import org.junit.Test;
 
+import java.math.BigInteger;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.DriverManager;
 import java.sql.Statement;
 import java.sql.Connection;
 import java.util.Properties;
+
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 
 /**
  * Created by IntelliJ IDEA.
@@ -164,6 +169,29 @@ public class MySQLDriverTest extends DriverTest {
             else System.out.println("---");
         }
     }
-
+     @Test
+    public void bigintTest() throws SQLException {
+        getConnection().createStatement().execute("drop table if exists biginttest");
+        getConnection().createStatement().execute(
+                        "create table biginttest (i1 bigint, i2 bigint unsigned)");
+        getConnection().createStatement().execute("insert into biginttest values (null, null), (0, 0), (-1, 1), (-9223372036854775808, 9223372036854775807), (9223372036854775807, 18446744073709551615)");
+        ResultSet rs = getConnection().createStatement().executeQuery("select * from biginttest");
+        assertTrue(rs.next());
+        assertEquals(null, rs.getObject(1));
+        assertEquals(null, rs.getObject(2));
+        assertTrue(rs.next());
+        assertEquals(BigInteger.ZERO, rs.getObject(1));
+        assertEquals(BigInteger.ZERO, rs.getObject(2));
+        assertTrue(rs.next());
+        assertEquals(new BigInteger("-1"), rs.getObject(1));
+        assertEquals(BigInteger.ONE, rs.getObject(2));
+        assertTrue(rs.next());
+        assertEquals(new BigInteger("-9223372036854775808"), rs.getObject(1));
+        assertEquals(new BigInteger("9223372036854775807"), rs.getObject(2));
+        assertTrue(rs.next());
+        assertEquals(new BigInteger("9223372036854775807"), rs.getObject(1));
+        assertEquals(new BigInteger("18446744073709551615"), rs.getObject(2));
+        assertFalse(rs.next());
+    }
  
 }
