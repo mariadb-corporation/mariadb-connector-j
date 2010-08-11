@@ -33,6 +33,7 @@ import org.drizzle.jdbc.internal.common.query.DrizzleQuery;
 import org.drizzle.jdbc.internal.common.query.Query;
 import org.drizzle.jdbc.internal.common.queryresults.DrizzleQueryResult;
 import org.drizzle.jdbc.internal.common.queryresults.DrizzleUpdateResult;
+import org.drizzle.jdbc.internal.common.queryresults.NoSuchColumnException;
 import org.drizzle.jdbc.internal.common.queryresults.QueryResult;
 import org.drizzle.jdbc.internal.mysql.packet.MySQLFieldPacket;
 import org.drizzle.jdbc.internal.mysql.packet.MySQLGreetingReadPacket;
@@ -50,6 +51,7 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Properties;
 import java.util.Set;
 import java.util.logging.Logger;
 
@@ -71,6 +73,7 @@ public class MySQLProtocol implements Protocol {
     private final String password;
     private final List<Query> batchList;
     private final PacketFetcher packetFetcher;
+    private final Properties info;
 
     /**
      * Get a protocol instance
@@ -80,11 +83,18 @@ public class MySQLProtocol implements Protocol {
      * @param database the initial database
      * @param username the username
      * @param password the password
+     * @param info
      * @throws org.drizzle.jdbc.internal.common.QueryException
      *          if there is a problem reading / sending the packets
      */
-    public MySQLProtocol(final String host, final int port, final String database, final String username, final String password)
+    public MySQLProtocol(final String host,
+                         final int port,
+                         final String database,
+                         final String username,
+                         final String password,
+                         Properties info)
             throws QueryException {
+        this.info = info;
         this.host = host;
         this.port = port;
         this.database = (database == null ? "" : database);
@@ -383,6 +393,25 @@ public class MySQLProtocol implements Protocol {
 
     public SupportedDatabases getDatabaseType() {
         return SupportedDatabases.MYSQL;
+    }
+
+    public boolean supportsPBMS() {
+
+        return info != null && info.getProperty("enableBlobStreaming","").equalsIgnoreCase("true");
+    }
+
+    public String getServerVariable(String variable) throws QueryException {
+        DrizzleQueryResult qr = (DrizzleQueryResult) executeQuery(new DrizzleQuery("select @@"+variable));
+        if(!qr.next()) {
+            throw new QueryException("Could not get variable: "+variable);
+        }
+
+        try {
+            String value = qr.getValueObject(0).getString();
+            return value;
+        } catch (NoSuchColumnException e) {
+            throw new QueryException("Could not get variable: "+variable);
+        }
     }
 
 }

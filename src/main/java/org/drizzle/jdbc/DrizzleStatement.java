@@ -104,7 +104,7 @@ public class DrizzleStatement implements Statement {
             final Query queryToSend = queryFactory.createQuery(query);
             queryResult = protocol.executeQuery(queryToSend);
             warningsCleared = false;
-            return new DrizzleResultSet(queryResult, this);
+            return new DrizzleResultSet(queryResult, this, getProtocol());
         } catch (QueryException e) {
             throw SQLExceptionMapper.get(e);
         }
@@ -144,7 +144,7 @@ public class DrizzleStatement implements Statement {
             }
             queryResult = protocol.executeQuery(queryFactory.createQuery(query));
             if (queryResult.getResultSetType() == ResultSetType.SELECT) {
-                setResultSet(new DrizzleResultSet(queryResult, this));
+                setResultSet(new DrizzleResultSet(queryResult, this, getProtocol()));
                 return true;
             }
             setUpdateCount(((ModifyQueryResult) queryResult).getUpdateCount());
@@ -412,7 +412,7 @@ public class DrizzleStatement implements Statement {
     public ResultSet getGeneratedKeys() throws SQLException {
         if (queryResult != null && queryResult.getResultSetType() == ResultSetType.MODIFY) {
             final QueryResult genRes = ((ModifyQueryResult) queryResult).getGeneratedKeysResult();
-            return new DrizzleResultSet(genRes, this);
+            return new DrizzleResultSet(genRes, this, getProtocol());
         }
         return DrizzleResultSet.EMPTY;
     }

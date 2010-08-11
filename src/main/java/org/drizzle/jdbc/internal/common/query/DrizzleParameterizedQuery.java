@@ -73,7 +73,11 @@ public class DrizzleParameterizedQuery implements ParameterizedQuery {
         }
 
         for(ParameterHolder ph : parameters) {
-            length += ph.length();
+            try {
+                length += ph.length();
+            } catch (IOException e) {
+                throw new QueryException("Could not calculate length of parameter: "+e.getMessage());
+            }
         }
         return length;
     }

@@ -177,4 +177,8 @@ public interface Protocol {
     List<RawPacket> startBinlogDump(int startPos, String filename) throws BinlogDumpException;
 
     SupportedDatabases getDatabaseType();
+
+    boolean supportsPBMS();
+
+    String getServerVariable(String s) throws QueryException;
 }

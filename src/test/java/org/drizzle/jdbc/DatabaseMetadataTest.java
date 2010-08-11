@@ -17,7 +17,7 @@ public class DatabaseMetadataTest {
     static { Logger.getLogger("").setLevel(Level.OFF); }
     private Connection connection;
     public DatabaseMetadataTest() throws ClassNotFoundException, SQLException {
-        connection = DriverManager.getConnection("jdbc:drizzle://"+DriverTest.host+":3306/test_units_jdbc");
+        connection = DriverManager.getConnection("jdbc:drizzle://"+DriverTest.host+":3307/test_units_jdbc");
         //connection = DriverManager.getConnection("jdbc:mysql://"+DriverTest.host+":3306/test_units_jdbc");
     }
     @Test

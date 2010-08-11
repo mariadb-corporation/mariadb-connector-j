@@ -11,6 +11,7 @@ package org.drizzle.jdbc.internal.common;
 
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -160,7 +161,7 @@ public abstract class AbstractValueObject implements ValueObject {
         }
         return new ByteArrayInputStream(rawBytes);
     }
-
+    
     public abstract Object getObject() throws ParseException;
 
     public Date getDate(final Calendar cal) throws ParseException {
@@ -217,6 +218,18 @@ public abstract class AbstractValueObject implements ValueObject {
             return rawBytes.length;
         }
         return 4; //NULL
+    }
+
+    public InputStream getPBMSStream(Protocol protocol) throws QueryException, IOException {
+        if(rawBytes == null) {
+            return null;
+        }
+        if(rawBytes[0] == '~' && rawBytes[1] == '*') { //TODO: better check if it actually is a pbms column
+            String port = protocol.getServerVariable("pbms_port");
+            HttpClient httpClient = new HttpClient("http://"+protocol.getHost()+":"+port+"/"+getString());
+            return httpClient.get();
+        }
+        return getBinaryInputStream();         // if it is not a pbms-column
     }
 
 }

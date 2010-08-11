@@ -9,7 +9,10 @@
 
 package org.drizzle.jdbc;
 
+import org.drizzle.jdbc.internal.SQLExceptionMapper;
 import org.drizzle.jdbc.internal.common.ColumnInformation;
+import org.drizzle.jdbc.internal.common.Protocol;
+import org.drizzle.jdbc.internal.common.QueryException;
 import org.drizzle.jdbc.internal.common.ValueObject;
 import org.drizzle.jdbc.internal.common.queryresults.DrizzleQueryResult;
 import org.drizzle.jdbc.internal.common.queryresults.NoSuchColumnException;
@@ -17,6 +20,7 @@ import org.drizzle.jdbc.internal.common.queryresults.QueryResult;
 import org.drizzle.jdbc.internal.common.queryresults.ResultSetType;
 import org.drizzle.jdbc.internal.common.queryresults.SelectQueryResult;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.io.StringReader;
@@ -52,21 +56,23 @@ public class DrizzleResultSet implements ResultSet {
     public final static DrizzleResultSet EMPTY = createEmptyResultSet();
     private final QueryResult queryResult;
     private final Statement statement;
+    private final Protocol protocol;
     // dont want these, but jdbc forces them with "lastGetWasNull" etc...
     private boolean isClosed;
     private boolean lastGetWasNull;
 
-    public DrizzleResultSet(final QueryResult dqr, final Statement statement) {
+    public DrizzleResultSet(final QueryResult dqr, final Statement statement, final Protocol protocol) {
         this.queryResult = dqr;
         this.statement = statement;
         isClosed = false;
+        this.protocol = protocol;
     }
 
     private static DrizzleResultSet createEmptyResultSet() {
         final List<ColumnInformation> colList = Collections.emptyList();
         final List<List<ValueObject>> voList = Collections.emptyList();
         final QueryResult qr = new DrizzleQueryResult(colList, voList, (short) 0);
-        return new DrizzleResultSet(qr, null);
+        return new DrizzleResultSet(qr, null, null);
     }
 
     public boolean next() throws SQLException {
@@ -333,8 +339,17 @@ public class DrizzleResultSet implements ResultSet {
      *                               is called on a closed result set
      */
     public InputStream getBinaryStream(final String columnLabel) throws SQLException {
-        return getValueObject(columnLabel).getBinaryInputStream();
-
+        if(protocol.supportsPBMS()) {
+            try {
+                return getValueObject(columnLabel).getPBMSStream(protocol);
+            } catch (QueryException e) {
+                throw SQLExceptionMapper.get(e);
+            } catch (IOException e) {
+                throw new SQLException("Could not read back the data using http", e);
+            }
+        } else {
+            return getValueObject(columnLabel).getBinaryInputStream();
+        }
     }
 
     /**
@@ -3549,6 +3564,15 @@ public class DrizzleResultSet implements ResultSet {
      *                               is called on a closed result set
      */
     public InputStream getBinaryStream(final int columnIndex) throws SQLException {
+        if(protocol.supportsPBMS()) {
+            try {
+                return getValueObject(columnIndex).getPBMSStream(protocol);
+            } catch (QueryException e) {
+                throw SQLExceptionMapper.get(e);
+            } catch (IOException e) {
+                throw new SQLException("Could not read back the data using http", e);
+            }
+        }
         return getValueObject(columnIndex).getBinaryInputStream();
 
     }

@@ -18,5 +18,5 @@ import java.io.OutputStream;
 public interface ParameterHolder {
     void writeTo(OutputStream os) throws IOException;
 
-    long length();
+    long length() throws IOException;
 }

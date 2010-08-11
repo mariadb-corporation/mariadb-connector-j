@@ -18,6 +18,7 @@ import javax.sql.DataSource;
 import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Properties;
 
 /**
  * User: marcuse Date: Feb 7, 2009 Time: 10:53:22 PM
@@ -41,7 +42,7 @@ public class DrizzleDataSource implements DataSource {
      */
     public Connection getConnection() throws SQLException {
         try {
-            return new DrizzleConnection(new MySQLProtocol(hostname, port, database, null, null),
+            return new DrizzleConnection(new MySQLProtocol(hostname, port, database, null, null, new Properties()),
                     new DrizzleQueryFactory());
         } catch (QueryException e) {
             throw SQLExceptionMapper.get(e);
@@ -59,7 +60,7 @@ public class DrizzleDataSource implements DataSource {
      */
     public Connection getConnection(final String username, final String password) throws SQLException {
         try {
-            return new DrizzleConnection(new MySQLProtocol(hostname, port, database, username, password),
+            return new DrizzleConnection(new MySQLProtocol(hostname, port, database, username, password, new Properties()),
                     new DrizzleQueryFactory());
         } catch (QueryException e) {
             throw SQLExceptionMapper.get(e);

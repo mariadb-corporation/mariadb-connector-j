@@ -9,6 +9,7 @@
 
 package org.drizzle.jdbc.internal.common;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -65,4 +66,6 @@ public interface ValueObject {
     boolean isNull();
 
     int getDisplayLength();
+
+    InputStream getPBMSStream(Protocol protocol) throws QueryException, IOException;
 }

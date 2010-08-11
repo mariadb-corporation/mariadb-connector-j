@@ -52,9 +52,18 @@ public final class DrizzleDriver implements java.sql.Driver {
     public Connection connect(final String url, final Properties info) throws SQLException {
         // TODO: handle the properties!
         // TODO: define what props we support!
+
+        String baseUrl = url;
+        int idx = url.lastIndexOf("?");        
+        if(idx > 0) {
+            baseUrl = url.substring(0,idx);
+            String urlParams = url.substring(idx+1);
+            setURLParameters(urlParams, info);
+        }
+
         log.finest("Connecting to: " + url);
         try {
-            final JDBCUrl jdbcUrl = JDBCUrl.parse(url);
+            final JDBCUrl jdbcUrl = JDBCUrl.parse(baseUrl);
             if(jdbcUrl == null) {
                 return null;
             }
@@ -65,11 +74,20 @@ public final class DrizzleDriver implements java.sql.Driver {
                         jdbcUrl.getPort(),
                         jdbcUrl.getDatabase(),
                         userName,
-                        password);
+                        password,
+                        info);
 
             return new DrizzleConnection(protocol, new DrizzleQueryFactory());
         } catch (QueryException e) {
             throw SQLExceptionMapper.get(e);
+        }
+    }
+
+    private void setURLParameters(String urlParameters, Properties info) {
+        String [] parameters = urlParameters.split("&");
+        for(String param : parameters) {
+            String [] keyVal = param.split("=");
+            info.setProperty(keyVal[0], keyVal[1]);
         }
     }
 

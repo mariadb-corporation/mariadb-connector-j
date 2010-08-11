@@ -17,6 +17,7 @@ import org.drizzle.jdbc.internal.common.query.IllegalParameterException;
 import org.drizzle.jdbc.internal.common.query.ParameterizedQuery;
 import org.drizzle.jdbc.internal.common.query.QueryFactory;
 import org.drizzle.jdbc.internal.common.query.parameters.BigDecimalParameter;
+import org.drizzle.jdbc.internal.common.query.parameters.BlobStreamingParameter;
 import org.drizzle.jdbc.internal.common.query.parameters.BufferedReaderParameter;
 import org.drizzle.jdbc.internal.common.query.parameters.BufferedStreamParameter;
 import org.drizzle.jdbc.internal.common.query.parameters.ByteParameter;
@@ -89,7 +90,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
     public ResultSet executeQuery() throws SQLException {
         try {
             setQueryResult(getProtocol().executeQuery(dQuery));
-            return new DrizzleResultSet(getQueryResult(), this);
+            return new DrizzleResultSet(getQueryResult(), this, getProtocol());
         } catch (QueryException e) {
             throw SQLExceptionMapper.get(e);
         }
@@ -150,7 +151,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
             throw SQLExceptionMapper.get(e);
         }
         if (getQueryResult().getResultSetType() == ResultSetType.SELECT) {
-            setResultSet(new DrizzleResultSet(getQueryResult(), this));
+            setResultSet(new DrizzleResultSet(getQueryResult(), this, getProtocol()));
             return true;
         } else {
             setUpdateCount(((ModifyQueryResult) getQueryResult()).getUpdateCount());
@@ -771,9 +772,9 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
             setNull(parameterIndex, Types.BLOB);
             return;
         }
-
         try {
             setParameter(parameterIndex, new StreamParameter(x, length));
+
         } catch (IOException e) {
             throw new SQLException("Could not read stream", e);
         }
@@ -872,9 +873,14 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
             return;
         }
 
-
         try {
-            setParameter(parameterIndex, new BufferedStreamParameter(x));
+
+            if(getProtocol().supportsPBMS()) {
+                setParameter(parameterIndex,
+                        new BlobStreamingParameter(x, getProtocol().getHost(), "9090", getProtocol().getDatabase()));
+            } else {
+                setParameter(parameterIndex, new BufferedStreamParameter(x));
+            }
         } catch (IOException e) {
             throw new SQLException("Could not read stream");
         }
@@ -988,7 +994,12 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
 
 
         try {
-            setParameter(parameterIndex, new BufferedStreamParameter(inputStream));
+            if(getProtocol().supportsPBMS()) {
+                setParameter(parameterIndex,
+                        new BlobStreamingParameter(inputStream, getProtocol().getHost(), "9090", getProtocol().getDatabase()));
+            } else {
+                setParameter(parameterIndex, new BufferedStreamParameter(inputStream));
+            }
         } catch (IOException e) {
             throw new SQLException("Could not read stream");
         }
