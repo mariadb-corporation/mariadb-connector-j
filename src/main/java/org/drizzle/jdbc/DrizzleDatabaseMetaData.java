@@ -1820,7 +1820,6 @@ public final class DrizzleDatabaseMetaData implements DatabaseMetaData {
             query += " AND table_schema = '" + schema + "'";
         }
         query += " ORDER BY column_name";
-        System.out.println(query);
         final Statement stmt = connection.createStatement();
         return stmt.executeQuery(query);
     }
