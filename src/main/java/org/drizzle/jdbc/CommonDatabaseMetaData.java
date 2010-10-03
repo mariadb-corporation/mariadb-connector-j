@@ -9,6 +9,8 @@
 
 package org.drizzle.jdbc;
 
+import org.drizzle.jdbc.internal.common.SupportedDatabases;
+
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
@@ -21,13 +23,14 @@ import java.util.logging.Logger;
 /**
  * TODO: complete it! User: marcuse Date: Jan 31, 2009 Time: 8:59:57 PM
  */
-public final class DrizzleDatabaseMetaData implements DatabaseMetaData {
+public abstract class CommonDatabaseMetaData implements DatabaseMetaData {
     private final String version;
     private final String url;
     private final String username;
     private final Connection connection;
-    private final static Logger log = Logger.getLogger(DrizzleDatabaseMetaData.class.getName());
+    private final static Logger log = Logger.getLogger(CommonDatabaseMetaData.class.getName());
     private final String databaseProductName;
+
 
     /**
      * Retrieves whether the current user can call all the procedures returned by the method
@@ -1421,45 +1424,14 @@ public final class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      * @see #getSearchStringEscape
      */
-    public ResultSet getTables(final String catalog, final String schemaPattern, final String tableNamePattern, final String[] types)
-            throws SQLException {        
-        String query = "SELECT table_catalog table_cat, "
-                        + "table_schema table_schem, "
-                        + "table_name, "
-                        + "table_type, "
-                        + "table_comment as remarks,"
-                        + "null as type_cat, "
-                        + "null as type_schem,"
-                        + "null as type_name, "
-                        + "null as self_referencing_col_name,"
-                        + "null as ref_generation "
-                        + "FROM information_schema.tables "
-                        + "WHERE table_name LIKE \""+(tableNamePattern == null?"%":tableNamePattern)+"\""
-                        + getSchemaPattern(schemaPattern);
-        
-        if(types != null) {
-            query += " AND table_type in (";
-            boolean first = true;
-            for(String s : types) {
-                String mappedType = mapTableTypes(s);
-                if(!first) {
-                    query += ",";
-                }
-                first = false;
-                query += "'"+mappedType+"'";
-            }
-            query += ")";
-        }
-        final Statement stmt = connection.createStatement();
-        return stmt.executeQuery(query);
-    }
+    public abstract ResultSet getTables(final String catalog, final String schemaPattern, final String tableNamePattern, final String[] types) throws SQLException;
 
     /**
      * returns a schema name pattern, restricts the search to the current database
      * @param schemaPattern the pattern, not used if null.
      * @return  an AND clause 
      */
-    private String getSchemaPattern(String schemaPattern) {
+    protected String getSchemaPattern(String schemaPattern) {
         if(schemaPattern != null) {
             return " AND table_schema LIKE \"" + schemaPattern + "\"";
         } else {
@@ -1467,17 +1439,7 @@ public final class DrizzleDatabaseMetaData implements DatabaseMetaData {
         }
     }
 
-    /**
-     * Maps standard table types to mysql ones - helper since table type is never "table" in mysql, it is "base table"
-     * @param tableType the table type defined by user
-     * @return the internal table type.
-     */
-    private String mapTableTypes(String tableType) {
-        if(tableType.equals("TABLE")) {
-            return "BASE TABLE";
-        }
-        return tableType;
-    }
+
 
     /**
      * Retrieves the schema names available in this database.  The results are ordered by <code>TABLE_CATALOG</code> and
@@ -1578,41 +1540,8 @@ public final class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      * @see #getSearchStringEscape
      */
-
-    public ResultSet getColumns(final String catalog, final String schemaPattern, final String tableNamePattern, final String columnNamePattern)
-            throws SQLException {
-        final String query = "     SELECT null as table_cat," +
-                "            table_schema as table_schem," +
-                "            table_name," +
-                "            column_name," +
-                dataTypeClause + " data_type," +
-                "            data_type type_name," +
-                "            character_maximum_length column_size," +
-                "            0 buffer_length," +
-                "            numeric_precision decimal_digits," +
-                "            numeric_scale num_prec_radix," +
-                "            if(is_nullable='yes',1,0) nullable," +
-                "            column_comment remarks," +
-                "            column_default column_def," +
-                "            0 sql_data," +
-                "            0 sql_datetime_sub," +
-                "            character_octet_length char_octet_length," +
-                "            ordinal_position," +
-                "            is_nullable," +
-                "            null scope_catalog," +
-                "            null scope_schema," +
-                "            null scope_table," +
-                "            null source_data_type," +
-                "            '' is_autoincrement" +
-                "    FROM information_schema.columns " +
-                "WHERE table_schema LIKE '" + ((schemaPattern == null) ? "%" : schemaPattern) + "'" +
-                " AND table_name LIKE '" + ((tableNamePattern == null) ? "%" : tableNamePattern) + "'" +
-                " AND column_name LIKE '" + ((columnNamePattern == null) ? "%" : columnNamePattern) + "'" +
-                " ORDER BY table_cat, table_schem, table_name, ordinal_position";
-        final Statement stmt = connection.createStatement();
-        return stmt.executeQuery(query);
-    }
-
+    public abstract ResultSet getColumns(final String catalog, final String schemaPattern, final String tableNamePattern, final String columnNamePattern)
+            throws SQLException;
     /**
      * Retrieves a description of the access rights for a table's columns.
      * <p/>
@@ -1718,7 +1647,7 @@ public final class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
 
-    private final String dataTypeClause =
+    protected final String dataTypeClause =
             " CASE data_type" +
                     " WHEN 'int' THEN " + Types.INTEGER +
                     " WHEN 'varchar' THEN " + Types.VARCHAR +
@@ -1806,23 +1735,7 @@ public final class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @return <code>ResultSet</code> - each row is a primary key column description
      * @throws java.sql.SQLException if a database access error occurs
      */
-    public ResultSet getPrimaryKeys(final String catalog, final String schema, final String table) throws SQLException {
-        String query = "SELECT table_catalog TABLE_CAT, " +
-                "table_schema TABLE_SCHEM, " +
-                "table_name, " +
-                "column_name, " +
-                "ordinal_position KEY_SEQ," +
-                "null pk_name " +
-                "FROM information_schema.columns " +
-                "WHERE table_name='" + table + "' AND column_key='pri'";
-
-        if (schema != null) {
-            query += " AND table_schema = '" + schema + "'";
-        }
-        query += " ORDER BY column_name";
-        final Statement stmt = connection.createStatement();
-        return stmt.executeQuery(query);
-    }
+    public abstract ResultSet getPrimaryKeys(final String catalog, final String schema, final String table) throws SQLException;
 
     /**
      * Retrieves a description of the primary key columns that are referenced by the given table's foreign key columns
@@ -1956,46 +1869,7 @@ public final class DrizzleDatabaseMetaData implements DatabaseMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      * @see #getImportedKeys
      */
-    public ResultSet getExportedKeys(final String catalog, final String schema, final String table) throws SQLException {
-        final String query = "SELECT null PKTABLE_CAT, \n" +
-                "kcu.referenced_table_schema PKTABLE_SCHEM, \n" +
-                "kcu.referenced_table_name PKTABLE_NAME, \n" +
-                "kcu.referenced_column_name PKCOLUMN_NAME, \n" +
-                "null FKTABLE_CAT, \n" +
-                "kcu.table_schema FKTABLE_SCHEM, \n" +
-                "kcu.table_name FKTABLE_NAME, \n" +
-                "kcu.column_name FKCOLUMN_NAME, \n" +
-                "kcu.position_in_unique_constraint KEY_SEQ,\n" +
-                "CASE update_rule \n" +
-                "   WHEN 'RESTRICT' THEN 1\n" +
-                "   WHEN 'NO ACTION' THEN 3\n" +
-                "   WHEN 'CASCADE' THEN 0\n" +
-                "   WHEN 'SET NULL' THEN 2\n" +
-                "   WHEN 'SET DEFAULT' THEN 4\n" +
-                "END UPDATE_RULE,\n" +
-                "CASE delete_rule \n" +
-                "   WHEN 'RESTRICT' THEN 1\n" +
-                "   WHEN 'NO ACTION' THEN 3\n" +
-                "   WHEN 'CASCADE' THEN 0\n" +
-                "   WHEN 'SET NULL' THEN 2\n" +
-                "   WHEN 'SET DEFAULT' THEN 4\n" +
-                "END UPDATE_RULE,\n" +
-                "rc.constraint_name FK_NAME,\n" +
-                "null PK_NAME,\n" +
-                "6 DEFERRABILITY\n" +
-                "FROM information_schema.key_column_usage kcu\n" +
-                "INNER JOIN information_schema.referential_constraints rc\n" +
-                "ON kcu.constraint_schema=rc.constraint_schema\n" +
-                "AND kcu.constraint_name=rc.constraint_name\n" +
-                "WHERE " +
-                (schema != null ? "kcu.referenced_table_schema='" + schema + "' AND " : "") +
-                "kcu.referenced_table_name='" +
-                table +
-                "'" +
-                "ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ";
-        final Statement stmt = connection.createStatement();
-        return stmt.executeQuery(query);
-    }
+    public abstract ResultSet getExportedKeys(final String catalog, final String schema, final String table) throws SQLException;
 
     /**
      * Retrieves a description of the foreign key columns in the given foreign key table that reference the primary key
@@ -2897,10 +2771,12 @@ public final class DrizzleDatabaseMetaData implements DatabaseMetaData {
         private String url;
         private String username;
         private final Connection connection;
+        private final SupportedDatabases database;
         private String databaseProductName;
 
-        public Builder(final Connection connection) {
+        public Builder(SupportedDatabases database, final Connection connection) {
             this.connection = connection;
+            this.database = database;
         }
 
         public Builder version(final String version) {
@@ -2923,13 +2799,18 @@ public final class DrizzleDatabaseMetaData implements DatabaseMetaData {
             return this;
         }
 
-        public DrizzleDatabaseMetaData build() {
-            return new DrizzleDatabaseMetaData(this);
+        public CommonDatabaseMetaData build() {
+            switch(database) {
+                case DRIZZLE: return new DrizzleDataBaseMetaData(this);
+                case MYSQL: return new MySQLDatabaseMetaData(this);
+            }
+            //return new CommonDatabaseMetaData(this);
+            throw new IllegalArgumentException("Unsupported database "+database);
         }
     }
 
 
-    private DrizzleDatabaseMetaData(final Builder builder) {
+    protected CommonDatabaseMetaData(final Builder builder) {
         this.version = builder.version;
         this.url = builder.url;
         this.username = builder.username;

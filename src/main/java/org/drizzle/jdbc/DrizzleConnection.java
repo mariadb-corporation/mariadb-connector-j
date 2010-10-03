@@ -15,6 +15,7 @@ import org.drizzle.jdbc.internal.common.DefaultParameterizedBatchHandlerFactory;
 import org.drizzle.jdbc.internal.common.ParameterizedBatchHandlerFactory;
 import org.drizzle.jdbc.internal.common.Protocol;
 import org.drizzle.jdbc.internal.common.QueryException;
+import org.drizzle.jdbc.internal.common.SupportedDatabases;
 import org.drizzle.jdbc.internal.common.Utils;
 import org.drizzle.jdbc.internal.common.packet.RawPacket;
 import org.drizzle.jdbc.internal.common.query.QueryFactory;
@@ -221,7 +222,7 @@ public final class DrizzleConnection
      * @throws SQLException if there is a problem creating the meta data.
      */
     public DatabaseMetaData getMetaData() throws SQLException {
-        return new DrizzleDatabaseMetaData.Builder(this).
+        return new CommonDatabaseMetaData.Builder(protocol.getDatabaseType(), this).
                 url("jdbc:drizzle://" + protocol.getHost()
                         + ":" + protocol.getPort()
                         + "/" + protocol.getDatabase()).

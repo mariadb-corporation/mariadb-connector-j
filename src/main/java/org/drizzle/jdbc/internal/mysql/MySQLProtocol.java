@@ -118,6 +118,7 @@ public class MySQLProtocol implements Protocol {
             final MySQLGreetingReadPacket greetingPacket = new MySQLGreetingReadPacket(packetFetcher.getRawPacket());
             log.finest("Got greeting packet");
             this.version = greetingPacket.getServerVersion();
+            
             final Set<MySQLServerCapabilities> capabilities = EnumSet.of(MySQLServerCapabilities.LONG_PASSWORD,
                     MySQLServerCapabilities.CONNECT_WITH_DB,
                     MySQLServerCapabilities.IGNORE_SPACE,
@@ -392,11 +393,10 @@ public class MySQLProtocol implements Protocol {
     }
 
     public SupportedDatabases getDatabaseType() {
-        return SupportedDatabases.MYSQL;
+        return SupportedDatabases.fromVersionString(version);
     }
 
     public boolean supportsPBMS() {
-
         return info != null && info.getProperty("enableBlobStreaming","").equalsIgnoreCase("true");
     }
 
