@@ -53,7 +53,6 @@ public class DrizzleDataBaseMetaData extends CommonDatabaseMetaData {
         }
         query += " ORDER BY columns.column_name";
         final Statement stmt = getConnection().createStatement();
-        System.out.println(query);
         return stmt.executeQuery(query);
     }
 
@@ -175,7 +174,6 @@ public class DrizzleDataBaseMetaData extends CommonDatabaseMetaData {
                 "'" +
                 "ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ";
         final Statement stmt = getConnection().createStatement();
-        System.out.println(query);
         return stmt.executeQuery(query);
     }
 

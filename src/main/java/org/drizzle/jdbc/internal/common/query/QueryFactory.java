@@ -14,7 +14,8 @@ package org.drizzle.jdbc.internal.common.query;
  */
 public interface QueryFactory {
     Query createQuery(String query);
-
+    Query createQuery(byte[] query);
+    
     ParameterizedQuery createParameterizedQuery(String query);
 
     ParameterizedQuery createParameterizedQuery(ParameterizedQuery dQuery);

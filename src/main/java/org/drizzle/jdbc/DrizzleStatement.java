@@ -799,6 +799,9 @@ public class DrizzleStatement implements Statement {
     public void addBatch(final String sql) throws SQLException {
         this.protocol.addToBatch(queryFactory.createQuery(sql));
     }
+    public void addBatch(final byte[] sql) throws SQLException {
+        this.protocol.addToBatch(queryFactory.createQuery(sql));
+    }
 
     /**
      * Empties this <code>Statement</code> object's current list of SQL commands.

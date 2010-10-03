@@ -19,7 +19,11 @@ public class DrizzleQueryFactory implements QueryFactory {
     public Query createQuery(final String query) {
         return new DrizzleQuery(query);
     }
-
+    
+    public DrizzleQuery createQuery(byte[] query)
+    {
+        return new DrizzleQuery(query);
+    }
     public ParameterizedQuery createParameterizedQuery(final String query) {
         ParameterizedQuery pq = DrizzleQueryFactory.PREPARED_CACHE.get(query);
         

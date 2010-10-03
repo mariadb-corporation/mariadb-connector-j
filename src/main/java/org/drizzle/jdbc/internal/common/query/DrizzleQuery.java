@@ -25,6 +25,10 @@ public class DrizzleQuery implements Query {
         this.query = query;
         queryToSend = query.getBytes();
     }
+    public DrizzleQuery(final byte[] query) {
+        queryToSend = query;
+        this.query = new String(query);
+    }
 
     public int length() {
         return queryToSend.length;

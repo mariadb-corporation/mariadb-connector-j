@@ -1650,6 +1650,7 @@ public abstract class CommonDatabaseMetaData implements DatabaseMetaData {
     protected final String dataTypeClause =
             " CASE data_type" +
                     " WHEN 'int' THEN " + Types.INTEGER +
+                    " WHEN 'mediumint' THEN "+Types.INTEGER +
                     " WHEN 'varchar' THEN " + Types.VARCHAR +
                     " WHEN 'datetime' THEN " + Types.TIMESTAMP +
                     " WHEN 'date' THEN " + Types.DATE +
@@ -1659,6 +1660,7 @@ public abstract class CommonDatabaseMetaData implements DatabaseMetaData {
                     " WHEN 'varbinary' THEN " + Types.VARBINARY +
                     " WHEN 'timestamp' THEN " + Types.TIMESTAMP +
                     " WHEN 'double' THEN " + Types.DOUBLE +
+                    " WHEN 'bit' THEN " + Types.BIT +
                     " END";
 
     public ResultSet getBestRowIdentifier(final String catalog, final String schema, final String table, final int scope, final boolean nullable)
