@@ -203,9 +203,8 @@ public abstract class AbstractValueObject implements ValueObject {
         if (rawBytes == null) {
             return false;
         }
-
         final String rawVal = getString();
-        return rawVal.equalsIgnoreCase("true") || rawVal.equalsIgnoreCase("1");
+        return rawVal.equalsIgnoreCase("true") || rawVal.equalsIgnoreCase("1") || (rawBytes[0] & 0x1)==1;
     }
 
     public boolean isNull() {

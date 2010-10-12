@@ -1,5 +1,6 @@
 package org.drizzle.jdbc;
 
+import org.junit.Assert;
 import org.junit.Test;
 import org.junit.After;
 import org.drizzle.jdbc.internal.common.packet.buffer.WriteBuffer;
@@ -1184,6 +1185,26 @@ public class DriverTest {
         ps.setObject(1,"2009-01-01 00:00:00", Types.TIMESTAMP);
         ps.setObject(2, "33", Types.DOUBLE);
         ps.execute();
+    }
+
+    @Test
+    public void testBit() throws SQLException {
+
+        Connection conn = DriverManager.getConnection("jdbc:mysql:thin://root:golsk@localhost:3306/test_units_jdbc");
+        conn.createStatement().execute("drop table if exists bittest");
+        conn.createStatement().execute("create table bittest(id int not null primary key auto_increment, b bit(1))");
+        PreparedStatement stmt = conn.prepareStatement("insert into bittest values(null, ?)");
+        stmt.setBoolean(1, true);
+        stmt.execute();
+        stmt.setBoolean(1, false);
+        stmt.execute();
+
+        ResultSet rs = conn.createStatement().executeQuery("select * from bittest");
+        Assert.assertTrue(rs.next());
+        Assert.assertTrue(rs.getBoolean("b"));
+        Assert.assertTrue(rs.next());
+        assertFalse(rs.getBoolean("b"));
+        assertFalse(rs.next());
     }
 
 

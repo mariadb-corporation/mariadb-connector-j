@@ -1032,7 +1032,13 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
 
 
     public void setBoolean(final int column, final boolean value) throws SQLException {
-        setParameter(column, new IntParameter(value ? 1 : 0));
+
+        if(value) {
+
+            setByte(column, (byte) 1);
+        } else {
+            setByte(column, (byte) 0);
+        }
     }
 
     /**
