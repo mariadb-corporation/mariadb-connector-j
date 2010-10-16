@@ -26,9 +26,10 @@ public class SelectDBPacket implements CommandPacket {
         buffer.writeString(database);
     }
 
-    public void send(final OutputStream outputStream) throws IOException {
+    public int send(final OutputStream outputStream) throws IOException {
         outputStream.write(buffer.getLengthWithPacketSeq((byte) 0));
         outputStream.write(buffer.getBuffer(),0,buffer.getLength());
         outputStream.flush();
+        return 0;
     }
 }

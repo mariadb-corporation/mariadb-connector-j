@@ -122,4 +122,10 @@ public class DrizzleParameterizedQuery implements ParameterizedQuery {
         return paramCount;
     }
 
+    @Override
+    public void writeTo(OutputStream ostream, int offset, int packLength)
+            throws IOException
+    {
+    }
+
 }

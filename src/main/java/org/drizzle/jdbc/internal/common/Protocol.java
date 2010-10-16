@@ -13,6 +13,7 @@ import org.drizzle.jdbc.internal.common.packet.RawPacket;
 import org.drizzle.jdbc.internal.common.query.Query;
 import org.drizzle.jdbc.internal.common.queryresults.QueryResult;
 
+import java.io.FileInputStream;
 import java.util.List;
 
 /**
@@ -181,4 +182,6 @@ public interface Protocol {
     boolean supportsPBMS();
 
     String getServerVariable(String s) throws QueryException;
+
+    QueryResult executeQuery(Query createQuery, FileInputStream fileInputStream) throws QueryException;
 }

@@ -26,9 +26,10 @@ public class ClosePacket implements CommandPacket {
         writeBuffer.writeByte((byte) 0x01);
     }
 
-    public void send(final OutputStream os) throws IOException {
+    public int send(final OutputStream os) throws IOException {
         os.write(writeBuffer.getLengthWithPacketSeq((byte) 0));
         os.write(writeBuffer.getBuffer(),0,writeBuffer.getLength());
         os.flush();
+        return 0;
     }
 }

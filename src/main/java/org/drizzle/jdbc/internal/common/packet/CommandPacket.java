@@ -18,5 +18,5 @@ import java.io.OutputStream;
  * . User: marcuse Date: Mar 25, 2009 Time: 9:37:59 PM
  */
 public interface CommandPacket {
-    void send(OutputStream os) throws IOException, QueryException;
+    int send(OutputStream os) throws IOException, QueryException;
 }
