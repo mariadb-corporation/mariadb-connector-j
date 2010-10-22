@@ -181,4 +181,9 @@ public interface Protocol {
     boolean supportsPBMS();
 
     String getServerVariable(String s) throws QueryException;
+
+    /**
+     * should a database be created if it does not exist ?
+     */
+    boolean createDB();
 }

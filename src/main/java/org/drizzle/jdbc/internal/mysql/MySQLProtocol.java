@@ -120,11 +120,16 @@ public class MySQLProtocol implements Protocol {
             this.version = greetingPacket.getServerVersion();
             
             final Set<MySQLServerCapabilities> capabilities = EnumSet.of(MySQLServerCapabilities.LONG_PASSWORD,
-                    MySQLServerCapabilities.CONNECT_WITH_DB,
                     MySQLServerCapabilities.IGNORE_SPACE,
                     MySQLServerCapabilities.CLIENT_PROTOCOL_41,
                     MySQLServerCapabilities.TRANSACTIONS,
                     MySQLServerCapabilities.SECURE_CONNECTION);
+
+            // If a database is given, but createDB is not defined or is false,
+            // then just try to connect to the given database
+            if(this.database != null && !createDB())
+                capabilities.add(MySQLServerCapabilities.CONNECT_WITH_DB);
+
             final MySQLClientAuthPacket cap = new MySQLClientAuthPacket(this.username,
                     this.password,
                     this.database,
@@ -140,6 +145,17 @@ public class MySQLProtocol implements Protocol {
                 final String message = ep.getMessage();
                 throw new QueryException("Could not connect: " + message);
             }
+
+            // At this point, the driver is connected to the database, if createDB is true, 
+            // then just try to create the database and to use it
+            if(createDB())
+            {
+                // Try to create the database if it does not exist
+                executeQuery(new DrizzleQuery("CREATE DATABASE IF NOT EXISTS " + this.database));
+                // and switch to this database
+                executeQuery(new DrizzleQuery("USE " + this.database));
+            }
+
             connected = true;
         } catch (IOException e) {
             throw new QueryException("Could not connect: " + e.getMessage(),
@@ -414,4 +430,9 @@ public class MySQLProtocol implements Protocol {
         }
     }
 
+    @Override
+    public boolean createDB() {
+        return info != null
+               && info.getProperty("createDB", "").equalsIgnoreCase("true");
+    }
 }
