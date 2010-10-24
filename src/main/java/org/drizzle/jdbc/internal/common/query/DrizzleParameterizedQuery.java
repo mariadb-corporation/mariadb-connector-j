@@ -122,4 +122,11 @@ public class DrizzleParameterizedQuery implements ParameterizedQuery {
         return paramCount;
     }
 
+    @Override
+    public void writeTo(OutputStream ostream, int offset, int packLength)
+            throws IOException
+    {
+        throw new IOException("Cannot send big query yet!");
+    }
+
 }

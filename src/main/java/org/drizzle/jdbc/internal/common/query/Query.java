@@ -25,4 +25,6 @@ public interface Query {
     String getQuery();
 
     QueryType getQueryType();
+
+    void writeTo(OutputStream ostream, int offset, int packLength) throws IOException;
 }

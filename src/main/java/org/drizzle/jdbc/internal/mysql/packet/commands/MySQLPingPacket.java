@@ -26,9 +26,10 @@ public class MySQLPingPacket implements CommandPacket {
     }
 
 
-    public void send(final OutputStream os) throws IOException {
+    public int send(final OutputStream os) throws IOException {
         os.write(buffer.getLengthWithPacketSeq((byte) 0));
         os.write(buffer.getBuffer(),0,buffer.getLength());
         os.flush();
+        return 0;
     }
 }

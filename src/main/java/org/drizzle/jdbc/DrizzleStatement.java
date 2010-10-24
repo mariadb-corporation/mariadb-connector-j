@@ -18,6 +18,8 @@ import org.drizzle.jdbc.internal.common.queryresults.ModifyQueryResult;
 import org.drizzle.jdbc.internal.common.queryresults.QueryResult;
 import org.drizzle.jdbc.internal.common.queryresults.ResultSetType;
 
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -63,6 +65,7 @@ public class DrizzleStatement implements Statement {
      * creates queries.
      */
     private final QueryFactory queryFactory;
+    private FileInputStream fileInputStream;
 
     /**
      * Creates a new Statement.
@@ -123,10 +126,27 @@ public class DrizzleStatement implements Statement {
                 queryResult.close();
             }
             warningsCleared = false;
-            queryResult = protocol.executeQuery(queryFactory.createQuery(query));
+            if(fileInputStream == null)
+                queryResult = protocol.executeQuery(queryFactory.createQuery(query));
+            else 
+                queryResult = protocol.executeQuery(queryFactory.createQuery(query), fileInputStream);
             return (int) ((ModifyQueryResult) queryResult).getUpdateCount();
         } catch (QueryException e) {
             throw SQLExceptionMapper.get(e);
+        }
+        finally
+        {
+            if(fileInputStream != null)
+            {
+                try
+                {
+                    fileInputStream.close();
+                }
+                catch (IOException e)
+                {
+                }
+                fileInputStream = null;
+            }
         }
     }
 
@@ -934,6 +954,11 @@ public class DrizzleStatement implements Statement {
      */
     protected void setQueryResult(final QueryResult result) {
         this.queryResult = result;
+    }
+
+    public void setLocalInfileInputStream(FileInputStream fis)
+    {
+        this.fileInputStream = fis;
     }
 
 }

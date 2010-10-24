@@ -51,6 +51,11 @@ public class DrizzleQuery implements Query {
     public boolean equals(final Object otherObj) {
         return otherObj instanceof DrizzleQuery && (((DrizzleQuery) otherObj).query).equals(query);
     }
+    @Override
+    public void writeTo(OutputStream ostream, int offset, int packLength) throws IOException
+    {
+        ostream.write(queryToSend, offset, packLength);
+    }
 
 
 }
