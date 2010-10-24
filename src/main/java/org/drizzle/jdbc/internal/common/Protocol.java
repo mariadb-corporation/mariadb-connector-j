@@ -183,5 +183,9 @@ public interface Protocol {
 
     String getServerVariable(String s) throws QueryException;
 
+    /**
+     * should a database be created if it does not exist ?
+     */
+    boolean createDB();
     QueryResult executeQuery(Query createQuery, FileInputStream fileInputStream) throws QueryException;
 }

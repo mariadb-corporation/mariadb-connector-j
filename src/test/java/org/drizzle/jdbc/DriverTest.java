@@ -1190,7 +1190,7 @@ public class DriverTest {
     @Test
     public void testBit() throws SQLException {
 
-        Connection conn = DriverManager.getConnection("jdbc:mysql:thin://root:golsk@localhost:3306/test_units_jdbc");
+        Connection conn = DriverManager.getConnection("jdbc:mysql:thin://localhost:3306/test_units_jdbc");
         conn.createStatement().execute("drop table if exists bittest");
         conn.createStatement().execute("create table bittest(id int not null primary key auto_increment, b bit(1))");
         PreparedStatement stmt = conn.prepareStatement("insert into bittest values(null, ?)");
@@ -1205,6 +1205,25 @@ public class DriverTest {
         Assert.assertTrue(rs.next());
         assertFalse(rs.getBoolean("b"));
         assertFalse(rs.next());
+    }
+
+    @Test
+    public void testConnectWithDB() throws SQLException {
+
+        Connection conn = DriverManager.getConnection("jdbc:mysql:thin://"+host+":3306/");
+        try {
+            conn.createStatement().executeUpdate("drop database test_units_jdbc_testdrop");
+        } catch (Exception e) {}
+        conn = DriverManager.getConnection("jdbc:mysql:thin://"+host+":3306/test_units_jdbc_testdrop?createDB=true");
+        DatabaseMetaData dbmd = conn.getMetaData();
+        ResultSet rs = dbmd.getSchemas();
+        boolean foundDb = false;
+        while(rs.next()) {
+            if(rs.getString("table_schem").equals("test_units_jdbc_testdrop")) foundDb = true;
+        }
+        assertTrue(foundDb);
+
+
     }
 
 

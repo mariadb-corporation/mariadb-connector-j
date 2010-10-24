@@ -9,8 +9,6 @@
 
 package org.drizzle.jdbc.internal.mysql;
 
-import static org.drizzle.jdbc.internal.common.packet.buffer.WriteBuffer.intToByteArray;
-
 import org.drizzle.jdbc.internal.SQLExceptionMapper;
 import org.drizzle.jdbc.internal.common.BinlogDumpException;
 import org.drizzle.jdbc.internal.common.ColumnInformation;
@@ -46,7 +44,6 @@ import org.drizzle.jdbc.internal.mysql.packet.commands.MySQLPingPacket;
 
 import javax.net.SocketFactory;
 import java.io.BufferedOutputStream;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -60,6 +57,8 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 import java.util.logging.Logger;
+
+import static org.drizzle.jdbc.internal.common.packet.buffer.WriteBuffer.intToByteArray;
 
 /**
  * TODO: refactor, clean up TODO: when should i read up the resultset? TODO: thread safety? TODO: exception handling
@@ -126,12 +125,16 @@ public class MySQLProtocol implements Protocol {
             this.version = greetingPacket.getServerVersion();
             
             final Set<MySQLServerCapabilities> capabilities = EnumSet.of(MySQLServerCapabilities.LONG_PASSWORD,
-                    MySQLServerCapabilities.CONNECT_WITH_DB,
                     MySQLServerCapabilities.IGNORE_SPACE,
                     MySQLServerCapabilities.CLIENT_PROTOCOL_41,
                     MySQLServerCapabilities.TRANSACTIONS,
-                    MySQLServerCapabilities.SECURE_CONNECTION,
-                    MySQLServerCapabilities.LOCAL_FILES);
+                    MySQLServerCapabilities.SECURE_CONNECTION);
+
+            // If a database is given, but createDB is not defined or is false,
+            // then just try to connect to the given database
+            if(this.database != null && !createDB())
+                capabilities.add(MySQLServerCapabilities.CONNECT_WITH_DB);
+
             final MySQLClientAuthPacket cap = new MySQLClientAuthPacket(this.username,
                     this.password,
                     this.database,
@@ -147,6 +150,17 @@ public class MySQLProtocol implements Protocol {
                 final String message = ep.getMessage();
                 throw new QueryException("Could not connect: " + message);
             }
+
+            // At this point, the driver is connected to the database, if createDB is true, 
+            // then just try to create the database and to use it
+            if(createDB())
+            {
+                // Try to create the database if it does not exist
+                executeQuery(new DrizzleQuery("CREATE DATABASE IF NOT EXISTS " + this.database));
+                // and switch to this database
+                executeQuery(new DrizzleQuery("USE " + this.database));
+            }
+
             connected = true;
         } catch (IOException e) {
             throw new QueryException("Could not connect: " + e.getMessage(),
@@ -420,7 +434,6 @@ public class MySQLProtocol implements Protocol {
             throw new QueryException("Could not get variable: "+variable);
         }
     }
-
     @Override
     public QueryResult executeQuery(Query dQuery,
             FileInputStream fileInputStream) throws QueryException
@@ -483,7 +496,14 @@ public class MySQLProtocol implements Protocol {
         packIndex++;
         return sendFile(dQuery, fileInputStream, packIndex);
     }
-
+    
+    @Override
+    public boolean createDB() {
+        return info != null
+               && info.getProperty("createDB", "").equalsIgnoreCase("true");
+    }
+    
+    
     /**
      * Send the given file to the server starting with packet number packIndex
      * 
@@ -613,8 +633,6 @@ public class MySQLProtocol implements Protocol {
                 throw new QueryException("Could not parse result");
         }
     }
-
-    
     public static String hexdump(byte[] buffer, int offset)
     {
         StringBuffer dump = new StringBuffer();
@@ -628,5 +646,5 @@ public class MySQLProtocol implements Protocol {
             }
         }
         return dump.toString();
-    }
+    }    
 }
