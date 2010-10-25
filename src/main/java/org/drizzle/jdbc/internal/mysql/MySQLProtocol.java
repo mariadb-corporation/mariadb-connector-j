@@ -128,7 +128,8 @@ public class MySQLProtocol implements Protocol {
                     MySQLServerCapabilities.IGNORE_SPACE,
                     MySQLServerCapabilities.CLIENT_PROTOCOL_41,
                     MySQLServerCapabilities.TRANSACTIONS,
-                    MySQLServerCapabilities.SECURE_CONNECTION);
+                    MySQLServerCapabilities.SECURE_CONNECTION,
+                    MySQLServerCapabilities.LOCAL_FILES);
 
             // If a database is given, but createDB is not defined or is false,
             // then just try to connect to the given database
