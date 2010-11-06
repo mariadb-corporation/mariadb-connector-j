@@ -73,14 +73,12 @@ public class DatabaseMetadataTest {
         stmt.execute("drop table if exists fore_key1");
         stmt.execute("drop table if exists prim_key");
 
-
         stmt.execute("create table prim_key (id int not null primary key, " +
                                             "val varchar(20))");
         stmt.execute("create table fore_key0 (id int not null primary key, " +
                                             "id_ref0 int, foreign key (id_ref0) references prim_key(id))");
         stmt.execute("create table fore_key1 (id int not null primary key, " +
                                             "id_ref1 int, foreign key (id_ref1) references prim_key(id) on update cascade)");
-
 
         DatabaseMetaData dbmd = connection.getMetaData();
         ResultSet rs = dbmd.getImportedKeys("","test_units_jdbc","fore_key0");
@@ -141,5 +139,10 @@ public class DatabaseMetadataTest {
                 foundTestUnitsJDBC=true;
         }
         assertEquals(true,foundTestUnitsJDBC);
+    }
+    @Test
+    public void dbmetaTest() throws SQLException {
+        DatabaseMetaData dmd = connection.getMetaData();
+        dmd.getBestRowIdentifier(null,"test_units_jdbc","t1",DatabaseMetaData.bestRowSession, true);
     }
 }

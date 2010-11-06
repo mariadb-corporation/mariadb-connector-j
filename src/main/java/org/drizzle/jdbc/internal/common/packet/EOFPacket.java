@@ -46,4 +46,13 @@ public class EOFPacket extends ResultPacket {
     public short getStatusFlags() {
         return statusFlags;
     }
+
+    @Override
+    public String toString() {
+        return "EOFPacket{" +
+                "packetSeq=" + packetSeq +
+                ", warningCount=" + warningCount +
+                ", statusFlags=" + statusFlags +
+                '}';
+    }
 }

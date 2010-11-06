@@ -1663,25 +1663,8 @@ public abstract class CommonDatabaseMetaData implements DatabaseMetaData {
                     " WHEN 'bit' THEN " + Types.BIT +
                     " END";
 
-    public ResultSet getBestRowIdentifier(final String catalog, final String schema, final String table, final int scope, final boolean nullable)
-            throws SQLException {
-        final String query = "SELECT " + DatabaseMetaData.bestRowSession + " scope," +
-                "column_name," +
-                dataTypeClause + " data_type," +
-                "data_type type_name," +
-                "if(numeric_precision is null, character_maximum_length, numeric_precision) column_size," +
-                "0 buffer_length," +
-                "numeric_scale decimal_digits," +
-                DatabaseMetaData.bestRowNotPseudo + " pseudo_column" +
-                " FROM information_schema.columns" +
-                " WHERE column_key in('PRI', 'MUL', 'UNI') " +
-                " AND table_schema like " + (schema != null ? "'%'" : "'" + schema + "'") +
-                " AND table_name='" + table + "' ORDER BY scope";
-        final Statement stmt = connection.createStatement();
-        return stmt.executeQuery(query);
-    }
-
-    //    SELECT 2 scope,column_name, CASE data_type WHEN 'int' THEN 4 WHEN 'varchar' THEN 12 WHEN 'datetime' THEN 93 WHEN 'date' THEN 91 WHEN 'time' THEN 92 WHEN 'text' THEN 12 WHEN 'double' THEN 8 END data_type,data_type type_name,if(numeric_precision is null, character_maximum_length, numeric_precision) column_size,0 buffer_length,numeric_scale decimal_digits,1 pseudo_column FROM information_schema.columns WHERE column_key in('PRI', 'MUL', 'UNI')  AND table_schema like '%' AND table_name='t1'
+    public abstract ResultSet getBestRowIdentifier(final String catalog, final String schema, final String table, final int scope, final boolean nullable)
+            throws SQLException;
     /**
      * Retrieves a description of a table's columns that are automatically updated when any value in a row is updated.
      * They are unordered.
@@ -1779,46 +1762,7 @@ public abstract class CommonDatabaseMetaData implements DatabaseMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      * @see #getExportedKeys
      */
-    public ResultSet getImportedKeys(final String catalog, final String schema, final String table) throws SQLException {
-        final String query = "SELECT null PKTABLE_CAT, \n" +
-                "kcu.referenced_table_schema PKTABLE_SCHEM, \n" +
-                "kcu.referenced_table_name PKTABLE_NAME, \n" +
-                "kcu.referenced_column_name PKCOLUMN_NAME, \n" +
-                "null FKTABLE_CAT, \n" +
-                "kcu.table_schema FKTABLE_SCHEM, \n" +
-                "kcu.table_name FKTABLE_NAME, \n" +
-                "kcu.column_name FKCOLUMN_NAME, \n" +
-                "kcu.position_in_unique_constraint KEY_SEQ,\n" +
-                "CASE update_rule \n" +
-                "   WHEN 'RESTRICT' THEN 1\n" +
-                "   WHEN 'NO ACTION' THEN 3\n" +
-                "   WHEN 'CASCADE' THEN 0\n" +
-                "   WHEN 'SET NULL' THEN 2\n" +
-                "   WHEN 'SET DEFAULT' THEN 4\n" +
-                "END UPDATE_RULE,\n" +
-                "CASE delete_rule \n" +
-                "   WHEN 'RESTRICT' THEN 1\n" +
-                "   WHEN 'NO ACTION' THEN 3\n" +
-                "   WHEN 'CASCADE' THEN 0\n" +
-                "   WHEN 'SET NULL' THEN 2\n" +
-                "   WHEN 'SET DEFAULT' THEN 4\n" +
-                "END UPDATE_RULE,\n" +
-                "rc.constraint_name FK_NAME,\n" +
-                "null PK_NAME,\n" +
-                "6 DEFERRABILITY\n" +
-                "FROM information_schema.key_column_usage kcu\n" +
-                "INNER JOIN information_schema.referential_constraints rc\n" +
-                "ON kcu.constraint_schema=rc.constraint_schema\n" +
-                "AND kcu.constraint_name=rc.constraint_name\n" +
-                "WHERE " +
-                (schema != null ? "kcu.table_schema='" + schema + "' AND " : "") +
-                "kcu.table_name='" +
-                table +
-                "'" +
-                "ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ";
-        final Statement stmt = connection.createStatement();
-        return stmt.executeQuery(query);
-    }
+    public abstract ResultSet getImportedKeys(final String catalog, final String schema, final String table) throws SQLException;
 
     /**
      * Retrieves a description of the foreign key columns that reference the given table's primary key columns (the

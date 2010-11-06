@@ -1,5 +1,6 @@
 package org.drizzle.jdbc;
 
+import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -173,5 +174,62 @@ public class DrizzleDataBaseMetaData extends CommonDatabaseMetaData {
         final Statement stmt = getConnection().createStatement();
         return stmt.executeQuery(query);
     }
+
+    public ResultSet getImportedKeys(final String catalog, final String schema, final String table) throws SQLException {
+        final String query = "SELECT null PKTABLE_CAT,\n" +
+                "fk.constraint_schema PKTABLE_SCHEM,\n" +
+                "fk.referenced_table_name PKTABLE_NAME,\n" +
+                "replace(fk.referenced_table_columns,'`','') PKCOLUMN_NAME,\n" +
+                "null FKTABLE_CAT,\n" +
+                "fk.constraint_schema FKTABLE_SCHEM,\n" +
+                "fk.constraint_table FKTABLE_NAME,\n" +
+                "replace(fk.constraint_columns,'`','') FKCOLUMN_NAME,\n" +
+                "1 KEY_SEQ,\n" +
+                "CASE update_rule\n" +
+                "   WHEN 'RESTRICT' THEN 1\n" +
+                "   WHEN 'NO ACTION' THEN 3\n" +
+                "   WHEN 'CASCADE' THEN 0\n" +
+                "   WHEN 'SET NULL' THEN 2\n" +
+                "   WHEN 'SET DEFAULT' THEN 4\n" +
+                "END UPDATE_RULE,\n" +
+                "CASE delete_rule\n" +
+                "   WHEN 'RESTRICT' THEN 1\n" +
+                "   WHEN 'NO ACTION' THEN 3\n" +
+                "   WHEN 'CASCADE' THEN 0\n" +
+                "   WHEN 'SET NULL' THEN 2\n" +
+                "   WHEN 'SET DEFAULT' THEN 4\n" +
+                "END UPDATE_RULE,\n" +
+                "fk.constraint_name FK_NAME,\n" +
+                "null PK_NAME,\n" +
+                "6 DEFERRABILITY\n" +
+                "FROM data_dictionary.foreign_keys fk "+
+                "WHERE " +
+                (schema != null ? "fk.constraint_schema='" + schema + "' AND " : "") +
+                "fk.constraint_table='" +
+                table +
+                "'" +
+                "ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ";
+        final Statement stmt = getConnection().createStatement();
+        return stmt.executeQuery(query);
+    }
+    public ResultSet getBestRowIdentifier(final String catalog, final String schema, final String table, final int scope, final boolean nullable)
+            throws SQLException {
+        final String query = "SELECT " + DatabaseMetaData.bestRowSession + " scope," +
+                "column_name," +
+                dataTypeClause + " data_type," +
+                "data_type type_name," +
+                "if(numeric_precision is null, character_maximum_length, numeric_precision) column_size," +
+                "0 buffer_length," +
+                "numeric_scale decimal_digits," +
+                DatabaseMetaData.bestRowNotPseudo + " pseudo_column" +
+                " FROM data_dictionary.columns" +
+                " WHERE is_indexed = 'YES' OR is_used_in_primary = 'YES' OR is_unique = 'YES'" +
+                " AND table_schema like " + (schema != null ? "'%'" : "'" + schema + "'") +
+                " AND table_name='" + table + "' ORDER BY scope";
+        final Statement stmt = getConnection().createStatement();
+        return stmt.executeQuery(query);
+    }
+
+
 
 }

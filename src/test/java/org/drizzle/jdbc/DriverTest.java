@@ -119,13 +119,7 @@ public class DriverTest {
         assertEquals(2, prepStmt.getParameterMetaData().getParameterCount());
     }
 
-    @Test
-    public void preparedTestWithLimit() throws SQLException {
-        PreparedStatement ps = getConnection().prepareStatement("select * from t1 limit ?, ?");
-        ps.setBytes(1, "20".getBytes());
-        ps.setObject(2, 30);
-        ps.execute();
-    }
+   
     @Test
     public void preparedTest2() throws SQLException {
         Statement stmt = getConnection().createStatement();
@@ -499,11 +493,7 @@ public class DriverTest {
         assertEquals((float)3.99, rs.getFloat("a"));
         assertEquals(false,rs.next());
     }
-    @Test
-    public void dbmetaTest() throws SQLException {
-        DatabaseMetaData dmd = getConnection().getMetaData();
-        dmd.getBestRowIdentifier(null,"test_units_jdbc","t1",DatabaseMetaData.bestRowSession, true);
-    }
+
 
     @Test
     public void manyColumnsTest() throws SQLException {
@@ -840,11 +830,13 @@ public class DriverTest {
     @Test
     public void testExceptionDivByZero() throws SQLException {
         ResultSet rs = getConnection().createStatement().executeQuery("select 1/0");
-        assertEquals(rs.next(),true);
-        assertEquals(null, rs.getString(1));
+
         if(getConnection().getMetaData().getDatabaseProductName().toLowerCase().equals("drizzle")) {
             SQLWarning warning = rs.getWarnings();
             assertEquals("1 warning(s)",warning.getMessage());
+        } else {
+            assertEquals(rs.next(),true);
+            assertEquals(null, rs.getString(1));
         }
     }
     @Test(expected = SQLSyntaxErrorException.class)

@@ -220,8 +220,11 @@ public class MySQLProtocol implements Protocol {
             final ColumnInformation columnInfo = MySQLFieldPacket.columnInformationFactory(rawPacket);
             columnInformation.add(columnInfo);
         }
-        packetFetcher.getRawPacket();
+        RawPacket rp = packetFetcher.getRawPacket();
         final List<List<ValueObject>> valueObjects = new ArrayList<List<ValueObject>>();
+        if(ReadUtil.eofIsNext(rp)) {
+            return new DrizzleQueryResult(columnInformation, valueObjects, (short)1);
+        }
 
         while (true) {
             final RawPacket rawPacket = packetFetcher.getRawPacket();
