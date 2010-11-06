@@ -1,5 +1,6 @@
 package org.drizzle.jdbc;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.sql.*;
@@ -7,6 +8,7 @@ import java.sql.Connection;
 import java.sql.Statement;
 
 
+@Ignore
 public class LoadTest {
     @Test    
     public void tm() throws SQLException {

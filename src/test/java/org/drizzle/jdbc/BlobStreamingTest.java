@@ -5,6 +5,7 @@ import org.drizzle.jdbc.internal.common.Utils;
 import org.drizzle.jdbc.internal.common.packet.RawPacket;
 import org.drizzle.jdbc.internal.common.packet.buffer.WriteBuffer;
 import org.junit.After;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
@@ -42,6 +43,7 @@ import static org.junit.Assert.assertFalse;
  * Date: Jan 14, 2009
  * Time: 7:58:11 AM
  */
+@Ignore
 public class BlobStreamingTest {
     public static String host = "10.100.100.50";
     private Connection connection;
@@ -52,7 +54,7 @@ public class BlobStreamingTest {
        connection = DriverManager.getConnection("jdbc:drizzle://"+host+":3307/test_units_jdbc?enableBlobStreaming=true");
        //connection = DriverManager.getConnection("jdbc:mysql://10.100.100.50:3306/test_units_jdbc");
     }
-    @After
+  //  @After
     public void close() throws SQLException {
         connection.close();
     }
@@ -60,7 +62,7 @@ public class BlobStreamingTest {
         return connection;
     }
     
-    @Test
+   // @Test
     public void doQuery() throws SQLException, IOException {
         Statement stmt = getConnection().createStatement();
         stmt.execute("drop table  if exists bstreaming1");

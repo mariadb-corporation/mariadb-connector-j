@@ -5,6 +5,7 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import org.drizzle.jdbc.internal.common.HttpClient;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
@@ -20,8 +21,9 @@ import static org.junit.Assert.assertEquals;
  * Created by IntelliJ IDEA. User: marcuse Date: Aug 9, 2010 Time: 9:04:39 PM To change this template use File |
  * Settings | File Templates.
  */
+@Ignore
 public class HttpClientTest {
-    @Test
+    //@Test
     public void testGet() throws IOException {
 
         HttpHandler handler = new HttpHandler() {
@@ -51,7 +53,7 @@ public class HttpClientTest {
         server.stop(0);
     }
 
-    @Test
+   // @Test
     public void testPut() throws IOException {
 
         HttpHandler handler = new HttpHandler() {

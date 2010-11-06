@@ -35,6 +35,7 @@ import org.drizzle.jdbc.internal.common.queryresults.DrizzleQueryResult;
 import org.drizzle.jdbc.internal.common.queryresults.DrizzleUpdateResult;
 import org.drizzle.jdbc.internal.common.queryresults.NoSuchColumnException;
 import org.drizzle.jdbc.internal.common.queryresults.QueryResult;
+import org.drizzle.jdbc.internal.drizzle.packet.DrizzleRowPacket;
 import org.drizzle.jdbc.internal.mysql.packet.MySQLFieldPacket;
 import org.drizzle.jdbc.internal.mysql.packet.MySQLGreetingReadPacket;
 import org.drizzle.jdbc.internal.mysql.packet.MySQLRowPacket;
@@ -234,8 +235,15 @@ public class MySQLProtocol implements Protocol {
                 final EOFPacket eofPacket = (EOFPacket) ResultPacketFactory.createResultPacket(rawPacket);
                 return new DrizzleQueryResult(columnInformation, valueObjects, eofPacket.getWarningCount());
             }
-            final MySQLRowPacket rowPacket = new MySQLRowPacket(rawPacket, columnInformation);
-            valueObjects.add(rowPacket.getRow());
+
+            if(getDatabaseType() == SupportedDatabases.MYSQL) {
+                final MySQLRowPacket rowPacket = new MySQLRowPacket(rawPacket, columnInformation);
+                valueObjects.add(rowPacket.getRow());
+            } else {
+                final DrizzleRowPacket rowPacket = new DrizzleRowPacket(rawPacket, columnInformation);
+                valueObjects.add(rowPacket.getRow());
+            }
+
         }
     }
 
