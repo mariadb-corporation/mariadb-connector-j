@@ -18,7 +18,7 @@ public class DatabaseMetadataTest {
     private Connection connection;
     public DatabaseMetadataTest() throws ClassNotFoundException, SQLException {
         connection = DriverManager.getConnection("jdbc:drizzle://"+DriverTest.host+":3307/test_units_jdbc");
-        //connection = DriverManager.getConnection("jdbc:mysql:thin://a@localhost:3306/test_units_jdbc");
+        //connection = DriverManager.getConnection("jdbc:mysql://a@localhost:3306/test_units_jdbc");
     }
     @Test
     public void primaryKeysTest() throws SQLException {
@@ -108,9 +108,9 @@ public class DatabaseMetadataTest {
     @Test
     public void testGetTables() throws SQLException {
         DatabaseMetaData dbmd = connection.getMetaData();
-        ResultSet rs = dbmd.getTables(null,null,"t1",null);
+        ResultSet rs = dbmd.getTables(null,null,"prim_key",null);
         assertEquals(true,rs.next());
-        rs = dbmd.getTables(null,"test_units_jdbc","t1",null);
+        rs = dbmd.getTables(null,"test_units_jdbc","prim_key",null);
         assertEquals(true,rs.next());
     }
     @Test

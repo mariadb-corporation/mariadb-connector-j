@@ -39,7 +39,7 @@ public class DrizzleDataBaseMetaData extends CommonDatabaseMetaData {
                 "columns.table_schema TABLE_SCHEM, " +
                 "columns.table_name, " +
                 "columns.column_name, " +
-                "kcu.ordinal_position+1 KEY_SEQ," +
+                "kcu.ordinal_position KEY_SEQ," +
                 "null pk_name " +
                 "FROM information_schema.columns " +
                 "INNER JOIN information_schema.key_column_usage kcu "+
@@ -137,41 +137,38 @@ public class DrizzleDataBaseMetaData extends CommonDatabaseMetaData {
     }
 
     public ResultSet getExportedKeys(final String catalog, final String schema, final String table) throws SQLException {
-        final String query = "SELECT null PKTABLE_CAT, \n" +
-                "kcu.referenced_table_schema PKTABLE_SCHEM, \n" +
-                "kcu.referenced_table_name PKTABLE_NAME, \n" +
-                "kcu.referenced_column_name PKCOLUMN_NAME, \n" +
-                "null FKTABLE_CAT, \n" +
-                "kcu.table_schema FKTABLE_SCHEM, \n" +
-                "kcu.table_name FKTABLE_NAME, \n" +
-                "kcu.column_name FKCOLUMN_NAME, \n" +
-                "kcu.position_in_unique_constraint KEY_SEQ,\n" +
-                "CASE update_rule \n" +
-                "   WHEN 'RESTRICT' THEN 1\n" +
-                "   WHEN 'NO ACTION' THEN 3\n" +
-                "   WHEN 'CASCADE' THEN 0\n" +
-                "   WHEN 'SET NULL' THEN 2\n" +
-                "   WHEN 'SET DEFAULT' THEN 4\n" +
-                "END UPDATE_RULE,\n" +
-                "CASE delete_rule \n" +
-                "   WHEN 'RESTRICT' THEN 1\n" +
-                "   WHEN 'NO ACTION' THEN 3\n" +
-                "   WHEN 'CASCADE' THEN 0\n" +
-                "   WHEN 'SET NULL' THEN 2\n" +
-                "   WHEN 'SET DEFAULT' THEN 4\n" +
-                "END UPDATE_RULE,\n" +
-                "rc.constraint_name FK_NAME,\n" +
-                "null PK_NAME,\n" +
-                "6 DEFERRABILITY\n" +
-                "FROM information_schema.key_column_usage kcu\n" +
-                "INNER JOIN information_schema.referential_constraints rc\n" +
-                "ON kcu.constraint_schema=rc.constraint_schema\n" +
-                "AND kcu.constraint_name=rc.constraint_name\n" +
+        String query = "SELECT null PKTABLE_CAT,\n" +
+                "       fk.constraint_schema PKTABLE_SCHEM,\n" +
+                "       fk.referenced_table_name PKTABLE_NAME,\n" +
+                "       replace(fk.referenced_table_columns,'`','') PKCOLUMN_NAME,\n" +
+                "       null FKTABLE_CAT,\n" +
+                "       fk.constraint_schema FKTABLE_SCHEM,\n" +
+                "       fk.constraint_table FKTABLE_NAME,\n" +
+                "       replace(fk.constraint_columns,'`','') FKCOLUMN_NAME,\n" +
+                "       1 KEY_SEQ,\n" +
+                "       CASE update_rule\n" +
+                "            WHEN 'RESTRICT' THEN 1\n" +
+                "            WHEN 'NO ACTION' THEN 3\n" +
+                "            WHEN 'CASCADE' THEN 0\n" +
+                "            WHEN 'SET NULL' THEN 2\n" +
+                "            WHEN 'SET DEFAULT' THEN 4\n" +
+                "       END UPDATE_RULE,\n" +
+                "       CASE delete_rule\n" +
+                "            WHEN 'RESTRICT' THEN 1\n" +
+                "            WHEN 'NO ACTION' THEN 3\n" +
+                "            WHEN 'CASCADE' THEN 0\n" +
+                "            WHEN 'SET NULL' THEN 2\n" +
+                "            WHEN 'SET DEFAULT' THEN 4\n" +
+                "       END UPDATE_RULE,\n" +
+                "       fk.constraint_name FK_NAME,\n" +
+                "       null PK_NAME,\n" +
+                "       6 DEFERRABILITY\n" +
+                "FROM data_dictionary.foreign_keys fk "+
                 "WHERE " +
-                (schema != null ? "kcu.referenced_table_schema='" + schema + "' AND " : "") +
-                "kcu.referenced_table_name='" +
+                (schema != null ? "fk.constraint_schema='" + schema + "' AND " : "") +
+                "fk.referenced_table_name='" +
                 table +
-                "'" +
+                "' " +
                 "ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ";
         final Statement stmt = getConnection().createStatement();
         return stmt.executeQuery(query);
