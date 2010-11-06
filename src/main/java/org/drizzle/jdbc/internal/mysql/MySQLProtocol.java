@@ -222,8 +222,9 @@ public class MySQLProtocol implements Protocol {
         }
         RawPacket rp = packetFetcher.getRawPacket();
         final List<List<ValueObject>> valueObjects = new ArrayList<List<ValueObject>>();
-        if(ReadUtil.eofIsNext(rp)) {
-            return new DrizzleQueryResult(columnInformation, valueObjects, (short)1);
+        if(ReadUtil.eofIsNext(rp) ) {
+            if(((EOFPacket)ResultPacketFactory.createResultPacket(rp)).getStatusFlags() == 2)
+                return new DrizzleQueryResult(columnInformation, valueObjects, (short)1);
         }
 
         while (true) {

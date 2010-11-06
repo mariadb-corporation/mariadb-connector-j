@@ -65,7 +65,8 @@ public final class ReadUtil {
      */
     public static boolean eofIsNext(final RawPacket rawPacket) {
         final ByteBuffer buf = rawPacket.getByteBuffer();
-        return (buf.get(0) == (byte) 0xfe && buf.capacity() < 9);
+
+        return (buf.get(0) == (byte)0xfe && buf.capacity() < 9);
 
     }
 }
