@@ -49,6 +49,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.BufferedInputStream;
 import java.net.Socket;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
@@ -213,22 +214,22 @@ public class MySQLProtocol implements Protocol {
      * @return a DrizzleQueryResult
      * @throws java.io.IOException when something goes wrong while reading/writing from the server
      */
-    private QueryResult createDrizzleQueryResult(final ResultSetPacket packet) throws IOException {
+    private QueryResult createDrizzleQueryResult(final ResultSetPacket packet) throws IOException, QueryException {
         final List<ColumnInformation> columnInformation = new ArrayList<ColumnInformation>();
         for (int i = 0; i < packet.getFieldCount(); i++) {
             final RawPacket rawPacket = packetFetcher.getRawPacket();
             final ColumnInformation columnInfo = MySQLFieldPacket.columnInformationFactory(rawPacket);
             columnInformation.add(columnInfo);
-        }
-        RawPacket rp = packetFetcher.getRawPacket();
+        } packetFetcher.getRawPacket();
         final List<List<ValueObject>> valueObjects = new ArrayList<List<ValueObject>>();
-        if(ReadUtil.eofIsNext(rp) ) {
-            if(((EOFPacket)ResultPacketFactory.createResultPacket(rp)).getStatusFlags() == 2)
-                return new DrizzleQueryResult(columnInformation, valueObjects, (short)1);
-        }
 
         while (true) {
             final RawPacket rawPacket = packetFetcher.getRawPacket();
+
+            if(ReadUtil.isErrorPacket(rawPacket)) {
+                ErrorPacket errorPacket = (ErrorPacket) ResultPacketFactory.createResultPacket(rawPacket);
+                throw new QueryException(errorPacket.getMessage(), errorPacket.getErrorNumber(),errorPacket.getSqlState());
+            }
             if (ReadUtil.eofIsNext(rawPacket)) {
                 final EOFPacket eofPacket = (EOFPacket) ResultPacketFactory.createResultPacket(rawPacket);
                 return new DrizzleQueryResult(columnInformation, valueObjects, eofPacket.getWarningCount());
@@ -651,5 +652,12 @@ public class MySQLProtocol implements Protocol {
             }
         }
         return dump.toString();
-    }    
+    }
+    public static String hexdump(ByteBuffer bb, int offset) {
+        byte [] b = new byte[bb.capacity()];
+        bb.mark();
+        bb.get(b);
+        bb.reset();
+        return hexdump(b,offset);
+    }
 }

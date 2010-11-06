@@ -829,12 +829,18 @@ public class DriverTest {
 
     @Test
     public void testExceptionDivByZero() throws SQLException {
-        ResultSet rs = getConnection().createStatement().executeQuery("select 1/0");
+
 
         if(getConnection().getMetaData().getDatabaseProductName().toLowerCase().equals("drizzle")) {
-            SQLWarning warning = rs.getWarnings();
-            assertEquals("1 warning(s)",warning.getMessage());
+            boolean threwException = false;
+            try{
+                ResultSet rs = getConnection().createStatement().executeQuery("select 1/0");
+            } catch(SQLException e) {
+                threwException = true;
+            }
+            assertEquals(true,threwException);
         } else {
+            ResultSet rs = getConnection().createStatement().executeQuery("select 1/0");
             assertEquals(rs.next(),true);
             assertEquals(null, rs.getString(1));
         }
