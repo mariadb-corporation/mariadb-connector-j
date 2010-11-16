@@ -41,6 +41,7 @@ import org.drizzle.jdbc.internal.mysql.packet.MySQLGreetingReadPacket;
 import org.drizzle.jdbc.internal.mysql.packet.MySQLRowPacket;
 import org.drizzle.jdbc.internal.mysql.packet.commands.MySQLBinlogDumpPacket;
 import org.drizzle.jdbc.internal.mysql.packet.commands.MySQLClientAuthPacket;
+import org.drizzle.jdbc.internal.mysql.packet.commands.MySQLClientOldPasswordAuthPacket;
 import org.drizzle.jdbc.internal.mysql.packet.commands.MySQLPingPacket;
 
 import javax.net.SocketFactory;
@@ -146,7 +147,18 @@ public class MySQLProtocol implements Protocol {
             cap.send(writer);
             log.finest("Sending auth packet");
 
-            final RawPacket rp = packetFetcher.getRawPacket();
+            RawPacket rp = packetFetcher.getRawPacket();            
+            if((rp.getByteBuffer().get(0) & 0xFF) == 0xFE)
+            {
+                // Server asking for old format password
+                final MySQLClientOldPasswordAuthPacket oldPassPacket = new MySQLClientOldPasswordAuthPacket(
+                        this.password, Arrays.copyOf(greetingPacket.getSeed(),
+                                8), rp.getPacketSeq() + 1);
+                oldPassPacket.send(writer);
+                
+                rp = packetFetcher.getRawPacket();
+            }
+            
             final ResultPacket resultPacket = ResultPacketFactory.createResultPacket(rp);
             if (resultPacket.getResultType() == ResultPacket.ResultType.ERROR) {
                 final ErrorPacket ep = (ErrorPacket) resultPacket;
