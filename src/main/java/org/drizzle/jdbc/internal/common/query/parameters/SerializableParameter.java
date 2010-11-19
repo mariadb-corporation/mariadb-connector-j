@@ -32,9 +32,12 @@ public class SerializableParameter implements ParameterHolder {
         length = rawBytes.length;
     }
 
-    public void writeTo(final OutputStream os) throws IOException {
-        os.write(rawBytes, 0, length);
-    }
+    public int writeTo(final OutputStream os, int offset, int maxWriteSize) throws IOException {
+       int bytesToWrite = (int) Math.min(length - offset, maxWriteSize);
+       os.write(rawBytes, offset, bytesToWrite);
+       return bytesToWrite;
+   }
+
 
     public long length() {
         return length;

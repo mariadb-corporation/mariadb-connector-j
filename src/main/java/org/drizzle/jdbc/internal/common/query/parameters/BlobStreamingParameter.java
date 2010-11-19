@@ -43,8 +43,10 @@ public class BlobStreamingParameter implements ParameterHolder {
      * @param os the outputstream to write to
      * @throws java.io.IOException if we cannot write to the stream
      */
-    public final void writeTo(final OutputStream os) throws IOException {
-        os.write(blobReference.getBytes(), 0, blobReference.getBytes().length);
+    public final int writeTo(final OutputStream os,int offset, int maxWriteSize) throws IOException {
+        int bytesToWrite = Math.min(blobReference.getBytes().length - offset, maxWriteSize);
+        os.write(blobReference.getBytes(), offset, blobReference.getBytes().length);
+        return bytesToWrite;
     }
 
     /**

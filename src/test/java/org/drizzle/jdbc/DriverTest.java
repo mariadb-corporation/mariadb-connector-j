@@ -548,14 +548,14 @@ public class DriverTest {
         Statement stmt = getConnection().createStatement();
         stmt.executeQuery("drop table if exists test_big_update");
         stmt.executeQuery("create table test_big_update (id int primary key not null, updateme int)");
-        for(int i=0;i<40000;i++) {
+        for(int i=0;i<4000;i++) {
             stmt.executeQuery("insert into test_big_update values ("+i+","+i+")");
         }
         ResultSet rs = stmt.executeQuery("select count(*) from test_big_update");
         assertEquals(true,rs.next());
-        assertEquals(40000,rs.getInt(1));
+        assertEquals(4000,rs.getInt(1));
         int updateCount = stmt.executeUpdate("update test_big_update set updateme=updateme+1");
-        assertEquals(40000,updateCount);
+        assertEquals(4000,updateCount);
     }
 
     //@Test
@@ -1188,9 +1188,9 @@ public class DriverTest {
     @Test
     public void testBit() throws SQLException {
 
-        Connection conn = DriverManager.getConnection("jdbc:mysql:thin://localhost:3306/test_units_jdbc");
+        Connection conn = getConnection();
         conn.createStatement().execute("drop table if exists bittest");
-        conn.createStatement().execute("create table bittest(id int not null primary key auto_increment, b bit(1))");
+        conn.createStatement().execute("create table bittest(id int not null primary key auto_increment, b int)");
         PreparedStatement stmt = conn.prepareStatement("insert into bittest values(null, ?)");
         stmt.setBoolean(1, true);
         stmt.execute();

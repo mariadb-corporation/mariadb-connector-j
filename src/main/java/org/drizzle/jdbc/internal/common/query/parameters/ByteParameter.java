@@ -36,10 +36,11 @@ public class ByteParameter implements ParameterHolder {
     }
 
 
-    public void writeTo(final OutputStream os) throws IOException {
-        os.write(buffer, 0, length);
+    public int writeTo(final OutputStream os, int offset, int maxWriteSize) throws IOException {
+        int bytesToWrite = Math.min(length - offset, maxWriteSize);
+        os.write(buffer, offset, bytesToWrite);
+        return bytesToWrite;
     }
-
     public long length() {
         return length;
     }

@@ -56,9 +56,12 @@ public class StreamParameter implements ParameterHolder {
      * @param os the outputstream to write to
      * @throws IOException if we cannot write to the stream
      */
-    public final void writeTo(final OutputStream os) throws IOException {
-        os.write(buffer, 0, (int) length);
-    }
+    public int writeTo(final OutputStream os, int offset, int maxWriteSize) throws IOException {
+       int bytesToWrite = (int) Math.min(length - offset, maxWriteSize);
+       os.write(buffer, offset, bytesToWrite);
+       return bytesToWrite;
+   }
+
 
     /**
      * Returns the length of the parameter - this is the total amount of bytes that will be sent.

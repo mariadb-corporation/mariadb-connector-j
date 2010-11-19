@@ -11,9 +11,11 @@ package org.drizzle.jdbc.internal.common.packet.commands;
 
 import static org.drizzle.jdbc.internal.common.packet.buffer.WriteBuffer.intToByteArray;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Arrays;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.drizzle.jdbc.internal.common.QueryException;
@@ -92,18 +94,19 @@ public class StreamedQueryPacket implements CommandPacket
                 byteHeader = Arrays.copyOf(intToByteArray(packLength), 4);
             }
             byteHeader[3] = (byte) packetIndex;
-
-            log.finest("Sending packet " + packetIndex + " with length = "
+            if(log.isLoggable(Level.FINEST)) {
+                log.finest("Sending packet " + packetIndex + " with length = "
                     + packLength + " / " + remainingBytes);
-
+            }
             ostream.write(byteHeader);
-            log.finest("Header is " + MySQLProtocol.hexdump(byteHeader, 0));
+            if(log.isLoggable(Level.FINEST)) {           
+                log.finest("Header is " + MySQLProtocol.hexdump(byteHeader, 0));
+            }
             if (packLength > 0)
             {
                 query.writeTo(ostream, offset, packLength);
             }
             ostream.flush();
-
             if (remainingBytes >= MAX_PACKET_LENGTH)
             {
                 remainingBytes -= packLength;

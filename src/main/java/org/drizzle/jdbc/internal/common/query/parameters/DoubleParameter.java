@@ -16,17 +16,19 @@ import java.io.OutputStream;
  * . User: marcuse Date: Feb 27, 2009 Time: 10:00:38 PM
  */
 public class DoubleParameter implements ParameterHolder {
-    private final byte[] rawBytes;
+    private final byte[] byteRepresentation;
 
     public DoubleParameter(final double x) {
-        rawBytes = String.valueOf(x).getBytes();
+        byteRepresentation = String.valueOf(x).getBytes();
     }
 
-    public void writeTo(final OutputStream os) throws IOException {
-        os.write(rawBytes);
+    public int writeTo(final OutputStream os, int offset, int maxWriteSize) throws IOException {
+        int bytesToWrite = Math.min(byteRepresentation.length - offset, maxWriteSize);
+        os.write(byteRepresentation, offset, bytesToWrite);
+        return bytesToWrite;
     }
 
     public long length() {
-        return rawBytes.length;
+        return byteRepresentation.length;
     }
 }

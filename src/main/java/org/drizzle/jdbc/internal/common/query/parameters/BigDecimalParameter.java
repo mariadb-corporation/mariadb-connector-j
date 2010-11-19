@@ -23,8 +23,10 @@ public class BigDecimalParameter implements ParameterHolder {
         this.rawBytes = x.toPlainString().getBytes();
     }
 
-    public void writeTo(final OutputStream os) throws IOException {
-        os.write(rawBytes);
+    public int writeTo(final OutputStream os, int offset, int maxWriteSize) throws IOException {
+        int bytesToWrite = Math.min(rawBytes.length - offset, maxWriteSize);
+        os.write(rawBytes, offset, bytesToWrite);
+        return bytesToWrite;
     }
 
     public long length() {

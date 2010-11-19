@@ -37,9 +37,10 @@ public class ReaderParameter implements ParameterHolder {
         this.length = pos;
     }
 
-    public void writeTo(final OutputStream os) throws IOException {
-        os.write(buffer, 0, (int) length);
-        os.flush();
+     public int writeTo(final OutputStream os, int offset, int maxWriteSize) throws IOException {
+        int bytesToWrite = (int) Math.min(length - offset, maxWriteSize);
+        os.write(buffer, offset, bytesToWrite);
+        return bytesToWrite;
     }
 
     public long length() {

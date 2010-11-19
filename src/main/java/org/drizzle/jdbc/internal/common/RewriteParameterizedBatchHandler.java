@@ -58,7 +58,7 @@ public class RewriteParameterizedBatchHandler implements ParameterizedBatchHandl
                 final ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 final ParameterHolder parameterHolder = parameters[questionMarkPosition++];
                 try {
-                    parameterHolder.writeTo(baos); // writeTo escapes and adds quotes etc
+                    parameterHolder.writeTo(baos, 0, Integer.MAX_VALUE); // writeTo escapes and adds quotes etc
                 } catch (IOException e) {
                     throw new RuntimeException("Could not write to byte array: " + e.getMessage(), e);
                 }

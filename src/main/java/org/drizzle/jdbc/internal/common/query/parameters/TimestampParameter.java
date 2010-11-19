@@ -40,8 +40,10 @@ public class TimestampParameter implements ParameterHolder {
 
     }
 
-    public void writeTo(final OutputStream os) throws IOException {
-        os.write(byteRepresentation);
+    public int writeTo(final OutputStream os, int offset, int maxWriteSize) throws IOException {
+        int bytesToWrite = Math.min(byteRepresentation.length - offset, maxWriteSize);
+        os.write(byteRepresentation, offset, bytesToWrite);
+        return bytesToWrite;
     }
 
     public long length() {
