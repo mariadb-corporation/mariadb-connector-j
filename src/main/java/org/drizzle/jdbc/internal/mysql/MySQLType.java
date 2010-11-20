@@ -67,7 +67,8 @@ public class MySQLType implements DataType {
         ENUM(java.sql.Types.VARCHAR, String.class),
         SET(java.sql.Types.VARCHAR, String.class),
         BLOB(java.sql.Types.BLOB, Blob.class),
-        MAX(java.sql.Types.BLOB, Blob.class);
+        MAX(java.sql.Types.BLOB, Blob.class),
+        CLOB(java.sql.Types.CLOB, String.class);
 
         private final int sqlType;
         private final Class<?> javaClass;

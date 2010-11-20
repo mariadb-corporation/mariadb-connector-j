@@ -13,6 +13,7 @@ package org.drizzle.jdbc.internal.common;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.Date;
@@ -39,7 +40,11 @@ public abstract class AbstractValueObject implements ValueObject {
         if (rawBytes == null) {
             return null;
         }
-        return new String(rawBytes);
+        try {
+           return new String(rawBytes, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+           throw new RuntimeException("Unsupported encoding: " + e.getMessage(), e);
+       }
     }
 
     public long getLong() {

@@ -43,9 +43,15 @@ public class MySQLColumnInformation implements ColumnInformation {
         this.orgName = builder.originalName;
         this.charsetNumber = builder.charsetNumber;
         this.length = builder.length;
-        this.type = builder.type;
         this.decimals = builder.decimals;
         this.flags = Collections.unmodifiableSet(builder.flags);
+
+        if ((builder.type.getSqlType() == java.sql.Types.BLOB) &&  (this.flags.contains(ColumnFlags.BINARY))) {
+           this.type = new MySQLType(MySQLType.Type.CLOB);
+        } else {
+           this.type = builder.type;
+        }
+
     }
 
     public String getCatalog() {
