@@ -10,13 +10,12 @@
 package org.drizzle.jdbc.internal.mysql.packet;
 
 import org.drizzle.jdbc.internal.common.ServerStatus;
+import org.drizzle.jdbc.internal.common.Utils;
 import org.drizzle.jdbc.internal.common.packet.buffer.Reader;
 import org.drizzle.jdbc.internal.common.packet.RawPacket;
 import org.drizzle.jdbc.internal.mysql.MySQLServerCapabilities;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.util.Arrays;
 import java.util.Set;
 
 /**
@@ -45,7 +44,7 @@ public class MySQLGreetingReadPacket {
         serverStatus = ServerStatus.getServerStatusSet(reader.readShort());
         reader.skipBytes(13);
         final byte[] seed2 = reader.readRawBytes(12);
-        seed = Arrays.copyOf(seed1, seed1.length + seed2.length);
+        seed = Utils.copyWithLength(seed1, seed1.length + seed2.length);
         System.arraycopy(seed2, 0, seed, seed1.length, seed2.length);
         reader.readByte(); // seems the seed is null terminated
     }

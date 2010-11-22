@@ -15,7 +15,6 @@ import org.drizzle.jdbc.internal.common.DefaultParameterizedBatchHandlerFactory;
 import org.drizzle.jdbc.internal.common.ParameterizedBatchHandlerFactory;
 import org.drizzle.jdbc.internal.common.Protocol;
 import org.drizzle.jdbc.internal.common.QueryException;
-import org.drizzle.jdbc.internal.common.SupportedDatabases;
 import org.drizzle.jdbc.internal.common.Utils;
 import org.drizzle.jdbc.internal.common.packet.RawPacket;
 import org.drizzle.jdbc.internal.common.query.QueryFactory;
@@ -26,14 +25,10 @@ import java.sql.CallableStatement;
 import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
-import java.sql.NClob;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLClientInfoException;
 import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLWarning;
-import java.sql.SQLXML;
 import java.sql.Savepoint;
 import java.sql.Statement;
 import java.sql.Struct;
@@ -116,7 +111,7 @@ public final class DrizzleConnection
      * @throws SQLException always since this is not implemented.
      */
     public CallableStatement prepareCall(final String sql) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Stored procedures not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Stored procedures not supported");
     }
 
     /**
@@ -314,7 +309,7 @@ public final class DrizzleConnection
                 query += " SERIALIZABLE";
                 break;
             default:
-                throw new SQLException("Unsupported transaction isolation level");
+                throw SQLExceptionMapper.getSQLException("Unsupported transaction isolation level");
         }
         try {
             protocol.executeQuery(queryFactory.createQuery(query));
@@ -354,7 +349,7 @@ public final class DrizzleConnection
         } finally {
             stmt.close();
         }
-        throw new SQLException("Could not get transaction isolation level");
+        throw SQLExceptionMapper.getSQLException("Could not get transaction isolation level");
     }
 
     /**
@@ -458,7 +453,7 @@ public final class DrizzleConnection
      *                               the specified result set type and result set concurrency.
      */
     public CallableStatement prepareCall(final String sql, final int resultSetType, final int resultSetConcurrency) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Stored procedures not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Stored procedures not supported");
     }
 
     /**
@@ -473,7 +468,7 @@ public final class DrizzleConnection
      * @since 1.2
      */
     public Map<String, Class<?>> getTypeMap() throws SQLException {
-        throw new SQLFeatureNotSupportedException("Not yet supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Not yet supported");
     }
 
     /**
@@ -489,7 +484,7 @@ public final class DrizzleConnection
      * @see #getTypeMap
      */
     public void setTypeMap(final Map<String, Class<?>> map) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Not yet supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Not yet supported");
     }
 
     /**
@@ -510,7 +505,7 @@ public final class DrizzleConnection
      */
     public void setHoldability(final int holdability) throws SQLException {
         if (holdability != ResultSet.HOLD_CURSORS_OVER_COMMIT) {
-            throw new SQLFeatureNotSupportedException("Only holding cursors over commit is supported");
+            throw SQLExceptionMapper.getFeatureNotSupportedException("Only holding cursors over commit is supported");
         }
     }
 
@@ -648,11 +643,11 @@ public final class DrizzleConnection
     public Statement createStatement(final int resultSetType, final int resultSetConcurrency, final int resultSetHoldability)
             throws SQLException {
         if (resultSetConcurrency != ResultSet.CONCUR_READ_ONLY) {
-            throw new SQLFeatureNotSupportedException("Only read-only result sets allowed");
+            throw SQLExceptionMapper.getFeatureNotSupportedException("Only read-only result sets allowed");
         }
         if (resultSetHoldability != ResultSet.HOLD_CURSORS_OVER_COMMIT) {
-            throw new SQLFeatureNotSupportedException(
-                    "Cursors are always kept when sending commit (they are only client-side)");
+            throw SQLExceptionMapper.getFeatureNotSupportedException(
+                        "Cursors are always kept when sending commit (they are only client-side)");
         }
         return createStatement();
     }
@@ -688,10 +683,10 @@ public final class DrizzleConnection
                                               final int resultSetConcurrency,
                                               final int resultSetHoldability) throws SQLException {
         if (resultSetConcurrency != ResultSet.CONCUR_READ_ONLY) {
-            throw new SQLFeatureNotSupportedException("Only read-only result sets allowed");
+            throw SQLExceptionMapper.getFeatureNotSupportedException("Only read-only result sets allowed");
         }
         if (resultSetHoldability != ResultSet.HOLD_CURSORS_OVER_COMMIT) {
-            throw new SQLFeatureNotSupportedException(
+            throw SQLExceptionMapper.getFeatureNotSupportedException(
                     "Cursors are always kept when sending commit (they are only client-side)");
         }
         // resultSetType is ignored since we always are scroll insensitive
@@ -726,7 +721,7 @@ public final class DrizzleConnection
                                          final int resultSetType,
                                          final int resultSetConcurrency,
                                          final int resultSetHoldability) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Prepared statements are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Prepared statements are not supported");
     }
 
     /**
@@ -797,7 +792,7 @@ public final class DrizzleConnection
         if (columnIndexes != null && columnIndexes.length == 1 && columnIndexes[0] == 1) {
             return prepareStatement(sql);
         }
-        throw new SQLException("Only one auto generated key is supported, and it is on position 1");
+        throw SQLExceptionMapper.getSQLException("Only one auto generated key is supported, and it is on position 1");
     }
 
     /**
@@ -834,7 +829,7 @@ public final class DrizzleConnection
         if (columnNames != null && columnNames.length == 1 && columnNames[0].equals("insert_id")) {
             return prepareStatement(sql);
         }
-        throw new SQLException("Only one auto generated key is supported, and it is called insert_id");
+        throw SQLExceptionMapper.getSQLException("Only one auto generated key is supported, and it is called insert_id");
     }
 
     /**
@@ -851,7 +846,7 @@ public final class DrizzleConnection
      * @since 1.6
      */
     public Clob createClob() throws SQLException {
-        throw new SQLFeatureNotSupportedException("Not yet supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Not yet supported");
     }
 
     /**
@@ -884,8 +879,8 @@ public final class DrizzleConnection
      *                               if the JDBC driver does not support this data type
      * @since 1.6
      */
-    public NClob createNClob() throws SQLException {
-        throw new SQLFeatureNotSupportedException("NClobs not supported");
+    public java.sql.NClob createNClob() throws SQLException {
+        throw SQLExceptionMapper.getFeatureNotSupportedException("NClobs not supported");
     }
 
     /**
@@ -901,8 +896,8 @@ public final class DrizzleConnection
      *                               if the JDBC driver does not support this data type
      * @since 1.6
      */
-    public SQLXML createSQLXML() throws SQLException {
-        throw new SQLFeatureNotSupportedException("Not supported");
+    public java.sql.SQLXML createSQLXML() throws SQLException {
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Not supported");
     }
 
     /**
@@ -970,7 +965,7 @@ public final class DrizzleConnection
      *          <p/>
      * @since 1.6
      */
-    public void setClientInfo(final String name, final String value) throws SQLClientInfoException {
+    public void setClientInfo(final String name, final String value) throws java.sql.SQLClientInfoException {
         this.clientInfoProperties.setProperty(name, value);
     }
 
@@ -999,7 +994,7 @@ public final class DrizzleConnection
      * @since 1.6
      *        <p/>
      */
-    public void setClientInfo(final Properties properties) throws SQLClientInfoException {
+    public void setClientInfo(final Properties properties) throws java.sql.SQLClientInfoException {
         // TODO: actually use these!
         for (final String key : properties.stringPropertyNames()) {
             this.clientInfoProperties.setProperty(key, properties.getProperty(key));
@@ -1073,7 +1068,7 @@ public final class DrizzleConnection
      * @since 1.6
      */
     public Array createArrayOf(final String typeName, final Object[] elements) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Not yet supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Not yet supported");
     }
 
     /**
@@ -1091,7 +1086,7 @@ public final class DrizzleConnection
      * @since 1.6
      */
     public Struct createStruct(final String typeName, final Object[] attributes) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Not yet supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Not yet supported");
     }
 
     /**
@@ -1189,7 +1184,7 @@ public final class DrizzleConnection
         try {
             return this.protocol.startBinlogDump(position, logfile);
         } catch (BinlogDumpException e) {
-            throw new SQLException("Could not dump binlog", e);
+            throw SQLExceptionMapper.getSQLException("Could not dump binlog", e);
         }
     }
 

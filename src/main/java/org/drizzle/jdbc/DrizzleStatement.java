@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
 import java.util.List;
@@ -313,7 +312,7 @@ public class DrizzleStatement implements Statement {
      *                               if the JDBC driver does not support this method
      */
     public void cancel() throws SQLException {
-        throw new SQLFeatureNotSupportedException("Cancel is not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Cancel is not supported");
     }
 
     /**
@@ -370,7 +369,7 @@ public class DrizzleStatement implements Statement {
      *                               if the JDBC driver does not support this method
      */
     public void setCursorName(final String name) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Cursors are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Cursors are not supported");
     }
 
     /**
@@ -411,7 +410,7 @@ public class DrizzleStatement implements Statement {
     public boolean getMoreResults(final int current) throws SQLException {
         return false;
 
-        //throw new SQLFeatureNotSupportedException("Multiple open results not supported");
+        //throw SQLExceptionMapper.getFeatureNotSupportedException("Multiple open results not supported");
     }
 
     /**
@@ -486,7 +485,7 @@ public class DrizzleStatement implements Statement {
      * @since 1.4
      */
     public int executeUpdate(final String sql, final int[] columnIndexes) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Not supported");
     }
 
     /**
@@ -511,7 +510,7 @@ public class DrizzleStatement implements Statement {
      * @since 1.4
      */
     public int executeUpdate(final String sql, final String[] columnNames) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Not supported");
     }
 
     /**
@@ -581,7 +580,7 @@ public class DrizzleStatement implements Statement {
      * @since 1.4
      */
     public boolean execute(final String sql, final int[] columnIndexes) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Not supported");
     }
 
     /**
@@ -616,7 +615,7 @@ public class DrizzleStatement implements Statement {
      * @since 1.4
      */
     public boolean execute(final String sql, final String[] columnNames) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Not supported");
     }
 
     /**

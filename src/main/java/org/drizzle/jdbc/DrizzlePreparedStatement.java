@@ -13,6 +13,7 @@ import org.drizzle.jdbc.internal.SQLExceptionMapper;
 import org.drizzle.jdbc.internal.common.ParameterizedBatchHandler;
 import org.drizzle.jdbc.internal.common.Protocol;
 import org.drizzle.jdbc.internal.common.QueryException;
+import org.drizzle.jdbc.internal.common.Utils;
 import org.drizzle.jdbc.internal.common.query.IllegalParameterException;
 import org.drizzle.jdbc.internal.common.query.ParameterizedQuery;
 import org.drizzle.jdbc.internal.common.query.QueryFactory;
@@ -36,28 +37,21 @@ import org.drizzle.jdbc.internal.common.query.parameters.TimestampParameter;
 import org.drizzle.jdbc.internal.common.queryresults.ModifyQueryResult;
 import org.drizzle.jdbc.internal.common.queryresults.ResultSetType;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
-import java.io.StringReader;
 import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.net.URL;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.Date;
-import java.sql.NClob;
 import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
 import java.sql.Ref;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
-import java.sql.RowId;
 import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
-import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
@@ -115,7 +109,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
             throw SQLExceptionMapper.get(e);
         }
         if (getQueryResult().getResultSetType() != ResultSetType.MODIFY) {
-            throw new SQLException("The query returned a result set");
+            throw SQLExceptionMapper.getSQLException("The query returned a result set");
         }
         return (int) ((ModifyQueryResult) getQueryResult()).getUpdateCount();
     }
@@ -207,7 +201,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
         try {
             setParameter(parameterIndex, new ReaderParameter(reader, length));
         } catch (IOException e) {
-            throw new SQLException("Could not read stream: " + e.getMessage(), e);
+            throw SQLExceptionMapper.getSQLException("Could not read stream: " + e.getMessage(), e);
 
         }
     }
@@ -226,7 +220,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.2
      */
     public void setRef(final int parameterIndex, final Ref x) throws SQLException {
-        throw new SQLFeatureNotSupportedException("REF not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("REF not supported");
     }
 
     /**
@@ -250,7 +244,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
         try {
             setParameter(parameterIndex, new StreamParameter(x.getBinaryStream(), x.length()));
         } catch (IOException e) {
-            throw new SQLException("Could not read stream", e);
+            throw SQLExceptionMapper.getSQLException("Could not read stream", e);
         }
     }
 
@@ -268,7 +262,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.2
      */
     public void setClob(final int parameterIndex, final Clob x) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Clobs not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Clobs not supported");
     }
 
     /**
@@ -285,7 +279,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.2
      */
     public void setArray(final int parameterIndex, final Array x) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Arrays not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Arrays not supported");
     }
 
     /**
@@ -428,7 +422,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
         try {
             dQuery.setParameter(parameterIndex - 1, holder);
         } catch (IllegalParameterException e) {
-            throw new SQLException("Could not set parameter", e);
+            throw SQLExceptionMapper.getSQLException("Could not set parameter", e);
         }
     }
 
@@ -476,8 +470,8 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public void setRowId(final int parameterIndex, final RowId x) throws SQLException {
-        throw new SQLFeatureNotSupportedException("RowIDs not supported");
+    public void setRowId(final int parameterIndex, final java.sql.RowId x) throws SQLException {
+        throw SQLExceptionMapper.getFeatureNotSupportedException("RowIDs not supported");
     }
 
     /**
@@ -496,7 +490,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.6
      */
     public void setNString(final int parameterIndex, final String value) throws SQLException {
-        throw new SQLFeatureNotSupportedException("NStrings not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("NStrings not supported");
     }
 
     /**
@@ -516,7 +510,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.6
      */
     public void setNCharacterStream(final int parameterIndex, final Reader value, final long length) throws SQLException {
-        throw new SQLFeatureNotSupportedException("NCharstreams not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("NCharstreams not supported");
     }
 
     /**
@@ -533,8 +527,8 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public void setNClob(final int parameterIndex, final NClob value) throws SQLException {
-        throw new SQLFeatureNotSupportedException("NClobs not supported");
+    public void setNClob(final int parameterIndex, final java.sql.NClob value) throws SQLException {
+        throw SQLExceptionMapper.getFeatureNotSupportedException("NClobs not supported");
     }
 
     /**
@@ -557,7 +551,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.6
      */
     public void setClob(final int parameterIndex, final Reader reader, final long length) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Clobs not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Clobs not supported");
     }
 
     /**
@@ -589,7 +583,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
         try {
             setParameter(parameterIndex, new StreamParameter(inputStream, length));
         } catch (IOException e) {
-            throw new SQLException("Could not read stream", e);
+            throw SQLExceptionMapper.getSQLException("Could not read stream", e);
         }
     }
 
@@ -615,7 +609,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.6
      */
     public void setNClob(final int parameterIndex, final Reader reader, final long length) throws SQLException {
-        throw new SQLFeatureNotSupportedException("NClobs not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("NClobs not supported");
     }
 
     /**
@@ -634,8 +628,8 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public void setSQLXML(final int parameterIndex, final SQLXML xmlObject) throws SQLException {
-        throw new SQLFeatureNotSupportedException("SQlXML not supported");
+    public void setSQLXML(final int parameterIndex, final java.sql.SQLXML xmlObject) throws SQLException {
+        throw SQLExceptionMapper.getFeatureNotSupportedException("SQlXML not supported");
     }
 
     /**
@@ -697,7 +691,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
             case Types.ROWID:
             case Types.SQLXML:
             case Types.STRUCT:
-                throw new SQLFeatureNotSupportedException("Datatype not supported");
+                throw SQLExceptionMapper.getFeatureNotSupportedException("Datatype not supported");
             case Types.INTEGER:
                 if (x instanceof Number) {
                     setNumber(parameterIndex, (Number) x);
@@ -706,7 +700,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
                 }
         }
 
-        throw new SQLFeatureNotSupportedException("Method not yet implemented");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Method not yet implemented");
     }
 
     private void setNumber(final int parameterIndex, final Number number) throws SQLException {
@@ -746,7 +740,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
         try {
             setParameter(parameterIndex, new StreamParameter(x, length));
         } catch (IOException e) {
-            throw new SQLException("Could not read stream", e);
+            throw SQLExceptionMapper.getSQLException("Could not read stream", e);
         }
     }
 
@@ -776,7 +770,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
             setParameter(parameterIndex, new StreamParameter(x, length));
 
         } catch (IOException e) {
-            throw new SQLException("Could not read stream", e);
+            throw SQLExceptionMapper.getSQLException("Could not read stream", e);
         }
     }
 
@@ -807,7 +801,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
         try {
             setParameter(parameterIndex, new ReaderParameter(reader, length));
         } catch (IOException e) {
-            throw new SQLException("Could not read stream: " + e.getMessage(), e);
+            throw SQLExceptionMapper.getSQLException("Could not read stream: " + e.getMessage(), e);
         }
     }
 
@@ -842,7 +836,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
         try {
             setParameter(parameterIndex, new BufferedStreamParameter(x));
         } catch (IOException e) {
-            throw new SQLException("Could not read stream");
+            throw SQLExceptionMapper.getSQLException("Could not read stream");
         }
     }
 
@@ -882,7 +876,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
                 setParameter(parameterIndex, new BufferedStreamParameter(x));
             }
         } catch (IOException e) {
-            throw new SQLException("Could not read stream");
+            throw SQLExceptionMapper.getSQLException("Could not read stream");
         }
     }
 
@@ -915,7 +909,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
         try {
             setParameter(parameterIndex, new BufferedReaderParameter(reader));
         } catch (IOException e) {
-            throw new SQLException("Could not read reader", e);
+            throw SQLExceptionMapper.getSQLException("Could not read reader", e);
         }
     }
 
@@ -939,7 +933,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.6
      */
     public void setNCharacterStream(final int parameterIndex, final Reader value) throws SQLException {
-        throw new SQLFeatureNotSupportedException("NChars not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("NChars not supported");
     }
 
     /**
@@ -963,7 +957,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.6
      */
     public void setClob(final int parameterIndex, final Reader reader) throws SQLException {
-        throw new SQLException("CLOBs not supported");
+        throw SQLExceptionMapper.getSQLException("CLOBs not supported");
     }
 
     /**
@@ -1001,7 +995,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
                 setParameter(parameterIndex, new BufferedStreamParameter(inputStream));
             }
         } catch (IOException e) {
-            throw new SQLException("Could not read stream");
+            throw SQLExceptionMapper.getSQLException("Could not read stream");
         }
 
 
@@ -1027,7 +1021,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.6
      */
     public void setNClob(final int parameterIndex, final Reader reader) throws SQLException {
-        throw new SQLFeatureNotSupportedException("NClobs not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("NClobs not supported");
     }
 
 
@@ -1189,7 +1183,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
         try {
             setParameter(parameterIndex, new StreamParameter(x, length));
         } catch (IOException e) {
-            throw new SQLException("Could not read stream", e);
+            throw SQLExceptionMapper.getSQLException("Could not read stream", e);
         }
     }
 
@@ -1227,7 +1221,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
         try {
             setParameter(parameterIndex, new StreamParameter(x, length));
         } catch (IOException e) {
-            throw new SQLException("Could not read stream", e);
+            throw SQLExceptionMapper.getSQLException("Could not read stream", e);
         }
     }
 
@@ -1257,7 +1251,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
         try {
             setParameter(parameterIndex, new StreamParameter(x, length));
         } catch (IOException e) {
-            throw new SQLException("Could not read stream", e);
+            throw SQLExceptionMapper.getSQLException("Could not read stream", e);
         }
     }
 
@@ -1294,27 +1288,39 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @see java.sql.Types
      */
     public void setObject(final int parameterIndex, final Object x, final int targetSqlType) throws SQLException {
-        switch(targetSqlType ) {
-            case Types.ARRAY:
-            case Types.CLOB:
-            case Types.DATALINK:
-            case Types.JAVA_OBJECT:
-            case Types.NCHAR:
-            case Types.NCLOB:
-            case Types.NVARCHAR:
-            case Types.LONGNVARCHAR:
-            case Types.REF:
-            case Types.ROWID:
-            case Types.SQLXML:
-            case Types.STRUCT:
-                throw new SQLFeatureNotSupportedException("Type not supported");
+        if (Utils.isJava5()) {
+            switch(targetSqlType ) {
+                case Types.ARRAY:
+                case Types.CLOB:
+                case Types.DATALINK:
+                case Types.JAVA_OBJECT:
+                case Types.REF:
+                case Types.STRUCT:
+                    throw SQLExceptionMapper.getFeatureNotSupportedException("Type not supported");
+            }
+        } else {
+            switch(targetSqlType ) {
+                case Types.ARRAY:
+                case Types.CLOB:
+                case Types.DATALINK:
+                case Types.JAVA_OBJECT:
+                case Types.NCHAR:
+                case Types.NCLOB:
+                case Types.NVARCHAR:
+                case Types.LONGNVARCHAR:
+                case Types.REF:
+                case Types.ROWID:
+                case Types.SQLXML:
+                case Types.STRUCT:
+                    throw SQLExceptionMapper.getFeatureNotSupportedException("Type not supported");
+            }
         }
         
         if (x == null) {
             setNull(parameterIndex,Types.INTEGER);
         } else if (x instanceof String) {
             if(targetSqlType == Types.BLOB) {
-                throw new SQLException("Cannot convert a String to a Blob");
+                throw SQLExceptionMapper.getSQLException("Cannot convert a String to a Blob");
             }
             String s = (String)x;
             switch(targetSqlType) {
@@ -1325,14 +1331,14 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
                     try {
                         setLong(parameterIndex,Long.valueOf(s));
                     } catch (NumberFormatException e) {
-                        throw new SQLException("Could not convert ["+s+"] to "+targetSqlType,e);
+                        throw SQLExceptionMapper.getSQLException("Could not convert ["+s+"] to "+targetSqlType,e);
                     }
                     break;
                 case Types.DOUBLE:
                     try {
                         setDouble(parameterIndex,Double.valueOf(s));
                     } catch (NumberFormatException e) {
-                        throw new SQLException("Could not convert ["+s+"] to "+targetSqlType,e);
+                        throw SQLExceptionMapper.getSQLException("Could not convert ["+s+"] to "+targetSqlType,e);
                     }
                     break;
                 case Types.REAL:
@@ -1340,7 +1346,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
                     try {
                         setFloat(parameterIndex,Float.valueOf(s));
                     } catch (NumberFormatException e) {
-                        throw new SQLException("Could not convert ["+s+"] to "+targetSqlType,e);
+                        throw SQLExceptionMapper.getSQLException("Could not convert ["+s+"] to "+targetSqlType,e);
                     }
                     break;
                 case Types.DECIMAL:
@@ -1348,7 +1354,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
                     try {
                         setBigDecimal(parameterIndex,new BigDecimal(s));
                     } catch (NumberFormatException e) {
-                        throw new SQLException("Could not convert ["+s+"] to "+targetSqlType,e);
+                        throw SQLExceptionMapper.getSQLException("Could not convert ["+s+"] to "+targetSqlType,e);
                     }
                     break;
                 case Types.BIT:
@@ -1361,7 +1367,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
                     setString(parameterIndex, s);
                     break;
                 default:
-                    throw new SQLException("Could not convert ["+s+"] to "+targetSqlType);
+                    throw SQLExceptionMapper.getSQLException("Could not convert ["+s+"] to "+targetSqlType);
 
             }
         } else if(x instanceof Number) {
@@ -1396,14 +1402,14 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
                     setString(parameterIndex, bd.toString());
                     break;
                 default:
-                    throw new SQLException("Could not convert ["+bd+"] to "+targetSqlType);
+                    throw SQLExceptionMapper.getSQLException("Could not convert ["+bd+"] to "+targetSqlType);
 
             }
         } else if (x instanceof byte[]) {
             if(targetSqlType == Types.BINARY || targetSqlType == Types.VARBINARY || targetSqlType == Types.LONGVARBINARY) {
                 setBytes(parameterIndex, (byte[]) x);
             } else {
-                throw new SQLException("Can only convert a byte[] to BINARY, VARBINARY or LONGVARBINARY");
+                throw SQLExceptionMapper.getSQLException("Can only convert a byte[] to BINARY, VARBINARY or LONGVARBINARY");
             }
         } else if (x instanceof Date) {
             setDate(parameterIndex, (Date) x);      // works even if targetSqlType is non date-column
@@ -1417,7 +1423,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
         } else if (x instanceof Blob) {
             setBlob(parameterIndex, (Blob) x);
         } else {
-            throw new SQLException("Could not set parameter in setObject, could not convert: " + x.getClass()+" to "+ targetSqlType);
+            throw SQLExceptionMapper.getSQLException("Could not set parameter in setObject, could not convert: " + x.getClass()+" to "+ targetSqlType);
 
         }
 
@@ -1432,7 +1438,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
             case Types.TIME:
             case Types.TIMESTAMP:
             case Types.BLOB:
-                throw new SQLException("Cannot convert to "+targetSqlType);
+                throw SQLExceptionMapper.getSQLException("Cannot convert to "+targetSqlType);
         }
     }
 
@@ -1504,7 +1510,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
             try {
                 setParameter(parameterIndex, new SerializableParameter(x));
             } catch (IOException e) {
-                throw new SQLException("Could not set serializable pa3rameter in setObject: " + e.getMessage(), e);
+                throw SQLExceptionMapper.getSQLException("Could not set serializable pa3rameter in setObject: " + e.getMessage(), e);
             }
         }
 

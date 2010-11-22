@@ -10,13 +10,7 @@
 package org.drizzle.jdbc.internal.mysql;
 
 import org.drizzle.jdbc.internal.SQLExceptionMapper;
-import org.drizzle.jdbc.internal.common.BinlogDumpException;
-import org.drizzle.jdbc.internal.common.ColumnInformation;
-import org.drizzle.jdbc.internal.common.PacketFetcher;
-import org.drizzle.jdbc.internal.common.Protocol;
-import org.drizzle.jdbc.internal.common.QueryException;
-import org.drizzle.jdbc.internal.common.SupportedDatabases;
-import org.drizzle.jdbc.internal.common.ValueObject;
+import org.drizzle.jdbc.internal.common.*;
 import org.drizzle.jdbc.internal.common.packet.EOFPacket;
 import org.drizzle.jdbc.internal.common.packet.ErrorPacket;
 import org.drizzle.jdbc.internal.common.packet.OKPacket;
@@ -53,7 +47,6 @@ import java.io.BufferedInputStream;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -151,7 +144,7 @@ public class MySQLProtocol implements Protocol {
             if((rp.getByteBuffer().get(0) & 0xFF) == 0xFE)
             {   // Server asking for old format password
                 final MySQLClientOldPasswordAuthPacket oldPassPacket = new MySQLClientOldPasswordAuthPacket(
-                        this.password, Arrays.copyOf(greetingPacket.getSeed(),
+                        this.password, Utils.copyWithLength(greetingPacket.getSeed(),
                                 8), rp.getPacketSeq() + 1);
                 oldPassPacket.send(writer);
                 
@@ -459,7 +452,7 @@ public class MySQLProtocol implements Protocol {
             throw new QueryException("Could not get variable: "+variable);
         }
     }
-    @Override
+
     public QueryResult executeQuery(Query dQuery,
             FileInputStream fileInputStream) throws QueryException
     {
@@ -522,7 +515,6 @@ public class MySQLProtocol implements Protocol {
         return sendFile(dQuery, fileInputStream, packIndex);
     }
     
-    @Override
     public boolean createDB() {
         return info != null
                && info.getProperty("createDB", "").equalsIgnoreCase("true");
@@ -541,7 +533,7 @@ public class MySQLProtocol implements Protocol {
     private QueryResult sendFile(Query dQuery, FileInputStream fileInputStream,
             int packIndex) throws QueryException
     {
-        byte[] emptyHeader =  Arrays.copyOf(intToByteArray(0), 4);
+        byte[] emptyHeader =  Utils.copyWithLength(intToByteArray(0), 4);
         RawPacket rawPacket;
         ResultPacket resultPacket;
         
@@ -559,7 +551,7 @@ public class MySQLProtocol implements Protocol {
                 {
                     // Send the last packet
                     byte[] data1 = bOS.toByteArray();
-                    byte[] byteHeader = Arrays.copyOf(
+                    byte[] byteHeader = Utils.copyWithLength(
                             intToByteArray(data1.length), 4);
                     byteHeader[3] = (byte) packIndex;
 
@@ -578,7 +570,7 @@ public class MySQLProtocol implements Protocol {
                 
                 if(bOS.size() >= 0xffffff)
                 {
-                    byte[] byteHeader = Arrays.copyOf(intToByteArray(bOS.size()), 4);
+                    byte[] byteHeader = Utils.copyWithLength(intToByteArray(bOS.size()), 4);
                     byteHeader[3] = (byte) packIndex;
                     
                     log.finest("Sending : " + MySQLProtocol.hexdump(byteHeader, 0));

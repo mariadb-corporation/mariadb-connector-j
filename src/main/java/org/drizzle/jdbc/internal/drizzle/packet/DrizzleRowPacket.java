@@ -28,7 +28,6 @@ public class DrizzleRowPacket {
     public DrizzleRowPacket(final RawPacket rawPacket, final List<ColumnInformation> columnInformation) throws IOException {
         columns = new ArrayList<ValueObject>(columnInformation.size());
         final Reader reader = new Reader(rawPacket);
-        int readBytes = 0;
         for (final ColumnInformation currentColumn : columnInformation) {
             final ValueObject dvo = new DrizzleValueObject(reader.getLengthEncodedBytes(), currentColumn.getType());
             columns.add(dvo);

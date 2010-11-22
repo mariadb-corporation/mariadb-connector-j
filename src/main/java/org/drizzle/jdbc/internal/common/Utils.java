@@ -9,12 +9,9 @@
 
 package org.drizzle.jdbc.internal.common;
 
-import java.io.StringReader;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 /**
  * User: marcuse Date: Feb 19, 2009 Time: 8:40:51 PM
@@ -31,6 +28,9 @@ public class Utils {
     private static final int MASK_MINUTES = 0x000007E0;
     private static final int MASK_SECONDS = 0x0001F800;
     private static final int MASK_MILLISECONDS = 0xFFFE0000;
+
+    private static boolean java5Determined = false;
+    private static boolean isJava5 = false;
 
     /**
      * returns true if the byte b needs to be escaped
@@ -168,7 +168,6 @@ public class Utils {
         queryParts.add(query.substring(lastQueryPos, queryPos));
         return queryParts;
     }
-
 
 
     private enum ParsingState {
@@ -315,5 +314,59 @@ public class Utils {
         returnValue += (long) seconds * 1000;
         returnValue += (long) millis;
         return returnValue;
+    }
+
+    /**
+     * Copies the original byte array content to a new byte array. The resulting byte array is
+     * always "length" size. If length is smaller than the original byte array, the resulting
+     * byte array is truncated. If length is bigger than the original byte array, the resulting
+     * byte array is filled with zero bytes.
+     *
+     * @param orig the original byte array
+     * @param length how big the resulting byte array will be
+     * @return the copied byte array
+     */
+    public static byte[] copyWithLength(byte[] orig, int length) {
+        // No need to initialize with zero bytes, because the bytes are already initialized with that
+        byte[] result = new byte[length];
+        int howMuchToCopy = length < orig.length ? length : orig.length;
+        System.arraycopy(orig, 0, result, 0, howMuchToCopy);
+        return result;
+    }
+
+    /**
+     * Copies from original byte array to a new byte array. The resulting byte array is
+     * always "to-from" size.
+     *
+     * @param orig the original byte array
+     * @param from index of first byte in original byte array which will be copied
+     * @param to index of last byte in original byte array which will be copied. This can be
+     *           outside of the original byte array
+     * @return resulting array
+     */
+    public static byte[] copyRange(byte[] orig, int from, int to) {
+        int length = to - from;
+        byte[] result = new byte[length];
+        int howMuchToCopy = orig.length - from < length ? orig.length - from : length;
+        System.arraycopy(orig, from, result, 0, howMuchToCopy);
+        return result;
+    }
+
+    /**
+     * Returns if it is a Java version up to Java 5.
+     *
+     * @return true if the VM is <= Java 5
+     */
+    public static boolean isJava5() {
+        if (!java5Determined) {
+            try {
+                java.util.Arrays.copyOf(new byte[0], 0);
+                isJava5 = false;
+            } catch (java.lang.NoSuchMethodError e) {
+                 isJava5 = true;
+            }
+            java5Determined = true;
+        }
+        return isJava5;
     }
 }

@@ -17,13 +17,12 @@ import org.drizzle.jdbc.internal.common.query.parameters.ParameterHolder;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.List;
-import java.util.logging.Logger;
 
 /**
  * . User: marcuse Date: Feb 18, 2009 Time: 10:13:42 PM
  */
 public class DrizzleParameterizedQuery implements ParameterizedQuery {
-    private final static Logger log = Logger.getLogger(DrizzleParameterizedQuery.class.getName());
+
     private ParameterHolder[] parameters;
     private final int paramCount;
     private final String query;
@@ -96,7 +95,7 @@ public class DrizzleParameterizedQuery implements ParameterizedQuery {
                 os.write(queryPartsArray[i]);
         }
     }
-    @Override
+
     public void writeTo(OutputStream ostream, int offset, int packLength)
             throws IOException, QueryException {
 

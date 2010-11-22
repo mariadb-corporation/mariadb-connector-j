@@ -10,11 +10,11 @@
 package org.drizzle.jdbc.internal.common.query.parameters;
 
 import static org.drizzle.jdbc.internal.common.Utils.needsEscaping;
+import org.drizzle.jdbc.internal.common.Utils;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.Reader;
-import java.util.Arrays;
 
 /**
  * . User: marcuse Date: Feb 27, 2009 Time: 9:53:04 PM
@@ -30,7 +30,7 @@ public class BufferedReaderParameter implements ParameterHolder {
         tempByteRepresentation[pos++] = (byte) '"';
         while ((b = (byte) reader.read()) != -1) {
             if (pos > tempByteRepresentation.length - 2) { //need two places in worst case
-                tempByteRepresentation = Arrays.copyOf(tempByteRepresentation, tempByteRepresentation.length * 2);
+                tempByteRepresentation = Utils.copyWithLength(tempByteRepresentation, tempByteRepresentation.length * 2);
             }
             if (needsEscaping(b)) {
                 tempByteRepresentation[pos++] = '\\';

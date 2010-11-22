@@ -11,9 +11,6 @@ package org.drizzle.jdbc.internal.common.query;
 
 import org.drizzle.jdbc.internal.common.query.parameters.ParameterHolder;
 
-import java.util.List;
-import java.util.Map;
-
 /**
  * . User: marcuse Date: Mar 18, 2009 Time: 10:07:57 PM
  */

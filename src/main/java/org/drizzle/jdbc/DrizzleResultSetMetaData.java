@@ -11,12 +11,11 @@ package org.drizzle.jdbc;
 
 import org.drizzle.jdbc.internal.common.ColumnInformation;
 import org.drizzle.jdbc.internal.common.queryresults.ColumnFlags;
+import org.drizzle.jdbc.internal.SQLExceptionMapper;
 
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.List;
-import java.util.logging.Logger;
-
 
 /**
  * TODO: finish implem.
@@ -24,7 +23,7 @@ import java.util.logging.Logger;
  * User: marcuse Date: Feb 8, 2009 Time: 9:48:12 PM
  */
 public class DrizzleResultSetMetaData implements ResultSetMetaData {
-    private final static Logger log = Logger.getLogger(DrizzleResultSetMetaData.class.getName());
+
     private final List<ColumnInformation> fieldPackets;
 
     public DrizzleResultSetMetaData(final List<ColumnInformation> fieldPackets) {
@@ -284,7 +283,7 @@ public class DrizzleResultSetMetaData implements ResultSetMetaData {
         if (column - 1 >= 0 && column - 1 <= fieldPackets.size()) {
             return fieldPackets.get(column - 1);
         }
-        throw new SQLException("No such column");
+        throw SQLExceptionMapper.getSQLException("No such column");
     }
 
     /**

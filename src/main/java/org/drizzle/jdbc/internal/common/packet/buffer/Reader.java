@@ -11,11 +11,8 @@ package org.drizzle.jdbc.internal.common.packet.buffer;
 
 import org.drizzle.jdbc.internal.common.packet.RawPacket;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 
 /**
  * . User: marcuse Date: Jan 16, 2009 Time: 8:27:38 PM

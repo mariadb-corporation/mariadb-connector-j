@@ -12,13 +12,11 @@ package org.drizzle.jdbc.internal.mysql.packet;
 import org.drizzle.jdbc.internal.common.ColumnInformation;
 import org.drizzle.jdbc.internal.common.ValueObject;
 import org.drizzle.jdbc.internal.common.packet.RawPacket;
-import org.drizzle.jdbc.internal.common.packet.buffer.ReadUtil;
 import org.drizzle.jdbc.internal.common.packet.buffer.Reader;
 import org.drizzle.jdbc.internal.mysql.MySQLValueObject;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.nio.ByteBuffer;
 import java.io.IOException;
 
 /**

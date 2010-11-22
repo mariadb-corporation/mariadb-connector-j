@@ -10,10 +10,7 @@
 package org.drizzle.jdbc;
 
 import org.drizzle.jdbc.internal.SQLExceptionMapper;
-import org.drizzle.jdbc.internal.common.ColumnInformation;
-import org.drizzle.jdbc.internal.common.Protocol;
-import org.drizzle.jdbc.internal.common.QueryException;
-import org.drizzle.jdbc.internal.common.ValueObject;
+import org.drizzle.jdbc.internal.common.*;
 import org.drizzle.jdbc.internal.common.queryresults.DrizzleQueryResult;
 import org.drizzle.jdbc.internal.common.queryresults.NoSuchColumnException;
 import org.drizzle.jdbc.internal.common.queryresults.QueryResult;
@@ -31,15 +28,11 @@ import java.sql.Array;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.Date;
-import java.sql.NClob;
 import java.sql.Ref;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
-import java.sql.RowId;
 import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLWarning;
-import java.sql.SQLXML;
 import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -53,6 +46,7 @@ import java.util.Map;
  * . User: marcuse Date: Jan 19, 2009 Time: 10:25:00 PM
  */
 public class DrizzleResultSet implements ResultSet {
+
     public final static DrizzleResultSet EMPTY = createEmptyResultSet();
     private final QueryResult queryResult;
     private final Statement statement;
@@ -119,12 +113,12 @@ public class DrizzleResultSet implements ResultSet {
             try {
                 vo = ((SelectQueryResult) queryResult).getValueObject(i - 1);
             } catch (NoSuchColumnException e) {
-                throw new SQLException("No such column: " + i, e);
+                throw SQLExceptionMapper.getSQLException("No such column: " + i, e);
             }
             this.lastGetWasNull = vo.isNull();
             return vo;
         }
-        throw new SQLException("Cannot get data from update-result sets");
+        throw SQLExceptionMapper.getSQLException("Cannot get data from update-result sets");
     }
 
     private ValueObject getValueObject(final String column) throws SQLException {
@@ -133,12 +127,12 @@ public class DrizzleResultSet implements ResultSet {
             try {
                 vo = ((SelectQueryResult) queryResult).getValueObject(column);
             } catch (NoSuchColumnException e) {
-                throw new SQLException("No such column: " + column, e);
+                throw SQLExceptionMapper.getSQLException("No such column: " + column, e);
             }
             this.lastGetWasNull = vo.isNull();
             return vo;
         }
-        throw new SQLException("Cannot get data from update-result sets");
+        throw SQLExceptionMapper.getSQLException("Cannot get data from update-result sets");
     }
 
     /**
@@ -230,7 +224,7 @@ public class DrizzleResultSet implements ResultSet {
         try {
             return getValueObject(columnLabel).getDate();
         } catch (ParseException e) {
-            throw new SQLException("Could not parse date", e);
+            throw SQLExceptionMapper.getSQLException("Could not parse date", e);
         }
     }
 
@@ -248,7 +242,7 @@ public class DrizzleResultSet implements ResultSet {
         try {
             return getValueObject(columnLabel).getTime();
         } catch (ParseException e) {
-            throw new SQLException("Could not parse column as time, was: \"" +
+            throw SQLExceptionMapper.getSQLException("Could not parse column as time, was: \"" +
                     getValueObject(columnLabel).getString() +
                     "\"", e);
         }
@@ -268,7 +262,7 @@ public class DrizzleResultSet implements ResultSet {
         try {
             return getValueObject(columnLabel).getTimestamp();
         } catch (ParseException e) {
-            throw new SQLException("Could not parse column as timestamp, was: \"" +
+            throw SQLExceptionMapper.getSQLException("Could not parse column as timestamp, was: \"" +
                     getValueObject(columnLabel).getString() +
                     "\"", e);
         }
@@ -345,7 +339,7 @@ public class DrizzleResultSet implements ResultSet {
             } catch (QueryException e) {
                 throw SQLExceptionMapper.get(e);
             } catch (IOException e) {
-                throw new SQLException("Could not read back the data using http", e);
+                throw SQLExceptionMapper.getSQLException("Could not read back the data using http", e);
             }
         } else {
             return getValueObject(columnLabel).getBinaryInputStream();
@@ -400,7 +394,7 @@ public class DrizzleResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      */
     public String getCursorName() throws SQLException {
-        throw new SQLFeatureNotSupportedException("Cursors not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Cursors not supported");
     }
 
     /**
@@ -444,7 +438,7 @@ public class DrizzleResultSet implements ResultSet {
         try {
             return getValueObject(columnIndex).getObject();
         } catch (ParseException e) {
-            throw new SQLException("Could not get object: " + e.getMessage(), e);
+            throw SQLExceptionMapper.getSQLException("Could not get object: " + e.getMessage(), e);
         }
     }
 
@@ -473,7 +467,7 @@ public class DrizzleResultSet implements ResultSet {
         try {
             return getValueObject(columnLabel).getObject();
         } catch (ParseException e) {
-            throw new SQLException("Could not get object: " + e.getMessage(), e);
+            throw SQLExceptionMapper.getSQLException("Could not get object: " + e.getMessage(), e);
         }
     }
 
@@ -492,10 +486,10 @@ public class DrizzleResultSet implements ResultSet {
             try {
                 return ((SelectQueryResult) queryResult).getColumnId(columnLabel) + 1;
             } catch (NoSuchColumnException e) {
-                throw new SQLException("No such column: " + columnLabel, e);
+                throw SQLExceptionMapper.getSQLException("No such column: " + columnLabel, e);
             }
         }
-        throw new SQLException("Cannot get column id of update result sets");
+        throw SQLExceptionMapper.getSQLException("Cannot get column id of update result sets");
     }
 
     /**
@@ -659,7 +653,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void afterLast() throws SQLException {
-        throw new SQLFeatureNotSupportedException("Cannot move after last row");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Cannot move after last row");
     }
 
     /**
@@ -928,7 +922,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean rowUpdated() throws SQLException {
-        throw new SQLFeatureNotSupportedException("Detecting row updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Detecting row updates are not supported");
     }
 
     /**
@@ -946,7 +940,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean rowInserted() throws SQLException {
-        throw new SQLFeatureNotSupportedException("Detecting inserts are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Detecting inserts are not supported");
     }
 
     /**
@@ -966,7 +960,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean rowDeleted() throws SQLException {
-        throw new SQLFeatureNotSupportedException("Row deletes are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Row deletes are not supported");
     }
 
     /**
@@ -985,7 +979,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateNull(final int columnIndex) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1003,7 +997,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateBoolean(final int columnIndex, final boolean x) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1021,7 +1015,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateByte(final int columnIndex, final byte x) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1039,7 +1033,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateShort(final int columnIndex, final short x) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1057,7 +1051,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateInt(final int columnIndex, final int x) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1075,7 +1069,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateLong(final int columnIndex, final long x) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1093,7 +1087,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateFloat(final int columnIndex, final float x) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1111,7 +1105,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateDouble(final int columnIndex, final double x) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1130,7 +1124,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateBigDecimal(final int columnIndex, final BigDecimal x) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1148,7 +1142,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateString(final int columnIndex, final String x) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1166,7 +1160,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateBytes(final int columnIndex, final byte[] x) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1184,7 +1178,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateDate(final int columnIndex, final Date x) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1202,7 +1196,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateTime(final int columnIndex, final Time x) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1221,7 +1215,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateTimestamp(final int columnIndex, final Timestamp x) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1241,7 +1235,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateAsciiStream(final int columnIndex, final InputStream x, final int length) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1261,7 +1255,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateBinaryStream(final int columnIndex, final InputStream x, final int length) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1281,7 +1275,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateCharacterStream(final int columnIndex, final Reader x, final int length) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1308,7 +1302,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateObject(final int columnIndex, final Object x, final int scaleOrLength) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1326,7 +1320,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateObject(final int columnIndex, final Object x) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1344,7 +1338,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateNull(final String columnLabel) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1363,7 +1357,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateBoolean(final String columnLabel, final boolean x) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1382,7 +1376,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateByte(final String columnLabel, final byte x) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1401,7 +1395,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateShort(final String columnLabel, final short x) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1420,7 +1414,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateInt(final String columnLabel, final int x) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1439,7 +1433,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateLong(final String columnLabel, final long x) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1458,7 +1452,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateFloat(final String columnLabel, final float x) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1477,7 +1471,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateDouble(final String columnLabel, final double x) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1497,7 +1491,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateBigDecimal(final String columnLabel, final BigDecimal x) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1516,7 +1510,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateString(final String columnLabel, final String x) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1537,7 +1531,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateBytes(final String columnLabel, final byte[] x) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1556,7 +1550,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateDate(final String columnLabel, final Date x) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1575,7 +1569,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateTime(final String columnLabel, final Time x) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1595,7 +1589,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateTimestamp(final String columnLabel, final Timestamp x) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1616,7 +1610,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateAsciiStream(final String columnLabel, final InputStream x, final int length) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1637,7 +1631,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateBinaryStream(final String columnLabel, final InputStream x, final int length) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1658,7 +1652,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateCharacterStream(final String columnLabel, final Reader reader, final int length) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1686,7 +1680,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateObject(final String columnLabel, final Object x, final int scaleOrLength) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1705,7 +1699,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateObject(final String columnLabel, final Object x) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1721,7 +1715,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void insertRow() throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1736,7 +1730,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateRow() throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1751,7 +1745,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void deleteRow() throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1777,7 +1771,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void refreshRow() throws SQLException {
-        throw new SQLFeatureNotSupportedException("Row refresh is not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Row refresh is not supported");
     }
 
     /**
@@ -1794,7 +1788,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void cancelRowUpdates() throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1815,7 +1809,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void moveToInsertRow() throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1829,7 +1823,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public void moveToCurrentRow() throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1883,7 +1877,7 @@ public class DrizzleResultSet implements ResultSet {
      */
     public Ref getRef(final int columnIndex) throws SQLException {
         // TODO: figure out what REF's are and implement this method
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1915,7 +1909,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public Clob getClob(final int columnIndex) throws SQLException {
-        throw new SQLFeatureNotSupportedException("CLOBs are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("CLOBs are not supported");
     }
 
     /**
@@ -1931,7 +1925,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public Array getArray(final int columnIndex) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Arrays are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Arrays are not supported");
     }
 
     /**
@@ -1956,7 +1950,7 @@ public class DrizzleResultSet implements ResultSet {
      */
     public Object getObject(final String columnLabel, final Map<String, Class<?>> map) throws SQLException {
         //TODO: implement this
-        throw new SQLFeatureNotSupportedException("Type map getting is not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Type map getting is not supported");
     }
 
     /**
@@ -1974,7 +1968,7 @@ public class DrizzleResultSet implements ResultSet {
      */
     public Ref getRef(final String columnLabel) throws SQLException {
         // TODO see getRef(int)
-        throw new SQLFeatureNotSupportedException("Getting REFs not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Getting REFs not supported");
     }
 
     /**
@@ -2008,7 +2002,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public Clob getClob(final String columnLabel) throws SQLException {
-        throw new SQLFeatureNotSupportedException("CLOBs not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("CLOBs not supported");
     }
 
     /**
@@ -2025,7 +2019,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public Array getArray(final String columnLabel) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Arrays are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Arrays are not supported");
     }
 
     /**
@@ -2046,7 +2040,7 @@ public class DrizzleResultSet implements ResultSet {
         try {
             return getValueObject(columnIndex).getDate(cal);
         } catch (ParseException e) {
-            throw new SQLException("Could not parse as date");
+            throw SQLExceptionMapper.getSQLException("Could not parse as date");
         }
     }
 
@@ -2069,7 +2063,7 @@ public class DrizzleResultSet implements ResultSet {
         try {
             return getValueObject(columnLabel).getDate(cal);
         } catch (ParseException e) {
-            throw new SQLException("Could not parse as date");
+            throw SQLExceptionMapper.getSQLException("Could not parse as date");
         }
     }
 
@@ -2128,7 +2122,7 @@ public class DrizzleResultSet implements ResultSet {
         try {
             return new Timestamp(getValueObject(columnIndex).getTimestamp(cal).getTime());
         } catch (ParseException e) {
-            throw new SQLException("Could not parse as time");
+            throw SQLExceptionMapper.getSQLException("Could not parse as time");
         }
     }
 
@@ -2151,7 +2145,7 @@ public class DrizzleResultSet implements ResultSet {
         try {
             return new Timestamp(getValueObject(columnLabel).getTimestamp(cal).getTime());
         } catch (ParseException e) {
-            throw new SQLException("Could not parse as time");
+            throw SQLExceptionMapper.getSQLException("Could not parse as time");
         }
     }
 
@@ -2172,7 +2166,7 @@ public class DrizzleResultSet implements ResultSet {
         try {
             return new URL(getValueObject(columnIndex).getString());
         } catch (MalformedURLException e) {
-            throw new SQLException("Could not parse as URL");
+            throw SQLExceptionMapper.getSQLException("Could not parse as URL");
         }
     }
 
@@ -2194,7 +2188,7 @@ public class DrizzleResultSet implements ResultSet {
         try {
             return new URL(getValueObject(columnLabel).getString());
         } catch (MalformedURLException e) {
-            throw new SQLException("Could not parse as URL");
+            throw SQLExceptionMapper.getSQLException("Could not parse as URL");
         }
     }
 
@@ -2213,7 +2207,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.4
      */
     public void updateRef(final int columnIndex, final Ref x) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -2232,7 +2226,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.4
      */
     public void updateRef(final String columnLabel, final Ref x) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -2250,7 +2244,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.4
      */
     public void updateBlob(final int columnIndex, final Blob x) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -2269,7 +2263,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.4
      */
     public void updateBlob(final String columnLabel, final Blob x) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -2287,7 +2281,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.4
      */
     public void updateClob(final int columnIndex, final Clob x) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -2306,7 +2300,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.4
      */
     public void updateClob(final String columnLabel, final Clob x) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -2324,7 +2318,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.4
      */
     public void updateArray(final int columnIndex, final Array x) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -2343,7 +2337,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.4
      */
     public void updateArray(final String columnLabel, final Array x) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -2358,8 +2352,8 @@ public class DrizzleResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public RowId getRowId(final int columnIndex) throws SQLException {
-        throw new SQLFeatureNotSupportedException("RowIDs not supported");
+    public java.sql.RowId getRowId(final int columnIndex) throws SQLException {
+        throw SQLExceptionMapper.getFeatureNotSupportedException("RowIDs not supported");
     }
 
     /**
@@ -2375,8 +2369,8 @@ public class DrizzleResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public RowId getRowId(final String columnLabel) throws SQLException {
-        throw new SQLFeatureNotSupportedException("RowIDs not supported");
+    public java.sql.RowId getRowId(final String columnLabel) throws SQLException {
+        throw SQLExceptionMapper.getFeatureNotSupportedException("RowIDs not supported");
     }
 
     /**
@@ -2393,8 +2387,8 @@ public class DrizzleResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public void updateRowId(final int columnIndex, final RowId x) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+    public void updateRowId(final int columnIndex, final java.sql.RowId x) throws SQLException {
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
 
     }
 
@@ -2413,8 +2407,8 @@ public class DrizzleResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public void updateRowId(final String columnLabel, final RowId x) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+    public void updateRowId(final String columnLabel, final java.sql.RowId x) throws SQLException {
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
 
     }
 
@@ -2459,7 +2453,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateNString(final int columnIndex, final String nString) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -2481,7 +2475,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateNString(final String columnLabel, final String nString) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -2499,8 +2493,8 @@ public class DrizzleResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public void updateNClob(final int columnIndex, final NClob nClob) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+    public void updateNClob(final int columnIndex, final java.sql.NClob nClob) throws SQLException {
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -2519,8 +2513,8 @@ public class DrizzleResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public void updateNClob(final String columnLabel, final NClob nClob) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates are not supported");
+    public void updateNClob(final String columnLabel, final java.sql.NClob nClob) throws SQLException {
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -2536,8 +2530,8 @@ public class DrizzleResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public NClob getNClob(final int columnIndex) throws SQLException {
-        throw new SQLFeatureNotSupportedException("NClobs are not supported");
+    public java.sql.NClob getNClob(final int columnIndex) throws SQLException {
+        throw SQLExceptionMapper.getFeatureNotSupportedException("NClobs are not supported");
     }
 
     /**
@@ -2554,8 +2548,8 @@ public class DrizzleResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public NClob getNClob(final String columnLabel) throws SQLException {
-        throw new SQLFeatureNotSupportedException("NClobs are not supported");
+    public java.sql.NClob getNClob(final String columnLabel) throws SQLException {
+        throw SQLExceptionMapper.getFeatureNotSupportedException("NClobs are not supported");
     }
 
     /**
@@ -2570,8 +2564,8 @@ public class DrizzleResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public SQLXML getSQLXML(final int columnIndex) throws SQLException {
-        throw new SQLFeatureNotSupportedException("SQLXML not supported");
+    public java.sql.SQLXML getSQLXML(final int columnIndex) throws SQLException {
+        throw SQLExceptionMapper.getFeatureNotSupportedException("SQLXML not supported");
     }
 
     /**
@@ -2587,8 +2581,8 @@ public class DrizzleResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public SQLXML getSQLXML(final String columnLabel) throws SQLException {
-        throw new SQLFeatureNotSupportedException("SQLXML not supported");
+    public java.sql.SQLXML getSQLXML(final String columnLabel) throws SQLException {
+        throw SQLExceptionMapper.getFeatureNotSupportedException("SQLXML not supported");
     }
 
     /**
@@ -2610,8 +2604,8 @@ public class DrizzleResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public void updateSQLXML(final int columnIndex, final SQLXML xmlObject) throws SQLException {
-        throw new SQLFeatureNotSupportedException("SQLXML not supported");
+    public void updateSQLXML(final int columnIndex, final java.sql.SQLXML xmlObject) throws SQLException {
+        throw SQLExceptionMapper.getFeatureNotSupportedException("SQLXML not supported");
     }
 
     /**
@@ -2634,8 +2628,8 @@ public class DrizzleResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public void updateSQLXML(final String columnLabel, final SQLXML xmlObject) throws SQLException {
-        throw new SQLFeatureNotSupportedException("SQLXML not supported");
+    public void updateSQLXML(final String columnLabel, final java.sql.SQLXML xmlObject) throws SQLException {
+        throw SQLExceptionMapper.getFeatureNotSupportedException("SQLXML not supported");
     }
 
     /**
@@ -2652,7 +2646,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public String getNString(final int columnIndex) throws SQLException {
-        throw new SQLFeatureNotSupportedException("NString not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("NString not supported");
     }
 
     /**
@@ -2670,7 +2664,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public String getNString(final String columnLabel) throws SQLException {
-        throw new SQLFeatureNotSupportedException("NString not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("NString not supported");
     }
 
     /**
@@ -2731,7 +2725,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateNCharacterStream(final int columnIndex, final Reader x, final long length) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -2756,7 +2750,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateNCharacterStream(final String columnLabel, final Reader reader, final long length) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -2777,7 +2771,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateAsciiStream(final int columnIndex, final InputStream x, final long length) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -2798,7 +2792,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateBinaryStream(final int columnIndex, final InputStream x, final long length) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -2819,7 +2813,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateCharacterStream(final int columnIndex, final Reader x, final long length) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -2841,7 +2835,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateAsciiStream(final String columnLabel, final InputStream x, final long length) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -2863,7 +2857,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateBinaryStream(final String columnLabel, final InputStream x, final long length) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -2885,7 +2879,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateCharacterStream(final String columnLabel, final Reader reader, final long length) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -2907,7 +2901,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateBlob(final int columnIndex, final InputStream inputStream, final long length) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -2930,7 +2924,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateBlob(final String columnLabel, final InputStream inputStream, final long length) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -2955,7 +2949,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateClob(final int columnIndex, final Reader reader, final long length) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -2981,7 +2975,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateClob(final String columnLabel, final Reader reader, final long length) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -3007,7 +3001,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateNClob(final int columnIndex, final Reader reader, final long length) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -3034,7 +3028,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateNClob(final String columnLabel, final Reader reader, final long length) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -3060,7 +3054,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateNCharacterStream(final int columnIndex, final Reader x) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -3087,7 +3081,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateNCharacterStream(final String columnLabel, final Reader reader) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -3111,7 +3105,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateAsciiStream(final int columnIndex, final InputStream x) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -3135,7 +3129,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateBinaryStream(final int columnIndex, final InputStream x) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -3159,7 +3153,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateCharacterStream(final int columnIndex, final Reader x) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -3184,7 +3178,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateAsciiStream(final String columnLabel, final InputStream x) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -3209,7 +3203,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateBinaryStream(final String columnLabel, final InputStream x) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -3234,7 +3228,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateCharacterStream(final String columnLabel, final Reader reader) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -3258,7 +3252,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateBlob(final int columnIndex, final InputStream inputStream) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -3283,7 +3277,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateBlob(final String columnLabel, final InputStream inputStream) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -3309,7 +3303,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateClob(final int columnIndex, final Reader reader) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -3336,7 +3330,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateClob(final String columnLabel, final Reader reader) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -3364,7 +3358,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateNClob(final int columnIndex, final Reader reader) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -3392,7 +3386,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateNClob(final String columnLabel, final Reader reader) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Updates not supported");
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     public boolean getBoolean(final int i) throws SQLException {
@@ -3463,7 +3457,7 @@ public class DrizzleResultSet implements ResultSet {
         try {
             return getValueObject(columnIndex).getDate();
         } catch (ParseException e) {
-            throw new SQLException("Could not parse field as date", e);
+            throw SQLExceptionMapper.getSQLException("Could not parse field as date", e);
         }
     }
 
@@ -3480,7 +3474,7 @@ public class DrizzleResultSet implements ResultSet {
         try {
             return getValueObject(columnIndex).getTime();
         } catch (ParseException e) {
-            throw new SQLException("Could not parse column as time, was: \"" +
+            throw SQLExceptionMapper.getSQLException("Could not parse column as time, was: \"" +
                     getValueObject(columnIndex).getString() +
                     "\"", e);
         }
@@ -3499,7 +3493,7 @@ public class DrizzleResultSet implements ResultSet {
         try {
             return getValueObject(columnIndex).getTimestamp();
         } catch (ParseException e) {
-            throw new SQLException("Could not parse field as date");
+            throw SQLExceptionMapper.getSQLException("Could not parse field as date");
         }
     }
 
@@ -3570,7 +3564,7 @@ public class DrizzleResultSet implements ResultSet {
             } catch (QueryException e) {
                 throw SQLExceptionMapper.get(e);
             } catch (IOException e) {
-                throw new SQLException("Could not read back the data using http", e);
+                throw SQLExceptionMapper.getSQLException("Could not read back the data using http", e);
             }
         }
         return getValueObject(columnIndex).getBinaryInputStream();

@@ -9,7 +9,6 @@
 
 package org.drizzle.jdbc;
 
-import java.sql.SQLException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 

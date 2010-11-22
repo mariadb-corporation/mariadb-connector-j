@@ -9,10 +9,8 @@
 
 package org.drizzle.jdbc.internal.common.packet;
 
-import org.drizzle.jdbc.internal.common.packet.buffer.ReadUtil;
 import org.drizzle.jdbc.internal.common.packet.buffer.Reader;
 
-import java.util.Arrays;
 import java.io.IOException;
 
 /**

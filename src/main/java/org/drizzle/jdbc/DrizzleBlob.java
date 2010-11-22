@@ -9,13 +9,15 @@
 
 package org.drizzle.jdbc;
 
+import org.drizzle.jdbc.internal.common.Utils;
+import org.drizzle.jdbc.internal.SQLExceptionMapper;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.sql.Blob;
 import java.sql.SQLException;
-import java.util.Arrays;
 
 /**
  * Represents a Blob.
@@ -70,7 +72,7 @@ public final class DrizzleBlob extends OutputStream implements Blob {
         }
 
         if (this.blobContent.length == actualSize) {
-            this.blobContent = Arrays.copyOf(this.blobContent,
+            this.blobContent = Utils.copyWithLength(this.blobContent,
                     this.blobContent.length * 2);
         }
 
@@ -104,10 +106,10 @@ public final class DrizzleBlob extends OutputStream implements Blob {
      */
     public byte[] getBytes(final long pos, final int length) throws SQLException {
         if (pos < 1) {
-            throw new SQLException("Pos starts at 1");
+            throw SQLExceptionMapper.getSQLException("Pos starts at 1");
         }
         final int arrayPos = (int) (pos - 1);
-        return Arrays.copyOfRange(blobContent, arrayPos, arrayPos + length);
+        return Utils.copyRange(blobContent, arrayPos, arrayPos + length);
     }
 
     /**
@@ -132,10 +134,10 @@ public final class DrizzleBlob extends OutputStream implements Blob {
      */
     public long position(final byte[] pattern, final long start) throws SQLException {
         if (start < 1) {
-            throw new SQLException("Start should be > 0, first position is 1.");
+            throw SQLExceptionMapper.getSQLException("Start should be > 0, first position is 1.");
         }
         if (start > actualSize) {
-            throw new SQLException("Start should be <= " + actualSize);
+            throw SQLExceptionMapper.getSQLException("Start should be <= " + actualSize);
         }
         final long actualStart = start - 1;
         for (int i = (int) actualStart; i < actualSize; i++) {
@@ -198,7 +200,7 @@ public final class DrizzleBlob extends OutputStream implements Blob {
         } else if (blobContent.length > arrayPos + bytes.length) {
             bytesWritten = bytes.length;
         } else {
-            blobContent = Arrays.copyOf(blobContent, arrayPos + bytes.length);
+            blobContent = Utils.copyWithLength(blobContent, arrayPos + bytes.length);
             actualSize = blobContent.length;
             bytesWritten = bytes.length;
         }
@@ -271,9 +273,9 @@ public final class DrizzleBlob extends OutputStream implements Blob {
      */
     public OutputStream setBinaryStream(final long pos) throws SQLException {
         if (pos < 1) {
-            throw new SQLException("Invalid position in blob");
+            throw SQLExceptionMapper.getSQLException("Invalid position in blob");
         }
-        return new DrizzleBlob(Arrays.copyOfRange(blobContent,
+        return new DrizzleBlob(Utils.copyRange(blobContent,
                 (int) pos - 1, blobContent.length + 1));
     }
 
@@ -291,7 +293,7 @@ public final class DrizzleBlob extends OutputStream implements Blob {
      *                               0
      */
     public void truncate(final long len) throws SQLException {
-        this.blobContent = Arrays.copyOf(this.blobContent, (int) len);
+        this.blobContent = Utils.copyWithLength(this.blobContent, (int) len);
         this.actualSize = (int) len;
     }
 
@@ -323,10 +325,10 @@ public final class DrizzleBlob extends OutputStream implements Blob {
      */
     public InputStream getBinaryStream(final long pos, final long length) throws SQLException {
         if (pos < 1 || pos > actualSize || pos + length > actualSize) {
-            throw new SQLException("Out of range");
+            throw SQLExceptionMapper.getSQLException("Out of range");
         }
 
-        return new ByteArrayInputStream(Arrays.copyOfRange(blobContent,
+        return new ByteArrayInputStream(Utils.copyRange(blobContent,
                 (int) pos,
                 (int) length));
     }

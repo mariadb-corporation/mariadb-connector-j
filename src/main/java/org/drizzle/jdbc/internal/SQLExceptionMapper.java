@@ -1,15 +1,9 @@
 package org.drizzle.jdbc.internal;
 
 import org.drizzle.jdbc.internal.common.QueryException;
+import org.drizzle.jdbc.internal.common.Utils;
 
-import java.sql.SQLDataException;
 import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
-import java.sql.SQLIntegrityConstraintViolationException;
-import java.sql.SQLInvalidAuthorizationSpecException;
-import java.sql.SQLNonTransientConnectionException;
-import java.sql.SQLSyntaxErrorException;
-import java.sql.SQLTransactionRollbackException;
 import java.sql.SQLWarning;
 
 /**
@@ -60,25 +54,58 @@ public class SQLExceptionMapper {
     public static SQLException get(final QueryException e) {
         final String sqlState = e.getSqlState();
         final SQLStates state = SQLStates.fromString(sqlState);
-        switch (state) {
-            case DATA_EXCEPTION:
-                return new SQLDataException(e.getMessage(), sqlState, e.getErrorCode(), e);
-            case FEATURE_NOT_SUPPORTED:
-                return new SQLFeatureNotSupportedException(e.getMessage(), sqlState, e.getErrorCode(), e);
-            case CONSTRAINT_VIOLATION:
-                return new SQLIntegrityConstraintViolationException(e.getMessage(), sqlState, e.getErrorCode(), e);
-            case INVALID_AUTHORIZATION:
-                return new SQLInvalidAuthorizationSpecException(e.getMessage(), sqlState, e.getErrorCode(), e);
-            case CONNECTION_EXCEPTION:
-                // TODO: check transient / non transient
-                return new SQLNonTransientConnectionException(e.getMessage(), sqlState, e.getErrorCode(), e);
-            case SYNTAX_ERROR_ACCESS_RULE:
-                return new SQLSyntaxErrorException(e.getMessage(), sqlState, e.getErrorCode(), e);
-            case TRANSACTION_ROLLBACK:
-                return new SQLTransactionRollbackException(e.getMessage(), sqlState, e.getErrorCode(), e);
-            case WARNING:
-                return new SQLWarning(e.getMessage(), sqlState, e.getErrorCode(), e);
+        if (Utils.isJava5()) {
+            return new SQLException(e.getMessage(), sqlState, e.getErrorCode());
+        } else {
+            switch (state) {
+                case DATA_EXCEPTION:
+                    return new java.sql.SQLDataException(e.getMessage(), sqlState, e.getErrorCode(), e);
+                case FEATURE_NOT_SUPPORTED:
+                    return new java.sql.SQLFeatureNotSupportedException(e.getMessage(), sqlState, e.getErrorCode(), e);
+                case CONSTRAINT_VIOLATION:
+                    return new java.sql.SQLIntegrityConstraintViolationException(e.getMessage(), sqlState, e.getErrorCode(), e);
+                case INVALID_AUTHORIZATION:
+                    return new java.sql.SQLInvalidAuthorizationSpecException(e.getMessage(), sqlState, e.getErrorCode(), e);
+                case CONNECTION_EXCEPTION:
+                    // TODO: check transient / non transient
+                    return new java.sql.SQLNonTransientConnectionException(e.getMessage(), sqlState, e.getErrorCode(), e);
+                case SYNTAX_ERROR_ACCESS_RULE:
+                    return new java.sql.SQLSyntaxErrorException(e.getMessage(), sqlState, e.getErrorCode(), e);
+                case TRANSACTION_ROLLBACK:
+                    return new java.sql.SQLTransactionRollbackException(e.getMessage(), sqlState, e.getErrorCode(), e);
+                case WARNING:
+                    return new SQLWarning(e.getMessage(), sqlState, e.getErrorCode(), e);
+            }
+            return new SQLException(e.getMessage(), sqlState, e.getErrorCode(), e);
         }
-        return new SQLException(e.getMessage(), sqlState, e.getErrorCode(), e);
     }
+
+    public static SQLException getSQLException(String message, Exception e) {
+        if (Utils.isJava5()) {
+            return new SQLException(message);
+        } else {
+            return new SQLException(message, e);
+        }
+    }
+
+    public static SQLException getSQLException(String message) {
+        return new SQLException(message);
+    }
+
+    public static SQLException getFeatureNotSupportedException(String message, Exception e) {
+        if (Utils.isJava5()) {
+            return new SQLException(message);
+        } else {
+            return new java.sql.SQLFeatureNotSupportedException(message, e);
+        }
+    }
+
+    public static SQLException getFeatureNotSupportedException(String message) {
+        if (Utils.isJava5()) {
+            return new SQLException(message);
+        } else {
+            return new java.sql.SQLFeatureNotSupportedException(message);
+        }
+    }
+
 }

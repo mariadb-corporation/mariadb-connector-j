@@ -15,7 +15,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
-import java.util.Arrays;
 
 /**
  * User: marcuse Date: Feb 19, 2009 Time: 8:53:14 PM
@@ -54,6 +53,6 @@ public class SerializableParameter implements ParameterHolder {
             buffer[i++] = b;
         }
         buffer[i++] = '\"';
-        return Arrays.copyOf(buffer, i);
+        return Utils.copyWithLength(buffer, i);
     }
 }

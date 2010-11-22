@@ -9,8 +9,6 @@
 
 package org.drizzle.jdbc.internal.common.packet.buffer;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 

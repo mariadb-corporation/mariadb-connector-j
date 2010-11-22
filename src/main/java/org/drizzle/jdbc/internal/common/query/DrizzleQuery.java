@@ -11,13 +11,12 @@ package org.drizzle.jdbc.internal.common.query;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.logging.Logger;
 
 /**
  * . User: marcuse Date: Feb 20, 2009 Time: 10:43:58 PM
  */
 public class DrizzleQuery implements Query {
-    private final static Logger log = Logger.getLogger(DrizzleQuery.class.getName());
+
     private final String query;
     private final byte[] queryToSend;
 
@@ -51,7 +50,7 @@ public class DrizzleQuery implements Query {
     public boolean equals(final Object otherObj) {
         return otherObj instanceof DrizzleQuery && (((DrizzleQuery) otherObj).query).equals(query);
     }
-    @Override
+
     public void writeTo(OutputStream ostream, int offset, int packLength) throws IOException
     {
         ostream.write(queryToSend, offset, packLength);

@@ -10,11 +10,12 @@
 package org.drizzle.jdbc;
 
 import org.drizzle.jdbc.internal.common.SupportedDatabases;
+import org.drizzle.jdbc.internal.common.Utils;
+import org.drizzle.jdbc.internal.SQLExceptionMapper;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
-import java.sql.RowIdLifetime;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
@@ -2448,7 +2449,11 @@ public abstract class CommonDatabaseMetaData implements DatabaseMetaData {
      * @since 1.4
      */
     public int getSQLStateType() throws SQLException {
-        return sqlStateSQL;
+        if (Utils.isJava5()) {
+            return sqlStateXOpen;
+        } else {
+            return sqlStateSQL;
+        }
     }
 
     /**
@@ -2494,8 +2499,8 @@ public abstract class CommonDatabaseMetaData implements DatabaseMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      * @since 1.6
      */
-    public RowIdLifetime getRowIdLifetime() throws SQLException {
-        return RowIdLifetime.ROWID_UNSUPPORTED;
+    public java.sql.RowIdLifetime getRowIdLifetime() throws SQLException {
+        return java.sql.RowIdLifetime.ROWID_UNSUPPORTED;
     }
 
     /**
@@ -2671,7 +2676,7 @@ public abstract class CommonDatabaseMetaData implements DatabaseMetaData {
                                         final String schemaPattern,
                                         final String functionNamePattern,
                                         final String columnNamePattern) throws SQLException {
-        throw new SQLException("uh7");
+        throw SQLExceptionMapper.getSQLException("uh7");
     }
 
     /**

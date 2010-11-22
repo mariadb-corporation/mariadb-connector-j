@@ -11,14 +11,13 @@ package org.drizzle.jdbc.internal.common.packet.commands;
 
 import static org.drizzle.jdbc.internal.common.packet.buffer.WriteBuffer.intToByteArray;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.drizzle.jdbc.internal.common.QueryException;
+import org.drizzle.jdbc.internal.common.Utils;
 import org.drizzle.jdbc.internal.common.packet.CommandPacket;
 import org.drizzle.jdbc.internal.common.query.Query;
 import org.drizzle.jdbc.internal.mysql.MySQLProtocol;
@@ -57,7 +56,7 @@ public class StreamedQueryPacket implements CommandPacket
         }
         else
         {
-            byte[] byteHeader = Arrays.copyOf(
+            byte[] byteHeader = Utils.copyWithLength(
                     intToByteArray( query.length() + 1), 5);
             byteHeader[3] = (byte) 0;
             byteHeader[4] = (byte) 0x03;
@@ -83,7 +82,7 @@ public class StreamedQueryPacket implements CommandPacket
             byte[] byteHeader = null;
             if (packetIndex == 0)
             {
-                byteHeader = Arrays.copyOf(intToByteArray(packLength), 5);
+                byteHeader = Utils.copyWithLength(intToByteArray(packLength), 5);
                 // Add the command byte
                 byteHeader[4] = (byte) 0x03;
                 // And remove 1 byte from available data length
@@ -91,7 +90,7 @@ public class StreamedQueryPacket implements CommandPacket
             }
             else
             {
-                byteHeader = Arrays.copyOf(intToByteArray(packLength), 4);
+                byteHeader = Utils.copyWithLength(intToByteArray(packLength), 4);
             }
             byteHeader[3] = (byte) packetIndex;
             if(log.isLoggable(Level.FINEST)) {

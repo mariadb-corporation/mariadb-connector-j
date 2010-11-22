@@ -14,9 +14,7 @@ import org.drizzle.jdbc.internal.common.AbstractValueObject;
 import org.drizzle.jdbc.internal.common.DataType;
 import org.drizzle.jdbc.internal.mysql.MySQLType;
 
-import java.sql.Time;
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
 
 /**
  * Contains the raw value returned from the server
