@@ -185,8 +185,16 @@ public class MySQLProtocol implements Protocol {
      */
     public void close() throws QueryException {
         try {
+            socket.shutdownInput();
+         }
+         catch (IOException ignored)
+         {
+         }
+         try
+         {
             final ClosePacket closePacket = new ClosePacket();
             closePacket.send(writer);
+            socket.shutdownOutput();
             writer.close();
             packetFetcher.close();
         } catch (IOException e) {
