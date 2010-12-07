@@ -1506,11 +1506,13 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
             setBinaryStream(parameterIndex, (InputStream) x);
         } else if (x instanceof Reader) {
             setCharacterStream(parameterIndex, (Reader) x);
+        } else if (x instanceof BigDecimal) {
+            setBigDecimal(parameterIndex, (BigDecimal)x);
         } else {
             try {
                 setParameter(parameterIndex, new SerializableParameter(x));
             } catch (IOException e) {
-                throw SQLExceptionMapper.getSQLException("Could not set serializable pa3rameter in setObject: " + e.getMessage(), e);
+                throw SQLExceptionMapper.getSQLException("Could not set serializable parameter in setObject: " + e.getMessage(), e);
             }
         }
 

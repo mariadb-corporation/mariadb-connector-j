@@ -233,7 +233,8 @@ public class MySQLProtocol implements Protocol {
             final RawPacket rawPacket = packetFetcher.getRawPacket();
             final ColumnInformation columnInfo = MySQLFieldPacket.columnInformationFactory(rawPacket);
             columnInformation.add(columnInfo);
-        } packetFetcher.getRawPacket();
+        }
+        packetFetcher.getRawPacket();
         final List<List<ValueObject>> valueObjects = new ArrayList<List<ValueObject>>();
 
         while (true) {
@@ -249,7 +250,9 @@ public class MySQLProtocol implements Protocol {
             }
 
             if(getDatabaseType() == SupportedDatabases.MYSQL) {
+               // todo: loop until rowPacket.isComplete, fill up the bytebuffer 16M chunks a time
                 final MySQLRowPacket rowPacket = new MySQLRowPacket(rawPacket, columnInformation);
+
                 valueObjects.add(rowPacket.getRow());
             } else {
                 final DrizzleRowPacket rowPacket = new DrizzleRowPacket(rawPacket, columnInformation);
