@@ -18,28 +18,29 @@ import java.util.Set;
  * User: marcuse Date: Feb 27, 2009 Time: 9:01:29 PM
  */
 public enum MySQLServerCapabilities {
-    LONG_PASSWORD((short) 1),       /* new more secure passwords */
-    FOUND_ROWS((short) 2),       /* Found instead of affected rows */
-    LONG_FLAG((short) 4),       /* Get all column flags */
-    CONNECT_WITH_DB((short) 8),       /* One can specify db on connect */
-    NO_SCHEMA((short) 16),      /* Don't allow database.table.column */
-    COMPRESS((short) 32),      /* Can use compression protocol */
-    ODBC((short) 64),      /* Odbc client */
-    LOCAL_FILES((short) 128),     /* Can use LOAD DATA LOCAL */
-    IGNORE_SPACE((short) 256),     /* Ignore spaces before '(' */
-    CLIENT_PROTOCOL_41((short) 512),     /* New 4.1 protocol */
-    CLIENT_INTERACTIVE((short) 1024),
-    SSL((short) 2048),    /* Switch to SSL after handshake */
-    IGNORE_SIGPIPE((short) 4096),    /* IGNORE sigpipes */
-    TRANSACTIONS((short) 8192),
-    RESERVED((short) 16384),   /* Old flag for 4.1 protocol  */
-    SECURE_CONNECTION((short) 32768),  /* New 4.1 authentication */
-    MULTI_STATEMENTS((short) (1L << 16)), /* Enable/disable multi-stmt support */
-    MULTI_RESULTS((short) (1L << 17)); /* Enable/disable multi-results */
+    LONG_PASSWORD((int) 1),       /* new more secure passwords */
+    FOUND_ROWS((int) 2),       /* Found instead of affected rows */
+    LONG_FLAG((int) 4),       /* Get all column flags */
+    CONNECT_WITH_DB((int) 8),       /* One can specify db on connect */
+    NO_SCHEMA((int) 16),      /* Don't allow database.table.column */
+    COMPRESS((int) 32),      /* Can use compression protocol */
+    ODBC((int) 64),      /* Odbc client */
+    LOCAL_FILES((int) 128),     /* Can use LOAD DATA LOCAL */
+    IGNORE_SPACE((int) 256),     /* Ignore spaces before '(' */
+    CLIENT_PROTOCOL_41((int) 512),     /* New 4.1 protocol */
+    CLIENT_INTERACTIVE((int) 1024),
+    SSL((int) 2048),    /* Switch to SSL after handshake */
+    IGNORE_SIGPIPE((int) 4096),    /* IGNORE sigpipes */
+    TRANSACTIONS((int) 8192),
+    RESERVED((int) 16384),   /* Old flag for 4.1 protocol  */
+    SECURE_CONNECTION((int) 32768),  /* New 4.1 authentication */
+    MULTI_STATEMENTS((int) (1L << 16)), /* Enable/disable multi-stmt support */
+    MULTI_RESULTS((int) (1L << 17)), /* Enable/disable multi-results */
+    DRIZZLE_CAPABILITIES_ADMIN((int) (1L<< 25));
 
-    private final short bitmapFlag;
+    private final int bitmapFlag;
 
-    MySQLServerCapabilities(final short i) {
+    MySQLServerCapabilities(final int i) {
         this.bitmapFlag = i;
     }
 
@@ -64,7 +65,7 @@ public enum MySQLServerCapabilities {
      *
      * @return the raw map flag
      */
-    public short getBitmapFlag() {
+    public int getBitmapFlag() {
         return bitmapFlag;
     }
 
@@ -74,10 +75,10 @@ public enum MySQLServerCapabilities {
      * @param capabilities
      * @return
      */
-    public static short fromSet(final Set<MySQLServerCapabilities> capabilities) {
-        short retVal = 0;
+    public static int fromSet(final Set<MySQLServerCapabilities> capabilities) {
+        int retVal = 0;
         for (final MySQLServerCapabilities cap : capabilities) {
-            retVal = (short) (retVal | cap.getBitmapFlag());
+            retVal = (retVal | cap.getBitmapFlag());
         }
         return retVal;
     }
