@@ -145,27 +145,9 @@
 	    </plugin>
         </plugins>
     </reporting>
-
-    <distributionManagement>
-
-        <repository>
-
-          <uniqueVersion>false</uniqueVersion>
-          <id>local.release</id>
-          <name>Local release repo</name>
-          <url>sftp://jdbc.drizzle.org/var/www/html/drizzle-jdbc/mavenrepo/releases/</url>
-          <layout>default</layout>
-        </repository>
-        <snapshotRepository>
-            <id>local.snapshot</id>
-            <name>Local snapshot repo</name>
-            <url>sftp://jdbc.drizzle.org/var/www/html/drizzle-jdbc/mavenrepo/snapshots/</url>
-            <layout>default</layout>
-        </snapshotRepository>
-    <site>
-	  <id>drizzle-jdbc.website</id>
-	  <name>Drizzle JDBC website</name>
-	  <url>sftp://jdbc.drizzle.org/var/www/html/drizzle-jdbc/</url>
-	</site>
-    </distributionManagement>
+    <parent>
+      <groupId>org.sonatype.oss</groupId>
+      <artifactId>oss-parent</artifactId>
+      <version>6</version>
+    </parent>
 </project>
