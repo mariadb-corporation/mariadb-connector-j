@@ -188,4 +188,6 @@ public interface Protocol {
      */
     boolean createDB();
     QueryResult executeQuery(Query createQuery, FileInputStream fileInputStream) throws QueryException;
+
+    void cancelCurrentQuery() throws QueryException;
 }

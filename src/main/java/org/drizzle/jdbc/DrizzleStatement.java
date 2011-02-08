@@ -312,7 +312,11 @@ public class DrizzleStatement implements Statement {
      *                               if the JDBC driver does not support this method
      */
     public void cancel() throws SQLException {
-        throw SQLExceptionMapper.getFeatureNotSupportedException("Cancel is not supported");
+        try {
+            protocol.cancelCurrentQuery();
+        } catch (QueryException e) {
+            throw SQLExceptionMapper.get(e);
+        }
     }
 
     /**

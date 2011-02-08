@@ -75,6 +75,7 @@ public class MySQLProtocol implements Protocol {
     private final List<Query> batchList;
     private final PacketFetcher packetFetcher;
     private final Properties info;
+    private final long serverThreadId;
 
     /**
      * Get a protocol instance
@@ -117,6 +118,7 @@ public class MySQLProtocol implements Protocol {
             packetFetcher = new SyncPacketFetcher(reader);
             writer = new BufferedOutputStream(socket.getOutputStream(), 32768);
             final MySQLGreetingReadPacket greetingPacket = new MySQLGreetingReadPacket(packetFetcher.getRawPacket());
+            this.serverThreadId = greetingPacket.getServerThreadID();
             log.finest("Got greeting packet");
             this.version = greetingPacket.getServerVersion();
 
@@ -525,7 +527,18 @@ public class MySQLProtocol implements Protocol {
         packIndex++;
         return sendFile(dQuery, fileInputStream, packIndex);
     }
-    
+
+    /**
+     * cancels the current query - clones the current protocol and executes a query using the new connection
+     *
+     * thread safe
+     * @throws QueryException
+     */
+    public void cancelCurrentQuery() throws QueryException {
+        Protocol copiedProtocol = new MySQLProtocol(host, port, database, username, password, info);
+        copiedProtocol.executeQuery(new DrizzleQuery("KILL QUERY "+serverThreadId));
+    }
+
     public boolean createDB() {
         return info != null
                && info.getProperty("createDB", "").equalsIgnoreCase("true");
