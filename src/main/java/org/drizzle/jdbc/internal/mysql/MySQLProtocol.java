@@ -76,6 +76,7 @@ public class MySQLProtocol implements Protocol {
     private final PacketFetcher packetFetcher;
     private final Properties info;
     private final long serverThreadId;
+    private volatile boolean queryWasCancelled = false;
 
     /**
      * Get a protocol instance
@@ -246,10 +247,16 @@ public class MySQLProtocol implements Protocol {
                 ErrorPacket errorPacket = (ErrorPacket) ResultPacketFactory.createResultPacket(rawPacket);
                 throw new QueryException(errorPacket.getMessage(), errorPacket.getErrorNumber(),errorPacket.getSqlState());
             }
+
             if (ReadUtil.eofIsNext(rawPacket)) {
                 final EOFPacket eofPacket = (EOFPacket) ResultPacketFactory.createResultPacket(rawPacket);
+                if(queryWasCancelled) {
+                    queryWasCancelled = false;
+                    throw new QueryException("Query was cancelled by another thread", (short) -1, SQLExceptionMapper.SQLStates.INTERRUPTED_EXCEPTION.getSqlState());
+                }
                 return new DrizzleQueryResult(columnInformation, valueObjects, eofPacket.getWarningCount());
             }
+
 
             if(getDatabaseType() == SupportedDatabases.MYSQL) {
                // todo: loop until rowPacket.isComplete, fill up the bytebuffer 16M chunks a time
@@ -352,9 +359,12 @@ public class MySQLProtocol implements Protocol {
 
     public QueryResult executeQuery(final Query dQuery) throws QueryException {
         log.finest("Executing streamed query: " + dQuery);
+       // this.queryWasCancelled = false;
         final StreamedQueryPacket packet = new StreamedQueryPacket(dQuery);
 
         try {
+            // make sure we are in a good state
+            packetFetcher.clearInputStream();
             packet.send(writer);
         } catch (IOException e) {
             throw new QueryException("Could not send query: " + e.getMessage(),
@@ -375,7 +385,6 @@ public class MySQLProtocol implements Protocol {
                     e);
         }
 
-
         switch (resultPacket.getResultType()) {
             case ERROR:
                 final ErrorPacket ep = (ErrorPacket) resultPacket;
@@ -393,6 +402,7 @@ public class MySQLProtocol implements Protocol {
                 return updateResult;
             case RESULTSET:
                 log.fine("SELECT executed, fetching result set");
+
                 try {
                     return this.createDrizzleQueryResult((ResultSetPacket) resultPacket);
                 } catch (IOException e) {
@@ -402,8 +412,8 @@ public class MySQLProtocol implements Protocol {
                             e);
                 }
             default:
-                log.severe("Could not parse result...");
-                throw new QueryException("Could not parse result");
+                log.severe("Could not parse result..."+resultPacket.getResultType());
+                throw new QueryException("Could not parse result", (short)-1, SQLExceptionMapper.SQLStates.INTERRUPTED_EXCEPTION.getSqlState());
         }
 
     }
@@ -536,7 +546,9 @@ public class MySQLProtocol implements Protocol {
      */
     public void cancelCurrentQuery() throws QueryException {
         Protocol copiedProtocol = new MySQLProtocol(host, port, database, username, password, info);
+        queryWasCancelled = true;
         copiedProtocol.executeQuery(new DrizzleQuery("KILL QUERY "+serverThreadId));
+        copiedProtocol.close();
     }
 
     public boolean createDB() {

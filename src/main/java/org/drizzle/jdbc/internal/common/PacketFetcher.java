@@ -20,6 +20,8 @@ import java.io.IOException;
 public interface PacketFetcher {
     RawPacket getRawPacket() throws IOException;
 
+    void clearInputStream() throws IOException;
+
     void close() throws IOException;
 
 }
