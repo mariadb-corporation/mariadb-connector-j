@@ -1,5 +1,7 @@
 package org.drizzle.jdbc.internal;
 
+import org.drizzle.jdbc.exception.SQLQueryCancelledException;
+import org.drizzle.jdbc.exception.SQLQueryTimedOutException;
 import org.drizzle.jdbc.internal.common.QueryException;
 import org.drizzle.jdbc.internal.common.Utils;
 
@@ -28,6 +30,7 @@ public class SQLExceptionMapper {
         INVALID_CATALOG("3D"),
         INTERRUPTED_EXCEPTION("70"),
         UNDEFINED_SQLSTATE("HY"),
+        JAVA_SPECIFIC("JZ"),
         DISTRIBUTED_TRANSACTION_ERROR("XA"); // is this true?
 
         private final String sqlStateGroup;
@@ -36,6 +39,8 @@ public class SQLExceptionMapper {
         SQLStates(final String s) {
             this.sqlStateGroup = s;
         }
+
+
 
         public static SQLStates fromString(final String group) {
             for (final SQLStates state : SQLStates.values()) {
@@ -75,6 +80,9 @@ public class SQLExceptionMapper {
                     return new java.sql.SQLTransactionRollbackException(e.getMessage(), sqlState, e.getErrorCode(), e);
                 case WARNING:
                     return new SQLWarning(e.getMessage(), sqlState, e.getErrorCode(), e);
+                case JAVA_SPECIFIC:
+                    if(sqlState.equals("JZ0001")) return new SQLQueryCancelledException(e.getMessage(), sqlState, e.getErrorCode(), e);
+                    return new SQLQueryTimedOutException(e.getMessage(), sqlState, e.getErrorCode(), e);
             }
             return new SQLException(e.getMessage(), sqlState, e.getErrorCode(), e);
         }

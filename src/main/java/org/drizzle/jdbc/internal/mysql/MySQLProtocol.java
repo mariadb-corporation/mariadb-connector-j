@@ -77,6 +77,7 @@ public class MySQLProtocol implements Protocol {
     private final Properties info;
     private final long serverThreadId;
     private volatile boolean queryWasCancelled = false;
+    private volatile boolean queryTimedOut = false;
 
     /**
      * Get a protocol instance
@@ -252,7 +253,11 @@ public class MySQLProtocol implements Protocol {
                 final EOFPacket eofPacket = (EOFPacket) ResultPacketFactory.createResultPacket(rawPacket);
                 if(queryWasCancelled) {
                     queryWasCancelled = false;
-                    throw new QueryException("Query was cancelled by another thread", (short) -1, SQLExceptionMapper.SQLStates.INTERRUPTED_EXCEPTION.getSqlState());
+                    throw new QueryException("Query was cancelled by another thread", (short) -1, "JZ0001");
+                }
+                if(queryTimedOut) {
+                    queryTimedOut = false;
+                    throw new QueryException("Query timed out", (short) -1, "JZ0002");
                 }
                 return new DrizzleQueryResult(columnInformation, valueObjects, eofPacket.getWarningCount());
             }
@@ -549,6 +554,14 @@ public class MySQLProtocol implements Protocol {
         queryWasCancelled = true;
         copiedProtocol.executeQuery(new DrizzleQuery("KILL QUERY "+serverThreadId));
         copiedProtocol.close();
+    }
+
+    public void timeOut() throws QueryException {
+        Protocol copiedProtocol = new MySQLProtocol(host, port, database, username, password, info);
+        queryTimedOut = true;
+        copiedProtocol.executeQuery(new DrizzleQuery("KILL QUERY "+serverThreadId));
+        copiedProtocol.close();
+
     }
 
     public boolean createDB() {

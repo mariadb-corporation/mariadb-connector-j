@@ -82,11 +82,14 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
     }
 
     public ResultSet executeQuery() throws SQLException {
+        startTimer();
         try {
             setQueryResult(getProtocol().executeQuery(dQuery));
             return new DrizzleResultSet(getQueryResult(), this, getProtocol());
         } catch (QueryException e) {
             throw SQLExceptionMapper.get(e);
+        } finally {
+            stopTimer();
         }
     }
 
@@ -102,11 +105,14 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      *                               <code>ResultSet</code> object
      */
     public int executeUpdate() throws SQLException {
+        startTimer();
         try {
             setQueryResult(getProtocol().executeQuery(dQuery));
             dQuery.clearParameters();
         } catch (QueryException e) {
             throw SQLExceptionMapper.get(e);
+        } finally {
+            stopTimer();
         }
         if (getQueryResult().getResultSetType() != ResultSetType.MODIFY) {
             throw SQLExceptionMapper.getSQLException("The query returned a result set");
@@ -138,11 +144,14 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
     }
 
     public boolean execute() throws SQLException {
+        startTimer();
         try {
             setQueryResult(getProtocol().executeQuery(dQuery));
             dQuery.clearParameters();
         } catch (QueryException e) {
             throw SQLExceptionMapper.get(e);
+        } finally {
+            stopTimer();
         }
         if (getQueryResult().getResultSetType() == ResultSetType.SELECT) {
             setResultSet(new DrizzleResultSet(getQueryResult(), this, getProtocol()));

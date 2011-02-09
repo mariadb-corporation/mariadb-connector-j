@@ -1,9 +1,11 @@
 package org.drizzle.jdbc;
 
+import org.drizzle.jdbc.exception.SQLQueryTimedOutException;
 import org.junit.Test;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -32,13 +34,29 @@ public class CancelTest {
         public void run() {
             try {
                 stmt.execute("select sleep(1000)"); // seconds
+
             } catch (SQLException e) {
-                e.printStackTrace();
+                System.out.println(e.getSQLState());
+                //e.printStackTrace();
                 throw new RuntimeException(e);
             }
         }
     }
 
+    @Test(expected = SQLQueryTimedOutException.class)
+    public void timeoutQuery() throws SQLException, InterruptedException {
+        Connection conn = DriverManager.getConnection("jdbc:drizzle://"+DriverTest.host+":3306/test_units_jdbc");
+        Statement stmt = conn.createStatement();
+        stmt.setQueryTimeout(1);
+        stmt.executeQuery("SELECT sleep(10)");
 
+    }
+    @Test(expected = SQLQueryTimedOutException.class)
+    public void timeoutPrepQuery() throws SQLException, InterruptedException {
+        Connection conn = DriverManager.getConnection("jdbc:drizzle://"+DriverTest.host+":3306/test_units_jdbc");
+        PreparedStatement stmt = conn.prepareStatement("select sleep(10)");
+        stmt.setQueryTimeout(1);
+        stmt.execute();
 
+    }
 }

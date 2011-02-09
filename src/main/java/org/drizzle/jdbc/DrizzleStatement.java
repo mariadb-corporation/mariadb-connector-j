@@ -26,6 +26,10 @@ import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 /**
  * A sql statement.
@@ -66,6 +70,10 @@ public class DrizzleStatement implements Statement {
     private final QueryFactory queryFactory;
     private FileInputStream fileInputStream;
 
+    private final ScheduledExecutorService timeoutExecutor = Executors.newSingleThreadScheduledExecutor();
+    private int queryTimeout;
+    private ScheduledFuture<?> timoutFuture;
+
     /**
      * Creates a new Statement.
      *
@@ -99,6 +107,7 @@ public class DrizzleStatement implements Statement {
      * @throws SQLException if something went wrong
      */
     public ResultSet executeQuery(final String query) throws SQLException {
+        startTimer();
         try {
             if (queryResult != null) {
                 queryResult.close();
@@ -109,9 +118,30 @@ public class DrizzleStatement implements Statement {
             return new DrizzleResultSet(queryResult, this, getProtocol());
         } catch (QueryException e) {
             throw SQLExceptionMapper.get(e);
+        } finally {
+            stopTimer();
         }
     }
 
+    protected void startTimer() {
+        if(this.queryTimeout > 0) {
+            this.timoutFuture = this.timeoutExecutor.schedule(new Runnable() {
+                public void run() {
+                    try {
+                        getProtocol().timeOut();
+                    } catch (QueryException e) {
+                        throw new RuntimeException("Could not time out query.", e);
+                    }
+                }
+            }, queryTimeout, TimeUnit.SECONDS);
+        }
+    }
+    
+    protected void stopTimer() {
+        if(this.timoutFuture != null && !this.timoutFuture.isDone()) {
+            this.timoutFuture.cancel(true);
+        }
+    }
     /**
      * Executes an update.
      *
@@ -120,6 +150,7 @@ public class DrizzleStatement implements Statement {
      * @throws SQLException if the query could not be sent to server.
      */
     public int executeUpdate(final String query) throws SQLException {
+        startTimer();
         try {
             if (queryResult != null) {
                 queryResult.close();
@@ -135,6 +166,7 @@ public class DrizzleStatement implements Statement {
         }
         finally
         {
+            stopTimer();
             if(fileInputStream != null)
             {
                 try
@@ -157,6 +189,7 @@ public class DrizzleStatement implements Statement {
      * @throws SQLException
      */
     public boolean execute(final String query) throws SQLException {
+        startTimer();
         try {
             if (queryResult != null) {
                 queryResult.close();
@@ -170,6 +203,8 @@ public class DrizzleStatement implements Statement {
             return false;
         } catch (QueryException e) {
             throw SQLExceptionMapper.get(e);
+        } finally {
+            stopTimer();
         }
     }
 
@@ -190,6 +225,7 @@ public class DrizzleStatement implements Statement {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public void close() throws SQLException {
+        this.timeoutExecutor.shutdown();
         if (queryResult != null) {
             queryResult.close();
         }
@@ -283,7 +319,7 @@ public class DrizzleStatement implements Statement {
      * @see #setQueryTimeout
      */
     public int getQueryTimeout() throws SQLException {
-        return 0;
+        return queryTimeout;
     }
 
     /**
@@ -299,7 +335,7 @@ public class DrizzleStatement implements Statement {
      * @see #getQueryTimeout
      */
     public void setQueryTimeout(final int seconds) throws SQLException {
-
+        this.queryTimeout = seconds;
     }
 
     /**
