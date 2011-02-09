@@ -31,7 +31,10 @@ public class SyncPacketFetcher implements PacketFetcher {
     }
 
     public void clearInputStream() throws IOException {
-        inputStream.skip(inputStream.available());
+        int available = inputStream.available();
+        while(available > 0) {
+            available -= inputStream.skip(available);
+        }
     }
 
     public void close() throws IOException {

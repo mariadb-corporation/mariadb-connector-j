@@ -17,9 +17,11 @@ public class CancelTest {
     public void cancelQuery() throws SQLException, InterruptedException {
         Connection conn = DriverManager.getConnection("jdbc:drizzle://"+DriverTest.host+":3306/test_units_jdbc");
         Statement stmt = conn.createStatement();
+
         new QueryThread(stmt).start();
         Thread.sleep(1000);
         stmt.cancel();
+        Thread.sleep(100); // need to wait for server to properly finish - not likely in a real app.
 // verify that the connection is still valid:
         ResultSet rs = stmt.executeQuery("SELECT 1 FROM DUAL");
         assertTrue(rs.next());
