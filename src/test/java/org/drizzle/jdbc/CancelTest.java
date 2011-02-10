@@ -35,7 +35,7 @@ public class CancelTest {
         @Override
         public void run() {
             try {
-                stmt.execute("select sleep(1000)"); // seconds
+                stmt.execute("select * from information_schema.columns, information_schema.tables, information_schema.table_constraints");
 
             } catch (SQLException e) {
                 System.out.println(e.getSQLState());
@@ -50,13 +50,13 @@ public class CancelTest {
         Connection conn = DriverManager.getConnection("jdbc:drizzle://"+DriverTest.host+":3306/test_units_jdbc");
         Statement stmt = conn.createStatement();
         stmt.setQueryTimeout(1);
-        stmt.executeQuery("SELECT sleep(10)");
+        stmt.executeQuery("select * from information_schema.columns, information_schema.tables, information_schema.table_constraints");
 
     }
     @Test(expected = SQLQueryTimedOutException.class)
     public void timeoutPrepQuery() throws SQLException, InterruptedException {
         Connection conn = DriverManager.getConnection("jdbc:drizzle://"+DriverTest.host+":3306/test_units_jdbc");
-        PreparedStatement stmt = conn.prepareStatement("select sleep(10)");
+        PreparedStatement stmt = conn.prepareStatement("select * from information_schema.columns, information_schema.tables, information_schema.table_constraints");
         stmt.setQueryTimeout(1);
         stmt.execute();
 
