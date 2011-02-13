@@ -2,9 +2,15 @@ package org.drizzle.jdbc;
 
 import org.junit.Test;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.sql.Blob;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Arrays;
 import java.util.logging.Logger;
 import java.util.logging.Level;
 
@@ -44,6 +50,21 @@ public class BlobTest {
         byte [] pattern = new byte[]{3,4};
         Blob blob = new DrizzleBlob(blobContent);
         blob.position(pattern,44);
+    }
+
+    @Test
+    public void testBug716378() throws SQLException {
+        Connection conn = DriverManager.getConnection("jdbc:drizzle://" + DriverTest.host + ":3306/test_units_jdbc");
+        Statement stmt = conn.createStatement();
+        stmt.execute("drop table  if exists bug716378");
+        stmt.execute("create table bug716378 (id int not null primary key auto_increment, test longblob, test2 blob, test3 text)");
+
+        stmt.executeUpdate("insert into bug716378 values(null, 'a','b','c')");
+        ResultSet rs = stmt.executeQuery("select * from bug716378");
+        assertTrue(rs.next());
+        assertEquals(DrizzleBlob.class, rs.getObject(2).getClass());
+        assertEquals(DrizzleBlob.class, rs.getObject(3).getClass());
+        assertEquals(String.class, rs.getObject(4).getClass());
     }
 
 }

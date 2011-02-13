@@ -70,6 +70,8 @@ public class MySQLValueObject extends AbstractValueObject {
                 return getFloat();
             case TIME:
                 return getTime();
+            case CLOB:
+                return getString();
         }
         return null;
     }
