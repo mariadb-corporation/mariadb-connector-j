@@ -13,41 +13,20 @@ import org.drizzle.jdbc.internal.common.packet.RawPacket;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 /**
  * . User: marcuse Date: Jan 16, 2009 Time: 8:27:38 PM
  */
 public class Reader {
-    //private final InputStream inputReader;
     private final byte packetSeq;
-    private final ByteBuffer byteBuffer;
+    private ByteBuffer byteBuffer;
 
-/*    public Reader(final InputStream inputReader) throws IOException {
-        this.inputReader = inputReader;
-        this.length = readLength();
-        this.packetSeq = readPacketSeq();
-        ReadUtil.safeRead(inputStream.)
-        byteBuffer = ByteBuffer.wrap()
-    }*/
 
     public Reader(final RawPacket rawPacket) {
-        //this.inputReader = new ByteArrayInputStream(rawPacket.getRawBytes());
         this.packetSeq = 0;
         byteBuffer = rawPacket.getByteBuffer();
     }
-
-   /* private int readLength() throws IOException {
-        final byte[] lengthBuffer = new byte[3];
-        for (int i = 0; i < 3; i++) {
-            lengthBuffer[i] = (byte) inputReader.read();
-        }
-        return (lengthBuffer[0] & 0xff) + (lengthBuffer[1] << 8) + (lengthBuffer[2] << 16);
-    }*/
-
-    /*private byte readPacketSeq() throws IOException {
-        return (byte) inputReader.read();
-    } */
-
 
     /**
      * Reads a string from the buffer, looks for a 0 to end the string
@@ -177,11 +156,38 @@ public class Reader {
         return tmpBuf;
     }
 
+    public byte[] getLengthEncodedBytesWithLength(long length) {
+        byte [] tmpBuf = new byte[(int) length];
+        byteBuffer.get(tmpBuf);
+        return tmpBuf;
+    }
+
     public byte getByteAt(final int i) throws IOException {
         return byteBuffer.get(i);
     }
 
     public byte getPacketSeq() {
         return packetSeq;
+    }
+
+    public int getRemainingSize() {
+        return byteBuffer.remaining();
+    }
+
+    public void appendPacket(RawPacket rawPacket) {
+        ByteBuffer newBuffer = ByteBuffer.allocate(byteBuffer.capacity() + rawPacket.getByteBuffer().capacity()).order(ByteOrder.LITTLE_ENDIAN);
+        int pos = byteBuffer.position();
+        byteBuffer.rewind();
+        newBuffer.put(byteBuffer);
+        newBuffer.put(rawPacket.getByteBuffer());
+        newBuffer.position(pos);
+        byteBuffer = newBuffer;
+    }
+
+    public long getSilentLengthEncodedBinary() throws IOException {
+        byteBuffer.mark();
+        long retVal = getLengthEncodedBinary();
+        byteBuffer.reset();
+        return retVal;
     }
 }

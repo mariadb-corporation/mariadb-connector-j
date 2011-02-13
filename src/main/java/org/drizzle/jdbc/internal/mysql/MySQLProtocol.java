@@ -246,22 +246,20 @@ public class MySQLProtocol implements Protocol {
 
             if(ReadUtil.isErrorPacket(rawPacket)) {
                 ErrorPacket errorPacket = (ErrorPacket) ResultPacketFactory.createResultPacket(rawPacket);
-		checkIfCancelled();
+		        checkIfCancelled();
                 throw new QueryException(errorPacket.getMessage(), errorPacket.getErrorNumber(),errorPacket.getSqlState());
             }
 
             if (ReadUtil.eofIsNext(rawPacket)) {
                 final EOFPacket eofPacket = (EOFPacket) ResultPacketFactory.createResultPacket(rawPacket);
-		checkIfCancelled();
+		        checkIfCancelled();
                 return new DrizzleQueryResult(columnInformation, valueObjects, eofPacket.getWarningCount());
             }
 
 
             if(getDatabaseType() == SupportedDatabases.MYSQL) {
-               // todo: loop until rowPacket.isComplete, fill up the bytebuffer 16M chunks a time
                 final MySQLRowPacket rowPacket = new MySQLRowPacket(rawPacket, columnInformation);
-
-                valueObjects.add(rowPacket.getRow());
+                valueObjects.add(rowPacket.getRow(packetFetcher));
             } else {
                 final DrizzleRowPacket rowPacket = new DrizzleRowPacket(rawPacket, columnInformation);
                 valueObjects.add(rowPacket.getRow());
@@ -271,14 +269,14 @@ public class MySQLProtocol implements Protocol {
     }
 
     private void checkIfCancelled() throws QueryException {
-	if(queryWasCancelled) {
-	    queryWasCancelled = false;
-	    throw new QueryException("Query was cancelled by another thread", (short) -1, "JZ0001");
-	}
-	if(queryTimedOut) {
-	    queryTimedOut = false;
-	    throw new QueryException("Query timed out", (short) -1, "JZ0002");
-	}
+        if(queryWasCancelled) {
+            queryWasCancelled = false;
+            throw new QueryException("Query was cancelled by another thread", (short) -1, "JZ0001");
+        }
+        if(queryTimedOut) {
+            queryTimedOut = false;
+            throw new QueryException("Query timed out", (short) -1, "JZ0002");
+        }
     }
 
     public void selectDB(final String database) throws QueryException {
@@ -398,7 +396,7 @@ public class MySQLProtocol implements Protocol {
         switch (resultPacket.getResultType()) {
             case ERROR:
                 final ErrorPacket ep = (ErrorPacket) resultPacket;
-		checkIfCancelled();
+		        checkIfCancelled();
                 log.warning("Could not execute query " + dQuery + ": " + ((ErrorPacket) resultPacket).getMessage());
                 throw new QueryException(ep.getMessage(),
                         ep.getErrorNumber(),
@@ -677,7 +675,7 @@ public class MySQLProtocol implements Protocol {
         {
             case ERROR :
                 final ErrorPacket ep = (ErrorPacket) resultPacket;
-		checkIfCancelled();
+		        checkIfCancelled();
                 throw new QueryException(ep.getMessage(), ep.getErrorNumber(),
                         ep.getSqlState());
             case OK :

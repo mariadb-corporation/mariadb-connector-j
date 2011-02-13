@@ -54,7 +54,7 @@ public final class RawPacket {
             throw new IOException("EOF. Expected " + length + ", got " + nr);
         }
 
-        return new RawPacket(ByteBuffer.wrap(rawBytes).asReadOnlyBuffer().order(ByteOrder.LITTLE_ENDIAN),
+        return new RawPacket(ByteBuffer.wrap(rawBytes).order(ByteOrder.LITTLE_ENDIAN),
                              packetSeq);
     }
 
