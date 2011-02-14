@@ -4,7 +4,7 @@
     <artifactId>drizzle-jdbc</artifactId>
     <packaging>jar</packaging>
     <name>Drizzle-JDBC</name>
-    <version>0.8</version>
+    <version>0.9-SNAPSHOT</version>
     <description>BSD Licensed JDBC driver for Drizzle and MySQL</description>
     <url>http://launchpad.net/drizzle-jdbc/</url>
     <properties>
