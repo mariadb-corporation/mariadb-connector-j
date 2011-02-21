@@ -83,7 +83,7 @@ public final class MySQLDatabaseMetaData extends CommonDatabaseMetaData {
                 "            table_name," +
                 "            column_name," +
                 dataTypeClause + " data_type," +
-                "            data_type type_name," +
+                "            column_type type_name," +
                 "            character_maximum_length column_size," +
                 "            0 buffer_length," +
                 "            numeric_precision decimal_digits," +
