@@ -95,7 +95,7 @@ public class DatabaseMetadataTest {
         DatabaseMetaData dbmd = connection.getMetaData();
         ResultSet rs = dbmd.getSchemas(null,"information_schema");
         assertEquals(true,rs.next());
-        assertEquals("information_schema",rs.getString("table_schem"));
+        assertEquals("information_schema",rs.getString("table_schem").toLowerCase());
         assertEquals(false,rs.next());
         rs = dbmd.getSchemas(null,"test_units_jdbc");
         assertEquals(true,rs.next());
