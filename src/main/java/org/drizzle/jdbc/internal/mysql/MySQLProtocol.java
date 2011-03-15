@@ -44,6 +44,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.BufferedInputStream;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -107,7 +108,25 @@ public class MySQLProtocol implements Protocol {
 
         final SocketFactory socketFactory = SocketFactory.getDefault();
         try {
-            socket = socketFactory.createSocket(host, port);
+		// Extract connectTimeout URL parameter
+		String connectTimeoutString = info.getProperty("connectTimeout");
+		Integer connectTimeout = null;
+		if (connectTimeoutString != null) {
+			try {
+				connectTimeout = Integer.valueOf(connectTimeoutString);
+			} catch (Exception e) {
+				connectTimeout = null;
+			}
+		}
+
+		// Create socket with timeout if required
+		InetSocketAddress sockAddr = new InetSocketAddress(host, port);
+		socket = socketFactory.createSocket();
+		if (connectTimeout != null) {
+			socket.connect(sockAddr, connectTimeout.intValue() * 1000);
+		} else {
+			socket.connect(sockAddr);
+		}
         } catch (IOException e) {
             throw new QueryException("Could not connect: " + e.getMessage(),
                     -1,
