@@ -8,6 +8,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLNonTransientException;
 import java.sql.Statement;
 
 import static org.junit.Assert.assertTrue;
@@ -59,6 +60,11 @@ public class CancelTest {
         PreparedStatement stmt = conn.prepareStatement("select * from information_schema.columns, information_schema.tables, information_schema.table_constraints");
         stmt.setQueryTimeout(1);
         stmt.execute();
-
     }
+    @Test(expected = SQLNonTransientException.class)
+    public void connectionTimeout() throws SQLException {
+        Connection conn = DriverManager.getConnection("jdbc:drizzle://www.google.com:1234/test_units_jdbc?connectTimeout=1");
+    }
+
+    
 }

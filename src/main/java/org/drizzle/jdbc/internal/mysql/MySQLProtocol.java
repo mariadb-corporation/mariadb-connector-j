@@ -44,6 +44,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.BufferedInputStream;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -107,7 +108,25 @@ public class MySQLProtocol implements Protocol {
 
         final SocketFactory socketFactory = SocketFactory.getDefault();
         try {
-            socket = socketFactory.createSocket(host, port);
+            // Extract connectTimeout URL parameter
+            String connectTimeoutString = info.getProperty("connectTimeout");
+            Integer connectTimeout = null;
+            if (connectTimeoutString != null) {
+                try {
+                    connectTimeout = Integer.valueOf(connectTimeoutString);
+                } catch (Exception e) {
+                    connectTimeout = null;
+                }
+            }
+
+            // Create socket with timeout if required
+            InetSocketAddress sockAddr = new InetSocketAddress(host, port);
+            socket = socketFactory.createSocket();
+            if (connectTimeout != null) {
+                socket.connect(sockAddr, connectTimeout * 1000);
+            } else {
+                socket.connect(sockAddr);
+            }
         } catch (IOException e) {
             throw new QueryException("Could not connect: " + e.getMessage(),
                     -1,
@@ -133,7 +152,7 @@ public class MySQLProtocol implements Protocol {
 
             // If a database is given, but createDB is not defined or is false,
             // then just try to connect to the given database
-            if(this.database != null && !createDB())
+            if (this.database != null && !createDB())
                 capabilities.add(MySQLServerCapabilities.CONNECT_WITH_DB);
 
             final MySQLClientAuthPacket cap = new MySQLClientAuthPacket(this.username,
@@ -144,17 +163,16 @@ public class MySQLProtocol implements Protocol {
             cap.send(writer);
             log.finest("Sending auth packet");
 
-            RawPacket rp = packetFetcher.getRawPacket();            
-            if((rp.getByteBuffer().get(0) & 0xFF) == 0xFE)
-            {   // Server asking for old format password
+            RawPacket rp = packetFetcher.getRawPacket();
+            if ((rp.getByteBuffer().get(0) & 0xFF) == 0xFE) {   // Server asking for old format password
                 final MySQLClientOldPasswordAuthPacket oldPassPacket = new MySQLClientOldPasswordAuthPacket(
                         this.password, Utils.copyWithLength(greetingPacket.getSeed(),
-                                8), rp.getPacketSeq() + 1);
+                        8), rp.getPacketSeq() + 1);
                 oldPassPacket.send(writer);
-                
+
                 rp = packetFetcher.getRawPacket();
             }
-            
+
             final ResultPacket resultPacket = ResultPacketFactory.createResultPacket(rp);
             if (resultPacket.getResultType() == ResultPacket.ResultType.ERROR) {
                 final ErrorPacket ep = (ErrorPacket) resultPacket;
@@ -164,8 +182,7 @@ public class MySQLProtocol implements Protocol {
 
             // At this point, the driver is connected to the database, if createDB is true, 
             // then just try to create the database and to use it
-            if(createDB())
-            {
+            if (createDB()) {
                 // Try to create the database if it does not exist
                 executeQuery(new DrizzleQuery("CREATE DATABASE IF NOT EXISTS " + this.database));
                 // and switch to this database
@@ -190,12 +207,9 @@ public class MySQLProtocol implements Protocol {
     public void close() throws QueryException {
         try {
             socket.shutdownInput();
-         }
-         catch (IOException ignored)
-         {
-         }
-         try
-         {
+        } catch (IOException ignored) {
+        }
+        try {
             final ClosePacket closePacket = new ClosePacket();
             closePacket.send(writer);
             socket.shutdownOutput();
@@ -244,20 +258,20 @@ public class MySQLProtocol implements Protocol {
         while (true) {
             final RawPacket rawPacket = packetFetcher.getRawPacket();
 
-            if(ReadUtil.isErrorPacket(rawPacket)) {
+            if (ReadUtil.isErrorPacket(rawPacket)) {
                 ErrorPacket errorPacket = (ErrorPacket) ResultPacketFactory.createResultPacket(rawPacket);
-		        checkIfCancelled();
-                throw new QueryException(errorPacket.getMessage(), errorPacket.getErrorNumber(),errorPacket.getSqlState());
+                checkIfCancelled();
+                throw new QueryException(errorPacket.getMessage(), errorPacket.getErrorNumber(), errorPacket.getSqlState());
             }
 
             if (ReadUtil.eofIsNext(rawPacket)) {
                 final EOFPacket eofPacket = (EOFPacket) ResultPacketFactory.createResultPacket(rawPacket);
-		        checkIfCancelled();
+                checkIfCancelled();
                 return new DrizzleQueryResult(columnInformation, valueObjects, eofPacket.getWarningCount());
             }
 
 
-            if(getDatabaseType() == SupportedDatabases.MYSQL) {
+            if (getDatabaseType() == SupportedDatabases.MYSQL) {
                 final MySQLRowPacket rowPacket = new MySQLRowPacket(rawPacket, columnInformation);
                 valueObjects.add(rowPacket.getRow(packetFetcher));
             } else {
@@ -269,11 +283,11 @@ public class MySQLProtocol implements Protocol {
     }
 
     private void checkIfCancelled() throws QueryException {
-        if(queryWasCancelled) {
+        if (queryWasCancelled) {
             queryWasCancelled = false;
             throw new QueryException("Query was cancelled by another thread", (short) -1, "JZ0001");
         }
-        if(queryTimedOut) {
+        if (queryTimedOut) {
             queryTimedOut = false;
             throw new QueryException("Query timed out", (short) -1, "JZ0002");
         }
@@ -367,7 +381,7 @@ public class MySQLProtocol implements Protocol {
 
     public QueryResult executeQuery(final Query dQuery) throws QueryException {
         log.finest("Executing streamed query: " + dQuery);
-       // this.queryWasCancelled = false;
+        // this.queryWasCancelled = false;
         final StreamedQueryPacket packet = new StreamedQueryPacket(dQuery);
 
         try {
@@ -396,7 +410,7 @@ public class MySQLProtocol implements Protocol {
         switch (resultPacket.getResultType()) {
             case ERROR:
                 final ErrorPacket ep = (ErrorPacket) resultPacket;
-		        checkIfCancelled();
+                checkIfCancelled();
                 log.warning("Could not execute query " + dQuery + ": " + ((ErrorPacket) resultPacket).getMessage());
                 throw new QueryException(ep.getMessage(),
                         ep.getErrorNumber(),
@@ -421,8 +435,8 @@ public class MySQLProtocol implements Protocol {
                             e);
                 }
             default:
-                log.severe("Could not parse result..."+resultPacket.getResultType());
-                throw new QueryException("Could not parse result", (short)-1, SQLExceptionMapper.SQLStates.INTERRUPTED_EXCEPTION.getSqlState());
+                log.severe("Could not parse result..." + resultPacket.getResultType());
+                throw new QueryException("Could not parse result", (short) -1, SQLExceptionMapper.SQLStates.INTERRUPTED_EXCEPTION.getSqlState());
         }
 
     }
@@ -468,77 +482,69 @@ public class MySQLProtocol implements Protocol {
     }
 
     public boolean supportsPBMS() {
-        return info != null && info.getProperty("enableBlobStreaming","").equalsIgnoreCase("true");
+        return info != null && info.getProperty("enableBlobStreaming", "").equalsIgnoreCase("true");
     }
 
     public String getServerVariable(String variable) throws QueryException {
-        DrizzleQueryResult qr = (DrizzleQueryResult) executeQuery(new DrizzleQuery("select @@"+variable));
-        if(!qr.next()) {
-            throw new QueryException("Could not get variable: "+variable);
+        DrizzleQueryResult qr = (DrizzleQueryResult) executeQuery(new DrizzleQuery("select @@" + variable));
+        if (!qr.next()) {
+            throw new QueryException("Could not get variable: " + variable);
         }
 
         try {
             String value = qr.getValueObject(0).getString();
             return value;
         } catch (NoSuchColumnException e) {
-            throw new QueryException("Could not get variable: "+variable);
+            throw new QueryException("Could not get variable: " + variable);
         }
     }
 
     public QueryResult executeQuery(Query dQuery,
-            FileInputStream fileInputStream) throws QueryException
-    {
+                                    FileInputStream fileInputStream) throws QueryException {
         int packIndex = 0;
-        
+
         log.finest("Executing streamed query: " + dQuery);
         final StreamedQueryPacket packet = new StreamedQueryPacket(dQuery);
 
-        try
-        {
+        try {
             packIndex = packet.send(writer);
             packIndex++;
-        }
-        catch (IOException e)
-        {
+        } catch (IOException e) {
             throw new QueryException("Could not send query: " + e.getMessage(),
                     -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION
-                            .getSqlState(), e);
+                    .getSqlState(), e);
         }
 
         RawPacket rawPacket;
         ResultPacket resultPacket;
 
-        try
-        {
+        try {
             rawPacket = packetFetcher.getRawPacket();
             resultPacket = ResultPacketFactory.createResultPacket(rawPacket);
-        }
-        catch (IOException e)
-        {
+        } catch (IOException e) {
             throw new QueryException("Could not read resultset: "
                     + e.getMessage(), -1,
                     SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION
                             .getSqlState(), e);
         }
-        
-        if(rawPacket.getPacketSeq() != packIndex)
+
+        if (rawPacket.getPacketSeq() != packIndex)
             throw new QueryException("Got out of order packet ", -1,
                     SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION
                             .getSqlState(), null);
 
-        switch (resultPacket.getResultType())
-        {
-            case ERROR :
+        switch (resultPacket.getResultType()) {
+            case ERROR:
                 final ErrorPacket ep = (ErrorPacket) resultPacket;
                 log.warning("Could not execute query " + dQuery + ": "
                         + ((ErrorPacket) resultPacket).getMessage());
                 throw new QueryException(ep.getMessage(), ep.getErrorNumber(),
                         ep.getSqlState());
-            case OK :
+            case OK:
                 break;
-            case RESULTSET :
+            case RESULTSET:
                 break;
-            default :
+            default:
                 log.severe("Could not parse result...");
                 throw new QueryException("Could not parse result");
         }
@@ -549,59 +555,56 @@ public class MySQLProtocol implements Protocol {
 
     /**
      * cancels the current query - clones the current protocol and executes a query using the new connection
-     *
+     * <p/>
      * thread safe
+     *
      * @throws QueryException
      */
     public void cancelCurrentQuery() throws QueryException {
         Protocol copiedProtocol = new MySQLProtocol(host, port, database, username, password, info);
         queryWasCancelled = true;
-        copiedProtocol.executeQuery(new DrizzleQuery("KILL QUERY "+serverThreadId));
+        copiedProtocol.executeQuery(new DrizzleQuery("KILL QUERY " + serverThreadId));
         copiedProtocol.close();
     }
 
     public void timeOut() throws QueryException {
         Protocol copiedProtocol = new MySQLProtocol(host, port, database, username, password, info);
         queryTimedOut = true;
-        copiedProtocol.executeQuery(new DrizzleQuery("KILL QUERY "+serverThreadId));
+        copiedProtocol.executeQuery(new DrizzleQuery("KILL QUERY " + serverThreadId));
         copiedProtocol.close();
 
     }
 
     public boolean createDB() {
         return info != null
-               && info.getProperty("createDB", "").equalsIgnoreCase("true");
+                && info.getProperty("createDB", "").equalsIgnoreCase("true");
     }
-    
-    
+
+
     /**
      * Send the given file to the server starting with packet number packIndex
-     * 
-     * @param dQuery the query that was first issued
+     *
+     * @param dQuery          the query that was first issued
      * @param fileInputStream input stream used to read the file
-     * @param packIndex Starting index, which will be used for sending packets
+     * @param packIndex       Starting index, which will be used for sending packets
      * @return the result of the query execution
      * @throws QueryException if something wrong happens
      */
     private QueryResult sendFile(Query dQuery, FileInputStream fileInputStream,
-            int packIndex) throws QueryException
-    {
-        byte[] emptyHeader =  Utils.copyWithLength(intToByteArray(0), 4);
+                                 int packIndex) throws QueryException {
+        byte[] emptyHeader = Utils.copyWithLength(intToByteArray(0), 4);
         RawPacket rawPacket;
         ResultPacket resultPacket;
-        
+
         BufferedInputStream bufferedInputStream = new BufferedInputStream(
                 fileInputStream);
 
         ByteArrayOutputStream bOS = new ByteArrayOutputStream();
 
-        try
-        {
-            while (true)
-            {
+        try {
+            while (true) {
                 int data = bufferedInputStream.read();
-                if (data == -1)
-                {
+                if (data == -1) {
                     // Send the last packet
                     byte[] data1 = bOS.toByteArray();
                     byte[] byteHeader = Utils.copyWithLength(
@@ -617,112 +620,98 @@ public class MySQLProtocol implements Protocol {
                     packIndex++;
                     break;
                 }
-                
+
                 // Add data into buffer
                 bOS.write(data);
-                
-                if(bOS.size() >= 0xffffff)
-                {
+
+                if (bOS.size() >= 0xffffff) {
                     byte[] byteHeader = Utils.copyWithLength(intToByteArray(bOS.size()), 4);
                     byteHeader[3] = (byte) packIndex;
-                    
+
                     log.finest("Sending : " + MySQLProtocol.hexdump(byteHeader, 0));
                     // Send the packet
                     writer.write(byteHeader);
-                    
+
                     bOS.writeTo(writer);
                     writer.flush();
-                    packIndex++;                    
+                    packIndex++;
                     break;
 
                 }
             }
-        }
-        catch (IOException e)
-        {
+        } catch (IOException e) {
             throw new QueryException("Could not send query: " + e.getMessage(),
                     -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION
-                            .getSqlState(), e);
+                    .getSqlState(), e);
         }
-        try
-        {
+        try {
             emptyHeader[3] = (byte) packIndex;
             writer.write(emptyHeader);
             log.finest("Sending : " + MySQLProtocol.hexdump(emptyHeader, 0));
             writer.flush();
-        }
-        catch (IOException e)
-        {
+        } catch (IOException e) {
             throw new QueryException("Could not send query: " + e.getMessage(),
                     -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION
-                            .getSqlState(), e);
+                    .getSqlState(), e);
         }
 
-        try
-        {
+        try {
             rawPacket = packetFetcher.getRawPacket();
             resultPacket = ResultPacketFactory.createResultPacket(rawPacket);
-        }
-        catch (IOException e)
-        {
+        } catch (IOException e) {
             throw new QueryException("Could not read resultset: "
                     + e.getMessage(), -1,
                     SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION
                             .getSqlState(), e);
         }
 
-        switch (resultPacket.getResultType())
-        {
-            case ERROR :
+        switch (resultPacket.getResultType()) {
+            case ERROR:
                 final ErrorPacket ep = (ErrorPacket) resultPacket;
-		        checkIfCancelled();
+                checkIfCancelled();
                 throw new QueryException(ep.getMessage(), ep.getErrorNumber(),
                         ep.getSqlState());
-            case OK :
+            case OK:
                 final OKPacket okpacket = (OKPacket) resultPacket;
                 final QueryResult updateResult = new DrizzleUpdateResult(
                         okpacket.getAffectedRows(), okpacket.getWarnings(),
                         okpacket.getMessage(), okpacket.getInsertId());
                 log.fine("OK, " + okpacket.getAffectedRows());
                 return updateResult;
-            case RESULTSET :
+            case RESULTSET:
                 log.fine("SELECT executed, fetching result set");
-                try
-                {
+                try {
                     return this
                             .createDrizzleQueryResult((ResultSetPacket) resultPacket);
-                }
-                catch (IOException e)
-                {
+                } catch (IOException e) {
                     throw new QueryException("Could not read result set: "
                             + e.getMessage(), -1,
                             SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION
                                     .getSqlState(), e);
                 }
-            default :
+            default:
                 log.severe("Could not parse result...");
                 throw new QueryException("Could not parse result");
         }
     }
-    public static String hexdump(byte[] buffer, int offset)
-    {
+
+    public static String hexdump(byte[] buffer, int offset) {
         StringBuffer dump = new StringBuffer();
-        if ((buffer.length - offset) > 0)
-        {
+        if ((buffer.length - offset) > 0) {
             dump.append(String.format("%02x", buffer[offset]));
-            for (int i = offset + 1; i < buffer.length; i++)
-            {
+            for (int i = offset + 1; i < buffer.length; i++) {
                 dump.append("_");
                 dump.append(String.format("%02x", buffer[i]));
             }
         }
         return dump.toString();
     }
+
     public static String hexdump(ByteBuffer bb, int offset) {
-        byte [] b = new byte[bb.capacity()];
+        byte[] b = new byte[bb.capacity()];
         bb.mark();
         bb.get(b);
         bb.reset();
-        return hexdump(b,offset);
+        return hexdump(b, offset);
     }
 }
