@@ -60,7 +60,7 @@ public class MySQLClientAuthPacket implements CommandPacket {
         }
         final int packetLength =
                 4 + 4 + 1 + 23 + username.length() + 1 + scrambledPassword.length + 1 + database.length() + 1;
-        final byte serverLanguage = 45;
+        final byte serverLanguage = 33;
         writeBuffer.writeInt(MySQLServerCapabilities.fromSet(serverCapabilities)).
                 writeInt(packetLength).
                 writeByte(serverLanguage). //1
