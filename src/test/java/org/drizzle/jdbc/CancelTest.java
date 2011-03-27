@@ -1,5 +1,6 @@
 package org.drizzle.jdbc;
 
+import org.drizzle.jdbc.exception.SQLQueryCancelledException;
 import org.drizzle.jdbc.exception.SQLQueryTimedOutException;
 import org.junit.Test;
 
@@ -14,34 +15,32 @@ import java.sql.Statement;
 import static org.junit.Assert.assertTrue;
 
 public class CancelTest {
-    @Test
+    @Test(expected = SQLQueryCancelledException.class)
     public void cancelQuery() throws SQLException, InterruptedException {
         Connection conn = DriverManager.getConnection("jdbc:drizzle://"+DriverTest.host+":3306/test_units_jdbc");
         Statement stmt = conn.createStatement();
+         new CancelThread(stmt).start();
+        stmt.execute("select * from information_schema.columns, information_schema.tables, information_schema.table_constraints");
 
-        new QueryThread(stmt).start();
-        Thread.sleep(1000);
-        stmt.cancel();
-        Thread.sleep(100); // need to wait for server to properly finish - not likely in a real app.
-// verify that the connection is still valid:
-        ResultSet rs = stmt.executeQuery("SELECT 1 FROM DUAL");
-        assertTrue(rs.next());
     }
-    private static class QueryThread extends Thread {
+    private static class CancelThread extends Thread {
         private final Statement stmt;
 
-        public QueryThread(Statement stmt) {
+        public CancelThread(Statement stmt) {
             this.stmt = stmt;
         }
         @Override
         public void run() {
             try {
-                stmt.execute("select * from information_schema.columns, information_schema.tables, information_schema.table_constraints");
+                Thread.sleep(1000);
+
+                stmt.cancel();
 
             } catch (SQLException e) {
-                System.out.println(e.getSQLState());
-                //e.printStackTrace();
+                e.printStackTrace();
                 throw new RuntimeException(e);
+            } catch (InterruptedException e) {
+                e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
             }
         }
     }
