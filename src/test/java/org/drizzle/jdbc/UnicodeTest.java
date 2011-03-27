@@ -21,7 +21,7 @@ static { Logger.getLogger("").setLevel(Level.OFF); }
     @Test
     public void firstTest() throws SQLException {
 
-        Connection connection = DriverManager.getConnection("jdbc:drizzle://"+DriverTest.host+":4427/test_units_jdbc");
+        Connection connection = DriverManager.getConnection("jdbc:drizzle://root@"+DriverTest.host+":4427/test_units_jdbc");
         String jaString = "\u65e5\u672c\u8a9e\u6587\u5b57\u5217"; // hmm wonder what this means...
         Statement stmt = connection.createStatement();
         stmt.executeUpdate("drop table if exists unicode_test");

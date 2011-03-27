@@ -20,7 +20,7 @@ public class DateTest {
     static { Logger.getLogger("").setLevel(Level.OFF); }
     @Test
     public void dateTest() throws SQLException {
-        Connection connection = DriverManager.getConnection("jdbc:drizzle://"+DriverTest.host+":3307/test_units_jdbc");
+        Connection connection = DriverManager.getConnection("jdbc:drizzle://root@"+DriverTest.host+":3307/test_units_jdbc");
 
         Statement stmt = connection.createStatement();
         stmt.executeUpdate("drop table if exists date_test");

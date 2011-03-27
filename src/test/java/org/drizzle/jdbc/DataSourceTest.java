@@ -18,7 +18,7 @@ public class DataSourceTest {
     @Test
     public void testDrizzleDataSource() throws SQLException {
         DataSource ds = new DrizzleDataSource(DriverTest.host,3307,"test_units_jdbc");
-        Connection connection = ds.getConnection();
+        Connection connection = ds.getConnection("root", null);
         assertEquals(connection.isValid(0),true);
     }
     @Test
