@@ -13,18 +13,17 @@ import org.drizzle.jdbc.internal.common.Utils;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 /**
- * Since drizzle has no time datatype, jdbc time is stored in a packed integer
- *
- * @see Utils#packTime(long)
  */
 public class TimeParameter implements ParameterHolder {
     private final byte[] byteRepresentation;
 
     public TimeParameter(final long timestamp) {
-        final int packedTime = Utils.packTime(timestamp);
-        byteRepresentation = String.valueOf(packedTime).getBytes();
+        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+        byteRepresentation = ("\""+sdf.format(new Date(timestamp))+"\"").getBytes();
     }
 
     public int writeTo(final OutputStream os, int offset, int maxWriteSize) throws IOException {

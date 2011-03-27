@@ -32,9 +32,9 @@ public class DrizzleValueObject extends AbstractValueObject {
         if (this.getBytes() == null) {
             return null;
         }
-        switch (((MySQLType) dataType).getType()) {
+        switch (dataType.getType()) {
             case TINY:
-                return getShort();
+                return getBoolean();
             case LONG:
                 return getLong();
             case DOUBLE:

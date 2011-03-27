@@ -131,17 +131,20 @@ public abstract class AbstractValueObject implements ValueObject {
         if (rawBytes == null) {
             return null;
         }
-        final int packedValue = getInt();
-        final long timestamp = Utils.unpackTime(packedValue);
-        return new Time(timestamp);
+        String rawValue = getString();
+        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+
+        sdf.setLenient(false);
+        final java.util.Date utilTime = sdf.parse(rawValue);
+        return new Time(utilTime.getTime());
     }
 
     public Timestamp getTimestamp() throws ParseException {
         if (rawBytes == null) {
             return null;
         }
-        final String rawValue = getString();
-        final SimpleDateFormat sdf;
+        String rawValue = getString();
+        SimpleDateFormat sdf;
 
         if (rawValue.length() > 11) {
             sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");

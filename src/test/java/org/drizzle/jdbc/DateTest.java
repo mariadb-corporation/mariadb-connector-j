@@ -24,7 +24,7 @@ public class DateTest {
 
         Statement stmt = connection.createStatement();
         stmt.executeUpdate("drop table if exists date_test");
-        stmt.executeUpdate("create table date_test (id int not null primary key auto_increment, d_test date,dt_test datetime, t_test int)");
+        stmt.executeUpdate("create table date_test (id int not null primary key auto_increment, d_test date,dt_test datetime, t_test time)");
         Date date = Date.valueOf("2009-01-17");
         Timestamp timestamp = Timestamp.valueOf("2009-01-17 15:41:01");
         Time time = Time.valueOf("23:59:59");
