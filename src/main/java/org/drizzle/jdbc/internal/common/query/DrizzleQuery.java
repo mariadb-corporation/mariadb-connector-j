@@ -22,10 +22,20 @@ public class DrizzleQuery implements Query {
 
     public DrizzleQuery(final String query) {
         this.query = query;
-        queryToSend = query.getBytes();
+        try {
+            queryToSend = query.getBytes("UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException("Unsupported encoding: " + e.getMessage(), e);
+        }
     }
+
     public DrizzleQuery(final byte[] query) {
         queryToSend = query;
+        try {
+            this.query = new String(query, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException("Unsupported encoding: " + e.getMessage(), e);
+        }
         this.query = new String(query);
     }
 
@@ -34,7 +44,6 @@ public class DrizzleQuery implements Query {
     }
 
     public void writeTo(final OutputStream os) throws IOException {
-        
         os.write(queryToSend, 0, queryToSend.length);
     }
 
