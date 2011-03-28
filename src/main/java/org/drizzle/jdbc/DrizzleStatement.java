@@ -53,7 +53,7 @@ public class DrizzleStatement implements Statement {
     /**
      * the sql Connection object.
      */
-    private final Connection connection;
+    private final DrizzleConnection connection;
 
 
     /**
@@ -70,7 +70,7 @@ public class DrizzleStatement implements Statement {
     private final QueryFactory queryFactory;
     private FileInputStream fileInputStream;
 
-    private final ScheduledExecutorService timeoutExecutor = Executors.newSingleThreadScheduledExecutor();
+
     private int queryTimeout;
     private ScheduledFuture<?> timoutFuture;
 
@@ -83,7 +83,7 @@ public class DrizzleStatement implements Statement {
      */
 
     public DrizzleStatement(final Protocol protocol,
-                            final Connection connection,
+                            final DrizzleConnection connection,
                             final QueryFactory queryFactory) {
         this.protocol = protocol;
         this.connection = connection;
@@ -125,7 +125,7 @@ public class DrizzleStatement implements Statement {
 
     protected void startTimer() {
         if(this.queryTimeout > 0) {
-            this.timoutFuture = this.timeoutExecutor.schedule(new Runnable() {
+            this.timoutFuture = this.connection.getTimeoutExecutor().schedule(new Runnable() {
                 public void run() {
                     try {
                         getProtocol().timeOut();
@@ -225,7 +225,6 @@ public class DrizzleStatement implements Statement {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public void close() throws SQLException {
-        this.timeoutExecutor.shutdown();
         if (queryResult != null) {
             queryResult.close();
         }

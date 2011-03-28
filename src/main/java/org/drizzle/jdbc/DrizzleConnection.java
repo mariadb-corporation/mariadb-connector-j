@@ -35,6 +35,8 @@ import java.sql.Struct;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 /**
  * A JDBC Connection.
@@ -62,6 +64,13 @@ public final class DrizzleConnection
 
     private ParameterizedBatchHandlerFactory parameterizedBatchHandlerFactory;
 
+
+    /**
+     * Executor that keeps track of timeouts for statements
+     *
+     * Works having just one thread for this since it is not legal to have several executing queries on the same connection!
+     */
+    private final ScheduledExecutorService timeoutExecutor = Executors.newSingleThreadScheduledExecutor();
     /**
      * Creates a new connection with a given protocol and query factory.
      *
@@ -193,6 +202,7 @@ public final class DrizzleConnection
      */
     public void close() throws SQLException {
         try {
+            this.timeoutExecutor.shutdown();
             protocol.close();
         } catch (QueryException e) {
             throw SQLExceptionMapper.get(e);
@@ -1191,4 +1201,9 @@ public final class DrizzleConnection
     public void setBatchQueryHandlerFactory(final ParameterizedBatchHandlerFactory batchHandlerFactory) {
         this.parameterizedBatchHandlerFactory = batchHandlerFactory;
     }
+
+    protected ScheduledExecutorService getTimeoutExecutor() {
+        return timeoutExecutor;
+    }
+
 }
