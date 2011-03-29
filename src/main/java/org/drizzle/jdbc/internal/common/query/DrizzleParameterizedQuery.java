@@ -16,6 +16,7 @@ import org.drizzle.jdbc.internal.common.query.parameters.ParameterHolder;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 import java.util.List;
 
 /**
@@ -33,7 +34,11 @@ public class DrizzleParameterizedQuery implements ParameterizedQuery {
         List<String> queryParts = createQueryParts(query);
         queryPartsArray = new byte[queryParts.size()][];
         for(int i=0;i < queryParts.size(); i++) {
-            queryPartsArray[i] = queryParts.get(i).getBytes();
+            try {
+                queryPartsArray[i] = queryParts.get(i).getBytes("UTF-8");
+            } catch (UnsupportedEncodingException e) {
+                throw new RuntimeException("UTF-8 not supported", e);
+            }
         }
         paramCount = queryParts.size() - 1;
         parameters = new ParameterHolder[paramCount];

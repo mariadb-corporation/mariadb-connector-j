@@ -11,6 +11,7 @@ package org.drizzle.jdbc.internal.common.query;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 
 /**
  * . User: marcuse Date: Feb 20, 2009 Time: 10:43:58 PM
@@ -22,11 +23,20 @@ public class DrizzleQuery implements Query {
 
     public DrizzleQuery(final String query) {
         this.query = query;
-        queryToSend = query.getBytes();
+        try {
+            queryToSend = query.getBytes("UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException("Unsupported encoding: " + e.getMessage(), e);
+        }
     }
+
     public DrizzleQuery(final byte[] query) {
         queryToSend = query;
-        this.query = new String(query);
+        try {
+            this.query = new String(query, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException("Unsupported encoding: " + e.getMessage(), e);
+        }
     }
 
     public int length() {
@@ -34,7 +44,6 @@ public class DrizzleQuery implements Query {
     }
 
     public void writeTo(final OutputStream os) throws IOException {
-        
         os.write(queryToSend, 0, queryToSend.length);
     }
 

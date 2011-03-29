@@ -9,6 +9,7 @@
 
 package org.drizzle.jdbc.internal.common;
 
+import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
@@ -80,8 +81,13 @@ public class Utils {
      * @return an escaped string
      */
     public static String sqlEscapeString(final String str) {
-        final byte[] strBytes = str.getBytes();
-        final byte[] outBytes = new byte[strBytes.length * 2]; //overkill but safe, streams need to be escaped on-the-fly
+        byte[] strBytes = new byte[0];
+        try {
+            strBytes = str.getBytes("UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException("UTF-8 not supported", e);
+        }
+        byte[] outBytes = new byte[strBytes.length * 2]; //overkill but safe, streams need to be escaped on-the-fly
         int bytePointer = 0;
         boolean neededEscaping = false;
         for (final byte b : strBytes) {
@@ -94,7 +100,11 @@ public class Utils {
             }
         }
         if(neededEscaping)
-            return new String(outBytes, 0, bytePointer);
+            try {
+                return new String(outBytes, 0, bytePointer, "UTF-8");
+            } catch (UnsupportedEncodingException e) {
+                throw new RuntimeException("UTF-8 not supported", e);
+            }
         else
             return str;
     }
@@ -141,9 +151,16 @@ public class Utils {
         boolean isWithinQuotes = false;
         int queryPos = 0;
         int lastQueryPos = 0;
-
         List<String> queryParts = new LinkedList<String>();
-        for (final byte b : query.getBytes()) {
+
+        byte [] queryBytes;
+        try {
+            queryBytes = query.getBytes("UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException("UTF-8 not supported", e);
+        }
+        
+        for (final byte b : queryBytes) {
 
             if (b == '"' && !isWithinQuotes && !isWithinDoubleQuotes) {
                 isWithinDoubleQuotes = true;

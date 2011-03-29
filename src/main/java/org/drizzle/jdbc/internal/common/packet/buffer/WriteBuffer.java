@@ -9,6 +9,7 @@
 
 package org.drizzle.jdbc.internal.common.packet.buffer;
 
+import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
@@ -64,7 +65,12 @@ public class WriteBuffer {
     }
 
     public WriteBuffer writeString(final String str) {
-        final byte[] strBytes = str.getBytes();
+        final byte[] strBytes;
+        try {
+            strBytes = str.getBytes("UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException("UTF-8 not supported", e);
+        }
         return writeByteArray(strBytes);
 
     }

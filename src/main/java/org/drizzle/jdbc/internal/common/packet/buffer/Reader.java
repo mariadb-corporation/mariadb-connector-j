@@ -142,7 +142,7 @@ public class Reader {
         }
         final byte[] tmpBuf = new byte[(int) encLength];
         byteBuffer.get(tmpBuf);
-        return new String(tmpBuf);
+        return new String(tmpBuf, "UTF-8");
     }
 
     public byte[] getLengthEncodedBytes() throws IOException {
