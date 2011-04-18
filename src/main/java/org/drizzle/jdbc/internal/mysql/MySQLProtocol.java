@@ -48,12 +48,15 @@ import org.drizzle.jdbc.internal.drizzle.packet.DrizzleRowPacket;
 import org.drizzle.jdbc.internal.mysql.packet.MySQLFieldPacket;
 import org.drizzle.jdbc.internal.mysql.packet.MySQLGreetingReadPacket;
 import org.drizzle.jdbc.internal.mysql.packet.MySQLRowPacket;
+import org.drizzle.jdbc.internal.mysql.packet.commands.AbbreviatedMySQLClientAuthPacket;
 import org.drizzle.jdbc.internal.mysql.packet.commands.MySQLBinlogDumpPacket;
 import org.drizzle.jdbc.internal.mysql.packet.commands.MySQLClientAuthPacket;
 import org.drizzle.jdbc.internal.mysql.packet.commands.MySQLClientOldPasswordAuthPacket;
 import org.drizzle.jdbc.internal.mysql.packet.commands.MySQLPingPacket;
 
 import javax.net.SocketFactory;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
@@ -79,8 +82,8 @@ import static org.drizzle.jdbc.internal.common.packet.buffer.WriteBuffer.intToBy
 public class MySQLProtocol implements Protocol {
     private final static Logger log = Logger.getLogger(MySQLProtocol.class.getName());
     private boolean connected = false;
-    private final Socket socket;
-    private final BufferedOutputStream writer;
+    private Socket socket;
+    private BufferedOutputStream writer;
     private final String version;
     private boolean readOnly = false;
     private final String host;
@@ -89,7 +92,7 @@ public class MySQLProtocol implements Protocol {
     private final String username;
     private final String password;
     private final List<Query> batchList;
-    private final PacketFetcher packetFetcher;
+    private PacketFetcher packetFetcher;
     private final Properties info;
     private final long serverThreadId;
     private volatile boolean queryWasCancelled = false;
@@ -150,20 +153,45 @@ public class MySQLProtocol implements Protocol {
         }
         batchList = new ArrayList<Query>();
         try {
-            final BufferedInputStream reader = new BufferedInputStream(socket.getInputStream(), 32768);
+            BufferedInputStream reader = new BufferedInputStream(socket.getInputStream(), 32768);
             packetFetcher = new SyncPacketFetcher(reader);
             writer = new BufferedOutputStream(socket.getOutputStream(), 32768);
             final MySQLGreetingReadPacket greetingPacket = new MySQLGreetingReadPacket(packetFetcher.getRawPacket());
             this.serverThreadId = greetingPacket.getServerThreadID();
+
             log.finest("Got greeting packet");
             this.version = greetingPacket.getServerVersion();
-
+            byte packetSeq = 1;
             final Set<MySQLServerCapabilities> capabilities = EnumSet.of(MySQLServerCapabilities.LONG_PASSWORD,
                     MySQLServerCapabilities.IGNORE_SPACE,
                     MySQLServerCapabilities.CLIENT_PROTOCOL_41,
                     MySQLServerCapabilities.TRANSACTIONS,
                     MySQLServerCapabilities.SECURE_CONNECTION,
                     MySQLServerCapabilities.LOCAL_FILES);
+
+            if(info.getProperty("useSSL") != null && greetingPacket.getServerCapabilities().contains(MySQLServerCapabilities.SSL)) {
+                capabilities.add(MySQLServerCapabilities.SSL);
+                AbbreviatedMySQLClientAuthPacket amcap = new AbbreviatedMySQLClientAuthPacket(capabilities);
+                amcap.send(writer);
+
+                SSLSocketFactory sslSocketFactory = (SSLSocketFactory)SSLSocketFactory.getDefault();
+                SSLSocket sslSocket = (SSLSocket)sslSocketFactory.createSocket(socket,
+                        socket.getInetAddress().getHostAddress(),
+                        socket.getPort(),
+                        false);
+                sslSocket.setEnabledProtocols(new String [] {"TLSv1"});
+                sslSocket.setUseClientMode(true);
+                sslSocket.startHandshake();
+                socket = sslSocket;
+                writer = new BufferedOutputStream(socket.getOutputStream(), 32768);
+                writer.flush();
+                reader = new BufferedInputStream(socket.getInputStream(), 32768);
+                packetFetcher = new SyncPacketFetcher(reader);
+
+                packetSeq++;
+            } else if(info.getProperty("useSSL") != null){
+                throw new QueryException("Trying to connect with ssl, but ssl not enabled in the server");
+            }
 
             // If a database is given, but createDB is not defined or is false,
             // then just try to connect to the given database
@@ -174,11 +202,13 @@ public class MySQLProtocol implements Protocol {
                     this.password,
                     this.database,
                     capabilities,
-                    greetingPacket.getSeed());
+                    greetingPacket.getSeed(),
+                    packetSeq);
             cap.send(writer);
             log.finest("Sending auth packet");
 
             RawPacket rp = packetFetcher.getRawPacket();
+
             if ((rp.getByteBuffer().get(0) & 0xFF) == 0xFE) {   // Server asking for old format password
                 final MySQLClientOldPasswordAuthPacket oldPassPacket = new MySQLClientOldPasswordAuthPacket(
                         this.password, Utils.copyWithLength(greetingPacket.getSeed(),

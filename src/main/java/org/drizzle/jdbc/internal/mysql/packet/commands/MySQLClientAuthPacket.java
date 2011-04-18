@@ -60,12 +60,14 @@ import java.util.Set;
  */
 public class MySQLClientAuthPacket implements CommandPacket {
     private final WriteBuffer writeBuffer;
+    private final byte packetSeq;
 
     public MySQLClientAuthPacket(final String username,
                                  final String password,
                                  final String database,
                                  final Set<MySQLServerCapabilities> serverCapabilities,
-                                 final byte[] seed) {
+                                 final byte[] seed, byte packetSeq) {
+        this.packetSeq = packetSeq;
         writeBuffer = new WriteBuffer();
         final byte[] scrambledPassword;
         try {
@@ -90,7 +92,7 @@ public class MySQLClientAuthPacket implements CommandPacket {
 
 
     public int send(final OutputStream os) throws IOException {
-        os.write(writeBuffer.getLengthWithPacketSeq((byte) 1));
+        os.write(writeBuffer.getLengthWithPacketSeq(packetSeq));
         os.write(writeBuffer.getBuffer(),0,writeBuffer.getLength());
         os.flush();
         return 1;
