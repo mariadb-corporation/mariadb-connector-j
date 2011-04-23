@@ -27,14 +27,43 @@ package org.drizzle.jdbc.internal.common.packet;
 import org.drizzle.jdbc.internal.common.packet.buffer.Reader;
 
 import java.io.IOException;
+import java.util.EnumSet;
+import java.util.Set;
 
 /**
  * . User: marcuse Date: Jan 16, 2009 Time: 4:23:54 PM
  */
 public class EOFPacket extends ResultPacket {
+    public enum ServerStatus {
+        SERVER_STATUS_IN_TRANS(1),
+        SERVER_STATUS_AUTOCOMMIT(2),
+        SERVER_MORE_RESULTS_EXISTS(8),
+        SERVER_QUERY_NO_GOOD_INDEX_USED(16),
+        SERVER_QUERY_NO_INDEX_USED(32),
+        SERVER_STATUS_DB_DROPPED(256);
+        private final int bitmapFlag;
+        ServerStatus(int bitmapFlag) {
+            this.bitmapFlag = bitmapFlag;
+        }
+        public static Set<ServerStatus> getServerCapabilitiesSet(final short i) {
+            final Set<ServerStatus> statusSet = EnumSet.noneOf(ServerStatus.class);
+            for (ServerStatus value : ServerStatus.values()) {
+                if ((i & value.getBitmapFlag()) == value.getBitmapFlag()) {
+                    statusSet.add(value);
+                }
+            }
+            return statusSet;
+        }
+
+
+        public int getBitmapFlag() {
+            return bitmapFlag;
+        }
+    }
+
     private final byte packetSeq;
     private final short warningCount;
-    private final short statusFlags;
+    private final Set<ServerStatus> statusFlags;
 
 
     public EOFPacket(final RawPacket rawPacket) throws IOException {
@@ -42,7 +71,7 @@ public class EOFPacket extends ResultPacket {
         packetSeq = 0;
         reader.readByte();
         warningCount = reader.readShort();
-        statusFlags = reader.readShort();
+        statusFlags = ServerStatus.getServerCapabilitiesSet(reader.readShort());
     }
 
     public ResultType getResultType() {
@@ -57,7 +86,7 @@ public class EOFPacket extends ResultPacket {
         return warningCount;
     }
 
-    public short getStatusFlags() {
+    public Set<ServerStatus> getStatusFlags() {
         return statusFlags;
     }
 

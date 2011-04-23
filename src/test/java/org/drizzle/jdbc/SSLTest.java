@@ -43,7 +43,7 @@ import static org.junit.Assert.assertTrue;
 /**
  * -Djavax.net.ssl.keyStore=/home/marcuse/cert/keystore -Djavax.net.ssl.keyStorePassword=abcdefgh -Djavax.net.ssl.trustStore=/home/marcuse/cert/truststore -Djavax.net.ssl.trustStorePassword=abcdefgh
  */
-//@Ignore // todo: enable from time to time, real pita to set up
+@Ignore // todo: enable from time to time, real pita to set up
 public class SSLTest {
     @Test
     public void sslTest() throws SQLException {

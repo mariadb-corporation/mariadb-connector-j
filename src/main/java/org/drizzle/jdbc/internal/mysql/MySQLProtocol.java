@@ -97,7 +97,7 @@ public class MySQLProtocol implements Protocol {
     private final long serverThreadId;
     private volatile boolean queryWasCancelled = false;
     private volatile boolean queryTimedOut = false;
-
+    private boolean hasMoreResults = false;
     /**
      * Get a protocol instance
      *
@@ -168,7 +168,10 @@ public class MySQLProtocol implements Protocol {
                     MySQLServerCapabilities.TRANSACTIONS,
                     MySQLServerCapabilities.SECURE_CONNECTION,
                     MySQLServerCapabilities.LOCAL_FILES);
-
+            if(info.getProperty("allowMultiQueries") != null) {
+                capabilities.add(MySQLServerCapabilities.MULTI_STATEMENTS);
+                capabilities.add(MySQLServerCapabilities.MULTI_RESULTS);
+            }
             if(info.getProperty("useSSL") != null && greetingPacket.getServerCapabilities().contains(MySQLServerCapabilities.SSL)) {
                 capabilities.add(MySQLServerCapabilities.SSL);
                 AbbreviatedMySQLClientAuthPacket amcap = new AbbreviatedMySQLClientAuthPacket(capabilities);
@@ -311,10 +314,11 @@ public class MySQLProtocol implements Protocol {
 
             if (ReadUtil.eofIsNext(rawPacket)) {
                 final EOFPacket eofPacket = (EOFPacket) ResultPacketFactory.createResultPacket(rawPacket);
+                this.hasMoreResults = eofPacket.getStatusFlags().contains(EOFPacket.ServerStatus.SERVER_MORE_RESULTS_EXISTS);
                 checkIfCancelled();
+                
                 return new DrizzleQueryResult(columnInformation, valueObjects, eofPacket.getWarningCount());
             }
-
 
             if (getDatabaseType() == SupportedDatabases.MYSQL) {
                 final MySQLRowPacket rowPacket = new MySQLRowPacket(rawPacket, columnInformation);
@@ -323,7 +327,6 @@ public class MySQLProtocol implements Protocol {
                 final DrizzleRowPacket rowPacket = new DrizzleRowPacket(rawPacket, columnInformation);
                 valueObjects.add(rowPacket.getRow());
             }
-
         }
     }
 
@@ -426,7 +429,7 @@ public class MySQLProtocol implements Protocol {
 
     public QueryResult executeQuery(final Query dQuery) throws QueryException {
         log.finest("Executing streamed query: " + dQuery);
-        // this.queryWasCancelled = false;
+        this.hasMoreResults = false;
         final StreamedQueryPacket packet = new StreamedQueryPacket(dQuery);
 
         try {
@@ -462,6 +465,7 @@ public class MySQLProtocol implements Protocol {
                         ep.getSqlState());
             case OK:
                 final OKPacket okpacket = (OKPacket) resultPacket;
+                this.hasMoreResults = okpacket.getServerStatus().contains(ServerStatus.MORE_RESULTS_EXISTS);
                 final QueryResult updateResult = new DrizzleUpdateResult(okpacket.getAffectedRows(),
                         okpacket.getWarnings(),
                         okpacket.getMessage(),
@@ -547,7 +551,18 @@ public class MySQLProtocol implements Protocol {
     public QueryResult executeQuery(Query dQuery,
                                     FileInputStream fileInputStream) throws QueryException {
         int packIndex = 0;
+        if(hasMoreResults) {
+            try {
+                packetFetcher.clearInputStream();
+            } catch (IOException e) {
+                throw new QueryException("Could clear input stream: "
+                                 + e.getMessage(), -1,
+                                 SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION
+                                         .getSqlState(), e);
 
+            }
+        }
+        this.hasMoreResults = false;
         log.finest("Executing streamed query: " + dQuery);
         final StreamedQueryPacket packet = new StreamedQueryPacket(dQuery);
 
@@ -718,6 +733,8 @@ public class MySQLProtocol implements Protocol {
                         ep.getSqlState());
             case OK:
                 final OKPacket okpacket = (OKPacket) resultPacket;
+                this.hasMoreResults = okpacket.getServerStatus().contains(ServerStatus.MORE_RESULTS_EXISTS);
+
                 final QueryResult updateResult = new DrizzleUpdateResult(
                         okpacket.getAffectedRows(), okpacket.getWarnings(),
                         okpacket.getMessage(), okpacket.getInsertId());
@@ -726,8 +743,7 @@ public class MySQLProtocol implements Protocol {
             case RESULTSET:
                 log.fine("SELECT executed, fetching result set");
                 try {
-                    return this
-                            .createDrizzleQueryResult((ResultSetPacket) resultPacket);
+                    return this.createDrizzleQueryResult((ResultSetPacket) resultPacket);
                 } catch (IOException e) {
                     throw new QueryException("Could not read result set: "
                             + e.getMessage(), -1,
@@ -738,6 +754,36 @@ public class MySQLProtocol implements Protocol {
                 log.severe("Could not parse result...");
                 throw new QueryException("Could not parse result");
         }
+    }
+
+    public QueryResult getMoreResults() throws QueryException {
+        try {
+            if(!hasMoreResults)
+                return null;
+            ResultPacket resultPacket = ResultPacketFactory.createResultPacket(packetFetcher.getRawPacket());
+            switch(resultPacket.getResultType()) {
+                case RESULTSET:
+                    return createDrizzleQueryResult((ResultSetPacket) resultPacket);
+                case OK:
+                    OKPacket okpacket = (OKPacket) resultPacket;
+                    this.hasMoreResults = okpacket.getServerStatus().contains(ServerStatus.MORE_RESULTS_EXISTS);                    
+                    return new DrizzleUpdateResult(
+                            okpacket.getAffectedRows(), okpacket.getWarnings(),
+                            okpacket.getMessage(), okpacket.getInsertId());
+                case ERROR:
+                    ErrorPacket ep = (ErrorPacket) resultPacket;
+                    checkIfCancelled();
+                    throw new QueryException(ep.getMessage(), ep.getErrorNumber(),
+                                        ep.getSqlState());
+
+            }
+        } catch (IOException e) {
+            throw new QueryException("Could not read result set: "
+                             + e.getMessage(), -1,
+                             SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION
+                                     .getSqlState(), e);
+        }
+        return null;
     }
 
     public static String hexdump(byte[] buffer, int offset) {

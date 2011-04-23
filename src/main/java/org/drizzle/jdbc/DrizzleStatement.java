@@ -462,9 +462,7 @@ public class DrizzleStatement implements Statement {
      * @since 1.4
      */
     public boolean getMoreResults(final int current) throws SQLException {
-        return false;
-
-        //throw SQLExceptionMapper.getFeatureNotSupportedException("Multiple open results not supported");
+        return getMoreResults();
     }
 
     /**
@@ -744,7 +742,7 @@ public class DrizzleStatement implements Statement {
         if(queryResult.getResultSetType() == ResultSetType.SELECT) {
             return -1;
         }
-        return (int) updateCount;
+        return (int) ((ModifyQueryResult) queryResult).getUpdateCount();
     }
 
     /**
@@ -762,7 +760,22 @@ public class DrizzleStatement implements Statement {
      * @see #execute
      */
     public boolean getMoreResults() throws SQLException {
-        return false;
+        startTimer();
+        try {
+            if (queryResult != null) {
+                queryResult.close();
+            }
+
+            queryResult = protocol.getMoreResults();
+            if(queryResult == null) return false;
+            warningsCleared = false;
+            this.resultSet = new DrizzleResultSet(queryResult, this, getProtocol());
+            return true;
+        } catch (QueryException e) {
+            throw SQLExceptionMapper.get(e);
+        } finally {
+            stopTimer();
+        }
     }
 
     /**
