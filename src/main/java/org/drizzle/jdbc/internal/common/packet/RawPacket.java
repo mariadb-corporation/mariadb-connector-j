@@ -54,7 +54,7 @@ public final class RawPacket {
         int packetSeq = lengthBuffer[3];
 
         byte [] rawBytes = new byte[length];
-        int nr = ReadUtil.readFully(is, rawBytes);
+        ReadUtil.readFully(is, rawBytes);
         return new RawPacket(ByteBuffer.wrap(rawBytes).order(ByteOrder.LITTLE_ENDIAN),
                              packetSeq);
     }
