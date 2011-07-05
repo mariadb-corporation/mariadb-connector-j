@@ -25,7 +25,7 @@
 package org.drizzle.jdbc.internal.common.packet.commands;
 
 import org.drizzle.jdbc.internal.common.packet.CommandPacket;
-import org.drizzle.jdbc.internal.common.packet.buffer.WriteBuffer;
+import org.drizzle.jdbc.internal.common.packet.PacketOutputStream;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -34,17 +34,15 @@ import java.io.OutputStream;
  * . User: marcuse Date: Feb 10, 2009 Time: 9:40:08 PM
  */
 public class ClosePacket implements CommandPacket {
-    private final WriteBuffer writeBuffer;
 
     public ClosePacket() {
-        this.writeBuffer = new WriteBuffer(6);
-        writeBuffer.writeByte((byte) 0x01);
     }
 
     public int send(final OutputStream os) throws IOException {
-        os.write(writeBuffer.getLengthWithPacketSeq((byte) 0));
-        os.write(writeBuffer.getBuffer(),0,writeBuffer.getLength());
-        os.flush();
+        PacketOutputStream pos = (PacketOutputStream)os;
+        pos.startPacket(0);
+        pos.write(0x01);
+        pos.finishPacket();
         return 0;
     }
 }

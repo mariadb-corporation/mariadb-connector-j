@@ -26,6 +26,7 @@ package org.drizzle.jdbc.internal.mysql.packet.commands;
 
 import org.drizzle.jdbc.internal.common.Utils;
 import org.drizzle.jdbc.internal.common.packet.CommandPacket;
+import org.drizzle.jdbc.internal.common.packet.PacketOutputStream;
 import org.drizzle.jdbc.internal.common.packet.buffer.WriteBuffer;
 import org.drizzle.jdbc.internal.mysql.MySQLServerCapabilities;
 
@@ -92,9 +93,10 @@ public class MySQLClientAuthPacket implements CommandPacket {
 
 
     public int send(final OutputStream os) throws IOException {
-        os.write(writeBuffer.getLengthWithPacketSeq(packetSeq));
+        PacketOutputStream pos = (PacketOutputStream)os;
+        pos.startPacket(packetSeq);
         os.write(writeBuffer.getBuffer(),0,writeBuffer.getLength());
-        os.flush();
+        pos.finishPacket();
         return 1;
     }
 }

@@ -25,26 +25,28 @@
 package org.drizzle.jdbc.internal.common.packet.commands;
 
 import org.drizzle.jdbc.internal.common.packet.CommandPacket;
-import org.drizzle.jdbc.internal.common.packet.buffer.WriteBuffer;
+import org.drizzle.jdbc.internal.common.packet.PacketOutputStream;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.Charset;
 
 /**
  * . User: marcuse Date: Jan 20, 2009 Time: 10:50:47 PM
  */
 public class SelectDBPacket implements CommandPacket {
-    private final WriteBuffer buffer = new WriteBuffer(100);
 
+    String database;
     public SelectDBPacket(final String database) {
-        buffer.writeByte((byte) 0x02);
-        buffer.writeString(database);
+        this.database = database;
     }
 
     public int send(final OutputStream outputStream) throws IOException {
-        outputStream.write(buffer.getLengthWithPacketSeq((byte) 0));
-        outputStream.write(buffer.getBuffer(),0,buffer.getLength());
-        outputStream.flush();
+        PacketOutputStream pos = (PacketOutputStream) outputStream;
+        pos.startPacket(0);
+        pos.write(0x02);
+        pos.write(database.getBytes(Charset.forName("UTF-8")));
+        pos.finishPacket();
         return 0;
     }
 }

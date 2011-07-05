@@ -165,8 +165,8 @@ public class Reader {
         if (encLength == -1) {
             return null;
         }
-
         final byte[] tmpBuf = new byte[(int) encLength];
+
         byteBuffer.get(tmpBuf);
         return tmpBuf;
     }

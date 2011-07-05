@@ -48,25 +48,13 @@ public final class RawPacket {
      * @throws java.io.IOException if an error occurs while reading data
      */
     static RawPacket nextPacket(final InputStream is) throws IOException {
-        byte[] lengthBuffer = readLengthSeq(is);
+        byte[] lengthBuffer = new byte[4];
+        ReadUtil.readFully(is, lengthBuffer);
         int length = (lengthBuffer[0] & 0xff) + ((lengthBuffer[1] & 0xff) << 8) + ((lengthBuffer[2] & 0xff) << 16);
-        if (length == -1) {
-            return null;
-        }
+        int packetSeq = lengthBuffer[3];
 
-        if (length < 0) {
-            throw new IOException("Got negative packet size: " + length);
-        }
-
-        final int packetSeq = lengthBuffer[3];
-
-        final byte[] rawBytes = new byte[length];
-
-        final int nr = ReadUtil.safeRead(is, rawBytes);
-        if (nr != length) {
-            throw new IOException("EOF. Expected " + length + ", got " + nr);
-        }
-
+        byte [] rawBytes = new byte[length];
+        int nr = ReadUtil.readFully(is, rawBytes);
         return new RawPacket(ByteBuffer.wrap(rawBytes).order(ByteOrder.LITTLE_ENDIAN),
                              packetSeq);
     }
@@ -79,37 +67,6 @@ public final class RawPacket {
     private RawPacket(final ByteBuffer byteBuffer, final int packetSeq) {
         this.byteBuffer = byteBuffer;
         this.packetSeq = packetSeq;
-    }
-
-    private static byte readPacketSeq(final InputStream reader) throws IOException {
-        final int val = reader.read();
-        if (val == -1) {
-            throw new IOException("EOF");
-        }
-
-        return (byte) val;
-    }
-    private static byte[] readLengthSeq(final InputStream reader) throws IOException {
-        final byte[] lengthBuffer = new byte[4];
-
-        final int nr = ReadUtil.safeRead(reader, lengthBuffer);
-        if (nr != 4) {
-            throw new IOException("Incomplete read! Expected 4, got " + nr);
-        }
-
-        return lengthBuffer;
-    }
-    private static int readLength(final InputStream reader) throws IOException {
-        final byte[] lengthBuffer = new byte[3];
-
-        final int nr = ReadUtil.safeRead(reader, lengthBuffer);
-        if (nr == -1) {
-            return -1;
-        } else if (nr != 3) {
-            throw new IOException("Incomplete read! Expected 3, got " + nr);
-        }
-
-        return (lengthBuffer[0] & 0xff) + ((lengthBuffer[1] & 0xff) << 8) + ((lengthBuffer[2] & 0xff) << 16);
     }
 
     /**

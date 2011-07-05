@@ -1,13 +1,11 @@
 package org.drizzle.jdbc;
 
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.math.BigInteger;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.DriverManager;
-import java.sql.Statement;
-import java.sql.Connection;
+import java.sql.*;
+import java.util.Arrays;
 import java.util.Properties;
 
 import static junit.framework.Assert.assertEquals;
@@ -24,7 +22,7 @@ import static org.junit.Assert.assertFalse;
 public class MySQLDriverTest extends DriverTest {
     private Connection connection;
     public MySQLDriverTest() throws SQLException {
-        connection = DriverManager.getConnection("jdbc:mysql:thin://10.100.100.50:3306/test_units_jdbc");
+        connection = DriverManager.getConnection("jdbc:mysql:thin://root@localhost:3306/test");
        // connection = DriverManager.getConnection("jdbc:mysql://10.100.100.50:3306/test_units_jdbc");
     }
     @Override
@@ -193,5 +191,78 @@ public class MySQLDriverTest extends DriverTest {
         assertEquals(new BigInteger("18446744073709551615"), rs.getObject(2));
         assertFalse(rs.next());
     }
- 
+
+    @Test
+    // Test query with length around max  packet length. Requires max_allowed_packet to be >16M
+    public void largeQueryWrite() throws SQLException {
+
+        char[] str= new char[16*1024*1024];
+        Arrays.fill(str, 'a');
+        String prefix= "select length('";
+        String suffix= "') as len";
+
+        for (int i=16*1024*1024 - prefix.length()  -suffix.length() -5 ;
+             i < 16*1024*1024 - prefix.length()  -suffix.length();
+             i++) {
+            String query = prefix;
+            String val = new String(str,0, i);
+            query += val;
+            query += suffix;
+            ResultSet rs = getConnection().createStatement().executeQuery(query);
+            Assert.assertTrue(rs.next());
+            assertEquals(rs.getInt(1), i);
+        }
+    }
+
+    @Test
+    public void largePreparedQueryWrite() throws SQLException {
+        char[] str= new char[16*1024*1024];
+        Arrays.fill(str, 'a');
+        String sql=  "select length(?) as len";
+
+        PreparedStatement ps = getConnection().prepareStatement(sql);
+        for (int i=16*1024*1024 - sql.length() -5;
+             i < 16*1024*1024 - sql.length();
+             i++) {
+            String val = new String(str,0, i);
+            ps.setString(1,val);
+            ResultSet rs = ps.executeQuery();
+            Assert.assertTrue(rs.next());
+            assertEquals(rs.getInt(1), i);
+            rs.close();
+        }
+    }
+
+    @Test
+    public void smallQueryWriteCompress() throws SQLException {
+        Connection conn = DriverManager.getConnection("jdbc:mysql:thin://localhost:3306/test?user=root&useCompression=true");
+
+        String sql=  "select 1";
+
+
+        ResultSet rs = conn.createStatement().executeQuery(sql);
+        Assert.assertTrue(rs.next());
+        assertEquals(rs.getInt(1), 1);
+        rs.close();
+    }
+    @Test
+    public void largePreparedQueryWriteCompress() throws SQLException {
+        Connection conn = DriverManager.getConnection("jdbc:mysql:thin://localhost:3306/test?user=root&useCompression=true");
+        char[] str= new char[16*1024*1024];
+        Arrays.fill(str, 'a');
+        String sql=  "select ?";
+
+        PreparedStatement ps = conn.prepareStatement(sql);
+        for (int i=16*1024*1024 - sql.length() -5;
+             i < 16*1024*1024 - sql.length();
+             i++) {
+            String val = new String(str,0, i);
+            ps.setString(1,val);
+            ResultSet rs = ps.executeQuery();
+            Assert.assertTrue(rs.next());
+            assertEquals(rs.getString(1).length(), i);
+            rs.close();
+            System.out.println("i=" +i);
+        }
+    }
 }

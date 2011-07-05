@@ -26,7 +26,6 @@ package org.drizzle.jdbc.internal.common.packet;
 
 import org.drizzle.jdbc.internal.common.PacketFetcher;
 
-import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -35,7 +34,7 @@ public class SyncPacketFetcher implements PacketFetcher {
     private final InputStream inputStream;
 
     public SyncPacketFetcher(final InputStream is) {
-        this.inputStream = new BufferedInputStream(is);
+        this.inputStream=is;
     }
 
     public RawPacket getRawPacket() throws IOException {

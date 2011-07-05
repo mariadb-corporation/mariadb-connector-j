@@ -24,12 +24,13 @@
 
 package org.drizzle.jdbc.internal.mysql.packet.commands;
 
-import java.io.IOException;
-import java.io.OutputStream;
-
 import org.drizzle.jdbc.internal.common.QueryException;
 import org.drizzle.jdbc.internal.common.packet.CommandPacket;
+import org.drizzle.jdbc.internal.common.packet.PacketOutputStream;
 import org.drizzle.jdbc.internal.common.packet.buffer.WriteBuffer;
+
+import java.io.IOException;
+import java.io.OutputStream;
 
 public class MySQLClientOldPasswordAuthPacket implements CommandPacket
 {
@@ -47,9 +48,10 @@ public class MySQLClientOldPasswordAuthPacket implements CommandPacket
 
     public int send(OutputStream os) throws IOException, QueryException
     {
-        os.write(writeBuffer.getLengthWithPacketSeq((byte) packSeq));
-        os.write(writeBuffer.getBuffer(), 0, writeBuffer.getLength());
-        os.flush();
+        PacketOutputStream pos = (PacketOutputStream)os;
+        pos.startPacket(packSeq);
+        pos.write(writeBuffer.getBuffer(), 0, writeBuffer.getLength());
+        pos.finishPacket();
         return packSeq;
     }
     

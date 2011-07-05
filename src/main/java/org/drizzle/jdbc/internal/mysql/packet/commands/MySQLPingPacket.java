@@ -25,7 +25,7 @@
 package org.drizzle.jdbc.internal.mysql.packet.commands;
 
 import org.drizzle.jdbc.internal.common.packet.CommandPacket;
-import org.drizzle.jdbc.internal.common.packet.buffer.WriteBuffer;
+import org.drizzle.jdbc.internal.common.packet.PacketOutputStream;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -34,17 +34,13 @@ import java.io.OutputStream;
  * . User: marcuse Date: Feb 14, 2009 Time: 10:14:13 PM
  */
 public class MySQLPingPacket implements CommandPacket {
-    private final WriteBuffer buffer = new WriteBuffer();
-
     public MySQLPingPacket() {
-        buffer.writeByte((byte) 0x0e);
     }
-
-
     public int send(final OutputStream os) throws IOException {
-        os.write(buffer.getLengthWithPacketSeq((byte) 0));
-        os.write(buffer.getBuffer(),0,buffer.getLength());
-        os.flush();
+        PacketOutputStream pos=(PacketOutputStream)os;
+        pos.startPacket(0);
+        pos.write(0x0e);
+        pos.finishPacket();
         return 0;
     }
 }

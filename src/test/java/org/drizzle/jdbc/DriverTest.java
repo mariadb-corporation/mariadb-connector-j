@@ -1,26 +1,25 @@
 package org.drizzle.jdbc;
 
+import org.drizzle.jdbc.internal.common.RewriteParameterizedBatchHandlerFactory;
+import org.drizzle.jdbc.internal.common.Utils;
+import org.drizzle.jdbc.internal.common.packet.RawPacket;
+import org.drizzle.jdbc.internal.common.packet.buffer.WriteBuffer;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
-import org.junit.After;
-import org.drizzle.jdbc.internal.common.packet.buffer.WriteBuffer;
-import org.drizzle.jdbc.internal.common.packet.RawPacket;
-import org.drizzle.jdbc.internal.common.*;
 
-import static org.junit.Assert.assertFalse;
-import static org.mockito.Mockito.mock;
-
-import java.math.BigInteger;
-import java.sql.*;
-import java.util.List;
-import java.util.logging.Logger;
-import java.util.logging.Level;
 import java.io.*;
 import java.math.BigDecimal;
 import java.net.URL;
+import java.sql.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 
 /**
  * User: marcuse
@@ -34,7 +33,7 @@ public class DriverTest {
 
     public DriverTest() throws SQLException {
         //connection = DriverManager.getConnection("jdbc:mysql:thin://10.100.100.50:3306/test_units_jdbc");
-       connection = DriverManager.getConnection("jdbc:drizzle://root@"+host+":3307/test_units_jdbc");
+       connection = DriverManager.getConnection("jdbc:drizzle://root@localhost:3306/");
        //connection = DriverManager.getConnection("jdbc:mysql://10.100.100.50:3306/test_units_jdbc");
     }
     @After
@@ -1224,6 +1223,20 @@ public class DriverTest {
 
     }
 
+     @Test
+    public void testError() throws SQLException {
+
+        Connection conn = DriverManager.getConnection("jdbc:mysql:thin://localhost:3306/");
+        try {
+            char arr[] = new char[16*1024*1024-1];
+            Arrays.fill(arr,'a');
+            ResultSet rs = conn.createStatement().executeQuery("select '" + new String(arr) + "'");
+            rs.next();
+            System.out.println(rs.getString(1).length());
+        } finally {
+            conn.close();
+        }
+    }
 
 
 }

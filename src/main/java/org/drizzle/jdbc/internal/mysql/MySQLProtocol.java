@@ -26,14 +26,7 @@ package org.drizzle.jdbc.internal.mysql;
 
 import org.drizzle.jdbc.internal.SQLExceptionMapper;
 import org.drizzle.jdbc.internal.common.*;
-import org.drizzle.jdbc.internal.common.packet.EOFPacket;
-import org.drizzle.jdbc.internal.common.packet.ErrorPacket;
-import org.drizzle.jdbc.internal.common.packet.OKPacket;
-import org.drizzle.jdbc.internal.common.packet.RawPacket;
-import org.drizzle.jdbc.internal.common.packet.ResultPacket;
-import org.drizzle.jdbc.internal.common.packet.ResultPacketFactory;
-import org.drizzle.jdbc.internal.common.packet.ResultSetPacket;
-import org.drizzle.jdbc.internal.common.packet.SyncPacketFetcher;
+import org.drizzle.jdbc.internal.common.packet.*;
 import org.drizzle.jdbc.internal.common.packet.buffer.ReadUtil;
 import org.drizzle.jdbc.internal.common.packet.commands.ClosePacket;
 import org.drizzle.jdbc.internal.common.packet.commands.SelectDBPacket;
@@ -48,29 +41,19 @@ import org.drizzle.jdbc.internal.drizzle.packet.DrizzleRowPacket;
 import org.drizzle.jdbc.internal.mysql.packet.MySQLFieldPacket;
 import org.drizzle.jdbc.internal.mysql.packet.MySQLGreetingReadPacket;
 import org.drizzle.jdbc.internal.mysql.packet.MySQLRowPacket;
-import org.drizzle.jdbc.internal.mysql.packet.commands.AbbreviatedMySQLClientAuthPacket;
-import org.drizzle.jdbc.internal.mysql.packet.commands.MySQLBinlogDumpPacket;
-import org.drizzle.jdbc.internal.mysql.packet.commands.MySQLClientAuthPacket;
-import org.drizzle.jdbc.internal.mysql.packet.commands.MySQLClientOldPasswordAuthPacket;
-import org.drizzle.jdbc.internal.mysql.packet.commands.MySQLPingPacket;
+import org.drizzle.jdbc.internal.mysql.packet.commands.*;
 
 import javax.net.SocketFactory;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
-import java.io.BufferedOutputStream;
+import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.BufferedInputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Properties;
-import java.util.Set;
+import java.util.*;
 import java.util.logging.Logger;
 
 import static org.drizzle.jdbc.internal.common.packet.buffer.WriteBuffer.intToByteArray;
@@ -83,7 +66,7 @@ public class MySQLProtocol implements Protocol {
     private final static Logger log = Logger.getLogger(MySQLProtocol.class.getName());
     private boolean connected = false;
     private Socket socket;
-    private BufferedOutputStream writer;
+    private PacketOutputStream writer;
     private final String version;
     private boolean readOnly = false;
     private final String host;
@@ -92,7 +75,7 @@ public class MySQLProtocol implements Protocol {
     private final String username;
     private final String password;
     private final List<Query> batchList;
-    private PacketFetcher packetFetcher;
+    private SyncPacketFetcher packetFetcher;
     private final Properties info;
     private final long serverThreadId;
     private volatile boolean queryWasCancelled = false;
@@ -155,9 +138,10 @@ public class MySQLProtocol implements Protocol {
         try {
             BufferedInputStream reader = new BufferedInputStream(socket.getInputStream(), 32768);
             packetFetcher = new SyncPacketFetcher(reader);
-            writer = new BufferedOutputStream(socket.getOutputStream(), 32768);
+            writer = new PacketOutputStream(socket.getOutputStream());
             final MySQLGreetingReadPacket greetingPacket = new MySQLGreetingReadPacket(packetFetcher.getRawPacket());
             this.serverThreadId = greetingPacket.getServerThreadID();
+            boolean useCompression = false;
 
             log.finest("Got greeting packet");
             this.version = greetingPacket.getServerVersion();
@@ -171,6 +155,10 @@ public class MySQLProtocol implements Protocol {
             if(info.getProperty("allowMultiQueries") != null) {
                 capabilities.add(MySQLServerCapabilities.MULTI_STATEMENTS);
                 capabilities.add(MySQLServerCapabilities.MULTI_RESULTS);
+            }
+            if(info.getProperty("useCompression") != null) {
+                capabilities.add(MySQLServerCapabilities.COMPRESS);
+                useCompression = true;
             }
             if(info.getProperty("useSSL") != null && greetingPacket.getServerCapabilities().contains(MySQLServerCapabilities.SSL)) {
                 capabilities.add(MySQLServerCapabilities.SSL);
@@ -186,7 +174,7 @@ public class MySQLProtocol implements Protocol {
                 sslSocket.setUseClientMode(true);
                 sslSocket.startHandshake();
                 socket = sslSocket;
-                writer = new BufferedOutputStream(socket.getOutputStream(), 32768);
+                writer = new PacketOutputStream(socket.getOutputStream());
                 writer.flush();
                 reader = new BufferedInputStream(socket.getInputStream(), 32768);
                 packetFetcher = new SyncPacketFetcher(reader);
@@ -219,6 +207,11 @@ public class MySQLProtocol implements Protocol {
                 oldPassPacket.send(writer);
 
                 rp = packetFetcher.getRawPacket();
+            }
+
+            if (useCompression) {
+                writer = new PacketOutputStream(new CompressOutputStream(socket.getOutputStream()));
+                packetFetcher = new SyncPacketFetcher(new DecompressInputStream(socket.getInputStream()));
             }
 
             final ResultPacket resultPacket = ResultPacketFactory.createResultPacket(rp);
@@ -434,7 +427,7 @@ public class MySQLProtocol implements Protocol {
 
         try {
             // make sure we are in a good state
-            packetFetcher.clearInputStream();
+            //packetFetcher.clearInputStream();
             packet.send(writer);
         } catch (IOException e) {
             throw new QueryException("Could not send query: " + e.getMessage(),
