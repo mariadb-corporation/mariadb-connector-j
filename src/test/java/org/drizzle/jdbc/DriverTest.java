@@ -374,8 +374,22 @@ public class DriverTest {
         assertEquals(3306,url.getPort());
         assertEquals("bbb",url.getDatabase());
         assertEquals(JDBCUrl.DBType.MYSQL, url.getDBType());
+    }
+
+    @Test
+    public void testConnectorJURL() {
+        JDBCUrl url = JDBCUrl.parse("jdbc:mysql://localhost/test");
+        assertEquals("localhost", url.getHostname());
+        assertEquals("test", url.getDatabase());
+        assertEquals(3306,url.getPort());
+
+        url = JDBCUrl.parse("jdbc:mysql://localhost:3307/test");
+        assertEquals("localhost", url.getHostname());
+        assertEquals("test", url.getDatabase());
+        assertEquals(3307,url.getPort());
 
     }
+
 
     @Test
     public void testEscapes() throws SQLException {

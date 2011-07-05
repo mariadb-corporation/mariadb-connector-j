@@ -247,7 +247,7 @@ public class MySQLDriverTest extends DriverTest {
     }
     @Test
     public void largePreparedQueryWriteCompress() throws SQLException {
-        Connection conn = DriverManager.getConnection("jdbc:mysql:thin://localhost:3306/test?user=root&useCompression=true");
+        Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/test?user=root&useCompression=true");
         char[] str= new char[16*1024*1024];
         Arrays.fill(str, 'a');
         String sql=  "select ?";

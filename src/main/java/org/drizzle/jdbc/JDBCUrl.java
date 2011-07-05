@@ -53,6 +53,32 @@ public class JDBCUrl {
         this.database = database;
     }
 
+    /*
+    Parse ConnectorJ compatible urls
+    jdbc:mysql://host:port/database
+
+     */
+    private static JDBCUrl parseConnectorJUrl(String url) {
+        Pattern p = Pattern.compile("^jdbc:mysql://(\\w+)?(:\\d+)?(/\\w+)?");
+        Matcher m = p.matcher(url);
+        if (m.find()){
+           String hostname = m.group(1);
+           String port = m.group(2);
+           if(port == null) {
+               port = "3306";
+           }
+           else {
+               port = port.substring(1);
+           }
+           String database="";
+           if ( m.group(3)!= null) {
+               database=m.group(3).substring(1);
+           }
+           return new JDBCUrl(DBType.MYSQL, "", "", hostname, Integer.valueOf(port), database);
+        }
+        return null;
+    }
+
     public static JDBCUrl parse(final String url) {
         final DBType dbType;
         final String username;
@@ -61,6 +87,9 @@ public class JDBCUrl {
         final int port;
         final String database;        
 
+        if(url.startsWith("jdbc:mysql://")) {
+            return parseConnectorJUrl(url);
+        }
         final Pattern p = Pattern.compile("^jdbc:(drizzle|mysql:thin)://((\\w+)(:(\\w*))?@)?([^/:]+)(:(\\d+))?(/(\\w+))?");
         final Matcher m = p.matcher(url);
         if (m.find()) {
