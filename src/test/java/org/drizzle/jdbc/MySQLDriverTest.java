@@ -265,4 +265,29 @@ public class MySQLDriverTest extends DriverTest {
             System.out.println("i=" +i);
         }
     }
+
+    @Test
+    public void testWarnings() throws SQLException{
+        Connection conn = null;
+
+        try {
+            conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/test");
+            Statement st= conn.createStatement();
+
+            /* To throw warnings rather than errors, we need a non-strict sql_mode */
+            st.execute("set sql_mode=''");
+            st.execute("create table if not exists warnings_test(c char(2)) ");
+            st.executeUpdate("insert into warnings_test values('123')");
+            SQLWarning w = st.getWarnings();
+            assertEquals(w.getMessage(),"Data truncated for column 'c' at row 1");
+            assertEquals(w.getSQLState(),"01000");
+            assertEquals(w.getNextWarning(), null);
+            st.clearWarnings();
+            assertEquals(st.getWarnings(), null);
+        }
+        finally {
+            if (conn != null)
+                conn.close();
+        }
+    }
 }

@@ -69,6 +69,7 @@ public class DrizzleResultSet implements ResultSet {
     // dont want these, but jdbc forces them with "lastGetWasNull" etc...
     private boolean isClosed;
     private boolean lastGetWasNull;
+    private boolean warningsCleared;
 
     public DrizzleResultSet(final QueryResult dqr, final Statement statement, final Protocol protocol) {
         this.queryResult = dqr;
@@ -377,7 +378,9 @@ public class DrizzleResultSet implements ResultSet {
      * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed result set
      */
     public SQLWarning getWarnings() throws SQLException {
-        return new SQLWarning(String.valueOf(queryResult.getWarnings()) + " warning(s)");
+        if (this.statement == null || warningsCleared)
+            return null;
+        return this.statement.getWarnings();
     }
 
     /**
@@ -388,7 +391,7 @@ public class DrizzleResultSet implements ResultSet {
      * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed result set
      */
     public void clearWarnings() throws SQLException {
-        //TODO: implement!
+        warningsCleared = true;
     }
 
     /**

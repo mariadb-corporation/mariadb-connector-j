@@ -25,28 +25,11 @@
 package org.drizzle.jdbc;
 
 import org.drizzle.jdbc.internal.SQLExceptionMapper;
-import org.drizzle.jdbc.internal.common.BinlogDumpException;
-import org.drizzle.jdbc.internal.common.DefaultParameterizedBatchHandlerFactory;
-import org.drizzle.jdbc.internal.common.ParameterizedBatchHandlerFactory;
-import org.drizzle.jdbc.internal.common.Protocol;
-import org.drizzle.jdbc.internal.common.QueryException;
-import org.drizzle.jdbc.internal.common.Utils;
+import org.drizzle.jdbc.internal.common.*;
 import org.drizzle.jdbc.internal.common.packet.RawPacket;
 import org.drizzle.jdbc.internal.common.query.QueryFactory;
 
-import java.sql.Array;
-import java.sql.Blob;
-import java.sql.CallableStatement;
-import java.sql.Clob;
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.SQLWarning;
-import java.sql.Savepoint;
-import java.sql.Statement;
-import java.sql.Struct;
+import java.sql.*;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -78,6 +61,8 @@ public final class DrizzleConnection
     private final QueryFactory queryFactory;
 
     private ParameterizedBatchHandlerFactory parameterizedBatchHandlerFactory;
+
+    private boolean warningsCleared;
 
 
     /**
@@ -337,6 +322,7 @@ public final class DrizzleConnection
                 throw SQLExceptionMapper.getSQLException("Unsupported transaction isolation level");
         }
         try {
+            reenableWarnings();
             protocol.executeQuery(queryFactory.createQuery(query));
         } catch (QueryException e) {
             throw SQLExceptionMapper.get(e);
@@ -395,7 +381,38 @@ public final class DrizzleConnection
      * @see java.sql.SQLWarning
      */
     public SQLWarning getWarnings() throws SQLException {
-        return null;
+        if (warningsCleared)
+            return null;
+
+        Statement st = null;
+        ResultSet rs = null;
+        SQLWarning last = null;
+        SQLWarning first = null;
+        try {
+           st = this.createStatement();
+           rs = st.executeQuery("show warnings");
+           // returned result set has 'level', 'code' and 'message' columns, in this order.
+           while(rs.next()) {
+               int code = rs.getInt(2);
+               String message = rs.getString(3);
+               SQLWarning w = new SQLWarning(message, SQLExceptionMapper.mapMySQLCodeToSQLState(code), code);
+               if (first == null) {
+                   first = w;
+                   last = w;
+               }
+               else {
+                   last.setNextWarning(w);
+                   last = w;
+               }
+           }
+        }
+        finally {
+           if (rs != null)
+               rs.close();
+            if(st != null)
+                st.close();
+        }
+        return first;
     }
 
     /**
@@ -407,6 +424,14 @@ public final class DrizzleConnection
      *                               connection
      */
     public void clearWarnings() throws SQLException {
+        warningsCleared = true;
+    }
+
+    /**
+     * Reenable warnings, when next statement is executed
+     */
+    public void reenableWarnings() {
+        warningsCleared = false;
     }
 
     /**

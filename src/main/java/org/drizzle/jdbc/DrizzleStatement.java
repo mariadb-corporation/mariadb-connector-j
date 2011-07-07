@@ -35,14 +35,8 @@ import org.drizzle.jdbc.internal.common.queryresults.ResultSetType;
 
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.SQLWarning;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -122,6 +116,8 @@ public class DrizzleStatement implements Statement {
      * @throws SQLException if something went wrong
      */
     public ResultSet executeQuery(final String query) throws SQLException {
+        DrizzleConnection conn = (DrizzleConnection)getConnection();
+        conn.reenableWarnings();
         startTimer();
         try {
             if (queryResult != null) {
@@ -166,6 +162,8 @@ public class DrizzleStatement implements Statement {
      */
     public int executeUpdate(final String query) throws SQLException {
         startTimer();
+        DrizzleConnection conn = (DrizzleConnection)getConnection();
+        conn.reenableWarnings();
         try {
             if (queryResult != null) {
                 queryResult.close();
@@ -385,8 +383,8 @@ public class DrizzleStatement implements Statement {
      *                               <code>Statement</code>
      */
     public SQLWarning getWarnings() throws SQLException {
-        if (!warningsCleared && queryResult != null && queryResult.getWarnings() > 0) {
-            return new SQLWarning(queryResult.getMessage());
+        if (!warningsCleared) {
+            return this.connection.getWarnings();
         }
         return null;
     }
@@ -769,6 +767,7 @@ public class DrizzleStatement implements Statement {
             queryResult = protocol.getMoreResults();
             if(queryResult == null) return false;
             warningsCleared = false;
+            connection.reenableWarnings();
             this.resultSet = new DrizzleResultSet(queryResult, this, getProtocol());
             return true;
         } catch (QueryException e) {
