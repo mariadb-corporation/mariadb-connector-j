@@ -277,10 +277,14 @@ public class MySQLDriverTest extends DriverTest {
             /* To throw warnings rather than errors, we need a non-strict sql_mode */
             st.execute("set sql_mode=''");
             st.execute("create table if not exists warnings_test(c char(2)) ");
-            st.executeUpdate("insert into warnings_test values('123')");
+            st.executeUpdate("insert into warnings_test values('123'),('124')");
             SQLWarning w = st.getWarnings();
             assertEquals(w.getMessage(),"Data truncated for column 'c' at row 1");
             assertEquals(w.getSQLState(),"01000");
+            w = w.getNextWarning();
+            assertEquals(w.getMessage(),"Data truncated for column 'c' at row 2");
+            assertEquals(w.getSQLState(),"01000");
+
             assertEquals(w.getNextWarning(), null);
             st.clearWarnings();
             assertEquals(st.getWarnings(), null);
