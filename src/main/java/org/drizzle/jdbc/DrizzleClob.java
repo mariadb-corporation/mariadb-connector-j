@@ -111,7 +111,7 @@ public class DrizzleClob extends DrizzleBlob implements Clob, NClob {
     public long length() {
        long len = 0;
        for(int i = 0; i < blobContent.length;)  {
-            int c = blobContent[pos] & 0xff;
+            int c = blobContent[i] & 0xff;
             if(c < 0x80) {
                 i += 1;
             }
