@@ -54,10 +54,12 @@ import org.drizzle.jdbc.internal.common.queryresults.ResultSetType;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -69,6 +71,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
     private final static Logger log = Logger.getLogger(DrizzlePreparedStatement.class.getName());
     private ParameterizedQuery dQuery;
     private final ParameterizedBatchHandler parameterizedBatchHandler;
+    private ArrayList<OutputStream> outputStreams;
 
     public DrizzlePreparedStatement(final Protocol protocol,
                                     final DrizzleConnection drizzleConnection,
@@ -82,11 +85,22 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
         }
         dQuery = queryFactory.createParameterizedQuery(query);
         this.parameterizedBatchHandler = parameterizedBatchHandler;
+        outputStreams = new ArrayList<OutputStream>(0);
     }
 
+    private void flushOutputStreams() throws SQLException{
+        try {
+            for(OutputStream s : outputStreams)
+                s.flush();
+        }
+        catch(IOException ioe) {
+            throw  new SQLException(ioe);
+        }
+    }
     public ResultSet executeQuery() throws SQLException {
         DrizzleConnection conn = (DrizzleConnection)getConnection();
         conn.reenableWarnings();
+        flushOutputStreams();
         startTimer();
         try {
             setQueryResult(getProtocol().executeQuery(dQuery));
@@ -112,6 +126,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
     public int executeUpdate() throws SQLException {
         DrizzleConnection conn = (DrizzleConnection)getConnection();
         conn.reenableWarnings();
+        flushOutputStreams();
         startTimer();
         try {
             setQueryResult(getProtocol().executeQuery(dQuery));
@@ -153,6 +168,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
     public boolean execute() throws SQLException {
         DrizzleConnection conn = (DrizzleConnection)getConnection();
         conn.reenableWarnings();
+        flushOutputStreams();
         startTimer();
         try {
             setQueryResult(getProtocol().executeQuery(dQuery));
@@ -280,7 +296,15 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.2
      */
     public void setClob(final int parameterIndex, final Clob x) throws SQLException {
-        throw SQLExceptionMapper.getFeatureNotSupportedException("Clobs not supported");
+        if(x == null) {
+            setNull(parameterIndex, Types.CLOB);
+            return;
+        }
+        try {
+            setParameter(parameterIndex, new StreamParameter(x.getAsciiStream(), x.length()));
+        } catch (IOException e) {
+            throw SQLExceptionMapper.getSQLException("Could not read stream", e);
+        }
     }
 
     /**
@@ -951,7 +975,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.6
      */
     public void setNCharacterStream(final int parameterIndex, final Reader value) throws SQLException {
-        throw SQLExceptionMapper.getFeatureNotSupportedException("NChars not supported");
+        setCharacterStream(parameterIndex, value);
     }
 
     /**
@@ -975,7 +999,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.6
      */
     public void setClob(final int parameterIndex, final Reader reader) throws SQLException {
-        throw SQLExceptionMapper.getSQLException("CLOBs not supported");
+        setCharacterStream(parameterIndex, reader);
     }
 
     /**
@@ -1039,7 +1063,7 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
      * @since 1.6
      */
     public void setNClob(final int parameterIndex, final Reader reader) throws SQLException {
-        throw SQLExceptionMapper.getFeatureNotSupportedException("NClobs not supported");
+        setClob(parameterIndex, reader);
     }
 
 
@@ -1526,6 +1550,12 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
             setCharacterStream(parameterIndex, (Reader) x);
         } else if (x instanceof BigDecimal) {
             setBigDecimal(parameterIndex, (BigDecimal)x);
+        }
+        else if (x instanceof Blob) {
+            setBlob(parameterIndex, (Blob)x);
+        }
+        else if (x instanceof Clob) {
+            setClob(parameterIndex, (Clob)x);
         } else {
             try {
                 setParameter(parameterIndex, new SerializableParameter(x));

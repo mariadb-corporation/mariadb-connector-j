@@ -83,6 +83,7 @@ public final class DrizzleConnection
         this.queryFactory = queryFactory;
     }
 
+
     /**
      * creates a new statement.
      *
@@ -896,7 +897,7 @@ public final class DrizzleConnection
      * @since 1.6
      */
     public Clob createClob() throws SQLException {
-        throw SQLExceptionMapper.getFeatureNotSupportedException("Not yet supported");
+        return new DrizzleClob();
     }
 
     /**
@@ -930,7 +931,7 @@ public final class DrizzleConnection
      * @since 1.6
      */
     public java.sql.NClob createNClob() throws SQLException {
-        throw SQLExceptionMapper.getFeatureNotSupportedException("NClobs not supported");
+        return new DrizzleClob();
     }
 
     /**

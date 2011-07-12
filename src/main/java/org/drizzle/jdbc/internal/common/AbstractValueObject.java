@@ -24,6 +24,8 @@
 
 package org.drizzle.jdbc.internal.common;
 
+import org.drizzle.jdbc.DrizzleBlob;
+import org.drizzle.jdbc.DrizzleClob;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -31,9 +33,7 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.sql.Date;
-import java.sql.Time;
-import java.sql.Timestamp;
+import java.sql.*;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -254,4 +254,14 @@ public abstract class AbstractValueObject implements ValueObject {
         return getBinaryInputStream();         // if it is not a pbms-column
     }
 
+    public Blob getBlob() {
+        if (rawBytes == null)
+            return null;
+        return new DrizzleBlob(rawBytes);
+    }
+    public Clob getClob() {
+        if (rawBytes == null)
+            return null;
+        return new DrizzleClob(rawBytes);
+    }
 }

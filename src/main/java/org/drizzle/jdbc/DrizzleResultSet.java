@@ -2020,7 +2020,7 @@ public class DrizzleResultSet implements ResultSet {
      * @since 1.2
      */
     public Clob getClob(final String columnLabel) throws SQLException {
-        throw SQLExceptionMapper.getFeatureNotSupportedException("CLOBs not supported");
+        return new DrizzleClob(getValueObject(columnLabel).getBytes());
     }
 
     /**

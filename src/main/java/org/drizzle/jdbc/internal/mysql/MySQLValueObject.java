@@ -25,6 +25,7 @@
 package org.drizzle.jdbc.internal.mysql;
 
 import org.drizzle.jdbc.DrizzleBlob;
+import org.drizzle.jdbc.DrizzleClob;
 import org.drizzle.jdbc.internal.common.AbstractValueObject;
 import org.drizzle.jdbc.internal.common.DataType;
 
@@ -86,7 +87,7 @@ public class MySQLValueObject extends AbstractValueObject {
             case TIME:
                 return getTime();
             case CLOB:
-                return getString();
+                return new DrizzleClob(getBytes());
         }
         return null;
     }

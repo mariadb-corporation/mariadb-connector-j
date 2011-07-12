@@ -33,7 +33,7 @@ public class DriverTest {
 
     public DriverTest() throws SQLException {
         //connection = DriverManager.getConnection("jdbc:mysql:thin://10.100.100.50:3306/test_units_jdbc");
-       connection = DriverManager.getConnection("jdbc:drizzle://root@localhost:3306/");
+       connection = DriverManager.getConnection("jdbc:mysql://localhost/test?user=root");
        //connection = DriverManager.getConnection("jdbc:mysql://10.100.100.50:3306/test_units_jdbc");
     }
     @After
@@ -691,6 +691,44 @@ public class DriverTest {
         while((ch = readStuff.read())!=-1) {
             assertEquals(theBlob[pos++],ch);
         }
+    }
+    @Test
+    public void testClobWithLength() throws SQLException, IOException {
+        getConnection().createStatement().execute("drop table if exists clobtest");
+        getConnection().createStatement().execute("create table clobtest (id int not null primary key, strm text)");
+        PreparedStatement stmt = getConnection().prepareStatement("insert into clobtest (id, strm) values (?,?)");
+        String clob = "clob";
+        stmt.setInt(1,1);
+        stmt.setClob(2, new StringReader(clob));
+        stmt.execute();
+        ResultSet rs = getConnection().createStatement().executeQuery("select * from clobtest");
+        rs.next();
+        Reader readStuff = rs.getClob("strm").getCharacterStream();
+        int ch;
+        int pos=0;
+        char[] a = new char[4];
+        readStuff.read(a);
+        Assert.assertEquals(new String(a), clob);
+    }
+
+    @Test
+    public void  testClob2() throws SQLException, IOException {
+        getConnection().createStatement().execute("drop table if exists clobtest");
+        getConnection().createStatement().execute("create table clobtest (id int not null primary key, strm text)");
+        PreparedStatement stmt = getConnection().prepareStatement("insert into clobtest (id, strm) values (?,?)");
+        Clob clob = connection.createClob();
+        OutputStream ostream = clob.setAsciiStream(1);
+        byte[] bytes = "hello".getBytes();
+        ostream.write(bytes);
+        stmt.setInt(1,1);
+        stmt.setClob(2,clob);
+        stmt.execute();
+        ResultSet rs = getConnection().createStatement().executeQuery("select * from clobtest");
+        rs.next();
+        char[] a = new char[4];
+        Object o = rs.getObject(2);
+        assertTrue(o instanceof Clob);
+        assertEquals(rs.getString(2),"hello");
     }
     @Test
     public void testEmptyResultSet() throws SQLException {

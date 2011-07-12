@@ -24,8 +24,8 @@
 
 package org.drizzle.jdbc;
 
-import org.drizzle.jdbc.internal.common.Utils;
 import org.drizzle.jdbc.internal.SQLExceptionMapper;
+import org.drizzle.jdbc.internal.common.Utils;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -39,15 +39,15 @@ import java.sql.SQLException;
  * <p/>
  * User: marcuse Date: Feb 14, 2009 Time: 9:40:54 PM
  */
-public final class DrizzleBlob extends OutputStream implements Blob {
+public  class DrizzleBlob implements Blob {
     /**
      * the actual blob content.
      */
-    private byte[] blobContent;
+    protected byte[] blobContent;
     /**
      * the size of the blob.
      */
-    private int actualSize;
+    protected int actualSize;
 
     /**
      * How big the blob should be initially.
@@ -58,6 +58,7 @@ public final class DrizzleBlob extends OutputStream implements Blob {
      * creates an empty blob.
      */
     public DrizzleBlob() {
+        blobContent = new byte[0];
     }
 
     /**
@@ -70,29 +71,7 @@ public final class DrizzleBlob extends OutputStream implements Blob {
         this.actualSize = bytes.length;
     }
 
-    /**
-     * Writes the specified byte to this output stream. The general contract for <code>write</code> is that one byte is
-     * written to the output stream. The byte to be written is the eight low-order bits of the argument <code>b</code>.
-     * The 24 high-order bits of <code>b</code> are ignored.
-     * <p/>
-     * Subclasses of <code>OutputStream</code> must provide an implementation for this method.
-     *
-     * @param b the <code>byte</code>.
-     * @throws java.io.IOException if an I/O error occurs. In particular, an <code>IOException</code> may be thrown if
-     *                             the output stream has been closed.
-     */
-    public void write(final int b) throws IOException {
-        if (this.blobContent == null) {
-            this.blobContent = new byte[INITIAL_BLOB_CONTENT_SIZE];
-        }
 
-        if (this.blobContent.length == actualSize) {
-            this.blobContent = Utils.copyWithLength(this.blobContent,
-                    this.blobContent.length * 2);
-        }
-
-        this.blobContent[actualSize++] = (byte) b;
-    }
 
     /**
      * Returns the number of bytes in the <code>BLOB</code> value designated by this <code>Blob</code> object.
@@ -290,8 +269,7 @@ public final class DrizzleBlob extends OutputStream implements Blob {
         if (pos < 1) {
             throw SQLExceptionMapper.getSQLException("Invalid position in blob");
         }
-        return new DrizzleBlob(Utils.copyRange(blobContent,
-                (int) pos - 1, blobContent.length + 1));
+        return new BlobOutputStream(this, (int)(pos-1));
     }
 
     /**
@@ -346,5 +324,54 @@ public final class DrizzleBlob extends OutputStream implements Blob {
         return new ByteArrayInputStream(Utils.copyRange(blobContent,
                 (int) pos,
                 (int) length));
+    }
+}
+
+/**
+ * Output stream for the blob
+ */
+class BlobOutputStream  extends OutputStream{
+
+    int pos;
+    DrizzleBlob blob;
+    public BlobOutputStream(DrizzleBlob blob, int pos) {
+        this.blob = blob;
+        this.pos = pos;
+    }
+
+    @Override
+    public void write(int b) throws IOException {
+
+       if(this.pos >= blob.blobContent.length){
+           int newLen = Math.max(pos,2*blob.blobContent.length + 1);
+           byte[] tmp = new byte[2*blob.blobContent.length + 1];
+           System.arraycopy(blob.blobContent,0, tmp, 0, blob.blobContent.length);
+           blob.blobContent = tmp;
+       }
+       blob.blobContent[pos] = (byte)b;
+       pos++;
+       if (pos > blob.actualSize) {
+           blob.actualSize = pos;
+       }
+    }
+
+    @Override
+    public void write(byte [] buf, int off, int len) {
+       if (pos + len  >= blob.blobContent.length) {
+           int newLen = Math.max(2*(pos + len + 1),1024);
+           byte[] tmp = new byte[newLen];
+           System.arraycopy(blob.blobContent,0, tmp, 0, blob.blobContent.length);
+           blob.blobContent = tmp;
+       }
+       System.arraycopy(buf, off, blob.blobContent, pos, len);
+       pos+= len;
+       if (pos > blob.actualSize) {
+           blob.actualSize = pos;
+       }
+    }
+
+    @Override
+    public void write(byte[] buf) {
+        write(buf, 0, buf.length);
     }
 }

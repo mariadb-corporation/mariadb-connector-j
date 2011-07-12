@@ -28,6 +28,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.sql.Clob;
+import java.sql.Blob;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -81,6 +83,8 @@ public interface ValueObject {
     boolean isNull();
 
     int getDisplayLength();
+    Clob getClob();
+    Blob getBlob();
 
     InputStream getPBMSStream(Protocol protocol) throws QueryException, IOException;
 }
