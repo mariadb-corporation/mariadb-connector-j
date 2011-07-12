@@ -103,4 +103,32 @@ public class DrizzleClob extends DrizzleBlob implements Clob, NClob {
        String sub = toString().substring((int)pos -1, (int)pos -1 + (int)length);
        return new StringReader(sub);
     }
+
+    @Override
+    /**
+     * return character length of the Clob. Assume UTF8 encoding.
+     */
+    public long length() {
+       long len = 0;
+       for(int i = 0; i < blobContent.length;)  {
+            int c = blobContent[pos] & 0xff;
+            if(c < 0x80) {
+                i += 1;
+            }
+            else if((c & 0xC0) == 0xC0) {
+                i += 2;
+            }
+            else if ((c & 0xE0) == 0xE0) {
+                i += 3;
+            }
+            else if ((c & 0xF0) == 0xF0) {
+                i += 4;
+            }
+            else {
+                throw new AssertionError("invalid UTF8");
+            }
+           len++;
+        }
+        return len;
+    }
 }
