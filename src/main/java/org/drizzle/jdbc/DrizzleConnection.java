@@ -121,7 +121,7 @@ public final class DrizzleConnection
      * @throws SQLException always since this is not implemented.
      */
     public CallableStatement prepareCall(final String sql) throws SQLException {
-        throw SQLExceptionMapper.getFeatureNotSupportedException("Stored procedures not supported");
+       return new DrizzleCallableStatement(this, sql);
     }
 
     /**

@@ -201,8 +201,9 @@ public class DrizzlePreparedStatement extends DrizzleStatement implements Prepar
         parameterizedBatchHandler.addToBatch(dQuery);
         dQuery = getQueryFactory().createParameterizedQuery(dQuery);
     }
-
-
+    public void addBatch(final String sql) throws SQLException {
+        parameterizedBatchHandler.addToBatch(getQueryFactory().createParameterizedQuery(sql));
+    }
     @Override
     public int[] executeBatch() throws SQLException {
         try {

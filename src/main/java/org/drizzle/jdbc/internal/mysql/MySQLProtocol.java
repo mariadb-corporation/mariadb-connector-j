@@ -151,10 +151,10 @@ public class MySQLProtocol implements Protocol {
                     MySQLServerCapabilities.CLIENT_PROTOCOL_41,
                     MySQLServerCapabilities.TRANSACTIONS,
                     MySQLServerCapabilities.SECURE_CONNECTION,
-                    MySQLServerCapabilities.LOCAL_FILES);
+                    MySQLServerCapabilities.LOCAL_FILES,
+                    MySQLServerCapabilities.MULTI_RESULTS);
             if(info.getProperty("allowMultiQueries") != null) {
                 capabilities.add(MySQLServerCapabilities.MULTI_STATEMENTS);
-                capabilities.add(MySQLServerCapabilities.MULTI_RESULTS);
             }
             if(info.getProperty("useCompression") != null) {
                 capabilities.add(MySQLServerCapabilities.COMPRESS);
