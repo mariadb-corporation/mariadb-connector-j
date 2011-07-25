@@ -1,12 +1,12 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>org.drizzle.jdbc</groupId>
-    <artifactId>drizzle-jdbc</artifactId>
+    <groupId>org.skysql.jdbc</groupId>
+    <artifactId>skysql-jdbc</artifactId>
     <packaging>jar</packaging>
-    <name>Drizzle-JDBC</name>
+    <name>SkySQL-JDBC</name>
     <version>1.2-SNAPSHOT</version>
-    <description>BSD Licensed JDBC driver for Drizzle and MySQL</description>
-    <url>http://launchpad.net/drizzle-jdbc/</url>
+    <description>BSD Licensed JDBC driver for MySQL</description>
+    <url>http://launchpad.net/skysql/</url>
     <properties>
       <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
@@ -17,39 +17,11 @@
             <distribution>repo</distribution>
         </license>
     </licenses>
-    <scm>
-        <connection>scm:bazaar:sftp://krummas@bazaar.launchpad.net/~krummas/drizzle-jdbc/trunk/</connection>
-        <url>http://code.launchpad.net/drizzle-jdbc</url>
-	    <developerConnection>scm:bazaar:sftp://krummas@bazaar.launchpad.net/~krummas/drizzle-jdbc/trunk/</developerConnection>
-        <tag>HEAD</tag>
-    </scm> 
 
-    <ciManagement>
-      <system>hudson</system>
-      <url>http://marcus.no-ip.biz/hudson/</url>
-    </ciManagement>
     <issueManagement>
       <system>Launchpad</system>
-      <url>http://bugs.launchpad.net/drizzle-jdbc/</url>
+      <url>http://bugs.launchpad.net/skysql/</url>
     </issueManagement>
-    <mailingLists>
-      <mailingList>
-	<name>drizzle-discuss</name>
-	<archive>https://lists.launchpad.net/drizzle-discuss/</archive>
-      </mailingList>
-    </mailingLists>
-    <developers>
-      <developer>
-	<id>marcuse</id>
-	<name>Marcus Eriksson</name>
-	<email>krummas@gmail.com</email>
-	<url>http://developian.blogspot.com</url>
-	<roles>
-          <role>developer</role>
-    	</roles>
-	<timezone>+1</timezone>
-      </developer>
-    </developers>
 
     <build>
         <plugins>
@@ -138,7 +110,7 @@
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-checkstyle-plugin</artifactId>
 	    <configuration>
-	      <configLocation>drizzle-jdbc-checks.xml</configLocation>
+	      <configLocation>skysql-jdbc-checks.xml</configLocation>
             </configuration>
           </plugin>
             <plugin>
