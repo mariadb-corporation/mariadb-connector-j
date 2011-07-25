@@ -82,6 +82,12 @@ public class MySQLParameterizedQuery implements ParameterizedQuery {
         this.parameters = new ParameterHolder[paramCount];
     }
 
+    public void validate() throws QueryException{
+        if(containsNull(parameters)) {
+            throw new QueryException("You need to set exactly " + paramCount + " parameters on the prepared statement");
+        }
+    }
+
     public int length() throws QueryException {
         if(containsNull(parameters)) {
             throw new QueryException("You need to set exactly " + paramCount + " parameters on the prepared statement");
@@ -102,9 +108,7 @@ public class MySQLParameterizedQuery implements ParameterizedQuery {
     }
 
     public void writeTo(final OutputStream os) throws IOException, QueryException {
-        if(containsNull(parameters)) {
-            throw new QueryException("You need to set exactly " + paramCount + " parameters on the prepared statement");
-        }
+
         if(queryPartsArray.length == 0) {
             throw new AssertionError("Invalid query, queryParts was empty");
         }
@@ -116,12 +120,14 @@ public class MySQLParameterizedQuery implements ParameterizedQuery {
         }
     }
 
+
     public void writeTo(OutputStream ostream, int offset, int packLength)
             throws IOException, QueryException {
 
-        if(containsNull(parameters)) {
+        /*if(containsNull(parameters)) {
             throw new QueryException("You need to set exactly " + paramCount + " parameters on the prepared statement");
         }
+        */
         if(queryPartsArray.length == 0) {
             throw new AssertionError("Invalid query, queryParts was empty");
         }

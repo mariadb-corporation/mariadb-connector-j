@@ -23,7 +23,7 @@ public class MySQLDriverTest extends DriverTest {
     private Connection connection;
     public MySQLDriverTest() throws SQLException {
         connection = DriverManager.getConnection("jdbc:mysql:thin://root@localhost:3306/test");
-       // connection = DriverManager.getConnection("jdbc:mysql://10.100.100.50:3306/test_units_jdbc");
+       // connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/test");
     }
     @Override
     public Connection getConnection() {
@@ -32,22 +32,27 @@ public class MySQLDriverTest extends DriverTest {
     
     @Test
     public void testAuthConnection() throws SQLException {
-        Connection conn = DriverManager.getConnection("jdbc:mysql:thin://test:test@10.100.100.50:3306/test_units_jdbc");
-        Statement stmt = conn.createStatement();
-        ResultSet rs = stmt.executeQuery("select * from t1");
-        rs.close();
-        stmt.close();
-        conn.close();
-    }
-
-    @Test
-    public void testAuthConnection2() throws SQLException {
-        Connection conn = DriverManager.getConnection("jdbc:mysql:thin://e_passwd:@10.100.100.50:3306/test_units_jdbc");
-        Statement stmt = conn.createStatement();
-        ResultSet rs = stmt.executeQuery("select * from t1");
-        rs.close();
-        stmt.close();
-        conn.close();
+        Connection c = getConnection();
+        Statement st = c.createStatement();
+        st.execute("grant all privileges on *.* to 'test'@'localhost' identified by 'test'");
+        Connection conn = null;
+        Statement stmt = null;
+        ResultSet rs = null;
+        try {
+            conn = DriverManager.getConnection("jdbc:mysql:thin://test:test@localhost:3306/test&password=test");
+            stmt = conn.createStatement();
+            rs = stmt.executeQuery("select * from t1");
+        }
+        finally {
+            if (rs != null)
+                rs.close();
+            if (stmt != null)
+                stmt.close();
+            if (conn != null)
+                conn.close();
+            st.execute("drop user 'test'@'localhost'");
+            st.close();
+        }
     }
 
     @Test
@@ -55,13 +60,17 @@ public class MySQLDriverTest extends DriverTest {
         Properties props = new Properties();
         props.setProperty("user","test");
         props.setProperty("password","test");
-
-        Connection conn = DriverManager.getConnection("jdbc:mysql:thin://teest:teest@10.100.100.50:3306/test_units_jdbc",props);
+        Connection c = getConnection();
+        Statement st = c.createStatement();
+        st.execute("grant all privileges on *.* to 'test'@'localhost' identified by 'test'");
+        Connection conn = DriverManager.getConnection("jdbc:mysql:thin://teest:teest@localhost:3306/test",props);
         Statement stmt = conn.createStatement();
         ResultSet rs = stmt.executeQuery("select * from t1");
         rs.close();
         stmt.close();
         conn.close();
+        st.execute("drop user 'test'@'localhost'");
+        st.close();
     }
     @Test
     public void testBit() throws SQLException {

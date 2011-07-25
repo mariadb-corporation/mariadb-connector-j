@@ -1,11 +1,12 @@
 package org.skysql.jdbc;
 
 import org.junit.Test;
-import static org.junit.Assert.assertEquals;
 
 import javax.sql.DataSource;
-import java.sql.SQLException;
 import java.sql.Connection;
+import java.sql.SQLException;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  * Created by IntelliJ IDEA.
@@ -17,13 +18,13 @@ import java.sql.Connection;
 public class DataSourceTest {
     @Test
     public void testDrizzleDataSource() throws SQLException {
-        DataSource ds = new MySQLDataSource(DriverTest.host,3307,"test_units_jdbc");
+        DataSource ds = new MySQLDataSource(DriverTest.host,3306,"test");
         Connection connection = ds.getConnection("root", null);
         assertEquals(connection.isValid(0),true);
     }
     @Test
     public void testDrizzleDataSource2() throws SQLException {
-        DataSource ds = new MySQLDataSource(DriverTest.host,3307,"test_units_jdbc");
+        DataSource ds = new MySQLDataSource(DriverTest.host,3306,"test");
         Connection connection = ds.getConnection("root","");
         assertEquals(connection.isValid(0),true);
     }

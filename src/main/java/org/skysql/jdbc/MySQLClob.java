@@ -110,7 +110,7 @@ public class MySQLClob extends MySQLBlob implements Clob, NClob {
      */
     public long length() {
        long len = 0;
-       for(int i = 0; i < blobContent.length;)  {
+       for(int i = 0; i < actualSize;)  {
             int c = blobContent[i] & 0xff;
             if(c < 0x80) {
                 i += 1;

@@ -48,6 +48,7 @@ public class MySQLRowPacket {
     }
 
     public boolean isPacketComplete() throws IOException {
+
         long encLength = reader.getSilentLengthEncodedBinary();
         long remaining = reader.getRemainingSize();
         return encLength<=remaining;

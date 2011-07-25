@@ -20,7 +20,7 @@ public class DateTest {
     static { Logger.getLogger("").setLevel(Level.OFF); }
     @Test
     public void dateTest() throws SQLException {
-        Connection connection = DriverManager.getConnection("jdbc:drizzle://root@"+DriverTest.host+":3307/test_units_jdbc");
+        Connection connection = DriverManager.getConnection("jdbc:drizzle://root@localhost:3306/test");
 
         Statement stmt = connection.createStatement();
         stmt.executeUpdate("drop table if exists date_test");
@@ -51,7 +51,7 @@ public class DateTest {
     }
     @Test(expected = SQLException.class)
     public void dateTest2() throws SQLException {
-        Connection connection = DriverManager.getConnection("jdbc:drizzle://"+DriverTest.host+":4427/test_units_jdbc");
+        Connection connection = DriverManager.getConnection("jdbc:drizzle://localhost/test");
 
         Statement stmt = connection.createStatement();
         ResultSet rs = stmt.executeQuery("select 1");
@@ -61,7 +61,7 @@ public class DateTest {
 
     @Test(expected = SQLException.class)
     public void dateTest3() throws SQLException {
-        Connection connection = DriverManager.getConnection("jdbc:drizzle://"+DriverTest.host+":4427/test_units_jdbc");
+        Connection connection = DriverManager.getConnection("jdbc:drizzle://localhost:/test");
 
         Statement stmt = connection.createStatement();
         ResultSet rs = stmt.executeQuery("select 1 as a");
@@ -70,7 +70,7 @@ public class DateTest {
     }
     @Test(expected = SQLException.class)
     public void timeTest3() throws SQLException {
-        Connection connection = DriverManager.getConnection("jdbc:drizzle://"+DriverTest.host+":4427/test_units_jdbc");
+        Connection connection = DriverManager.getConnection("jdbc:drizzle://localhost/test");
 
         Statement stmt = connection.createStatement();
         ResultSet rs = stmt.executeQuery("select 'aaa' as a");
@@ -95,7 +95,7 @@ public class DateTest {
 
     @Test
     public void yearTest() throws SQLException {
-        Connection connection = DriverManager.getConnection("jdbc:mysql:thin://"+DriverTest.host+":3306/test_units_jdbc");
+        Connection connection = DriverManager.getConnection("jdbc:mysql:thin://localhost/test");
         connection.createStatement().execute("drop table if exists yeartest");
         connection.createStatement().execute("create table yeartest (y1 year, y2 year(2))");
         connection.createStatement().execute("insert into yeartest values (null, null), (1901, 70), (0, 0), (2155, 69)");
@@ -111,7 +111,7 @@ public class DateTest {
     }
     @Test
     public void timeTest() throws SQLException {
-        Connection connection = DriverManager.getConnection("jdbc:mysql:thin://"+DriverTest.host+":3306/test_units_jdbc");
+        Connection connection = DriverManager.getConnection("jdbc:mysql:thin://localhost:3306/test");
         connection.createStatement().execute("drop table if exists timetest");
         connection.createStatement().execute("create table timetest (t time)");
         connection.createStatement().execute("insert into timetest values (null), ('-838:59:59'), ('00:00:00'), ('838:59:59')");

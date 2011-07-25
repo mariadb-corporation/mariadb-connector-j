@@ -1,12 +1,12 @@
 package org.skysql.jdbc;
 
-import static junit.framework.Assert.assertEquals;
+import org.junit.Test;
 
 import java.sql.*;
-import java.util.logging.Logger;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
-import org.junit.Test;
+import static junit.framework.Assert.assertEquals;
 
 /**
  * User: marcuse
@@ -17,8 +17,7 @@ public class DatabaseMetadataTest {
     static { Logger.getLogger("").setLevel(Level.OFF); }
     private Connection connection;
     public DatabaseMetadataTest() throws ClassNotFoundException, SQLException {
-        connection = DriverManager.getConnection("jdbc:drizzle://root@"+DriverTest.host+":3307/test_units_jdbc");
-        //connection = DriverManager.getConnection("jdbc:mysql://a@localhost:3306/test_units_jdbc");
+        connection = DriverManager.getConnection("jdbc:drizzle://root@"+DriverTest.host+":3306/test");
     }
     @Test
     public void primaryKeysTest() throws SQLException {
@@ -26,12 +25,12 @@ public class DatabaseMetadataTest {
         stmt.execute("drop table if exists pk_test");
         stmt.execute("create table pk_test (id1 int not null, id2 int not null, val varchar(20), primary key(id1, id2))");
         DatabaseMetaData dbmd = connection.getMetaData();
-        ResultSet rs = dbmd.getPrimaryKeys(null,"test_units_jdbc","pk_test");
+        ResultSet rs = dbmd.getPrimaryKeys(null,"test","pk_test");
         int i=0;
         while(rs.next()) {
             i++;
             assertEquals(null,rs.getString("table_cat"));
-            assertEquals("test_units_jdbc",rs.getString("table_schem"));
+            assertEquals("test",rs.getString("table_schem"));
             assertEquals("pk_test",rs.getString("table_name"));
             assertEquals("id"+i,rs.getString("column_name"));
             assertEquals(i,rs.getShort("key_seq"));
@@ -55,7 +54,7 @@ public class DatabaseMetadataTest {
 
 
         DatabaseMetaData dbmd = connection.getMetaData();
-        ResultSet rs = dbmd.getExportedKeys("","test_units_jdbc","prim_key");
+        ResultSet rs = dbmd.getExportedKeys("","test","prim_key");
         int i =0 ;
         while(rs.next()) {
             assertEquals("id",rs.getString("pkcolumn_name"));
@@ -81,7 +80,7 @@ public class DatabaseMetadataTest {
                                             "id_ref1 int, foreign key (id_ref1) references prim_key(id) on update cascade)");
 
         DatabaseMetaData dbmd = connection.getMetaData();
-        ResultSet rs = dbmd.getImportedKeys("","test_units_jdbc","fore_key0");
+        ResultSet rs = dbmd.getImportedKeys("","test","fore_key0");
         int i = 0;
         while(rs.next()) {
             assertEquals("id",rs.getString("pkcolumn_name"));
@@ -97,9 +96,9 @@ public class DatabaseMetadataTest {
         assertEquals(true,rs.next());
         assertEquals("information_schema",rs.getString("table_schem").toLowerCase());
         assertEquals(false,rs.next());
-        rs = dbmd.getSchemas(null,"test_units_jdbc");
+        rs = dbmd.getSchemas(null,"test");
         assertEquals(true,rs.next());
-        assertEquals("test_units_jdbc",rs.getString("table_schem"));
+        assertEquals("test",rs.getString("table_schem"));
         assertEquals(false,rs.next());
     }
     
@@ -108,7 +107,7 @@ public class DatabaseMetadataTest {
         DatabaseMetaData dbmd = connection.getMetaData();
         ResultSet rs = dbmd.getTables(null,null,"prim_key",null);
         assertEquals(true,rs.next());
-        rs = dbmd.getTables(null,"test_units_jdbc","prim_key",null);
+        rs = dbmd.getTables(null,"test","prim_key",null);
         assertEquals(true,rs.next());
     }
     @Test
@@ -135,7 +134,7 @@ public class DatabaseMetadataTest {
         ResultSet rs = dbmd.getSchemas();
         boolean foundTestUnitsJDBC = false;
         while(rs.next()) {
-            if(rs.getString(1).equals("test_units_jdbc"))
+            if(rs.getString(1).equals("test"))
                 foundTestUnitsJDBC=true;
         }
         assertEquals(true,foundTestUnitsJDBC);
@@ -143,6 +142,6 @@ public class DatabaseMetadataTest {
     @Test
     public void dbmetaTest() throws SQLException {
         DatabaseMetaData dmd = connection.getMetaData();
-        dmd.getBestRowIdentifier(null,"test_units_jdbc","t1",DatabaseMetaData.bestRowSession, true);
+        dmd.getBestRowIdentifier(null,"test","t1",DatabaseMetaData.bestRowSession, true);
     }
 }

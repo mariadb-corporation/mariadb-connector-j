@@ -1,11 +1,10 @@
 package org.skysql.jdbc;
 
 import org.junit.Test;
-import static org.junit.Assert.assertEquals;
 
 import java.sql.*;
-import java.util.logging.Logger;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Created by IntelliJ IDEA.
@@ -20,9 +19,9 @@ public class ResultSetUnsupportedMethodsTest {
     static { Logger.getLogger("").setLevel(Level.OFF); }
 
     public ResultSetUnsupportedMethodsTest() throws SQLException {
-        //connection = DriverManager.getConnection("jdbc:mysql:thin://localhost:3306/test_units_jdbc");
-        Connection connection = DriverManager.getConnection("jdbc:drizzle://root@" + DriverTest.host + ":4427/test_units_jdbc");
-        //connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/test_units_jdbc");
+        //connection = DriverManager.getConnection("jdbc:mysql:thin://localhost:3306/test");
+        Connection connection = DriverManager.getConnection("jdbc:drizzle://root@" + DriverTest.host + ":3306/test");
+        //connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/test");
         rs = connection.createStatement().executeQuery("select 1");
     }
 
@@ -76,22 +75,7 @@ System.out.println("}");
     public void testGetRef2() throws SQLException {
        rs.getRef("");
     }
-    @Test(expected=SQLFeatureNotSupportedException.class)
-    public void testGetClob() throws SQLException {
-       rs.getClob(1);
-    }
-    @Test(expected=SQLFeatureNotSupportedException.class)
-    public void testGetClob2() throws SQLException {
-       rs.getClob("");
-    }
-    @Test(expected=SQLFeatureNotSupportedException.class)
-    public void testGetNClob() throws SQLException {
-       rs.getNClob(1);
-    }
-    @Test(expected=SQLFeatureNotSupportedException.class)
-    public void testGetNClob2() throws SQLException {
-       rs.getNClob("");
-    }
+
     @Test(expected=SQLFeatureNotSupportedException.class)
     public void testRowID() throws SQLException {
        rs.getRowId(1);

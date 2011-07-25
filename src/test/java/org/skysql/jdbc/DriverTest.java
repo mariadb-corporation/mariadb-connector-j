@@ -27,14 +27,14 @@ import static org.junit.Assert.assertFalse;
  * Time: 7:58:11 AM
  */
 public class DriverTest {
-    public static String host = "10.100.100.50";
+    public static String host = "localhost";
     private Connection connection;
     static { Logger.getLogger("").setLevel(Level.OFF); }
 
     public DriverTest() throws SQLException {
-        //connection = DriverManager.getConnection("jdbc:mysql:thin://10.100.100.50:3306/test_units_jdbc");
+        //connection = DriverManager.getConnection("jdbc:mysql:thin://localhost:3306/test");
        connection = DriverManager.getConnection("jdbc:mysql://localhost/test?user=root");
-       //connection = DriverManager.getConnection("jdbc:mysql://10.100.100.50:3306/test_units_jdbc");
+       //connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/test");
     }
     @After
     public void close() throws SQLException {
@@ -725,10 +725,10 @@ public class DriverTest {
         stmt.execute();
         ResultSet rs = getConnection().createStatement().executeQuery("select * from clobtest");
         rs.next();
-        char[] a = new char[4];
         Object o = rs.getObject(2);
         assertTrue(o instanceof Clob);
-        assertEquals(rs.getString(2),"hello");
+        String s = rs.getString(2);
+        assertTrue(s.equals("hello"));
     }
     @Test
     public void testEmptyResultSet() throws SQLException {
@@ -756,7 +756,8 @@ public class DriverTest {
 
     @Test(expected = SQLException.class)
     public void testBadParamlist() throws SQLException {
-        PreparedStatement ps = getConnection().prepareStatement("insert into blah values (?)");
+        PreparedStatement ps = null;
+        ps = getConnection().prepareStatement("insert into blah values (?)");
         ps.execute();
     }
 
@@ -1188,8 +1189,8 @@ public class DriverTest {
             dc.setBatchQueryHandlerFactory(new RewriteParameterizedBatchHandlerFactory());
         }
         Statement stmt = conn.createStatement();
-        stmt.executeUpdate("drop table if exists test_units_jdbc.bug501452");
-        stmt.executeUpdate("CREATE TABLE test_units_jdbc.bug501452 (id int not null primary key, value varchar(20))");
+        stmt.executeUpdate("drop table if exists bug501452");
+        stmt.executeUpdate("CREATE TABLE bug501452 (id int not null primary key, value varchar(20))");
         stmt.close();
         PreparedStatement ps=conn.prepareStatement("insert into bug501452 (id,value) values (?,?)");
         ps.setObject(1, 1);
@@ -1227,8 +1228,8 @@ public class DriverTest {
     public void testSetObject() throws SQLException {
         Connection conn = getConnection();
         Statement stmt = conn.createStatement();
-        stmt.executeUpdate("drop table if exists test_units_jdbc.test_setobjectconv");
-        stmt.executeUpdate("CREATE TABLE test_units_jdbc.test_setobjectconv (id int not null primary key auto_increment, v1 varchar(40), v2 varchar(40))");
+        stmt.executeUpdate("drop table if exists test_setobjectconv");
+        stmt.executeUpdate("CREATE TABLE test_setobjectconv (id int not null primary key auto_increment, v1 varchar(40), v2 varchar(40))");
         stmt.close();
         PreparedStatement ps = conn.prepareStatement("insert into test_setobjectconv values (null, ?, ?)");
         ps.setObject(1,"2009-01-01 00:00:00", Types.TIMESTAMP);
@@ -1259,16 +1260,16 @@ public class DriverTest {
     @Test
     public void testConnectWithDB() throws SQLException {
 
-        Connection conn = DriverManager.getConnection("jdbc:mysql:thin://"+host+":3306/");
+        Connection conn = DriverManager.getConnection("jdbc:mysql:thin://localhost:3306?user=root");
         try {
-            conn.createStatement().executeUpdate("drop database test_units_jdbc_testdrop");
+            conn.createStatement().executeUpdate("drop database test_testdrop");
         } catch (Exception e) {}
-        conn = DriverManager.getConnection("jdbc:mysql:thin://"+host+":3306/test_units_jdbc_testdrop?createDB=true");
+        conn = DriverManager.getConnection("jdbc:mysql:thin://localhost:3306/test_testdrop?createDB=true");
         DatabaseMetaData dbmd = conn.getMetaData();
         ResultSet rs = dbmd.getSchemas();
         boolean foundDb = false;
         while(rs.next()) {
-            if(rs.getString("table_schem").equals("test_units_jdbc_testdrop")) foundDb = true;
+            if(rs.getString("table_schem").equals("test_testdrop")) foundDb = true;
         }
         assertTrue(foundDb);
 

@@ -166,7 +166,6 @@ public class Reader {
             return null;
         }
         final byte[] tmpBuf = new byte[(int) encLength];
-
         byteBuffer.get(tmpBuf);
         return tmpBuf;
     }
@@ -200,9 +199,13 @@ public class Reader {
     }
 
     public long getSilentLengthEncodedBinary() throws IOException {
+        if (byteBuffer.remaining() == 0)
+            return 0;
+        int pos1 = byteBuffer.position();
         byteBuffer.mark();
-        long retVal = getLengthEncodedBinary();
+        long valueLen = getLengthEncodedBinary();
+        int pos2 = byteBuffer.position();
         byteBuffer.reset();
-        return retVal;
+        return valueLen + (pos2 - pos1);
     }
 }

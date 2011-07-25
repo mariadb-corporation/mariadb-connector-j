@@ -167,6 +167,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
 
     public boolean execute() throws SQLException {
         MySQLConnection conn = (MySQLConnection)getConnection();
+
         conn.reenableWarnings();
         flushOutputStreams();
         startTimer();
@@ -302,7 +303,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
             return;
         }
         try {
-            setParameter(parameterIndex, new StreamParameter(x.getAsciiStream(), x.length()));
+            setParameter(parameterIndex, new StreamParameter(x.getAsciiStream(), ((MySQLBlob)x).length()));
         } catch (IOException e) {
             throw SQLExceptionMapper.getSQLException("Could not read stream", e);
         }

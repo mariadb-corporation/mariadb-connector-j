@@ -24,7 +24,7 @@ public class MultiTest {
     private Connection connection;
 
     public MultiTest() throws SQLException {
-        connection = DriverManager.getConnection("jdbc:mysql:thin://"+DriverTest.host+":3306/test_units_jdbc?allowMultiQueries=true");
+        connection = DriverManager.getConnection("jdbc:mysql:thin://"+DriverTest.host+":3306/test?allowMultiQueries=true");
     }
 
     @Test

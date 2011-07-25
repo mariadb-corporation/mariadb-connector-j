@@ -23,10 +23,14 @@
  */
 
 package org.skysql.jdbc.internal.common.query;
+import  org.skysql.jdbc.internal.common.QueryException;
+
+
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
+
 
 /**
  * . User: marcuse Date: Feb 20, 2009 Time: 10:43:58 PM
@@ -78,6 +82,10 @@ public class MySQLQuery implements Query {
     public void writeTo(OutputStream ostream, int offset, int packLength) throws IOException
     {
         ostream.write(queryToSend, offset, packLength);
+    }
+
+    public void validate() throws QueryException{
+
     }
 
 

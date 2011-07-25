@@ -286,7 +286,7 @@ public class MySQLProtocol implements Protocol {
      * @return a MySQLQueryResult
      * @throws java.io.IOException when something goes wrong while reading/writing from the server
      */
-    private QueryResult createDrizzleQueryResult(final ResultSetPacket packet) throws IOException, QueryException {
+    private QueryResult createQueryResult(final ResultSetPacket packet) throws IOException, QueryException {
         final List<ColumnInformation> columnInformation = new ArrayList<ColumnInformation>();
         for (int i = 0; i < packet.getFieldCount(); i++) {
             final RawPacket rawPacket = packetFetcher.getRawPacket();
@@ -421,6 +421,7 @@ public class MySQLProtocol implements Protocol {
     }
 
     public QueryResult executeQuery(final Query dQuery) throws QueryException {
+        dQuery.validate();
         log.finest("Executing streamed query: " + dQuery);
         this.hasMoreResults = false;
         final StreamedQueryPacket packet = new StreamedQueryPacket(dQuery);
@@ -469,7 +470,7 @@ public class MySQLProtocol implements Protocol {
                 log.fine("SELECT executed, fetching result set");
 
                 try {
-                    return this.createDrizzleQueryResult((ResultSetPacket) resultPacket);
+                    return this.createQueryResult((ResultSetPacket) resultPacket);
                 } catch (IOException e) {
                     throw new QueryException("Could not read result set: " + e.getMessage(),
                             -1,
@@ -736,7 +737,7 @@ public class MySQLProtocol implements Protocol {
             case RESULTSET:
                 log.fine("SELECT executed, fetching result set");
                 try {
-                    return this.createDrizzleQueryResult((ResultSetPacket) resultPacket);
+                    return this.createQueryResult((ResultSetPacket) resultPacket);
                 } catch (IOException e) {
                     throw new QueryException("Could not read result set: "
                             + e.getMessage(), -1,
@@ -756,7 +757,7 @@ public class MySQLProtocol implements Protocol {
             ResultPacket resultPacket = ResultPacketFactory.createResultPacket(packetFetcher.getRawPacket());
             switch(resultPacket.getResultType()) {
                 case RESULTSET:
-                    return createDrizzleQueryResult((ResultSetPacket) resultPacket);
+                    return createQueryResult((ResultSetPacket) resultPacket);
                 case OK:
                     OKPacket okpacket = (OKPacket) resultPacket;
                     this.hasMoreResults = okpacket.getServerStatus().contains(ServerStatus.MORE_RESULTS_EXISTS);                    

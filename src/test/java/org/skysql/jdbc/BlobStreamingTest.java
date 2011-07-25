@@ -1,42 +1,14 @@
 package org.skysql.jdbc;
 
-import org.skysql.jdbc.internal.common.RewriteParameterizedBatchHandlerFactory;
-import org.skysql.jdbc.internal.common.Utils;
-import org.skysql.jdbc.internal.common.packet.RawPacket;
-import org.skysql.jdbc.internal.common.packet.buffer.WriteBuffer;
-import org.junit.After;
 import org.junit.Ignore;
-import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.ObjectInputStream;
-import java.io.Reader;
-import java.io.StringReader;
-import java.math.BigDecimal;
-import java.net.URL;
-import java.sql.Blob;
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.SQLIntegrityConstraintViolationException;
-import java.sql.SQLSyntaxErrorException;
-import java.sql.SQLWarning;
-import java.sql.Savepoint;
-import java.sql.Statement;
-import java.sql.Timestamp;
-import java.sql.Types;
-import java.util.List;
+import java.sql.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertTrue;
-import static org.junit.Assert.assertFalse;
 
 /**
  * User: marcuse
@@ -45,14 +17,14 @@ import static org.junit.Assert.assertFalse;
  */
 @Ignore
 public class BlobStreamingTest {
-    public static String host = "10.100.100.50";
+    public static String host = "localhost";
     private Connection connection;
     static { Logger.getLogger("").setLevel(Level.OFF); }
 
     public BlobStreamingTest() throws SQLException {
-        //connection = DriverManager.getConnection("jdbc:mysql:thin://10.100.100.50:3306/test_units_jdbc");
-       connection = DriverManager.getConnection("jdbc:drizzle://"+host+":3307/test_units_jdbc?enableBlobStreaming=true");
-       //connection = DriverManager.getConnection("jdbc:mysql://10.100.100.50:3306/test_units_jdbc");
+        //connection = DriverManager.getConnection("jdbc:mysql:thin://localhost:3306/test");
+       connection = DriverManager.getConnection("jdbc:drizzle://"+host+":3307/test?enableBlobStreaming=true");
+       //connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/test");
     }
   //  @After
     public void close() throws SQLException {

@@ -18,7 +18,7 @@ import static org.junit.Assert.assertTrue;
 public class BigQueryTest {
     @Test
     public void sendBigQuery2() throws SQLException {
-        Connection conn = DriverManager.getConnection("jdbc:drizzle://"+DriverTest.host+":3306/test_units_jdbc");
+        Connection conn = DriverManager.getConnection("jdbc:drizzle://"+DriverTest.host+":3306/test");
         Statement stmt = conn.createStatement();
         stmt.execute("drop table  if exists bigblob");
         stmt.execute("create table bigblob (id int not null primary key auto_increment, test longblob)");
@@ -47,7 +47,7 @@ public class BigQueryTest {
     }
     @Test
     public void sendBigPreparedQuery() throws SQLException {
-        Connection conn = DriverManager.getConnection("jdbc:drizzle://"+DriverTest.host+":3306/test_units_jdbc");
+        Connection conn = DriverManager.getConnection("jdbc:drizzle://"+DriverTest.host+":3306/test");
         Statement stmt = conn.createStatement();
         stmt.execute("drop table  if exists bigblob2");
         stmt.execute("create table bigblob2 (id int not null primary key auto_increment, test longblob, test2 longblob)");

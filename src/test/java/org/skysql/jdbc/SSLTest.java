@@ -48,6 +48,6 @@ public class SSLTest {
     @Test
     public void sslTest() throws SQLException {
         
-        Connection conn = DriverManager.getConnection("jdbc:drizzle://"+DriverTest.host+":3306/test_units_jdbc?useSSL=true");
+        Connection conn = DriverManager.getConnection("jdbc:drizzle://"+DriverTest.host+":3306/test?useSSL=true");
     }
 }
