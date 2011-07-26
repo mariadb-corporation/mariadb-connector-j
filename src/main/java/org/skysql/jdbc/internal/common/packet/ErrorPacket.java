@@ -48,8 +48,18 @@ public class ErrorPacket extends ResultPacket {
             this.message = reader.readString("UTF-8");
         }
         else {
-            String msg = reader.readString("UTF-8");
-            this.message = "" + (char)sqlStateMarker + msg;
+            // Pre-4.1 message, still can be output in newer versions (e.g with 'Too many connections')
+            byte[] msgBuf = new byte[reader.getRemainingSize()+1];
+            msgBuf[0] = sqlStateMarker;
+            int cnt = 1;
+            while(reader.getRemainingSize() > 0) {
+                byte b = reader.readByte();
+                if(b == 0)
+                    break;
+                msgBuf[cnt++] = b;
+            }
+
+            this.message = msgBuf.toString();
             this.sqlState = "HY000".getBytes("UTF-8");
         }
     }
