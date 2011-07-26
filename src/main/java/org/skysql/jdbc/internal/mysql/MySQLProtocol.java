@@ -34,9 +34,9 @@ import org.skysql.jdbc.internal.common.packet.commands.StreamedQueryPacket;
 import org.skysql.jdbc.internal.common.query.MySQLQuery;
 import org.skysql.jdbc.internal.common.query.Query;
 import org.skysql.jdbc.internal.common.queryresults.MySQLQueryResult;
-import org.skysql.jdbc.internal.common.queryresults.UpdateResult;
 import org.skysql.jdbc.internal.common.queryresults.NoSuchColumnException;
 import org.skysql.jdbc.internal.common.queryresults.QueryResult;
+import org.skysql.jdbc.internal.common.queryresults.UpdateResult;
 import org.skysql.jdbc.internal.drizzle.packet.DrizzleRowPacket;
 import org.skysql.jdbc.internal.mysql.packet.MySQLFieldPacket;
 import org.skysql.jdbc.internal.mysql.packet.MySQLGreetingReadPacket;
@@ -139,7 +139,13 @@ public class MySQLProtocol implements Protocol {
             BufferedInputStream reader = new BufferedInputStream(socket.getInputStream(), 32768);
             packetFetcher = new SyncPacketFetcher(reader);
             writer = new PacketOutputStream(socket.getOutputStream());
-            final MySQLGreetingReadPacket greetingPacket = new MySQLGreetingReadPacket(packetFetcher.getRawPacket());
+            RawPacket packet =  packetFetcher.getRawPacket();
+            if (ReadUtil.isErrorPacket(packet)) {
+                reader.close();
+                ErrorPacket errorPacket = (ErrorPacket)ResultPacketFactory.createResultPacket(packet);
+                throw new QueryException(errorPacket.getMessage());
+            }
+            final MySQLGreetingReadPacket greetingPacket = new MySQLGreetingReadPacket(packet);
             this.serverThreadId = greetingPacket.getServerThreadID();
             boolean useCompression = false;
 

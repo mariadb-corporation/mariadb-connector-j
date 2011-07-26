@@ -43,8 +43,15 @@ public class ErrorPacket extends ResultPacket {
         reader.readByte();
         this.errorNumber = reader.readShort();
         this.sqlStateMarker = reader.readByte();
-        this.sqlState = reader.readRawBytes(5);
-        this.message = reader.readString("UTF-8");
+        if (sqlStateMarker == '#') {
+            this.sqlState = reader.readRawBytes(5);
+            this.message = reader.readString("UTF-8");
+        }
+        else {
+            String msg = reader.readString("UTF-8");
+            this.message = "" + (char)sqlStateMarker + msg;
+            this.sqlState = "HY000".getBytes("UTF-8");
+        }
     }
 
     public String getMessage() {
