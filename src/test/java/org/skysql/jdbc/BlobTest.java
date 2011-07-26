@@ -9,14 +9,7 @@ import java.util.logging.Logger;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-/**
- * Created by IntelliJ IDEA.
- * User: marcuse
- * Date: May 7, 2009
- * Time: 4:21:54 PM
- * To change this template use File | Settings | File Templates.
- */
-public class BlobTest {
+public class BlobTest extends BaseTest {
     static { Logger.getLogger("").setLevel(Level.OFF); }
     @Test
     public void testPosition() throws SQLException {
@@ -49,8 +42,7 @@ public class BlobTest {
 
     @Test
     public void testBug716378() throws SQLException {
-        Connection conn = DriverManager.getConnection("jdbc:drizzle://" + DriverTest.host + ":3306/test");
-        Statement stmt = conn.createStatement();
+        Statement stmt = connection.createStatement();
         stmt.execute("drop table  if exists bug716378");
         stmt.execute("create table bug716378 (id int not null primary key auto_increment, test longblob, test2 blob, test3 text)");
 

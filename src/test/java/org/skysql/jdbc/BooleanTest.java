@@ -8,11 +8,10 @@ import java.sql.*;
 import static org.junit.Assert.*;
 
 
-public class BooleanTest {
+public class BooleanTest extends BaseTest{
     @Test
     public void testBoolean() throws SQLException {
-        Connection conn = DriverManager.getConnection("jdbc:drizzle://root@"+DriverTest.host+"/test");
-        Statement stmt = conn.createStatement();
+        Statement stmt = connection.createStatement();
         stmt.execute("drop table  if exists booleantest");
         stmt.execute("create table booleantest (id int not null primary key auto_increment, test boolean)");
         stmt.execute("insert into booleantest values(null, true)");

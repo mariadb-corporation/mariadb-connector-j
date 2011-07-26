@@ -13,13 +13,12 @@ import static junit.framework.Assert.assertEquals;
  * Date: Feb 26, 2009
  * Time: 10:12:52 PM
  */
-public class ResultSetMetaDataTest {
+public class ResultSetMetaDataTest extends BaseTest {
     static { Logger.getLogger("").setLevel(Level.OFF); }
     @Test
     public void metaDataTest() throws SQLException {
-        Connection connection = DriverManager.getConnection("jdbc:drizzle://root@"+DriverTest.host+":3306/test");
         Statement stmt = connection.createStatement();
-        stmt.execute("drop table if exists test_rsmd");  
+        stmt.execute("drop table if exists test_rsmd");
         stmt.execute("create table test_rsmd (id_col int not null primary key auto_increment, " +
                                             "nullable_col varchar(20)," +
                                             "unikey_col int unique)");

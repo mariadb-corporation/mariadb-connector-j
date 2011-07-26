@@ -1,5 +1,7 @@
 package org.skysql.jdbc;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.sql.*;
@@ -14,15 +16,24 @@ import java.util.logging.Logger;
  * To change this template use File | Settings | File Templates.
  */
 public class ResultSetUnsupportedMethodsTest {
-    private final ResultSet rs;
+    private  ResultSet rs;
+    Connection connection;
 
     static { Logger.getLogger("").setLevel(Level.OFF); }
 
     public ResultSetUnsupportedMethodsTest() throws SQLException {
-        //connection = DriverManager.getConnection("jdbc:mysql:thin://localhost:3306/test");
-        Connection connection = DriverManager.getConnection("jdbc:drizzle://root@" + DriverTest.host + ":3306/test");
-        //connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/test");
+
+    }
+
+    @Before
+    public void before() throws SQLException{
+        connection = DriverManager.getConnection("jdbc:drizzle://root@localhost:3306/test");
         rs = connection.createStatement().executeQuery("select 1");
+    }
+
+    @After
+    public void after() throws SQLException {
+        connection.close();
     }
 
     /*    @Test

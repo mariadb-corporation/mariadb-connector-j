@@ -8,15 +8,12 @@
     import static junit.framework.Assert.assertEquals;
     import static junit.framework.Assert.assertTrue;
 
-    public class CallableStatementTest {
-        Connection con;
-        public CallableStatementTest() throws SQLException{
-            con = DriverManager.getConnection("jdbc:mysql://localhost:3306/test");
-        }
+    public class CallableStatementTest extends BaseTest{
+
 
         @Test
         public void CallSimple()throws SQLException {
-            CallableStatement st = con.prepareCall("{?=call pow(?,?)}");
+            CallableStatement st = connection.prepareCall("{?=call pow(?,?)}");
             st.setInt(2,2);
             st.setInt(3,2);
             st.execute();
@@ -26,7 +23,7 @@
         }
 
         private void create(String objType, String name, String body) throws SQLException{
-            Statement st = con.createStatement();
+            Statement st = connection.createStatement();
             try {
                 st.execute("drop " + objType + " " + name);
             }
@@ -56,7 +53,7 @@
                             + "SET p2 = z;\n" + "SELECT p1;\n"
                             + "SELECT CONCAT('zyxw', p1);\n" + "end\n");
 
-            storedProc = con.prepareCall("{call testInOutParam(?, ?)}");
+            storedProc = connection.prepareCall("{call testInOutParam(?, ?)}");
 
             storedProc.setString(1, "abcd");
             storedProc.setInt(2, 4);
@@ -81,16 +78,16 @@
 
                 createProcedure("foo42",
                         "() insert into test.t1 values ('foo', 42);");
-                PreparedStatement s = this.con.prepareCall("{CALL foo42()}");
+                PreparedStatement s = this.connection.prepareCall("{CALL foo42()}");
                 assertEquals(s.getParameterMetaData().getParameterCount(), 0);
 
-                this.con.prepareCall("{CALL foo42}");
+                this.connection.prepareCall("{CALL foo42}");
                 assertEquals(s.getParameterMetaData().getParameterCount(), 0);
 
 
                 createProcedure("bar",
                         "(x char(16), y int, z DECIMAL(10)) insert into test.t1 values (x, y);");
-                cstmt = this.con.prepareCall("{CALL bar(?, ?, ?)}");
+                cstmt = this.connection.prepareCall("{CALL bar(?, ?, ?)}");
 
                 ParameterMetaData md = cstmt.getParameterMetaData();
                 assertEquals(3, md.getParameterCount());
@@ -99,10 +96,10 @@
                 assertEquals(Types.DECIMAL, md.getParameterType(3));
 
                 createProcedure("p", "() label1: WHILE @a=0 DO SET @a=1; END WHILE");
-                this.con.prepareCall("{CALL p()}");
+                this.connection.prepareCall("{CALL p()}");
 
                 createFunction("f", "() RETURNS INT NO SQL return 1; ");
-                cstmt = this.con.prepareCall("{? = CALL f()}");
+                cstmt = this.connection.prepareCall("{? = CALL f()}");
 
                 md = cstmt.getParameterMetaData();
                 assertEquals(Types.INTEGER, md.getParameterType(1));
@@ -121,7 +118,7 @@
                             + "begin\n"
                             + "INSERT INTO testBatchTable VALUES (foo);\n"
                             + "end\n");
-            CallableStatement st = con.prepareCall("{call testBatch(?)}");
+            CallableStatement st = connection.prepareCall("{call testBatch(?)}");
             try {
                 for(int i=0; i< 100; i++) {
                     st.setInt(1, i);
@@ -136,7 +133,7 @@
                 st.close();
             }
 
-            Statement s = con.createStatement();
+            Statement s = connection.createStatement();
             ResultSet rs = st.executeQuery("select * from testBatchTable");
             for(int i=0; i< 100; i++) {
                 assertTrue(rs.next());
@@ -153,7 +150,7 @@
                 createProcedure("testOutParam", "(x int, out y int)\n" + "begin\n"
                         + "declare z int;\n" + "set z = x+1, y = z;\n" + "end\n");
 
-                storedProc = con.prepareCall("{call testOutParam(?, ?)}");
+                storedProc = connection.prepareCall("{call testOutParam(?, ?)}");
 
                 storedProc.setInt(1, 5);
                 storedProc.registerOutParameter(2, Types.INTEGER);
@@ -183,7 +180,7 @@
                 CallableStatement storedProc = null;
                 createProcedure("testSPNoParams", "()\n" + "BEGIN\n"
                         + "SELECT 1;\n" + "end\n");
-                storedProc = con.prepareCall("{call testSPNoParams()}");
+                storedProc = connection.prepareCall("{call testSPNoParams()}");
                 storedProc.execute();
         }
 
@@ -193,7 +190,7 @@
                 CallableStatement storedProc = null;
 
                 createTable("testSpResultTbl1", "(field1 INT)");
-                Statement stmt = con.createStatement();
+                Statement stmt = connection.createStatement();
                 stmt.executeUpdate("INSERT INTO testSpResultTbl1 VALUES (1), (2)");
                 createTable("testSpResultTbl2", "(field2 varchar(255))");
                 stmt.executeUpdate("INSERT INTO testSpResultTbl2 VALUES ('abc'), ('def')");
@@ -208,7 +205,7 @@
                                 + "SELECT field2 FROM testSpResultTbl2 WHERE field2='def';\n"
                                 + "end\n");
 
-                storedProc = con.prepareCall("{call testSpResult()}");
+                storedProc = connection.prepareCall("{call testSpResult()}");
 
                 storedProc.execute();
 
@@ -251,7 +248,7 @@
                 createProcedure("testOutParam", "(x int, out y int)\n" + "begin\n"
                         + "declare z int;\n" + "set z = x+1, y = z;\n" + "end\n");
 
-                storedProc = con.prepareCall("{call testOutParam(?, ?)}");
+                storedProc = connection.prepareCall("{call testOutParam(?, ?)}");
 
                 storedProc.setInt(1, 5);
                 storedProc.registerOutParameter(2, Types.INTEGER);

@@ -6,11 +6,11 @@ import org.skysql.jdbc.exception.SQLQueryTimedOutException;
 
 import java.sql.*;
 
-public class CancelTest {
+public class CancelTest extends BaseTest {
     @Test(expected = SQLQueryCancelledException.class)
     public void cancelQuery() throws SQLException, InterruptedException {
-        Connection conn = DriverManager.getConnection("jdbc:drizzle://"+DriverTest.host+":3306/test");
-        Statement stmt = conn.createStatement();
+
+        Statement stmt = connection.createStatement();
          new CancelThread(stmt).start();
         stmt.execute("select * from information_schema.columns, information_schema.tables, information_schema.table_constraints");
 
@@ -39,22 +39,20 @@ public class CancelTest {
 
     @Test(expected = SQLQueryTimedOutException.class)
     public void timeoutQuery() throws SQLException, InterruptedException {
-        Connection conn = DriverManager.getConnection("jdbc:drizzle://"+DriverTest.host+":3306/test");
-        Statement stmt = conn.createStatement();
+        Statement stmt = connection.createStatement();
         stmt.setQueryTimeout(1);
         stmt.executeQuery("select * from information_schema.columns, information_schema.tables, information_schema.table_constraints");
 
     }
     @Test(expected = SQLQueryTimedOutException.class)
     public void timeoutPrepQuery() throws SQLException, InterruptedException {
-        Connection conn = DriverManager.getConnection("jdbc:drizzle://"+DriverTest.host+":3306/test");
-        PreparedStatement stmt = conn.prepareStatement("select * from information_schema.columns, information_schema.tables, information_schema.table_constraints");
+        PreparedStatement stmt = connection.prepareStatement("select * from information_schema.columns, information_schema.tables, information_schema.table_constraints");
         stmt.setQueryTimeout(1);
         stmt.execute();
     }
     @Test(expected = SQLNonTransientException.class)
     public void connectionTimeout() throws SQLException {
-        Connection conn = DriverManager.getConnection("jdbc:drizzle://www.google.com:1234/test?connectTimeout=1");
+        DriverManager.getConnection("jdbc:drizzle://www.google.com:1234/test?connectTimeout=1");
     }
 
     

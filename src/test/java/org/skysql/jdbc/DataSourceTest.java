@@ -18,14 +18,22 @@ import static org.junit.Assert.assertEquals;
 public class DataSourceTest {
     @Test
     public void testDrizzleDataSource() throws SQLException {
-        DataSource ds = new MySQLDataSource(DriverTest.host,3306,"test");
+        DataSource ds = new MySQLDataSource("localhost",3306,"test");
         Connection connection = ds.getConnection("root", null);
-        assertEquals(connection.isValid(0),true);
+        try {
+            assertEquals(connection.isValid(0),true);
+        } finally  {
+            connection.close();
+        }
     }
     @Test
     public void testDrizzleDataSource2() throws SQLException {
-        DataSource ds = new MySQLDataSource(DriverTest.host,3306,"test");
+        DataSource ds = new MySQLDataSource("localhost",3306,"test");
         Connection connection = ds.getConnection("root","");
-        assertEquals(connection.isValid(0),true);
+        try {
+            assertEquals(connection.isValid(0),true);
+        }finally {
+            connection.close();
+        }
     }
 }

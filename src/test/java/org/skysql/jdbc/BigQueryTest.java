@@ -3,8 +3,6 @@ package org.skysql.jdbc;
 
 import org.junit.Test;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -15,11 +13,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 
-public class BigQueryTest {
+public class BigQueryTest extends BaseTest{
     @Test
     public void sendBigQuery2() throws SQLException {
-        Connection conn = DriverManager.getConnection("jdbc:drizzle://"+DriverTest.host+":3306/test");
-        Statement stmt = conn.createStatement();
+
+        Statement stmt = connection.createStatement();
         stmt.execute("drop table  if exists bigblob");
         stmt.execute("create table bigblob (id int not null primary key auto_increment, test longblob)");
         ResultSet rs = stmt.executeQuery("select @@max_allowed_packet");
@@ -31,7 +29,7 @@ public class BigQueryTest {
             arr[i] = (char) ('a'+(i%10));
         }
 
-        Statement s= conn.createStatement();
+        Statement s= connection.createStatement();
         StringBuilder query = new StringBuilder("INSERT INTO bigblob VALUES (null, '").
                 append(arr).append("')");
         //System.out.println(query.toString() );
@@ -47,8 +45,7 @@ public class BigQueryTest {
     }
     @Test
     public void sendBigPreparedQuery() throws SQLException {
-        Connection conn = DriverManager.getConnection("jdbc:drizzle://"+DriverTest.host+":3306/test");
-        Statement stmt = conn.createStatement();
+        Statement stmt = connection.createStatement();
         stmt.execute("drop table  if exists bigblob2");
         stmt.execute("create table bigblob2 (id int not null primary key auto_increment, test longblob, test2 longblob)");
         ResultSet rs = stmt.executeQuery("select @@max_allowed_packet");
@@ -60,7 +57,7 @@ public class BigQueryTest {
         byte [] arr2 = new byte[20000000];
         Arrays.fill(arr2, (byte) 'b');
 
-        PreparedStatement ps = conn.prepareStatement("insert into bigblob2 values(null, ?,?)");
+        PreparedStatement ps = connection.prepareStatement("insert into bigblob2 values(null, ?,?)");
         ps.setBytes(1,arr);
         ps.setBytes(2,arr2);
         ps.executeUpdate();

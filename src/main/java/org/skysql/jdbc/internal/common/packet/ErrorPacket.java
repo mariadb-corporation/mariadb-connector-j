@@ -59,7 +59,7 @@ public class ErrorPacket extends ResultPacket {
                 msgBuf[cnt++] = b;
             }
 
-            this.message = msgBuf.toString();
+            this.message = new String(msgBuf, "UTF-8");
             this.sqlState = "HY000".getBytes("UTF-8");
         }
     }

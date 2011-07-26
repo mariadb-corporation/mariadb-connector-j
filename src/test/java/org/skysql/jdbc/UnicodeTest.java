@@ -1,5 +1,7 @@
 package org.skysql.jdbc;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.sql.*;
@@ -18,10 +20,17 @@ import static junit.framework.Assert.assertEquals;
 public class UnicodeTest {
 static { Logger.getLogger("").setLevel(Level.OFF); }
 
+    Connection connection;
+    @Before
+    public void before() throws SQLException{
+      connection = DriverManager.getConnection("jdbc:drizzle://root@localhost:3306/test");
+    }
+    @After
+    public void after() throws SQLException {
+      connection.close();
+    }
     @Test
     public void firstTest() throws SQLException {
-
-        Connection connection = DriverManager.getConnection("jdbc:drizzle://root@"+DriverTest.host+":3306/test");
         String jaString = "\u65e5\u672c\u8a9e\u6587\u5b57\u5217"; // hmm wonder what this means...
         Statement stmt = connection.createStatement();
         stmt.executeUpdate("drop table if exists unicode_test");
@@ -37,7 +46,6 @@ static { Logger.getLogger("").setLevel(Level.OFF); }
     @Test
     public void testGermanUmlauts() throws SQLException {
         String query = "insert into umlaut_test values('tax-1273608028038--5546415852995205209-13', 'MwSt. 7% Bücher & Lebensmittel', 7)";
-        Connection connection = DriverManager.getConnection("jdbc:mysql:thin://"+DriverTest.host+":3306/test");
         Statement stmt = connection.createStatement();
         stmt.executeUpdate("drop table if exists umlaut_test");
         stmt.executeUpdate("create table umlaut_test (id varchar(100), test_text varchar(100), t int) charset utf8");
@@ -50,8 +58,6 @@ static { Logger.getLogger("").setLevel(Level.OFF); }
     }
     @Test
     public void mysqlTest() throws SQLException {
-
-        Connection connection = DriverManager.getConnection("jdbc:drizzle://"+DriverTest.host+":3306/test");
         String jaString = "\u65e5\u672c\u8a9e\u6587\u5b57\u5217"; // hmm wonder what this means...
         Statement stmt = connection.createStatement();
         stmt.executeUpdate("drop table if exists unicode_test2");

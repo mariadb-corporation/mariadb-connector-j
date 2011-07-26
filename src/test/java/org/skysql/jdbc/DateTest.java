@@ -4,24 +4,20 @@ import org.junit.Test;
 import org.skysql.jdbc.internal.common.Utils;
 
 import java.sql.*;
-import java.util.logging.Logger;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import static junit.framework.Assert.assertEquals;
 
-/**
- * Created by IntelliJ IDEA.
- * User: marcuse
- * Date: Mar 1, 2009
- * Time: 10:01:23 PM
- * To change this template use File | Settings | File Templates.
- */
-public class DateTest {
+public class DateTest extends BaseTest{
     static { Logger.getLogger("").setLevel(Level.OFF); }
+
+    public DateTest() {
+
+    }
+
     @Test
     public void dateTest() throws SQLException {
-        Connection connection = DriverManager.getConnection("jdbc:drizzle://root@localhost:3306/test");
-
         Statement stmt = connection.createStatement();
         stmt.executeUpdate("drop table if exists date_test");
         stmt.executeUpdate("create table date_test (id int not null primary key auto_increment, d_test date,dt_test datetime, t_test time)");
@@ -51,8 +47,6 @@ public class DateTest {
     }
     @Test(expected = SQLException.class)
     public void dateTest2() throws SQLException {
-        Connection connection = DriverManager.getConnection("jdbc:drizzle://localhost/test");
-
         Statement stmt = connection.createStatement();
         ResultSet rs = stmt.executeQuery("select 1");
         rs.next();
@@ -61,8 +55,6 @@ public class DateTest {
 
     @Test(expected = SQLException.class)
     public void dateTest3() throws SQLException {
-        Connection connection = DriverManager.getConnection("jdbc:drizzle://localhost:/test");
-
         Statement stmt = connection.createStatement();
         ResultSet rs = stmt.executeQuery("select 1 as a");
         rs.next();
@@ -70,8 +62,6 @@ public class DateTest {
     }
     @Test(expected = SQLException.class)
     public void timeTest3() throws SQLException {
-        Connection connection = DriverManager.getConnection("jdbc:drizzle://localhost/test");
-
         Statement stmt = connection.createStatement();
         ResultSet rs = stmt.executeQuery("select 'aaa' as a");
         rs.next();

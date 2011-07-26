@@ -13,12 +13,9 @@ import static junit.framework.Assert.assertEquals;
  * Date: Feb 26, 2009
  * Time: 10:12:52 PM
  */
-public class DatabaseMetadataTest {
+public class DatabaseMetadataTest extends BaseTest{
     static { Logger.getLogger("").setLevel(Level.OFF); }
-    private Connection connection;
-    public DatabaseMetadataTest() throws ClassNotFoundException, SQLException {
-        connection = DriverManager.getConnection("jdbc:drizzle://root@"+DriverTest.host+":3306/test");
-    }
+
     @Test
     public void primaryKeysTest() throws SQLException {
         Statement stmt = connection.createStatement();

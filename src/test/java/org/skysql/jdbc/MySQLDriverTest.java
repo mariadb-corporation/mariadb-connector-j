@@ -20,20 +20,15 @@ import static org.junit.Assert.assertFalse;
  * To change this template use File | Settings | File Templates.
  */
 public class MySQLDriverTest extends DriverTest {
-    private Connection connection;
-    public MySQLDriverTest() throws SQLException {
-        connection = DriverManager.getConnection("jdbc:mysql:thin://root@localhost:3306/test");
-       // connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/test");
-    }
-    @Override
-    public Connection getConnection() {
-        return connection;
-    }
     
+    public MySQLDriverTest() throws SQLException {
+        super();
+    }
     @Test
-    public void testAuthConnection() throws SQLException {
-        Connection c = getConnection();
-        Statement st = c.createStatement();
+    public void testAuthconnection() throws SQLException {
+
+        Statement st = connection.createStatement();
+
         st.execute("grant all privileges on *.* to 'test'@'localhost' identified by 'test'");
         Connection conn = null;
         Statement stmt = null;
@@ -41,7 +36,7 @@ public class MySQLDriverTest extends DriverTest {
         try {
             conn = DriverManager.getConnection("jdbc:mysql:thin://test:test@localhost:3306/test&password=test");
             stmt = conn.createStatement();
-            rs = stmt.executeQuery("select * from t1");
+            stmt.executeUpdate("create table if not exists test_authconnection(i int)");
         }
         finally {
             if (rs != null)
@@ -51,6 +46,7 @@ public class MySQLDriverTest extends DriverTest {
             if (conn != null)
                 conn.close();
             st.execute("drop user 'test'@'localhost'");
+            st.executeUpdate("drop table if exists test_authconnection");
             st.close();
         }
     }
@@ -60,21 +56,13 @@ public class MySQLDriverTest extends DriverTest {
         Properties props = new Properties();
         props.setProperty("user","test");
         props.setProperty("password","test");
-        Connection c = getConnection();
-        Statement st = c.createStatement();
+        Statement st = connection.createStatement();
         st.execute("grant all privileges on *.* to 'test'@'localhost' identified by 'test'");
         Connection conn = DriverManager.getConnection("jdbc:mysql:thin://teest:teest@localhost:3306/test",props);
-        Statement stmt = conn.createStatement();
-        ResultSet rs = stmt.executeQuery("select * from t1");
-        rs.close();
-        stmt.close();
         conn.close();
-        st.execute("drop user 'test'@'localhost'");
-        st.close();
     }
     @Test
     public void testBit() throws SQLException {
-        Connection connection = getConnection();
         connection.createStatement().execute("drop table if exists bittest");
         connection.createStatement().execute("create table bittest (a bit(1), b bit(3))");
         connection.createStatement().execute("insert into bittest values (null, null), (0, 0), (1, 1), (0, 2), (1, 3);");
@@ -87,7 +75,7 @@ public class MySQLDriverTest extends DriverTest {
     }
     @Test
     public void testSmallint() throws SQLException {
-        Connection connection = getConnection();
+
         connection.createStatement().execute("drop table if exists smallinttest");
         connection.createStatement().execute("create table smallinttest (i1 smallint, i2 smallint unsigned)");
         connection.createStatement().execute("insert into smallinttest values (null, null), (0, 0), (-1, 1), (-32768, 32767), (32767, 65535)");
@@ -102,7 +90,7 @@ public class MySQLDriverTest extends DriverTest {
     }
     @Test
     public void testMediumint() throws SQLException {
-        Connection connection = getConnection();
+
         connection.createStatement().execute("drop table if exists mediuminttest");
         connection.createStatement().execute("create table mediuminttest (i1 mediumint, i2 mediumint unsigned)");
         connection.createStatement().execute("insert into mediuminttest values (null, null), (0, 0), (-1, 1), (-8388608, 8388607), (8388607, 16777215)");
@@ -117,7 +105,7 @@ public class MySQLDriverTest extends DriverTest {
     }
     @Test
     public void testTimestamp() throws SQLException {
-        Connection connection = getConnection();
+
         connection.createStatement().execute("drop table if exists t");
         connection.createStatement().execute("create table t (t timestamp)");
         connection.createStatement().execute("insert into t values  ('1971-01-01 01:01:01'), ('2007-12-03 15:50:18'), ('2037-12-31 23:59:59')");
@@ -132,7 +120,7 @@ public class MySQLDriverTest extends DriverTest {
     }
     @Test
     public void testDatetime() throws SQLException {
-        Connection connection = getConnection();
+
         connection.createStatement().execute("drop table if exists t");
         connection.createStatement().execute("create table t (t datetime)");
         connection.createStatement().execute("insert into t values (null), ('1000-01-01 00:00:00'), ('2007-12-03 15:47:32'), ('9999-12-31 23:59:59')");
@@ -147,7 +135,7 @@ public class MySQLDriverTest extends DriverTest {
     }
     @Test
     public void testFloat() throws SQLException {
-        Connection connection = getConnection();
+
         connection.createStatement().execute("drop table if exists t");
         connection.createStatement().execute("create table t (f float)");
         connection.createStatement().execute("insert into t values (null), (-3.402823466E+38), (-1.175494351E-38), (0), (1.175494351E-38), (3.402823466E+38)");
@@ -163,7 +151,7 @@ public class MySQLDriverTest extends DriverTest {
 
     @Test
     public void testDouble() throws SQLException {
-        Connection connection = getConnection();
+
         connection.createStatement().execute("drop table if exists t");
         connection.createStatement().execute("create table t (d double)");
         connection.createStatement().execute("insert into t values (null), (-1.7976931348623157E+308), (-2.2250738585072014E-308), (0), (2.2250738585072014E-308), (1.7976931348623157E+308)");
@@ -178,11 +166,11 @@ public class MySQLDriverTest extends DriverTest {
     }
      @Test
     public void bigintTest() throws SQLException {
-        getConnection().createStatement().execute("drop table if exists biginttest");
-        getConnection().createStatement().execute(
+        connection.createStatement().execute("drop table if exists biginttest");
+        connection.createStatement().execute(
                         "create table biginttest (i1 bigint, i2 bigint unsigned)");
-        getConnection().createStatement().execute("insert into biginttest values (null, null), (0, 0), (-1, 1), (-9223372036854775808, 9223372036854775807), (9223372036854775807, 18446744073709551615)");
-        ResultSet rs = getConnection().createStatement().executeQuery("select * from biginttest");
+        connection.createStatement().execute("insert into biginttest values (null, null), (0, 0), (-1, 1), (-9223372036854775808, 9223372036854775807), (9223372036854775807, 18446744073709551615)");
+        ResultSet rs = connection.createStatement().executeQuery("select * from biginttest");
         assertTrue(rs.next());
         assertEquals(null, rs.getObject(1));
         assertEquals(null, rs.getObject(2));
@@ -217,7 +205,7 @@ public class MySQLDriverTest extends DriverTest {
             String val = new String(str,0, i);
             query += val;
             query += suffix;
-            ResultSet rs = getConnection().createStatement().executeQuery(query);
+            ResultSet rs = connection.createStatement().executeQuery(query);
             Assert.assertTrue(rs.next());
             assertEquals(rs.getInt(1), i);
         }
@@ -229,7 +217,7 @@ public class MySQLDriverTest extends DriverTest {
         Arrays.fill(str, 'a');
         String sql=  "select length(?) as len";
 
-        PreparedStatement ps = getConnection().prepareStatement(sql);
+        PreparedStatement ps = connection.prepareStatement(sql);
         for (int i=16*1024*1024 - sql.length() -5;
              i < 16*1024*1024 - sql.length();
              i++) {
@@ -245,62 +233,62 @@ public class MySQLDriverTest extends DriverTest {
     @Test
     public void smallQueryWriteCompress() throws SQLException {
         Connection conn = DriverManager.getConnection("jdbc:mysql:thin://localhost:3306/test?user=root&useCompression=true");
+        try {
 
-        String sql=  "select 1";
+            String sql=  "select 1";
 
 
-        ResultSet rs = conn.createStatement().executeQuery(sql);
-        Assert.assertTrue(rs.next());
-        assertEquals(rs.getInt(1), 1);
-        rs.close();
+            ResultSet rs = conn.createStatement().executeQuery(sql);
+            Assert.assertTrue(rs.next());
+            assertEquals(rs.getInt(1), 1);
+            rs.close();
+        }
+        finally {
+            conn.close();
+        }
     }
     @Test
     public void largePreparedQueryWriteCompress() throws SQLException {
         Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/test?user=root&useCompression=true");
-        char[] str= new char[16*1024*1024];
-        Arrays.fill(str, 'a');
-        String sql=  "select ?";
+        try {
+            char[] str= new char[16*1024*1024];
+            Arrays.fill(str, 'a');
+            String sql=  "select ?";
 
-        PreparedStatement ps = conn.prepareStatement(sql);
-        for (int i=16*1024*1024 - sql.length() -5;
-             i < 16*1024*1024 - sql.length();
-             i++) {
-            String val = new String(str,0, i);
-            ps.setString(1,val);
-            ResultSet rs = ps.executeQuery();
-            Assert.assertTrue(rs.next());
-            assertEquals(rs.getString(1).length(), i);
-            rs.close();
-            System.out.println("i=" +i);
+            PreparedStatement ps = conn.prepareStatement(sql);
+            for (int i=16*1024*1024 - sql.length() -5;
+                 i < 16*1024*1024 - sql.length();
+                 i++) {
+                String val = new String(str,0, i);
+                ps.setString(1,val);
+                ResultSet rs = ps.executeQuery();
+                Assert.assertTrue(rs.next());
+                assertEquals(rs.getString(1).length(), i);
+                rs.close();
+                System.out.println("i=" +i);
+            }
+        } finally {
+            conn.close();
         }
     }
 
     @Test
     public void testWarnings() throws SQLException{
-        Connection conn = null;
+        Statement st= connection.createStatement();
 
-        try {
-            conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/test");
-            Statement st= conn.createStatement();
+        /* To throw warnings rather than errors, we need a non-strict sql_mode */
+        st.execute("set sql_mode=''");
+        st.execute("create table if not exists warnings_test(c char(2)) ");
+        st.executeUpdate("insert into warnings_test values('123'),('124')");
+        SQLWarning w = st.getWarnings();
+        assertEquals(w.getMessage(),"Data truncated for column 'c' at row 1");
+        assertEquals(w.getSQLState(),"01000");
+        w = w.getNextWarning();
+        assertEquals(w.getMessage(),"Data truncated for column 'c' at row 2");
+        assertEquals(w.getSQLState(),"01000");
 
-            /* To throw warnings rather than errors, we need a non-strict sql_mode */
-            st.execute("set sql_mode=''");
-            st.execute("create table if not exists warnings_test(c char(2)) ");
-            st.executeUpdate("insert into warnings_test values('123'),('124')");
-            SQLWarning w = st.getWarnings();
-            assertEquals(w.getMessage(),"Data truncated for column 'c' at row 1");
-            assertEquals(w.getSQLState(),"01000");
-            w = w.getNextWarning();
-            assertEquals(w.getMessage(),"Data truncated for column 'c' at row 2");
-            assertEquals(w.getSQLState(),"01000");
-
-            assertEquals(w.getNextWarning(), null);
-            st.clearWarnings();
-            assertEquals(st.getWarnings(), null);
-        }
-        finally {
-            if (conn != null)
-                conn.close();
-        }
+        assertEquals(w.getNextWarning(), null);
+        st.clearWarnings();
+        assertEquals(st.getWarnings(), null);
     }
 }
