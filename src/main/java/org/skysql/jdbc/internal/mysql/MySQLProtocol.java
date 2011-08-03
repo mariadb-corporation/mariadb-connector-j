@@ -129,7 +129,8 @@ public class MySQLProtocol implements Protocol {
                 socket.connect(sockAddr);
             }
         } catch (IOException e) {
-            throw new QueryException("Could not connect: " + e.getMessage(),
+            throw new QueryException("Could not connect to " + this.host + ":" +
+				this.port + ": " + e.getMessage(),
                     -1,
                     SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
                     e);
@@ -238,7 +239,8 @@ public class MySQLProtocol implements Protocol {
 
             connected = true;
         } catch (IOException e) {
-            throw new QueryException("Could not connect: " + e.getMessage(),
+            throw new QueryException("Could not connect to " + this.host + ":" +
+				this.port + ": " + e.getMessage(),
                     -1,
                     SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
                     e);

@@ -132,7 +132,7 @@ public final class MySQLConnection
      * @throws SQLException
      */
     public String nativeSQL(final String sql) throws SQLException {
-        return sql;
+        return Utils.nativeSQL(sql);
     }
 
     /**

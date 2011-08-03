@@ -77,13 +77,13 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
                                   final MySQLConnection connection,
                                   final String query,
                                   final QueryFactory queryFactory,
-                                  final ParameterizedBatchHandler parameterizedBatchHandler) {
+                                  final ParameterizedBatchHandler parameterizedBatchHandler) throws SQLException {
         super(protocol, connection, queryFactory);
 
         if(log.isLoggable(Level.FINEST)) {
             log.finest("Creating prepared statement for " + query);
         }
-        dQuery = queryFactory.createParameterizedQuery(query);
+        dQuery = queryFactory.createParameterizedQuery(Utils.nativeSQL(query));
         this.parameterizedBatchHandler = parameterizedBatchHandler;
         outputStreams = new ArrayList<OutputStream>(0);
     }

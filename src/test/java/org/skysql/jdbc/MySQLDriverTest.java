@@ -291,4 +291,27 @@ public class MySQLDriverTest extends DriverTest {
         st.clearWarnings();
         assertEquals(st.getWarnings(), null);
     }
+
+    @Test
+    public void testUpdateCount() throws SQLException {
+        Statement st = connection.createStatement();
+        st.execute("CREATE TABLE t_update_count(flag int, k varchar(10),name varchar(10))");
+        try {
+            int cnt = st.executeUpdate("INSERT into t_update_count values(1, '5', 'name1'), (1,'5','name2')");
+            assertEquals(cnt,2);
+            PreparedStatement ps = connection.prepareStatement("UPDATE t_update_count SET flag=0 WHERE (k='5' AND (name=? OR name=?))");
+            ps.setString(1,"name1");
+            ps.setString(2,"name2");
+            cnt = ps.executeUpdate();
+            assertEquals(cnt, 2);
+            ResultSet rs = st.executeQuery("select count(*) from t_update_count where flag=0");
+            rs.next();
+            cnt = rs.getInt(1);
+            assertEquals(cnt, 2);
+
+        }
+        finally {
+            st.execute("DROP TABLE t_update_count");
+        }
+    }
 }

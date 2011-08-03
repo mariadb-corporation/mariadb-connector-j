@@ -8,6 +8,7 @@
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
  * conditions are met:
  *
+
  *  Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
  *  Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following
  *   disclaimer in the documentation and/or other materials provided with the distribution.
@@ -27,7 +28,9 @@ package org.skysql.jdbc.internal.common;
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.*;
+import java.sql.SQLException;
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * User: marcuse Date: Feb 19, 2009 Time: 8:40:51 PM
@@ -400,5 +403,233 @@ public class Utils {
             java5Determined = true;
         }
         return isJava5;
+    }
+
+
+    /**
+     * Helper function to replace function parameters in escaped string.
+     * 3 functions are handles :
+     *  - CONVERT(value, type) , we replace SQL_XXX types with XXX, i.e SQL_INTEGER with INTEGER
+     *  - TIMESTAMPDIFF(type, ...) or TIMESTAMPADD(type, ...) , we replace SQL_TSI_XXX in type with XXX, i.e
+     *    SQL_TSI_HOUR with HOUR
+     * @param s - input string
+     * @return unescaped string
+     */
+    public static String replaceFunctionParameter(String s)  {
+
+        if (!s.contains("SQL_"))
+            return s;
+
+        char[] input = s.toCharArray();
+        StringBuffer sb = new StringBuffer();
+        int i;
+        for (i = 0; i < input.length; i++)  {
+            if (input[i] != ' ')
+                break;
+        }
+
+        for (; ((input[i] >= 'a' && i <= 'z') || (input[i] >= 'A' && input[i] <= 'Z')) && i < input.length; i++)                {
+            sb.append(input[i]);
+        }
+        String func = sb.toString().toLowerCase();
+
+        if ( func.equals("convert") || func.equals("timestampdiff") || func.equals("timestampadd")) {
+            String paramPrefix;
+
+            if (func.equals("timestampdiff") || func.equals("timestampadd")) {
+                // Skip to first parameter
+                for (; i < input.length; i++) {
+                    if (!Character.isWhitespace(input[i]) && input[i] != '(')
+                        break;
+                }
+                if (i == input.length)
+                    return new String(input);
+
+
+                if (i >= input.length - 8)
+                    return new String(input);
+                paramPrefix = new String(input, i, 8);
+                if (paramPrefix.equals("SQL_TSI_"))
+                    return new String(input, 0, i) + new String(input, i + 8, input.length - (i+8));
+                return new String(input);
+            }
+
+            // Handle "convert(value, type)" case
+            // extract last parameter, after the last ','
+            int lastCommaIndex = s.lastIndexOf(',');
+
+            for (i = lastCommaIndex + 1; i < input.length; i++) {
+                if (!Character.isWhitespace(input[i]))
+                  break;
+            }
+            if (i>= input.length - 4)
+                return new String(input);
+             paramPrefix = new String(input, i, 4);
+            if (paramPrefix.equals("SQL_"))
+                return new String(input, 0, i) + new String(input, i+4 , input.length - (i+4));
+
+        }
+        return new String(input);
+     }
+
+    private static String resolveEscapes(String escaped) throws SQLException{
+        if(escaped.charAt(0) != '{' || escaped.charAt(escaped.length()-1) != '}')
+            throw new SQLException("unexpected escaped string");
+        int endIndex = escaped.length()-1;
+        if (escaped.startsWith("{fn ")) {
+            String resolvedParams = replaceFunctionParameter(escaped.substring(4,endIndex));
+            return nativeSQL(resolvedParams);
+        }
+        else if(escaped.startsWith("{oj ")) {
+            // Outer join
+            return nativeSQL(escaped.substring(4, endIndex));
+        }
+        else if(escaped.startsWith("{d "))  {
+            // date literal
+            return escaped.substring(3, endIndex);
+        }
+        else if(escaped.startsWith("{t ")) {
+            // time literal
+            return escaped.substring(3, endIndex);
+        }
+        else if (escaped.startsWith("{ts ")) {
+            //timestamp literal
+            return escaped.substring(4, endIndex);
+        }
+        else if (escaped.startsWith("{call ") || escaped.startsWith("{CALL ")) {
+            // We support uppercase "{CALL" only because Connector/J supports it. It is not in the JDBC spec.
+
+            return  nativeSQL(escaped.substring(1, endIndex));
+        }
+        else if (escaped.startsWith("{escape ")) {
+            return  escaped.substring(1, endIndex);
+        }
+        else if (escaped.startsWith("{?")) {
+           // likely ?=call(...)
+           return nativeSQL(escaped.substring(1, endIndex));
+
+        }
+        throw new SQLException("unknown escape sequence " + escaped);
+    }
+
+
+    public static String nativeSQL(String sql) throws SQLException{
+        if (sql.indexOf('{') == -1)
+            return sql;
+
+        StringBuffer escapeSequenceBuf = new StringBuffer();
+        StringBuffer sqlBuffer = new StringBuffer();
+
+        char [] a = sql.toCharArray();
+        char lastChar = 0;
+        boolean inQuote = false;
+        char quoteChar = 0;
+        boolean inComment = false;
+        boolean isSlashSlashComment = false;
+        int inEscapeSeq  = 0;
+
+        for(int i = 0 ; i< a.length; i++) {
+            char c = a[i];
+            if (lastChar == '\\') {
+                sqlBuffer.append(c);
+                continue;
+            }
+
+            switch(c) {
+                case '\'':
+                case '"':
+                    if (!inComment) {
+                        if(inQuote) {
+                            if (quoteChar == c) {
+                                inQuote = false;
+                            }
+                        } else {
+                            inQuote = true;
+                            quoteChar = c;
+                        }
+                    }
+                    break;
+
+                case '*':
+                    if (!inQuote && !inComment) {
+                        if(lastChar == '/') {
+                            inComment = true;
+                            isSlashSlashComment = false;
+                        }
+                    }
+                    break;
+                case '/':
+                case '-':
+                    if (!inQuote) {
+                        if (inComment) {
+                            if (lastChar == '*' && !isSlashSlashComment) {
+                                inComment = false;
+                            }
+                            else if (lastChar == c && isSlashSlashComment) {
+                                inComment = false;
+                            }
+                        }
+                        else {
+                            if(lastChar == c) {
+                                inComment = true;
+                                isSlashSlashComment = true;
+                            }
+                            else if (lastChar == '*') {
+                                inComment = true;
+                                isSlashSlashComment = false;
+                            }
+                        }
+                    }
+                    break;
+                case 'S':
+                    // skip SQL_xxx and SQL_TSI_xxx in functions
+                    // This would convert e.g SQL_INTEGER => INTEGER, SQL_TSI_HOUR=>HOUR
+
+                    if (!inQuote && !inComment && inEscapeSeq > 0) {
+                       if (i + 4 < a.length && a[i+1] == 'Q' && a[i+2] == 'L' && a[i+3] == 'L' && a[i+4] == '_') {
+                           if(i+8 < a.length && a[i+5] == 'T' && a[i+6] == 'S' && a[i+7] == 'I' && a[i+8] == '_') {
+                               i += 8;
+                               continue;
+                           }
+                           i += 4;
+                           continue;
+                       }
+                    }
+                    break;
+                case '\n':
+                    if (inComment && isSlashSlashComment) {
+                        // slash-slash and dash-dash comments ends with the end of line
+                        inComment = false;
+                    }
+                    break;
+                case '{':
+                    if (!inQuote && ! inComment) {
+                        inEscapeSeq++;
+                    }
+                    break;
+
+                case '}':
+                    if (!inQuote && ! inComment) {
+                        inEscapeSeq--;
+                        if (inEscapeSeq == 0) {
+                            escapeSequenceBuf.append(c);
+                            sqlBuffer.append(resolveEscapes(escapeSequenceBuf.toString()));
+                            escapeSequenceBuf.setLength(0);
+                            continue;
+                        }
+                    }
+
+
+            }
+            lastChar = c;
+            if(inEscapeSeq > 0) {
+                escapeSequenceBuf.append(c);
+            } else {
+                sqlBuffer.append(c);
+            }
+        }
+        if (inEscapeSeq > 0)
+            throw new SQLException("Invalid escape sequence , missing closing '}' character in '" + sqlBuffer);
+        return sqlBuffer.toString();
     }
 }

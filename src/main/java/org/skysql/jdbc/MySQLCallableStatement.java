@@ -347,11 +347,12 @@ public class MySQLCallableStatement implements CallableStatement
      * {[?=]call[(arg1,..,,argn)]}
      */
     static Pattern CALLABLE_STATEMENT_PATTERN =
-            Pattern.compile("^\\s*\\{\\s*(\\?\\s*=)?\\s*call\\s*([\\w.]+)(\\(.*\\))?\\s*}", Pattern.CASE_INSENSITIVE);
+            Pattern.compile("^\\s*\\{?\\s*(\\?\\s*=)?\\s*call\\s*([\\w.]+)(\\(.*\\))?\\s*}?", Pattern.CASE_INSENSITIVE);
 
     public MySQLCallableStatement(Connection connection, String query) throws SQLException{
         con = connection;
 
+        query = Utils.nativeSQL(query);
         batchIgnoreResult = new BitSet();
         Matcher m = CALLABLE_STATEMENT_PATTERN.matcher(query);
         if(!m.matches())

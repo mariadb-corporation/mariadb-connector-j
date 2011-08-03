@@ -27,6 +27,7 @@ package org.skysql.jdbc;
 import org.skysql.jdbc.internal.SQLExceptionMapper;
 import org.skysql.jdbc.internal.common.Protocol;
 import org.skysql.jdbc.internal.common.QueryException;
+import org.skysql.jdbc.internal.common.Utils;
 import org.skysql.jdbc.internal.common.query.Query;
 import org.skysql.jdbc.internal.common.query.QueryFactory;
 import org.skysql.jdbc.internal.common.queryresults.ModifyQueryResult;
@@ -82,6 +83,7 @@ public class MySQLStatement implements Statement {
 
     private int queryTimeout;
     private ScheduledFuture<?> timoutFuture;
+    private boolean escapeProcessing;
 
     /**
      * Creates a new Statement.
@@ -97,6 +99,7 @@ public class MySQLStatement implements Statement {
         this.protocol = protocol;
         this.connection = connection;
         this.queryFactory = queryFactory;
+        this.escapeProcessing = true;
     }
 
     /**
@@ -115,7 +118,10 @@ public class MySQLStatement implements Statement {
      * @return a result set
      * @throws SQLException if something went wrong
      */
-    public ResultSet executeQuery(final String query) throws SQLException {
+    public ResultSet executeQuery(String query) throws SQLException {
+        if (escapeProcessing)
+            query = Utils.nativeSQL(query);
+
         MySQLConnection conn = (MySQLConnection)getConnection();
         conn.reenableWarnings();
         startTimer();
@@ -160,7 +166,9 @@ public class MySQLStatement implements Statement {
      * @return update count
      * @throws SQLException if the query could not be sent to server.
      */
-    public int executeUpdate(final String query) throws SQLException {
+    public int executeUpdate(String query) throws SQLException {
+        if (escapeProcessing)
+            query = Utils.nativeSQL(query);
         startTimer();
         MySQLConnection conn = (MySQLConnection)getConnection();
         conn.reenableWarnings();
@@ -201,7 +209,9 @@ public class MySQLStatement implements Statement {
      * @return true if there was a result set, false otherwise.
      * @throws SQLException
      */
-    public boolean execute(final String query) throws SQLException {
+    public boolean execute(String query) throws SQLException {
+        if (escapeProcessing)
+            query = Utils.nativeSQL(query);
         startTimer();
         try {
             if (queryResult != null) {
@@ -318,7 +328,7 @@ public class MySQLStatement implements Statement {
      *                               <code>Statement</code>
      */
     public void setEscapeProcessing(final boolean enable) throws SQLException {
-        //TODO: check jdbc4 docs for more info
+        escapeProcessing = enable;
     }
 
     /**
