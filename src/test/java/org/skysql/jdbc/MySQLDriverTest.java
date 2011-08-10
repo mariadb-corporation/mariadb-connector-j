@@ -295,7 +295,7 @@ public class MySQLDriverTest extends DriverTest {
     @Test
     public void testUpdateCount() throws SQLException {
         Statement st = connection.createStatement();
-        st.execute("CREATE TABLE t_update_count(flag int, k varchar(10),name varchar(10))");
+        st.execute("CREATE TABLE IF NOT EXISTS t_update_count(flag int, k varchar(10),name varchar(10))");
         try {
             int cnt = st.executeUpdate("INSERT into t_update_count values(1, '5', 'name1'), (1,'5','name2')");
             assertEquals(cnt,2);

@@ -24,14 +24,62 @@
 
 package org.skysql.jdbc.internal.common.queryresults;
 
+import org.skysql.jdbc.internal.common.ColumnInformation;
+import org.skysql.jdbc.internal.common.QueryException;
 import org.skysql.jdbc.internal.common.ValueObject;
+
+import java.io.IOException;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.util.List;
 
 /**
  * User: marcuse Date: Mar 9, 2009 Time: 8:42:45 PM
  */
-public interface SelectQueryResult extends QueryResult {
+public abstract class SelectQueryResult implements QueryResult {
 
+    List<ColumnInformation> columnInformation;
+    short warningCount;
 
+    public List<ColumnInformation> getColumnInformation() {
+        return columnInformation;
+    }
+
+    public short getWarnings() {
+        return warningCount;
+    }
+
+    public String getMessage() {
+        return null;
+    }
+
+    public ResultSetType getResultSetType() {
+        return ResultSetType.SELECT;
+    }
+
+     /**
+     * moves the row pointer to position i
+     *
+     * @param i the position
+     */
+    public  void moveRowPointerTo(int i) throws SQLException{
+        throw new SQLFeatureNotSupportedException("scrolling result set not supported");
+    }
+
+    /**
+     * gets the current row number
+     *
+     * @return the current row number
+     */
+    public int getRowPointer() throws SQLException{
+        throw new SQLFeatureNotSupportedException("scrolling result set not supported");
+    }
+
+    /**
+     * move pointer forward
+     *
+     * @return true if there is another row
+     */
     /**
      * gets the value object at position index, starts at 0
      *
@@ -39,44 +87,10 @@ public interface SelectQueryResult extends QueryResult {
      * @return the value object at position index
      * @throws NoSuchColumnException if the column does not exist
      */
-    ValueObject getValueObject(int index) throws NoSuchColumnException;
+    public abstract ValueObject getValueObject(int index) throws NoSuchColumnException;
 
-    /**
-     * gets the value object in column named columnName
-     *
-     * @param columnName the name of the column
-     * @return a value object
-     * @throws NoSuchColumnException if the column does not exist
-     */
-    ValueObject getValueObject(String columnName) throws NoSuchColumnException;
 
-    /**
-     * get the id of the column named columnLabel
-     *
-     * @param columnLabel the label of the column
-     * @return the index, starts at 0
-     * @throws NoSuchColumnException if the column does not exist
-     */
-    int getColumnId(String columnLabel) throws NoSuchColumnException;
-
-    /**
-     * moves the row pointer to position i
-     *
-     * @param i the position
-     */
-    void moveRowPointerTo(int i);
-
-    /**
-     * gets the current row number
-     *
-     * @return the current row number
-     */
-    int getRowPointer();
-
-    /**
-     * move pointer forward
-     *
-     * @return true if there is another row
-     */
-    boolean next();
+    public abstract boolean next() throws IOException, QueryException;
+    public abstract boolean isBeforeFirst();
+    public abstract boolean isAfterLast();
 }

@@ -33,14 +33,8 @@ import org.skysql.jdbc.internal.common.packet.commands.SelectDBPacket;
 import org.skysql.jdbc.internal.common.packet.commands.StreamedQueryPacket;
 import org.skysql.jdbc.internal.common.query.MySQLQuery;
 import org.skysql.jdbc.internal.common.query.Query;
-import org.skysql.jdbc.internal.common.queryresults.MySQLQueryResult;
-import org.skysql.jdbc.internal.common.queryresults.NoSuchColumnException;
-import org.skysql.jdbc.internal.common.queryresults.QueryResult;
-import org.skysql.jdbc.internal.common.queryresults.UpdateResult;
-import org.skysql.jdbc.internal.drizzle.packet.DrizzleRowPacket;
-import org.skysql.jdbc.internal.mysql.packet.MySQLFieldPacket;
+import org.skysql.jdbc.internal.common.queryresults.*;
 import org.skysql.jdbc.internal.mysql.packet.MySQLGreetingReadPacket;
-import org.skysql.jdbc.internal.mysql.packet.MySQLRowPacket;
 import org.skysql.jdbc.internal.mysql.packet.commands.*;
 
 import javax.net.SocketFactory;
@@ -80,7 +74,8 @@ public class MySQLProtocol implements Protocol {
     private final long serverThreadId;
     private volatile boolean queryWasCancelled = false;
     private volatile boolean queryTimedOut = false;
-    private boolean hasMoreResults = false;
+    public boolean hasMoreResults = false;
+    public StreamingSelectResult activeResult= null;
     /**
      * Get a protocol instance
      *
@@ -247,6 +242,16 @@ public class MySQLProtocol implements Protocol {
         }
     }
 
+    void skip() throws IOException, QueryException{
+         if (activeResult != null) {
+             activeResult.close();
+         }
+
+         while (hasMoreResults) {
+            QueryResult queryResult =  getMoreResults(true);
+         }
+
+    }
     /**
      * Closes socket and stream readers/writers
      *
@@ -288,50 +293,22 @@ public class MySQLProtocol implements Protocol {
     }
 
     /**
-     * create a MySQLQueryResult - precondition is that a result set packet has been read
+     * create a CachedSelectResult - precondition is that a result set packet has been read
      *
      * @param packet the result set packet from the server
-     * @return a MySQLQueryResult
+     * @return a CachedSelectResult
      * @throws java.io.IOException when something goes wrong while reading/writing from the server
      */
-    private QueryResult createQueryResult(final ResultSetPacket packet) throws IOException, QueryException {
-        final List<ColumnInformation> columnInformation = new ArrayList<ColumnInformation>();
-        for (int i = 0; i < packet.getFieldCount(); i++) {
-            final RawPacket rawPacket = packetFetcher.getRawPacket();
-            final ColumnInformation columnInfo = MySQLFieldPacket.columnInformationFactory(rawPacket);
-            columnInformation.add(columnInfo);
-        }
-        packetFetcher.getRawPacket();
-        final List<List<ValueObject>> valueObjects = new ArrayList<List<ValueObject>>();
+    private SelectQueryResult createQueryResult(final ResultSetPacket packet, boolean streaming) throws IOException, QueryException {
 
-        while (true) {
-            final RawPacket rawPacket = packetFetcher.getRawPacket();
+        StreamingSelectResult streamingResult =   StreamingSelectResult.createStreamingSelectResult(packet, packetFetcher, this);
+        if (streaming)
+            return streamingResult;
 
-            if (ReadUtil.isErrorPacket(rawPacket)) {
-                ErrorPacket errorPacket = (ErrorPacket) ResultPacketFactory.createResultPacket(rawPacket);
-                checkIfCancelled();
-                throw new QueryException(errorPacket.getMessage(), errorPacket.getErrorNumber(), errorPacket.getSqlState());
-            }
-
-            if (ReadUtil.eofIsNext(rawPacket)) {
-                final EOFPacket eofPacket = (EOFPacket) ResultPacketFactory.createResultPacket(rawPacket);
-                this.hasMoreResults = eofPacket.getStatusFlags().contains(EOFPacket.ServerStatus.SERVER_MORE_RESULTS_EXISTS);
-                checkIfCancelled();
-                
-                return new MySQLQueryResult(columnInformation, valueObjects, eofPacket.getWarningCount());
-            }
-
-            if (getDatabaseType() == SupportedDatabases.MYSQL) {
-                final MySQLRowPacket rowPacket = new MySQLRowPacket(rawPacket, columnInformation);
-                valueObjects.add(rowPacket.getRow(packetFetcher));
-            } else {
-                final DrizzleRowPacket rowPacket = new DrizzleRowPacket(rawPacket, columnInformation);
-                valueObjects.add(rowPacket.getRow());
-            }
-        }
+        return CachedSelectResult.createCachedSelectResult(streamingResult);
     }
 
-    private void checkIfCancelled() throws QueryException {
+    public void checkIfCancelled() throws QueryException {
         if (queryWasCancelled) {
             queryWasCancelled = false;
             throw new QueryException("Query was cancelled by another thread", (short) -1, "JZ0001");
@@ -459,6 +436,7 @@ public class MySQLProtocol implements Protocol {
 
         switch (resultPacket.getResultType()) {
             case ERROR:
+                this.hasMoreResults = false;
                 final ErrorPacket ep = (ErrorPacket) resultPacket;
                 checkIfCancelled();
                 log.warning("Could not execute query " + dQuery + ": " + ((ErrorPacket) resultPacket).getMessage());
@@ -478,7 +456,7 @@ public class MySQLProtocol implements Protocol {
                 log.fine("SELECT executed, fetching result set");
 
                 try {
-                    return this.createQueryResult((ResultSetPacket) resultPacket);
+                    return this.createQueryResult((ResultSetPacket) resultPacket, false);
                 } catch (IOException e) {
                     throw new QueryException("Could not read result set: " + e.getMessage(),
                             -1,
@@ -537,10 +515,16 @@ public class MySQLProtocol implements Protocol {
     }
 
     public String getServerVariable(String variable) throws QueryException {
-        MySQLQueryResult qr = (MySQLQueryResult) executeQuery(new MySQLQuery("select @@" + variable));
-        if (!qr.next()) {
-            throw new QueryException("Could not get variable: " + variable);
+        CachedSelectResult qr = (CachedSelectResult) executeQuery(new MySQLQuery("select @@" + variable));
+        try {
+            if (!qr.next()) {
+                throw new QueryException("Could not get variable: " + variable);
+            }
         }
+        catch (IOException ioe ){
+            throw new QueryException(ioe.getMessage(), 0, "HYOOO", ioe);
+        }
+
 
         try {
             String value = qr.getValueObject(0).getString();
@@ -745,7 +729,7 @@ public class MySQLProtocol implements Protocol {
             case RESULTSET:
                 log.fine("SELECT executed, fetching result set");
                 try {
-                    return this.createQueryResult((ResultSetPacket) resultPacket);
+                    return this.createQueryResult((ResultSetPacket) resultPacket, false);
                 } catch (IOException e) {
                     throw new QueryException("Could not read result set: "
                             + e.getMessage(), -1,
@@ -758,14 +742,14 @@ public class MySQLProtocol implements Protocol {
         }
     }
 
-    public QueryResult getMoreResults() throws QueryException {
+    public QueryResult getMoreResults(boolean streaming) throws QueryException {
         try {
             if(!hasMoreResults)
                 return null;
             ResultPacket resultPacket = ResultPacketFactory.createResultPacket(packetFetcher.getRawPacket());
             switch(resultPacket.getResultType()) {
                 case RESULTSET:
-                    return createQueryResult((ResultSetPacket) resultPacket);
+                    return createQueryResult((ResultSetPacket) resultPacket, streaming);
                 case OK:
                     OKPacket okpacket = (OKPacket) resultPacket;
                     this.hasMoreResults = okpacket.getServerStatus().contains(ServerStatus.MORE_RESULTS_EXISTS);                    

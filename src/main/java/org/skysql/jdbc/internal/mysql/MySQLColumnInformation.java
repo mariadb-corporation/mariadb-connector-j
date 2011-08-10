@@ -49,7 +49,7 @@ public class MySQLColumnInformation implements ColumnInformation {
     private final Set<ColumnFlags> flags;
     private int displayWidth = 0;
 
-    private MySQLColumnInformation(final Builder builder) {
+    public MySQLColumnInformation(final Builder builder) {
         this.catalog = builder.catalog;
         this.db = builder.db;
         this.table = builder.table;

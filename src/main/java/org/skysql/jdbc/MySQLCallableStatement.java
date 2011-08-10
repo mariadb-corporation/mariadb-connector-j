@@ -1360,6 +1360,7 @@ public class MySQLCallableStatement implements CallableStatement
     }
 
     public void close() throws SQLException {
+
         if(preparedStatement != null)
         {
             preparedStatement.close();

@@ -207,5 +207,5 @@ public interface Protocol {
     void cancelCurrentQuery() throws QueryException;
     void timeOut() throws QueryException;
 
-    QueryResult getMoreResults() throws QueryException;
+    QueryResult getMoreResults(boolean streaming) throws QueryException;
 }

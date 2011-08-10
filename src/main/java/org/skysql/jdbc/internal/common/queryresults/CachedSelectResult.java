@@ -25,46 +25,49 @@
 package org.skysql.jdbc.internal.common.queryresults;
 
 import org.skysql.jdbc.internal.common.ColumnInformation;
+import org.skysql.jdbc.internal.common.QueryException;
 import org.skysql.jdbc.internal.common.ValueObject;
 
-import java.util.HashMap;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 /**
  * <p/>
  * User: marcuse Date: Jan 23, 2009 Time: 8:15:55 PM
  */
-public final class MySQLQueryResult implements SelectQueryResult {
-    private final List<ColumnInformation> columnInformation;
-    private final List<List<ValueObject>> resultSet;
-    private final Map<String, Integer> columnNameMap;
-    private final short warningCount;
+public  class CachedSelectResult extends SelectQueryResult {
+
+    private  List<List<ValueObject>> resultSet;
+    protected short warningCount;
     private int rowPointer;
 
-    public MySQLQueryResult(final List<ColumnInformation> columnInformation,
-                            final List<List<ValueObject>> valueObjects,
-                            final short warningCount) {
-        this.columnInformation = columnInformation;
-        this.resultSet = valueObjects;
+    public CachedSelectResult(List<ColumnInformation> ci, List<List<ValueObject>> result, short warningCount) {
+        this.columnInformation = ci;
+        this.resultSet = result;
         this.warningCount = warningCount;
-        columnNameMap = new HashMap<String, Integer>();
         rowPointer = -1;
-        int i = 0;
-        for (final ColumnInformation ci : columnInformation) {
-            columnNameMap.put(ci.getName().toLowerCase(), i++);
-        }
     }
 
-    public boolean next() {
+
+    public static CachedSelectResult createCachedSelectResult(StreamingSelectResult streamingResult) throws IOException, QueryException {
+         final List<List<ValueObject>> valueObjects = new ArrayList<List<ValueObject>>();
+
+        while(streamingResult.next()){
+           valueObjects.add(streamingResult.values);
+        }
+        CachedSelectResult qr = new CachedSelectResult(streamingResult.columnInformation, valueObjects, streamingResult.warningCount);
+        streamingResult.close();
+        return qr;
+    }
+
+    public boolean next() throws IOException, QueryException{
         rowPointer++;
         return rowPointer < resultSet.size();
     }
 
     public void close() {
-        columnInformation.clear();
-        resultSet.clear();
-        columnNameMap.clear();
+
     }
 
     public short getWarnings() {
@@ -92,22 +95,8 @@ public final class MySQLQueryResult implements SelectQueryResult {
         return resultSet.get(rowPointer).get(i);
     }
 
-    public ValueObject getValueObject(final String column) throws NoSuchColumnException {
-        if (columnNameMap.get(column.toLowerCase()) == null) {
-            throw new NoSuchColumnException("No such column: " + column);
-        }
-        return getValueObject(columnNameMap.get(column.toLowerCase()));
-    }
-
     public int getRows() {
         return resultSet.size();
-    }
-
-    public int getColumnId(final String columnLabel) throws NoSuchColumnException {
-        if (columnNameMap.get(columnLabel.toLowerCase()) == null) {
-            throw new NoSuchColumnException("No such column: " + columnLabel);
-        }
-        return columnNameMap.get(columnLabel.toLowerCase());
     }
 
     public void moveRowPointerTo(final int i) {
@@ -121,5 +110,11 @@ public final class MySQLQueryResult implements SelectQueryResult {
 
     public ResultSetType getResultSetType() {
         return ResultSetType.SELECT;
+    }
+    public boolean isBeforeFirst() {
+       return getRowPointer() == -1;
+    }
+    public boolean isAfterLast() {
+       return rowPointer >= resultSet.size();
     }
 }

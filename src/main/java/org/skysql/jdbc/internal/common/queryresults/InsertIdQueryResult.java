@@ -27,23 +27,26 @@ package org.skysql.jdbc.internal.common.queryresults;
 import org.skysql.jdbc.internal.common.ColumnInformation;
 import org.skysql.jdbc.internal.common.GeneratedIdValueObject;
 import org.skysql.jdbc.internal.common.ValueObject;
+import org.skysql.jdbc.internal.mysql.MySQLColumnInformation;
+import org.skysql.jdbc.internal.mysql.MySQLType;
 
+import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 
 /**
  * . User: marcuse Date: Mar 9, 2009 Time: 8:34:44 PM
  */
-public class InsertIdQueryResult implements SelectQueryResult {
+public class InsertIdQueryResult extends SelectQueryResult {
 
     private final long insertId;
     private int rowPointer = 0;
     private final long rows;
-    private final String message;
+    private static List<ColumnInformation> ci;
 
-    public InsertIdQueryResult(final long insertId, final long rows, final String message) {
+
+    public InsertIdQueryResult(final long insertId, final long rows) {
         this.insertId = insertId;
-
-        this.message = message;
         this.rows = rows;
     }
 
@@ -84,23 +87,28 @@ public class InsertIdQueryResult implements SelectQueryResult {
         return rowPointer++ < rows;
     }
 
-    public List<ColumnInformation> getColumnInformation() {
-        return null;
+    public synchronized List<ColumnInformation> getColumnInformation() {
+        if (ci != null)
+            return ci;
+
+        MySQLColumnInformation.Builder b = new MySQLColumnInformation.Builder();
+        MySQLColumnInformation info = b.db("").catalog("").charsetNumber((short) 0).decimals((byte) 0).name("insert_id" +
+                "").originalName("insert_id").flags(EnumSet.noneOf(ColumnFlags.class)).
+                originalTable("").table("").type(new MySQLType(MySQLType.Type.LONGLONG)).build();
+
+         ci =  new ArrayList<ColumnInformation>();
+         ci.add(info);
+         return ci;
     }
 
-    public ResultSetType getResultSetType() {
-        return ResultSetType.SELECT;
-    }
 
+    public boolean isBeforeFirst() {
+        return false;
+    }
+    public boolean  isAfterLast() {
+      return rowPointer >= rows;
+    }
     public void close() {
 
-    }
-
-    public short getWarnings() {
-        return 0;
-    }
-
-    public String getMessage() {
-        return null;
     }
 }

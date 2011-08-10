@@ -43,7 +43,7 @@ public class UpdateResult implements ModifyQueryResult {
         this.warnings = warnings;
         this.message = message;
         this.insertId = insertId;
-        generatedKeysResult = new InsertIdQueryResult(insertId, updateCount, message);
+        generatedKeysResult = new InsertIdQueryResult(insertId, updateCount);
     }
 
     public long getUpdateCount() {

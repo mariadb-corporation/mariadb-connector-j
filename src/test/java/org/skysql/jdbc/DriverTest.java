@@ -78,6 +78,27 @@ public class DriverTest extends BaseTest{
         rs.getInt(102);
     }
 
+    @Test
+    /* Accessing result set using  table.column */
+    public void tableDotColumnInResultSet() throws SQLException {
+        Statement stmt = connection.createStatement();
+        try {
+            stmt.execute("drop table tt1");
+        } catch (Exception e) {}
+        try {
+            stmt.execute("drop table tt2");
+        } catch (Exception e) {}
+        stmt.execute("create table tt1 (id int , name varchar(20))");
+        stmt.execute("create table tt2 (id int , name varchar(20))");
+        stmt.execute("insert into tt1 values(1, 'one')");
+        stmt.execute("insert into tt2 values(1, 'two')");
+        ResultSet rs = stmt.executeQuery("select tt1.*, tt2.* from tt1, tt2 where tt1.id = tt2.id");
+        rs.next();
+        Assert.assertEquals(1, rs.getInt("tt1.id"));
+        Assert.assertEquals(1, rs.getInt("tt2.id"));
+        Assert.assertEquals("one", rs.getString("tt1.name"));
+        Assert.assertEquals("two", rs.getString("tt2.name"));
+    }
     @Test(expected = SQLException.class)
     public void badQuery() throws SQLException {
         Statement stmt = connection.createStatement();

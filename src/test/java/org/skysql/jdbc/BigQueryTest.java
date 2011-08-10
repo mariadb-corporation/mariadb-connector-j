@@ -16,14 +16,17 @@ import static org.junit.Assert.assertTrue;
 public class BigQueryTest extends BaseTest{
     @Test
     public void sendBigQuery2() throws SQLException {
-
         Statement stmt = connection.createStatement();
-        stmt.execute("drop table  if exists bigblob");
-        stmt.execute("create table bigblob (id int not null primary key auto_increment, test longblob)");
         ResultSet rs = stmt.executeQuery("select @@max_allowed_packet");
         rs.next();
         int max_allowed_packet = rs.getInt(1);
         assertTrue("Max allowed packet on the server needs to be atleast 20m",max_allowed_packet > 0x00FFFFFF);
+
+
+        stmt.execute("drop table  if exists bigblob");
+        stmt.execute("create table bigblob (id int not null primary key auto_increment, test longblob)");
+
+
         char [] arr = new char[20000000];
         for(int i = 0 ; i<arr.length; i++) {
             arr[i] = (char) ('a'+(i%10));
@@ -45,13 +48,16 @@ public class BigQueryTest extends BaseTest{
     }
     @Test
     public void sendBigPreparedQuery() throws SQLException {
+
         Statement stmt = connection.createStatement();
-        stmt.execute("drop table  if exists bigblob2");
-        stmt.execute("create table bigblob2 (id int not null primary key auto_increment, test longblob, test2 longblob)");
         ResultSet rs = stmt.executeQuery("select @@max_allowed_packet");
         rs.next();
         int max_allowed_packet = rs.getInt(1);
         assertTrue("Max allowed packet on the server needs to be atleast 20m",max_allowed_packet > 0x00FFFFFF);
+
+        stmt.execute("drop table  if exists bigblob2");
+        stmt.execute("create table bigblob2 (id int not null primary key auto_increment, test longblob, test2 longblob)");
+
         byte [] arr = new byte[20000000];
         Arrays.fill(arr, (byte) 'a');
         byte [] arr2 = new byte[20000000];

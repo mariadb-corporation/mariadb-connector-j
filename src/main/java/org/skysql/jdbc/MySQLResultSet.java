@@ -25,12 +25,11 @@
 package org.skysql.jdbc;
 
 import org.skysql.jdbc.internal.SQLExceptionMapper;
-import org.skysql.jdbc.internal.common.*;
-import org.skysql.jdbc.internal.common.queryresults.MySQLQueryResult;
-import org.skysql.jdbc.internal.common.queryresults.NoSuchColumnException;
-import org.skysql.jdbc.internal.common.queryresults.QueryResult;
-import org.skysql.jdbc.internal.common.queryresults.ResultSetType;
-import org.skysql.jdbc.internal.common.queryresults.SelectQueryResult;
+import org.skysql.jdbc.internal.common.ColumnInformation;
+import org.skysql.jdbc.internal.common.Protocol;
+import org.skysql.jdbc.internal.common.QueryException;
+import org.skysql.jdbc.internal.common.ValueObject;
+import org.skysql.jdbc.internal.common.queryresults.*;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -39,18 +38,7 @@ import java.io.StringReader;
 import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.sql.Array;
-import java.sql.Blob;
-import java.sql.Clob;
-import java.sql.Date;
-import java.sql.Ref;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.sql.SQLWarning;
-import java.sql.Statement;
-import java.sql.Time;
-import java.sql.Timestamp;
+import java.sql.*;
 import java.text.ParseException;
 import java.util.Calendar;
 import java.util.Collections;
@@ -70,24 +58,32 @@ public class MySQLResultSet implements ResultSet {
     private boolean isClosed;
     private boolean lastGetWasNull;
     private boolean warningsCleared;
+    ColumnNameMap columnNameMap;
 
     public MySQLResultSet(final QueryResult dqr, final Statement statement, final Protocol protocol) {
         this.queryResult = dqr;
         this.statement = statement;
         isClosed = false;
         this.protocol = protocol;
+        this.columnNameMap = new ColumnNameMap(dqr.getColumnInformation());
     }
 
     private static MySQLResultSet createEmptyResultSet() {
         final List<ColumnInformation> colList = Collections.emptyList();
         final List<List<ValueObject>> voList = Collections.emptyList();
-        final QueryResult qr = new MySQLQueryResult(colList, voList, (short) 0);
+        final QueryResult qr = new CachedSelectResult(colList, voList, (short) 0);
         return new MySQLResultSet(qr, null, null);
     }
 
     public boolean next() throws SQLException {
-        return queryResult.getResultSetType() == ResultSetType.SELECT
+        try {
+            return queryResult.getResultSetType() == ResultSetType.SELECT
                 && ((SelectQueryResult) queryResult).next();
+        } catch(IOException ioe) {
+            throw new SQLException(ioe);
+        } catch (QueryException qe) {
+            throw new SQLException(qe);
+        }
     }
 
     public void close() throws SQLException {
@@ -138,17 +134,7 @@ public class MySQLResultSet implements ResultSet {
     }
 
     private ValueObject getValueObject(final String column) throws SQLException {
-        if (queryResult.getResultSetType() == ResultSetType.SELECT) {
-            final ValueObject vo;
-            try {
-                vo = ((SelectQueryResult) queryResult).getValueObject(column);
-            } catch (NoSuchColumnException e) {
-                throw SQLExceptionMapper.getSQLException("No such column: " + column, e);
-            }
-            this.lastGetWasNull = vo.isNull();
-            return vo;
-        }
-        throw SQLExceptionMapper.getSQLException("Cannot get data from update-result sets");
+        return getValueObject(columnNameMap.getIndex(column)+1);
     }
 
     /**
@@ -501,11 +487,7 @@ public class MySQLResultSet implements ResultSet {
      */
     public int findColumn(final String columnLabel) throws SQLException {
         if (this.queryResult.getResultSetType() == ResultSetType.SELECT) {
-            try {
-                return ((SelectQueryResult) queryResult).getColumnId(columnLabel) + 1;
-            } catch (NoSuchColumnException e) {
-                throw SQLExceptionMapper.getSQLException("No such column: " + columnLabel, e);
-            }
+             return columnNameMap.getIndex(columnLabel) +1;
         }
         throw SQLExceptionMapper.getSQLException("Cannot get column id of update result sets");
     }
@@ -586,8 +568,7 @@ public class MySQLResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean isBeforeFirst() throws SQLException {
-        return !(queryResult.getResultSetType() == ResultSetType.MODIFY || queryResult.getRows() == 0)
-                && ((SelectQueryResult) queryResult).getRowPointer() == -1;
+        return (queryResult.getResultSetType() == ResultSetType.SELECT  && ((SelectQueryResult) queryResult).isBeforeFirst());
     }
 
     /**
@@ -604,8 +585,8 @@ public class MySQLResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean isAfterLast() throws SQLException {
-        return queryResult.getResultSetType() != ResultSetType.MODIFY
-                && ((SelectQueryResult) queryResult).getRowPointer() >= queryResult.getRows();
+        return queryResult.getResultSetType() == ResultSetType.SELECT
+                && ((SelectQueryResult) queryResult).isAfterLast();
     }
 
     /**
@@ -640,8 +621,13 @@ public class MySQLResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean isLast() throws SQLException {
-        return queryResult.getResultSetType() != ResultSetType.MODIFY
-                && ((SelectQueryResult) queryResult).getRowPointer() == queryResult.getRows() - 1;
+        if (queryResult.getResultSetType() == ResultSetType.SELECT)
+        {
+            if (queryResult instanceof CachedSelectResult) {
+               return ((SelectQueryResult) queryResult).getRowPointer() == queryResult.getRows() - 1;
+            }
+        }
+        throw new SQLFeatureNotSupportedException("isLast is not supported for TYPE_FORWARD_ONLY result sets");
     }
 
     /**
@@ -656,6 +642,9 @@ public class MySQLResultSet implements ResultSet {
      */
     public void beforeFirst() throws SQLException {
         if (queryResult.getResultSetType() == ResultSetType.SELECT) {
+            if (!(queryResult instanceof CachedSelectResult)) {
+              throw new SQLException("Invalid operation for result set type TYPE_FORWARD_ONLY");
+            }
             ((SelectQueryResult) queryResult).moveRowPointerTo(-1);
         }
     }
@@ -687,6 +676,9 @@ public class MySQLResultSet implements ResultSet {
      */
     public boolean first() throws SQLException {
         if (queryResult.getResultSetType() == ResultSetType.SELECT && queryResult.getRows() > 0) {
+             if (!(queryResult instanceof CachedSelectResult)) {
+              throw new SQLException("Invalid operation for result set type TYPE_FORWARD_ONLY");
+            }
             ((SelectQueryResult) queryResult).moveRowPointerTo(0);
             return true;
         }

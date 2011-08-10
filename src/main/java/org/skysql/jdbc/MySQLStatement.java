@@ -119,6 +119,7 @@ public class MySQLStatement implements Statement {
      * @throws SQLException if something went wrong
      */
     public ResultSet executeQuery(String query) throws SQLException {
+        connection.setActiveStatement(this);
         if (escapeProcessing)
             query = Utils.nativeSQL(query);
 
@@ -167,6 +168,7 @@ public class MySQLStatement implements Statement {
      * @throws SQLException if the query could not be sent to server.
      */
     public int executeUpdate(String query) throws SQLException {
+        connection.setActiveStatement(this);
         if (escapeProcessing)
             query = Utils.nativeSQL(query);
         startTimer();
@@ -210,6 +212,7 @@ public class MySQLStatement implements Statement {
      * @throws SQLException
      */
     public boolean execute(String query) throws SQLException {
+        connection.setActiveStatement(this);
         if (escapeProcessing)
             query = Utils.nativeSQL(query);
         startTimer();
@@ -248,8 +251,15 @@ public class MySQLStatement implements Statement {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public void close() throws SQLException {
+        if (connection.getActiveStatement() == this) {
+            connection.setActiveStatement(null);
+        }
         if (queryResult != null) {
             queryResult.close();
+        }
+        // Close all outstanding statements
+        while(getMoreResults()) {
+
         }
     }
 
@@ -774,7 +784,7 @@ public class MySQLStatement implements Statement {
                 queryResult.close();
             }
 
-            queryResult = protocol.getMoreResults();
+            queryResult = protocol.getMoreResults(false);
             if(queryResult == null) return false;
             warningsCleared = false;
             connection.reenableWarnings();

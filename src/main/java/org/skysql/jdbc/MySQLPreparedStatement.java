@@ -98,7 +98,9 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
         }
     }
     public ResultSet executeQuery() throws SQLException {
+
         MySQLConnection conn = (MySQLConnection)getConnection();
+        conn.setActiveStatement(this);
         conn.reenableWarnings();
         flushOutputStreams();
         startTimer();
@@ -125,6 +127,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
      */
     public int executeUpdate() throws SQLException {
         MySQLConnection conn = (MySQLConnection)getConnection();
+        conn.setActiveStatement(this);
         conn.reenableWarnings();
         flushOutputStreams();
         startTimer();
@@ -167,7 +170,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
 
     public boolean execute() throws SQLException {
         MySQLConnection conn = (MySQLConnection)getConnection();
-
+        conn.setActiveStatement(this);
         conn.reenableWarnings();
         flushOutputStreams();
         startTimer();
