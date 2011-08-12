@@ -85,28 +85,6 @@ public final class MySQLConnection
         activeStatement = null;
     }
 
-    public void setActiveStatement(Statement st) {
-      if (st != null && activeStatement !=  null) {
-            try {
-                if (!activeStatement.isClosed())  {
-                    while(st.getMoreResults()) {
-                    }
-                }
-            } catch(Exception e) {
-                // Dunno what to do, so eat the exception
-            }
-        }
-        activeStatement = st;
-    }
-
-
-
-    public Statement getActiveStatement() {
-
-        return activeStatement;
-    }
-
-
 
     /**
      * creates a new statement.

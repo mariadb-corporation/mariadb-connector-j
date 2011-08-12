@@ -74,7 +74,7 @@ public class MySQLProtocol implements Protocol {
     private final long serverThreadId;
     private volatile boolean queryWasCancelled = false;
     private volatile boolean queryTimedOut = false;
-    public boolean hasMoreResults = false;
+    public boolean moreResults = false;
     public StreamingSelectResult activeResult= null;
     /**
      * Get a protocol instance
@@ -247,10 +247,14 @@ public class MySQLProtocol implements Protocol {
              activeResult.close();
          }
 
-         while (hasMoreResults) {
+         while (moreResults) {
             QueryResult queryResult =  getMoreResults(true);
          }
 
+    }
+
+    public boolean  hasMoreResults() {
+        return moreResults;
     }
     /**
      * Closes socket and stream readers/writers
@@ -349,7 +353,7 @@ public class MySQLProtocol implements Protocol {
 
     public void commit() throws QueryException {
         log.finest("commiting transaction");
-        executeQuery(new MySQLQuery("COMMIT"));
+        executeQuery(new MySQLQuery("COMMIT"), false);
     }
 
     public void rollback() throws QueryException {
@@ -405,10 +409,14 @@ public class MySQLProtocol implements Protocol {
         }
     }
 
-    public QueryResult executeQuery(final Query dQuery) throws QueryException {
+    public QueryResult executeQuery(Query dQuery)  throws QueryException{
+       return executeQuery(dQuery, false);
+    }
+
+    public QueryResult executeQuery(final Query dQuery, boolean streaming) throws QueryException {
         dQuery.validate();
         log.finest("Executing streamed query: " + dQuery);
-        this.hasMoreResults = false;
+        this.moreResults = false;
         final StreamedQueryPacket packet = new StreamedQueryPacket(dQuery);
 
         try {
@@ -436,7 +444,7 @@ public class MySQLProtocol implements Protocol {
 
         switch (resultPacket.getResultType()) {
             case ERROR:
-                this.hasMoreResults = false;
+                this.moreResults = false;
                 final ErrorPacket ep = (ErrorPacket) resultPacket;
                 checkIfCancelled();
                 log.warning("Could not execute query " + dQuery + ": " + ((ErrorPacket) resultPacket).getMessage());
@@ -445,7 +453,7 @@ public class MySQLProtocol implements Protocol {
                         ep.getSqlState());
             case OK:
                 final OKPacket okpacket = (OKPacket) resultPacket;
-                this.hasMoreResults = okpacket.getServerStatus().contains(ServerStatus.MORE_RESULTS_EXISTS);
+                this.moreResults = okpacket.getServerStatus().contains(ServerStatus.MORE_RESULTS_EXISTS);
                 final QueryResult updateResult = new UpdateResult(okpacket.getAffectedRows(),
                         okpacket.getWarnings(),
                         okpacket.getMessage(),
@@ -456,7 +464,7 @@ public class MySQLProtocol implements Protocol {
                 log.fine("SELECT executed, fetching result set");
 
                 try {
-                    return this.createQueryResult((ResultSetPacket) resultPacket, false);
+                    return this.createQueryResult((ResultSetPacket) resultPacket, streaming);
                 } catch (IOException e) {
                     throw new QueryException("Could not read result set: " + e.getMessage(),
                             -1,
@@ -537,7 +545,7 @@ public class MySQLProtocol implements Protocol {
     public QueryResult executeQuery(Query dQuery,
                                     FileInputStream fileInputStream) throws QueryException {
         int packIndex = 0;
-        if(hasMoreResults) {
+        if(moreResults) {
             try {
                 packetFetcher.clearInputStream();
             } catch (IOException e) {
@@ -548,7 +556,7 @@ public class MySQLProtocol implements Protocol {
 
             }
         }
-        this.hasMoreResults = false;
+        this.moreResults = false;
         log.finest("Executing streamed query: " + dQuery);
         final StreamedQueryPacket packet = new StreamedQueryPacket(dQuery);
 
@@ -719,7 +727,7 @@ public class MySQLProtocol implements Protocol {
                         ep.getSqlState());
             case OK:
                 final OKPacket okpacket = (OKPacket) resultPacket;
-                this.hasMoreResults = okpacket.getServerStatus().contains(ServerStatus.MORE_RESULTS_EXISTS);
+                this.moreResults = okpacket.getServerStatus().contains(ServerStatus.MORE_RESULTS_EXISTS);
 
                 final QueryResult updateResult = new UpdateResult(
                         okpacket.getAffectedRows(), okpacket.getWarnings(),
@@ -744,7 +752,7 @@ public class MySQLProtocol implements Protocol {
 
     public QueryResult getMoreResults(boolean streaming) throws QueryException {
         try {
-            if(!hasMoreResults)
+            if(!moreResults)
                 return null;
             ResultPacket resultPacket = ResultPacketFactory.createResultPacket(packetFetcher.getRawPacket());
             switch(resultPacket.getResultType()) {
@@ -752,7 +760,7 @@ public class MySQLProtocol implements Protocol {
                     return createQueryResult((ResultSetPacket) resultPacket, streaming);
                 case OK:
                     OKPacket okpacket = (OKPacket) resultPacket;
-                    this.hasMoreResults = okpacket.getServerStatus().contains(ServerStatus.MORE_RESULTS_EXISTS);                    
+                    this.moreResults = okpacket.getServerStatus().contains(ServerStatus.MORE_RESULTS_EXISTS);
                     return new UpdateResult(
                             okpacket.getAffectedRows(), okpacket.getWarnings(),
                             okpacket.getMessage(), okpacket.getInsertId());
@@ -790,5 +798,10 @@ public class MySQLProtocol implements Protocol {
         bb.get(b);
         bb.reset();
         return hexdump(b, offset);
+    }
+
+
+    public boolean hasUnreadData() {
+        return (activeResult != null);
     }
 }

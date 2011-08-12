@@ -1302,4 +1302,23 @@ public class DriverTest extends BaseTest{
     }
 
 
+    @Test
+    public void StreamingResult() throws SQLException {
+        Statement st = connection.createStatement();
+
+        st.execute("drop table if exists streamingtest");
+        st.execute("create table streamingtest(val varchar(20))");
+
+        for(int i = 0; i< 100; i++) {
+            st.execute("insert into streamingtest values('aaaaaaaaaaaaaaaaaa')");
+        }
+        st.setFetchSize(Integer.MIN_VALUE);
+        ResultSet rs = st.executeQuery("select * from streamingtest");
+        rs.next();
+        rs.close();
+        Statement st2  = connection.createStatement();
+        ResultSet rs2 = st2.executeQuery("select * from streamingtest");
+        rs2.next();
+        rs.close();
+    }
 }

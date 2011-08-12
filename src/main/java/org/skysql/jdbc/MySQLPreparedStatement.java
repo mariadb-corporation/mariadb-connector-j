@@ -32,34 +32,16 @@ import org.skysql.jdbc.internal.common.Utils;
 import org.skysql.jdbc.internal.common.query.IllegalParameterException;
 import org.skysql.jdbc.internal.common.query.ParameterizedQuery;
 import org.skysql.jdbc.internal.common.query.QueryFactory;
-import org.skysql.jdbc.internal.common.query.parameters.BigDecimalParameter;
-import org.skysql.jdbc.internal.common.query.parameters.BlobStreamingParameter;
-import org.skysql.jdbc.internal.common.query.parameters.BufferedReaderParameter;
-import org.skysql.jdbc.internal.common.query.parameters.BufferedStreamParameter;
-import org.skysql.jdbc.internal.common.query.parameters.ByteParameter;
-import org.skysql.jdbc.internal.common.query.parameters.DateParameter;
-import org.skysql.jdbc.internal.common.query.parameters.DoubleParameter;
-import org.skysql.jdbc.internal.common.query.parameters.IntParameter;
-import org.skysql.jdbc.internal.common.query.parameters.LongParameter;
-import org.skysql.jdbc.internal.common.query.parameters.NullParameter;
-import org.skysql.jdbc.internal.common.query.parameters.ParameterHolder;
-import org.skysql.jdbc.internal.common.query.parameters.ReaderParameter;
-import org.skysql.jdbc.internal.common.query.parameters.SerializableParameter;
-import org.skysql.jdbc.internal.common.query.parameters.StreamParameter;
-import org.skysql.jdbc.internal.common.query.parameters.StringParameter;
-import org.skysql.jdbc.internal.common.query.parameters.TimeParameter;
-import org.skysql.jdbc.internal.common.query.parameters.TimestampParameter;
+import org.skysql.jdbc.internal.common.query.parameters.*;
 import org.skysql.jdbc.internal.common.queryresults.ModifyQueryResult;
 import org.skysql.jdbc.internal.common.queryresults.ResultSetType;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.*;
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -71,7 +53,6 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
     private final static Logger log = Logger.getLogger(MySQLPreparedStatement.class.getName());
     private ParameterizedQuery dQuery;
     private final ParameterizedBatchHandler parameterizedBatchHandler;
-    private ArrayList<OutputStream> outputStreams;
 
     public MySQLPreparedStatement(final Protocol protocol,
                                   final MySQLConnection connection,
@@ -85,27 +66,12 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
         }
         dQuery = queryFactory.createParameterizedQuery(Utils.nativeSQL(query));
         this.parameterizedBatchHandler = parameterizedBatchHandler;
-        outputStreams = new ArrayList<OutputStream>(0);
     }
 
-    private void flushOutputStreams() throws SQLException{
-        try {
-            for(OutputStream s : outputStreams)
-                s.flush();
-        }
-        catch(IOException ioe) {
-            throw  new SQLException(ioe);
-        }
-    }
     public ResultSet executeQuery() throws SQLException {
-
-        MySQLConnection conn = (MySQLConnection)getConnection();
-        conn.setActiveStatement(this);
-        conn.reenableWarnings();
-        flushOutputStreams();
-        startTimer();
+        executeQueryProlog();
         try {
-            setQueryResult(getProtocol().executeQuery(dQuery));
+            setQueryResult(getProtocol().executeQuery(dQuery, isStreaming()));
             return new MySQLResultSet(getQueryResult(), this, getProtocol());
         } catch (QueryException e) {
             throw SQLExceptionMapper.get(e);
@@ -126,11 +92,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
      *                               <code>ResultSet</code> object
      */
     public int executeUpdate() throws SQLException {
-        MySQLConnection conn = (MySQLConnection)getConnection();
-        conn.setActiveStatement(this);
-        conn.reenableWarnings();
-        flushOutputStreams();
-        startTimer();
+        executeQueryProlog();
         try {
             setQueryResult(getProtocol().executeQuery(dQuery));
             dQuery.clearParameters();
@@ -169,13 +131,9 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
     }
 
     public boolean execute() throws SQLException {
-        MySQLConnection conn = (MySQLConnection)getConnection();
-        conn.setActiveStatement(this);
-        conn.reenableWarnings();
-        flushOutputStreams();
-        startTimer();
+        executeQueryProlog();
         try {
-            setQueryResult(getProtocol().executeQuery(dQuery));
+            setQueryResult(getProtocol().executeQuery(dQuery, isStreaming()));
             dQuery.clearParameters();
         } catch (QueryException e) {
             throw SQLExceptionMapper.get(e);

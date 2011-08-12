@@ -25,6 +25,7 @@
 package org.skysql.jdbc.internal.common.packet;
 
 import org.skysql.jdbc.internal.common.packet.buffer.Reader;
+import org.skysql.jdbc.internal.mysql.MySQLProtocol;
 
 import java.io.IOException;
 
@@ -38,6 +39,10 @@ public class ResultSetPacket extends ResultPacket {
         final Reader reader = new Reader(rawPacket);
         
         fieldCount = reader.getLengthEncodedBinary();
+        if (reader.getRemainingSize() != 0) {
+            throw new IOException("invalid packet contents ,expected result set packet, actual packet hexdump = " +
+                    MySQLProtocol.hexdump(rawPacket.getByteBuffer(),0));
+        }
     }
 
     public ResultType getResultType() {

@@ -238,7 +238,7 @@
                 nextResultSet.close();
 
                 rs.close();
-
+                storedProc.getMoreResults();
                 storedProc.execute();
         }
 

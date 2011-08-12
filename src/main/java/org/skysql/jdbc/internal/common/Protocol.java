@@ -161,13 +161,20 @@ public interface Protocol {
      */
     boolean ping() throws QueryException;
 
+
+
     /**
      * executes a query
      *
      * @param dQuery the query to execute
+     * @param streaming - if true, the result is streaming (forward-only, non-cached)
+     * if false - the result is cached and can be scrolled
      * @return a query result.
      * @throws QueryException if there is a problem with the query
      */
+    QueryResult executeQuery(Query dQuery, boolean streaming) throws QueryException;
+
+    /* Execute query that returns scrollable result set */
     QueryResult executeQuery(Query dQuery) throws QueryException;
 
     /**
@@ -207,5 +214,7 @@ public interface Protocol {
     void cancelCurrentQuery() throws QueryException;
     void timeOut() throws QueryException;
 
+    boolean hasMoreResults();
     QueryResult getMoreResults(boolean streaming) throws QueryException;
+    boolean hasUnreadData();
 }

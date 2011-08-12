@@ -84,6 +84,10 @@ public class MySQLStatement implements Statement {
     private int queryTimeout;
     private ScheduledFuture<?> timoutFuture;
     private boolean escapeProcessing;
+    private int fetchSize;
+    public boolean isStreaming() {
+        return fetchSize == Integer.MIN_VALUE;
+    }
 
     /**
      * Creates a new Statement.
@@ -111,6 +115,21 @@ public class MySQLStatement implements Statement {
         return protocol;
     }
 
+    void executeQueryProlog() throws SQLException{
+        if (protocol.hasUnreadData()) {
+            throw new  SQLException("There is an open result set on the current connection, "+
+                    "which must be closed prior to executing a query");
+        }
+        if (protocol.hasMoreResults()) {
+            // Skip remaining result sets. CallableStatement might return many of them  - not only the "select" result sets
+            // but also the "update" results
+            while(getMoreResults(true)) {
+            }
+        }
+        MySQLConnection conn = (MySQLConnection)getConnection();
+        conn.reenableWarnings();
+        startTimer();
+    }
     /**
      * executes a select query.
      *
@@ -119,19 +138,13 @@ public class MySQLStatement implements Statement {
      * @throws SQLException if something went wrong
      */
     public ResultSet executeQuery(String query) throws SQLException {
-        connection.setActiveStatement(this);
-        if (escapeProcessing)
-            query = Utils.nativeSQL(query);
+        executeQueryProlog();
 
-        MySQLConnection conn = (MySQLConnection)getConnection();
-        conn.reenableWarnings();
-        startTimer();
+        if (escapeProcessing)
+           query = Utils.nativeSQL(query);
         try {
-            if (queryResult != null) {
-                queryResult.close();
-            }
             final Query queryToSend = queryFactory.createQuery(query);
-            queryResult = protocol.executeQuery(queryToSend);
+            queryResult = protocol.executeQuery(queryToSend, isStreaming());
             warningsCleared = false;
             return new MySQLResultSet(queryResult, this, getProtocol());
         } catch (QueryException e) {
@@ -168,16 +181,9 @@ public class MySQLStatement implements Statement {
      * @throws SQLException if the query could not be sent to server.
      */
     public int executeUpdate(String query) throws SQLException {
-        connection.setActiveStatement(this);
-        if (escapeProcessing)
-            query = Utils.nativeSQL(query);
-        startTimer();
-        MySQLConnection conn = (MySQLConnection)getConnection();
-        conn.reenableWarnings();
+        executeQueryProlog();
+
         try {
-            if (queryResult != null) {
-                queryResult.close();
-            }
             warningsCleared = false;
             if(fileInputStream == null)
                 queryResult = protocol.executeQuery(queryFactory.createQuery(query));
@@ -212,15 +218,9 @@ public class MySQLStatement implements Statement {
      * @throws SQLException
      */
     public boolean execute(String query) throws SQLException {
-        connection.setActiveStatement(this);
-        if (escapeProcessing)
-            query = Utils.nativeSQL(query);
-        startTimer();
+        executeQueryProlog();
         try {
-            if (queryResult != null) {
-                queryResult.close();
-            }
-            queryResult = protocol.executeQuery(queryFactory.createQuery(query));
+            queryResult = protocol.executeQuery(queryFactory.createQuery(query), isStreaming());
             if (queryResult.getResultSetType() == ResultSetType.SELECT) {
                 setResultSet(new MySQLResultSet(queryResult, this, getProtocol()));
                 return true;
@@ -251,14 +251,11 @@ public class MySQLStatement implements Statement {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public void close() throws SQLException {
-        if (connection.getActiveStatement() == this) {
-            connection.setActiveStatement(null);
-        }
         if (queryResult != null) {
             queryResult.close();
         }
-        // Close all outstanding statements
-        while(getMoreResults()) {
+        // Skip all outstanding result sets
+        while(getMoreResults(true)) {
 
         }
     }
@@ -763,6 +760,26 @@ public class MySQLStatement implements Statement {
         return (int) ((ModifyQueryResult) queryResult).getUpdateCount();
     }
 
+    private boolean getMoreResults(boolean streaming) throws SQLException {
+        startTimer();
+        try {
+            if (queryResult != null) {
+                queryResult.close();
+            }
+
+            queryResult = protocol.getMoreResults(streaming);
+            if(queryResult == null) return false;
+            warningsCleared = false;
+            connection.reenableWarnings();
+            this.resultSet = new MySQLResultSet(queryResult, this, getProtocol());
+            return true;
+        } catch (QueryException e) {
+            throw SQLExceptionMapper.get(e);
+        } finally {
+            stopTimer();
+        }
+    }
+
     /**
      * Moves to this <code>Statement</code> object's next result, returns <code>true</code> if it is a
      * <code>ResultSet</code> object, and implicitly closes any current <code>ResultSet</code> object(s) obtained with
@@ -778,23 +795,7 @@ public class MySQLStatement implements Statement {
      * @see #execute
      */
     public boolean getMoreResults() throws SQLException {
-        startTimer();
-        try {
-            if (queryResult != null) {
-                queryResult.close();
-            }
-
-            queryResult = protocol.getMoreResults(false);
-            if(queryResult == null) return false;
-            warningsCleared = false;
-            connection.reenableWarnings();
-            this.resultSet = new MySQLResultSet(queryResult, this, getProtocol());
-            return true;
-        } catch (QueryException e) {
-            throw SQLExceptionMapper.get(e);
-        } finally {
-            stopTimer();
-        }
+        return getMoreResults(isStreaming());
     }
 
     /**
@@ -843,7 +844,9 @@ public class MySQLStatement implements Statement {
      * @since 1.2
      */
     public void setFetchSize(final int rows) throws SQLException {
-
+        if (rows < 0 && rows != Integer.MIN_VALUE)
+            throw new SQLException("invalid fetch size");
+         this.fetchSize = rows;
     }
 
     /**
@@ -858,7 +861,7 @@ public class MySQLStatement implements Statement {
      * @since 1.2
      */
     public int getFetchSize() throws SQLException {
-        return 0;
+        return this.fetchSize;
     }
 
     /**
