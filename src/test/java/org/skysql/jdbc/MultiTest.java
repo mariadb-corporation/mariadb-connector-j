@@ -8,6 +8,7 @@ import java.sql.*;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 
 
 public class MultiTest {
@@ -94,7 +95,7 @@ public class MultiTest {
         assertTrue(count>0);
         statement.getMoreResults();
         
-        //assertEquals(1,statement.getUpdateCount());
+        assertEquals(1,statement.getUpdateCount());
     }
 
     @Test

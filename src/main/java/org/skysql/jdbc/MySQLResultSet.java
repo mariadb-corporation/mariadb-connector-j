@@ -2442,7 +2442,9 @@ public class MySQLResultSet implements ResultSet {
      * @since 1.6
      */
     public boolean isClosed() throws SQLException {
-        return isClosed;
+        if (queryResult == null)
+            return true;
+        return queryResult.isClosed();
     }
 
     /**

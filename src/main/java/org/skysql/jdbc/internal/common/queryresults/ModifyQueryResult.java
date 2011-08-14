@@ -27,12 +27,12 @@ package org.skysql.jdbc.internal.common.queryresults;
 /**
  * . User: marcuse Date: Mar 9, 2009 Time: 9:51:19 PM
  */
-public interface ModifyQueryResult extends QueryResult {
-    long getUpdateCount();
+public abstract class ModifyQueryResult extends QueryResult {
+    public abstract long getUpdateCount();
 
-    String getMessage();
+    public abstract String getMessage();
 
-    long getInsertId();
+    public abstract long getInsertId();
 
-    QueryResult getGeneratedKeysResult();
+    public abstract QueryResult getGeneratedKeysResult();
 }

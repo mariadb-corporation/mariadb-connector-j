@@ -1,0 +1,205 @@
+[INFO] Error stacktraces are turned on.
+[INFO] Scanning for projects...
+[WARNING] 
+[WARNING] Some problems were encountered while building the effective model for org.skysql.jdbc:skysql-jdbc:jar:1.2-SNAPSHOT
+[WARNING] 'build.plugins.plugin.version' for com.atlassian.maven.plugins:maven-clover2-plugin is missing. @ line 54, column 14
+[WARNING] 'build.plugins.plugin.version' for org.apache.maven.plugins:maven-gpg-plugin is missing. @ line 41, column 21
+[WARNING] 'build.plugins.plugin.version' for org.apache.maven.plugins:maven-javadoc-plugin is missing. @ line 72, column 14
+[WARNING] 'build.plugins.plugin.version' for org.apache.maven.plugins:maven-compiler-plugin is missing. @ line 28, column 21
+[WARNING] 'build.plugins.plugin.version' for org.apache.maven.plugins:maven-source-plugin is missing. @ line 61, column 14
+[WARNING] 'reporting.plugins.plugin.version' for org.apache.maven.plugins:maven-clover-plugin is missing. @ line 102, column 12
+[WARNING] 'reporting.plugins.plugin.version' for org.apache.maven.plugins:maven-checkstyle-plugin is missing. @ line 109, column 19
+[WARNING] 'reporting.plugins.plugin.version' for org.apache.maven.plugins:maven-javadoc-plugin is missing. @ line 116, column 21
+[WARNING] 'reporting.plugins.plugin.version' for org.apache.maven.plugins:maven-pmd-plugin is missing. @ line 120, column 21
+[WARNING] 'reporting.plugins.plugin.version' for org.apache.maven.plugins:maven-surefire-report-plugin is missing. @ line 129, column 21
+[WARNING] 
+[WARNING] It is highly recommended to fix these problems because they threaten the stability of your build.
+[WARNING] 
+[WARNING] For this reason, future Maven versions might no longer support building such malformed projects.
+[WARNING] 
+[INFO]                                                                         
+[INFO] ------------------------------------------------------------------------
+[INFO] Building SkySQL-JDBC 1.2-SNAPSHOT
+[INFO] ------------------------------------------------------------------------
+[INFO] 
+[INFO] --- maven-enforcer-plugin:1.0-beta-1:enforce (enforce-maven) @ skysql-jdbc ---
+[INFO] 
+[INFO] --- maven-resources-plugin:2.4.3:resources (default-resources) @ skysql-jdbc ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 1 resource
+[INFO] 
+[INFO] --- maven-compiler-plugin:2.3.2:compile (default-compile) @ skysql-jdbc ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- maven-resources-plugin:2.4.3:testResources (default-testResources) @ skysql-jdbc ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] skip non existing resourceDirectory H:\bzr\djdbc-original\src\test\resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:2.3.2:testCompile (default-testCompile) @ skysql-jdbc ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- maven-surefire-plugin:2.4.2:test (default-test) @ skysql-jdbc ---
+[INFO] Surefire report directory: H:\bzr\djdbc-original\target\surefire-reports
+
+-------------------------------------------------------
+ T E S T S
+-------------------------------------------------------
+Running org.skysql.jdbc.ResultSetMetaDataTest
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.11 sec
+Running org.skysql.jdbc.MultiTest
+Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.04 sec
+Running org.skysql.jdbc.BigQueryTest
+Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 4.3 sec
+Running org.skysql.jdbc.CallableStatementTest
+object = 5:class java.lang.String
+Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.71 sec
+Running org.skysql.jdbc.HttpClientTest
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 1, Time elapsed: 0.01 sec
+Running org.skysql.jdbc.UtilTest
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0 sec
+Running org.skysql.jdbc.MySQLDriverTest
+0
+class java.lang.Boolean
+0
+class java.lang.Boolean
+1
+class java.lang.Boolean
+0
+class java.lang.Boolean
+1
+null
+---
+0
+class java.lang.Integer
+1
+class java.lang.Integer
+32767
+class java.lang.Integer
+65535
+class java.lang.Integer
+null
+---
+0
+class java.lang.Integer
+1
+class java.lang.Integer
+8388607
+class java.lang.Integer
+16777215
+class java.lang.Integer
+---
+ee 1971-01-01 01:01:01.0
+---
+ee 2007-12-03 15:50:18.0
+---
+ee 2037-12-31 23:59:59.0
+---
+ee null
+---
+ee 1000-01-01 00:00:00.0
+---
+ee 2007-12-03 15:47:32.0
+---
+ee 9999-12-31 23:59:59.0
+null
+---
+-3.40282E38
+class java.lang.Float
+-1.17549E-38
+class java.lang.Float
+0.0
+class java.lang.Float
+1.17549E-38
+class java.lang.Float
+3.40282E38
+class java.lang.Float
+null
+---
+-Infinity
+class java.lang.Double
+-2.2250738585072E-308
+class java.lang.Double
+0.0
+class java.lang.Double
+2.2250738585072E-308
+class java.lang.Double
+Infinity
+class java.lang.Double
+i=16777203
+i=16777204
+i=16777205
+i=16777206
+i=16777207
+16777215
+time: 190
+-1
+Tests run: 78, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 24.87 sec
+Running org.skysql.jdbc.BlobStreamingTest
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 1, Time elapsed: 0 sec
+Running org.skysql.jdbc.DateTest
+--
+null
+null
+--
+1901
+70
+--
+0000
+00
+--
+2155
+69
+--
+null
+--
+02:59:59
+--
+00:00:00
+--
+22:59:59
+Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.07 sec
+Running org.skysql.jdbc.BooleanTest
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.01 sec
+Running org.skysql.jdbc.DataSourceTest
+Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.01 sec
+Running org.skysql.jdbc.PrepareQueryTest
+4
+4
+Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0 sec
+Running org.skysql.jdbc.ResultSetUnsupportedMethodsTest
+Tests run: 107, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.18 sec
+Running org.skysql.jdbc.DatabaseMetadataTest
+t1
+t1
+Tests run: 9, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.16 sec
+Running org.skysql.jdbc.UnicodeTest
+Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.04 sec
+Running org.skysql.jdbc.DriverTest
+16777215
+time: 200
+-1
+Tests run: 64, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 10.95 sec
+Running org.skysql.jdbc.BaseTest
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 1, Time elapsed: 0 sec
+Running org.skysql.jdbc.CancelTest
+Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 7.51 sec
+Running org.skysql.jdbc.RewriteBatchHandlerTest
+Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.13 sec
+Running org.skysql.jdbc.BlobTest
+Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.02 sec
+Running org.skysql.jdbc.LoadTest
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 1, Time elapsed: 0 sec
+Running org.skysql.jdbc.SSLTest
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 1, Time elapsed: 0 sec
+
+Results :
+
+Tests run: 307, Failures: 0, Errors: 0, Skipped: 5
+
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 51.030s
+[INFO] Finished at: Tue Jul 26 22:13:48 CEST 2011
+[INFO] Final Memory: 9M/122M
+[INFO] ------------------------------------------------------------------------

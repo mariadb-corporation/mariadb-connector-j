@@ -66,9 +66,6 @@ public  class CachedSelectResult extends SelectQueryResult {
         return rowPointer < resultSet.size();
     }
 
-    public void close() {
-
-    }
 
     public short getWarnings() {
         return warningCount;

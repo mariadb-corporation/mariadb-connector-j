@@ -31,16 +31,22 @@ import java.util.List;
 /**
  * . User: marcuse Date: Feb 5, 2009 Time: 10:20:03 PM
  */
-public interface QueryResult {
-    public ResultSetType getResultSetType();
+public abstract class QueryResult {
+    public abstract ResultSetType getResultSetType();
 
-    public void close();
+    private boolean isClosed;
+    public void close() {
+      isClosed = true;
+    }
+    public boolean isClosed() {
+        return isClosed;
+    }
 
-    short getWarnings();
+    public abstract short getWarnings();
 
-    String getMessage();
+    public abstract String getMessage();
 
-    List<ColumnInformation> getColumnInformation();
+    public abstract List<ColumnInformation> getColumnInformation();
 
-    int getRows();
+    public abstract int getRows();
 }

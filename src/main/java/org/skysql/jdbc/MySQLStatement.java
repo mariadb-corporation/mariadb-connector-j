@@ -37,7 +37,9 @@ import org.skysql.jdbc.internal.common.queryresults.ResultSetType;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.sql.*;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -85,6 +87,10 @@ public class MySQLStatement implements Statement {
     private ScheduledFuture<?> timoutFuture;
     private boolean escapeProcessing;
     private int fetchSize;
+    private boolean  isClosed;
+
+    Queue<Object> cachedResultSets;
+
     public boolean isStreaming() {
         return fetchSize == Integer.MIN_VALUE;
     }
@@ -104,6 +110,7 @@ public class MySQLStatement implements Statement {
         this.connection = connection;
         this.queryFactory = queryFactory;
         this.escapeProcessing = true;
+        cachedResultSets = new LinkedList<Object>();
     }
 
     /**
@@ -126,9 +133,30 @@ public class MySQLStatement implements Statement {
             while(getMoreResults(true)) {
             }
         }
+        cachedResultSets.clear();
         MySQLConnection conn = (MySQLConnection)getConnection();
         conn.reenableWarnings();
         startTimer();
+    }
+
+    private void cacheMoreResults() {
+
+        if (isStreaming())
+            return;
+        QueryResult saveResult = queryResult;
+        for(;;) {
+            try {
+                if (getMoreResults(false)) {
+                   cachedResultSets.add(queryResult);
+                } else {
+                    break;
+                }
+            } catch(SQLException e) {
+               cachedResultSets.add(e);
+               break;
+            }
+        }
+        queryResult = saveResult;
     }
     /**
      * executes a select query.
@@ -138,19 +166,21 @@ public class MySQLStatement implements Statement {
      * @throws SQLException if something went wrong
      */
     public ResultSet executeQuery(String query) throws SQLException {
-        executeQueryProlog();
-
-        if (escapeProcessing)
-           query = Utils.nativeSQL(query);
-        try {
-            final Query queryToSend = queryFactory.createQuery(query);
-            queryResult = protocol.executeQuery(queryToSend, isStreaming());
-            warningsCleared = false;
-            return new MySQLResultSet(queryResult, this, getProtocol());
-        } catch (QueryException e) {
-            throw SQLExceptionMapper.get(e);
-        } finally {
-            stopTimer();
+        synchronized (protocol) {
+            executeQueryProlog();
+            if (escapeProcessing)
+               query = Utils.nativeSQL(query);
+            try {
+                final Query queryToSend = queryFactory.createQuery(query);
+                queryResult = protocol.executeQuery(queryToSend, isStreaming());
+                warningsCleared = false;
+                cacheMoreResults();
+                return new MySQLResultSet(queryResult, this, getProtocol());
+            } catch (QueryException e) {
+                throw SQLExceptionMapper.get(e);
+            } finally {
+                stopTimer();
+            }
         }
     }
 
@@ -181,31 +211,34 @@ public class MySQLStatement implements Statement {
      * @throws SQLException if the query could not be sent to server.
      */
     public int executeUpdate(String query) throws SQLException {
-        executeQueryProlog();
+        synchronized (protocol) {
+            executeQueryProlog();
 
-        try {
-            warningsCleared = false;
-            if(fileInputStream == null)
-                queryResult = protocol.executeQuery(queryFactory.createQuery(query));
-            else 
-                queryResult = protocol.executeQuery(queryFactory.createQuery(query), fileInputStream);
-            return (int) ((ModifyQueryResult) queryResult).getUpdateCount();
-        } catch (QueryException e) {
-            throw SQLExceptionMapper.get(e);
-        }
-        finally
-        {
-            stopTimer();
-            if(fileInputStream != null)
+            try {
+                warningsCleared = false;
+                if(fileInputStream == null)
+                    queryResult = protocol.executeQuery(queryFactory.createQuery(query));
+                else
+                    queryResult = protocol.executeQuery(queryFactory.createQuery(query), fileInputStream);
+                cacheMoreResults();
+                return (int) ((ModifyQueryResult) queryResult).getUpdateCount();
+            } catch (QueryException e) {
+                throw SQLExceptionMapper.get(e);
+            }
+            finally
             {
-                try
+                stopTimer();
+                if(fileInputStream != null)
                 {
-                    fileInputStream.close();
+                    try
+                    {
+                        fileInputStream.close();
+                    }
+                    catch (IOException e)
+                    {
+                    }
+                    fileInputStream = null;
                 }
-                catch (IOException e)
-                {
-                }
-                fileInputStream = null;
             }
         }
     }
@@ -218,19 +251,23 @@ public class MySQLStatement implements Statement {
      * @throws SQLException
      */
     public boolean execute(String query) throws SQLException {
-        executeQueryProlog();
-        try {
-            queryResult = protocol.executeQuery(queryFactory.createQuery(query), isStreaming());
-            if (queryResult.getResultSetType() == ResultSetType.SELECT) {
-                setResultSet(new MySQLResultSet(queryResult, this, getProtocol()));
-                return true;
+        synchronized (protocol) {
+            executeQueryProlog();
+            try {
+                queryResult = protocol.executeQuery(queryFactory.createQuery(query), isStreaming());
+                cacheMoreResults();
+                if (queryResult.getResultSetType() == ResultSetType.SELECT) {
+                    //setResultSet(new MySQLResultSet(queryResult, this, getProtocol()));
+                    return true;
+                }
+                setUpdateCount(((ModifyQueryResult) queryResult).getUpdateCount());
+                cacheMoreResults();
+                return false;
+            } catch (QueryException e) {
+                throw SQLExceptionMapper.get(e);
+            } finally {
+                stopTimer();
             }
-            setUpdateCount(((ModifyQueryResult) queryResult).getUpdateCount());
-            return false;
-        } catch (QueryException e) {
-            throw SQLExceptionMapper.get(e);
-        } finally {
-            stopTimer();
         }
     }
 
@@ -251,12 +288,15 @@ public class MySQLStatement implements Statement {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public void close() throws SQLException {
-        if (queryResult != null) {
-            queryResult.close();
-        }
-        // Skip all outstanding result sets
-        while(getMoreResults(true)) {
+        synchronized (protocol) {
+            isClosed = true;
+            if (queryResult != null) {
+                queryResult.close();
+            }
+            // Skip all outstanding result sets
+            while(getMoreResults(true)) {
 
+            }
         }
     }
 
@@ -707,7 +747,7 @@ public class MySQLStatement implements Statement {
      * @since 1.6
      */
     public boolean isClosed() throws SQLException {
-        return false;
+        return isClosed;
     }
 
     /**
@@ -750,7 +790,7 @@ public class MySQLStatement implements Statement {
 
 
     public ResultSet getResultSet() throws SQLException {
-        return resultSet;
+        return new MySQLResultSet(queryResult,this,protocol);
     }
 
     public int getUpdateCount() throws SQLException {
@@ -760,19 +800,21 @@ public class MySQLStatement implements Statement {
         return (int) ((ModifyQueryResult) queryResult).getUpdateCount();
     }
 
+
     private boolean getMoreResults(boolean streaming) throws SQLException {
         startTimer();
         try {
-            if (queryResult != null) {
-                queryResult.close();
-            }
+            synchronized(protocol) {
+                if (queryResult != null) {
+                    queryResult.close();
+                }
 
-            queryResult = protocol.getMoreResults(streaming);
-            if(queryResult == null) return false;
-            warningsCleared = false;
-            connection.reenableWarnings();
-            this.resultSet = new MySQLResultSet(queryResult, this, getProtocol());
-            return true;
+                queryResult = protocol.getMoreResults(streaming);
+                if(queryResult == null) return false;
+                warningsCleared = false;
+                connection.reenableWarnings();
+                return true;
+            }
         } catch (QueryException e) {
             throw SQLExceptionMapper.get(e);
         } finally {
@@ -795,7 +837,19 @@ public class MySQLStatement implements Statement {
      * @see #execute
      */
     public boolean getMoreResults() throws SQLException {
-        return getMoreResults(isStreaming());
+         if (!isStreaming()) {
+            /* return pre-cached result set, if available */
+            if(cachedResultSets.isEmpty())
+                return false;
+
+            Object o = cachedResultSets.remove();
+            if (o instanceof SQLException)
+                throw (SQLException)o;
+
+            queryResult = (QueryResult)o;
+            return true;
+        }
+        return getMoreResults(false);
     }
 
     /**
@@ -1018,9 +1072,7 @@ public class MySQLStatement implements Statement {
         return false;
     }
 
-    protected void setResultSet(final MySQLResultSet rs) {
-        this.resultSet = rs;
-    }
+
 
     protected void setUpdateCount(final long updateCount) {
         this.updateCount = updateCount;

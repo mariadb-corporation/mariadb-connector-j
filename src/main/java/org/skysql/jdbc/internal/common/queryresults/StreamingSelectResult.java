@@ -118,6 +118,7 @@ public class StreamingSelectResult extends SelectQueryResult {
     }
 
     public void close() {
+        super.close();
         if (protocol != null && protocol.activeResult == this)
         {
             try {

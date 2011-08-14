@@ -420,8 +420,6 @@ public class MySQLProtocol implements Protocol {
         final StreamedQueryPacket packet = new StreamedQueryPacket(dQuery);
 
         try {
-            // make sure we are in a good state
-            //packetFetcher.clearInputStream();
             packet.send(writer);
         } catch (IOException e) {
             throw new QueryException("Could not send query: " + e.getMessage(),
@@ -482,7 +480,7 @@ public class MySQLProtocol implements Protocol {
         batchList.add(dQuery);
     }
 
-    public List<QueryResult> executeBatch() throws QueryException {
+    public synchronized List<QueryResult> executeBatch() throws QueryException {
         final List<QueryResult> retList = new ArrayList<QueryResult>(batchList.size());
 
         for (final Query query : batchList) {

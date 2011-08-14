@@ -141,7 +141,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
             stopTimer();
         }
         if (getQueryResult().getResultSetType() == ResultSetType.SELECT) {
-            setResultSet(new MySQLResultSet(getQueryResult(), this, getProtocol()));
+            //setResultSet(new MySQLResultSet(getQueryResult(), this, getProtocol()));
             return true;
         } else {
             setUpdateCount(((ModifyQueryResult) getQueryResult()).getUpdateCount());

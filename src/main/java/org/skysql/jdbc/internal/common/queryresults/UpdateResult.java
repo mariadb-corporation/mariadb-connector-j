@@ -31,7 +31,7 @@ import java.util.List;
 /**
  * . User: marcuse Date: Mar 9, 2009 Time: 8:20:04 PM
  */
-public class UpdateResult implements ModifyQueryResult {
+public class UpdateResult extends ModifyQueryResult {
     private final long updateCount;
     private final short warnings;
     private final String message;
