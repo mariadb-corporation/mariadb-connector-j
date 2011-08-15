@@ -69,14 +69,16 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
     }
 
     public ResultSet executeQuery() throws SQLException {
-        executeQueryProlog();
-        try {
-            setQueryResult(getProtocol().executeQuery(dQuery, isStreaming()));
-            return new MySQLResultSet(getQueryResult(), this, getProtocol());
-        } catch (QueryException e) {
-            throw SQLExceptionMapper.get(e);
-        } finally {
-            stopTimer();
+        synchronized (getProtocol()) {
+            executeQueryProlog();
+            try {
+                setQueryResult(getProtocol().executeQuery(dQuery, isStreaming()));
+                return new MySQLResultSet(getQueryResult(), this, getProtocol());
+            } catch (QueryException e) {
+                throw SQLExceptionMapper.get(e);
+            } finally {
+                stopTimer();
+            }
         }
     }
 
@@ -92,19 +94,21 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
      *                               <code>ResultSet</code> object
      */
     public int executeUpdate() throws SQLException {
-        executeQueryProlog();
-        try {
-            setQueryResult(getProtocol().executeQuery(dQuery));
-            dQuery.clearParameters();
-        } catch (QueryException e) {
-            throw SQLExceptionMapper.get(e);
-        } finally {
-            stopTimer();
+        synchronized (getProtocol()) {
+            executeQueryProlog();
+            try {
+                setQueryResult(getProtocol().executeQuery(dQuery));
+                dQuery.clearParameters();
+            } catch (QueryException e) {
+                throw SQLExceptionMapper.get(e);
+            } finally {
+                stopTimer();
+            }
+            if (getQueryResult().getResultSetType() != ResultSetType.MODIFY) {
+                throw SQLExceptionMapper.getSQLException("The query returned a result set");
+            }
+            return (int) ((ModifyQueryResult) getQueryResult()).getUpdateCount();
         }
-        if (getQueryResult().getResultSetType() != ResultSetType.MODIFY) {
-            throw SQLExceptionMapper.getSQLException("The query returned a result set");
-        }
-        return (int) ((ModifyQueryResult) getQueryResult()).getUpdateCount();
     }
 
 
@@ -131,21 +135,23 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
     }
 
     public boolean execute() throws SQLException {
-        executeQueryProlog();
-        try {
-            setQueryResult(getProtocol().executeQuery(dQuery, isStreaming()));
-            dQuery.clearParameters();
-        } catch (QueryException e) {
-            throw SQLExceptionMapper.get(e);
-        } finally {
-            stopTimer();
-        }
-        if (getQueryResult().getResultSetType() == ResultSetType.SELECT) {
-            //setResultSet(new MySQLResultSet(getQueryResult(), this, getProtocol()));
-            return true;
-        } else {
-            setUpdateCount(((ModifyQueryResult) getQueryResult()).getUpdateCount());
-            return false;
+        synchronized (getProtocol()) {
+            executeQueryProlog();
+            try {
+                setQueryResult(getProtocol().executeQuery(dQuery, isStreaming()));
+                dQuery.clearParameters();
+            } catch (QueryException e) {
+                throw SQLExceptionMapper.get(e);
+            } finally {
+                stopTimer();
+            }
+            if (getQueryResult().getResultSetType() == ResultSetType.SELECT) {
+                //setResultSet(new MySQLResultSet(getQueryResult(), this, getProtocol()));
+                return true;
+            } else {
+                setUpdateCount(((ModifyQueryResult) getQueryResult()).getUpdateCount());
+                return false;
+            }
         }
     }
 
