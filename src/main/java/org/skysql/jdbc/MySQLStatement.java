@@ -288,14 +288,15 @@ public class MySQLStatement implements Statement {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public void close() throws SQLException {
+        isClosed = true;
+        if (queryResult != null) {
+            queryResult.close();
+        }
+        if (!isStreaming())
+            return;
         synchronized (protocol) {
-            isClosed = true;
-            if (queryResult != null) {
-                queryResult.close();
-            }
             // Skip all outstanding result sets
             while(getMoreResults(true)) {
-
             }
         }
     }

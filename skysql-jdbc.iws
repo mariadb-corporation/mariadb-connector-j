@@ -150,7 +150,7 @@
         <option name="CONDITION" value="" />
         <option name="LOG_MESSAGE" value="" />
       </breakpoint>
-      <breakpoint url="file://$PROJECT_DIR$/src/main/java/org/skysql/jdbc/MySQLStatement.java" line="902" class="org.skysql.jdbc.MySQLStatement" package="org.skysql.jdbc">
+      <breakpoint url="file://$PROJECT_DIR$/src/main/java/org/skysql/jdbc/MySQLStatement.java" line="903" class="org.skysql.jdbc.MySQLStatement" package="org.skysql.jdbc">
         <option name="ENABLED" value="true" />
         <option name="LOG_ENABLED" value="false" />
         <option name="LOG_EXPRESSION_ENABLED" value="false" />
@@ -177,19 +177,6 @@
         <option name="LOG_MESSAGE" value="" />
       </breakpoint>
       <breakpoint url="file://$PROJECT_DIR$/src/test/java/org/skysql/jdbc/CallableStatementTest.java" line="240" class="org.skysql.jdbc.CallableStatementTest" package="org.skysql.jdbc">
-        <option name="ENABLED" value="true" />
-        <option name="LOG_ENABLED" value="false" />
-        <option name="LOG_EXPRESSION_ENABLED" value="false" />
-        <option name="SUSPEND_POLICY" value="SuspendAll" />
-        <option name="COUNT_FILTER_ENABLED" value="false" />
-        <option name="COUNT_FILTER" value="0" />
-        <option name="CONDITION_ENABLED" value="false" />
-        <option name="CLASS_FILTERS_ENABLED" value="false" />
-        <option name="INSTANCE_FILTERS_ENABLED" value="false" />
-        <option name="CONDITION" value="" />
-        <option name="LOG_MESSAGE" value="" />
-      </breakpoint>
-      <breakpoint url="file://$PROJECT_DIR$/src/main/java/org/skysql/jdbc/MySQLStatement.java" line="293" class="org.skysql.jdbc.MySQLStatement" package="org.skysql.jdbc">
         <option name="ENABLED" value="true" />
         <option name="LOG_ENABLED" value="false" />
         <option name="LOG_EXPRESSION_ENABLED" value="false" />
@@ -325,37 +312,10 @@
   </component>
   <component name="FileEditorManager">
     <leaf>
-      <file leaf-file-name="CachedSelectResult.java" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/main/java/org/skysql/jdbc/internal/common/queryresults/CachedSelectResult.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state line="38" column="14" selection-start="1942" selection-end="1942" vertical-scroll-proportion="0.0">
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="InsertIdQueryResult.java" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/main/java/org/skysql/jdbc/internal/common/queryresults/InsertIdQueryResult.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state line="39" column="13" selection-start="2051" selection-end="2051" vertical-scroll-proportion="0.0">
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="StreamingSelectResult.java" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/main/java/org/skysql/jdbc/internal/common/queryresults/StreamingSelectResult.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state line="131" column="47" selection-start="5802" selection-end="5802" vertical-scroll-proportion="0.0">
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
       <file leaf-file-name="MySQLProtocol.java" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/main/java/org/skysql/jdbc/internal/mysql/MySQLProtocol.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="193" column="57" selection-start="9433" selection-end="9433" vertical-scroll-proportion="0.0">
+            <state line="750" column="30" selection-start="30612" selection-end="30612" vertical-scroll-proportion="0.0">
               <folding />
             </state>
           </provider>
@@ -370,19 +330,64 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="DriverTest.java" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/test/java/org/skysql/jdbc/DriverTest.java">
+      <file leaf-file-name="MySQLStatement.java" pinned="false" current="true" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/src/main/java/org/skysql/jdbc/MySQLStatement.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="609" column="58" selection-start="26730" selection-end="26730" vertical-scroll-proportion="0.0">
+            <state line="73" column="24" selection-start="2928" selection-end="2928" vertical-scroll-proportion="0.3325359">
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="BaseTest.java" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/test/java/org/skysql/jdbc/BaseTest.java">
+      <file leaf-file-name="MySQLPreparedStatement.java" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/main/java/org/skysql/jdbc/MySQLPreparedStatement.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="12" column="13" selection-start="213" selection-end="213" vertical-scroll-proportion="0.0">
+            <state line="105" column="26" selection-start="5215" selection-end="5215" vertical-scroll-proportion="0.0">
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="CallableStatementTest.java" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/test/java/org/skysql/jdbc/CallableStatementTest.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="10" column="17" selection-start="209" selection-end="209" vertical-scroll-proportion="0.0">
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="DriverTest.java" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/test/java/org/skysql/jdbc/DriverTest.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="1276" column="7" selection-start="53774" selection-end="53774" vertical-scroll-proportion="0.0">
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="MultiTest.java" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/test/java/org/skysql/jdbc/MultiTest.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="22" column="120" selection-start="575" selection-end="575" vertical-scroll-proportion="0.0">
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="Driver.java" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/main/java/org/skysql/jdbc/Driver.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="96" column="0" selection-start="4018" selection-end="4018" vertical-scroll-proportion="0.0">
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="DriverManager.java" pinned="false" current="false" current-in-tab="false">
+        <entry file="jar://C:/Program Files/Java/jdk1.6.0_24/src.zip!/java/sql/DriverManager.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="581" column="0" selection-start="19888" selection-end="19888" vertical-scroll-proportion="0.0">
               <folding />
             </state>
           </provider>
@@ -391,25 +396,7 @@
       <file leaf-file-name="DateTest.java" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/test/java/org/skysql/jdbc/DateTest.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="49" column="7" selection-start="1951" selection-end="1951" vertical-scroll-proportion="0.0">
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="Utils.java" pinned="false" current="true" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/src/main/java/org/skysql/jdbc/internal/common/Utils.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state line="277" column="25" selection-start="10121" selection-end="10121" vertical-scroll-proportion="0.020334927">
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="WriteBuffer.java" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/main/java/org/skysql/jdbc/internal/common/packet/buffer/WriteBuffer.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state line="98" column="18" selection-start="3624" selection-end="3624" vertical-scroll-proportion="0.0">
+            <state line="82" column="23" selection-start="3123" selection-end="3123" vertical-scroll-proportion="0.0">
               <folding />
             </state>
           </provider>
@@ -425,12 +412,8 @@
   <component name="IdeDocumentHistory">
     <option name="changedFiles">
       <list>
-        <option value="$PROJECT_DIR$/src/main/java/org/skysql/jdbc/internal/common/Protocol.java" />
-        <option value="$PROJECT_DIR$/src/test/java/org/skysql/jdbc/CallableStatementTest.java" />
         <option value="$PROJECT_DIR$/src/main/java/org/skysql/jdbc/MySQLConnection.java" />
         <option value="$PROJECT_DIR$/src/main/java/org/skysql/jdbc/internal/common/packet/ResultSetPacket.java" />
-        <option value="$PROJECT_DIR$/src/test/java/org/skysql/jdbc/MultiTest.java" />
-        <option value="$PROJECT_DIR$/src/main/java/org/skysql/jdbc/MySQLPreparedStatement.java" />
         <option value="$PROJECT_DIR$/src/main/java/org/skysql/jdbc/internal/common/queryresults/QueryResult.java" />
         <option value="$PROJECT_DIR$/src/main/java/org/skysql/jdbc/internal/common/queryresults/ModifyQueryResult.java" />
         <option value="$PROJECT_DIR$/src/main/java/org/skysql/jdbc/internal/common/queryresults/UpdateResult.java" />
@@ -439,8 +422,12 @@
         <option value="$PROJECT_DIR$/src/main/java/org/skysql/jdbc/internal/common/queryresults/StreamingSelectResult.java" />
         <option value="$PROJECT_DIR$/src/main/java/org/skysql/jdbc/MySQLResultSet.java" />
         <option value="$PROJECT_DIR$/src/main/java/org/skysql/jdbc/internal/mysql/MySQLProtocol.java" />
-        <option value="$PROJECT_DIR$/src/main/java/org/skysql/jdbc/MySQLStatement.java" />
         <option value="$PROJECT_DIR$/src/main/java/org/skysql/jdbc/internal/mysql/packet/commands/MySQLClientAuthPacket.java" />
+        <option value="$PROJECT_DIR$/src/main/java/org/skysql/jdbc/MySQLPreparedStatement.java" />
+        <option value="$PROJECT_DIR$/src/test/java/org/skysql/jdbc/DateTest.java" />
+        <option value="$PROJECT_DIR$/src/test/java/org/skysql/jdbc/DriverTest.java" />
+        <option value="$PROJECT_DIR$/src/test/java/org/skysql/jdbc/MultiTest.java" />
+        <option value="$PROJECT_DIR$/src/main/java/org/skysql/jdbc/MySQLStatement.java" />
       </list>
     </option>
   </component>
@@ -491,6 +478,9 @@
       <sortByType />
     </navigator>
     <panes>
+      <pane id="Favorites" />
+      <pane id="Scope" />
+      <pane id="PackagesPane" />
       <pane id="ProjectPane">
         <subPane>
           <PATH>
@@ -579,231 +569,8 @@
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
           </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="skysql-jdbc" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="djdbc-original" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="src" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="main" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="java" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="jdbc" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="internal" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="skysql-jdbc" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="djdbc-original" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="src" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="main" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="java" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="jdbc" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="internal" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="mysql" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="skysql-jdbc" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="djdbc-original" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="src" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="main" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="java" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="jdbc" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="internal" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="common" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="skysql-jdbc" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="djdbc-original" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="src" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="main" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="java" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="jdbc" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="internal" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="common" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="packet" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="skysql-jdbc" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="djdbc-original" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="src" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="main" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="java" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="jdbc" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="internal" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="common" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="packet" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="commands" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="skysql-jdbc" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="djdbc-original" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="src" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="main" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="java" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="jdbc" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="internal" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="common" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="packet" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="buffer" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
         </subPane>
       </pane>
-      <pane id="Favorites" />
-      <pane id="Scope" />
-      <pane id="PackagesPane" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -822,33 +589,7 @@
       <recent name="org.skysql.jdbc.internal.common.queryresults" />
     </key>
   </component>
-  <component name="RunManager" selected="JUnit.DateTest.dateTest2">
-    <configuration default="false" name="MultiTest.basicTest" type="JUnit" factoryName="JUnit" temporary="true">
-      <module name="skysql-jdbc" />
-      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="false" />
-      <option name="ALTERNATIVE_JRE_PATH" />
-      <option name="PACKAGE_NAME" value="org.skysql.jdbc" />
-      <option name="MAIN_CLASS_NAME" value="org.skysql.jdbc.MultiTest" />
-      <option name="METHOD_NAME" value="basicTest" />
-      <option name="TEST_OBJECT" value="method" />
-      <option name="VM_PARAMETERS" />
-      <option name="PARAMETERS" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-      <option name="ENV_VARIABLES" />
-      <option name="PASS_PARENT_ENVS" value="true" />
-      <option name="TEST_SEARCH_SCOPE">
-        <value defaultName="moduleWithDependencies" />
-      </option>
-      <envs />
-      <patterns />
-      <RunnerSettings RunnerId="Debug">
-        <option name="DEBUG_PORT" value="54665" />
-        <option name="TRANSPORT" value="0" />
-        <option name="LOCAL" value="true" />
-      </RunnerSettings>
-      <ConfigurationWrapper RunnerId="Debug" />
-      <method />
-    </configuration>
+  <component name="RunManager" selected="JUnit.org.skysql.jdbc in skysql-jdbc">
     <configuration default="false" name="MultiTest" type="JUnit" factoryName="JUnit" temporary="true">
       <module name="skysql-jdbc" />
       <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="false" />
@@ -949,6 +690,28 @@
       <ConfigurationWrapper RunnerId="Run" />
       <method />
     </configuration>
+    <configuration default="false" name="org.skysql.jdbc in skysql-jdbc" type="JUnit" factoryName="JUnit" temporary="true">
+      <module name="skysql-jdbc" />
+      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="false" />
+      <option name="ALTERNATIVE_JRE_PATH" />
+      <option name="PACKAGE_NAME" value="org.skysql.jdbc" />
+      <option name="MAIN_CLASS_NAME" />
+      <option name="METHOD_NAME" />
+      <option name="TEST_OBJECT" value="package" />
+      <option name="VM_PARAMETERS" />
+      <option name="PARAMETERS" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="ENV_VARIABLES" />
+      <option name="PASS_PARENT_ENVS" value="true" />
+      <option name="TEST_SEARCH_SCOPE">
+        <value defaultName="moduleWithDependencies" />
+      </option>
+      <envs />
+      <patterns />
+      <RunnerSettings RunnerId="Run" />
+      <ConfigurationWrapper RunnerId="Run" />
+      <method />
+    </configuration>
     <configuration default="true" type="Remote" factoryName="Remote">
       <option name="USE_SOCKET_TRANSPORT" value="true" />
       <option name="SERVER_MODE" value="false" />
@@ -1024,11 +787,11 @@
       </method>
     </configuration>
     <list size="5">
-      <item index="0" class="java.lang.String" itemvalue="JUnit.MultiTest.basicTest" />
-      <item index="1" class="java.lang.String" itemvalue="JUnit.MultiTest" />
-      <item index="2" class="java.lang.String" itemvalue="JUnit.MultiTest.updateTest2" />
-      <item index="3" class="java.lang.String" itemvalue="JUnit.CallableStatementTest.testResultSet" />
-      <item index="4" class="java.lang.String" itemvalue="JUnit.DateTest.dateTest2" />
+      <item index="0" class="java.lang.String" itemvalue="JUnit.MultiTest" />
+      <item index="1" class="java.lang.String" itemvalue="JUnit.MultiTest.updateTest2" />
+      <item index="2" class="java.lang.String" itemvalue="JUnit.CallableStatementTest.testResultSet" />
+      <item index="3" class="java.lang.String" itemvalue="JUnit.DateTest.dateTest2" />
+      <item index="4" class="java.lang.String" itemvalue="JUnit.org.skysql.jdbc in skysql-jdbc" />
     </list>
     <configuration name="&lt;template&gt;" type="WebApp" default="true" selected="false">
       <Host>localhost</Host>
@@ -1083,7 +846,7 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1936" height="1056" extended-state="1" />
-    <editor active="false" />
+    <editor active="true" />
     <layout>
       <window_info id="Changes" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Palette" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
@@ -1091,15 +854,15 @@
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.26096258" sideWeight="0.6002227" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="1" side_tool="true" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
-      <window_info id="Maven Projects" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.16737968" sideWeight="0.6013363" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Maven Projects" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.17165776" sideWeight="0.6703786" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Dependency Viewer" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.32994652" sideWeight="0.6013363" order="0" side_tool="false" content_ui="tabs" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.3315508" sideWeight="0.6703786" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.39761648" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.31959912" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
-      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.32962137" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Find" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.32962137" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32962137" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.21176471" sideWeight="0.6726058" order="3" side_tool="false" content_ui="combo" />
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
@@ -1152,68 +915,9 @@
     <option name="FILTER_TARGETS" value="false" />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/src/main/java/org/skysql/jdbc/internal/common/queryresults/QueryResult.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="50" column="20" selection-start="2172" selection-end="2172" vertical-scroll-proportion="0.0" />
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/org/skysql/jdbc/internal/common/queryresults/ModifyQueryResult.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="25" column="26" selection-start="1612" selection-end="1612" vertical-scroll-proportion="0.0" />
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/org/skysql/jdbc/internal/common/queryresults/UpdateResult.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="33" column="56" selection-start="1811" selection-end="1811" vertical-scroll-proportion="0.0" />
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/org/skysql/jdbc/MySQLStatement.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="170" column="19" selection-start="5787" selection-end="5787" vertical-scroll-proportion="0.0" />
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/org/skysql/jdbc/MySQLResultSet.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="2446" column="43" selection-start="143525" selection-end="143525" vertical-scroll-proportion="0.0" />
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/org/skysql/jdbc/internal/common/queryresults/SelectQueryResult.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="38" column="30" selection-start="2000" selection-end="2000" vertical-scroll-proportion="0.0" />
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/org/skysql/jdbc/internal/common/queryresults/CachedSelectResult.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="38" column="14" selection-start="1942" selection-end="1942" vertical-scroll-proportion="0.0" />
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/org/skysql/jdbc/internal/common/queryresults/InsertIdQueryResult.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="39" column="13" selection-start="2051" selection-end="2051" vertical-scroll-proportion="0.0" />
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/main/java/org/skysql/jdbc/internal/common/queryresults/StreamingSelectResult.java">
       <provider selected="true" editor-type-id="text-editor">
         <state line="131" column="47" selection-start="5802" selection-end="5802" vertical-scroll-proportion="0.0" />
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/org/skysql/jdbc/internal/mysql/MySQLProtocol.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="193" column="57" selection-start="9433" selection-end="9433" vertical-scroll-proportion="0.0">
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/org/skysql/jdbc/internal/mysql/packet/commands/MySQLClientAuthPacket.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="74" column="45" selection-start="4025" selection-end="4025" vertical-scroll-proportion="0.0" />
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/test/java/org/skysql/jdbc/DriverTest.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="609" column="58" selection-start="26730" selection-end="26730" vertical-scroll-proportion="0.0">
-          <folding />
-        </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/test/java/org/skysql/jdbc/BaseTest.java">
@@ -1221,21 +925,76 @@
         <state line="12" column="13" selection-start="213" selection-end="213" vertical-scroll-proportion="0.0" />
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/test/java/org/skysql/jdbc/DateTest.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="49" column="7" selection-start="1951" selection-end="1951" vertical-scroll-proportion="0.0" />
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/main/java/org/skysql/jdbc/internal/common/Utils.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="277" column="25" selection-start="10121" selection-end="10121" vertical-scroll-proportion="0.020334927">
-          <folding />
-        </state>
+        <state line="277" column="25" selection-start="10121" selection-end="10121" vertical-scroll-proportion="0.0" />
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/main/java/org/skysql/jdbc/internal/common/packet/buffer/WriteBuffer.java">
       <provider selected="true" editor-type-id="text-editor">
         <state line="98" column="18" selection-start="3624" selection-end="3624" vertical-scroll-proportion="0.0" />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/org/skysql/jdbc/internal/common/packet/SyncPacketFetcher.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="40" column="29" selection-start="2011" selection-end="2011" vertical-scroll-proportion="0.0" />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/org/skysql/jdbc/internal/common/packet/RawPacket.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="51" column="22" selection-start="2523" selection-end="2523" vertical-scroll-proportion="0.0" />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/org/skysql/jdbc/internal/mysql/MySQLProtocol.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="750" column="30" selection-start="30612" selection-end="30612" vertical-scroll-proportion="0.0" />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/org/skysql/jdbc/internal/mysql/packet/commands/MySQLClientAuthPacket.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="74" column="45" selection-start="4025" selection-end="4025" vertical-scroll-proportion="0.0" />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/org/skysql/jdbc/MySQLPreparedStatement.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="105" column="26" selection-start="5215" selection-end="5215" vertical-scroll-proportion="0.0" />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/test/java/org/skysql/jdbc/CallableStatementTest.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="10" column="17" selection-start="209" selection-end="209" vertical-scroll-proportion="0.0" />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/test/java/org/skysql/jdbc/DriverTest.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="1276" column="7" selection-start="53774" selection-end="53774" vertical-scroll-proportion="0.0" />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/test/java/org/skysql/jdbc/MultiTest.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="22" column="120" selection-start="575" selection-end="575" vertical-scroll-proportion="0.0" />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/org/skysql/jdbc/Driver.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="96" column="0" selection-start="4018" selection-end="4018" vertical-scroll-proportion="0.0" />
+      </provider>
+    </entry>
+    <entry file="jar://C:/Program Files/Java/jdk1.6.0_24/src.zip!/java/sql/DriverManager.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="581" column="0" selection-start="19888" selection-end="19888" vertical-scroll-proportion="0.0" />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/test/java/org/skysql/jdbc/DateTest.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="82" column="23" selection-start="3123" selection-end="3123" vertical-scroll-proportion="0.0" />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/org/skysql/jdbc/MySQLStatement.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="73" column="24" selection-start="2928" selection-end="2928" vertical-scroll-proportion="0.3325359">
+          <folding />
+        </state>
       </provider>
     </entry>
   </component>
