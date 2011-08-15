@@ -85,7 +85,6 @@ public class DateTest extends BaseTest{
 
     @Test
     public void yearTest() throws SQLException {
-        Connection connection = DriverManager.getConnection("jdbc:mysql:thin://localhost/test");
         connection.createStatement().execute("drop table if exists yeartest");
         connection.createStatement().execute("create table yeartest (y1 year, y2 year(2))");
         connection.createStatement().execute("insert into yeartest values (null, null), (1901, 70), (0, 0), (2155, 69)");
@@ -101,7 +100,6 @@ public class DateTest extends BaseTest{
     }
     @Test
     public void timeTest() throws SQLException {
-        Connection connection = DriverManager.getConnection("jdbc:mysql:thin://localhost:3306/test");
         connection.createStatement().execute("drop table if exists timetest");
         connection.createStatement().execute("create table timetest (t time)");
         connection.createStatement().execute("insert into timetest values (null), ('-838:59:59'), ('00:00:00'), ('838:59:59')");

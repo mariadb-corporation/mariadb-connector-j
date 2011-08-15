@@ -20,7 +20,7 @@ public class MultiTest {
 
     @BeforeClass
     public static void before() throws SQLException {
-        connection = DriverManager.getConnection("jdbc:mysql:thin://localhost:3306/test?allowMultiQueries=true");
+        connection = DriverManager.getConnection("jdbc:mysql:thin://localhost:3306/test?allowMultiQueries=true&user=root");
         Statement st = connection.createStatement();
         st.executeUpdate("drop table if exists t1");
         st.executeUpdate("drop table if exists t2");

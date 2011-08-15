@@ -1270,11 +1270,11 @@ public class DriverTest extends BaseTest{
     @Test
     public void testConnectWithDB() throws SQLException {
 
-        Connection conn = DriverManager.getConnection("jdbc:mysql:thin://localhost:3306?user=root");
+        Connection conn = connection;
         try {
             conn.createStatement().executeUpdate("drop database test_testdrop");
         } catch (Exception e) {}
-        conn = DriverManager.getConnection("jdbc:mysql:thin://localhost:3306/test_testdrop?createDB=true");
+        conn = DriverManager.getConnection("jdbc:mysql:thin://localhost:3306/test_testdrop?createDB=true&user=root");
         DatabaseMetaData dbmd = conn.getMetaData();
         ResultSet rs = dbmd.getSchemas();
         boolean foundDb = false;
@@ -1289,7 +1289,7 @@ public class DriverTest extends BaseTest{
      @Test
     public void testError() throws SQLException {
 
-        Connection conn = DriverManager.getConnection("jdbc:mysql:thin://localhost:3306/");
+        Connection conn = connection;
         try {
             char arr[] = new char[16*1024*1024-1];
             Arrays.fill(arr,'a');
