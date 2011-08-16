@@ -19,7 +19,7 @@ import static org.junit.Assert.assertFalse;
  * Time: 1:29:33 PM
  * To change this template use File | Settings | File Templates.
  */
-public class MySQLDriverTest extends DriverTest {
+public class MySQLDriverTest extends BaseTest {
     
     public MySQLDriverTest() throws SQLException {
         super();
