@@ -66,7 +66,9 @@ public  class MySQLBlob implements Blob {
      *
      * @param bytes the content for the blob.
      */
-    public MySQLBlob(final byte[] bytes) {
+    public MySQLBlob(byte[] bytes) {
+        if (bytes == null)
+           throw new AssertionError("byte array is null");
         this.blobContent = bytes;
         this.actualSize = bytes.length;
     }

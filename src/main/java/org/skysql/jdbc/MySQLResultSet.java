@@ -1903,7 +1903,10 @@ public class MySQLResultSet implements ResultSet {
      * @since 1.2
      */
     public Blob getBlob(final int columnIndex) throws SQLException {
-        return new MySQLBlob(getValueObject(columnIndex).getBytes());
+        byte[] bytes = getValueObject(columnIndex).getBytes();
+        if (bytes == null)
+            return null;
+        return new MySQLBlob(bytes);
     }
 
     /**
@@ -1919,7 +1922,10 @@ public class MySQLResultSet implements ResultSet {
      * @since 1.2
      */
     public Clob getClob(final int columnIndex) throws SQLException {
-        throw SQLExceptionMapper.getFeatureNotSupportedException("CLOBs are not supported");
+        byte[] bytes = getValueObject(columnIndex).getBytes();
+        if (bytes == null)
+            return null;
+        return new MySQLClob(bytes);
     }
 
     /**
@@ -1995,7 +2001,10 @@ public class MySQLResultSet implements ResultSet {
      * @since 1.2
      */
     public Blob getBlob(final String columnLabel) throws SQLException {
-        return new MySQLBlob(getValueObject(columnLabel).getBytes());
+        byte[] bytes = getValueObject(columnLabel).getBytes();
+        if (bytes == null)
+            return null;
+        return new MySQLBlob(bytes);
     }
 
     /**
@@ -2012,7 +2021,10 @@ public class MySQLResultSet implements ResultSet {
      * @since 1.2
      */
     public Clob getClob(final String columnLabel) throws SQLException {
-        return new MySQLClob(getValueObject(columnLabel).getBytes());
+         byte[] bytes = getValueObject(columnLabel).getBytes();
+        if (bytes == null)
+            return null;
+        return new MySQLClob(bytes);
     }
 
     /**
