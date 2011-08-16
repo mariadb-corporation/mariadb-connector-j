@@ -191,6 +191,8 @@ public class MySQLParameterizedQuery implements ParameterizedQuery {
         return paramCount;
     }
 
-
+    public String toString() {
+        return query;
+    }
 
 }

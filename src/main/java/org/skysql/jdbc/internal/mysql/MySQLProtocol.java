@@ -154,7 +154,8 @@ public class MySQLProtocol implements Protocol {
                     MySQLServerCapabilities.TRANSACTIONS,
                     MySQLServerCapabilities.SECURE_CONNECTION,
                     MySQLServerCapabilities.LOCAL_FILES,
-                    MySQLServerCapabilities.MULTI_RESULTS);
+                    MySQLServerCapabilities.MULTI_RESULTS,
+                    MySQLServerCapabilities.FOUND_ROWS);
             if(info.getProperty("allowMultiQueries") != null) {
                 capabilities.add(MySQLServerCapabilities.MULTI_STATEMENTS);
             }

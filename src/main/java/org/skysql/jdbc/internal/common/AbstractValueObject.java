@@ -66,21 +66,33 @@ public abstract class AbstractValueObject implements ValueObject {
         if (rawBytes == null) {
             return 0;
         }
-        return Long.valueOf(getString());
+        try {
+            return Long.valueOf(getString());
+        } catch(NumberFormatException nfe) {
+            return (long) Double.parseDouble(getString());
+        }
     }
 
     public int getInt() {
         if (rawBytes == null) {
             return 0;
         }
-        return Integer.valueOf(getString());
+        try {
+            return Integer.valueOf(getString());
+        } catch(NumberFormatException nfe) {
+            return (int) Double.parseDouble(getString());
+        }
     }
 
     public short getShort() {
         if (rawBytes == null) {
             return 0;
         }
-        return Short.valueOf(getString());
+        try {
+            return Short.valueOf(getString());
+        } catch(NumberFormatException nfe) {
+           return (short) Double.parseDouble(getString());
+        }
     }
 
     public byte getByte() {

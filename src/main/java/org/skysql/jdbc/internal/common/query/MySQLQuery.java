@@ -88,5 +88,9 @@ public class MySQLQuery implements Query {
 
     }
 
+    public String toString() {
+        return query;
+    }
+
 
 }

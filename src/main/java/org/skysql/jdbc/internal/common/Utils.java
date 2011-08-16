@@ -507,7 +507,14 @@ public class Utils {
         else if (escaped.startsWith("{?")) {
            // likely ?=call(...)
            return nativeSQL(escaped.substring(1, endIndex));
-
+        } else if (escaped.startsWith("{ ")) {
+            // Spaces before keyword, this is not JDBC compliant, however some it works in some drivers,
+            // so we support it, too
+            for(int i = 2; i < escaped.length(); i++) {
+                if (!Character.isWhitespace(escaped.charAt(i))) {
+                   return resolveEscapes("{" + escaped.substring(i));
+                }
+            }
         }
         throw new SQLException("unknown escape sequence " + escaped);
     }
