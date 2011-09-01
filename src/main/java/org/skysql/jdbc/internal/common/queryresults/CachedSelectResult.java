@@ -86,6 +86,12 @@ public  class CachedSelectResult extends SelectQueryResult {
      * @return
      */
     public ValueObject getValueObject(final int i) throws NoSuchColumnException {
+        if (rowPointer < 0) {
+            throw new NoSuchColumnException("Current position is before the first row");
+        }
+        if (rowPointer >= resultSet.size()) {
+            throw new NoSuchColumnException("Current position is after the last row");
+        }
         if (i < 0 || i > resultSet.get(rowPointer).size()) {
             throw new NoSuchColumnException("No such column: " + i);
         }
@@ -109,7 +115,9 @@ public  class CachedSelectResult extends SelectQueryResult {
         return ResultSetType.SELECT;
     }
     public boolean isBeforeFirst() {
-       return getRowPointer() == -1;
+       if (resultSet.size() == 0)
+           return false;
+       return getRowPointer() == -1 ;
     }
     public boolean isAfterLast() {
        return rowPointer >= resultSet.size();

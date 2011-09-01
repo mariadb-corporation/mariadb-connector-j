@@ -824,9 +824,13 @@ public class MySQLResultSet implements ResultSet {
             return false;
         }
         final SelectQueryResult sqr = (SelectQueryResult) queryResult;
+
+        if (sqr.isBeforeFirst())
+            return false;
+
         if (sqr.getRows() >= 0) {
             sqr.moveRowPointerTo(sqr.getRowPointer() - 1);
-            return true;
+            return !sqr.isBeforeFirst();
         }
         return false;
     }
