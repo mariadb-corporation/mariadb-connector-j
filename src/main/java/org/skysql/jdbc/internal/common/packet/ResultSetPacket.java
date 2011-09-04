@@ -39,14 +39,13 @@ public class ResultSetPacket extends ResultPacket {
         final Reader reader = new Reader(rawPacket);
         
         fieldCount = reader.getLengthEncodedBinary();
-        if (fieldCount != -1) {
-            if (reader.getRemainingSize() != 0) {
-                throw new IOException("invalid packet contents ,expected result set packet, actual packet hexdump = " +
-                    MySQLProtocol.hexdump(rawPacket.getByteBuffer(),0));
-            }
+        if (fieldCount == -1) {
+            // Should never get there, it is LocalInfilePacket, not ResultSetPacket
+            throw new AssertionError("field count is -1 in ResultSetPacket.");
         }
-        else {
-            System.out.println("zhuj");
+        if (reader.getRemainingSize() != 0) {
+              throw new IOException("invalid packet contents ,expected result set packet, actual packet hexdump = " +
+                    MySQLProtocol.hexdump(rawPacket.getByteBuffer(),0));
         }
     }
 

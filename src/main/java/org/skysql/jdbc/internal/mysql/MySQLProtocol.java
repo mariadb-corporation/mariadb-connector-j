@@ -606,7 +606,7 @@ public class MySQLProtocol implements Protocol {
     }
 
     public static String hexdump(ByteBuffer bb, int offset) {
-        byte[] b = new byte[bb.capacity()];
+        byte[] b = new byte[bb.remaining()];
         bb.mark();
         bb.get(b);
         bb.reset();
