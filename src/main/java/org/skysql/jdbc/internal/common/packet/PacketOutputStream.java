@@ -1,5 +1,6 @@
 package org.skysql.jdbc.internal.common.packet;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 
 
@@ -41,6 +42,40 @@ public class PacketOutputStream extends OutputStream{
         position = HEADER_LENGTH;
     }
 
+    public int getSeqNo() {
+        return seqNo;
+    }
+
+    private void writeEmptyPacket(int seqNo) throws IOException {
+        byteBuffer[0] = 0;
+        byteBuffer[1] = 0;
+        byteBuffer[2] = 0;
+        byteBuffer[SEQNO_OFFSET] = (byte)seqNo;
+        baseStream.write(byteBuffer, 0, 4);
+        position = HEADER_LENGTH;
+    }
+
+    /* Used by LOAD DATA INFILE. End of data is indicated by packet of length 0. */
+    public void sendFile(InputStream is, int seq) throws IOException{
+        int lastSeq;
+        byte[] buffer = new byte[8192];
+        int len;
+        while((len = is.read(buffer)) > 0) {
+          startPacket(seq++);
+          write(buffer, 0, len);
+          finishPacket();
+        }
+        writeEmptyPacket(seq);
+
+        /*lastSeq  = seqNo;
+        boolean doWriteEmptyPacket = (position != HEADER_LENGTH);
+        finishPacket();
+
+        if (doWriteEmptyPacket) {
+            writeEmptyPacket(lastSeq+1);
+        }
+        */
+    }
 
     public void finishPacket() throws IOException{
         if (seqNo == -1) {

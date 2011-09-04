@@ -28,6 +28,7 @@ import org.skysql.jdbc.internal.SQLExceptionMapper;
 import org.skysql.jdbc.internal.common.*;
 import org.skysql.jdbc.internal.common.packet.RawPacket;
 import org.skysql.jdbc.internal.common.query.QueryFactory;
+import org.skysql.jdbc.internal.mysql.MySQLProtocol;
 
 import java.sql.*;
 import java.util.List;
@@ -78,13 +79,52 @@ public final class MySQLConnection
      * @param protocol     the protocol to use.
      * @param queryFactory the query factory to use.
      */
-    public MySQLConnection(final Protocol protocol, final QueryFactory queryFactory) {
+    private MySQLConnection( Protocol protocol, QueryFactory queryFactory) {
         this.protocol = protocol;
         clientInfoProperties = new Properties();
         this.queryFactory = queryFactory;
         activeStatement = null;
     }
 
+    public static MySQLConnection newConnection(Protocol protocol, QueryFactory queryFactory) throws SQLException {
+        MySQLConnection connection = new MySQLConnection(protocol, queryFactory);
+
+        if (!(protocol instanceof MySQLProtocol))
+            return connection;
+
+        if (((MySQLProtocol)protocol).getInfo().get("fastConnect") != null) {
+            return connection;
+        }
+
+        // Cleanse sql_mode (remove NO_BACKSLASH_ESCAPES if set)
+        Statement st = null;
+        try {
+            st = connection.createStatement();
+            ResultSet rs = st.executeQuery("select @@sql_mode");
+            rs.next();
+            String originalSqlMode = rs.getString(1);
+            if (originalSqlMode.contains("NO_BACKSLASH_ESCAPES")) {
+                String[] options = originalSqlMode.split(",");
+                StringBuffer sb = new StringBuffer();
+                for(int i=0; i < options.length; i++) {
+                    if(!options[i].equals("NO_BACKSLASH_ESCAPES")){
+                        sb.append(options[i]);
+                        if (i != options.length -1)
+                            sb.append(",");
+                    }
+                }
+                String newSqlMode = sb.toString();
+                int len =  newSqlMode.length();
+                if (len > 0 && newSqlMode.charAt(len - 1) == ',')
+                    newSqlMode = newSqlMode.substring(0,len - 1);
+                st.execute("set @@sql_mode='"+newSqlMode + "'");
+            }
+        } finally {
+            if (st != null)
+                st.close();
+        }
+        return connection;
+    }
 
     /**
      * creates a new statement.

@@ -174,7 +174,7 @@ public abstract class CommonDatabaseMetaData implements DatabaseMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public String getDriverName() throws SQLException {
-        return "Drizzle-JDBC"; // TODO: get from constants file
+        return "SkySQL-JDBC"; // TODO: get from constants file
     }
 
     /**
@@ -184,7 +184,7 @@ public abstract class CommonDatabaseMetaData implements DatabaseMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public String getDriverVersion() throws SQLException {
-        return "0.1"; // TODO: get from constants file
+        return "1.2"; // TODO: get from constants file
     }
 
     /**
@@ -1576,9 +1576,9 @@ public abstract class CommonDatabaseMetaData implements DatabaseMetaData {
      */
     protected String getSchemaPattern(String schemaPattern) {
         if(schemaPattern != null) {
-            return " AND table_schema LIKE \"" + schemaPattern + "\"";
+            return " AND table_schema LIKE '" + schemaPattern + "'";
         } else {
-            return " AND table_schema LIKE IFNULL(database(), \"%\")";
+            return " AND table_schema LIKE IFNULL(database(), '%')";
         }
     }
 

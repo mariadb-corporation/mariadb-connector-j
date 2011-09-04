@@ -34,6 +34,7 @@ public class ResultPacketFactory {
     private final static byte ERROR = (byte) 0xff;
     private final static byte OK = (byte) 0x00;
     private final static byte EOF = (byte) 0xfe;
+    private final static byte LOCALINFILE = (byte) 0xfb;
 
     private ResultPacketFactory() {
 
@@ -50,6 +51,8 @@ public class ResultPacketFactory {
                 return new OKPacket(rawPacket);
             case EOF:
                 return new EOFPacket(rawPacket);
+            case LOCALINFILE:
+                return new LocalInfilePacket(rawPacket);
             default:
                 return new ResultSetPacket(rawPacket);
         }

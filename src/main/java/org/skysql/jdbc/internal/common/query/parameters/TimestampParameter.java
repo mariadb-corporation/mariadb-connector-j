@@ -26,7 +26,6 @@ package org.skysql.jdbc.internal.common.query.parameters;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 
@@ -36,32 +35,24 @@ import java.util.Date;
  * User: marcuse Date: Feb 19, 2009 Time: 8:50:52 PM
  */
 public class TimestampParameter implements ParameterHolder {
-    private final byte[] byteRepresentation;
+    Date date;
+    Calendar calendar;
 
     /**
      * Represents a timestamp, constructed with time in millis since epoch
      *
      * @param timestamp the time in millis since epoch
      */
-    public TimestampParameter(final long timestamp) {
-        final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        byteRepresentation = String.valueOf("\"" + sdf.format(new Date(timestamp)) + "\"").getBytes();
+    public TimestampParameter(long timestamp) {
+        date = new Date(timestamp);
     }
 
-    public TimestampParameter(final long timestamp, final Calendar cal) {
-        final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        sdf.setCalendar(cal);
-        byteRepresentation = String.valueOf("\"" + sdf.format(new Date(timestamp)) + "\"").getBytes();
-
+    public TimestampParameter(long timestamp, Calendar cal) {
+        date = new Date(timestamp);
+        calendar = cal;
     }
 
-    public int writeTo(final OutputStream os, int offset, int maxWriteSize) throws IOException {
-        int bytesToWrite = Math.min(byteRepresentation.length - offset, maxWriteSize);
-        os.write(byteRepresentation, offset, bytesToWrite);
-        return bytesToWrite;
-    }
-
-    public long length() {
-        return byteRepresentation.length;
+    public void writeTo(OutputStream os) throws IOException {
+        ParameterWriter.writeTimestamp(os, date, calendar);
     }
 }

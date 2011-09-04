@@ -201,12 +201,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
      * @since 1.2
      */
     public void setCharacterStream(final int parameterIndex, final Reader reader, final int length) throws SQLException {
-        try {
-            setParameter(parameterIndex, new ReaderParameter(reader, length));
-        } catch (IOException e) {
-            throw SQLExceptionMapper.getSQLException("Could not read stream: " + e.getMessage(), e);
-
-        }
+        setParameter(parameterIndex, new ReaderParameter(reader, length));
     }
 
     /**
@@ -244,11 +239,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
             setNull(parameterIndex, Types.BLOB);
             return;
         }
-        try {
-            setParameter(parameterIndex, new StreamParameter(x.getBinaryStream(), x.length()));
-        } catch (IOException e) {
-            throw SQLExceptionMapper.getSQLException("Could not read stream", e);
-        }
+        setParameter(parameterIndex, new StreamParameter(x.getBinaryStream(), x.length()));
     }
 
     /**
@@ -269,11 +260,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
             setNull(parameterIndex, Types.CLOB);
             return;
         }
-        try {
-            setParameter(parameterIndex, new StreamParameter(x.getAsciiStream(), ((MySQLBlob)x).length()));
-        } catch (IOException e) {
-            throw SQLExceptionMapper.getSQLException("Could not read stream", e);
-        }
+        setParameter(parameterIndex, new StreamParameter(x.getAsciiStream(), ((MySQLBlob)x).length()));
     }
 
     /**
@@ -590,12 +577,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
             setNull(parameterIndex, Types.BLOB);
             return;
         }
-
-        try {
-            setParameter(parameterIndex, new StreamParameter(inputStream, length));
-        } catch (IOException e) {
-            throw SQLExceptionMapper.getSQLException("Could not read stream", e);
-        }
+        setParameter(parameterIndex, new StreamParameter(inputStream, length));
     }
 
     /**
@@ -747,12 +729,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
             setNull(parameterIndex, Types.VARCHAR);
             return;
         }
-
-        try {
-            setParameter(parameterIndex, new StreamParameter(x, length));
-        } catch (IOException e) {
-            throw SQLExceptionMapper.getSQLException("Could not read stream", e);
-        }
+        setParameter(parameterIndex, new StreamParameter(x, length));
     }
 
     /**
@@ -777,12 +754,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
             setNull(parameterIndex, Types.BLOB);
             return;
         }
-        try {
-            setParameter(parameterIndex, new StreamParameter(x, length));
-
-        } catch (IOException e) {
-            throw SQLExceptionMapper.getSQLException("Could not read stream", e);
-        }
+        setParameter(parameterIndex, new StreamParameter(x, length));
     }
 
     /**
@@ -808,12 +780,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
             setNull(parameterIndex, Types.BLOB);
             return;
         }
-
-        try {
-            setParameter(parameterIndex, new ReaderParameter(reader, length));
-        } catch (IOException e) {
-            throw SQLExceptionMapper.getSQLException("Could not read stream: " + e.getMessage(), e);
-        }
+        setParameter(parameterIndex, new ReaderParameter(reader, length));
     }
 
     /**
@@ -845,7 +812,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
         }
 
         try {
-            setParameter(parameterIndex, new BufferedStreamParameter(x));
+            setParameter(parameterIndex, new StreamParameter(x));
         } catch (IOException e) {
             throw SQLExceptionMapper.getSQLException("Could not read stream");
         }
@@ -884,7 +851,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
                 setParameter(parameterIndex,
                         new BlobStreamingParameter(x, getProtocol().getHost(), "9090", getProtocol().getDatabase()));
             } else {
-                setParameter(parameterIndex, new BufferedStreamParameter(x));
+                setParameter(parameterIndex, new StreamParameter(x));
             }
         } catch (IOException e) {
             throw SQLExceptionMapper.getSQLException("Could not read stream");
@@ -915,13 +882,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
             setNull(parameterIndex, Types.BLOB);
             return;
         }
-
-
-        try {
-            setParameter(parameterIndex, new BufferedReaderParameter(reader));
-        } catch (IOException e) {
-            throw SQLExceptionMapper.getSQLException("Could not read reader", e);
-        }
+        setParameter(parameterIndex, new ReaderParameter(reader));
     }
 
     /**
@@ -1003,7 +964,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
                 setParameter(parameterIndex,
                         new BlobStreamingParameter(inputStream, getProtocol().getHost(), "9090", getProtocol().getDatabase()));
             } else {
-                setParameter(parameterIndex, new BufferedStreamParameter(inputStream));
+                setParameter(parameterIndex, new StreamParameter(inputStream));
             }
         } catch (IOException e) {
             throw SQLExceptionMapper.getSQLException("Could not read stream");
@@ -1100,7 +1061,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
             return;
         }
 
-        setParameter(parameterIndex, new ByteParameter(x));
+        setParameter(parameterIndex, new ByteArrayParameter(x));
     }
 
     /**
@@ -1143,7 +1104,6 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
             setNull(parameterIndex, Types.TIME);
             return;
         }
-
 
         setParameter(parameterIndex, new TimeParameter(x.getTime()));
     }
@@ -1189,13 +1149,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
             setNull(parameterIndex, Types.BLOB);
             return;
         }
-
-
-        try {
-            setParameter(parameterIndex, new StreamParameter(x, length));
-        } catch (IOException e) {
-            throw SQLExceptionMapper.getSQLException("Could not read stream", e);
-        }
+        setParameter(parameterIndex, new StreamParameter(x, length));
     }
 
     /**
@@ -1227,13 +1181,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
             setNull(parameterIndex, Types.BLOB);
             return;
         }
-
-
-        try {
-            setParameter(parameterIndex, new StreamParameter(x, length));
-        } catch (IOException e) {
-            throw SQLExceptionMapper.getSQLException("Could not read stream", e);
-        }
+        setParameter(parameterIndex, new StreamParameter(x, length));
     }
 
     /**
@@ -1257,13 +1205,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
             setNull(parameterIndex, Types.BLOB);
             return;
         }
-
-
-        try {
-            setParameter(parameterIndex, new StreamParameter(x, length));
-        } catch (IOException e) {
-            throw SQLExceptionMapper.getSQLException("Could not read stream", e);
-        }
+        setParameter(parameterIndex, new StreamParameter(x, length));
     }
 
     /**

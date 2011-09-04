@@ -24,67 +24,30 @@
 
 package org.skysql.jdbc.internal.common.query.parameters;
 
-import static org.skysql.jdbc.internal.common.Utils.needsEscaping;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
 /**
- * Holds a stream parameter. User: marcuse Date: Feb 19, 2009 Time: 8:53:14 PM
+ * . User: marcuse Date: Feb 19, 2009 Time: 8:56:34 PM
  */
 public class StreamParameter implements ParameterHolder {
-    /**
-     * the length of the parameter to send.
-     */
-    private final long length;
-    /**
-     * the actual bytes to send.
-     */
-    private final byte[] buffer;
+    InputStream is;
+    long length;
 
-    /**
-     * Create a new StreamParameter.
-     *
-     * @param is         the input stream to create the parameter from
-     * @param readLength the length to read
-     * @throws IOException if we cannot read the stream
-     */
-    public StreamParameter(final InputStream is, final long readLength)
-            throws IOException {
-        buffer = new byte[(int) (readLength * 2) + 2];
-        int pos = 0;
-        buffer[pos++] = '"';
-        for (int i = 0; i < readLength; i++) {
-            final byte b = (byte) is.read();
-            if (needsEscaping(b)) {
-                buffer[pos++] = '\\';
-            }
-            buffer[pos++] = b;
-        }
-        buffer[pos++] = '"';
-        this.length = pos;
+    public StreamParameter(InputStream is, long length) {
+        this.is = is;
+        this.length = length;
+    }
+    public StreamParameter(InputStream is) throws IOException {
+        this.is = is;
+        length = Long.MAX_VALUE;
     }
 
-    /**
-     * Writes the parameter to an outputstream.
-     *
-     * @param os the outputstream to write to
-     * @throws IOException if we cannot write to the stream
-     */
-    public int writeTo(final OutputStream os, int offset, int maxWriteSize) throws IOException {
-       int bytesToWrite = (int) Math.min(length - offset, maxWriteSize);
-       os.write(buffer, offset, bytesToWrite);
-       return bytesToWrite;
-   }
-
-
-    /**
-     * Returns the length of the parameter - this is the total amount of bytes that will be sent.
-     *
-     * @return the length of the parameter
-     */
-    public final long length() {
-        return length;
+    public void writeTo(final OutputStream os) throws IOException {
+        if (length == Long.MAX_VALUE)
+            ParameterWriter.write(os, is);
+        else
+            ParameterWriter.write(os, is, length);
     }
 }

@@ -32,19 +32,13 @@ import java.math.BigDecimal;
  * User: marcuse Date: Feb 27, 2009 Time: 10:07:00 PM
  */
 public class BigDecimalParameter implements ParameterHolder {
-    private final byte[] rawBytes;
+    BigDecimal bigDecimal;
 
     public BigDecimalParameter(final BigDecimal x) {
-        this.rawBytes = x.toPlainString().getBytes();
+        bigDecimal = x;
     }
 
-    public int writeTo(final OutputStream os, int offset, int maxWriteSize) throws IOException {
-        int bytesToWrite = Math.min(rawBytes.length - offset, maxWriteSize);
-        os.write(rawBytes, offset, bytesToWrite);
-        return bytesToWrite;
-    }
-
-    public long length() {
-        return rawBytes.length;
+    public void writeTo(final OutputStream os) throws IOException {
+        ParameterWriter.write(os, bigDecimal);
     }
 }

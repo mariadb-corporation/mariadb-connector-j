@@ -34,8 +34,6 @@ import org.skysql.jdbc.internal.common.queryresults.ModifyQueryResult;
 import org.skysql.jdbc.internal.common.queryresults.QueryResult;
 import org.skysql.jdbc.internal.common.queryresults.ResultSetType;
 
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.sql.*;
 import java.util.LinkedList;
 import java.util.List;
@@ -80,7 +78,6 @@ public class MySQLStatement implements Statement {
      * creates queries.
      */
     private final QueryFactory queryFactory;
-    private FileInputStream fileInputStream;
 
 
     private int queryTimeout;
@@ -213,13 +210,9 @@ public class MySQLStatement implements Statement {
     public int executeUpdate(String query) throws SQLException {
         synchronized (protocol) {
             executeQueryProlog();
-
             try {
                 warningsCleared = false;
-                if(fileInputStream == null)
-                    queryResult = protocol.executeQuery(queryFactory.createQuery(query));
-                else
-                    queryResult = protocol.executeQuery(queryFactory.createQuery(query), fileInputStream);
+                queryResult = protocol.executeQuery(queryFactory.createQuery(query));
                 cacheMoreResults();
                 return (int) ((ModifyQueryResult) queryResult).getUpdateCount();
             } catch (QueryException e) {
@@ -228,17 +221,6 @@ public class MySQLStatement implements Statement {
             finally
             {
                 stopTimer();
-                if(fileInputStream != null)
-                {
-                    try
-                    {
-                        fileInputStream.close();
-                    }
-                    catch (IOException e)
-                    {
-                    }
-                    fileInputStream = null;
-                }
             }
         }
     }
@@ -257,7 +239,6 @@ public class MySQLStatement implements Statement {
                 queryResult = protocol.executeQuery(queryFactory.createQuery(query), isStreaming());
                 cacheMoreResults();
                 if (queryResult.getResultSetType() == ResultSetType.SELECT) {
-                    //setResultSet(new MySQLResultSet(queryResult, this, getProtocol()));
                     return true;
                 }
                 setUpdateCount(((ModifyQueryResult) queryResult).getUpdateCount());
@@ -1096,10 +1077,4 @@ public class MySQLStatement implements Statement {
     protected void setQueryResult(final QueryResult result) {
         this.queryResult = result;
     }
-
-    public void setLocalInfileInputStream(FileInputStream fis)
-    {
-        this.fileInputStream = fis;
-    }
-
 }

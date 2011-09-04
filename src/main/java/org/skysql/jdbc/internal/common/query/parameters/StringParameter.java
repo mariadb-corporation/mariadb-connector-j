@@ -24,11 +24,11 @@
 
 package org.skysql.jdbc.internal.common.query.parameters;
 
-import static org.skysql.jdbc.internal.common.Utils.sqlEscapeString;
-
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
+
+import static org.skysql.jdbc.internal.common.Utils.sqlEscapeString;
 
 /**
  * User: marcuse Date: Feb 18, 2009 Time: 10:17:14 PM
@@ -37,7 +37,7 @@ public class StringParameter implements ParameterHolder {
     private final byte[] byteRepresentation;
 
     public StringParameter(final String parameter) {
-        final String tempParam = "\"" + sqlEscapeString(parameter) + "\"";
+        final String tempParam = "'" + sqlEscapeString(parameter) + "'";
         try {
             this.byteRepresentation = tempParam.getBytes("UTF-8");
         } catch (UnsupportedEncodingException e) {
@@ -45,13 +45,7 @@ public class StringParameter implements ParameterHolder {
         }
     }
 
-    public int writeTo(final OutputStream os, int offset, int maxWriteSize) throws IOException {
-        int bytesToWrite = Math.min(byteRepresentation.length - offset, maxWriteSize);
-        os.write(byteRepresentation, offset, bytesToWrite);
-        return bytesToWrite;
-    }
-
-    public long length() {
-        return byteRepresentation.length;
+    public void writeTo(final OutputStream os) throws IOException {
+        os.write(byteRepresentation);
     }
 }

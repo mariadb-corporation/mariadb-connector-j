@@ -31,19 +31,11 @@ import java.io.OutputStream;
  * . User: marcuse Date: Feb 19, 2009 Time: 9:35:15 PM
  */
 public class NullParameter implements ParameterHolder {
-    private final byte[] byteRepresentation;
-
+    private static final byte[] NULL = {'N','U','L','L'};
     public NullParameter() {
-        this.byteRepresentation = "NULL".getBytes();
     }
 
-    public int writeTo(final OutputStream os, int offset, int maxWriteSize) throws IOException {
-        int bytesToWrite = Math.min(byteRepresentation.length - offset, maxWriteSize);
-        os.write(byteRepresentation, offset, bytesToWrite);
-        return bytesToWrite;
-    }
-    
-    public long length() {
-        return byteRepresentation.length;
+    public void writeTo(final OutputStream os) throws IOException {
+        os.write(NULL);
     }
 }

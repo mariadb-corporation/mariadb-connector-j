@@ -35,7 +35,7 @@ public class RewriteBatchHandlerTest {
             rpbh.addToBatch(pq);
         }
         rpbh.executeBatch();
-        String expectedQuery = "insert into abc values(\"a0\",\"b0\",\"c0\"),(\"a1\",\"b1\",\"c1\"),(\"a2\",\"b2\",\"c2\")";
+        String expectedQuery = "insert into abc values('a0','b0','c0'),('a1','b1','c1'),('a2','b2','c2')";
         verify(mockProtocol).executeQuery(new MySQLQuery(expectedQuery));
     }
     @Test
@@ -53,7 +53,7 @@ public class RewriteBatchHandlerTest {
             rpbh.addToBatch(pq);
         }
         rpbh.executeBatch();
-        String expectedQuery = "insert into abc (c1,c2,c3) values(\"a0\",\"b0\",\"c0\"),(\"a1\",\"b1\",\"c1\"),(\"a2\",\"b2\",\"c2\")";
+        String expectedQuery = "insert into abc (c1,c2,c3) values('a0','b0','c0'),('a1','b1','c1'),('a2','b2','c2')";
         verify(mockProtocol).executeQuery(new MySQLQuery(expectedQuery));
     }
     @Test
@@ -71,7 +71,7 @@ public class RewriteBatchHandlerTest {
             rpbh.addToBatch(pq);
         }
         rpbh.executeBatch();
-        String expectedQuery = "insert abc (c1,c2,c3) value(\"a0\",\"b0\",\"c0\"),(\"a1\",\"b1\",\"c1\"),(\"a2\",\"b2\",\"c2\")";
+        String expectedQuery = "insert abc (c1,c2,c3) value('a0','b0','c0'),('a1','b1','c1'),('a2','b2','c2')";
         verify(mockProtocol).executeQuery(new MySQLQuery(expectedQuery));
     }
     @Test
@@ -89,7 +89,7 @@ public class RewriteBatchHandlerTest {
             rpbh.addToBatch(pq);
         }
         rpbh.executeBatch();
-        String expectedQuery = "insert abc (c1,c2,c3) value(\"a0\",\"b0\",\"c0\"),(\"a1\",\"b1\",\"c1\"),(\"a2\",\"b2\",\"c2\")on duplicate key update c1 = values(c1)";
+        String expectedQuery = "insert abc (c1,c2,c3) value('a0','b0','c0'),('a1','b1','c1'),('a2','b2','c2')on duplicate key update c1 = values(c1)";
         verify(mockProtocol).executeQuery(new MySQLQuery(expectedQuery));
     }
 
@@ -113,7 +113,7 @@ public class RewriteBatchHandlerTest {
             rpbh.addToBatch(pq);
         }
         rpbh.executeBatch();
-        String expectedQuery = "insert table1.abc (c1,c2,c3) value(\"a0\",\"b0\",\"c0\"),(\"a1\",\"b1\",\"c1\"),(\"a2\",\"b2\",\"c2\")on duplicate key update c1 = values(c1)";
+        String expectedQuery = "insert table1.abc (c1,c2,c3) value('a0','b0','c0'),('a1','b1','c1'),('a2','b2','c2')on duplicate key update c1 = values(c1)";
         verify(mockProtocol).executeQuery(new MySQLQuery(expectedQuery));
     }
 }

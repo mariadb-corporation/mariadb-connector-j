@@ -57,7 +57,7 @@ public class MySQLDataSource implements DataSource {
      */
     public Connection getConnection() throws SQLException {
         try {
-            return new MySQLConnection(new MySQLProtocol(hostname, port, database, null, null, new Properties()),
+            return MySQLConnection.newConnection(new MySQLProtocol(hostname, port, database, null, null, new Properties()),
                     new MySQLQueryFactory());
         } catch (QueryException e) {
             throw SQLExceptionMapper.get(e);
@@ -75,7 +75,7 @@ public class MySQLDataSource implements DataSource {
      */
     public Connection getConnection(final String username, final String password) throws SQLException {
         try {
-            return new MySQLConnection(new MySQLProtocol(hostname, port, database, username, password, new Properties()),
+            return MySQLConnection.newConnection(new MySQLProtocol(hostname, port, database, username, password, new Properties()),
                     new MySQLQueryFactory());
         } catch (QueryException e) {
             throw SQLExceptionMapper.get(e);

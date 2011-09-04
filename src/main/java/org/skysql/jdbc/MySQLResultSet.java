@@ -125,7 +125,7 @@ public class MySQLResultSet implements ResultSet {
             try {
                 vo = ((SelectQueryResult) queryResult).getValueObject(i - 1);
             } catch (NoSuchColumnException e) {
-                throw SQLExceptionMapper.getSQLException("No such column: " + i, e);
+                throw SQLExceptionMapper.getSQLException(e.getMessage(), e);
             }
             this.lastGetWasNull = vo.isNull();
             return vo;

@@ -24,47 +24,18 @@
 
 package org.skysql.jdbc.internal.common.query.parameters;
 
-import static org.skysql.jdbc.internal.common.Utils.needsEscaping;
-import org.skysql.jdbc.internal.common.Utils;
-
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.Reader;
 
 /**
- * . User: marcuse Date: Feb 27, 2009 Time: 9:53:04 PM
+ * . User: marcuse Date: Feb 27, 2009 Time: 9:56:17 PM
  */
-public class BufferedReaderParameter implements ParameterHolder {
-    private final int length;
-    private final byte[] byteRepresentation;
-
-    public BufferedReaderParameter(final Reader reader) throws IOException {
-        byte b;
-        byte[] tempByteRepresentation = new byte[1000];
-        int pos = 0;
-        tempByteRepresentation[pos++] = (byte) '"';
-        while ((b = (byte) reader.read()) != -1) {
-            if (pos > tempByteRepresentation.length - 2) { //need two places in worst case
-                tempByteRepresentation = Utils.copyWithLength(tempByteRepresentation, tempByteRepresentation.length * 2);
-            }
-            if (needsEscaping(b)) {
-                tempByteRepresentation[pos++] = '\\';
-            }
-            tempByteRepresentation[pos++] = b;
-        }
-        tempByteRepresentation[pos++] = (byte) '"';
-        length = pos;
-        byteRepresentation = tempByteRepresentation;
+public class ByteArrayParameter implements ParameterHolder {
+    byte[] bytes;
+    public ByteArrayParameter(byte[] bytes) {
+        this.bytes = bytes;
     }
-
-    public int writeTo(final OutputStream os,int offset, int maxWriteSize) throws IOException {
-        int bytesToWrite = Math.min(length - offset, maxWriteSize);
-        os.write(byteRepresentation, offset, bytesToWrite);
-        return bytesToWrite;
-
-    }
-
-    public long length() {
-        return length;
+    public void writeTo(OutputStream os) throws IOException {
+        ParameterWriter.write(os, bytes);
     }
 }

@@ -24,50 +24,18 @@
 
 package org.skysql.jdbc.internal.common.query.parameters;
 
-import org.skysql.jdbc.internal.common.Utils;
-
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 
 /**
  * User: marcuse Date: Feb 19, 2009 Time: 8:53:14 PM
  */
 public class SerializableParameter implements ParameterHolder {
-    private final byte[] rawBytes;
-    private final int length;
-
-    public SerializableParameter(final Object object) throws IOException {
-        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        final ObjectOutputStream oos = new ObjectOutputStream(baos);
-        oos.writeObject(object);
-        rawBytes = escapeBytes(baos.toByteArray());
-        length = rawBytes.length;
+    Object object;
+    public SerializableParameter(Object object) throws IOException {
+       this.object = object;
     }
-
-    public int writeTo(final OutputStream os, int offset, int maxWriteSize) throws IOException {
-       int bytesToWrite = (int) Math.min(length - offset, maxWriteSize);
-       os.write(rawBytes, offset, bytesToWrite);
-       return bytesToWrite;
-   }
-
-
-    public long length() {
-        return length;
-    }
-
-    private static byte[] escapeBytes(final byte[] input) {
-        final byte[] buffer = new byte[input.length * 2 + 2];
-        int i = 0;
-        buffer[i++] = '\"';
-        for (final byte b : input) {
-            if (Utils.needsEscaping(b)) {
-                buffer[i++] = '\\';
-            }
-            buffer[i++] = b;
-        }
-        buffer[i++] = '\"';
-        return Utils.copyWithLength(buffer, i);
+    public void writeTo(OutputStream os) throws IOException {
+        ParameterWriter.writeObject(os, object);
     }
 }

@@ -92,7 +92,7 @@ public final class Driver implements java.sql.Driver {
                         password,
                         info);
 
-            return new MySQLConnection(protocol, new MySQLQueryFactory());
+            return MySQLConnection.newConnection(protocol, new MySQLQueryFactory());
         } catch (QueryException e) {
             throw SQLExceptionMapper.get(e);
         }

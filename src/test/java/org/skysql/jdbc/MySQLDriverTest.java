@@ -3,6 +3,10 @@ package org.skysql.jdbc;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.math.BigInteger;
 import java.sql.*;
 import java.util.Arrays;
@@ -313,5 +317,58 @@ public class MySQLDriverTest extends BaseTest {
         finally {
             st.execute("DROP TABLE t_update_count");
         }
+    }
+
+    @Test
+    public void LoadDataInfile() throws SQLException, IOException {
+       // Create temp file.
+        File temp = File.createTempFile("ldinfile", ".tmp");
+
+        try {
+            // Write to temp file
+            BufferedWriter out = new BufferedWriter(new FileWriter(temp));
+            for(int i=0; i < 10000; i++)
+                out.write("aString\n");
+            out.close();
+            Statement st = connection.createStatement();
+            st.execute("DROP TABLE IF EXISTS ldinfile");
+            st.execute("CREATE TABLE  ldinfile(a varchar(10))");
+            st.execute("LOAD DATA LOCAL INFILE '" +temp.getAbsolutePath().replace('\\','/') + "' INTO TABLE ldinfile");
+            ResultSet rs = st.executeQuery("SELECT * FROM ldinfile");
+            rs.next();
+            assertEquals("aString", rs.getString(1));
+            rs.close();
+        } finally {
+            temp.delete();
+        }
+    }
+
+    @Test
+    public void LoadDataInfileEmpty() throws SQLException, IOException {
+       // Create temp file.
+        File temp = File.createTempFile("ldinfile", ".tmp");
+
+        try {
+            Statement st = connection.createStatement();
+            st.execute("DROP TABLE IF EXISTS ldinfile");
+            st.execute("CREATE TABLE  ldinfile(a varchar(10))");
+            st.execute("LOAD DATA LOCAL INFILE '" +temp.getAbsolutePath().replace('\\','/') + "' INTO TABLE ldinfile");
+            ResultSet rs = st.executeQuery("SELECT * FROM ldinfile");
+            assertFalse(rs.next());
+            rs.close();
+        } finally {
+            temp.delete();
+        }
+    }
+    @Test
+    public void testBlob2() throws SQLException {
+        byte[] bytes = new byte[]{(byte)0xff};
+        PreparedStatement ps = connection.prepareStatement("select ?");
+        ps.setBytes(1,bytes);
+        ResultSet rs = ps.executeQuery();
+        rs.next();
+        byte[] result = rs.getBytes(1);
+        assertEquals(result.length, 1);
+        assertEquals(result[0], bytes[0]);
     }
 }

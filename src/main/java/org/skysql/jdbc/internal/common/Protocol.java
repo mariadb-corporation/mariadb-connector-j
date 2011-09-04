@@ -28,7 +28,6 @@ import org.skysql.jdbc.internal.common.packet.RawPacket;
 import org.skysql.jdbc.internal.common.query.Query;
 import org.skysql.jdbc.internal.common.queryresults.QueryResult;
 
-import java.io.FileInputStream;
 import java.util.List;
 
 /**
@@ -209,7 +208,6 @@ public interface Protocol {
      * should a database be created if it does not exist ?
      */
     boolean createDB();
-    QueryResult executeQuery(Query createQuery, FileInputStream fileInputStream) throws QueryException;
 
     void cancelCurrentQuery() throws QueryException;
     void timeOut() throws QueryException;

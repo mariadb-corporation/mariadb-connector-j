@@ -1,0 +1,158 @@
+package org.skysql.jdbc.internal.common.query.parameters;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectOutputStream;
+import java.io.OutputStream;
+import java.math.BigDecimal;
+import java.nio.charset.Charset;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+
+/**
+ * Helper class for serializing query parameters
+ */
+public class ParameterWriter {
+    static final byte[] BINARY_INTRODUCER = {'_','b','i','n','a','r','y',' ','\''};
+    static final Charset UTF8 = Charset.forName("UTF-8");
+    static final int QUOTE = '\'';
+
+    private static void writeBytesEscaped(OutputStream out, byte[] bytes, int count) throws IOException{
+        for (int i = 0; i < count; i++) {
+            byte b = bytes[i];
+            switch(b) {
+                case '\\':
+                case '\'':
+                case '"':
+                case 0:
+                    out.write('\\');
+                    out.write(b);
+                    break;
+                default:
+                    out.write(b);
+            }
+        }
+    }
+
+    private static void writeBytesEscaped(OutputStream out, byte[] bytes) throws IOException{
+        writeBytesEscaped(out, bytes, bytes.length);
+    }
+
+    public static void write(OutputStream out, byte[] bytes) throws IOException{
+        out.write(BINARY_INTRODUCER);
+        writeBytesEscaped(out, bytes);
+        out.write(QUOTE);
+    }
+
+    public static void write(OutputStream out, String s) throws IOException {
+        byte[] bytes = s.getBytes(UTF8);
+        out.write(QUOTE);
+        writeBytesEscaped(out,bytes);
+        out.write(QUOTE);
+    }
+
+    public static void write(OutputStream out, InputStream is) throws IOException{
+        out.write(BINARY_INTRODUCER);
+        byte[] buffer = new byte[1024];
+        int len;
+        while ((len = is.read(buffer)) >= 0) {
+            writeBytesEscaped(out, buffer, len);
+        }
+        out.write(QUOTE);
+    }
+
+     public static void write(OutputStream out, InputStream is, long length) throws IOException{
+        out.write(BINARY_INTRODUCER);
+        byte[] buffer = new byte[1024];
+        long bytesLeft = length;
+        int len;
+
+        for (;;) {
+            int bytesToRead = (int)Math.min(bytesLeft, buffer.length);
+            if(bytesToRead == 0)
+                break;
+            len = is.read(buffer,0, bytesToRead);
+            if (len <= 0)
+                break;
+            writeBytesEscaped(out, buffer, len);
+            bytesLeft -= len;
+        }
+        out.write(QUOTE);
+    }
+
+    public static void write(OutputStream out, java.io.Reader reader) throws IOException {
+        out.write(QUOTE);
+        char[] buffer = new char[1024];
+        int len;
+        while ((len = reader.read(buffer)) >= 0) {
+             writeBytesEscaped(out, new String(buffer,0, len).getBytes(UTF8));
+        }
+        out.write(QUOTE);
+    }
+
+     public static void write(OutputStream out, java.io.Reader reader, long length) throws IOException{
+        out.write(QUOTE);
+        char[] buffer = new char[1024];
+        long charsLeft = length;
+        int len;
+
+        for (;;) {
+            int charsToRead = (int)Math.min(charsLeft, buffer.length);
+            if(charsToRead == 0)
+                break;
+            len = reader.read(buffer,0, charsToRead);
+            if (len <= 0)
+                break;
+            writeBytesEscaped(out, new String(buffer).getBytes(UTF8), len);
+            charsLeft -= len;
+        }
+        out.write(QUOTE);
+    }
+
+    public static void write(OutputStream out, int i) throws IOException{
+        out.write(String.valueOf(i).getBytes());
+    }
+
+    public static void write(OutputStream out, long l) throws IOException {
+       out.write(String.valueOf(l).getBytes());
+    }
+
+    public static void write(OutputStream out, double d) throws IOException {
+        out.write(String.valueOf(d).getBytes());
+    }
+
+    public static void write(OutputStream out, BigDecimal bd) throws IOException {
+        out.write(bd.toPlainString().getBytes());
+    }
+
+    public static void writeDate(OutputStream out, java.util.Date date, Calendar calendar) throws IOException {
+       out.write(QUOTE);
+       SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+       if (calendar != null) {
+           sdf.setCalendar(calendar);
+       }
+       String dateString = sdf.format(date);
+       out.write(dateString.getBytes());
+       out.write(QUOTE);
+    }
+
+    public static void writeTimestamp(OutputStream out, java.util.Date date, Calendar calendar) throws IOException {
+       out.write(QUOTE);
+       SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+       if (calendar != null) {
+           sdf.setCalendar(calendar);
+       }
+       String dateString = sdf.format(date);
+       out.write(dateString.getBytes());
+       out.write(QUOTE);
+    }
+
+    public static void writeObject(OutputStream out, Object o)throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ObjectOutputStream oos = new ObjectOutputStream(baos);
+        oos.writeObject(o);
+        write(out,baos.toByteArray());
+    }
+
+}

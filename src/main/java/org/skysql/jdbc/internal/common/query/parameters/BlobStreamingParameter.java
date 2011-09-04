@@ -59,21 +59,7 @@ public class BlobStreamingParameter implements ParameterHolder {
      * @param os the outputstream to write to
      * @throws java.io.IOException if we cannot write to the stream
      */
-    public final int writeTo(final OutputStream os,int offset, int maxWriteSize) throws IOException {
-        int bytesToWrite = Math.min(blobReference.getBytes().length - offset, maxWriteSize);
-        os.write(blobReference.getBytes(), offset, blobReference.getBytes().length);
-        return bytesToWrite;
-    }
-
-    /**
-     * Returns the length of the parameter - this is the length of the blob reference
-     *
-     * Since we don't know the length of the reference before it has been uploaded, it is uploaded in this method.
-     *
-     * @return the length of the blob reference
-     */
-    public final long length() throws IOException {
-        blobReference = "\""+httpClient.put(blobStream)+"\"";
-        return blobReference.getBytes().length;
+    public final void writeTo(final OutputStream os) throws IOException {
+        os.write(blobReference.getBytes());
     }
 }

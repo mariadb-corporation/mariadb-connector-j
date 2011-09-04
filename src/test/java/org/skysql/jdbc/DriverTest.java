@@ -37,9 +37,9 @@ public class DriverTest extends BaseTest{
         Statement stmt = connection.createStatement();
         try { stmt.execute("drop table t1"); } catch (Exception e) {}
         stmt.execute("create table t1 (id int not null primary key auto_increment, test varchar(20))");
-        stmt.execute("insert into t1 (test) values (\"hej1\")");
-        stmt.execute("insert into t1 (test) values (\"hej2\")");
-        stmt.execute("insert into t1 (test) values (\"hej3\")");
+        stmt.execute("insert into t1 (test) values ('hej1')");
+        stmt.execute("insert into t1 (test) values ('hej2')");
+        stmt.execute("insert into t1 (test) values ('hej3')");
         stmt.execute("insert into t1 (test) values (null)");
         ResultSet rs = stmt.executeQuery("select * from t1");
         for(int i=1;i<4;i++) {
@@ -55,9 +55,9 @@ public class DriverTest extends BaseTest{
         Statement stmt = connection.createStatement();
         try { stmt.execute("drop table t1"); } catch (Exception e) {}
         stmt.execute("create table t1 (id int not null primary key auto_increment, test varchar(20))");
-        stmt.execute("insert into t1 (test) values (\"hej1\")");
-        stmt.execute("insert into t1 (test) values (\"hej2\")");
-        stmt.execute("insert into t1 (test) values (\"hej3\")");
+        stmt.execute("insert into t1 (test) values ('hej1')");
+        stmt.execute("insert into t1 (test) values ('hej2')");
+        stmt.execute("insert into t1 (test) values ('hej3')");
         stmt.execute("insert into t1 (test) values (null)");
         ResultSet rs = stmt.executeQuery("select * from t1");
         rs.next();
@@ -69,9 +69,9 @@ public class DriverTest extends BaseTest{
         Statement stmt = connection.createStatement();
         try { stmt.execute("drop table t1"); } catch (Exception e) {}
         stmt.execute("create table t1 (id int not null primary key auto_increment, test varchar(20))");
-        stmt.execute("insert into t1 (test) values (\"hej1\")");
-        stmt.execute("insert into t1 (test) values (\"hej2\")");
-        stmt.execute("insert into t1 (test) values (\"hej3\")");
+        stmt.execute("insert into t1 (test) values ('hej1')");
+        stmt.execute("insert into t1 (test) values ('hej2')");
+        stmt.execute("insert into t1 (test) values ('hej3')");
         stmt.execute("insert into t1 (test) values (null)");
         ResultSet rs = stmt.executeQuery("select * from t1");
         rs.next();
@@ -146,9 +146,9 @@ public class DriverTest extends BaseTest{
         Statement stmt = connection.createStatement();
         try { stmt.execute("drop table t1"); } catch (Exception e) {}
         stmt.execute("create table t1 (id int not null primary key auto_increment, test varchar(20))");
-        stmt.execute("insert into t1 (test) values (\"hej1\")");
-        stmt.execute("insert into t1 (test) values (\"hej2\")");
-        stmt.execute("insert into t1 (test) values (\"hej3\")");
+        stmt.execute("insert into t1 (test) values ('hej1')");
+        stmt.execute("insert into t1 (test) values ('hej2')");
+        stmt.execute("insert into t1 (test) values ('hej3')");
         stmt.execute("insert into t1 (test) values (null)");
 
         String query = "UPDATE t1 SET test = ? where id = ?";
@@ -1005,7 +1005,7 @@ public class DriverTest extends BaseTest{
         connection.createStatement().execute(
                         "create table quotesPreparedStatements (id int not null primary key auto_increment, a varchar(10))");
 
-        String query = "INSERT INTO quotesPreparedStatements (a) VALUES (\"hellooo?\") # ?";
+        String query = "INSERT INTO quotesPreparedStatements (a) VALUES ('hellooo?') # ?";
         PreparedStatement pstmt = connection.prepareStatement(query);
 
         pstmt.execute();
@@ -1321,4 +1321,73 @@ public class DriverTest extends BaseTest{
         rs2.next();
         rs.close();
     }
+
+    // Test if driver works with sql_mode= NO_BACKSLASH_ESCAPES
+    @Test
+    public void NoBackslashEscapes() throws SQLException {
+        Statement st = connection.createStatement();
+        ResultSet rs = st.executeQuery("select @@global.sql_mode");
+        rs.next();
+        String originalSqlMode = rs.getString(1);
+        st.execute("set @@global.sql_mode = '" + originalSqlMode + ",NO_BACKSLASH_ESCAPES'");
+
+        try {
+            st.execute("drop table if exists testBlob2");
+            st.execute("create table testBlob2(a blob)");
+
+            Connection newConnection = DriverManager.getConnection("jdbc:mysql://localhost:3306/test?user=root");
+            try {
+                PreparedStatement preparedStatement =
+                        newConnection.prepareStatement("insert into testBlob2(a) values(?)");
+                byte[] b = new byte[255];
+                for(byte i= -128; i < 127; i++) {
+                    b[i+128] = i;
+                }
+                MySQLBlob blob = new MySQLBlob(b);
+                preparedStatement.setBlob(1, blob);
+                int affectedRows = preparedStatement.executeUpdate();
+                Assert.assertEquals(affectedRows, 1);
+            } finally {
+                newConnection.close();
+            }
+        }
+        finally {
+            st.execute("set @@global.sql_mode='" + originalSqlMode+ "'");
+        }
+    }
+
+    // Test if driver works with sql_mode= ANSI_QUOTES
+    @Test
+    public void AnsiQuotes() throws SQLException {
+        Statement st = connection.createStatement();
+        ResultSet rs = st.executeQuery("select @@global.sql_mode");
+        rs.next();
+        String originalSqlMode = rs.getString(1);
+        st.execute("set @@global.sql_mode = '" + originalSqlMode + ",ANSI_QUOTES'");
+
+        try {
+            st.execute("drop table if exists testBlob2");
+            st.execute("create table testBlob2(a blob)");
+
+            Connection newConnection = DriverManager.getConnection("jdbc:mysql://localhost:3306/test?user=root");
+            try {
+                PreparedStatement preparedStatement =
+                        newConnection.prepareStatement("insert into testBlob2(a) values(?)");
+                byte[] b = new byte[255];
+                for(byte i= -128; i < 127; i++) {
+                    b[i+128] = i;
+                }
+                MySQLBlob blob = new MySQLBlob(b);
+                preparedStatement.setBlob(1, blob);
+                int affectedRows = preparedStatement.executeUpdate();
+                Assert.assertEquals(affectedRows, 1);
+            } finally {
+                newConnection.close();
+            }
+        }
+        finally {
+            st.execute("set @@global.sql_mode='" + originalSqlMode+ "'");
+        }
+    }
+
 }

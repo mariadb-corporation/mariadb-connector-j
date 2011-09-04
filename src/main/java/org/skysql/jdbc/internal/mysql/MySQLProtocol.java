@@ -41,7 +41,6 @@ import javax.net.SocketFactory;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import java.io.BufferedInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -49,8 +48,6 @@ import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.logging.Logger;
-
-import static org.skysql.jdbc.internal.common.packet.buffer.WriteBuffer.intToByteArray;
 
 /**
  * TODO: refactor, clean up TODO: when should i read up the resultset? TODO: thread safety? TODO: exception handling
@@ -243,6 +240,9 @@ public class MySQLProtocol implements Protocol {
         }
     }
 
+    public Properties getInfo() {
+        return info;
+    }
     void skip() throws IOException, QueryException{
          if (activeResult != null) {
              activeResult.close();
@@ -414,26 +414,22 @@ public class MySQLProtocol implements Protocol {
        return executeQuery(dQuery, false);
     }
 
-    public QueryResult executeQuery(final Query dQuery, boolean streaming) throws QueryException {
-        dQuery.validate();
-        log.finest("Executing streamed query: " + dQuery);
-        this.moreResults = false;
-        final StreamedQueryPacket packet = new StreamedQueryPacket(dQuery);
 
-        try {
-            packet.send(writer);
-        } catch (IOException e) {
-            throw new QueryException("Could not send query: " + e.getMessage(),
-                    -1,
-                    SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
-                    e);
-        }
-
-        final RawPacket rawPacket;
-        final ResultPacket resultPacket;
+    public QueryResult getResult(Query dQuery, boolean streaming) throws QueryException{
+             RawPacket rawPacket;
+        ResultPacket resultPacket;
         try {
             rawPacket = packetFetcher.getRawPacket();
             resultPacket = ResultPacketFactory.createResultPacket(rawPacket);
+
+            if (resultPacket.getResultType() == ResultPacket.ResultType.LOCALINFILE) {
+                // Server request the local file (LOCAL DATA LOCAL INFILE)
+                LocalInfilePacket localInfilePacket= (LocalInfilePacket)resultPacket;
+                log.fine("sending local file " + localInfilePacket.getFileName());
+                writer.sendFile(new FileInputStream(localInfilePacket.getFileName()),rawPacket.getPacketSeq()+1);
+                rawPacket = packetFetcher.getRawPacket();
+                resultPacket = ResultPacketFactory.createResultPacket(rawPacket);
+            }
         } catch (IOException e) {
             throw new QueryException("Could not read resultset: " + e.getMessage(),
                     -1,
@@ -446,7 +442,11 @@ public class MySQLProtocol implements Protocol {
                 this.moreResults = false;
                 final ErrorPacket ep = (ErrorPacket) resultPacket;
                 checkIfCancelled();
-                log.warning("Could not execute query " + dQuery + ": " + ((ErrorPacket) resultPacket).getMessage());
+                if (dQuery != null) {
+                    log.warning("Could not execute query " + dQuery + ": " + ((ErrorPacket) resultPacket).getMessage());
+                } else {
+                    log.warning("Got error from server: " + ((ErrorPacket) resultPacket).getMessage());
+                }
                 throw new QueryException(ep.getMessage(),
                         ep.getErrorNumber(),
                         ep.getSqlState());
@@ -461,9 +461,9 @@ public class MySQLProtocol implements Protocol {
                 return updateResult;
             case RESULTSET:
                 log.fine("SELECT executed, fetching result set");
-
+                ResultSetPacket resultSetPacket = (ResultSetPacket)resultPacket;
                 try {
-                    return this.createQueryResult((ResultSetPacket) resultPacket, streaming);
+                    return this.createQueryResult(resultSetPacket, streaming);
                 } catch (IOException e) {
                     throw new QueryException("Could not read result set: " + e.getMessage(),
                             -1,
@@ -474,7 +474,23 @@ public class MySQLProtocol implements Protocol {
                 log.severe("Could not parse result..." + resultPacket.getResultType());
                 throw new QueryException("Could not parse result", (short) -1, SQLExceptionMapper.SQLStates.INTERRUPTED_EXCEPTION.getSqlState());
         }
+    }
 
+    public QueryResult executeQuery(final Query dQuery, boolean streaming) throws QueryException {
+        dQuery.validate();
+        log.finest("Executing streamed query: " + dQuery);
+        this.moreResults = false;
+        final StreamedQueryPacket packet = new StreamedQueryPacket(dQuery);
+
+        try {
+            packet.send(writer);
+        } catch (IOException e) {
+            throw new QueryException("Could not send query: " + e.getMessage(),
+                    -1,
+                    SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
+                    e);
+        }
+        return getResult(dQuery, streaming);
     }
 
     public void addToBatch(final Query dQuery) {
@@ -541,70 +557,6 @@ public class MySQLProtocol implements Protocol {
         }
     }
 
-    public QueryResult executeQuery(Query dQuery,
-                                    FileInputStream fileInputStream) throws QueryException {
-        int packIndex = 0;
-        if(moreResults) {
-            try {
-                packetFetcher.clearInputStream();
-            } catch (IOException e) {
-                throw new QueryException("Could clear input stream: "
-                                 + e.getMessage(), -1,
-                                 SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION
-                                         .getSqlState(), e);
-
-            }
-        }
-        this.moreResults = false;
-        log.finest("Executing streamed query: " + dQuery);
-        final StreamedQueryPacket packet = new StreamedQueryPacket(dQuery);
-
-        try {
-            packIndex = packet.send(writer);
-            packIndex++;
-        } catch (IOException e) {
-            throw new QueryException("Could not send query: " + e.getMessage(),
-                    -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION
-                    .getSqlState(), e);
-        }
-
-        RawPacket rawPacket;
-        ResultPacket resultPacket;
-
-        try {
-            rawPacket = packetFetcher.getRawPacket();
-            resultPacket = ResultPacketFactory.createResultPacket(rawPacket);
-        } catch (IOException e) {
-            throw new QueryException("Could not read resultset: "
-                    + e.getMessage(), -1,
-                    SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION
-                            .getSqlState(), e);
-        }
-
-        if (rawPacket.getPacketSeq() != packIndex)
-            throw new QueryException("Got out of order packet ", -1,
-                    SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION
-                            .getSqlState(), null);
-
-        switch (resultPacket.getResultType()) {
-            case ERROR:
-                final ErrorPacket ep = (ErrorPacket) resultPacket;
-                log.warning("Could not execute query " + dQuery + ": "
-                        + ((ErrorPacket) resultPacket).getMessage());
-                throw new QueryException(ep.getMessage(), ep.getErrorNumber(),
-                        ep.getSqlState());
-            case OK:
-                break;
-            case RESULTSET:
-                break;
-            default:
-                log.severe("Could not parse result...");
-                throw new QueryException("Could not parse result");
-        }
-
-        packIndex++;
-        return sendFile(dQuery, fileInputStream, packIndex);
-    }
 
     /**
      * cancels the current query - clones the current protocol and executes a query using the new connection
@@ -634,149 +586,11 @@ public class MySQLProtocol implements Protocol {
     }
 
 
-    /**
-     * Send the given file to the server starting with packet number packIndex
-     *
-     * @param dQuery          the query that was first issued
-     * @param fileInputStream input stream used to read the file
-     * @param packIndex       Starting index, which will be used for sending packets
-     * @return the result of the query execution
-     * @throws QueryException if something wrong happens
-     */
-    private QueryResult sendFile(Query dQuery, FileInputStream fileInputStream,
-                                 int packIndex) throws QueryException {
-        byte[] emptyHeader = Utils.copyWithLength(intToByteArray(0), 4);
-        RawPacket rawPacket;
-        ResultPacket resultPacket;
-
-        BufferedInputStream bufferedInputStream = new BufferedInputStream(
-                fileInputStream);
-
-        ByteArrayOutputStream bOS = new ByteArrayOutputStream();
-
-        try {
-            while (true) {
-                int data = bufferedInputStream.read();
-                if (data == -1) {
-                    // Send the last packet
-                    byte[] data1 = bOS.toByteArray();
-                    byte[] byteHeader = Utils.copyWithLength(
-                            intToByteArray(data1.length), 4);
-                    byteHeader[3] = (byte) packIndex;
-
-                    log.finest("Sending : " + MySQLProtocol.hexdump(byteHeader, 0) + " - data length = " + data1.length);
-
-                    // Send the packet
-                    writer.write(byteHeader);
-                    writer.write(data1);
-                    writer.flush();
-                    packIndex++;
-                    break;
-                }
-
-                // Add data into buffer
-                bOS.write(data);
-
-                if (bOS.size() >= 0xffffff) {
-                    byte[] byteHeader = Utils.copyWithLength(intToByteArray(bOS.size()), 4);
-                    byteHeader[3] = (byte) packIndex;
-
-                    log.finest("Sending : " + MySQLProtocol.hexdump(byteHeader, 0));
-                    // Send the packet
-                    writer.write(byteHeader);
-
-                    bOS.writeTo(writer);
-                    writer.flush();
-                    packIndex++;
-                    break;
-
-                }
-            }
-        } catch (IOException e) {
-            throw new QueryException("Could not send query: " + e.getMessage(),
-                    -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION
-                    .getSqlState(), e);
-        }
-        try {
-            emptyHeader[3] = (byte) packIndex;
-            writer.write(emptyHeader);
-            log.finest("Sending : " + MySQLProtocol.hexdump(emptyHeader, 0));
-            writer.flush();
-        } catch (IOException e) {
-            throw new QueryException("Could not send query: " + e.getMessage(),
-                    -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION
-                    .getSqlState(), e);
-        }
-
-        try {
-            rawPacket = packetFetcher.getRawPacket();
-            resultPacket = ResultPacketFactory.createResultPacket(rawPacket);
-        } catch (IOException e) {
-            throw new QueryException("Could not read resultset: "
-                    + e.getMessage(), -1,
-                    SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION
-                            .getSqlState(), e);
-        }
-
-        switch (resultPacket.getResultType()) {
-            case ERROR:
-                final ErrorPacket ep = (ErrorPacket) resultPacket;
-                checkIfCancelled();
-                throw new QueryException(ep.getMessage(), ep.getErrorNumber(),
-                        ep.getSqlState());
-            case OK:
-                final OKPacket okpacket = (OKPacket) resultPacket;
-                this.moreResults = okpacket.getServerStatus().contains(ServerStatus.MORE_RESULTS_EXISTS);
-
-                final QueryResult updateResult = new UpdateResult(
-                        okpacket.getAffectedRows(), okpacket.getWarnings(),
-                        okpacket.getMessage(), okpacket.getInsertId());
-                log.fine("OK, " + okpacket.getAffectedRows());
-                return updateResult;
-            case RESULTSET:
-                log.fine("SELECT executed, fetching result set");
-                try {
-                    return this.createQueryResult((ResultSetPacket) resultPacket, false);
-                } catch (IOException e) {
-                    throw new QueryException("Could not read result set: "
-                            + e.getMessage(), -1,
-                            SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION
-                                    .getSqlState(), e);
-                }
-            default:
-                log.severe("Could not parse result...");
-                throw new QueryException("Could not parse result");
-        }
-    }
 
     public QueryResult getMoreResults(boolean streaming) throws QueryException {
-        try {
-            if(!moreResults)
-                return null;
-            ResultPacket resultPacket = ResultPacketFactory.createResultPacket(packetFetcher.getRawPacket());
-            switch(resultPacket.getResultType()) {
-                case RESULTSET:
-                    return createQueryResult((ResultSetPacket) resultPacket, streaming);
-                case OK:
-                    OKPacket okpacket = (OKPacket) resultPacket;
-                    this.moreResults = okpacket.getServerStatus().contains(ServerStatus.MORE_RESULTS_EXISTS);
-                    return new UpdateResult(
-                            okpacket.getAffectedRows(), okpacket.getWarnings(),
-                            okpacket.getMessage(), okpacket.getInsertId());
-                case ERROR:
-                    ErrorPacket ep = (ErrorPacket) resultPacket;
-                    checkIfCancelled();
-                    throw new QueryException(ep.getMessage(), ep.getErrorNumber(),
-                                        ep.getSqlState());
-
-            }
-        } catch (IOException e) {
-            throw new QueryException("Could not read result set: "
-                             + e.getMessage(), -1,
-                             SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION
-                                     .getSqlState(), e);
-        }
-        return null;
+        if(!moreResults)
+            return null;
+        return getResult(null, streaming);
     }
 
     public static String hexdump(byte[] buffer, int offset) {

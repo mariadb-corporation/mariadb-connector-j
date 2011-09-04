@@ -39,9 +39,14 @@ public class ResultSetPacket extends ResultPacket {
         final Reader reader = new Reader(rawPacket);
         
         fieldCount = reader.getLengthEncodedBinary();
-        if (reader.getRemainingSize() != 0) {
-            throw new IOException("invalid packet contents ,expected result set packet, actual packet hexdump = " +
+        if (fieldCount != -1) {
+            if (reader.getRemainingSize() != 0) {
+                throw new IOException("invalid packet contents ,expected result set packet, actual packet hexdump = " +
                     MySQLProtocol.hexdump(rawPacket.getByteBuffer(),0));
+            }
+        }
+        else {
+            System.out.println("zhuj");
         }
     }
 
