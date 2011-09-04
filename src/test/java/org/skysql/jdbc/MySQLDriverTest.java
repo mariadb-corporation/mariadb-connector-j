@@ -9,6 +9,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.sql.*;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Properties;
 
@@ -370,5 +371,53 @@ public class MySQLDriverTest extends BaseTest {
         byte[] result = rs.getBytes(1);
         assertEquals(result.length, 1);
         assertEquals(result[0], bytes[0]);
+    }
+
+    @Test
+    public void TimestampWithMicroseconds() throws SQLException {
+        Statement st = connection.createStatement();
+        ResultSet rs = st.executeQuery("select '2001-01-01 11:11:11.123456'");
+        rs.next();
+        Timestamp ts = rs.getTimestamp(1);
+        assertEquals(ts.getNanos(), 123456000);
+    }
+
+    @Test
+    public void TimeWithMilliseconds() throws SQLException {
+        Statement st = connection.createStatement();
+        ResultSet rs = st.executeQuery("select '11:11:11.123'");
+        rs.next();
+        Time ts = rs.getTime(1);
+        assertEquals(ts.getTime()%1000,123);
+    }
+
+    @Test
+    public void preparedStatementTimestampWithMicroseconds() throws Exception {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        Timestamp ts = new Timestamp(sdf.parse("2001-01-01 11:11:11").getTime());
+        ts.setNanos(123456000);
+
+        PreparedStatement st = connection.prepareStatement("select ?");
+        st.setTimestamp(1, ts);
+        ResultSet rs = st.executeQuery();
+        rs.next();
+        Timestamp ts1 = rs.getTimestamp(1);
+        assertEquals(ts1.getNanos(), 123456000);
+    }
+
+    @Test
+    public void preparedStatementTimeWithMicroseconds() throws Exception {
+        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+        Time time = new Time(sdf.parse("11:11:11").getTime());
+
+        time.setTime(time.getTime() + 111);
+
+        PreparedStatement st = connection.prepareStatement("select ?");
+        st.setTime(1, time);
+        ResultSet rs = st.executeQuery();
+        rs.next();
+        Time time1 = rs.getTime(1);
+        assertEquals(time1.getTime()%1000,111);
+        assertEquals(time, time1);
     }
 }

@@ -27,7 +27,7 @@ package org.skysql.jdbc.internal.common.query.parameters;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Calendar;
-import java.util.Date;
+import java.sql.Date;
 
 /**
  * Represents a time stamp
@@ -35,21 +35,21 @@ import java.util.Date;
  * User: marcuse Date: Feb 19, 2009 Time: 8:50:52 PM
  */
 public class DateParameter implements ParameterHolder {
-    private Date date;
+    Date date;
     Calendar calendar;
 
     /**
      * Represents a timestamp, constructed with time in millis since epoch
      *
-     * @param timestamp the time in millis since epoch
+     * @param date
      */
-    public DateParameter(long timestamp) {
-       date = new Date(timestamp);
+    public DateParameter(Date date) {
+       this(date, null);
     }
 
-    public DateParameter(long timestamp, Calendar cal) {
-       date = new Date(timestamp);
-       calendar = cal;
+    public DateParameter(Date date, Calendar cal) {
+       this.date = date;
+       this.calendar = cal;
     }
 
     public void writeTo(OutputStream os) throws IOException {

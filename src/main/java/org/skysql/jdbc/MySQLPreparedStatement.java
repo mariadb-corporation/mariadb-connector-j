@@ -328,7 +328,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
             setNull(parameterIndex, Types.DATE);
             return;
         }
-        setParameter(parameterIndex, new DateParameter(date.getTime(), cal));
+        setParameter(parameterIndex, new DateParameter(date, cal));
     }
 
     /**
@@ -347,15 +347,11 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
      * @since 1.2
      */
     public void setTime(final int parameterIndex, final Time time, final Calendar cal) throws SQLException {
-//        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
-//        sdf.setCalendar(cal);
         if(time == null) {
             setNull(parameterIndex, Types.TIME);
             return;
         }
-
-
-        setParameter(parameterIndex, new TimeParameter(time.getTime()));
+        setParameter(parameterIndex, new TimeParameter(time,cal));
     }
 
     /**
@@ -374,13 +370,13 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
      *                               <code>PreparedStatement</code>
      * @since 1.2
      */
-    public void setTimestamp(final int parameterIndex, final Timestamp x, final Calendar cal) throws SQLException {
-        if(x == null) {
+    public void setTimestamp(final int parameterIndex, final Timestamp timestamp, final Calendar cal) throws SQLException {
+        if(timestamp == null) {
             setNull(parameterIndex, Types.TIMESTAMP);
             return;
         }
 
-        setParameter(parameterIndex, new TimestampParameter(x.getTime(), cal));
+        setParameter(parameterIndex, new TimestampParameter(timestamp, cal));
     }
 
     /**
@@ -1080,9 +1076,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
             setNull(parameterIndex, Types.DATE);
             return;
         }
-
-
-        setParameter(parameterIndex, new DateParameter(date.getTime()));
+        setParameter(parameterIndex, new DateParameter(date));
     }
 
     /**
@@ -1105,7 +1099,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
             return;
         }
 
-        setParameter(parameterIndex, new TimeParameter(x.getTime()));
+        setParameter(parameterIndex, new TimeParameter(x));
     }
 
     /**
@@ -1118,14 +1112,14 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
      *                               if a database access error occurs or this method is called on a closed
      *                               <code>PreparedStatement</code>
      */
-    public void setTimestamp(final int parameterIndex, final Timestamp x) throws SQLException {
-        if(x == null) {
+    public void setTimestamp(final int parameterIndex, final Timestamp timestamp) throws SQLException {
+        if(timestamp == null) {
             setNull(parameterIndex, Types.TIMESTAMP);
             return;
         }
 
 
-        setParameter(parameterIndex, new TimestampParameter(x.getTime()));
+        setParameter(parameterIndex, new TimestampParameter(timestamp));
     }
 
     /**

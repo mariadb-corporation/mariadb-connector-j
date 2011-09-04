@@ -1,12 +1,10 @@
 package org.skysql.jdbc.internal.common.query.parameters;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.ObjectOutputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.math.BigDecimal;
 import java.nio.charset.Charset;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
@@ -126,25 +124,58 @@ public class ParameterWriter {
         out.write(bd.toPlainString().getBytes());
     }
 
-    public static void writeDate(OutputStream out, java.util.Date date, Calendar calendar) throws IOException {
+    public static void writeDate(OutputStream out, java.sql.Date date, Calendar calendar) throws IOException {
        out.write(QUOTE);
-       SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+       String dateString;
        if (calendar != null) {
+           SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
            sdf.setCalendar(calendar);
+           dateString = sdf.format(date);
+       } else {
+           dateString = date.toString();
        }
-       String dateString = sdf.format(date);
        out.write(dateString.getBytes());
        out.write(QUOTE);
     }
 
-    public static void writeTimestamp(OutputStream out, java.util.Date date, Calendar calendar) throws IOException {
+    static void formatMicroseconds(OutputStream out, int microseconds) throws IOException {
+        if (microseconds == 0)
+            return;
+        out.write('.');
+        int factor = 100000;
+        while(microseconds > 0) {
+            int dig = microseconds / factor;
+            out.write('0' + dig);
+            microseconds -= dig*factor;
+            factor /= 10;
+        }
+    }
+
+
+    public static void writeTimestamp(OutputStream out, Timestamp ts, Calendar calendar) throws IOException {
        out.write(QUOTE);
        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
        if (calendar != null) {
            sdf.setCalendar(calendar);
        }
-       String dateString = sdf.format(date);
+       String dateString = sdf.format(ts);
        out.write(dateString.getBytes());
+       int microseconds = ts.getNanos() / 1000;
+       formatMicroseconds(out, microseconds);
+       out.write(QUOTE);
+    }
+
+
+    public static void writeTime(OutputStream out, Time time, Calendar calendar) throws IOException{
+       out.write(QUOTE);
+       SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+       if (calendar != null) {
+           sdf.setCalendar(calendar);
+       }
+       String dateString = sdf.format(time);
+       out.write(dateString.getBytes());
+       int microseconds =  (int)(time.getTime()%1000) * 1000;
+       formatMicroseconds(out, microseconds);
        out.write(QUOTE);
     }
 

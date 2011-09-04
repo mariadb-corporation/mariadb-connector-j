@@ -161,9 +161,32 @@ public abstract class AbstractValueObject implements ValueObject {
         String rawValue = getString();
         SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
 
-        sdf.setLenient(false);
+        //sdf.setLenient(false);
         final java.util.Date utilTime = sdf.parse(rawValue);
-        return new Time(utilTime.getTime());
+        long t0 = utilTime.getTime();
+        int nanos = extractNanos(rawValue);
+        int milliseconds = nanos/1000000;
+        return new Time(t0+milliseconds);
+    }
+
+    private int extractNanos(String timestring) throws ParseException{
+        int index = timestring.indexOf('.');
+        if (index == -1)
+            return 0;
+        int nanos = 0;
+        for(int i= index + 1; i < index + 10; i++) {
+            int digit;
+            if (i >= timestring.length()) {
+                digit = 0;
+            } else {
+                char c = timestring.charAt(i);
+                if (c < '0' || c > '9')
+                    throw new ParseException("cannot parse subsecond part in timestamp string '" + timestring +"'", i);
+                digit = c - '0';
+            }
+            nanos = nanos * 10 + digit;
+        }
+        return nanos;
     }
 
     public Timestamp getTimestamp() throws ParseException {
@@ -180,7 +203,11 @@ public abstract class AbstractValueObject implements ValueObject {
         }
         sdf.setLenient(false);
         final java.util.Date utilTime = sdf.parse(rawValue);
-        return new Timestamp(utilTime.getTime());
+        Timestamp ts = new Timestamp(utilTime.getTime());
+        if(rawValue.indexOf('.') != -1) {
+            ts.setNanos(extractNanos(rawValue));
+        }
+        return ts;
     }
 
     public InputStream getInputStream() {

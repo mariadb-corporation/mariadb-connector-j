@@ -29,9 +29,7 @@ import org.skysql.jdbc.MySQLClob;
 import org.skysql.jdbc.internal.common.AbstractValueObject;
 import org.skysql.jdbc.internal.common.DataType;
 
-import java.sql.Time;
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
 
 /**
  * Contains the raw value returned from the server
@@ -91,17 +89,4 @@ public class MySQLValueObject extends AbstractValueObject {
         }
         return null;
     }
-
-    @Override
-    public Time getTime() throws ParseException {
-        if (getBytes() == null) {
-            return null;
-        }
-        final String rawValue = getString();
-        final SimpleDateFormat sdf;
-        sdf = new SimpleDateFormat("HH:mm:ss");
-        final java.util.Date utilTime = sdf.parse(rawValue);
-        return new Time(utilTime.getTime());
-    }
-
 }

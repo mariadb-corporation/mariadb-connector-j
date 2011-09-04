@@ -24,22 +24,27 @@
 
 package org.skysql.jdbc.internal.common.query.parameters;
 
+
 import java.io.IOException;
 import java.io.OutputStream;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.sql.Time;
+import java.util.Calendar;
 
-/**
- */
+
 public class TimeParameter implements ParameterHolder {
-    private final byte[] byteRepresentation;
 
-    public TimeParameter(final long timestamp) {
-        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
-        byteRepresentation = ("'"+sdf.format(new Date(timestamp))+"'").getBytes();
+    Time time;
+    Calendar cal;
+
+    public TimeParameter(Time time) {
+        this(time, null);
+    }
+    public TimeParameter(Time time, Calendar cal) {
+        this.time = time;
+        this.cal = cal;
     }
 
     public void writeTo(final OutputStream os) throws IOException {
-        os.write(byteRepresentation);
+        ParameterWriter.writeTime(os, time, cal);
     }
 }
