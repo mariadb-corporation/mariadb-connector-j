@@ -48,6 +48,7 @@ import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.logging.Logger;
+import java.util.logging.Level;
 
 /**
  * TODO: refactor, clean up TODO: when should i read up the resultset? TODO: thread safety? TODO: exception handling
@@ -98,6 +99,12 @@ public class MySQLProtocol implements Protocol {
         this.database = (database == null ? "" : database);
         this.username = (username == null ? "" : username);
         this.password = (password == null ? "" : password);
+
+	String logLevel = info.getProperty("MySQLProtocolLogLevel");
+	if (logLevel != null)
+		log.setLevel(Level.parse(logLevel));
+	else
+		log.setLevel(Level.OFF);
 
         final SocketFactory socketFactory = SocketFactory.getDefault();
         try {

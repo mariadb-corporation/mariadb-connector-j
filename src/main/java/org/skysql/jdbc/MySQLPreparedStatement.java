@@ -98,7 +98,6 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
             executeQueryProlog();
             try {
                 setQueryResult(getProtocol().executeQuery(dQuery));
-                dQuery.clearParameters();
             } catch (QueryException e) {
                 throw SQLExceptionMapper.get(e);
             } finally {
@@ -139,7 +138,6 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
             executeQueryProlog();
             try {
                 setQueryResult(getProtocol().executeQuery(dQuery, isStreaming()));
-                dQuery.clearParameters();
             } catch (QueryException e) {
                 throw SQLExceptionMapper.get(e);
             } finally {
