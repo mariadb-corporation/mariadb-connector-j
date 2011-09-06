@@ -3,6 +3,7 @@ package org.skysql.jdbc;
 import org.junit.Assert;
 import org.junit.Test;
 
+import javax.sql.rowset.CachedRowSet;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -420,4 +421,59 @@ public class MySQLDriverTest extends BaseTest {
         assertEquals(time1.getTime()%1000,111);
         assertEquals(time, time1);
     }
+
+    @Test
+    public void preparedStatementParameterReuse() throws Exception {
+        PreparedStatement ps = connection.prepareStatement("set @a=?,@b=?");
+        ps.setString(1, "a");
+        ps.setString(2, "b");
+        ps.executeUpdate();
+
+        Statement st = connection.createStatement();
+        ResultSet rs = st.executeQuery("select @a,@b");
+        rs.next();
+        assertEquals(rs.getString(1), "a");
+        assertEquals(rs.getString(2), "b");
+        rs.close();
+
+        ps.setString(2,"c");
+        ps.executeUpdate();
+
+        rs = st.executeQuery("select @a,@b");
+        rs.next();
+        assertEquals(rs.getString(1), "a");
+        assertEquals(rs.getString(2), "c");
+        rs.close();
+
+    }
+
+    @Test
+    public void UpdateCachedRowSet() throws Exception {
+        Statement st = connection.createStatement();
+        st.execute("DROP TABLE IF EXISTS updatable");
+        st.execute("CREATE TABLE updatable(i int primary key, a varchar(10))");
+        st.execute("INSERT INTO updatable values(1,'a')");
+        st.setFetchSize(Integer.MIN_VALUE);
+        ResultSet rs = st.executeQuery("SELECT * FROM updatable");
+        CachedRowSet crs;
+        try {
+            /* Reference implementation of CachedRowSet might not always be available ? */
+            crs =  (CachedRowSet)Class.forName("com.sun.rowset.CachedRowSetImpl").newInstance();
+        } catch(ClassNotFoundException ex) {
+            return;
+        }
+        crs.setType(ResultSet.TYPE_SCROLL_INSENSITIVE);
+        crs.setConcurrency(ResultSet.CONCUR_UPDATABLE);
+        crs.populate(rs);
+        assertTrue(crs.next());
+        crs.updateString(2, "b");
+        crs.updateRow();
+        crs.acceptChanges(connection);
+        crs.close();
+
+        rs = st.executeQuery("SELECT * FROM updatable");
+        rs.next();
+        assertEquals("b", rs.getString(2));
+    }
+
 }

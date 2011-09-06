@@ -31,9 +31,7 @@ import org.skysql.jdbc.internal.common.query.QueryFactory;
 import org.skysql.jdbc.internal.mysql.MySQLProtocol;
 
 import java.sql.*;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -546,7 +544,7 @@ public final class MySQLConnection
      *                               the specified result set type and result set concurrency.
      */
     public CallableStatement prepareCall(final String sql, final int resultSetType, final int resultSetConcurrency) throws SQLException {
-        throw SQLExceptionMapper.getFeatureNotSupportedException("Stored procedures not supported");
+        return new MySQLCallableStatement(this,sql);
     }
 
     /**
@@ -561,7 +559,7 @@ public final class MySQLConnection
      * @since 1.2
      */
     public Map<String, Class<?>> getTypeMap() throws SQLException {
-        throw SQLExceptionMapper.getFeatureNotSupportedException("Not yet supported");
+        return  null;
     }
 
     /**
