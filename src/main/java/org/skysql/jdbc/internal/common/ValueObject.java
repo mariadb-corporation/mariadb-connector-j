@@ -72,7 +72,7 @@ public interface ValueObject {
 
     Date getDate(Calendar cal) throws ParseException;
 
-    Time getTime(Calendar cal);
+    Time getTime(Calendar cal) throws ParseException;
 
     Timestamp getTimestamp(Calendar cal) throws ParseException;
 

@@ -237,17 +237,14 @@ public abstract class AbstractValueObject implements ValueObject {
         return new Date(utilDate.getTime());
     }
 
-    public Time getTime(final Calendar cal) {
-        // TODO: FIX! USE CAL!
-
+    public Time getTime(final Calendar cal) throws ParseException{
         if (rawBytes == null) {
             return null;
         }
-        final int packedTime = getInt();
-        final long millis = Utils.unpackTime(packedTime);
-        final SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+        String rawValue = getString();
+        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
         sdf.setCalendar(cal);
-        return new Time(millis);
+        return new Time(sdf.parse(rawValue).getTime());
     }
 
     public Timestamp getTimestamp(final Calendar cal) throws ParseException {

@@ -904,7 +904,7 @@ public class MySQLResultSet implements ResultSet {
      * @since 1.2
      */
     public int getType() throws SQLException {
-        return ResultSet.TYPE_SCROLL_INSENSITIVE;
+        return (queryResult instanceof StreamingSelectResult)? ResultSet.TYPE_FORWARD_ONLY : ResultSet.TYPE_SCROLL_INSENSITIVE;
     }
 
     /**
@@ -2108,7 +2108,11 @@ public class MySQLResultSet implements ResultSet {
      * @since 1.2
      */
     public Time getTime(final int columnIndex, final Calendar cal) throws SQLException {
-        return getValueObject(columnIndex).getTime(cal);
+        try {
+            return getValueObject(columnIndex).getTime(cal);
+        } catch (ParseException e) {
+            throw SQLExceptionMapper.getSQLException("Could not parse time", e);
+        }
     }
 
     /**
@@ -2127,7 +2131,7 @@ public class MySQLResultSet implements ResultSet {
      * @since 1.2
      */
     public Time getTime(final String columnLabel, final Calendar cal) throws SQLException {
-        return getValueObject(columnLabel).getTime(cal);
+        return getTime(findColumn(columnLabel),cal);
     }
 
     /**
@@ -2148,7 +2152,7 @@ public class MySQLResultSet implements ResultSet {
         try {
             return new Timestamp(getValueObject(columnIndex).getTimestamp(cal).getTime());
         } catch (ParseException e) {
-            throw SQLExceptionMapper.getSQLException("Could not parse as time");
+            throw SQLExceptionMapper.getSQLException("Could not parse timestamp",e);
         }
     }
 
@@ -2171,7 +2175,7 @@ public class MySQLResultSet implements ResultSet {
         try {
             return new Timestamp(getValueObject(columnLabel).getTimestamp(cal).getTime());
         } catch (ParseException e) {
-            throw SQLExceptionMapper.getSQLException("Could not parse as time");
+            throw SQLExceptionMapper.getSQLException("Could not parse time", e);
         }
     }
 

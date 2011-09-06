@@ -4,6 +4,7 @@ import org.junit.Test;
 import org.skysql.jdbc.internal.common.Utils;
 
 import java.sql.*;
+import java.util.Calendar;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -112,6 +113,12 @@ public class DateTest extends BaseTest{
 //            System.out.println(rs.getObject(2));
 
         }
+        rs.close();
+        Calendar cal = Calendar.getInstance();
+        rs = stmt.executeQuery("select '11:11:11'");
+        rs.next();
+        Time t = rs.getTime(1,cal);
+        assertEquals(t.toString(), "11:11:11");
     }
 
 }
