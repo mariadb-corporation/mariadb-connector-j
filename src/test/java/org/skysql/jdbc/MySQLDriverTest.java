@@ -392,34 +392,37 @@ public class MySQLDriverTest extends BaseTest {
         assertEquals(ts.getTime()%1000,123);
     }
 
+
     @Test
     public void preparedStatementTimestampWithMicroseconds() throws Exception {
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        Timestamp ts = new Timestamp(sdf.parse("2001-01-01 11:11:11").getTime());
-        ts.setNanos(123456000);
+        Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/test?user=root&useFractionalSeconds=1");
+        try {
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            Timestamp ts = new Timestamp(sdf.parse("2001-01-01 11:11:11").getTime());
+            ts.setNanos(123456000);
 
-        PreparedStatement st = connection.prepareStatement("select ?");
-        st.setTimestamp(1, ts);
-        ResultSet rs = st.executeQuery();
-        rs.next();
-        Timestamp ts1 = rs.getTimestamp(1);
-        assertEquals(ts1.getNanos(), 123456000);
-    }
+            PreparedStatement st = conn.prepareStatement("select ?");
+            st.setTimestamp(1, ts);
+            ResultSet rs = st.executeQuery();
+            rs.next();
+            Timestamp ts1 = rs.getTimestamp(1);
+            assertEquals(ts1.getNanos(), 123456000);
 
-    @Test
-    public void preparedStatementTimeWithMicroseconds() throws Exception {
-        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
-        Time time = new Time(sdf.parse("11:11:11").getTime());
+            sdf = new SimpleDateFormat("HH:mm:ss");
+            Time time = new Time(sdf.parse("11:11:11").getTime());
 
-        time.setTime(time.getTime() + 111);
+            time.setTime(time.getTime() + 111);
 
-        PreparedStatement st = connection.prepareStatement("select ?");
-        st.setTime(1, time);
-        ResultSet rs = st.executeQuery();
-        rs.next();
-        Time time1 = rs.getTime(1);
-        assertEquals(time1.getTime()%1000,111);
-        assertEquals(time, time1);
+
+            st.setTime(1, time);
+            rs = st.executeQuery();
+            rs.next();
+            Time time1 = rs.getTime(1);
+            assertEquals(time1.getTime()%1000,111);
+            assertEquals(time, time1);
+        } finally {
+            conn.close();
+        }
     }
 
     @Test
@@ -476,4 +479,43 @@ public class MySQLDriverTest extends BaseTest {
         assertEquals("b", rs.getString(2));
     }
 
+    @Test
+    public void setMaxRowsTest() throws Exception {
+        Statement st = connection.createStatement();
+        assertEquals(0, st.getMaxRows());
+
+        st.setMaxRows(3);
+        assertEquals(3, st.getMaxRows());
+
+        /* Check 3 rows are returned if maxRows is limited to 3 */
+        ResultSet rs = st.executeQuery("select * from information_schema.tables");
+        int cnt=0;
+
+        while(rs.next()) {
+            cnt++;
+        }
+        rs.close();
+        assertEquals(3, cnt);
+
+        /* Check that previous setMaxRows has no effect on following statements */
+        Statement st2 = connection.createStatement();
+        assertEquals(0, st2.getMaxRows());
+
+        /* Check 3 rows are returned if maxRows is limited to 3 */
+        ResultSet rs2 = st2.executeQuery("select * from information_schema.tables");
+        cnt=0;
+        while(rs2.next()) {
+            cnt++;
+        }
+        rs2.close();
+        assertTrue(cnt > 3);
+
+        /* Check that attempt to use setMaxRows with negative limit fails */
+        try {
+           st.setMaxRows(-1);
+           assertTrue("setMaxRows(-1) succeeded", false);
+        } catch(SQLException e) {
+           assertTrue(st.getMaxRows() == 3); /* limit should not change */
+        }
+    }
 }

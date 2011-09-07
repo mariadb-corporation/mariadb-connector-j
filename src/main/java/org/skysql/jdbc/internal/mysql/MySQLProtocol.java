@@ -66,6 +66,7 @@ public class MySQLProtocol implements Protocol {
     private String database;
     private final String username;
     private final String password;
+    private int maxRows;  /* max rows returned by a statement */
     private final List<Query> batchList;
     private SyncPacketFetcher packetFetcher;
     private final Properties info;
@@ -623,5 +624,16 @@ public class MySQLProtocol implements Protocol {
 
     public boolean hasUnreadData() {
         return (activeResult != null);
+    }
+
+    public void setMaxRows(int max) throws QueryException{
+        if (maxRows != max) {
+            if (max == 0) {
+                executeQuery(new MySQLQuery("set @@SQL_SELECT_LIMIT=DEFAULT"));
+            } else {
+                executeQuery(new MySQLQuery("set @@SQL_SELECT_LIMIT=" + max));
+            }
+            maxRows = max;
+        }
     }
 }

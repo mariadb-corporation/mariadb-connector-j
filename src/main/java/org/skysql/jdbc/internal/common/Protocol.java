@@ -215,4 +215,5 @@ public interface Protocol {
     boolean hasMoreResults();
     QueryResult getMoreResults(boolean streaming) throws QueryException;
     boolean hasUnreadData();
+    void setMaxRows(int max) throws QueryException;
 }

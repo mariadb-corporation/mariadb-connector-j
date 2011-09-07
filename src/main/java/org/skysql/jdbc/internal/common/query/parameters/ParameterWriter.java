@@ -138,8 +138,8 @@ public class ParameterWriter {
        out.write(QUOTE);
     }
 
-    static void formatMicroseconds(OutputStream out, int microseconds) throws IOException {
-        if (microseconds == 0)
+    static void formatMicroseconds(OutputStream out, int microseconds, boolean writeFractionalSeconds) throws IOException {
+        if (microseconds == 0 || !writeFractionalSeconds)
             return;
         out.write('.');
         int factor = 100000;
@@ -152,7 +152,8 @@ public class ParameterWriter {
     }
 
 
-    public static void writeTimestamp(OutputStream out, Timestamp ts, Calendar calendar) throws IOException {
+    public static void writeTimestamp(OutputStream out, Timestamp ts, Calendar calendar, boolean writeFractionalSeconds)
+            throws IOException {
        out.write(QUOTE);
        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
        if (calendar != null) {
@@ -160,13 +161,13 @@ public class ParameterWriter {
        }
        String dateString = sdf.format(ts);
        out.write(dateString.getBytes());
-       int microseconds = ts.getNanos() / 1000;
-       formatMicroseconds(out, microseconds);
+       formatMicroseconds(out, ts.getNanos() / 1000, writeFractionalSeconds);
        out.write(QUOTE);
     }
 
 
-    public static void writeTime(OutputStream out, Time time, Calendar calendar) throws IOException{
+    public static void writeTime(OutputStream out, Time time, Calendar calendar, boolean writeFractionalSeconds)
+            throws IOException{
        out.write(QUOTE);
        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
        if (calendar != null) {
@@ -175,7 +176,7 @@ public class ParameterWriter {
        String dateString = sdf.format(time);
        out.write(dateString.getBytes());
        int microseconds =  (int)(time.getTime()%1000) * 1000;
-       formatMicroseconds(out, microseconds);
+       formatMicroseconds(out, microseconds, writeFractionalSeconds);
        out.write(QUOTE);
     }
 

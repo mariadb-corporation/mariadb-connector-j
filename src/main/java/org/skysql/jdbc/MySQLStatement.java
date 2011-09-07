@@ -84,6 +84,7 @@ public class MySQLStatement implements Statement {
     private ScheduledFuture<?> timoutFuture;
     private boolean escapeProcessing;
     private int fetchSize;
+    private int maxRows;
     private boolean  isClosed;
 
     Queue<Object> cachedResultSets;
@@ -134,6 +135,11 @@ public class MySQLStatement implements Statement {
         MySQLConnection conn = (MySQLConnection)getConnection();
         conn.reenableWarnings();
         startTimer();
+        try {
+            protocol.setMaxRows(maxRows);
+        } catch(QueryException qe) {
+            throw SQLExceptionMapper.get(qe);
+        }
     }
 
     private void cacheMoreResults() {
@@ -155,31 +161,7 @@ public class MySQLStatement implements Statement {
         }
         queryResult = saveResult;
     }
-    /**
-     * executes a select query.
-     *
-     * @param query the query to send to the server
-     * @return a result set
-     * @throws SQLException if something went wrong
-     */
-    public ResultSet executeQuery(String query) throws SQLException {
-        synchronized (protocol) {
-            executeQueryProlog();
-            if (escapeProcessing)
-               query = Utils.nativeSQL(query);
-            try {
-                final Query queryToSend = queryFactory.createQuery(query);
-                queryResult = protocol.executeQuery(queryToSend, isStreaming());
-                warningsCleared = false;
-                cacheMoreResults();
-                return new MySQLResultSet(queryResult, this, getProtocol());
-            } catch (QueryException e) {
-                throw SQLExceptionMapper.get(e);
-            } finally {
-                stopTimer();
-            }
-        }
-    }
+
 
     protected void startTimer() {
         if(this.queryTimeout > 0) {
@@ -200,30 +182,6 @@ public class MySQLStatement implements Statement {
             this.timoutFuture.cancel(true);
         }
     }
-    /**
-     * Executes an update.
-     *
-     * @param query the update query.
-     * @return update count
-     * @throws SQLException if the query could not be sent to server.
-     */
-    public int executeUpdate(String query) throws SQLException {
-        synchronized (protocol) {
-            executeQueryProlog();
-            try {
-                warningsCleared = false;
-                queryResult = protocol.executeQuery(queryFactory.createQuery(query));
-                cacheMoreResults();
-                return (int) ((ModifyQueryResult) queryResult).getUpdateCount();
-            } catch (QueryException e) {
-                throw SQLExceptionMapper.get(e);
-            }
-            finally
-            {
-                stopTimer();
-            }
-        }
-    }
 
     /**
      * executes a query.
@@ -232,17 +190,19 @@ public class MySQLStatement implements Statement {
      * @return true if there was a result set, false otherwise.
      * @throws SQLException
      */
-    public boolean execute(String query) throws SQLException {
+     protected boolean execute(Query query) throws SQLException {
+        if (isClosed()) {
+            throw new SQLException("execute() is called on closed statement");
+        }
         synchronized (protocol) {
             executeQueryProlog();
             try {
-                queryResult = protocol.executeQuery(queryFactory.createQuery(query), isStreaming());
+                queryResult = protocol.executeQuery(query, isStreaming());
                 cacheMoreResults();
                 if (queryResult.getResultSetType() == ResultSetType.SELECT) {
                     return true;
                 }
                 setUpdateCount(((ModifyQueryResult) queryResult).getUpdateCount());
-                cacheMoreResults();
                 return false;
             } catch (QueryException e) {
                 throw SQLExceptionMapper.get(e);
@@ -250,6 +210,76 @@ public class MySQLStatement implements Statement {
                 stopTimer();
             }
         }
+    }
+
+     /**
+     * executes a select query.
+     *
+     * @param query the query to send to the server
+     * @return a result set
+     * @throws SQLException if something went wrong
+     */
+    protected ResultSet executeQuery(Query query) throws SQLException {
+        if (execute(query)) {
+            return new MySQLResultSet(queryResult, this, protocol);
+        }
+        //throw new SQLException("executeQuery() with query '" + query +"' did not return a result set");
+        return MySQLResultSet.EMPTY;
+    }
+
+    /**
+     * Executes an update.
+     *
+     * @param query the update query.
+     * @return update count
+     * @throws SQLException if the query could not be sent to server.
+     */
+    protected int executeUpdate(Query query) throws SQLException {
+        if (execute(query))
+            return 0;
+        return getUpdateCount();
+    }
+
+    private Query stringToQuery(String queryString) throws SQLException {
+        if (escapeProcessing) {
+            queryString = Utils.nativeSQL(queryString);
+        }
+        return queryFactory.createQuery(queryString);
+    }
+
+
+    /**
+     * executes a query.
+     *
+     * @param queryString the query
+     * @return true if there was a result set, false otherwise.
+     * @throws SQLException
+     */
+    public boolean execute(String queryString) throws SQLException {
+        return execute(stringToQuery(queryString));
+    }
+
+    /**
+     * Executes an update.
+     *
+     * @param queryString the update query.
+     * @return update count
+     * @throws SQLException if the query could not be sent to server.
+     */
+    public int executeUpdate(String queryString) throws SQLException {
+        return executeUpdate(stringToQuery(queryString));
+    }
+
+
+     /**
+     * executes a select query.
+     *
+     * @param queryString the query to send to the server
+     * @return a result set
+     * @throws SQLException if something went wrong
+     */
+    public ResultSet executeQuery(String queryString) throws SQLException {
+        return executeQuery(stringToQuery(queryString));
     }
 
     public QueryFactory getQueryFactory() {
@@ -328,7 +358,7 @@ public class MySQLStatement implements Statement {
      * @see #setMaxRows
      */
     public int getMaxRows() throws SQLException {
-        return 0;  // 0 = no limit
+        return maxRows;
     }
 
     /**
@@ -342,7 +372,10 @@ public class MySQLStatement implements Statement {
      * @see #getMaxRows
      */
     public void setMaxRows(final int max) throws SQLException {
-        //we dont support this (yet?)
+        if (max < 0) {
+            throw new SQLException("max rows is negative");
+        }
+        maxRows = max;
     }
 
     /**

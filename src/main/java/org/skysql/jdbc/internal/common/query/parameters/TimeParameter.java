@@ -32,19 +32,17 @@ import java.util.Calendar;
 
 
 public class TimeParameter implements ParameterHolder {
-
     Time time;
     Calendar cal;
+    boolean fractionalSeconds;
 
-    public TimeParameter(Time time) {
-        this(time, null);
-    }
-    public TimeParameter(Time time, Calendar cal) {
+    public TimeParameter(Time time, Calendar cal, boolean fractionalSeconds) {
         this.time = time;
         this.cal = cal;
+        this.fractionalSeconds = fractionalSeconds;
     }
 
     public void writeTo(final OutputStream os) throws IOException {
-        ParameterWriter.writeTime(os, time, cal);
+        ParameterWriter.writeTime(os, time, cal, fractionalSeconds);
     }
 }

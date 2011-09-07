@@ -1,5 +1,6 @@
 package org.skysql.jdbc;
 
+import junit.framework.Assert;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -112,5 +113,34 @@ public class MultiTest {
         assertTrue(count>0);
     }
 
+   @Test
+    public void setMaxRowsMulti() throws Exception {
+        Statement st = connection.createStatement();
+        Assert.assertEquals(0, st.getMaxRows());
 
+        st.setMaxRows(3);
+        Assert.assertEquals(3, st.getMaxRows());
+
+        /* Check 3 rows are returned if maxRows is limited to 3, in every result set in batch */
+
+       /* Check first result set for at most 3 rows*/
+        ResultSet rs = st.executeQuery("select * from information_schema.tables;select * from information_schema.tables");
+        int cnt=0;
+
+        while(rs.next()) {
+            cnt++;
+        }
+        rs.close();
+        Assert.assertEquals(3, cnt);
+
+       /* Check second result set for at most 3 rows*/
+        assertTrue(st.getMoreResults());
+        rs = st.getResultSet();
+        cnt = 0;
+        while(rs.next()) {
+            cnt++;
+        }
+        rs.close();
+        Assert.assertEquals(3, cnt);
+   }
 }
