@@ -127,6 +127,20 @@ public class MySQLProtocol implements Protocol {
             } else {
                 socket.connect(sockAddr);
             }
+            
+            // Extract socketTimeout URL parameter
+            String socketTimeoutString = info.getProperty("socketTimeout");
+            Integer socketTimeout = null;
+            if (socketTimeoutString != null) {
+                try {
+                    socketTimeout = Integer.valueOf(socketTimeoutString);
+                } catch (Exception e) {
+                    socketTimeout = null;
+                }
+            }
+            if (socketTimeout != null)
+            	socket.setSoTimeout(socketTimeout);
+            
         } catch (IOException e) {
             throw new QueryException("Could not connect to " + this.host + ":" +
 				this.port + ": " + e.getMessage(),
@@ -588,9 +602,10 @@ public class MySQLProtocol implements Protocol {
     }
 
     public boolean createDB() {
+    	String alias = info.getProperty("createDatabaseIfNotExist");
         return info != null
                 && (info.getProperty("createDB", "").equalsIgnoreCase("true")
-                		|| info.getProperty("createDatabaseIfNotExist").equalsIgnoreCase("true"));
+                		|| (alias != null && alias.equalsIgnoreCase("true")));
     }
 
 
