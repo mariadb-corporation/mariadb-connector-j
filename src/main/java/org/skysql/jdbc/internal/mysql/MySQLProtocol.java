@@ -589,7 +589,8 @@ public class MySQLProtocol implements Protocol {
 
     public boolean createDB() {
         return info != null
-                && info.getProperty("createDB", "").equalsIgnoreCase("true");
+                && (info.getProperty("createDB", "").equalsIgnoreCase("true")
+                		|| info.getProperty("createDatabaseIfNotExist").equalsIgnoreCase("true"));
     }
 
 
