@@ -122,6 +122,16 @@ public class MySQLProtocol implements Protocol {
             // Create socket with timeout if required
             InetSocketAddress sockAddr = new InetSocketAddress(host, port);
             socket = socketFactory.createSocket();
+            
+            // Bind the socket to a particular interface if the connection property
+            // localSocketAddress has been defined.
+            String localHost = info.getProperty("localSocketAddress");
+            if (localHost != null)
+            {
+            	InetSocketAddress localAddress = new InetSocketAddress(localHost, 0);
+            	socket.bind(localAddress);
+            }
+            
             if (connectTimeout != null) {
                 socket.connect(sockAddr, connectTimeout * 1000);
             } else {
@@ -180,6 +190,9 @@ public class MySQLProtocol implements Protocol {
             if(info.getProperty("useCompression") != null) {
                 capabilities.add(MySQLServerCapabilities.COMPRESS);
                 useCompression = true;
+            }
+            if(info.getProperty("interactiveClient") != null) {
+                capabilities.add(MySQLServerCapabilities.CLIENT_INTERACTIVE);
             }
             if(info.getProperty("useSSL") != null && greetingPacket.getServerCapabilities().contains(MySQLServerCapabilities.SSL)) {
                 capabilities.add(MySQLServerCapabilities.SSL);
