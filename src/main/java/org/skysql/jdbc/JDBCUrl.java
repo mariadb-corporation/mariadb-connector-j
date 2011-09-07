@@ -39,18 +39,20 @@ public class JDBCUrl {
     private final String hostname;
     private final int port;
     private final String database;
+    private final String hostlist[];
 
     public enum DBType {
         DRIZZLE, MYSQL
     }
 
-    private JDBCUrl(DBType dbType, String username, String password, String hostname, int port, String database) {
+    private JDBCUrl(DBType dbType, String username, String password, String hostname, int port, String database, String hostlist[]) {
         this.dbType = dbType;
         this.username = username;
         this.password = password;
         this.hostname = hostname;
         this.port = port;
         this.database = database;
+	this.hostlist = hostlist;
     }
 
     /*
@@ -59,10 +61,16 @@ public class JDBCUrl {
 
      */
     private static JDBCUrl parseConnectorJUrl(String url) {
-        Pattern p = Pattern.compile("^jdbc:mysql://([A-Za-z0-9._]+)?(:\\d+)?(/\\w+)?");
+        Pattern p = Pattern.compile("^jdbc:mysql://([A-Za-z0-9._,]+)?(:\\d+)?(/\\w+)?");
         Matcher m = p.matcher(url);
         if (m.find()){
            String hostname = m.group(1);
+	   String hostlist[] = null;
+	   if (hostname.indexOf(',') != -1)	// We have a failover list
+	   {
+		hostlist = hostname.split(",");
+		hostname = hostlist[0];
+	   }
            String port = m.group(2);
            if(port == null) {
                port = "3306";
@@ -74,7 +82,7 @@ public class JDBCUrl {
            if ( m.group(3)!= null) {
                database=m.group(3).substring(1);
            }
-           return new JDBCUrl(DBType.MYSQL, "", "", hostname, Integer.valueOf(port), database);
+           return new JDBCUrl(DBType.MYSQL, "", "", hostname, Integer.valueOf(port), database, hostlist);
         }
         return null;
     }
@@ -112,7 +120,7 @@ public class JDBCUrl {
                 }
             }
             database = m.group(10);
-            return new JDBCUrl(dbType, username, password, hostname, port, database);
+            return new JDBCUrl(dbType, username, password, hostname, port, database, null);
         } else {
             return null;
         }
@@ -139,6 +147,10 @@ public class JDBCUrl {
 
     public DBType getDBType() {
         return this.dbType;
+    }
+
+    public String[] getHostlist() {
+	return this.hostlist;
     }
 
 }
