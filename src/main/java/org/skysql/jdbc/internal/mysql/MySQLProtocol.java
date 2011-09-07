@@ -123,11 +123,35 @@ public class MySQLProtocol implements Protocol {
             // Create socket with timeout if required
             InetSocketAddress sockAddr = new InetSocketAddress(host, port);
             socket = socketFactory.createSocket();
+            
+            // Bind the socket to a particular interface if the connection property
+            // localSocketAddress has been defined.
+            String localHost = info.getProperty("localSocketAddress");
+            if (localHost != null)
+            {
+            	InetSocketAddress localAddress = new InetSocketAddress(localHost, 0);
+            	socket.bind(localAddress);
+            }
+            
             if (connectTimeout != null) {
                 socket.connect(sockAddr, connectTimeout * 1000);
             } else {
                 socket.connect(sockAddr);
             }
+            
+            // Extract socketTimeout URL parameter
+            String socketTimeoutString = info.getProperty("socketTimeout");
+            Integer socketTimeout = null;
+            if (socketTimeoutString != null) {
+                try {
+                    socketTimeout = Integer.valueOf(socketTimeoutString);
+                } catch (Exception e) {
+                    socketTimeout = null;
+                }
+            }
+            if (socketTimeout != null)
+            	socket.setSoTimeout(socketTimeout);
+            
         } catch (IOException e) {
             throw new QueryException("Could not connect to " + this.host + ":" +
 				this.port + ": " + e.getMessage(),
@@ -167,6 +191,9 @@ public class MySQLProtocol implements Protocol {
             if(info.getProperty("useCompression") != null) {
                 capabilities.add(MySQLServerCapabilities.COMPRESS);
                 useCompression = true;
+            }
+            if(info.getProperty("interactiveClient") != null) {
+                capabilities.add(MySQLServerCapabilities.CLIENT_INTERACTIVE);
             }
             if(info.getProperty("useSSL") != null && greetingPacket.getServerCapabilities().contains(MySQLServerCapabilities.SSL)) {
                 capabilities.add(MySQLServerCapabilities.SSL);
@@ -589,8 +616,10 @@ public class MySQLProtocol implements Protocol {
     }
 
     public boolean createDB() {
+    	String alias = info.getProperty("createDatabaseIfNotExist");
         return info != null
-                && info.getProperty("createDB", "").equalsIgnoreCase("true");
+                && (info.getProperty("createDB", "").equalsIgnoreCase("true")
+                		|| (alias != null && alias.equalsIgnoreCase("true")));
     }
 
 
