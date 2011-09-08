@@ -2,7 +2,14 @@ package org.skysql.jdbc;
 
 import org.junit.Test;
 
-import java.sql.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.sql.Blob;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -54,4 +61,19 @@ public class BlobTest extends BaseTest {
         assertEquals(MySQLClob.class, rs.getObject(4).getClass());
     }
 
+    @Test
+    public void blobSerialization() throws Exception {
+       Blob b = new MySQLBlob(new byte[]{1,2,3});
+       ByteArrayOutputStream baos = new ByteArrayOutputStream();
+       ObjectOutputStream oos = new ObjectOutputStream(baos);
+       oos.writeObject(b);
+
+       ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(baos.toByteArray()));
+       MySQLBlob b2 = (MySQLBlob)ois.readObject();
+       byte[] a = b2.getBytes(1, (int)b2.length());
+       assertEquals(3, a.length);
+       assertEquals(1, a[0]);
+       assertEquals(2, a[1]);
+       assertEquals(3, a[2]);
+    }
 }

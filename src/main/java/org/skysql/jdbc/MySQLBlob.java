@@ -46,6 +46,23 @@ public  class MySQLBlob implements Blob, Serializable {
      */
     protected int actualSize;
 
+    private void writeObject(java.io.ObjectOutputStream out)
+         throws IOException {
+        out.writeInt(actualSize);
+        if(actualSize > 0) {
+            out.write(blobContent, 0, actualSize);
+        }
+    }
+
+    private void readObject(java.io.ObjectInputStream in)
+         throws IOException, ClassNotFoundException {
+        actualSize = in.readInt();
+        blobContent = new byte[actualSize];
+        if (actualSize > 0) {
+            in.readFully(blobContent, 0, actualSize);
+        }
+    }
+
     /**
      * How big the blob should be initially.
      */
