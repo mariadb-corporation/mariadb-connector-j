@@ -84,7 +84,7 @@ public class BlobTest extends BaseTest {
 
        ois = new ObjectInputStream(new ByteArrayInputStream(baos.toByteArray()));
        MySQLClob c2 = (MySQLClob)ois.readObject();
-       a = b2.getBytes(1, (int)b2.length());
+       a = c2.getBytes(1, (int)c2.length());
        assertEquals(3, a.length);
        assertEquals(1, a[0]);
        assertEquals(2, a[1]);
