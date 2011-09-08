@@ -114,6 +114,12 @@ class CallableParameterMetaData implements ParameterMetaData {
         if (noAccessToMetadata || valid)
             return;
 
+        boolean noBackslashEscapes  = false;
+
+        if (con instanceof MySQLConnection) {
+            noBackslashEscapes =   ((MySQLConnection)con).noBackslashEscapes;
+        }
+
         String dbname= "database()";
         String procedureNameNoDb=name;
 
@@ -121,12 +127,12 @@ class CallableParameterMetaData implements ParameterMetaData {
         if(dotIndex > 0) {
             dbname = name.substring(0, dotIndex);
             dbname = dbname.replace("`", "");
-            dbname = "'" + Utils.sqlEscapeString(dbname) + "'";
+            dbname = "'" + Utils.sqlEscapeString(dbname,noBackslashEscapes)  + "'";
             procedureNameNoDb= name.substring(dotIndex+1);
         }
 
         procedureNameNoDb = procedureNameNoDb.replace("`","");
-        procedureNameNoDb = "'" + Utils.sqlEscapeString(procedureNameNoDb) + "'";
+        procedureNameNoDb = "'" + Utils.sqlEscapeString(procedureNameNoDb,noBackslashEscapes) + "'";
 
         Statement st = con.createStatement();
         ResultSet rs = null;
@@ -352,7 +358,7 @@ public class MySQLCallableStatement implements CallableStatement
     public MySQLCallableStatement(Connection connection, String query) throws SQLException{
         con = connection;
 
-        query = Utils.nativeSQL(query);
+        query = Utils.nativeSQL(query, ((MySQLConnection)connection).noBackslashEscapes);
         batchIgnoreResult = new BitSet();
         Matcher m = CALLABLE_STATEMENT_PATTERN.matcher(query);
         if(!m.matches())

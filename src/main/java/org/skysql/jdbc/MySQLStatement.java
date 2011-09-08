@@ -63,7 +63,7 @@ public class MySQLStatement implements Statement {
     /**
      * the sql Connection object.
      */
-    private final MySQLConnection connection;
+    protected MySQLConnection connection;
 
 
     /**
@@ -242,7 +242,7 @@ public class MySQLStatement implements Statement {
 
     private Query stringToQuery(String queryString) throws SQLException {
         if (escapeProcessing) {
-            queryString = Utils.nativeSQL(queryString);
+            queryString = Utils.nativeSQL(queryString,connection.noBackslashEscapes);
         }
         return queryFactory.createQuery(queryString);
     }

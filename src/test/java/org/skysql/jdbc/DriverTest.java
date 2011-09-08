@@ -1334,7 +1334,6 @@ public class DriverTest extends BaseTest{
         try {
             st.execute("drop table if exists testBlob2");
             st.execute("create table testBlob2(a blob)");
-
             Connection newConnection = DriverManager.getConnection("jdbc:mysql://localhost:3306/test?user=root");
             try {
                 PreparedStatement preparedStatement =
@@ -1347,6 +1346,46 @@ public class DriverTest extends BaseTest{
                 preparedStatement.setBlob(1, blob);
                 int affectedRows = preparedStatement.executeUpdate();
                 Assert.assertEquals(affectedRows, 1);
+            } finally {
+                newConnection.close();
+            }
+        }
+        finally {
+            st.execute("set @@global.sql_mode='" + originalSqlMode+ "'");
+        }
+    }
+
+ // Test if driver works with sql_mode= NO_BACKSLASH_ESCAPES
+    @Test
+    public void NoBackslashEscapes2() throws SQLException {
+        Statement st = connection.createStatement();
+        ResultSet rs = st.executeQuery("select @@global.sql_mode");
+        rs.next();
+        String originalSqlMode = rs.getString(1);
+        st.execute("set @@global.sql_mode = '" + originalSqlMode + ",NO_BACKSLASH_ESCAPES'");
+
+        try {
+            st.execute("drop table if exists testString2");
+            st.execute("create table testString2(a varchar(10))");
+            Connection newConnection = DriverManager.getConnection("jdbc:mysql://localhost:3306/test?user=root");
+            try {
+                PreparedStatement preparedStatement =
+                        newConnection.prepareStatement("insert into testString2(a) values(?)");
+                preparedStatement.setString(1, "'\\");
+                int affectedRows = preparedStatement.executeUpdate();
+                Assert.assertEquals(affectedRows, 1);
+                preparedStatement.close();
+                preparedStatement =
+                        newConnection.prepareStatement("select * from testString2");
+                rs = preparedStatement.executeQuery();
+                rs.next();
+                String out = rs.getString(1);
+                assertEquals(out, "'\\");
+                Statement st2  = newConnection.createStatement();
+                rs = st2.executeQuery("select 'a\\b\\c'");
+                rs.next();
+                assertEquals("a\\b\\c",rs.getString(1));
+
             } finally {
                 newConnection.close();
             }

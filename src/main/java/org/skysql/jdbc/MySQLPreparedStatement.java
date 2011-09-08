@@ -66,7 +66,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
         if(log.isLoggable(Level.FINEST)) {
             log.finest("Creating prepared statement for " + query);
         }
-        dQuery = queryFactory.createParameterizedQuery(Utils.nativeSQL(query));
+        dQuery = queryFactory.createParameterizedQuery(Utils.nativeSQL(query, connection.noBackslashEscapes));
         this.parameterizedBatchHandler = parameterizedBatchHandler;
     }
 
@@ -197,7 +197,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
      * @since 1.2
      */
     public void setCharacterStream(final int parameterIndex, final Reader reader, final int length) throws SQLException {
-        setParameter(parameterIndex, new ReaderParameter(reader, length));
+        setParameter(parameterIndex, new ReaderParameter(reader, length, connection.noBackslashEscapes));
     }
 
     /**
@@ -235,7 +235,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
             setNull(parameterIndex, Types.BLOB);
             return;
         }
-        setParameter(parameterIndex, new StreamParameter(x.getBinaryStream(), x.length()));
+        setParameter(parameterIndex, new StreamParameter(x.getBinaryStream(), x.length(), connection.noBackslashEscapes));
     }
 
     /**
@@ -256,7 +256,8 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
             setNull(parameterIndex, Types.CLOB);
             return;
         }
-        setParameter(parameterIndex, new StreamParameter(x.getAsciiStream(), ((MySQLBlob)x).length()));
+        setParameter(parameterIndex,
+                new StreamParameter(x.getAsciiStream(), ((MySQLBlob)x).length(), connection.noBackslashEscapes));
     }
 
     /**
@@ -430,7 +431,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
      * @since 1.4
      */
     public void setURL(final int parameterIndex, final URL x) throws SQLException {
-        setParameter(parameterIndex, new StringParameter(x.toString()));
+        setParameter(parameterIndex, new StringParameter(x.toString(), connection.noBackslashEscapes));
     }
 
     /**
@@ -569,7 +570,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
             setNull(parameterIndex, Types.BLOB);
             return;
         }
-        setParameter(parameterIndex, new StreamParameter(inputStream, length));
+        setParameter(parameterIndex, new StreamParameter(inputStream, length, connection.noBackslashEscapes));
     }
 
     /**
@@ -721,7 +722,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
             setNull(parameterIndex, Types.VARCHAR);
             return;
         }
-        setParameter(parameterIndex, new StreamParameter(x, length));
+        setParameter(parameterIndex, new StreamParameter(x, length, connection.noBackslashEscapes));
     }
 
     /**
@@ -746,7 +747,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
             setNull(parameterIndex, Types.BLOB);
             return;
         }
-        setParameter(parameterIndex, new StreamParameter(x, length));
+        setParameter(parameterIndex, new StreamParameter(x, length, connection.noBackslashEscapes));
     }
 
     /**
@@ -772,7 +773,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
             setNull(parameterIndex, Types.BLOB);
             return;
         }
-        setParameter(parameterIndex, new ReaderParameter(reader, length));
+        setParameter(parameterIndex, new ReaderParameter(reader, length, connection.noBackslashEscapes));
     }
 
     /**
@@ -804,7 +805,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
         }
 
         try {
-            setParameter(parameterIndex, new StreamParameter(x));
+            setParameter(parameterIndex, new StreamParameter(x, connection.noBackslashEscapes));
         } catch (IOException e) {
             throw SQLExceptionMapper.getSQLException("Could not read stream");
         }
@@ -843,7 +844,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
                 setParameter(parameterIndex,
                         new BlobStreamingParameter(x, getProtocol().getHost(), "9090", getProtocol().getDatabase()));
             } else {
-                setParameter(parameterIndex, new StreamParameter(x));
+                setParameter(parameterIndex, new StreamParameter(x, connection.noBackslashEscapes));
             }
         } catch (IOException e) {
             throw SQLExceptionMapper.getSQLException("Could not read stream");
@@ -874,7 +875,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
             setNull(parameterIndex, Types.BLOB);
             return;
         }
-        setParameter(parameterIndex, new ReaderParameter(reader));
+        setParameter(parameterIndex, new ReaderParameter(reader, connection.noBackslashEscapes));
     }
 
     /**
@@ -956,7 +957,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
                 setParameter(parameterIndex,
                         new BlobStreamingParameter(inputStream, getProtocol().getHost(), "9090", getProtocol().getDatabase()));
             } else {
-                setParameter(parameterIndex, new StreamParameter(inputStream));
+                setParameter(parameterIndex, new StreamParameter(inputStream, connection.noBackslashEscapes));
             }
         } catch (IOException e) {
             throw SQLExceptionMapper.getSQLException("Could not read stream");
@@ -1033,7 +1034,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
             return;
         }
 
-        setParameter(column, new StringParameter(s));
+        setParameter(column, new StringParameter(s, connection.noBackslashEscapes));
     }
 
     /**
@@ -1053,7 +1054,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
             return;
         }
 
-        setParameter(parameterIndex, new ByteArrayParameter(x));
+        setParameter(parameterIndex, new ByteArrayParameter(x, connection.noBackslashEscapes));
     }
 
     /**
@@ -1139,7 +1140,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
             setNull(parameterIndex, Types.BLOB);
             return;
         }
-        setParameter(parameterIndex, new StreamParameter(x, length));
+        setParameter(parameterIndex, new StreamParameter(x, length, connection.noBackslashEscapes));
     }
 
     /**
@@ -1171,7 +1172,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
             setNull(parameterIndex, Types.BLOB);
             return;
         }
-        setParameter(parameterIndex, new StreamParameter(x, length));
+        setParameter(parameterIndex, new StreamParameter(x, length, connection.noBackslashEscapes));
     }
 
     /**
@@ -1195,7 +1196,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
             setNull(parameterIndex, Types.BLOB);
             return;
         }
-        setParameter(parameterIndex, new StreamParameter(x, length));
+        setParameter(parameterIndex, new StreamParameter(x, length, connection.noBackslashEscapes));
     }
 
     /**
@@ -1459,7 +1460,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
             setClob(parameterIndex, (Clob)x);
         } else {
             try {
-                setParameter(parameterIndex, new SerializableParameter(x));
+                setParameter(parameterIndex, new SerializableParameter(x, connection.noBackslashEscapes));
             } catch (IOException e) {
                 throw SQLExceptionMapper.getSQLException("Could not set serializable parameter in setObject: " + e.getMessage(), e);
             }

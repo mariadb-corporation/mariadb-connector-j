@@ -36,23 +36,23 @@ public class UtilTest {
                 + "          '{string data with { or } will not be altered'   \n"
                 + "--  Also note that you can safely include { and } in comments";
 
-        String s = Utils.nativeSQL(exSql);
+        String s = Utils.nativeSQL(exSql, false);
         assertEquals(results, s);
     }
     @Test
     public void escape2() throws SQLException {
         // the query is nonsensical, but makes a good test case for handling SQL_{TSI_}? type modifiers
         String in = "select {fn timestampdiff(SQL_TSI_HOUR, {fn convert('SQL_', SQL_INTEGER)})}";
-        String out = Utils.nativeSQL(in);
+        String out = Utils.nativeSQL(in, false);
         assertEquals(out, "select timestampdiff(HOUR, convert('SQL_', INTEGER))");
         in = "{call foo({fn now()})}";
-        out = Utils.nativeSQL(in);
+        out = Utils.nativeSQL(in, false);
         assertEquals(out, "call foo(now())");
         in = "{?=call foo({fn now()})}";
-        out = Utils.nativeSQL(in);
+        out = Utils.nativeSQL(in, false);
         assertEquals(out, "?=call foo(now())");
         in = "SELECT 'David_' LIKE 'David|_' {escape '|'}";
-        out = Utils.nativeSQL(in);
+        out = Utils.nativeSQL(in, false);
         assertEquals(out, "SELECT 'David_' LIKE 'David|_' escape '|'");
 
     }

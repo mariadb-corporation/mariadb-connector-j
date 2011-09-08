@@ -34,20 +34,21 @@ import java.io.OutputStream;
 public class StreamParameter implements ParameterHolder {
     InputStream is;
     long length;
+    boolean noBackslashEscapes;
 
-    public StreamParameter(InputStream is, long length) {
+    public StreamParameter(InputStream is, long length, boolean noBackslashEscapes) {
         this.is = is;
         this.length = length;
+        this.noBackslashEscapes = noBackslashEscapes;
     }
-    public StreamParameter(InputStream is) throws IOException {
-        this.is = is;
-        length = Long.MAX_VALUE;
+    public StreamParameter(InputStream is, boolean noBackSlashEscapes) throws IOException {
+        this(is,Long.MAX_VALUE, noBackSlashEscapes);
     }
 
     public void writeTo(final OutputStream os) throws IOException {
         if (length == Long.MAX_VALUE)
-            ParameterWriter.write(os, is);
+            ParameterWriter.write(os, is, noBackslashEscapes);
         else
-            ParameterWriter.write(os, is, length);
+            ParameterWriter.write(os, is, length, noBackslashEscapes);
     }
 }

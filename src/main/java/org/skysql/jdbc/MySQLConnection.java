@@ -63,6 +63,7 @@ public final class MySQLConnection
 
     private boolean warningsCleared;
     private Statement activeStatement;
+    boolean noBackslashEscapes;
 
 
     /**
@@ -94,28 +95,14 @@ public final class MySQLConnection
             return connection;
         }
 
-        // Cleanse sql_mode (remove NO_BACKSLASH_ESCAPES if set)
         Statement st = null;
         try {
             st = connection.createStatement();
             ResultSet rs = st.executeQuery("select @@sql_mode");
             rs.next();
-            String originalSqlMode = rs.getString(1);
-            if (originalSqlMode.contains("NO_BACKSLASH_ESCAPES")) {
-                String[] options = originalSqlMode.split(",");
-                StringBuffer sb = new StringBuffer();
-                for(int i=0; i < options.length; i++) {
-                    if(!options[i].equals("NO_BACKSLASH_ESCAPES")){
-                        sb.append(options[i]);
-                        if (i != options.length -1)
-                            sb.append(",");
-                    }
-                }
-                String newSqlMode = sb.toString();
-                int len =  newSqlMode.length();
-                if (len > 0 && newSqlMode.charAt(len - 1) == ',')
-                    newSqlMode = newSqlMode.substring(0,len - 1);
-                st.execute("set @@sql_mode='"+newSqlMode + "'");
+            String sqlMode = rs.getString(1);
+            if (sqlMode.contains("NO_BACKSLASH_ESCAPES")) {
+                connection.noBackslashEscapes = true;
             }
         } finally {
             if (st != null)
@@ -172,7 +159,7 @@ public final class MySQLConnection
      * @throws SQLException
      */
     public String nativeSQL(final String sql) throws SQLException {
-        return Utils.nativeSQL(sql);
+        return Utils.nativeSQL(sql,noBackslashEscapes);
     }
 
     /**

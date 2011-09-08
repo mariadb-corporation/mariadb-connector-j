@@ -6,7 +6,7 @@ import java.sql.Clob;
 import java.sql.NClob;
 import java.sql.SQLException;
 
-public class MySQLClob extends MySQLBlob implements Clob, NClob {
+public class MySQLClob extends MySQLBlob implements Clob, NClob, Serializable {
 
     public String toString() {
       try {

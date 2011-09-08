@@ -51,80 +51,34 @@ public class Utils {
     private static boolean java5Determined = false;
     private static boolean isJava5 = false;
 
-    /**
-     * returns true if the byte b needs to be escaped
-     *
-     * @param b the byte to check
-     * @return true if the byte needs escaping
-     */
 
-    public static boolean needsEscaping(final byte b) {
-        if ((b & 0x80) == 0) {
-            switch (b) {
-                case '"':
-                case 0:
-                case '\n':
-                case '\r':
-                case '\\':
-                case '\'':
-                case '\032':
-                    return true;
-            }
-        }
-        return false;
-    }
-
-    /*public static byte [] escape(byte [] input) {
-        byte [] buffer = new byte[input.length*2];
-        for(byte b:buffer) {
-            if(b <= (byte)127) {
-                switch(b) {
-                    case 0:
-                    case '"':
-                    case '\n':
-                    case '\r':
-                    case '\\':
-                    case '\'':
-                    case '\032':
-                    
-                }
-            }
-        }
-
-    } */
     /**
      * escapes the given string, new string length is at most twice the length of str
      *
      * @param str the string to escape
      * @return an escaped string
      */
-    public static String sqlEscapeString(final String str) {
-        byte[] strBytes = new byte[0];
-        try {
-            strBytes = str.getBytes("UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException("UTF-8 not supported", e);
+    public static String sqlEscapeString(final String str, boolean noBackslashEscapes) {
+        if (noBackslashEscapes) {
+            return str.replaceAll("'", "''");
         }
-        byte[] outBytes = new byte[strBytes.length * 2]; //overkill but safe, streams need to be escaped on-the-fly
-        int bytePointer = 0;
-        boolean neededEscaping = false;
-        for (final byte b : strBytes) {
-            if (needsEscaping(b)) {
-                neededEscaping = true;
-                outBytes[bytePointer++] = '\\';
-                outBytes[bytePointer++] = b;
+        else {
+            int indexQuote = str.indexOf('\'');
+            int indexBackslash = str.indexOf('\\');
+            if (indexQuote >=0 || indexBackslash >=0) {
+               StringBuffer sb = new StringBuffer(str.length()+1);
+               for(int i=0; i < str.length(); i++) {
+                   char c = str.charAt(i);
+                   if (c == '\'' || c == '\\') {
+                       sb.append('\\');
+                   }
+                   sb.append(c);
+               }
+               return sb.toString();
             } else {
-                outBytes[bytePointer++] = b;
+                return str;
             }
         }
-        if(neededEscaping)
-            try {
-                return new String(outBytes, 0, bytePointer, "UTF-8");
-            } catch (UnsupportedEncodingException e) {
-                throw new RuntimeException("UTF-8 not supported", e);
-            }
-        else
-            return str;
     }
 
     /**
@@ -472,17 +426,17 @@ public class Utils {
         return new String(input);
      }
 
-    private static String resolveEscapes(String escaped) throws SQLException{
+    private static String resolveEscapes(String escaped, boolean noBackslashEscapes) throws SQLException{
         if(escaped.charAt(0) != '{' || escaped.charAt(escaped.length()-1) != '}')
             throw new SQLException("unexpected escaped string");
         int endIndex = escaped.length()-1;
         if (escaped.startsWith("{fn ")) {
             String resolvedParams = replaceFunctionParameter(escaped.substring(4,endIndex));
-            return nativeSQL(resolvedParams);
+            return nativeSQL(resolvedParams, noBackslashEscapes);
         }
         else if(escaped.startsWith("{oj ")) {
             // Outer join
-            return nativeSQL(escaped.substring(4, endIndex));
+            return nativeSQL(escaped.substring(4, endIndex), noBackslashEscapes);
         }
         else if(escaped.startsWith("{d "))  {
             // date literal
@@ -499,20 +453,20 @@ public class Utils {
         else if (escaped.startsWith("{call ") || escaped.startsWith("{CALL ")) {
             // We support uppercase "{CALL" only because Connector/J supports it. It is not in the JDBC spec.
 
-            return  nativeSQL(escaped.substring(1, endIndex));
+            return  nativeSQL(escaped.substring(1, endIndex), noBackslashEscapes);
         }
         else if (escaped.startsWith("{escape ")) {
             return  escaped.substring(1, endIndex);
         }
         else if (escaped.startsWith("{?")) {
            // likely ?=call(...)
-           return nativeSQL(escaped.substring(1, endIndex));
+           return nativeSQL(escaped.substring(1, endIndex), noBackslashEscapes);
         } else if (escaped.startsWith("{ ")) {
             // Spaces before keyword, this is not JDBC compliant, however some it works in some drivers,
             // so we support it, too
             for(int i = 2; i < escaped.length(); i++) {
                 if (!Character.isWhitespace(escaped.charAt(i))) {
-                   return resolveEscapes("{" + escaped.substring(i));
+                   return resolveEscapes("{" + escaped.substring(i), noBackslashEscapes);
                 }
             }
         }
@@ -520,7 +474,7 @@ public class Utils {
     }
 
 
-    public static String nativeSQL(String sql) throws SQLException{
+    public static String nativeSQL(String sql, boolean noBackslashEscapes) throws SQLException{
         if (sql.indexOf('{') == -1)
             return sql;
 
@@ -537,7 +491,7 @@ public class Utils {
 
         for(int i = 0 ; i< a.length; i++) {
             char c = a[i];
-            if (lastChar == '\\') {
+            if (lastChar == '\\' && !noBackslashEscapes) {
                 sqlBuffer.append(c);
                 continue;
             }
@@ -620,7 +574,7 @@ public class Utils {
                         inEscapeSeq--;
                         if (inEscapeSeq == 0) {
                             escapeSequenceBuf.append(c);
-                            sqlBuffer.append(resolveEscapes(escapeSequenceBuf.toString()));
+                            sqlBuffer.append(resolveEscapes(escapeSequenceBuf.toString(), noBackslashEscapes));
                             escapeSequenceBuf.setLength(0);
                             continue;
                         }

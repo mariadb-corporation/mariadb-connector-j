@@ -76,7 +76,7 @@ public final class MySQLDatabaseMetaData extends CommonDatabaseMetaData {
                         + "null as self_referencing_col_name,"
                         + "null as ref_generation "
                         + "FROM information_schema.tables "
-                        + "WHERE table_name LIKE \""+(tableNamePattern == null?"%":tableNamePattern)+"\""
+                        + "WHERE table_name LIKE '"+(tableNamePattern == null?"%":tableNamePattern)+"'"
                         + getSchemaPattern(schemaPattern);
 
         if(types != null) {

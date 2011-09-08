@@ -32,10 +32,12 @@ import java.io.OutputStream;
  */
 public class SerializableParameter implements ParameterHolder {
     Object object;
-    public SerializableParameter(Object object) throws IOException {
+    boolean noBackSlashEscapes;
+    public SerializableParameter(Object object, boolean noBackslashEscapes) throws IOException {
        this.object = object;
+        this.noBackSlashEscapes = noBackslashEscapes;
     }
     public void writeTo(OutputStream os) throws IOException {
-        ParameterWriter.writeObject(os, object);
+        ParameterWriter.writeObject(os, object, noBackSlashEscapes);
     }
 }

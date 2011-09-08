@@ -29,9 +29,9 @@ public class RewriteBatchHandlerTest {
         assertTrue(rpbh instanceof RewriteParameterizedBatchHandler);
         for(int i = 0;i<3;i++) {
             ParameterizedQuery pq = new MySQLParameterizedQuery(query);
-            pq.setParameter(0, new StringParameter("a"+i));
-            pq.setParameter(1, new StringParameter("b"+i));
-            pq.setParameter(2, new StringParameter("c"+i));
+            pq.setParameter(0, new StringParameter("a"+i, false));
+            pq.setParameter(1, new StringParameter("b"+i, false));
+            pq.setParameter(2, new StringParameter("c"+i, false));
             rpbh.addToBatch(pq);
         }
         rpbh.executeBatch();
@@ -47,9 +47,9 @@ public class RewriteBatchHandlerTest {
         assertTrue(rpbh instanceof RewriteParameterizedBatchHandler);
         for(int i = 0;i<3;i++) {
             ParameterizedQuery pq = new MySQLParameterizedQuery(query);
-            pq.setParameter(0, new StringParameter("a"+i));
-            pq.setParameter(1, new StringParameter("b"+i));
-            pq.setParameter(2, new StringParameter("c"+i));
+            pq.setParameter(0, new StringParameter("a"+i, false));
+            pq.setParameter(1, new StringParameter("b"+i, false));
+            pq.setParameter(2, new StringParameter("c"+i, false));
             rpbh.addToBatch(pq);
         }
         rpbh.executeBatch();
@@ -65,9 +65,9 @@ public class RewriteBatchHandlerTest {
         assertTrue(rpbh instanceof RewriteParameterizedBatchHandler);
         for(int i = 0;i<3;i++) {
             ParameterizedQuery pq = new MySQLParameterizedQuery(query);
-            pq.setParameter(0, new StringParameter("a"+i));
-            pq.setParameter(1, new StringParameter("b"+i));
-            pq.setParameter(2, new StringParameter("c"+i));
+            pq.setParameter(0, new StringParameter("a"+i, false));
+            pq.setParameter(1, new StringParameter("b"+i, false));
+            pq.setParameter(2, new StringParameter("c"+i, false));
             rpbh.addToBatch(pq);
         }
         rpbh.executeBatch();
@@ -83,9 +83,9 @@ public class RewriteBatchHandlerTest {
         assertTrue(rpbh instanceof RewriteParameterizedBatchHandler);
         for(int i = 0;i<3;i++) {
             ParameterizedQuery pq = new MySQLParameterizedQuery(query);
-            pq.setParameter(0, new StringParameter("a"+i));
-            pq.setParameter(1, new StringParameter("b"+i));
-            pq.setParameter(2, new StringParameter("c"+i));
+            pq.setParameter(0, new StringParameter("a"+i, false));
+            pq.setParameter(1, new StringParameter("b"+i, false));
+            pq.setParameter(2, new StringParameter("c"+i, false));
             rpbh.addToBatch(pq);
         }
         rpbh.executeBatch();
@@ -107,9 +107,9 @@ public class RewriteBatchHandlerTest {
         assertTrue(rpbh instanceof RewriteParameterizedBatchHandler);
         for(int i = 0;i<3;i++) {
             ParameterizedQuery pq = new MySQLParameterizedQuery(query);
-            pq.setParameter(0, new StringParameter("a"+i));
-            pq.setParameter(1, new StringParameter("b"+i));
-            pq.setParameter(2, new StringParameter("c"+i));
+            pq.setParameter(0, new StringParameter("a"+i,false));
+            pq.setParameter(1, new StringParameter("b"+i,false));
+            pq.setParameter(2, new StringParameter("c"+i, false));
             rpbh.addToBatch(pq);
         }
         rpbh.executeBatch();

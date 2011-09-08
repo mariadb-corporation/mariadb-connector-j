@@ -27,10 +27,7 @@ package org.skysql.jdbc;
 import org.skysql.jdbc.internal.SQLExceptionMapper;
 import org.skysql.jdbc.internal.common.Utils;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.sql.Blob;
 import java.sql.SQLException;
 
@@ -39,7 +36,7 @@ import java.sql.SQLException;
  * <p/>
  * User: marcuse Date: Feb 14, 2009 Time: 9:40:54 PM
  */
-public  class MySQLBlob implements Blob {
+public  class MySQLBlob implements Blob, Serializable {
     /**
      * the actual blob content.
      */

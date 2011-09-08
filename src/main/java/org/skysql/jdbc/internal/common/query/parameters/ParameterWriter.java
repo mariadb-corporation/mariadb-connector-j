@@ -16,51 +16,66 @@ public class ParameterWriter {
     static final Charset UTF8 = Charset.forName("UTF-8");
     static final int QUOTE = '\'';
 
-    private static void writeBytesEscaped(OutputStream out, byte[] bytes, int count) throws IOException{
-        for (int i = 0; i < count; i++) {
-            byte b = bytes[i];
-            switch(b) {
-                case '\\':
-                case '\'':
-                case '"':
-                case 0:
-                    out.write('\\');
-                    out.write(b);
-                    break;
-                default:
-                    out.write(b);
+    private static void writeBytesEscaped(OutputStream out, byte[] bytes, int count, boolean noBackslashEscapes)
+            throws IOException{
+        if (noBackslashEscapes) {
+           for (int i = 0; i < count; i++) {
+                byte b = bytes[i];
+                switch(b) {
+                    case '\'':
+                        out.write('\'');
+                        out.write(b);
+                        break;
+                    default:
+                        out.write(b);
+                }
+           }
+        } else {
+            for (int i = 0; i < count; i++) {
+                byte b = bytes[i];
+                switch(b) {
+                    case '\\':
+                    case '\'':
+                    case '"':
+                    case 0:
+                        out.write('\\');
+                        out.write(b);
+                        break;
+                    default:
+                        out.write(b);
+                }
             }
         }
     }
 
-    private static void writeBytesEscaped(OutputStream out, byte[] bytes) throws IOException{
-        writeBytesEscaped(out, bytes, bytes.length);
+    private static void writeBytesEscaped(OutputStream out, byte[] bytes, boolean noBackslashEscapes) throws IOException{
+        writeBytesEscaped(out, bytes, bytes.length, noBackslashEscapes);
     }
 
-    public static void write(OutputStream out, byte[] bytes) throws IOException{
+    public static void write(OutputStream out, byte[] bytes, boolean noBackslashEscapes) throws IOException{
         out.write(BINARY_INTRODUCER);
-        writeBytesEscaped(out, bytes);
+        writeBytesEscaped(out, bytes, noBackslashEscapes);
         out.write(QUOTE);
     }
 
-    public static void write(OutputStream out, String s) throws IOException {
+    public static void write(OutputStream out, String s, boolean noBackslashEscapes) throws IOException {
         byte[] bytes = s.getBytes(UTF8);
         out.write(QUOTE);
-        writeBytesEscaped(out,bytes);
+        writeBytesEscaped(out,bytes, noBackslashEscapes);
         out.write(QUOTE);
     }
 
-    public static void write(OutputStream out, InputStream is) throws IOException{
+    public static void write(OutputStream out, InputStream is, boolean noBackslashEscapes) throws IOException{
         out.write(BINARY_INTRODUCER);
         byte[] buffer = new byte[1024];
         int len;
         while ((len = is.read(buffer)) >= 0) {
-            writeBytesEscaped(out, buffer, len);
+            writeBytesEscaped(out, buffer, len, noBackslashEscapes);
         }
         out.write(QUOTE);
     }
 
-     public static void write(OutputStream out, InputStream is, long length) throws IOException{
+     public static void write(OutputStream out, InputStream is, long length, boolean noBackslashEscapes) throws IOException{
         out.write(BINARY_INTRODUCER);
         byte[] buffer = new byte[1024];
         long bytesLeft = length;
@@ -73,23 +88,24 @@ public class ParameterWriter {
             len = is.read(buffer,0, bytesToRead);
             if (len <= 0)
                 break;
-            writeBytesEscaped(out, buffer, len);
+            writeBytesEscaped(out, buffer, len, noBackslashEscapes);
             bytesLeft -= len;
         }
         out.write(QUOTE);
     }
 
-    public static void write(OutputStream out, java.io.Reader reader) throws IOException {
+    public static void write(OutputStream out, java.io.Reader reader, boolean noBackslashEscapes) throws IOException {
         out.write(QUOTE);
         char[] buffer = new char[1024];
         int len;
         while ((len = reader.read(buffer)) >= 0) {
-             writeBytesEscaped(out, new String(buffer,0, len).getBytes(UTF8));
+             writeBytesEscaped(out, new String(buffer,0, len).getBytes(UTF8), noBackslashEscapes);
         }
         out.write(QUOTE);
     }
 
-     public static void write(OutputStream out, java.io.Reader reader, long length) throws IOException{
+     public static void write(OutputStream out, java.io.Reader reader, long length, boolean noBackslashEscapes)
+             throws IOException{
         out.write(QUOTE);
         char[] buffer = new char[1024];
         long charsLeft = length;
@@ -102,7 +118,7 @@ public class ParameterWriter {
             len = reader.read(buffer,0, charsToRead);
             if (len <= 0)
                 break;
-            writeBytesEscaped(out, new String(buffer).getBytes(UTF8), len);
+            writeBytesEscaped(out, new String(buffer).getBytes(UTF8), len, noBackslashEscapes);
             charsLeft -= len;
         }
         out.write(QUOTE);
@@ -180,11 +196,11 @@ public class ParameterWriter {
        out.write(QUOTE);
     }
 
-    public static void writeObject(OutputStream out, Object o)throws IOException {
+    public static void writeObject(OutputStream out, Object o, boolean noBackslashEscapes)throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ObjectOutputStream oos = new ObjectOutputStream(baos);
         oos.writeObject(o);
-        write(out,baos.toByteArray());
+        write(out,baos.toByteArray(), noBackslashEscapes);
     }
 
 }

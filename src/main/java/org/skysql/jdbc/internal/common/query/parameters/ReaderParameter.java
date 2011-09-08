@@ -34,17 +34,19 @@ import java.io.Reader;
 public class ReaderParameter implements  ParameterHolder{
     Reader reader;
     long length;
-    public ReaderParameter(Reader reader, long length)  {
+    boolean noBackslashEscapes;
+    public ReaderParameter(Reader reader, long length, boolean noBackslashEscapes)  {
         this.reader = reader;
         this.length = length;
+        this.noBackslashEscapes = noBackslashEscapes;
     }
-    public ReaderParameter(Reader reader) {
-        this(reader, Long.MAX_VALUE);
+    public ReaderParameter(Reader reader, boolean noBackslashEscapes) {
+        this(reader, Long.MAX_VALUE, noBackslashEscapes);
     }
     public void writeTo(OutputStream os) throws IOException{
         if (length == Long.MAX_VALUE)
-            ParameterWriter.write(os, reader);
+            ParameterWriter.write(os, reader, noBackslashEscapes);
         else
-            ParameterWriter.write(os, reader, length);
+            ParameterWriter.write(os, reader, length, noBackslashEscapes);
     }
 }

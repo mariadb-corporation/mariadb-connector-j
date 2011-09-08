@@ -32,10 +32,12 @@ import java.io.OutputStream;
  */
 public class ByteArrayParameter implements ParameterHolder {
     byte[] bytes;
-    public ByteArrayParameter(byte[] bytes) {
+    boolean noBackslashEscapes;
+    public ByteArrayParameter(byte[] bytes, boolean noBackslashEscapes) {
         this.bytes = bytes;
+        this.noBackslashEscapes = noBackslashEscapes;
     }
     public void writeTo(OutputStream os) throws IOException {
-        ParameterWriter.write(os, bytes);
+        ParameterWriter.write(os, bytes, noBackslashEscapes);
     }
 }
