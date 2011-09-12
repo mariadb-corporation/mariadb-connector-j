@@ -51,7 +51,7 @@ public class MySQLValueObject extends AbstractValueObject {
             case TINY:
                 return getShort();
             case LONG:
-                return getLong();
+                return getInt();
             case DOUBLE:
                 return getDouble();
             case TIMESTAMP:
