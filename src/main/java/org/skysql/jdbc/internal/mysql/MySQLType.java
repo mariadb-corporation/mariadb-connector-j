@@ -65,7 +65,7 @@ public class MySQLType implements DataType {
         DECIMAL(java.sql.Types.DECIMAL, Double.class),
         TINY(java.sql.Types.SMALLINT, Short.class),
         SHORT(java.sql.Types.SMALLINT, Short.class),
-        LONG(java.sql.Types.INTEGER, Long.class),
+        LONG(java.sql.Types.INTEGER, Integer.class),
         FLOAT(java.sql.Types.FLOAT, Float.class),
         DOUBLE(java.sql.Types.DOUBLE, Double.class),
         NULL(java.sql.Types.NULL, null),
