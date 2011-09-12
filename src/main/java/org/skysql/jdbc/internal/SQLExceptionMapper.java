@@ -117,6 +117,13 @@ public class SQLExceptionMapper {
         }
     }
 
+    public static SQLException getSQLException(String message, String sqlState, Exception e) {
+        if (Utils.isJava5()) {
+            return new SQLException(message);
+        } else {
+            return new SQLException(message, sqlState, 0, e);
+        }
+    }
     public static SQLException getSQLException(String message) {
         return new SQLException(message);
     }

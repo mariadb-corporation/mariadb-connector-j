@@ -442,7 +442,7 @@ public class MySQLResultSet implements ResultSet {
         try {
             return getValueObject(columnIndex).getObject();
         } catch (ParseException e) {
-            throw SQLExceptionMapper.getSQLException("Could not get object: " + e.getMessage(), e);
+            throw SQLExceptionMapper.getSQLException("Could not get object: " + e.getMessage(), "S1009", e);
         }
     }
 
@@ -471,7 +471,7 @@ public class MySQLResultSet implements ResultSet {
         try {
             return getValueObject(columnLabel).getObject();
         } catch (ParseException e) {
-            throw SQLExceptionMapper.getSQLException("Could not get object: " + e.getMessage(), e);
+            throw SQLExceptionMapper.getSQLException("Could not get object: " + e.getMessage(), "S1009", e);
         }
     }
 
