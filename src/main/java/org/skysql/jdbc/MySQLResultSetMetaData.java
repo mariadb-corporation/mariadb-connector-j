@@ -33,6 +33,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.List;
 
 /**
@@ -235,7 +236,50 @@ public class MySQLResultSetMetaData implements ResultSetMetaData {
      * @see java.sql.Types
      */
     public int getColumnType(final int column) throws SQLException {
-        return getColumnInformation(column).getType().getSqlType();
+        ColumnInformation ci = getColumnInformation(column);
+        switch(ci.getType().getType()) {
+            case BIT:
+                if(ci.getLength() == 1)
+                    return Types.BIT;
+                return Types.VARBINARY;
+            case TINYINT:
+                if(ci.getLength() == 1 && (datatypeMappingflags & ValueObject.TINYINT1_IS_BIT) != 0)
+                    return Types.BIT;
+                else
+                    return Types.TINYINT;
+            case YEAR:
+                if((datatypeMappingflags & ValueObject.YEAR_IS_DATE_TYPE) != 0)
+                    return Types.DATE;
+                else
+                    return Types.SMALLINT;
+
+            case SMALLINT:
+               if(!ci.isSigned()) {
+                   return Types.INTEGER;
+               } else {
+                   return Types.SMALLINT;
+               }
+            case INTEGER:
+               if(!ci.isSigned()) {
+                   return Types.BIGINT;
+               } else {
+                   return Types.INTEGER;
+               }
+            case BLOB:
+                if (ci.getLength() < 0 || ci.getLength() > 16777215)
+                    return Types.LONGVARBINARY;
+                return Types.VARBINARY;
+            case VARCHAR:
+                if (ci.isBinary())
+                    return Types.VARBINARY;
+                if (ci.getLength() < 0)
+                    return Types.LONGVARCHAR;
+                return Types.VARCHAR;
+
+            default:
+                return ci.getType().getSqlType();
+        }
+
     }
 
     /**

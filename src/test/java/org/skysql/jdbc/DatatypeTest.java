@@ -7,6 +7,7 @@ import java.math.BigInteger;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
+import java.sql.Types;
 
 import static junit.framework.Assert.assertEquals;
 
@@ -54,7 +55,7 @@ public class DatatypeTest extends BaseTest {
 
     ResultSet resultSet;
 
-    void checkClass(String column, Class clazz, String mysqlType) throws Exception{
+    void checkClass(String column, Class clazz, String mysqlType, int javaSqlType) throws Exception{
         int index = resultSet.findColumn(column);
 
         if (clazz == null) {
@@ -65,6 +66,7 @@ public class DatatypeTest extends BaseTest {
             assertEquals("Unexpected class name for column " + column, clazz.getName(), resultSet.getMetaData().getColumnClassName(index));
         }
         assertEquals("Unexpected MySQL type for column " + column, mysqlType,resultSet.getMetaData().getColumnTypeName(index));
+        assertEquals("Unexpected java sql type for column " + column, javaSqlType, resultSet.getMetaData().getColumnType(index));
     }
 
 
@@ -79,45 +81,52 @@ public class DatatypeTest extends BaseTest {
 
         Class byteArrayClass = (new byte[0]).getClass();
 
-        checkClass("bit1",Boolean.class,"BIT");
-        checkClass("bit2", byteArrayClass, "BIT");
+        checkClass("bit1",Boolean.class,"BIT", Types.BIT);
+        checkClass("bit2", byteArrayClass, "BIT", Types.VARBINARY);
 
-        checkClass("tinyint1", tinyInt1isBit?Boolean.class:Integer.class, "TINYINT");
-        checkClass("tinyint2",Integer.class, "TINYINT");
-        checkClass("bool0", tinyInt1isBit?Boolean.class:Integer.class,"TINYINT");
-        checkClass("smallint0", Integer.class, "SMALLINT");
-        checkClass("smallint_unsigned", Integer.class, "SMALLINT UNSIGNED");
-        checkClass("mediumint0", Integer.class, "MEDIUMINT");
-        checkClass("mediumint_unsigned", Integer.class, "MEDIUMINT UNSIGNED");
-        checkClass("int0", Integer.class, "INTEGER");
-        checkClass("int_unsigned", Long.class, "INTEGER UNSIGNED");
-        checkClass("bigint0", Long.class, "BIGINT");
-        checkClass("bigint_unsigned", BigInteger.class, "BIGINT UNSIGNED");
-        checkClass("float0", Float.class, "FLOAT");
-        checkClass("double0", Double.class, "DOUBLE");
-        checkClass("decimal0", BigDecimal.class, "DECIMAL");
-        checkClass("date0", java.sql.Date.class, "DATE");
-        checkClass("time0", java.sql.Time.class, "TIME");
-        checkClass("timestamp0", java.sql.Timestamp.class, "TIMESTAMP");
-        checkClass("year2", yearIsDateType? java.sql.Date.class: Short.class, "YEAR");
-        checkClass("year4", yearIsDateType? java.sql.Date.class: Short.class, "YEAR");
-        checkClass("char0", String.class, "CHAR");
-        checkClass("varchar0", String.class, "VARCHAR");
-        checkClass("varchar_binary",byteArrayClass, "VARCHAR");
-        checkClass("tinyblob0",byteArrayClass, "TINYBLOB");
-        checkClass("tinytext0", String.class, "VARCHAR");
-        checkClass("blob0", byteArrayClass, "BLOB");
-        checkClass("text0", String.class, "VARCHAR");
-        checkClass("mediumblob0", byteArrayClass, "MEDIUMBLOB");
-        checkClass("mediumtext0", String.class,"VARCHAR");
-        checkClass("longblob0", byteArrayClass, "LONGBLOB");
-        checkClass("longtext0", String.class, "VARCHAR");
-        checkClass("enum0", String.class, "CHAR");
-        checkClass("set0", String.class, "CHAR");
+        checkClass("tinyint1",
+                tinyInt1isBit?Boolean.class:Integer.class, "TINYINT",
+                tinyInt1isBit?Types.BIT:Types.TINYINT);
+        checkClass("tinyint2",Integer.class, "TINYINT", Types.TINYINT);
+        checkClass("bool0", tinyInt1isBit?Boolean.class:Integer.class,"TINYINT",
+                tinyInt1isBit?Types.BIT:Types.TINYINT);
+        checkClass("smallint0", Integer.class, "SMALLINT", Types.SMALLINT);
+        checkClass("smallint_unsigned", Integer.class, "SMALLINT UNSIGNED", Types.INTEGER);
+        checkClass("mediumint0", Integer.class, "MEDIUMINT", Types.INTEGER);
+        checkClass("mediumint_unsigned", Integer.class, "MEDIUMINT UNSIGNED", Types.INTEGER);
+        checkClass("int0", Integer.class, "INTEGER", Types.INTEGER);
+        checkClass("int_unsigned", Long.class, "INTEGER UNSIGNED", Types.BIGINT);
+        checkClass("bigint0", Long.class, "BIGINT", Types.BIGINT);
+        checkClass("bigint_unsigned", BigInteger.class, "BIGINT UNSIGNED", Types.BIGINT);
+        checkClass("float0", Float.class, "FLOAT",Types.FLOAT);
+        checkClass("double0", Double.class, "DOUBLE", Types.DOUBLE);
+        checkClass("decimal0", BigDecimal.class, "DECIMAL", Types.DECIMAL);
+        checkClass("date0", java.sql.Date.class, "DATE", Types.DATE);
+        checkClass("time0", java.sql.Time.class, "TIME", Types.TIME);
+        checkClass("timestamp0", java.sql.Timestamp.class, "TIMESTAMP", Types.TIMESTAMP);
+        checkClass("year2",
+                yearIsDateType? java.sql.Date.class: Short.class, "YEAR",
+                yearIsDateType? Types.DATE: Types.SMALLINT );
+        checkClass("year4",
+                yearIsDateType? java.sql.Date.class: Short.class, "YEAR",
+                yearIsDateType? Types.DATE: Types.SMALLINT);
+        checkClass("char0", String.class, "CHAR", Types.CHAR);
+        checkClass("varchar0", String.class, "VARCHAR", Types.VARCHAR);
+        checkClass("varchar_binary",byteArrayClass, "VARCHAR", Types.VARBINARY);
+        checkClass("tinyblob0",byteArrayClass, "TINYBLOB", Types.VARBINARY);
+        checkClass("tinytext0", String.class, "VARCHAR", Types.VARCHAR);
+        checkClass("blob0", byteArrayClass, "BLOB",Types.VARBINARY);
+        checkClass("text0", String.class, "VARCHAR", Types.VARCHAR);
+        checkClass("mediumblob0", byteArrayClass, "MEDIUMBLOB", Types.VARBINARY);
+        checkClass("mediumtext0", String.class,"VARCHAR", Types.VARCHAR);
+        checkClass("longblob0", byteArrayClass, "LONGBLOB", Types.LONGVARBINARY);
+        checkClass("longtext0", String.class, "VARCHAR", Types.LONGVARCHAR);
+        checkClass("enum0", String.class, "CHAR",Types.CHAR);
+        checkClass("set0", String.class, "CHAR",Types.CHAR);
 
         resultSet = c.createStatement().executeQuery("select NULL as foo");
         resultSet.next();
-        checkClass("foo", null, "NULL");
+        checkClass("foo", null, "NULL",Types.NULL);
 
     }
 
