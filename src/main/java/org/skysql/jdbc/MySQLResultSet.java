@@ -26,10 +26,10 @@ package org.skysql.jdbc;
 
 import org.skysql.jdbc.internal.SQLExceptionMapper;
 import org.skysql.jdbc.internal.common.ColumnInformation;
-import org.skysql.jdbc.internal.common.Protocol;
 import org.skysql.jdbc.internal.common.QueryException;
 import org.skysql.jdbc.internal.common.ValueObject;
 import org.skysql.jdbc.internal.common.queryresults.*;
+import org.skysql.jdbc.internal.mysql.MySQLProtocol;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -53,14 +53,14 @@ public class MySQLResultSet implements ResultSet {
     public final static MySQLResultSet EMPTY = createEmptyResultSet();
     private final QueryResult queryResult;
     private final Statement statement;
-    private final Protocol protocol;
+    private final MySQLProtocol protocol;
     // dont want these, but jdbc forces them with "lastGetWasNull" etc...
     private boolean isClosed;
     private boolean lastGetWasNull;
     private boolean warningsCleared;
     ColumnNameMap columnNameMap;
 
-    public MySQLResultSet(final QueryResult dqr, final Statement statement, final Protocol protocol) {
+    public MySQLResultSet(final QueryResult dqr, final Statement statement, MySQLProtocol protocol) {
         this.queryResult = dqr;
         this.statement = statement;
         isClosed = false;
@@ -223,11 +223,7 @@ public class MySQLResultSet implements ResultSet {
      *                               is called on a closed result set
      */
     public Date getDate(final String columnLabel) throws SQLException {
-        try {
-            return getValueObject(columnLabel).getDate();
-        } catch (ParseException e) {
-            throw SQLExceptionMapper.getSQLException("Could not parse date", e);
-        }
+        return getDate(findColumn(columnLabel));
     }
 
     /**
@@ -408,7 +404,7 @@ public class MySQLResultSet implements ResultSet {
      * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed result set
      */
     public ResultSetMetaData getMetaData() throws SQLException {
-        return new MySQLResultSetMetaData(queryResult.getColumnInformation());
+        return new MySQLResultSetMetaData(queryResult.getColumnInformation(), protocol.datatypeMappingFlags);
     }
 
     /**
@@ -440,7 +436,7 @@ public class MySQLResultSet implements ResultSet {
      */
     public Object getObject(final int columnIndex) throws SQLException {
         try {
-            return getValueObject(columnIndex).getObject();
+            return getValueObject(columnIndex).getObject(protocol.datatypeMappingFlags);
         } catch (ParseException e) {
             throw SQLExceptionMapper.getSQLException("Could not get object: " + e.getMessage(), "S1009", e);
         }
@@ -469,7 +465,7 @@ public class MySQLResultSet implements ResultSet {
      */
     public Object getObject(final String columnLabel) throws SQLException {
         try {
-            return getValueObject(columnLabel).getObject();
+            return getValueObject(columnLabel).getObject(protocol.datatypeMappingFlags);
         } catch (ParseException e) {
             throw SQLExceptionMapper.getSQLException("Could not get object: " + e.getMessage(), "S1009", e);
         }

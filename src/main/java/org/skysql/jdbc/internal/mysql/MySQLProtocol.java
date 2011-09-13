@@ -75,6 +75,8 @@ public class MySQLProtocol implements Protocol {
     private volatile boolean queryTimedOut = false;
     public boolean moreResults = false;
     public StreamingSelectResult activeResult= null;
+    public int datatypeMappingFlags;
+
     /**
      * Get a protocol instance
      *
@@ -272,6 +274,20 @@ public class MySQLProtocol implements Protocol {
                     -1,
                     SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
                     e);
+        }
+        setDatatypeMappingFlags();
+    }
+
+    private void setDatatypeMappingFlags() {
+        datatypeMappingFlags = 0;
+        String tinyInt1isBit = info.getProperty("tinyInt1isBit");
+        String yearIsDateType = info.getProperty("yearIsDateType");
+
+        if (tinyInt1isBit == null || tinyInt1isBit.equals("1") || tinyInt1isBit.equals("true")) {
+            datatypeMappingFlags |= MySQLValueObject.TINYINT1_IS_BIT;
+        }
+        if (yearIsDateType == null || yearIsDateType.equals("1") || yearIsDateType.equals("true")) {
+            datatypeMappingFlags |= MySQLValueObject.YEAR_IS_DATE_TYPE;
         }
     }
 

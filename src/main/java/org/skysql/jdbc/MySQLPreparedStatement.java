@@ -54,7 +54,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
     private final ParameterizedBatchHandler parameterizedBatchHandler;
     private boolean useFractionalSeconds;
 
-    public MySQLPreparedStatement(final Protocol protocol,
+    public MySQLPreparedStatement(final MySQLProtocol protocol,
                                   final MySQLConnection connection,
                                   final String query,
                                   final QueryFactory queryFactory,

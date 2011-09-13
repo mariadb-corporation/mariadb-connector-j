@@ -28,6 +28,7 @@ import org.skysql.jdbc.internal.common.ColumnInformation;
 import org.skysql.jdbc.internal.common.DataType;
 import org.skysql.jdbc.internal.common.queryresults.ColumnFlags;
 
+import java.sql.Types;
 import java.util.Collections;
 import java.util.Set;
 
@@ -61,8 +62,12 @@ public class MySQLColumnInformation implements ColumnInformation {
         this.decimals = builder.decimals;
         this.flags = Collections.unmodifiableSet(builder.flags);
 
-        if ((builder.type.getSqlType() == java.sql.Types.BLOB) && (this.charsetNumber != 63)) {
-           this.type = new MySQLType(MySQLType.Type.CLOB);
+        int sqlType = builder.type.getSqlType();
+
+        if ((sqlType == Types.BLOB || sqlType == Types.VARBINARY || sqlType == Types.BINARY || sqlType == Types.LONGVARBINARY )
+                && !isBinary()) {
+           /* MySQL Text datatype */
+           this.type = new MySQLType(MySQLType.Type.VARCHAR);
         } else {
            this.type = builder.type;
         }
@@ -112,6 +117,13 @@ public class MySQLColumnInformation implements ColumnInformation {
         return flags;
     }
 
+    public boolean isSigned() {
+        return !flags.contains(ColumnFlags.UNSIGNED);
+    }
+
+    public boolean isBinary() {
+       return (flags.contains(ColumnFlags.BINARY) || getCharsetNumber() == 63);
+    }
     public void updateDisplaySize(final int displayLength) {
         if (displayLength > displayWidth) {
             this.displayWidth = displayLength;

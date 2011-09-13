@@ -56,9 +56,11 @@ public class BlobTest extends BaseTest {
         stmt.executeUpdate("insert into bug716378 values(null, 'a','b','c')");
         ResultSet rs = stmt.executeQuery("select * from bug716378");
         assertTrue(rs.next());
-        assertEquals(MySQLBlob.class, rs.getObject(2).getClass());
-        assertEquals(MySQLBlob.class, rs.getObject(3).getClass());
-        assertEquals(MySQLClob.class, rs.getObject(4).getClass());
+        Class byteArrayClass = (new byte[0]).getClass();
+
+        assertEquals(byteArrayClass, rs.getObject(2).getClass());
+        assertEquals(byteArrayClass, rs.getObject(3).getClass());
+        assertEquals(String.class, rs.getObject(4).getClass());
     }
 
     @Test

@@ -42,20 +42,20 @@ public class DrizzleValueObject extends AbstractValueObject {
         super(rawBytes, dataType);
     }
 
-    public Object getObject() throws ParseException {
+    public Object getObject(int datatypeMappingFlags) throws ParseException {
         if (this.getBytes() == null) {
             return null;
         }
         switch (dataType.getType()) {
-            case TINY:
+            case TINYINT:
                 return getBoolean();
-            case LONG:
+            case INTEGER:
                 return getLong();
             case DOUBLE:
                 return getDouble();
             case TIMESTAMP:
                 return getTimestamp();
-            case LONGLONG:
+            case BIGINT:
                 return getBigInteger();
             case DATETIME:
                 return getTimestamp();
@@ -63,10 +63,8 @@ public class DrizzleValueObject extends AbstractValueObject {
                 return getDate();
             case VARCHAR:
                 return getString();
-            case NEWDECIMAL:
+            case DECIMAL:
                 return getBigDecimal();
-            case ENUM:
-                return getString();
             case BLOB:
                 return new MySQLBlob(getBytes());
             case YEAR:
@@ -76,13 +74,15 @@ public class DrizzleValueObject extends AbstractValueObject {
                     return getBytes()[0] == 1;
                 }
                 return null;
-            case SHORT:
-            case INT24:
+            case SMALLINT:
+            case MEDIUMINT:
                 return getInt();
             case FLOAT:
                 return getFloat();
             case TIME:
                 return getTime();
+            case CHAR:
+                return getString();
         }
         return null;
     }

@@ -181,16 +181,18 @@ public class MySQLDriverTest extends BaseTest {
         assertEquals(null, rs.getObject(1));
         assertEquals(null, rs.getObject(2));
         assertTrue(rs.next());
-        assertEquals(BigInteger.ZERO, rs.getObject(1));
+        assertEquals(Long.class, rs.getObject(1).getClass());
+        assertEquals(BigInteger.class, rs.getObject(2).getClass());
+        assertEquals((long) 0, rs.getObject(1));
         assertEquals(BigInteger.ZERO, rs.getObject(2));
         assertTrue(rs.next());
-        assertEquals(new BigInteger("-1"), rs.getObject(1));
+        assertEquals(-1l, rs.getObject(1));
         assertEquals(BigInteger.ONE, rs.getObject(2));
         assertTrue(rs.next());
-        assertEquals(new BigInteger("-9223372036854775808"), rs.getObject(1));
+        assertEquals(-9223372036854775808l, rs.getObject(1));
         assertEquals(new BigInteger("9223372036854775807"), rs.getObject(2));
         assertTrue(rs.next());
-        assertEquals(new BigInteger("9223372036854775807"), rs.getObject(1));
+        assertEquals(9223372036854775807l, rs.getObject(1));
         assertEquals(new BigInteger("18446744073709551615"), rs.getObject(2));
         assertFalse(rs.next());
     }

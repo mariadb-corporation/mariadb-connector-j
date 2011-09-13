@@ -31,13 +31,13 @@ import java.io.OutputStream;
  * . User: marcuse Date: Feb 19, 2009 Time: 8:50:52 PM
  */
 public class LongParameter implements ParameterHolder {
-    private final byte[] byteRepresentation;
+    private long value;
 
-    public LongParameter(final long theLong) {
-        byteRepresentation = String.valueOf(theLong).getBytes();
+    public LongParameter(long value) {
+      this.value = value;
     }
 
     public void writeTo(final OutputStream os) throws IOException {
-        os.write(byteRepresentation);
+        os.write(String.valueOf(value).getBytes());
     }
 }

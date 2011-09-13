@@ -736,7 +736,7 @@ public class DriverTest extends BaseTest{
         ResultSet rs = connection.createStatement().executeQuery("select * from clobtest");
         rs.next();
         Object o = rs.getObject(2);
-        assertTrue(o instanceof Clob);
+        assertTrue(o instanceof String);
         String s = rs.getString(2);
         assertTrue(s.equals("hello"));
     }
@@ -786,9 +786,9 @@ public class DriverTest extends BaseTest{
         ResultSet rs = connection.createStatement().executeQuery("select * from objecttest");
         assertEquals(true,rs.next());
         Object theInt = rs.getObject(1);
-        assertTrue(theInt instanceof Long);
+        assertTrue(theInt instanceof Integer);
         Object theInt2 = rs.getObject("int_test");
-        assertTrue(theInt2 instanceof Long);
+        assertTrue(theInt2 instanceof Integer);
         Object theString = rs.getObject(2);
         assertTrue(theString instanceof String);
         Object theTimestamp = rs.getObject(3);
@@ -1429,4 +1429,14 @@ public class DriverTest extends BaseTest{
         }
     }
 
+    @Test
+    public void unsignedTest() throws Exception {
+        Statement st = connection.createStatement();
+        st.execute("drop table if exists unsignedtest");
+        st.execute("create table unsignedtest(a int unsigned)");
+        st.execute("insert into unsignedtest values(4294967295)");
+        ResultSet rs = st.executeQuery("select * from unsignedtest");
+        rs.next();
+        Object o = rs.getLong(1);
+    }
 }

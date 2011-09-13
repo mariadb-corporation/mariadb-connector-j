@@ -31,8 +31,8 @@ public class ResultSetMetaDataTest extends BaseTest {
         assertEquals(ResultSetMetaData.columnNullable,rsmd.isNullable(2));
         assertEquals(ResultSetMetaData.columnNoNulls,rsmd.isNullable(1));
         assertEquals(String.class.getName(), rsmd.getColumnClassName(2));
-        assertEquals(Long.class.getName(), rsmd.getColumnClassName(1));
-        assertEquals(Long.class.getName(), rsmd.getColumnClassName(3));
+        assertEquals(Integer.class.getName(), rsmd.getColumnClassName(1));
+        assertEquals(Integer.class.getName(), rsmd.getColumnClassName(3));
         assertEquals("id_col",rsmd.getColumnLabel(1));
         assertEquals("nullable_col",rsmd.getColumnLabel(2));
         assertEquals("something",rsmd.getColumnLabel(3));

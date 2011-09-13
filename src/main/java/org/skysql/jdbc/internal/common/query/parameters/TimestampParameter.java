@@ -39,12 +39,6 @@ public class TimestampParameter implements ParameterHolder {
     Calendar calendar;
     boolean fractionalSeconds;
 
-    /**
-     * Represents a timestamp, constructed with time in millis since epoch
-     *
-     * @param ts timestamp
-     */
-
     public TimestampParameter(Timestamp ts, Calendar cal, boolean fractionalSeconds) {
         this.ts = ts;
         calendar = cal;

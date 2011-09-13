@@ -26,6 +26,7 @@ package org.skysql.jdbc.internal.common;
 
 import org.skysql.jdbc.internal.mysql.MySQLType;
 
+import java.sql.Types;
 import java.text.ParseException;
 
 /**
@@ -35,25 +36,21 @@ import java.text.ParseException;
 public class GeneratedIdValueObject extends AbstractValueObject {
     public GeneratedIdValueObject(final long insertId) {
         super(String.valueOf(insertId).getBytes(), new DataType() {
-            public Class getJavaType() {
-                return Long.class;
-            }
-
             public int getSqlType() {
-                return java.sql.Types.INTEGER;
+                return Types.BIGINT;
             }
 
             public String getTypeName() {
-                return "INTEGER";
+                return "BIGINT";
             }
 
             public MySQLType.Type getType() {
-                return MySQLType.Type.LONG;
+                return MySQLType.Type.BIGINT;
             }
         });
     }
 
-    public Object getObject() throws ParseException {
+    public Object getObject(int x) throws ParseException {
         return getLong();
     }
 }

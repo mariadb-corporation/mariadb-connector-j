@@ -26,6 +26,7 @@ package org.skysql.jdbc.internal.common;
 
 import org.skysql.jdbc.MySQLBlob;
 import org.skysql.jdbc.MySQLClob;
+import org.skysql.jdbc.internal.mysql.MySQLType;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -140,9 +141,19 @@ public abstract class AbstractValueObject implements ValueObject {
         if (rawBytes == null) {
             return null;
         }
-        final String rawValue = getString();
-        final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-        final java.util.Date utilDate = sdf.parse(rawValue);
+
+        String rawValue = getString();
+        SimpleDateFormat sdf;
+        if (dataType.getType() == MySQLType.Type.YEAR) {
+           if (rawBytes.length == 2) {
+              sdf = new SimpleDateFormat("yy");
+           } else {
+              sdf = new SimpleDateFormat("yyyy");
+           }
+        } else {
+            sdf = new SimpleDateFormat("yyyy-MM-dd");
+        }
+        java.util.Date utilDate = sdf.parse(rawValue);
         return new Date(utilDate.getTime());
     }
 
@@ -224,7 +235,7 @@ public abstract class AbstractValueObject implements ValueObject {
         return new ByteArrayInputStream(rawBytes);
     }
     
-    public abstract Object getObject() throws ParseException;
+    public abstract Object getObject(int datatypeMappingFlags) throws ParseException;
 
     public Date getDate(final Calendar cal) throws ParseException {
         if (rawBytes == null) {

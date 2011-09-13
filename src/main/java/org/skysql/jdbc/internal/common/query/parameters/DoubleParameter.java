@@ -31,17 +31,13 @@ import java.io.OutputStream;
  * . User: marcuse Date: Feb 27, 2009 Time: 10:00:38 PM
  */
 public class DoubleParameter implements ParameterHolder {
-    private final byte[] byteRepresentation;
+    double value;
 
-    public DoubleParameter(final double x) {
-        byteRepresentation = String.valueOf(x).getBytes();
+    public DoubleParameter(double value) {
+       this.value = value;
     }
 
     public void writeTo(final OutputStream os) throws IOException {
-        os.write(byteRepresentation);
-    }
-
-    public long length() {
-        return byteRepresentation.length;
+        os.write(String.valueOf(value).getBytes());
     }
 }

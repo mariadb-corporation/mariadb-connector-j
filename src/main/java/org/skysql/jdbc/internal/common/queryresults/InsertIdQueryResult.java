@@ -94,7 +94,7 @@ public class InsertIdQueryResult extends SelectQueryResult {
         MySQLColumnInformation.Builder b = new MySQLColumnInformation.Builder();
         MySQLColumnInformation info = b.db("").catalog("").charsetNumber((short) 0).decimals((byte) 0).name("insert_id" +
                 "").originalName("insert_id").flags(EnumSet.noneOf(ColumnFlags.class)).
-                originalTable("").table("").type(new MySQLType(MySQLType.Type.LONGLONG)).build();
+                originalTable("").table("").type(new MySQLType(MySQLType.Type.BIGINT)).build();
 
          ci =  new ArrayList<ColumnInformation>();
          ci.add(info);

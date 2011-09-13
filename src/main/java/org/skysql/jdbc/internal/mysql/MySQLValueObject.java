@@ -24,10 +24,8 @@
 
 package org.skysql.jdbc.internal.mysql;
 
-import org.skysql.jdbc.MySQLBlob;
-import org.skysql.jdbc.MySQLClob;
 import org.skysql.jdbc.internal.common.AbstractValueObject;
-import org.skysql.jdbc.internal.common.DataType;
+import org.skysql.jdbc.internal.common.ColumnInformation;
 
 import java.text.ParseException;
 
@@ -39,53 +37,72 @@ import java.text.ParseException;
  * User: marcuse Date: Feb 16, 2009 Time: 9:18:26 PM
  */
 public class MySQLValueObject extends AbstractValueObject {
-    public MySQLValueObject(final byte[] rawBytes, final DataType dataType) {
-        super(rawBytes, dataType);
+    ColumnInformation columnInfo;
+
+    public MySQLValueObject(byte[] rawBytes, ColumnInformation columnInfo) {
+        super(rawBytes, columnInfo.getType());
+        this.columnInfo = columnInfo;
     }
 
-    public Object getObject() throws ParseException {
+    public Object getObject(int datatypeMappingFlags) throws ParseException {
         if (this.getBytes() == null) {
             return null;
         }
         switch (dataType.getType()) {
-            case TINY:
-                return getShort();
-            case LONG:
+            case BIT:
+                if (columnInfo.getLength() == 1) {
+                    return getBytes()[0] == 1;
+                }
+                return getBytes();
+            case TINYINT:
+                if ((datatypeMappingFlags & TINYINT1_IS_BIT) != 0) {
+                    if (columnInfo.getLength() == 1) {
+                        return getBytes()[0] == 1;
+                    }
+                }
                 return getInt();
+            case INTEGER:
+                if (!columnInfo.isSigned()) {
+                    return getLong();
+                }
+                return getInt();
+            case BIGINT:
+                if (!columnInfo.isSigned()) {
+                    return getBigInteger();
+                }
+                return getLong();
             case DOUBLE:
                 return getDouble();
             case TIMESTAMP:
                 return getTimestamp();
-            case LONGLONG:
-                return getBigInteger();
             case DATETIME:
                 return getTimestamp();
             case DATE:
                 return getDate();
             case VARCHAR:
+                if (columnInfo.isBinary())
+                    return getBytes();
                 return getString();
-            case NEWDECIMAL:
+            case DECIMAL:
                 return getBigDecimal();
-            case ENUM:
-                return getString();
             case BLOB:
-                return new MySQLBlob(getBytes());
+                return getBytes();
             case YEAR:
-                return getString();
-            case BIT:
-                if(getBytes().length == 1) {
-                    return getBytes()[0] == 1;
+                if ((datatypeMappingFlags & YEAR_IS_DATE_TYPE) != 0) {
+                    return getDate();
                 }
-                return null;
-            case SHORT:
-            case INT24:
+                return getShort();
+            case SMALLINT:
+            case MEDIUMINT:
                 return getInt();
             case FLOAT:
                 return getFloat();
             case TIME:
                 return getTime();
             case CLOB:
-                return new MySQLClob(getBytes());
+                return getString();
+            case CHAR:
+                return getString();
         }
         return null;
     }

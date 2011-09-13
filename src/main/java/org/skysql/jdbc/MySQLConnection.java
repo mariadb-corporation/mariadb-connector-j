@@ -45,7 +45,7 @@ public final class MySQLConnection
     /**
      * the protocol to communicate with.
      */
-    private final Protocol protocol;
+    private final MySQLProtocol protocol;
     /**
      * save point count - to generate good names for the savepoints.
      */
@@ -78,20 +78,17 @@ public final class MySQLConnection
      * @param protocol     the protocol to use.
      * @param queryFactory the query factory to use.
      */
-    private MySQLConnection( Protocol protocol, QueryFactory queryFactory) {
+    private MySQLConnection( MySQLProtocol protocol, QueryFactory queryFactory) {
         this.protocol = protocol;
         clientInfoProperties = new Properties();
         this.queryFactory = queryFactory;
         activeStatement = null;
     }
 
-    public static MySQLConnection newConnection(Protocol protocol, QueryFactory queryFactory) throws SQLException {
+    public static MySQLConnection newConnection(MySQLProtocol protocol, QueryFactory queryFactory) throws SQLException {
         MySQLConnection connection = new MySQLConnection(protocol, queryFactory);
 
-        if (!(protocol instanceof MySQLProtocol))
-            return connection;
-
-        if (((MySQLProtocol)protocol).getInfo().get("fastConnect") != null) {
+        if (protocol.getInfo().get("fastConnect") != null) {
             return connection;
         }
 

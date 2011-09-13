@@ -25,7 +25,6 @@
 package org.skysql.jdbc;
 
 import org.skysql.jdbc.internal.SQLExceptionMapper;
-import org.skysql.jdbc.internal.common.Protocol;
 import org.skysql.jdbc.internal.common.QueryException;
 import org.skysql.jdbc.internal.common.query.MySQLQueryFactory;
 import org.skysql.jdbc.internal.mysql.MySQLProtocol;
@@ -85,7 +84,7 @@ public final class Driver implements java.sql.Driver {
             String userName = info.getProperty("user",jdbcUrl.getUsername());
             String password = info.getProperty("password",jdbcUrl.getPassword());
 
-            final Protocol protocol = new MySQLProtocol(jdbcUrl.getHostname(),
+            MySQLProtocol protocol = new MySQLProtocol(jdbcUrl.getHostname(),
                         jdbcUrl.getPort(),
                         jdbcUrl.getDatabase(),
                         userName,

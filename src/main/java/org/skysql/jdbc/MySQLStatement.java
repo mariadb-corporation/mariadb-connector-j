@@ -33,6 +33,7 @@ import org.skysql.jdbc.internal.common.query.QueryFactory;
 import org.skysql.jdbc.internal.common.queryresults.ModifyQueryResult;
 import org.skysql.jdbc.internal.common.queryresults.QueryResult;
 import org.skysql.jdbc.internal.common.queryresults.ResultSetType;
+import org.skysql.jdbc.internal.mysql.MySQLProtocol;
 
 import java.sql.*;
 import java.util.LinkedList;
@@ -50,7 +51,7 @@ public class MySQLStatement implements Statement {
     /**
      * the protocol used to talk to the server.
      */
-    private final Protocol protocol;
+    private final MySQLProtocol protocol;
     /**
      * the result set produced by execute().
      */
@@ -101,7 +102,7 @@ public class MySQLStatement implements Statement {
      * @param queryFactory the query factory to produce internal queries.
      */
 
-    public MySQLStatement(final Protocol protocol,
+    public MySQLStatement(final MySQLProtocol protocol,
                          final MySQLConnection connection,
                          final QueryFactory queryFactory) {
         this.protocol = protocol;
@@ -553,7 +554,7 @@ public class MySQLStatement implements Statement {
     public ResultSet getGeneratedKeys() throws SQLException {
         if (queryResult != null && queryResult.getResultSetType() == ResultSetType.MODIFY) {
             final QueryResult genRes = ((ModifyQueryResult) queryResult).getGeneratedKeysResult();
-            return new MySQLResultSet(genRes, this, getProtocol());
+            return new MySQLResultSet(genRes, this, protocol);
         }
         return MySQLResultSet.EMPTY;
     }

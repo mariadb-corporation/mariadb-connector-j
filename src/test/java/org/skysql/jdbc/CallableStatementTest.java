@@ -242,6 +242,7 @@
                 storedProc.execute();
         }
 
+        @Test
         public void testOutParams() throws Exception {
                 CallableStatement storedProc = null;
 

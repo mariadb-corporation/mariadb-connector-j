@@ -52,6 +52,8 @@ public interface ColumnInformation {
 
     byte getDecimals();
 
+    boolean isSigned();
+    boolean isBinary();
     Set<ColumnFlags> getFlags();
 
     void updateDisplaySize(int displayLength);

@@ -26,11 +26,7 @@ package org.skysql.jdbc.internal.mysql;
 
 import org.skysql.jdbc.internal.common.DataType;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.sql.Blob;
-import java.sql.Date;
-import java.sql.Time;
+import java.sql.Types;
 
 
 /**
@@ -43,10 +39,6 @@ public class MySQLType implements DataType {
         this.type = type;
     }
 
-
-    public Class getJavaType() {
-        return type.getDataType();
-    }
 
     public int getSqlType() {
         return type.getSqlType();
@@ -62,39 +54,34 @@ public class MySQLType implements DataType {
 
 
     public enum Type {
-        DECIMAL(java.sql.Types.DECIMAL, Double.class),
-        TINY(java.sql.Types.SMALLINT, Short.class),
-        SHORT(java.sql.Types.SMALLINT, Short.class),
-        LONG(java.sql.Types.INTEGER, Integer.class),
-        FLOAT(java.sql.Types.FLOAT, Float.class),
-        DOUBLE(java.sql.Types.DOUBLE, Double.class),
-        NULL(java.sql.Types.NULL, null),
-        TIMESTAMP(java.sql.Types.TIMESTAMP, Long.class),
-        LONGLONG(java.sql.Types.BIGINT, BigInteger.class),
-        INT24(java.sql.Types.INTEGER, Integer.class),
-        DATETIME(java.sql.Types.DATE, Date.class),
-        DATE(java.sql.Types.DATE, Date.class),
-        TIME(java.sql.Types.TIME, Time.class),
-        YEAR(java.sql.Types.SMALLINT, Short.class),
-        BIT(java.sql.Types.BIT, Boolean.class),
-        VARCHAR(java.sql.Types.VARCHAR, String.class),
-        NEWDECIMAL(java.sql.Types.DECIMAL, BigDecimal.class),
-        ENUM(java.sql.Types.VARCHAR, String.class),
-        SET(java.sql.Types.VARCHAR, String.class),
-        BLOB(java.sql.Types.BLOB, Blob.class),
-        MAX(java.sql.Types.BLOB, Blob.class),
-        CLOB(java.sql.Types.CLOB, String.class);
+        OLDDECIMAL(java.sql.Types.DECIMAL), /* double, not used in newer code */
+        TINYINT(java.sql.Types.SMALLINT),
+        SMALLINT(java.sql.Types.SMALLINT),
+        INTEGER(java.sql.Types.INTEGER),
+        FLOAT(java.sql.Types.FLOAT),
+        DOUBLE(java.sql.Types.DOUBLE),
+        NULL(java.sql.Types.NULL),
+        TIMESTAMP(java.sql.Types.TIMESTAMP),
+        BIGINT(java.sql.Types.BIGINT),
+        MEDIUMINT(java.sql.Types.INTEGER),
+        DATETIME(java.sql.Types.DATE),
+        DATE(java.sql.Types.DATE),
+        TIME(java.sql.Types.TIME),
+        YEAR(java.sql.Types.SMALLINT),
+        BIT(java.sql.Types.BIT),
+        VARCHAR(java.sql.Types.VARCHAR),
+        DECIMAL(java.sql.Types.DECIMAL),
+        TINYBLOB(java.sql.Types.VARBINARY),
+        MEDIUMBLOB(java.sql.Types.VARBINARY),
+        LONGBLOB(java.sql.Types.LONGVARBINARY),
+        BLOB(java.sql.Types.LONGVARBINARY),
+        CLOB(Types.LONGVARCHAR),
+        CHAR(Types.CHAR);
 
         private final int sqlType;
-        private final Class<?> javaClass;
 
-        Type(final int sqlType, final Class<?> javaClass) {
+        Type(final int sqlType) {
             this.sqlType = sqlType;
-            this.javaClass = javaClass;
-        }
-
-        public Class getDataType() {
-            return javaClass;
         }
 
         public int getSqlType() {
@@ -102,16 +89,17 @@ public class MySQLType implements DataType {
         }
     }
 
-    public static MySQLType fromServer(final byte typeValue) {        
-        switch (typeValue) {
+    public static MySQLType fromServer(final byte typeValue) {
+        int type = (typeValue & 0xff);
+        switch (type) {
             case 0:
-                return new MySQLType(Type.DECIMAL);
+                return new MySQLType(Type.OLDDECIMAL);
             case 1:
-                return new MySQLType(Type.TINY);
+                return new MySQLType(Type.TINYINT);
             case 2:
-                return new MySQLType(Type.SHORT);
+                return new MySQLType(Type.SMALLINT);
             case 3:
-                return new MySQLType(Type.LONG);
+                return new MySQLType(Type.INTEGER);
             case 4:
                 return new MySQLType(Type.FLOAT);
             case 5:
@@ -121,9 +109,9 @@ public class MySQLType implements DataType {
             case 7:
                 return new MySQLType(Type.TIMESTAMP);
             case 8:
-                return new MySQLType(Type.LONGLONG);
+                return new MySQLType(Type.BIGINT);
             case 9:
-                return new MySQLType(Type.INT24);
+                return new MySQLType(Type.MEDIUMINT);
             case 10:
                 return new MySQLType(Type.DATE);
             case 11:
@@ -138,18 +126,31 @@ public class MySQLType implements DataType {
                 return new MySQLType(Type.VARCHAR);
             case 16:
                 return new MySQLType(Type.BIT);
-            case (byte) 0xf6:
-                return new MySQLType(Type.NEWDECIMAL);
-            case (byte) 0xf7:
-                return new MySQLType(Type.ENUM);
-            case (byte) 0xf8:
-                return new MySQLType(Type.SET);
-            case (byte) 0xf9:
-            case (byte) 0xfa:
-            case (byte) 0xfb:
-            case (byte) 0xfc:
+            case  246:
+                return new MySQLType(Type.DECIMAL);
+            case 247:
+                /* ENUM */
+                return new MySQLType(Type.VARCHAR);
+            case 248:
+                /* SET */
+                return new MySQLType(Type.VARCHAR);
+            case 249:
+                return new MySQLType(Type.TINYBLOB);
+            case 250:
+                return new MySQLType(Type.MEDIUMBLOB);
+            case 251:
+                return new MySQLType(Type.LONGBLOB);
+            case 252:
+                return new MySQLType(Type.BLOB);
+            case 253:
+                return new MySQLType(Type.VARCHAR);
+            case 254:
+                return new MySQLType(Type.CHAR);
+            case 255:
+                /* Geometry actually */
                 return new MySQLType(Type.BLOB);
             default:
+                //throw new RuntimeException("unknown type : "+ Integer.toHexString(typeValue + 255));
                 return new MySQLType(Type.VARCHAR);
         }
     }

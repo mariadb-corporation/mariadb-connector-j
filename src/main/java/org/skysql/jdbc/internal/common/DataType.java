@@ -31,7 +31,6 @@ import org.skysql.jdbc.internal.mysql.MySQLType;
  * Settings | File Templates.
  */
 public interface DataType {
-    Class getJavaType();
 
     int getSqlType();
 

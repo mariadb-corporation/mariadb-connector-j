@@ -44,9 +44,10 @@ class CallableParameterMetaData implements ParameterMetaData {
     boolean isFunction;
     boolean noAccessToMetadata;
     static Pattern PARAMETER_PATTERN =
-            Pattern.compile("\\s*(IN\\s+|OUT\\s+|INOUT\\s+)?([\\w\\d]+)\\s+(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d]+\\))?\\s*");
+            Pattern.compile("\\s*(IN\\s+|OUT\\s+|INOUT\\s+)?([\\w\\d]+)\\s+(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d]+\\))?\\s*",
+                    Pattern.CASE_INSENSITIVE);
     static Pattern RETURN_PATTERN =
-            Pattern.compile("\\s*(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d]+\\))?\\s*");
+            Pattern.compile("\\s*(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d]+\\))?\\s*", Pattern.CASE_INSENSITIVE);
 
     public CallableParameterMetaData(CallParameter[] params, Connection con, String name, boolean isFunction) {
         this.params = params;
@@ -201,13 +202,13 @@ class CallableParameterMetaData implements ParameterMetaData {
                 scale = scale.trim();
 
             CallParameter p = params[paramIndex];
-            if (direction == null || direction.equals("IN")) {
+            if (direction == null || direction.equalsIgnoreCase("IN")) {
                 p.isInput = true;
             }
-            else if (direction.equals("OUT")) {
+            else if (direction.equalsIgnoreCase("OUT")) {
                 p.isOutput= true;
             }
-            else if (direction.equals("INOUT")) {
+            else if (direction.equalsIgnoreCase("INOUT")) {
                 p.isInput = p.isOutput = true;
             } else {
                 throw new SQLException("unknown parameter direction " + direction + "for " + paramName);

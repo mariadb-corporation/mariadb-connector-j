@@ -63,7 +63,7 @@ public class MySQLRowPacket {
             if(!isPacketComplete()) {
                 appendPacket(packetFetcher.getRawPacket());
             }
-            final ValueObject dvo = new MySQLValueObject(reader.getLengthEncodedBytes(), currentColumn.getType());
+            final ValueObject dvo = new MySQLValueObject(reader.getLengthEncodedBytes(), currentColumn);
             columns.add(dvo);
             currentColumn.updateDisplaySize(dvo.getDisplayLength());
         }

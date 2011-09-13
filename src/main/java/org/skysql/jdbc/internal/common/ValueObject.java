@@ -40,6 +40,10 @@ import java.util.Calendar;
  * . User: marcuse Date: Feb 16, 2009 Time: 9:16:36 PM
  */
 public interface ValueObject {
+
+    public static final int TINYINT1_IS_BIT = 1;
+    public static final int YEAR_IS_DATE_TYPE = 2;
+
     String getString();
 
     long getLong();
@@ -68,7 +72,7 @@ public interface ValueObject {
 
     InputStream getBinaryInputStream();
 
-    Object getObject() throws ParseException;
+    Object getObject(int datatypeMappingFlags) throws ParseException;
 
     Date getDate(Calendar cal) throws ParseException;
 

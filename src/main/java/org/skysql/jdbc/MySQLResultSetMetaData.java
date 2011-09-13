@@ -24,10 +24,13 @@
 
 package org.skysql.jdbc;
 
-import org.skysql.jdbc.internal.common.ColumnInformation;
-import org.skysql.jdbc.internal.common.queryresults.ColumnFlags;
 import org.skysql.jdbc.internal.SQLExceptionMapper;
+import org.skysql.jdbc.internal.common.ColumnInformation;
+import org.skysql.jdbc.internal.common.ValueObject;
+import org.skysql.jdbc.internal.common.queryresults.ColumnFlags;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.List;
@@ -39,10 +42,12 @@ import java.util.List;
  */
 public class MySQLResultSetMetaData implements ResultSetMetaData {
 
-    private final List<ColumnInformation> fieldPackets;
+    private List<ColumnInformation> fieldPackets;
+    private int datatypeMappingflags;
 
-    public MySQLResultSetMetaData(final List<ColumnInformation> fieldPackets) {
+    public MySQLResultSetMetaData(List<ColumnInformation> fieldPackets, int datatypeMappingFlags) {
         this.fieldPackets = fieldPackets;
+        this.datatypeMappingflags = datatypeMappingFlags;
     }
 
     /**
@@ -122,8 +127,8 @@ public class MySQLResultSetMetaData implements ResultSetMetaData {
      * @return <code>true</code> if so; <code>false</code> otherwise
      * @throws java.sql.SQLException if a database access error occurs
      */
-    public boolean isSigned(final int column) throws SQLException {
-        return true; //only signed numbers in drizzle
+    public boolean isSigned(int column) throws SQLException {
+        return getColumnInformation(column).isSigned();
     }
 
     /**
@@ -242,7 +247,36 @@ public class MySQLResultSetMetaData implements ResultSetMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public String getColumnTypeName(final int column) throws SQLException {
-        return getColumnInformation(column).getType().getTypeName();
+        ColumnInformation ci = getColumnInformation(column);
+        switch(ci.getType().getType()) {
+            case SMALLINT:
+            case MEDIUMINT:
+            case INTEGER:
+            case BIGINT:
+               if(!ci.isSigned()) {
+                   return  ci.getType().getTypeName() + " UNSIGNED";
+               } else {
+                   return ci.getType().getTypeName();
+               }
+            case BLOB:
+                /*
+                  map to different blob types based on datatype length
+                  see http://dev.mysql.com/doc/refman/5.0/en/storage-requirements.html
+                 */
+                if (ci.getLength() < 0)
+                    return "LONGBLOB";
+                if(ci.getLength() <= 255) {
+                    return "TINYBLOB";
+                } else if (ci.getLength() <= 65535) {
+                    return "BLOB";
+                } else if (ci.getLength() <= 16777215) {
+                    return "MEDIUMBLOB";
+                } else {
+                    return "LONGBLOB";
+                }
+            default:
+                return ci.getType().getTypeName();
+        }
     }
 
     /**
@@ -290,11 +324,66 @@ public class MySQLResultSetMetaData implements ResultSetMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      * @since 1.2
      */
-    public String getColumnClassName(final int column) throws SQLException {
-        return getColumnInformation(column).getType().getJavaType().getName();
+    static final String byteArrayClassName = "[B";
+    public String getColumnClassName(int column) throws SQLException {
+        ColumnInformation ci = getColumnInformation(column);
+        switch(ci.getType().getType()) {
+          case OLDDECIMAL:
+            return BigDecimal.class.getName();
+          case TINYINT:
+            if (ci.getLength() == 1 && ((datatypeMappingflags & ValueObject.TINYINT1_IS_BIT) != 0))
+                return Boolean.class.getName();
+            return Integer.class.getName();
+          case SMALLINT:
+             return Integer.class.getName();
+          case INTEGER:
+             if (ci.isSigned())
+                 return Integer.class.getName();
+             return Long.class.getName();
+          case  FLOAT:
+              return Float.class.getName();
+          case DOUBLE:
+              return Double.class.getName();
+          case NULL:
+              return null;
+          case TIMESTAMP:
+              return java.sql.Timestamp.class.getName();
+          case BIGINT:
+              return (ci.isSigned())?Long.class.getName(): BigInteger.class.getName();
+          case MEDIUMINT:
+              return Integer.class.getName();
+          case DATETIME:
+              return java.sql.Timestamp.class.getName();
+          case DATE :
+              return java.sql.Date.class.getName();
+          case TIME:
+              return java.sql.Time.class.getName();
+          case YEAR:
+              if ((datatypeMappingflags & ValueObject.YEAR_IS_DATE_TYPE) != 0)
+                return java.sql.Date.class.getName();
+              return Short.class.getName();
+          case BIT:
+              if (ci.getLength() == 1)
+                  return  Boolean.class.getName();
+              return byteArrayClassName;
+          case VARCHAR:
+              if (ci.isBinary())
+                  return byteArrayClassName;
+              return String.class.getName();
+          case DECIMAL:
+              return BigDecimal.class.getName();
+          case BLOB:
+              return byteArrayClassName;
+          case CLOB:
+              return String.class.getName();
+          case CHAR:
+              return String.class.getName();
+          default:
+              return byteArrayClassName;
+        }
     }
 
-    private ColumnInformation getColumnInformation(final int column) throws SQLException {
+    private ColumnInformation getColumnInformation(int column) throws SQLException {
         if (column - 1 >= 0 && column - 1 <= fieldPackets.size()) {
             return fieldPackets.get(column - 1);
         }

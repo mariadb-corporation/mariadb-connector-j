@@ -32,9 +32,8 @@ import java.io.OutputStream;
  */
 public interface ParameterHolder {
     /**
-     * Write at most maxWriteSize, return the amont actually written
+     * Write parameter value
      * @param os the stream to write to
-     * @return the number of bytes written (either maxWriteSize or the length of the parameter)
      * @throws IOException when everything goes wrong
      */
     void writeTo(OutputStream os) throws IOException;
