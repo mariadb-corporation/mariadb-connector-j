@@ -288,6 +288,8 @@ public final class MySQLConnection
      * which to work.
      * <p/>
      * If the driver does not support catalogs, it will silently ignore this request.
+     * 
+     * MySQL treats catalogs and databases as equivalent
      *
      * @param catalog the name of a catalog (subspace in this <code>Connection</code> object's database) in which to
      *                work
@@ -295,7 +297,22 @@ public final class MySQLConnection
      * @see #getCatalog
      */
     public void setCatalog(final String catalog) throws SQLException {
-        // silently ignored since drizzle does not support catalogs
+
+ 
+    	if (catalog == null)
+    	{
+    		throw new SQLException("The catalog name may not be null", "XAE05");
+    	}
+       	String SQL = "USE \"";
+    	SQL.concat(catalog);
+    	SQL.concat("\"");
+    	
+        try {
+            reenableWarnings();
+            protocol.executeQuery(queryFactory.createQuery(SQL));
+        } catch (QueryException e) {
+            throw SQLExceptionMapper.get(e);
+        }
     }
 
     /**
@@ -310,7 +327,18 @@ public final class MySQLConnection
      * @see #setCatalog
      */
     public String getCatalog() throws SQLException {
-        return null;
+    	String catalog = null;
+        Statement st = null;
+        try {
+            st = createStatement();
+            ResultSet rs = st.executeQuery("select database()");
+            rs.next();
+            catalog = rs.getString(1);
+        } finally {
+            if (st != null)
+                st.close();
+        }
+        return catalog;
     }
 
     /**
