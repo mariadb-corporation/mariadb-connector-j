@@ -304,8 +304,7 @@ public final class MySQLConnection
        	StringBuffer SQL = new StringBuffer("USE ");
     	SQL.append(catalog);
     	
-    	System.out.println("Execute " + SQL);
-        try {
+    	try {
             reenableWarnings();
             protocol.executeQuery(queryFactory.createQuery(SQL.toString()));
         } catch (QueryException e) {
