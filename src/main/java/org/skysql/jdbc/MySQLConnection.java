@@ -297,21 +297,19 @@ public final class MySQLConnection
      * @see #getCatalog
      */
     public void setCatalog(final String catalog) throws SQLException {
-
- 
     	if (catalog == null)
     	{
     		throw new SQLException("The catalog name may not be null", "XAE05");
     	}
-       	String SQL = "USE \"";
-    	SQL.concat(catalog);
-    	SQL.concat("\"");
+       	StringBuffer SQL = new StringBuffer("USE ");
+    	SQL.append(catalog);
     	
+    	System.out.println("Execute " + SQL);
         try {
             reenableWarnings();
-            protocol.executeQuery(queryFactory.createQuery(SQL));
+            protocol.executeQuery(queryFactory.createQuery(SQL.toString()));
         } catch (QueryException e) {
-            throw SQLExceptionMapper.get(e);
+            throw SQLExceptionMapper.getSQLException("Unable to change catalog to '" + catalog + "'", e);
         }
     }
 
