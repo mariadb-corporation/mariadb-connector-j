@@ -1575,7 +1575,7 @@ public abstract class CommonDatabaseMetaData implements DatabaseMetaData {
      * @return  an AND clause 
      */
     protected String getSchemaPattern(String schemaPattern) {
-        if(schemaPattern != null) {
+        if(schemaPattern != null && ((MySQLConnection)connection).noSchemaPattern == false) {
             return " AND table_schema LIKE '" + schemaPattern + "'";
         } else {
             return " AND table_schema LIKE IFNULL(database(), '%')";

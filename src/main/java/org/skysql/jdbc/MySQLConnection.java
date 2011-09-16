@@ -64,6 +64,7 @@ public final class MySQLConnection
     private boolean warningsCleared;
     private Statement activeStatement;
     boolean noBackslashEscapes;
+    boolean noSchemaPattern = false;
 
 
     /**
@@ -87,10 +88,18 @@ public final class MySQLConnection
 
     public static MySQLConnection newConnection(MySQLProtocol protocol, QueryFactory queryFactory) throws SQLException {
         MySQLConnection connection = new MySQLConnection(protocol, queryFactory);
-
+        
+        String value;
+        if ((value = protocol.getInfo().getProperty("NoSchemaPattern")) != null
+        		&& value.equalsIgnoreCase("true"))
+        {
+        	connection.noSchemaPattern = true;
+        }
+        
         if (protocol.getInfo().get("fastConnect") != null) {
             return connection;
         }
+
 
         Statement st = null;
         try {
@@ -1295,5 +1304,4 @@ public final class MySQLConnection
     protected ScheduledExecutorService getTimeoutExecutor() {
         return timeoutExecutor;
     }
-
 }
