@@ -24,6 +24,7 @@
 
 package org.skysql.jdbc;
 
+import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -36,7 +37,8 @@ public final class MySQLDatabaseMetaData extends CommonDatabaseMetaData {
 
     @Override
     public ResultSet getPrimaryKeys(final String catalog, final String schema, final String table) throws SQLException {
-        String query = "SELECT table_catalog TABLE_CAT, " +
+        final Connection conn = getConnection();
+    	String query = "SELECT table_catalog TABLE_CAT, " +
                 "table_schema TABLE_SCHEM, " +
                 "table_name, " +
                 "column_name, " +
@@ -45,11 +47,11 @@ public final class MySQLDatabaseMetaData extends CommonDatabaseMetaData {
                 "FROM information_schema.columns " +
                 "WHERE table_name='" + table + "' AND column_key='pri'";
 
-        if (schema != null) {
+        if (schema != null && (((MySQLConnection)conn).noSchemaPattern == false)) {
             query += " AND table_schema = '" + schema + "'";
         }
         query += " ORDER BY column_name";
-        final Statement stmt = getConnection().createStatement();
+        final Statement stmt = conn.createStatement();
         return stmt.executeQuery(query);
     }
    /**
@@ -98,7 +100,7 @@ public final class MySQLDatabaseMetaData extends CommonDatabaseMetaData {
 
         public ResultSet getColumns(final String catalog, final String schemaPattern, final String tableNamePattern, final String columnNamePattern)
             throws SQLException {
-        final String query = "     SELECT null as table_cat," +
+        String query = "     SELECT null as table_cat," +
                 "            table_schema as table_schem," +
                 "            table_name," +
                 "            column_name," +
@@ -122,15 +124,21 @@ public final class MySQLDatabaseMetaData extends CommonDatabaseMetaData {
                 "            null source_data_type," +
                 "            '' is_autoincrement" +
                 "    FROM information_schema.columns " +
-                "WHERE table_schema LIKE '" + ((schemaPattern == null) ? "%" : schemaPattern) + "'" +
-                " AND table_name LIKE '" + ((tableNamePattern == null) ? "%" : tableNamePattern) + "'" +
+                "WHERE ";
+        if (((MySQLConnection)getConnection()).noSchemaPattern == false)
+        {
+        	query = query + "table_schema LIKE '" + ((schemaPattern == null) ? "%" : schemaPattern) + "' AND ";
+        }
+        query = query + "table_name LIKE '" + ((tableNamePattern == null) ? "%" : tableNamePattern) + "'" +
                 " AND column_name LIKE '" + ((columnNamePattern == null) ? "%" : columnNamePattern) + "'" +
                 " ORDER BY table_cat, table_schem, table_name, ordinal_position";
         final Statement stmt = getConnection().createStatement();
         return stmt.executeQuery(query);
     }
+        
     public ResultSet getExportedKeys(final String catalog, final String schema, final String table) throws SQLException {
-        final String query = "SELECT null PKTABLE_CAT, \n" +
+    	final Connection conn = getConnection();
+    	final String query = "SELECT null PKTABLE_CAT, \n" +
                 "kcu.referenced_table_schema PKTABLE_SCHEM, \n" +
                 "kcu.referenced_table_name PKTABLE_NAME, \n" +
                 "kcu.referenced_column_name PKCOLUMN_NAME, \n" +
@@ -161,7 +169,7 @@ public final class MySQLDatabaseMetaData extends CommonDatabaseMetaData {
                 "ON kcu.constraint_schema=rc.constraint_schema\n" +
                 "AND kcu.constraint_name=rc.constraint_name\n" +
                 "WHERE " +
-                (schema != null ? "kcu.referenced_table_schema='" + schema + "' AND " : "") +
+                (schema != null && (((MySQLConnection)conn).noSchemaPattern == false) ? "kcu.referenced_table_schema='" + schema + "' AND " : "") +
                 "kcu.referenced_table_name='" +
                 table +
                 "'" +
@@ -170,7 +178,8 @@ public final class MySQLDatabaseMetaData extends CommonDatabaseMetaData {
         return stmt.executeQuery(query);
     }
     public ResultSet getImportedKeys(final String catalog, final String schema, final String table) throws SQLException {
-        final String query = "SELECT null PKTABLE_CAT, \n" +
+    	final Connection conn = getConnection();
+    	final String query = "SELECT null PKTABLE_CAT, \n" +
                 "kcu.referenced_table_schema PKTABLE_SCHEM, \n" +
                 "kcu.referenced_table_name PKTABLE_NAME, \n" +
                 "kcu.referenced_column_name PKCOLUMN_NAME, \n" +
@@ -201,18 +210,19 @@ public final class MySQLDatabaseMetaData extends CommonDatabaseMetaData {
                 "ON kcu.constraint_schema=rc.constraint_schema\n" +
                 "AND kcu.constraint_name=rc.constraint_name\n" +
                 "WHERE " +
-                (schema != null ? "kcu.table_schema='" + schema + "' AND " : "") +
+                (schema != null && (((MySQLConnection)conn).noSchemaPattern == false) ? "kcu.table_schema='" + schema + "' AND " : "") +
                 "kcu.table_name='" +
                 table +
                 "'" +
                 "ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ";
-        final Statement stmt = getConnection().createStatement();
+        
+        final Statement stmt = conn.createStatement();
         return stmt.executeQuery(query);
     }
 
     public ResultSet getBestRowIdentifier(final String catalog, final String schema, final String table, final int scope, final boolean nullable)
             throws SQLException {
-        final String query = "SELECT " + DatabaseMetaData.bestRowSession + " scope," +
+        String query = "SELECT " + DatabaseMetaData.bestRowSession + " scope," +
                 "column_name," +
                 dataTypeClause + " data_type," +
                 "data_type type_name," +
@@ -221,10 +231,14 @@ public final class MySQLDatabaseMetaData extends CommonDatabaseMetaData {
                 "numeric_scale decimal_digits," +
                 DatabaseMetaData.bestRowNotPseudo + " pseudo_column" +
                 " FROM information_schema.columns" +
-                " WHERE column_key in('PRI', 'MUL', 'UNI') " +
-                " AND table_schema like " + (schema != null ? "'%'" : "'" + schema + "'") +
-                " AND table_name='" + table + "' ORDER BY scope";
-        final Statement stmt = getConnection().createStatement();
+                " WHERE column_key in('PRI', 'MUL', 'UNI') ";
+        Connection conn = getConnection();
+        if (((MySQLConnection)conn).noSchemaPattern == false)
+        {
+                query = query + " AND table_schema like " + (schema != null ? "'%'" : "'" + schema + "'");
+        }
+        query = query + " AND table_name='" + table + "' ORDER BY scope";
+        final Statement stmt = conn.createStatement();
         return stmt.executeQuery(query);
     }
 
