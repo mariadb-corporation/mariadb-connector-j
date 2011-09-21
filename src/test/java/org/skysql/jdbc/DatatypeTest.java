@@ -147,9 +147,10 @@ public class DatatypeTest extends BaseTest {
         datatypes(c, true, false);
     }
 
-     @Test
+    @Test
     public void datatypes4() throws Exception {
         Connection c = DriverManager.getConnection("jdbc:mysql://localhost:3306/test?user=root&tinyInt1isBit=0&yearIsDateType=1");
         datatypes(c, false, true);
     }
+
 }

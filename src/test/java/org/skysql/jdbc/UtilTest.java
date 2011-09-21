@@ -54,6 +54,5 @@ public class UtilTest {
         in = "SELECT 'David_' LIKE 'David|_' {escape '|'}";
         out = Utils.nativeSQL(in, false);
         assertEquals(out, "SELECT 'David_' LIKE 'David|_' escape '|'");
-
     }
 }

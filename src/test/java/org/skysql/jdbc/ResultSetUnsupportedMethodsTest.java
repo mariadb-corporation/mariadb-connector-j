@@ -100,10 +100,6 @@ System.out.println("}");
        rs.getArray(1);
     }
     @Test(expected=SQLFeatureNotSupportedException.class)
-    public void testGetArray2() throws SQLException {
-       rs.getArray("");
-    }
-    @Test(expected=SQLFeatureNotSupportedException.class)
     public void testInsertRow() throws SQLException {
        rs.insertRow();
     }

@@ -50,17 +50,17 @@ import java.util.Map;
  */
 public class MySQLResultSet implements ResultSet {
 
-    public final static MySQLResultSet EMPTY = createEmptyResultSet();
-    private final QueryResult queryResult;
-    private final Statement statement;
-    private final MySQLProtocol protocol;
+    public static final MySQLResultSet EMPTY = createEmptyResultSet();
+    private QueryResult queryResult;
+    private Statement statement;
+    private MySQLProtocol protocol;
     // dont want these, but jdbc forces them with "lastGetWasNull" etc...
     private boolean isClosed;
     private boolean lastGetWasNull;
     private boolean warningsCleared;
     ColumnNameMap columnNameMap;
 
-    public MySQLResultSet(final QueryResult dqr, final Statement statement, MySQLProtocol protocol) {
+    public MySQLResultSet(QueryResult dqr, Statement statement, MySQLProtocol protocol) {
         this.queryResult = dqr;
         this.statement = statement;
         isClosed = false;
@@ -69,9 +69,9 @@ public class MySQLResultSet implements ResultSet {
     }
 
     private static MySQLResultSet createEmptyResultSet() {
-        final List<ColumnInformation> colList = Collections.emptyList();
-        final List<List<ValueObject>> voList = Collections.emptyList();
-        final QueryResult qr = new CachedSelectResult(colList, voList, (short) 0);
+        List<ColumnInformation> colList = Collections.emptyList();
+        List<List<ValueObject>> voList = Collections.emptyList();
+        QueryResult qr = new CachedSelectResult(colList, voList, (short) 0);
         return new MySQLResultSet(qr, null, null);
     }
 
@@ -107,21 +107,21 @@ public class MySQLResultSet implements ResultSet {
     }
 
 
-    public String getString(final int i) throws SQLException {
+    public String getString(int i) throws SQLException {
         return getValueObject(i).getString();
     }
 
-    public int getInt(final int i) throws SQLException {
+    public int getInt(int i) throws SQLException {
         return getValueObject(i).getInt();
     }
 
-    public int getInt(final String s) throws SQLException {
-        return getValueObject(s).getInt();
+    public int getInt(String s) throws SQLException {
+        return getInt(findColumn(s));
     }
 
-    private ValueObject getValueObject(final int i) throws SQLException {
+    private ValueObject getValueObject(int i) throws SQLException {
         if (queryResult.getResultSetType() == ResultSetType.SELECT) {
-            final ValueObject vo;
+            ValueObject vo;
             try {
                 vo = ((SelectQueryResult) queryResult).getValueObject(i - 1);
             } catch (NoSuchColumnException e) {
@@ -131,10 +131,6 @@ public class MySQLResultSet implements ResultSet {
             return vo;
         }
         throw SQLExceptionMapper.getSQLException("Cannot get data from update-result sets");
-    }
-
-    private ValueObject getValueObject(final String column) throws SQLException {
-        return getValueObject(columnNameMap.getIndex(column)+1);
     }
 
     /**
@@ -147,8 +143,8 @@ public class MySQLResultSet implements ResultSet {
      * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs or this method
      *                               is called on a closed result set
      */
-    public long getLong(final String columnLabel) throws SQLException {
-        return getValueObject(columnLabel).getLong();
+    public long getLong(String columnLabel) throws SQLException {
+        return getLong(findColumn(columnLabel));
     }
 
     /**
@@ -161,8 +157,8 @@ public class MySQLResultSet implements ResultSet {
      * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs or this method
      *                               is called on a closed result set
      */
-    public float getFloat(final String columnLabel) throws SQLException {
-        return getValueObject(columnLabel).getFloat();
+    public float getFloat(String columnLabel) throws SQLException {
+        return getFloat(findColumn(columnLabel));
     }
 
     /**
@@ -175,8 +171,8 @@ public class MySQLResultSet implements ResultSet {
      * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs or this method
      *                               is called on a closed result set
      */
-    public double getDouble(final String columnLabel) throws SQLException {
-        return getValueObject(columnLabel).getDouble();
+    public double getDouble(String columnLabel) throws SQLException {
+        return getDouble(findColumn(columnLabel));
     }
 
     /**
@@ -193,8 +189,8 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @deprecated
      */
-    public BigDecimal getBigDecimal(final String columnLabel, final int scale) throws SQLException {
-        return getValueObject(columnLabel).getBigDecimal();
+    public BigDecimal getBigDecimal(String columnLabel, int scale) throws SQLException {
+        return getBigDecimal(findColumn(columnLabel),scale);
     }
 
     /**
@@ -208,8 +204,8 @@ public class MySQLResultSet implements ResultSet {
      * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs or this method
      *                               is called on a closed result set
      */
-    public byte[] getBytes(final String columnLabel) throws SQLException {
-        return getValueObject(columnLabel).getBytes();
+    public byte[] getBytes(String columnLabel) throws SQLException {
+        return getBytes(findColumn(columnLabel));
     }
 
     /**
@@ -222,7 +218,7 @@ public class MySQLResultSet implements ResultSet {
      * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs or this method
      *                               is called on a closed result set
      */
-    public Date getDate(final String columnLabel) throws SQLException {
+    public Date getDate(String columnLabel) throws SQLException {
         return getDate(findColumn(columnLabel));
     }
 
@@ -236,14 +232,8 @@ public class MySQLResultSet implements ResultSet {
      * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs or this method
      *                               is called on a closed result set
      */
-    public Time getTime(final String columnLabel) throws SQLException {
-        try {
-            return getValueObject(columnLabel).getTime();
-        } catch (ParseException e) {
-            throw SQLExceptionMapper.getSQLException("Could not parse column as time, was: \"" +
-                    getValueObject(columnLabel).getString() +
-                    "\"", e);
-        }
+    public Time getTime(String columnLabel) throws SQLException {
+        return getTime(findColumn(columnLabel));
     }
 
     /**
@@ -256,14 +246,8 @@ public class MySQLResultSet implements ResultSet {
      * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs or this method
      *                               is called on a closed result set
      */
-    public Timestamp getTimestamp(final String columnLabel) throws SQLException {
-        try {
-            return getValueObject(columnLabel).getTimestamp();
-        } catch (ParseException e) {
-            throw SQLExceptionMapper.getSQLException("Could not parse column as timestamp, was: \"" +
-                    getValueObject(columnLabel).getString() +
-                    "\"", e);
-        }
+    public Timestamp getTimestamp(String columnLabel) throws SQLException {
+        return getTimestamp(findColumn(columnLabel));
     }
 
     /**
@@ -283,8 +267,8 @@ public class MySQLResultSet implements ResultSet {
      * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs or this method
      *                               is called on a closed result set
      */
-    public InputStream getAsciiStream(final String columnLabel) throws SQLException {
-        return getValueObject(columnLabel).getInputStream();
+    public InputStream getAsciiStream(String columnLabel) throws SQLException {
+        return getAsciiStream(findColumn(columnLabel));
 
     }
 
@@ -310,8 +294,8 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @deprecated use <code>getCharacterStream</code> instead
      */
-    public InputStream getUnicodeStream(final String columnLabel) throws SQLException {
-        return getValueObject(columnLabel).getInputStream();
+    public InputStream getUnicodeStream(String columnLabel) throws SQLException {
+        return getUnicodeStream(findColumn(columnLabel));
     }
 
     /**
@@ -330,18 +314,8 @@ public class MySQLResultSet implements ResultSet {
      * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs or this method
      *                               is called on a closed result set
      */
-    public InputStream getBinaryStream(final String columnLabel) throws SQLException {
-        if(protocol.supportsPBMS()) {
-            try {
-                return getValueObject(columnLabel).getPBMSStream(protocol);
-            } catch (QueryException e) {
-                throw SQLExceptionMapper.get(e);
-            } catch (IOException e) {
-                throw SQLExceptionMapper.getSQLException("Could not read back the data using http", e);
-            }
-        } else {
-            return getValueObject(columnLabel).getBinaryInputStream();
-        }
+    public InputStream getBinaryStream(String columnLabel) throws SQLException {
+       return getBinaryStream(findColumn(columnLabel));
     }
 
     /**
@@ -434,7 +408,7 @@ public class MySQLResultSet implements ResultSet {
      * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs or this method
      *                               is called on a closed result set
      */
-    public Object getObject(final int columnIndex) throws SQLException {
+    public Object getObject(int columnIndex) throws SQLException {
         try {
             return getValueObject(columnIndex).getObject(protocol.datatypeMappingFlags);
         } catch (ParseException e) {
@@ -463,12 +437,8 @@ public class MySQLResultSet implements ResultSet {
      * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs or this method
      *                               is called on a closed result set
      */
-    public Object getObject(final String columnLabel) throws SQLException {
-        try {
-            return getValueObject(columnLabel).getObject(protocol.datatypeMappingFlags);
-        } catch (ParseException e) {
-            throw SQLExceptionMapper.getSQLException("Could not get object: " + e.getMessage(), "S1009", e);
-        }
+    public Object getObject(String columnLabel) throws SQLException {
+        return getObject(findColumn(columnLabel));
     }
 
     /**
@@ -481,7 +451,7 @@ public class MySQLResultSet implements ResultSet {
      *                               <code>columnLabel</code>, a database access error occurs or this method is called
      *                               on a closed result set
      */
-    public int findColumn(final String columnLabel) throws SQLException {
+    public int findColumn(String columnLabel) throws SQLException {
         if (this.queryResult.getResultSetType() == ResultSetType.SELECT) {
              return columnNameMap.getIndex(columnLabel) +1;
         }
@@ -499,7 +469,7 @@ public class MySQLResultSet implements ResultSet {
      *                               is called on a closed result set
      * @since 1.2
      */
-    public Reader getCharacterStream(final int columnIndex) throws SQLException {
+    public Reader getCharacterStream(int columnIndex) throws SQLException {
         return new StringReader(getValueObject(columnIndex).getString());
     }
 
@@ -515,8 +485,8 @@ public class MySQLResultSet implements ResultSet {
      *                               is called on a closed result set
      * @since 1.2
      */
-    public Reader getCharacterStream(final String columnLabel) throws SQLException {
-        return new StringReader(getValueObject(columnLabel).getString());
+    public Reader getCharacterStream(String columnLabel) throws SQLException {
+        return getCharacterStream(findColumn(columnLabel));
     }
 
     /**
@@ -530,7 +500,7 @@ public class MySQLResultSet implements ResultSet {
      *                               is called on a closed result set
      * @since 1.2
      */
-    public BigDecimal getBigDecimal(final int columnIndex) throws SQLException {
+    public BigDecimal getBigDecimal(int columnIndex) throws SQLException {
         return getValueObject(columnIndex).getBigDecimal();
     }
 
@@ -546,8 +516,8 @@ public class MySQLResultSet implements ResultSet {
      *                               is called on a closed result set
      * @since 1.2
      */
-    public BigDecimal getBigDecimal(final String columnLabel) throws SQLException {
-        return getValueObject(columnLabel).getBigDecimal();
+    public BigDecimal getBigDecimal(String columnLabel) throws SQLException {
+        return getBigDecimal(findColumn(columnLabel));
     }
 
     /**
@@ -746,11 +716,11 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public boolean absolute(final int row) throws SQLException {
+    public boolean absolute(int row) throws SQLException {
         if (queryResult.getResultSetType() != ResultSetType.SELECT) {
             return false;
         }
-        final SelectQueryResult sqr = (SelectQueryResult) queryResult;
+        SelectQueryResult sqr = (SelectQueryResult) queryResult;
         if (sqr.getRows() > 0) {
             if (row >= 0 && row <= sqr.getRows()) {
                 sqr.moveRowPointerTo(row - 1);
@@ -781,13 +751,13 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public boolean relative(final int rows) throws SQLException {
+    public boolean relative(int rows) throws SQLException {
         if (queryResult.getResultSetType() != ResultSetType.SELECT) {
             return false;
         }
-        final SelectQueryResult sqr = (SelectQueryResult) queryResult;
+        SelectQueryResult sqr = (SelectQueryResult) queryResult;
         if (queryResult.getRows() > 0) {
-            final int newPos = sqr.getRowPointer() + rows;
+            int newPos = sqr.getRowPointer() + rows;
             if (newPos > -1 && newPos <= queryResult.getRows()) {
                 sqr.moveRowPointerTo(newPos);
                 return true;
@@ -819,7 +789,7 @@ public class MySQLResultSet implements ResultSet {
         if (queryResult.getResultSetType() != ResultSetType.SELECT) {
             return false;
         }
-        final SelectQueryResult sqr = (SelectQueryResult) queryResult;
+        SelectQueryResult sqr = (SelectQueryResult) queryResult;
 
         if (sqr.isBeforeFirst())
             return false;
@@ -846,7 +816,7 @@ public class MySQLResultSet implements ResultSet {
      * @see #getFetchDirection
      * @since 1.2
      */
-    public void setFetchDirection(final int direction) throws SQLException {
+    public void setFetchDirection(int direction) throws SQLException {
         // todo: ignored for now
     }
 
@@ -874,7 +844,7 @@ public class MySQLResultSet implements ResultSet {
      * @see #getFetchSize
      * @since 1.2
      */
-    public void setFetchSize(final int rows) throws SQLException {
+    public void setFetchSize(int rows) throws SQLException {
         // ignored - we fetch 'em all!
     }
 
@@ -988,7 +958,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public void updateNull(final int columnIndex) throws SQLException {
+    public void updateNull(int columnIndex) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -1006,7 +976,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public void updateBoolean(final int columnIndex, final boolean x) throws SQLException {
+    public void updateBoolean(int columnIndex, boolean x) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -1024,7 +994,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public void updateByte(final int columnIndex, final byte x) throws SQLException {
+    public void updateByte(int columnIndex, byte x) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -1042,7 +1012,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public void updateShort(final int columnIndex, final short x) throws SQLException {
+    public void updateShort(int columnIndex, short x) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -1060,7 +1030,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public void updateInt(final int columnIndex, final int x) throws SQLException {
+    public void updateInt(int columnIndex, int x) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -1078,7 +1048,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public void updateLong(final int columnIndex, final long x) throws SQLException {
+    public void updateLong(int columnIndex, long x) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -1096,7 +1066,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public void updateFloat(final int columnIndex, final float x) throws SQLException {
+    public void updateFloat(int columnIndex, float x) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -1114,7 +1084,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public void updateDouble(final int columnIndex, final double x) throws SQLException {
+    public void updateDouble(int columnIndex, double x) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -1133,7 +1103,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public void updateBigDecimal(final int columnIndex, final BigDecimal x) throws SQLException {
+    public void updateBigDecimal(int columnIndex, BigDecimal x) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -1151,7 +1121,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public void updateString(final int columnIndex, final String x) throws SQLException {
+    public void updateString(int columnIndex, String x) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -1169,7 +1139,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public void updateBytes(final int columnIndex, final byte[] x) throws SQLException {
+    public void updateBytes(int columnIndex, byte[] x) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -1187,7 +1157,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public void updateDate(final int columnIndex, final Date x) throws SQLException {
+    public void updateDate(int columnIndex, Date x) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -1205,7 +1175,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public void updateTime(final int columnIndex, final Time x) throws SQLException {
+    public void updateTime(int columnIndex, Time x) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -1224,7 +1194,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public void updateTimestamp(final int columnIndex, final Timestamp x) throws SQLException {
+    public void updateTimestamp(int columnIndex, Timestamp x) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -1244,7 +1214,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public void updateAsciiStream(final int columnIndex, final InputStream x, final int length) throws SQLException {
+    public void updateAsciiStream(int columnIndex, InputStream x, int length) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -1264,7 +1234,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public void updateBinaryStream(final int columnIndex, final InputStream x, final int length) throws SQLException {
+    public void updateBinaryStream(int columnIndex, InputStream x, int length) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -1284,7 +1254,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public void updateCharacterStream(final int columnIndex, final Reader x, final int length) throws SQLException {
+    public void updateCharacterStream(int columnIndex, Reader x, int length) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -1311,7 +1281,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public void updateObject(final int columnIndex, final Object x, final int scaleOrLength) throws SQLException {
+    public void updateObject(int columnIndex, Object x, int scaleOrLength) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -1329,7 +1299,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public void updateObject(final int columnIndex, final Object x) throws SQLException {
+    public void updateObject(int columnIndex, Object x) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -1347,7 +1317,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public void updateNull(final String columnLabel) throws SQLException {
+    public void updateNull(String columnLabel) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -1366,7 +1336,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public void updateBoolean(final String columnLabel, final boolean x) throws SQLException {
+    public void updateBoolean(String columnLabel, boolean x) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -1385,7 +1355,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public void updateByte(final String columnLabel, final byte x) throws SQLException {
+    public void updateByte(String columnLabel, byte x) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -1404,7 +1374,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public void updateShort(final String columnLabel, final short x) throws SQLException {
+    public void updateShort(String columnLabel, short x) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -1423,7 +1393,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public void updateInt(final String columnLabel, final int x) throws SQLException {
+    public void updateInt(String columnLabel, int x) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -1442,7 +1412,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public void updateLong(final String columnLabel, final long x) throws SQLException {
+    public void updateLong(String columnLabel, long x) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -1461,7 +1431,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public void updateFloat(final String columnLabel, final float x) throws SQLException {
+    public void updateFloat(String columnLabel, float x) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -1480,7 +1450,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public void updateDouble(final String columnLabel, final double x) throws SQLException {
+    public void updateDouble(String columnLabel, double x) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -1500,7 +1470,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public void updateBigDecimal(final String columnLabel, final BigDecimal x) throws SQLException {
+    public void updateBigDecimal(String columnLabel, BigDecimal x) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -1519,7 +1489,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public void updateString(final String columnLabel, final String x) throws SQLException {
+    public void updateString(String columnLabel, String x) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -1540,7 +1510,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public void updateBytes(final String columnLabel, final byte[] x) throws SQLException {
+    public void updateBytes(String columnLabel, byte[] x) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -1559,7 +1529,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public void updateDate(final String columnLabel, final Date x) throws SQLException {
+    public void updateDate(String columnLabel, Date x) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -1578,7 +1548,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public void updateTime(final String columnLabel, final Time x) throws SQLException {
+    public void updateTime(String columnLabel, Time x) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -1598,7 +1568,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public void updateTimestamp(final String columnLabel, final Timestamp x) throws SQLException {
+    public void updateTimestamp(String columnLabel, Timestamp x) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -1619,7 +1589,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public void updateAsciiStream(final String columnLabel, final InputStream x, final int length) throws SQLException {
+    public void updateAsciiStream(String columnLabel, InputStream x, int length) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -1640,7 +1610,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public void updateBinaryStream(final String columnLabel, final InputStream x, final int length) throws SQLException {
+    public void updateBinaryStream(String columnLabel, InputStream x, int length) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -1661,7 +1631,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public void updateCharacterStream(final String columnLabel, final Reader reader, final int length) throws SQLException {
+    public void updateCharacterStream(String columnLabel, Reader reader, int length) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -1689,7 +1659,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public void updateObject(final String columnLabel, final Object x, final int scaleOrLength) throws SQLException {
+    public void updateObject(String columnLabel, Object x, int scaleOrLength) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -1708,7 +1678,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public void updateObject(final String columnLabel, final Object x) throws SQLException {
+    public void updateObject(String columnLabel, Object x) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -1869,7 +1839,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public Object getObject(final int columnIndex, final Map<String, Class<?>> map) throws SQLException {
+    public Object getObject(int columnIndex, Map<String, Class<?>> map) throws SQLException {
         return getObject(columnIndex);
     }
 
@@ -1885,7 +1855,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public Ref getRef(final int columnIndex) throws SQLException {
+    public Ref getRef(int columnIndex) throws SQLException {
         // TODO: figure out what REF's are and implement this method
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
@@ -1902,7 +1872,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public Blob getBlob(final int columnIndex) throws SQLException {
+    public Blob getBlob(int columnIndex) throws SQLException {
         byte[] bytes = getValueObject(columnIndex).getBytes();
         if (bytes == null)
             return null;
@@ -1921,7 +1891,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public Clob getClob(final int columnIndex) throws SQLException {
+    public Clob getClob(int columnIndex) throws SQLException {
         byte[] bytes = getValueObject(columnIndex).getBytes();
         if (bytes == null)
             return null;
@@ -1940,7 +1910,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public Array getArray(final int columnIndex) throws SQLException {
+    public Array getArray(int columnIndex) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Arrays are not supported");
     }
 
@@ -1964,7 +1934,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public Object getObject(final String columnLabel, final Map<String, Class<?>> map) throws SQLException {
+    public Object getObject(String columnLabel, Map<String, Class<?>> map) throws SQLException {
         //TODO: implement this
         throw SQLExceptionMapper.getFeatureNotSupportedException("Type map getting is not supported");
     }
@@ -1982,7 +1952,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public Ref getRef(final String columnLabel) throws SQLException {
+    public Ref getRef(String columnLabel) throws SQLException {
         // TODO see getRef(int)
         throw SQLExceptionMapper.getFeatureNotSupportedException("Getting REFs not supported");
     }
@@ -2000,11 +1970,8 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public Blob getBlob(final String columnLabel) throws SQLException {
-        byte[] bytes = getValueObject(columnLabel).getBytes();
-        if (bytes == null)
-            return null;
-        return new MySQLBlob(bytes);
+    public Blob getBlob(String columnLabel) throws SQLException {
+       return getBlob(findColumn(columnLabel));
     }
 
     /**
@@ -2020,11 +1987,8 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public Clob getClob(final String columnLabel) throws SQLException {
-         byte[] bytes = getValueObject(columnLabel).getBytes();
-        if (bytes == null)
-            return null;
-        return new MySQLClob(bytes);
+    public Clob getClob(String columnLabel) throws SQLException {
+        return getClob(findColumn(columnLabel));
     }
 
     /**
@@ -2040,8 +2004,8 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.2
      */
-    public Array getArray(final String columnLabel) throws SQLException {
-        throw SQLExceptionMapper.getFeatureNotSupportedException("Arrays are not supported");
+    public Array getArray(String columnLabel) throws SQLException {
+        return getArray(findColumn(columnLabel));
     }
 
     /**
@@ -2058,7 +2022,7 @@ public class MySQLResultSet implements ResultSet {
      *                               is called on a closed result set
      * @since 1.2
      */
-    public Date getDate(final int columnIndex, final Calendar cal) throws SQLException {
+    public Date getDate(int columnIndex, Calendar cal) throws SQLException {
         try {
             return getValueObject(columnIndex).getDate(cal);
         } catch (ParseException e) {
@@ -2081,12 +2045,8 @@ public class MySQLResultSet implements ResultSet {
      *                               is called on a closed result set
      * @since 1.2
      */
-    public Date getDate(final String columnLabel, final Calendar cal) throws SQLException {
-        try {
-            return getValueObject(columnLabel).getDate(cal);
-        } catch (ParseException e) {
-            throw SQLExceptionMapper.getSQLException("Could not parse as date");
-        }
+    public Date getDate(String columnLabel, Calendar cal) throws SQLException {
+       return getDate(findColumn(columnLabel),cal);
     }
 
     /**
@@ -2103,7 +2063,7 @@ public class MySQLResultSet implements ResultSet {
      *                               is called on a closed result set
      * @since 1.2
      */
-    public Time getTime(final int columnIndex, final Calendar cal) throws SQLException {
+    public Time getTime(int columnIndex, Calendar cal) throws SQLException {
         try {
             return getValueObject(columnIndex).getTime(cal);
         } catch (ParseException e) {
@@ -2126,7 +2086,7 @@ public class MySQLResultSet implements ResultSet {
      *                               is called on a closed result set
      * @since 1.2
      */
-    public Time getTime(final String columnLabel, final Calendar cal) throws SQLException {
+    public Time getTime(String columnLabel, Calendar cal) throws SQLException {
         return getTime(findColumn(columnLabel),cal);
     }
 
@@ -2144,7 +2104,7 @@ public class MySQLResultSet implements ResultSet {
      *                               is called on a closed result set
      * @since 1.2
      */
-    public Timestamp getTimestamp(final int columnIndex, final Calendar cal) throws SQLException {
+    public Timestamp getTimestamp(int columnIndex, Calendar cal) throws SQLException {
         try {
             return new Timestamp(getValueObject(columnIndex).getTimestamp(cal).getTime());
         } catch (ParseException e) {
@@ -2167,12 +2127,8 @@ public class MySQLResultSet implements ResultSet {
      *                               is called on a closed result set
      * @since 1.2
      */
-    public Timestamp getTimestamp(final String columnLabel, final Calendar cal) throws SQLException {
-        try {
-            return new Timestamp(getValueObject(columnLabel).getTimestamp(cal).getTime());
-        } catch (ParseException e) {
-            throw SQLExceptionMapper.getSQLException("Could not parse time", e);
-        }
+    public Timestamp getTimestamp(String columnLabel, Calendar cal) throws SQLException {
+        return getTimestamp(findColumn(columnLabel),cal);
     }
 
     /**
@@ -2188,7 +2144,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.4
      */
-    public URL getURL(final int columnIndex) throws SQLException {
+    public URL getURL(int columnIndex) throws SQLException {
         try {
             return new URL(getValueObject(columnIndex).getString());
         } catch (MalformedURLException e) {
@@ -2210,12 +2166,8 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.4
      */
-    public URL getURL(final String columnLabel) throws SQLException {
-        try {
-            return new URL(getValueObject(columnLabel).getString());
-        } catch (MalformedURLException e) {
-            throw SQLExceptionMapper.getSQLException("Could not parse as URL");
-        }
+    public URL getURL(String columnLabel) throws SQLException {
+       return getURL(findColumn(columnLabel));
     }
 
     /**
@@ -2232,7 +2184,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.4
      */
-    public void updateRef(final int columnIndex, final Ref x) throws SQLException {
+    public void updateRef(int columnIndex, Ref x) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -2251,7 +2203,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.4
      */
-    public void updateRef(final String columnLabel, final Ref x) throws SQLException {
+    public void updateRef(String columnLabel, Ref x) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -2269,7 +2221,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.4
      */
-    public void updateBlob(final int columnIndex, final Blob x) throws SQLException {
+    public void updateBlob(int columnIndex, Blob x) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -2288,7 +2240,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.4
      */
-    public void updateBlob(final String columnLabel, final Blob x) throws SQLException {
+    public void updateBlob(String columnLabel, Blob x) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -2306,7 +2258,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.4
      */
-    public void updateClob(final int columnIndex, final Clob x) throws SQLException {
+    public void updateClob(int columnIndex, Clob x) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -2325,7 +2277,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.4
      */
-    public void updateClob(final String columnLabel, final Clob x) throws SQLException {
+    public void updateClob(String columnLabel, Clob x) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -2343,7 +2295,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.4
      */
-    public void updateArray(final int columnIndex, final Array x) throws SQLException {
+    public void updateArray(int columnIndex, Array x) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -2362,7 +2314,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.4
      */
-    public void updateArray(final String columnLabel, final Array x) throws SQLException {
+    public void updateArray(String columnLabel, Array x) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -2378,7 +2330,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public java.sql.RowId getRowId(final int columnIndex) throws SQLException {
+    public java.sql.RowId getRowId(int columnIndex) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("RowIDs not supported");
     }
 
@@ -2395,7 +2347,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public java.sql.RowId getRowId(final String columnLabel) throws SQLException {
+    public java.sql.RowId getRowId(String columnLabel) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("RowIDs not supported");
     }
 
@@ -2413,7 +2365,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public void updateRowId(final int columnIndex, final java.sql.RowId x) throws SQLException {
+    public void updateRowId(int columnIndex, java.sql.RowId x) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
 
     }
@@ -2433,7 +2385,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public void updateRowId(final String columnLabel, final java.sql.RowId x) throws SQLException {
+    public void updateRowId(String columnLabel, java.sql.RowId x) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
 
     }
@@ -2480,7 +2432,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public void updateNString(final int columnIndex, final String nString) throws SQLException {
+    public void updateNString(int columnIndex, String nString) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -2502,7 +2454,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public void updateNString(final String columnLabel, final String nString) throws SQLException {
+    public void updateNString(String columnLabel, String nString) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -2521,7 +2473,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public void updateNClob(final int columnIndex, final java.sql.NClob nClob) throws SQLException {
+    public void updateNClob(int columnIndex, java.sql.NClob nClob) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -2541,7 +2493,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public void updateNClob(final String columnLabel, final java.sql.NClob nClob) throws SQLException {
+    public void updateNClob(String columnLabel, java.sql.NClob nClob) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
@@ -2558,7 +2510,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public java.sql.NClob getNClob(final int columnIndex) throws SQLException {
+    public java.sql.NClob getNClob(int columnIndex) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("NClobs are not supported");
     }
 
@@ -2576,7 +2528,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public java.sql.NClob getNClob(final String columnLabel) throws SQLException {
+    public java.sql.NClob getNClob(String columnLabel) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("NClobs are not supported");
     }
 
@@ -2592,7 +2544,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public java.sql.SQLXML getSQLXML(final int columnIndex) throws SQLException {
+    public java.sql.SQLXML getSQLXML(int columnIndex) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("SQLXML not supported");
     }
 
@@ -2609,7 +2561,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public java.sql.SQLXML getSQLXML(final String columnLabel) throws SQLException {
+    public java.sql.SQLXML getSQLXML(String columnLabel) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("SQLXML not supported");
     }
 
@@ -2632,7 +2584,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public void updateSQLXML(final int columnIndex, final java.sql.SQLXML xmlObject) throws SQLException {
+    public void updateSQLXML(int columnIndex, java.sql.SQLXML xmlObject) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("SQLXML not supported");
     }
 
@@ -2656,7 +2608,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public void updateSQLXML(final String columnLabel, final java.sql.SQLXML xmlObject) throws SQLException {
+    public void updateSQLXML(String columnLabel, java.sql.SQLXML xmlObject) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("SQLXML not supported");
     }
 
@@ -2673,7 +2625,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public String getNString(final int columnIndex) throws SQLException {
+    public String getNString(int columnIndex) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("NString not supported");
     }
 
@@ -2691,7 +2643,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public String getNString(final String columnLabel) throws SQLException {
+    public String getNString(String columnLabel) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("NString not supported");
     }
 
@@ -2709,7 +2661,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public Reader getNCharacterStream(final int columnIndex) throws SQLException {
+    public Reader getNCharacterStream(int columnIndex) throws SQLException {
         return getCharacterStream(columnIndex);
     }
 
@@ -2728,7 +2680,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public Reader getNCharacterStream(final String columnLabel) throws SQLException {
+    public Reader getNCharacterStream(String columnLabel) throws SQLException {
         return getCharacterStream(columnLabel);
     }
 
@@ -2752,7 +2704,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public void updateNCharacterStream(final int columnIndex, final Reader x, final long length) throws SQLException {
+    public void updateNCharacterStream(int columnIndex, Reader x, long length) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
@@ -2777,7 +2729,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public void updateNCharacterStream(final String columnLabel, final Reader reader, final long length) throws SQLException {
+    public void updateNCharacterStream(String columnLabel, Reader reader, long length) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
@@ -2798,7 +2750,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public void updateAsciiStream(final int columnIndex, final InputStream x, final long length) throws SQLException {
+    public void updateAsciiStream(int columnIndex, InputStream x, long length) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
@@ -2819,7 +2771,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public void updateBinaryStream(final int columnIndex, final InputStream x, final long length) throws SQLException {
+    public void updateBinaryStream(int columnIndex, InputStream x, long length) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
@@ -2840,7 +2792,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public void updateCharacterStream(final int columnIndex, final Reader x, final long length) throws SQLException {
+    public void updateCharacterStream(int columnIndex, Reader x, long length) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
@@ -2862,7 +2814,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public void updateAsciiStream(final String columnLabel, final InputStream x, final long length) throws SQLException {
+    public void updateAsciiStream(String columnLabel, InputStream x, long length) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
@@ -2884,7 +2836,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public void updateBinaryStream(final String columnLabel, final InputStream x, final long length) throws SQLException {
+    public void updateBinaryStream(String columnLabel, InputStream x, long length) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
@@ -2906,7 +2858,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public void updateCharacterStream(final String columnLabel, final Reader reader, final long length) throws SQLException {
+    public void updateCharacterStream(String columnLabel, Reader reader, long length) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
@@ -2928,7 +2880,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public void updateBlob(final int columnIndex, final InputStream inputStream, final long length) throws SQLException {
+    public void updateBlob(int columnIndex, InputStream inputStream, long length) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
@@ -2951,7 +2903,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public void updateBlob(final String columnLabel, final InputStream inputStream, final long length) throws SQLException {
+    public void updateBlob(String columnLabel, InputStream inputStream, long length) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
@@ -2976,7 +2928,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public void updateClob(final int columnIndex, final Reader reader, final long length) throws SQLException {
+    public void updateClob(int columnIndex, Reader reader, long length) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
@@ -3002,7 +2954,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public void updateClob(final String columnLabel, final Reader reader, final long length) throws SQLException {
+    public void updateClob(String columnLabel, Reader reader, long length) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
@@ -3028,7 +2980,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public void updateNClob(final int columnIndex, final Reader reader, final long length) throws SQLException {
+    public void updateNClob(int columnIndex, Reader reader, long length) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
@@ -3055,7 +3007,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public void updateNClob(final String columnLabel, final Reader reader, final long length) throws SQLException {
+    public void updateNClob(String columnLabel, Reader reader, long length) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
@@ -3081,7 +3033,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public void updateNCharacterStream(final int columnIndex, final Reader x) throws SQLException {
+    public void updateNCharacterStream(int columnIndex, Reader x) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
@@ -3108,7 +3060,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public void updateNCharacterStream(final String columnLabel, final Reader reader) throws SQLException {
+    public void updateNCharacterStream(String columnLabel, Reader reader) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
@@ -3132,7 +3084,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public void updateAsciiStream(final int columnIndex, final InputStream x) throws SQLException {
+    public void updateAsciiStream(int columnIndex, InputStream x) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
@@ -3156,7 +3108,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public void updateBinaryStream(final int columnIndex, final InputStream x) throws SQLException {
+    public void updateBinaryStream(int columnIndex, InputStream x) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
@@ -3180,7 +3132,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public void updateCharacterStream(final int columnIndex, final Reader x) throws SQLException {
+    public void updateCharacterStream(int columnIndex, Reader x) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
@@ -3205,7 +3157,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public void updateAsciiStream(final String columnLabel, final InputStream x) throws SQLException {
+    public void updateAsciiStream(String columnLabel, InputStream x) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
@@ -3230,7 +3182,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public void updateBinaryStream(final String columnLabel, final InputStream x) throws SQLException {
+    public void updateBinaryStream(String columnLabel, InputStream x) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
@@ -3255,7 +3207,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public void updateCharacterStream(final String columnLabel, final Reader reader) throws SQLException {
+    public void updateCharacterStream(String columnLabel, Reader reader) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
@@ -3279,7 +3231,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public void updateBlob(final int columnIndex, final InputStream inputStream) throws SQLException {
+    public void updateBlob(int columnIndex, InputStream inputStream) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
@@ -3304,7 +3256,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public void updateBlob(final String columnLabel, final InputStream inputStream) throws SQLException {
+    public void updateBlob(String columnLabel, InputStream inputStream) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
@@ -3330,7 +3282,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public void updateClob(final int columnIndex, final Reader reader) throws SQLException {
+    public void updateClob(int columnIndex, Reader reader) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
@@ -3357,7 +3309,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public void updateClob(final String columnLabel, final Reader reader) throws SQLException {
+    public void updateClob(String columnLabel, Reader reader) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
@@ -3385,7 +3337,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public void updateNClob(final int columnIndex, final Reader reader) throws SQLException {
+    public void updateNClob(int columnIndex, Reader reader) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
@@ -3413,31 +3365,31 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @since 1.6
      */
-    public void updateNClob(final String columnLabel, final Reader reader) throws SQLException {
+    public void updateNClob(String columnLabel, Reader reader) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
-    public boolean getBoolean(final int i) throws SQLException {
+    public boolean getBoolean(int i) throws SQLException {
         return getValueObject(i).getBoolean();
     }
 
-    public byte getByte(final int i) throws SQLException {
+    public byte getByte(int i) throws SQLException {
         return getValueObject(i).getByte();
     }
 
-    public short getShort(final int i) throws SQLException {
+    public short getShort(int i) throws SQLException {
         return getValueObject(i).getShort();
     }
 
-    public long getLong(final int i) throws SQLException {
+    public long getLong(int i) throws SQLException {
         return getValueObject(i).getLong();
     }
 
-    public float getFloat(final int i) throws SQLException {
+    public float getFloat(int i) throws SQLException {
         return getValueObject(i).getFloat();
     }
 
-    public double getDouble(final int i) throws SQLException {
+    public double getDouble(int i) throws SQLException {
         return getValueObject(i).getDouble();
     }
 
@@ -3454,7 +3406,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @deprecated
      */
-    public BigDecimal getBigDecimal(final int columnIndex, final int scale) throws SQLException {
+    public BigDecimal getBigDecimal(int columnIndex, int scale) throws SQLException {
         return getValueObject(columnIndex).getBigDecimal();
     }
 
@@ -3468,7 +3420,7 @@ public class MySQLResultSet implements ResultSet {
      * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs or this method
      *                               is called on a closed result set
      */
-    public byte[] getBytes(final int columnIndex) throws SQLException {
+    public byte[] getBytes(int columnIndex) throws SQLException {
         return getValueObject(columnIndex).getBytes();
     }
 
@@ -3481,7 +3433,7 @@ public class MySQLResultSet implements ResultSet {
      * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs or this method
      *                               is called on a closed result set
      */
-    public Date getDate(final int columnIndex) throws SQLException {
+    public Date getDate(int columnIndex) throws SQLException {
         try {
             return getValueObject(columnIndex).getDate();
         } catch (ParseException e) {
@@ -3498,7 +3450,7 @@ public class MySQLResultSet implements ResultSet {
      * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs or this method
      *                               is called on a closed result set
      */
-    public Time getTime(final int columnIndex) throws SQLException {
+    public Time getTime(int columnIndex) throws SQLException {
         try {
             return getValueObject(columnIndex).getTime();
         } catch (ParseException e) {
@@ -3517,7 +3469,7 @@ public class MySQLResultSet implements ResultSet {
      * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs or this method
      *                               is called on a closed result set
      */
-    public Timestamp getTimestamp(final int columnIndex) throws SQLException {
+    public Timestamp getTimestamp(int columnIndex) throws SQLException {
         try {
             return getValueObject(columnIndex).getTimestamp();
         } catch (ParseException e) {
@@ -3541,7 +3493,7 @@ public class MySQLResultSet implements ResultSet {
      * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs or this method
      *                               is called on a closed result set
      */
-    public InputStream getAsciiStream(final int columnIndex) throws SQLException {
+    public InputStream getAsciiStream(int columnIndex) throws SQLException {
         return getValueObject(columnIndex).getInputStream();
     }
 
@@ -3566,7 +3518,7 @@ public class MySQLResultSet implements ResultSet {
      *                               if the JDBC driver does not support this method
      * @deprecated use <code>getCharacterStream</code> in place of <code>getUnicodeStream</code>
      */
-    public InputStream getUnicodeStream(final int columnIndex) throws SQLException {
+    public InputStream getUnicodeStream(int columnIndex) throws SQLException {
         return getValueObject(columnIndex).getInputStream();
     }
 
@@ -3585,7 +3537,7 @@ public class MySQLResultSet implements ResultSet {
      * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs or this method
      *                               is called on a closed result set
      */
-    public InputStream getBinaryStream(final int columnIndex) throws SQLException {
+    public InputStream getBinaryStream(int columnIndex) throws SQLException {
         if(protocol.supportsPBMS()) {
             try {
                 return getValueObject(columnIndex).getPBMSStream(protocol);
@@ -3609,9 +3561,8 @@ public class MySQLResultSet implements ResultSet {
      * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs or this method
      *                               is called on a closed result set
      */
-    public String getString(final String columnLabel) throws SQLException {
-        final ValueObject vo = getValueObject(columnLabel);
-        return vo.getString();
+    public String getString(String columnLabel) throws SQLException {
+        return getString(findColumn(columnLabel));
     }
 
     /**
@@ -3629,8 +3580,8 @@ public class MySQLResultSet implements ResultSet {
      * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs or this method
      *                               is called on a closed result set
      */
-    public boolean getBoolean(final String columnLabel) throws SQLException {
-        return getValueObject(columnLabel).getBoolean();
+    public boolean getBoolean(String columnLabel) throws SQLException {
+        return getBoolean(findColumn(columnLabel));
     }
 
     /**
@@ -3643,8 +3594,8 @@ public class MySQLResultSet implements ResultSet {
      * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs or this method
      *                               is called on a closed result set
      */
-    public byte getByte(final String columnLabel) throws SQLException {
-        return getValueObject(columnLabel).getByte();
+    public byte getByte(String columnLabel) throws SQLException {
+        return getByte(findColumn(columnLabel));
     }
 
     /**
@@ -3657,8 +3608,8 @@ public class MySQLResultSet implements ResultSet {
      * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs or this method
      *                               is called on a closed result set
      */
-    public short getShort(final String columnLabel) throws SQLException {
-        return getValueObject(columnLabel).getShort();
+    public short getShort(String columnLabel) throws SQLException {
+        return getShort(findColumn(columnLabel));
     }
 
 
@@ -3677,7 +3628,7 @@ public class MySQLResultSet implements ResultSet {
      * @throws java.sql.SQLException If no object found that implements the interface
      * @since 1.6
      */
-    public <T> T unwrap(final Class<T> iface) throws SQLException {
+    public <T> T unwrap(Class<T> iface) throws SQLException {
         return null;
     }
 
@@ -3696,7 +3647,7 @@ public class MySQLResultSet implements ResultSet {
      *                               the given interface.
      * @since 1.6
      */
-    public boolean isWrapperFor(final Class<?> iface) throws SQLException {
+    public boolean isWrapperFor(Class<?> iface) throws SQLException {
         return false;
     }
 }

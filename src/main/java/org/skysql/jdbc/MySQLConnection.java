@@ -830,7 +830,7 @@ public final class MySQLConnection
                                          final int resultSetType,
                                          final int resultSetConcurrency,
                                          final int resultSetHoldability) throws SQLException {
-        throw SQLExceptionMapper.getFeatureNotSupportedException("Prepared statements are not supported");
+        return prepareCall(sql);
     }
 
     /**
@@ -898,10 +898,7 @@ public final class MySQLConnection
      * @since 1.4
      */
     public PreparedStatement prepareStatement(final String sql, final int[] columnIndexes) throws SQLException {
-        if (columnIndexes != null && columnIndexes.length == 1 && columnIndexes[0] == 1) {
-            return prepareStatement(sql);
-        }
-        throw SQLExceptionMapper.getSQLException("Only one auto generated key is supported, and it is on position 1");
+        return prepareStatement(sql);
     }
 
     /**
