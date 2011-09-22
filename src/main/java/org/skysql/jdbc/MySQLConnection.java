@@ -932,10 +932,7 @@ public final class MySQLConnection
      * @since 1.4
      */
     public PreparedStatement prepareStatement(final String sql, final String[] columnNames) throws SQLException {
-        if (columnNames != null && columnNames.length == 1 && columnNames[0].equals("insert_id")) {
-            return prepareStatement(sql);
-        }
-        throw SQLExceptionMapper.getSQLException("Only one auto generated key is supported, and it is called insert_id");
+        return prepareStatement(sql);
     }
 
     /**
