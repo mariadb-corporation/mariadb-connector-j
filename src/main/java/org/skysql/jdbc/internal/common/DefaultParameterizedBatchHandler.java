@@ -45,19 +45,21 @@ public final class DefaultParameterizedBatchHandler implements ParameterizedBatc
     }
 
     public int[] executeBatch() throws QueryException {
-        final int[] retArray = new int[queries.size()];
-        int i = 0;
-        for (final ParameterizedQuery query : queries) {
-            final QueryResult qr = protocol.executeQuery(query);
-            if (qr instanceof ModifyQueryResult) {
-                retArray[i++] = (int) ((ModifyQueryResult) qr).getUpdateCount();
-            } else {
-                throw new QueryException("One of the queries in the batch returned a result set",
-                        (short) -1,
-                        SQLExceptionMapper.SQLStates.UNDEFINED_SQLSTATE.getSqlState());
+        synchronized (protocol) {
+            final int[] retArray = new int[queries.size()];
+            int i = 0;
+            for (final ParameterizedQuery query : queries) {
+                final QueryResult qr = protocol.executeQuery(query);
+                if (qr instanceof ModifyQueryResult) {
+                    retArray[i++] = (int) ((ModifyQueryResult) qr).getUpdateCount();
+                } else {
+                    throw new QueryException("One of the queries in the batch returned a result set",
+                            (short) -1,
+                            SQLExceptionMapper.SQLStates.UNDEFINED_SQLSTATE.getSqlState());
+                }
             }
+            queries.clear();
+            return retArray;
         }
-        queries.clear();
-        return retArray;
     }
 }

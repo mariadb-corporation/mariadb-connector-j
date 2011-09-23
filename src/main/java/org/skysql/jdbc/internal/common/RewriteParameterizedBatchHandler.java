@@ -111,26 +111,28 @@ public class RewriteParameterizedBatchHandler implements ParameterizedBatchHandl
     }
 
     public int[] executeBatch() throws QueryException {
-        queryBuilder.append(onDupKeyPart);
-        final String lastQuery = queryBuilder.toString();
+        synchronized (protocol) {
+            queryBuilder.append(onDupKeyPart);
+            final String lastQuery = queryBuilder.toString();
 
-        if (firstWritten) {
-            queriesToSend.add(lastQuery);
+            if (firstWritten) {
+                queriesToSend.add(lastQuery);
+            }
+
+            for (final String query : queriesToSend) {
+                protocol.executeQuery(new MySQLQuery(query));
+            }
+
+            log.finest("Rewrote " + queryCount + " queries to " + queriesToSend.size() + " queries");
+            final int[] returnArray = new int[queryCount];
+            Arrays.fill(returnArray, Statement.SUCCESS_NO_INFO);
+            // reset stuff
+            queriesToSend.clear();
+            queryBuilder = new StringBuilder();
+            queryBuilder.append(baseQuery);
+            firstWritten = false;
+            queryCount = 0;
+            return returnArray;
         }
-
-        for (final String query : queriesToSend) {
-            protocol.executeQuery(new MySQLQuery(query));
-        }
-
-        log.finest("Rewrote " + queryCount + " queries to " + queriesToSend.size() + " queries");
-        final int[] returnArray = new int[queryCount];
-        Arrays.fill(returnArray, Statement.SUCCESS_NO_INFO);
-        // reset stuff
-        queriesToSend.clear();
-        queryBuilder = new StringBuilder();
-        queryBuilder.append(baseQuery);
-        firstWritten = false;
-        queryCount = 0;        
-        return returnArray;
     }
 }
