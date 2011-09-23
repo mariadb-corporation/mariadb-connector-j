@@ -1,9 +1,9 @@
 package org.skysql.jdbc;
 
 import org.junit.Test;
-import org.skysql.jdbc.internal.common.Utils;
 
-import java.sql.*;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -31,17 +31,26 @@ public class CatalogTest extends BaseTest {
     
     @Test(expected = SQLException.class)
     public void catalogTest3() throws SQLException {
-        connection.setCatalog("Non-existant catalog");
+        connection.setCatalog("Non-existent catalog");
     }  
     
     @Test(expected = SQLException.class)
     public void catalogTest4() throws SQLException {
         connection.setCatalog("");
     } 
-    
-    @Test(expected = SQLException.class)
+
+    @Test
     public void catalogTest5() throws SQLException {
-    	Statement stmt = connection.createStatement();
-        connection.setCatalog("\"quoted\"");
+        MySQLConnection c = (MySQLConnection)connection;
+        String[] weirdDbNames = new String[] {"abc 123","\"", "`"};
+        for(String name : weirdDbNames) {
+            Statement stmt = connection.createStatement();
+            stmt.execute("drop database if exists " + c.quoteIdentifier(name));
+            stmt.execute("create database " + c.quoteIdentifier(name));
+            connection.setCatalog(name);
+            assertEquals(name, connection.getCatalog());
+            stmt.execute("drop database if exists " + c.quoteIdentifier(name));
+            stmt.close();
+        }
     }
 }
