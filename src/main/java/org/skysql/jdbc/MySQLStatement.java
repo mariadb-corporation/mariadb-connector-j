@@ -303,7 +303,12 @@ public class MySQLStatement implements Statement {
         isClosed = true;
         if (queryResult != null) {
             queryResult.close();
+            queryResult = null;
         }
+        // No possible future use for the cached results, so these can be cleared
+        // This makes the cache eligible for garbage collection earlier if the statement is not
+        // immediately garbage collected
+        cachedResultSets.clear();
         if (!isStreaming())
             return;
         synchronized (protocol) {
