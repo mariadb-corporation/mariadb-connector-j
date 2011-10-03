@@ -193,7 +193,7 @@ public abstract class CommonDatabaseMetaData implements DatabaseMetaData {
      * @return JDBC driver major version
      */
     public int getDriverMajorVersion() {
-        return 0;
+        return 1;
     }
 
     /**
@@ -202,7 +202,7 @@ public abstract class CommonDatabaseMetaData implements DatabaseMetaData {
      * @return JDBC driver minor version number
      */
     public int getDriverMinorVersion() {
-        return 3;
+        return 2;
     }
 
     /**
@@ -2546,7 +2546,8 @@ public abstract class CommonDatabaseMetaData implements DatabaseMetaData {
      * @since 1.4
      */
     public int getDatabaseMajorVersion() throws SQLException {
-        return 0;
+    	String components[] = version.split("\\.");
+    	return Integer.parseInt(components[0]);
     }
 
     /**
@@ -2557,7 +2558,8 @@ public abstract class CommonDatabaseMetaData implements DatabaseMetaData {
      * @since 1.4
      */
     public int getDatabaseMinorVersion() throws SQLException {
-        return 1;
+    	String components[] = version.split("\\.");
+    	return Integer.parseInt(components[1]);
     }
 
     /**
