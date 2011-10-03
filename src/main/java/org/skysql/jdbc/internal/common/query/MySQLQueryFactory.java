@@ -30,7 +30,6 @@ import java.util.concurrent.ConcurrentHashMap;
  * . User: marcuse Date: Mar 18, 2009 Time: 10:14:27 PM
  */
 public class MySQLQueryFactory implements QueryFactory {
-    private static final ConcurrentHashMap<String, ParameterizedQuery> PREPARED_CACHE = new ConcurrentHashMap<String, ParameterizedQuery>();
     public Query createQuery(final String query) {
         return new MySQLQuery(query);
     }
@@ -40,16 +39,7 @@ public class MySQLQueryFactory implements QueryFactory {
         return new MySQLQuery(query);
     }
     public ParameterizedQuery createParameterizedQuery(final String query) {
-        ParameterizedQuery pq = MySQLQueryFactory.PREPARED_CACHE.get(query);
-        
-
-        if(pq == null) {
-            pq = new MySQLParameterizedQuery(query);
-            MySQLQueryFactory.PREPARED_CACHE.put(query, pq);
-            return pq;
-        } else {
-            return new MySQLParameterizedQuery(pq);
-        }
+    	return new MySQLParameterizedQuery(query);
     }
 
     public ParameterizedQuery createParameterizedQuery(final ParameterizedQuery dQuery) {
