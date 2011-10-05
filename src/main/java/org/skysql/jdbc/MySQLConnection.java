@@ -292,6 +292,9 @@ public final class MySQLConnection
         return false;
     }
 
+    public static String quoteIdentifier(String s) {
+      return "`" + s.replaceAll("`","``") + "`";
+    }
     /**
      * Sets the given catalog name in order to select a subspace of this <code>Connection</code> object's database in
      * which to work.
@@ -306,18 +309,16 @@ public final class MySQLConnection
      * @see #getCatalog
      */
     public void setCatalog(final String catalog) throws SQLException {
-    	if (catalog == null)
-    	{
+    	if (catalog == null){
     		throw new SQLException("The catalog name may not be null", "XAE05");
     	}
-       	StringBuffer SQL = new StringBuffer("USE ");
-    	SQL.append(catalog);
-    	
-    	try {
-            reenableWarnings();
-            protocol.executeQuery(queryFactory.createQuery(SQL.toString()));
-        } catch (QueryException e) {
-            throw SQLExceptionMapper.getSQLException("Unable to change catalog to '" + catalog + "'", e);
+        Statement st = createStatement();
+        try {
+            /* Quote modifiers correctly, with backtick char */
+            st.execute("USE "+ quoteIdentifier(catalog) );
+            st.close();
+        } finally {
+            st.close();
         }
     }
 

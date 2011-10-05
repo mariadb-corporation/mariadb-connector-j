@@ -4,7 +4,7 @@
     <artifactId>skysql-jdbc</artifactId>
     <packaging>jar</packaging>
     <name>SkySQL-JDBC</name>
-    <version>1.2.19</version>
+    <version>1.2.20</version>
     <description>BSD Licensed JDBC driver for MySQL</description>
     <url>http://launchpad.net/skysql/</url>
     <properties>
