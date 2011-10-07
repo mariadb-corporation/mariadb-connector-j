@@ -209,10 +209,11 @@ public final class MySQLConnection
      * @throws SQLException if there is an error commiting.
      */
     public void commit() throws SQLException {
+        Statement st = createStatement();
         try {
-            protocol.commit();
-        } catch (QueryException e) {
-            throw SQLExceptionMapper.get(e);
+            st.execute("COMMIT");
+        } finally {
+            st.close();
         }
     }
 
@@ -222,10 +223,11 @@ public final class MySQLConnection
      * @throws SQLException if there is an error rolling back.
      */
     public void rollback() throws SQLException {
+        Statement st = createStatement();
         try {
-            protocol.rollback();
-        } catch (QueryException e) {
-            throw SQLExceptionMapper.get(e);
+            st.execute("ROLLBACK");
+        } finally {
+            st.close();
         }
     }
 
@@ -381,12 +383,14 @@ public final class MySQLConnection
             default:
                 throw SQLExceptionMapper.getSQLException("Unsupported transaction isolation level");
         }
+
+        Statement st = createStatement();
         try {
-            reenableWarnings();
-            protocol.executeQuery(queryFactory.createQuery(query));
-        } catch (QueryException e) {
-            throw SQLExceptionMapper.get(e);
+            st.execute(query);
+        } finally {
+            st.close();
         }
+
     }
 
     /**
@@ -673,13 +677,10 @@ public final class MySQLConnection
      * @since 1.4
      */
     public Savepoint setSavepoint(final String name) throws SQLException {
-        final Savepoint drizzleSavepoint = new MySQLSavepoint(name, savepointCount++);
-        try {
-            protocol.setSavepoint(drizzleSavepoint.toString());
-        } catch (QueryException e) {
-            throw SQLExceptionMapper.get(e);
-        }
-        return drizzleSavepoint;
+        Savepoint savepoint = new MySQLSavepoint(name, savepointCount++);
+        Statement st = createStatement();
+        st.execute("SAVEPOINT " + savepoint.toString());
+        return savepoint;
 
     }
 
@@ -700,11 +701,9 @@ public final class MySQLConnection
      * @since 1.4
      */
     public void rollback(final Savepoint savepoint) throws SQLException {
-        try {
-            protocol.rollback(savepoint.toString());
-        } catch (QueryException e) {
-            throw SQLExceptionMapper.get(e);
-        }
+       Statement st = createStatement();
+       st.execute("ROLLBACK TO SAVEPOINT " + savepoint.toString());
+       st.close();
     }
 
     /**
@@ -721,11 +720,9 @@ public final class MySQLConnection
      * @since 1.4
      */
     public void releaseSavepoint(final Savepoint savepoint) throws SQLException {
-        try {
-            protocol.releaseSavepoint(savepoint.toString());
-        } catch (QueryException e) {
-            throw SQLExceptionMapper.get(e);
-        }
+       Statement st = createStatement();
+       st.execute("RELEASE SAVEPOINT " + savepoint.toString());
+       st.close();
     }
 
     /**

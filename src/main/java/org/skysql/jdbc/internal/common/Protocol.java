@@ -79,43 +79,6 @@ public interface Protocol {
      */
     boolean getReadonly();
 
-    /**
-     * commits the current transaction
-     *
-     * @throws QueryException if there is a problem committing the txn
-     */
-    void commit() throws QueryException;
-
-    /**
-     * rolls back the current transaction
-     *
-     * @throws QueryException if there is a problem rolling back
-     */
-    void rollback() throws QueryException;
-
-    /**
-     * rolls back to the given save point
-     *
-     * @param savepoint the save point to roll back to
-     * @throws QueryException if there is a problem rolling back
-     */
-    void rollback(String savepoint) throws QueryException;
-
-    /**
-     * sets a save point
-     *
-     * @param savepoint the save point name
-     * @throws QueryException if there is a problem setting the save point
-     */
-    void setSavepoint(String savepoint) throws QueryException;
-
-    /**
-     * releases the savepoint
-     *
-     * @param savepoint the name of the savepoint to release
-     * @throws QueryException if there is a problem releasing the save point
-     */
-    void releaseSavepoint(String savepoint) throws QueryException;
 
     /**
      * returns the host

@@ -200,7 +200,9 @@ public class MySQLDriverTest extends BaseTest {
     @Test
     // Test query with length around max  packet length. Requires max_allowed_packet to be >16M
     public void largeQueryWrite() throws SQLException {
-
+        if (!checkMaxAllowedPacket("largeQueryWrite")) {
+            return;
+        }
         char[] str= new char[16*1024*1024];
         Arrays.fill(str, 'a');
         String prefix= "select length('";
@@ -221,6 +223,9 @@ public class MySQLDriverTest extends BaseTest {
 
     @Test
     public void largePreparedQueryWrite() throws SQLException {
+        if (!checkMaxAllowedPacket("largePreparedQueryWrite"))
+            return;
+
         char[] str= new char[16*1024*1024];
         Arrays.fill(str, 'a');
         String sql=  "select length(?) as len";
@@ -257,6 +262,8 @@ public class MySQLDriverTest extends BaseTest {
     }
     @Test
     public void largePreparedQueryWriteCompress() throws SQLException {
+        if(!checkMaxAllowedPacket("largePreparedQueryCompress"))
+            return;
         Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/test?user=root&useCompression=true");
         try {
             char[] str= new char[16*1024*1024];

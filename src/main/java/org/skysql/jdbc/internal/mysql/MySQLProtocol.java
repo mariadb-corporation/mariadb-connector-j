@@ -321,7 +321,11 @@ public class MySQLProtocol implements Protocol {
         }
         try {
             final ClosePacket closePacket = new ClosePacket();
-            closePacket.send(writer);
+            try {
+                closePacket.send(writer);
+            } catch (Throwable t) {
+
+            }
             socket.shutdownOutput();
             writer.close();
             packetFetcher.close();
@@ -403,28 +407,6 @@ public class MySQLProtocol implements Protocol {
         return readOnly;
     }
 
-    public void commit() throws QueryException {
-        log.finest("commiting transaction");
-        executeQuery(new MySQLQuery("COMMIT"), false);
-    }
-
-    public void rollback() throws QueryException {
-        log.finest("rolling transaction back");
-        executeQuery(new MySQLQuery("ROLLBACK"));
-    }
-
-    public void rollback(final String savepoint) throws QueryException {
-        log.finest("rolling back to savepoint " + savepoint);
-        executeQuery(new MySQLQuery("ROLLBACK TO SAVEPOINT " + savepoint));
-    }
-
-    public void setSavepoint(final String savepoint) throws QueryException {
-        executeQuery(new MySQLQuery("SAVEPOINT " + savepoint));
-    }
-
-    public void releaseSavepoint(final String savepoint) throws QueryException {
-        executeQuery(new MySQLQuery("RELEASE SAVEPOINT " + savepoint));
-    }
 
     public String getHost() {
         return host;

@@ -10,19 +10,16 @@ import java.sql.Statement;
 import java.util.Arrays;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 
 public class BigQueryTest extends BaseTest{
     @Test
     public void sendBigQuery2() throws SQLException {
+
+        if(!checkMaxAllowedPacket("sendBigQuery2"))
+            return;
+
         Statement stmt = connection.createStatement();
-        ResultSet rs = stmt.executeQuery("select @@max_allowed_packet");
-        rs.next();
-        int max_allowed_packet = rs.getInt(1);
-        assertTrue("Max allowed packet on the server needs to be atleast 20m",max_allowed_packet > 0x00FFFFFF);
-
-
         stmt.execute("drop table  if exists bigblob");
         stmt.execute("create table bigblob (id int not null primary key auto_increment, test longblob)");
 
@@ -38,7 +35,7 @@ public class BigQueryTest extends BaseTest{
         //System.out.println(query.toString() );
         s.executeUpdate(query.toString());
 
-        rs = stmt.executeQuery("select * from bigblob");
+        ResultSet rs = stmt.executeQuery("select * from bigblob");
         rs.next();
         byte [] newBytes = rs.getBytes(2);
         assertEquals(arr.length, newBytes.length);
@@ -49,12 +46,10 @@ public class BigQueryTest extends BaseTest{
     @Test
     public void sendBigPreparedQuery() throws SQLException {
 
-        Statement stmt = connection.createStatement();
-        ResultSet rs = stmt.executeQuery("select @@max_allowed_packet");
-        rs.next();
-        int max_allowed_packet = rs.getInt(1);
-        assertTrue("Max allowed packet on the server needs to be atleast 20m",max_allowed_packet > 0x00FFFFFF);
+        if(!checkMaxAllowedPacket("sendBigPreparedQuery"))
+            return;
 
+        Statement stmt = connection.createStatement();
         stmt.execute("drop table  if exists bigblob2");
         stmt.execute("create table bigblob2 (id int not null primary key auto_increment, test longblob, test2 longblob)");
 
@@ -67,7 +62,7 @@ public class BigQueryTest extends BaseTest{
         ps.setBytes(1,arr);
         ps.setBytes(2,arr2);
         ps.executeUpdate();
-          rs = stmt.executeQuery("select * from bigblob2");
+        ResultSet rs = stmt.executeQuery("select * from bigblob2");
         rs.next();
         byte [] newBytes = rs.getBytes(2);
         byte [] newBytes2 = rs.getBytes(3);

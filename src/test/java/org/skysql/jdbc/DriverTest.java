@@ -1288,7 +1288,8 @@ public class DriverTest extends BaseTest{
 
      @Test
     public void testError() throws SQLException {
-
+        if(!checkMaxAllowedPacket("testError"))
+            return;
         Connection conn = connection;
         try {
             char arr[] = new char[16*1024*1024-1];
