@@ -2,3 +2,6 @@ setenv.bat
 skysql-jdbc.iml
 skysql-jdbc.ipr
 skysql-jdbc.iws
+.classpath
+.project
+.settings
