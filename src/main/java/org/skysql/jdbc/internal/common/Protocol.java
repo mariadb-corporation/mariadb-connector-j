@@ -28,6 +28,7 @@ import org.skysql.jdbc.internal.common.packet.RawPacket;
 import org.skysql.jdbc.internal.common.query.Query;
 import org.skysql.jdbc.internal.common.queryresults.QueryResult;
 
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -172,8 +173,8 @@ public interface Protocol {
      */
     boolean createDB();
 
-    void cancelCurrentQuery() throws QueryException;
-    void timeOut() throws QueryException;
+    void cancelCurrentQuery() throws QueryException,IOException;
+    void timeOut() throws QueryException,IOException;
 
     boolean hasMoreResults();
     QueryResult getMoreResults(boolean streaming) throws QueryException;

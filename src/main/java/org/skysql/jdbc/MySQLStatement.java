@@ -35,6 +35,7 @@ import org.skysql.jdbc.internal.common.queryresults.QueryResult;
 import org.skysql.jdbc.internal.common.queryresults.ResultSetType;
 import org.skysql.jdbc.internal.mysql.MySQLProtocol;
 
+import java.io.IOException;
 import java.sql.*;
 import java.util.LinkedList;
 import java.util.List;
@@ -170,7 +171,7 @@ public class MySQLStatement implements Statement {
                 public void run() {
                     try {
                         getProtocol().timeOut();
-                    } catch (QueryException e) {
+                    } catch (Exception e) {
                         throw new RuntimeException("Could not time out query.", e);
                     }
                 }
@@ -442,6 +443,9 @@ public class MySQLStatement implements Statement {
             protocol.cancelCurrentQuery();
         } catch (QueryException e) {
             throw SQLExceptionMapper.get(e);
+        }
+        catch (IOException e) {
+            // connection gone, query is definitely canceled
         }
     }
 
