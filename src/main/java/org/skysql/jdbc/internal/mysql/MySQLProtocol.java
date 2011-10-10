@@ -598,7 +598,7 @@ public class MySQLProtocol implements Protocol {
      *
      * @throws QueryException
      */
-    public void cancelCurrentQuery() throws QueryException, IOException {
+    public synchronized void cancelCurrentQuery() throws QueryException, IOException {
         Protocol copiedProtocol = new MySQLProtocol(host, port, database, username, password, info);
         queryWasCancelled = true;
         copiedProtocol.executeQuery(new MySQLQuery("KILL QUERY " + serverThreadId));
@@ -606,7 +606,7 @@ public class MySQLProtocol implements Protocol {
         skip();
     }
 
-    public void timeOut() throws QueryException, IOException {
+    public synchronized  void timeOut() throws QueryException, IOException {
         Protocol copiedProtocol = new MySQLProtocol(host, port, database, username, password, info);
         queryTimedOut = true;
         copiedProtocol.executeQuery(new MySQLQuery("KILL QUERY " + serverThreadId));
