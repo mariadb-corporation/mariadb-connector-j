@@ -29,7 +29,9 @@ import org.skysql.jdbc.internal.common.QueryException;
 import org.skysql.jdbc.internal.common.query.MySQLQueryFactory;
 import org.skysql.jdbc.internal.mysql.MySQLProtocol;
 
+import javax.sql.ConnectionPoolDataSource;
 import javax.sql.DataSource;
+import javax.sql.PooledConnection;
 import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -38,7 +40,7 @@ import java.util.Properties;
 /**
  * User: marcuse Date: Feb 7, 2009 Time: 10:53:22 PM
  */
-public class MySQLDataSource implements DataSource {
+public class MySQLDataSource implements DataSource, ConnectionPoolDataSource {
     private final String hostname;
     private final int port;
     private final String database;
@@ -60,7 +62,8 @@ public class MySQLDataSource implements DataSource {
             return MySQLConnection.newConnection(new MySQLProtocol(hostname, port, database, null, null, new Properties()),
                     new MySQLQueryFactory());
         } catch (QueryException e) {
-            throw SQLExceptionMapper.get(e);
+            SQLExceptionMapper.throwException(e, null, null);
+            return null;
         }
     }
 
@@ -78,7 +81,8 @@ public class MySQLDataSource implements DataSource {
             return MySQLConnection.newConnection(new MySQLProtocol(hostname, port, database, username, password, new Properties()),
                     new MySQLQueryFactory());
         } catch (QueryException e) {
-            throw SQLExceptionMapper.get(e);
+            SQLExceptionMapper.throwException(e, null, null);
+            return null;
         }
     }
 
@@ -185,5 +189,41 @@ public class MySQLDataSource implements DataSource {
      */
     public boolean isWrapperFor(final Class<?> iface) throws SQLException {
         return false;
+    }
+
+    /**
+     * Attempts to establish a physical database connection that can
+     * be used as a pooled connection.
+     *
+     * @return a <code>PooledConnection</code> object that is a physical
+     *         connection to the database that this
+     *         <code>ConnectionPoolDataSource</code> object represents
+     * @throws java.sql.SQLException if a database access error occurs
+     * @throws SQLFeatureNotSupportedException
+     *                               if the JDBC driver does not support
+     *                               this method
+     * @since 1.4
+     */
+    public PooledConnection getPooledConnection() throws SQLException {
+        return new MySQLPooledConnection((MySQLConnection)getConnection());
+    }
+
+    /**
+     * Attempts to establish a physical database connection that can
+     * be used as a pooled connection.
+     *
+     * @param user     the database user on whose behalf the connection is being made
+     * @param password the user's password
+     * @return a <code>PooledConnection</code> object that is a physical
+     *         connection to the database that this
+     *         <code>ConnectionPoolDataSource</code> object represents
+     * @throws java.sql.SQLException if a database access error occurs
+     * @throws SQLFeatureNotSupportedException
+     *                               if the JDBC driver does not support
+     *                               this method
+     * @since 1.4
+     */
+    public PooledConnection getPooledConnection(String user, String password) throws SQLException {
+       return new MySQLPooledConnection((MySQLConnection)getConnection(user,password));
     }
 }

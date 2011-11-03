@@ -3542,7 +3542,8 @@ public class MySQLResultSet implements ResultSet {
             try {
                 return getValueObject(columnIndex).getPBMSStream(protocol);
             } catch (QueryException e) {
-                throw SQLExceptionMapper.get(e);
+                PreparedStatement ps = (this.statement instanceof PreparedStatement)?(PreparedStatement)this.statement:null;
+                SQLExceptionMapper.throwException(e, (MySQLConnection)this.statement.getConnection(),ps);
             } catch (IOException e) {
                 throw SQLExceptionMapper.getSQLException("Could not read back the data using http", e);
             }

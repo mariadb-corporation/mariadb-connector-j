@@ -140,7 +140,7 @@ public class MySQLStatement implements Statement {
         try {
             protocol.setMaxRows(maxRows);
         } catch(QueryException qe) {
-            throw SQLExceptionMapper.get(qe);
+            SQLExceptionMapper.throwException(qe, connection, this);
         }
     }
 
@@ -207,7 +207,8 @@ public class MySQLStatement implements Statement {
                 setUpdateCount(((ModifyQueryResult) queryResult).getUpdateCount());
                 return false;
             } catch (QueryException e) {
-                throw SQLExceptionMapper.get(e);
+               SQLExceptionMapper.throwException(e, connection, this);
+               return false;
             } finally {
                 stopTimer();
             }
@@ -301,6 +302,10 @@ public class MySQLStatement implements Statement {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public void close() throws SQLException {
+        if (connection != null && connection.pooledConnection != null) {
+            connection.pooledConnection.fireStatementClosed(this);
+        }
+
         isClosed = true;
         if (queryResult != null) {
             queryResult.close();
@@ -442,7 +447,8 @@ public class MySQLStatement implements Statement {
         try {
             protocol.cancelCurrentQuery();
         } catch (QueryException e) {
-            throw SQLExceptionMapper.get(e);
+            SQLExceptionMapper.throwException(e, connection, this);
+
         }
         catch (IOException e) {
             // connection gone, query is definitely canceled
@@ -841,7 +847,8 @@ public class MySQLStatement implements Statement {
                 return true;
             }
         } catch (QueryException e) {
-            throw SQLExceptionMapper.get(e);
+            SQLExceptionMapper.throwException(e, connection, this);
+            return false;
         } finally {
             stopTimer();
         }
@@ -1055,7 +1062,8 @@ public class MySQLStatement implements Statement {
             }
             return retVals;
         } catch (QueryException e) {
-            throw SQLExceptionMapper.get(e);
+            SQLExceptionMapper.throwException(e, connection, this);
+            return null;
         }
     }
 

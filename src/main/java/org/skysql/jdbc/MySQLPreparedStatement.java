@@ -173,7 +173,8 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
         try {
             return parameterizedBatchHandler.executeBatch();
         } catch (QueryException e) {
-            throw SQLExceptionMapper.get(e);
+            SQLExceptionMapper.throwException(e,this.connection,this);
+            return null;
         }
     }
 

@@ -31,7 +31,9 @@ import org.skysql.jdbc.internal.common.query.QueryFactory;
 import org.skysql.jdbc.internal.mysql.MySQLProtocol;
 
 import java.sql.*;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -61,6 +63,9 @@ public final class MySQLConnection
 
     private ParameterizedBatchHandlerFactory parameterizedBatchHandlerFactory;
 
+    public MySQLPooledConnection pooledConnection;
+
+
     private boolean warningsCleared;
     private Statement activeStatement;
     boolean noBackslashEscapes;
@@ -84,6 +89,7 @@ public final class MySQLConnection
         clientInfoProperties = new Properties();
         this.queryFactory = queryFactory;
         activeStatement = null;
+
     }
 
     public static MySQLConnection newConnection(MySQLProtocol protocol, QueryFactory queryFactory) throws SQLException {
@@ -116,6 +122,7 @@ public final class MySQLConnection
         }
         return connection;
     }
+
 
     /**
      * creates a new statement.
@@ -238,10 +245,12 @@ public final class MySQLConnection
      */
     public void close() throws SQLException {
         try {
+            if (pooledConnection != null)
+                pooledConnection.fireConnectionClosed();
             this.timeoutExecutor.shutdown();
             protocol.close();
         } catch (QueryException e) {
-            throw SQLExceptionMapper.get(e);
+            SQLExceptionMapper.throwException(e, null, null);
         }
 
     }
@@ -1023,7 +1032,8 @@ public final class MySQLConnection
         try {
             return protocol.ping();
         } catch (QueryException e) {
-            throw SQLExceptionMapper.get(e);
+            SQLExceptionMapper.throwException(e, this, null);
+            return false;
         }
     }
 

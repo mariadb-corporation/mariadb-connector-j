@@ -93,7 +93,8 @@ public final class Driver implements java.sql.Driver {
 
             return MySQLConnection.newConnection(protocol, new MySQLQueryFactory());
         } catch (QueryException e) {
-            throw SQLExceptionMapper.get(e);
+            SQLExceptionMapper.throwException(e, null, null);
+            return null;
         }
     }
 

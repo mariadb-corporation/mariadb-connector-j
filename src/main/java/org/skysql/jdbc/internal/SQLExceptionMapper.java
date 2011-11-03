@@ -24,6 +24,7 @@
 
 package org.skysql.jdbc.internal;
 
+import org.skysql.jdbc.MySQLConnection;
 import org.skysql.jdbc.exception.SQLQueryCancelledException;
 import org.skysql.jdbc.exception.SQLQueryTimedOutException;
 import org.skysql.jdbc.internal.common.QueryException;
@@ -77,7 +78,22 @@ public class SQLExceptionMapper {
         }
     }
 
-    public static SQLException get(final QueryException e) {
+    public static void throwException(QueryException e, MySQLConnection connection, java.sql.Statement statement) throws SQLException
+    {
+        SQLException sqlException = get(e);
+        String sqlState = e.getSqlState();
+        SQLStates state = SQLStates.fromString(sqlState);
+        if (connection != null && connection.pooledConnection != null) {
+            if (state.equals(SQLStates.CONNECTION_EXCEPTION)) {
+               connection.pooledConnection.fireConnectionErrorOccured(sqlException);
+            }
+            else if(statement != null) {
+               connection.pooledConnection.fireStatementErrorOccured(statement, sqlException);
+            }
+        }
+        throw sqlException;
+    }
+    private static SQLException get(final QueryException e) {
         final String sqlState = e.getSqlState();
         final SQLStates state = SQLStates.fromString(sqlState);
         if (Utils.isJava5()) {
