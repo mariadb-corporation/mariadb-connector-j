@@ -58,6 +58,7 @@ public class MySQLPooledConnection implements  PooledConnection{
      * @since 1.4
      */
     public void close() throws SQLException {
+        connection.pooledConnection = null;
         connection.close();
     }
 

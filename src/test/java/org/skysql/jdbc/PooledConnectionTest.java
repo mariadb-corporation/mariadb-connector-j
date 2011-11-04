@@ -3,11 +3,9 @@ package org.skysql.jdbc;
 import org.junit.Test;
 
 import javax.sql.*;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.sql.SQLNonTransientConnectionException;
-import java.sql.SQLSyntaxErrorException;
+import java.sql.*;
 
+import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;
 
 class MyEventListener implements ConnectionEventListener,StatementEventListener
@@ -49,10 +47,23 @@ public class PooledConnectionTest  {
    public void testPooledConnectionClosed() throws Exception  {
        ConnectionPoolDataSource ds = new MySQLDataSource("localhost", 3306, "test");
        PooledConnection pc = ds.getPooledConnection("root","");
+       Connection c= pc.getConnection();
        MyEventListener listener = new MyEventListener();
        pc.addConnectionEventListener(listener);
-       pc.close();
+       c.close();
        assertTrue(listener.closed);
+       /* Verify physical connection is still ok */
+       c.createStatement().execute("select 1");
+
+       /* close physical connection */
+       pc.close();
+       /* Now verify physical connection is gone */
+       try {
+            c.createStatement().execute("select 1");
+           assertFalse("should never get there", true);
+       } catch(Exception e) {
+
+       }
    }
 
    @Test
@@ -81,7 +92,7 @@ public class PooledConnectionTest  {
            /* Check that listener was actually called*/
            assertTrue(listener.sqlException instanceof SQLNonTransientConnectionException);
        }
-       c.close();
+       pc.close();
        //assertTrue(listener.closed);
    }
 
@@ -104,6 +115,6 @@ public class PooledConnectionTest  {
        }
        ps.close();
        assertTrue(listener.statementClosed);
-       c.close();
+       pc.close();
     }
 }

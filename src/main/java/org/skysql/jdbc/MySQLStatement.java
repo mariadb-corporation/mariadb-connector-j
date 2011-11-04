@@ -302,11 +302,7 @@ public class MySQLStatement implements Statement {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public void close() throws SQLException {
-        if (connection != null && connection.pooledConnection != null) {
-            connection.pooledConnection.fireStatementClosed(this);
-        }
 
-        isClosed = true;
         if (queryResult != null) {
             queryResult.close();
             queryResult = null;
@@ -315,12 +311,20 @@ public class MySQLStatement implements Statement {
         // This makes the cache eligible for garbage collection earlier if the statement is not
         // immediately garbage collected
         cachedResultSets.clear();
-        if (!isStreaming())
-            return;
-        synchronized (protocol) {
-            // Skip all outstanding result sets
-            while(getMoreResults(true)) {
+        if (isStreaming()) {
+            synchronized (protocol) {
+                    // Skip all outstanding result sets
+                    while(getMoreResults(true)) {
+                }
             }
+        }
+        if (connection != null && connection.pooledConnection != null
+            && !connection.pooledConnection.statementEventListeners.isEmpty()
+            && this instanceof PreparedStatement) {
+            isClosed = false;
+            connection.pooledConnection.fireStatementClosed(this);
+        } else {
+            isClosed = true;
         }
     }
 

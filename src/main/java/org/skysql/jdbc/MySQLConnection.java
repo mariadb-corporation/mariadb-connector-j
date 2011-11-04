@@ -245,10 +245,12 @@ public final class MySQLConnection
      */
     public void close() throws SQLException {
         try {
-            if (pooledConnection != null)
-                pooledConnection.fireConnectionClosed();
-            this.timeoutExecutor.shutdown();
-            protocol.close();
+          this.timeoutExecutor.shutdown();
+          if (pooledConnection != null) {
+            pooledConnection.fireConnectionClosed();
+            return;
+          }
+          protocol.close();
         } catch (QueryException e) {
             SQLExceptionMapper.throwException(e, null, null);
         }
