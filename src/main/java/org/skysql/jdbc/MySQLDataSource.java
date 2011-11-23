@@ -36,20 +36,148 @@ import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Properties;
-
+import org.skysql.jdbc.Driver;
 /**
  * User: marcuse Date: Feb 7, 2009 Time: 10:53:22 PM
  */
 public class MySQLDataSource implements DataSource, ConnectionPoolDataSource {
-    private final String hostname;
-    private final int port;
-    private final String database;
+
+    /** The driver to create connections with */
+    protected final static Driver skysqlDriver;
+
+    static {
+		try {
+			skysqlDriver = new Driver();
+		} catch (Exception E) {
+			throw new RuntimeException(
+					"Can not load Driver class org.skysql.jdbc.Driver");
+		}
+	}
+
+
+    private String hostname = "localhost";
+    private int port = 3306;
+    private String database = "";
+    private String username = null;
+    private String password = null;
 
     public MySQLDataSource(final String hostname, final int port, final String database) {
         this.hostname = hostname;
         this.port = port;
         this.database = database;
     }
+
+    public MySQLDataSource() {
+    }
+
+    /**
+     * Sets the database name.
+     * 
+     * @param dbName
+     *            the name of the database
+     */
+    public void setDatabaseName(String dbName) {
+	    this.database = dbName;
+    }
+
+    /**
+     * Gets the name of the database
+     * 
+     * @return the name of the database for this data source
+     */
+    public String getDatabaseName() {
+	    return (this.database != null) ? this.database : "";
+    }
+
+    /**
+     * Sets the username
+     * 
+     * @param userName
+     *            the username
+     */
+    public void setUserName(String userName) {
+	    this.username = userName;
+    }
+
+    /**
+     * Gets the username
+     * 
+     * @return the username to use when connecting to the database
+     */
+    public String getUserName() {
+	    return this.username;
+    }
+
+
+    /**
+     * Sets the password
+     * 
+     * @param pass
+     *            the password
+     */
+    public void setPassword(String pass) {
+	    this.password = pass;
+    }
+
+    /**
+     * Sets the database port.
+     * 
+     * @param p
+     *            the port
+     */
+    public void setPort(int p) {
+	    this.port = p;
+    }
+
+    /**
+     * Returns the port number
+     * 
+     * @return the port number
+     */
+    public int getPort() {
+	    return this.port;
+    }
+
+    /**
+     * Sets the port number
+     * 
+     * @param p
+     *            the port
+     * 
+     * @see #setPort
+     */
+    public void setPortNumber(int p) {
+	    setPort(p);
+    }
+
+    /**
+     * Returns the port number
+     * 
+     * @return the port number
+     */
+    public int getPortNumber() {
+	    return getPort();
+    }
+
+    /**
+     * Sets the server name.
+     * 
+     * @param serverName
+     *            the server name
+     */
+    public void setServerName(String serverName) {
+	    this.hostname = serverName;
+    }
+
+    /**
+     * Returns the name of the database server
+     * 
+     * @return the name of the database server
+     */
+    public String getServerName() {
+	    return (this.hostname != null) ? this.hostname : "";
+    }
+
 
     /**
      * <p>Attempts to establish a connection with the data source that this <code>DataSource</code> object represents.
@@ -59,7 +187,7 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource {
      */
     public Connection getConnection() throws SQLException {
         try {
-            return MySQLConnection.newConnection(new MySQLProtocol(hostname, port, database, null, null, new Properties()),
+            return MySQLConnection.newConnection(new MySQLProtocol(hostname, port, database, username, password, new Properties()),
                     new MySQLQueryFactory());
         } catch (QueryException e) {
             SQLExceptionMapper.throwException(e, null, null);
