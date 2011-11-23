@@ -76,6 +76,7 @@ public class MySQLProtocol implements Protocol {
     public boolean moreResults = false;
     public StreamingSelectResult activeResult= null;
     public int datatypeMappingFlags;
+    public Set<ServerStatus> serverStatus;
 
     /**
      * Get a protocol instance
@@ -278,6 +279,12 @@ public class MySQLProtocol implements Protocol {
         setDatatypeMappingFlags();
     }
 
+    public boolean inTransaction()
+    {
+        if(serverStatus != null)
+            return serverStatus.contains(ServerStatus.IN_TRANSACTION);
+        return false;
+    }
     private void setDatatypeMappingFlags() {
         datatypeMappingFlags = 0;
         String tinyInt1isBit = info.getProperty("tinyInt1isBit");
@@ -485,7 +492,8 @@ public class MySQLProtocol implements Protocol {
                         ep.getSqlState());
             case OK:
                 final OKPacket okpacket = (OKPacket) resultPacket;
-                this.moreResults = okpacket.getServerStatus().contains(ServerStatus.MORE_RESULTS_EXISTS);
+                serverStatus = okpacket.getServerStatus();
+                this.moreResults = serverStatus.contains(ServerStatus.MORE_RESULTS_EXISTS);
                 final QueryResult updateResult = new UpdateResult(okpacket.getAffectedRows(),
                         okpacket.getWarnings(),
                         okpacket.getMessage(),

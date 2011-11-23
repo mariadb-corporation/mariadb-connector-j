@@ -247,6 +247,10 @@ public final class MySQLConnection
         try {
           this.timeoutExecutor.shutdown();
           if (pooledConnection != null) {
+            if (protocol != null && protocol.inTransaction()) {
+                /* Rollback transaction prior to returning physical connection to the pool */
+                rollback();
+            }
             pooledConnection.fireConnectionClosed();
             return;
           }
