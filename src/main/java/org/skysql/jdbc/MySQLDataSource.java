@@ -37,6 +37,8 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Properties;
 import org.skysql.jdbc.Driver;
+import org.skysql.jdbc.JDBCUrl;
+
 /**
  * User: marcuse Date: Feb 7, 2009 Time: 10:53:22 PM
  */
@@ -55,19 +57,22 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource {
 	}
 
 
-    private String hostname = "localhost";
-    private int port = 3306;
-    private String database = "";
-    private String username = null;
-    private String password = null;
+    private String 	hostname = "localhost";
+    private int		port = 3306;
+    private String	database = "";
+    private String	username = null;
+    private String	password = null;
+    private Properties	info = null;
 
     public MySQLDataSource(final String hostname, final int port, final String database) {
         this.hostname = hostname;
         this.port = port;
         this.database = database;
+	this.info = new Properties();
     }
 
     public MySQLDataSource() {
+	this.info = new Properties();
     }
 
     /**
@@ -169,6 +174,48 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource {
 	    this.hostname = serverName;
     }
 
+    public void setProperties(String properties) {
+	String [] parameters = properties.split("&");
+	for(String param : parameters) {
+		String [] keyVal = param.split("=");
+		this.info.setProperty(keyVal[0], keyVal[1]);
+	}
+    }
+
+    /**
+     * Sets the connection string URL.
+     * 
+     * @param url
+     *            the connection string
+     */
+    public void setURL(String url) {
+	setUrl(url);
+    }
+
+    /**
+     * Sets the connection string URL.
+     * 
+     * @param url
+     *            the connection string
+     */
+    public void setUrl(String url) {
+
+	String baseUrl = url;
+	int idx = url.lastIndexOf("?");        
+	if (idx > 0) {
+		baseUrl = url.substring(0,idx);
+		String urlParams = url.substring(idx+1);
+		setProperties(urlParams);
+	}
+	JDBCUrl connURL = JDBCUrl.parse(baseUrl);
+
+	this.database = connURL.getDatabase();
+	this.hostname = connURL.getHostname();
+	this.username = connURL.getUsername();
+	this.password = connURL.getPassword();
+	this.port = connURL.getPort();
+    }
+
     /**
      * Returns the name of the database server
      * 
@@ -187,7 +234,7 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource {
      */
     public Connection getConnection() throws SQLException {
         try {
-            return MySQLConnection.newConnection(new MySQLProtocol(hostname, port, database, username, password, new Properties()),
+            return MySQLConnection.newConnection(new MySQLProtocol(hostname, port, database, username, password, info),
                     new MySQLQueryFactory());
         } catch (QueryException e) {
             SQLExceptionMapper.throwException(e, null, null);
