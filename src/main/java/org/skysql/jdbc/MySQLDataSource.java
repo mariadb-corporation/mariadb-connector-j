@@ -100,6 +100,25 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource {
      * @param userName
      *            the username
      */
+    public void setUser(String userName) {
+	setUserName(userName);
+    }
+
+    /**
+     * Gets the username
+     * 
+     * @return the username to use when connecting to the database
+     */
+    public String getUser() {
+	    return this.username;
+    }
+
+    /**
+     * Sets the username
+     * 
+     * @param userName
+     *            the username
+     */
     public void setUserName(String userName) {
 	    this.username = userName;
     }
@@ -209,10 +228,19 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource {
 	}
 	JDBCUrl connURL = JDBCUrl.parse(baseUrl);
 
-	this.database = connURL.getDatabase();
-	this.hostname = connURL.getHostname();
-	this.username = connURL.getUsername();
-	this.password = connURL.getPassword();
+	String tmpStr;
+	if ((tmpStr = connURL.getDatabase()) != null) {
+		this.database = tmpStr;
+	}
+	if ((tmpStr = connURL.getHostname()) != null) {
+		this.hostname = tmpStr;
+	}
+	if ((tmpStr = connURL.getUsername()) != null) {
+		this.username = tmpStr;
+	}
+	if ((tmpStr = connURL.getPassword()) != null) {
+		this.password = tmpStr;
+	}
 	this.port = connURL.getPort();
     }
 

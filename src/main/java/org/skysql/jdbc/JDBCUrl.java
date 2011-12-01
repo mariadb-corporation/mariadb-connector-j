@@ -34,11 +34,11 @@ import java.util.regex.Pattern;
  */
 public class JDBCUrl {
     private final DBType dbType;
-    private final String username;
-    private final String password;
-    private final String hostname;
-    private final int port;
-    private final String database;
+    private final String username = null;
+    private final String password = null;
+    private final String hostname = null;
+    private final int port = 3306;
+    private final String database = null;
     private final String hostlist[];
 
     public enum DBType {
@@ -52,7 +52,7 @@ public class JDBCUrl {
         this.hostname = hostname;
         this.port = port;
         this.database = database;
-	this.hostlist = hostlist;
+        this.hostlist = hostlist;
     }
 
     /*
