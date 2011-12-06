@@ -235,10 +235,12 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource {
 	if ((tmpStr = connURL.getHostname()) != null) {
 		this.hostname = tmpStr;
 	}
-	if ((tmpStr = connURL.getUsername()) != null) {
+	tmpStr = connURL.getUsername();
+	if (!tmpStr.equals("")) {
 		this.username = tmpStr;
 	}
-	if ((tmpStr = connURL.getPassword()) != null) {
+	tmpStr = connURL.getPassword();
+	if (!tmpStr.equals("")) {
 		this.password = tmpStr;
 	}
 	this.port = connURL.getPort();
