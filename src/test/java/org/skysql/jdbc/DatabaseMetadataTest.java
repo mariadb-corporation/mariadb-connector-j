@@ -20,9 +20,9 @@ public class DatabaseMetadataTest extends BaseTest{
     public void primaryKeysTest() throws SQLException {
         Statement stmt = connection.createStatement();
         stmt.execute("drop table if exists pk_test");
-        stmt.execute("create table pk_test (id1 int not null, id2 int not null, val varchar(20), primary key(id1, id2))");
+        stmt.execute("create table pk_test (id1 int not null, id2 int not null, val varchar(20), primary key(id1, id2)) engine=innodb");
         DatabaseMetaData dbmd = connection.getMetaData();
-        ResultSet rs = dbmd.getPrimaryKeys(null,"test","pk_test");
+        ResultSet rs = dbmd.getPrimaryKeys("test",null,"pk_test");
         int i=0;
         while(rs.next()) {
             i++;
@@ -43,15 +43,15 @@ public class DatabaseMetadataTest extends BaseTest{
 
 
         stmt.execute("create table prim_key (id int not null primary key, " +
-                                            "val varchar(20))");
+                                            "val varchar(20)) engine=innodb");
         stmt.execute("create table fore_key0 (id int not null primary key, " +
-                                            "id_ref0 int, foreign key (id_ref0) references prim_key(id))");
+                                            "id_ref0 int, foreign key (id_ref0) references prim_key(id)) engine=innodb");
         stmt.execute("create table fore_key1 (id int not null primary key, " +
-                                            "id_ref1 int, foreign key (id_ref1) references prim_key(id) on update cascade)");
+                                            "id_ref1 int, foreign key (id_ref1) references prim_key(id) on update cascade) engine=innodb");
 
 
         DatabaseMetaData dbmd = connection.getMetaData();
-        ResultSet rs = dbmd.getExportedKeys("","test","prim_key");
+        ResultSet rs = dbmd.getExportedKeys("test",null,"prim_key");
         int i =0 ;
         while(rs.next()) {
             assertEquals("id",rs.getString("pkcolumn_name"));

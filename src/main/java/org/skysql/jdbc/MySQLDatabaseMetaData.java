@@ -173,7 +173,7 @@ public final class MySQLDatabaseMetaData extends CommonDatabaseMetaData {
                 "kcu.referenced_table_name='" +
                 table +
                 "'" +
-                "ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ";
+                " ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ";
         final Statement stmt = getConnection().createStatement();
         return stmt.executeQuery(query);
     }

@@ -387,6 +387,12 @@ public class DriverTest extends BaseTest{
     }
 
     @Test
+    public void testConnectNoDB() throws Exception{
+        Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306?user=root");
+        connection.close();
+    }
+
+    @Test
     public void testConnectorJURL() {
         JDBCUrl url = JDBCUrl.parse("jdbc:mysql://localhost/test");
         assertEquals("localhost", url.getHostname());
@@ -399,7 +405,6 @@ public class DriverTest extends BaseTest{
         assertEquals(3307,url.getPort());
 
     }
-
 
     @Test
     public void testEscapes() throws SQLException {
