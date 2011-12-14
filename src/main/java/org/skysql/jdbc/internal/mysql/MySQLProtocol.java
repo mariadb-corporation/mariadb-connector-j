@@ -104,13 +104,28 @@ public class MySQLProtocol implements Protocol {
         this.username = (username == null ? "" : username);
         this.password = (password == null ? "" : password);
 
-	String logLevel = info.getProperty("MySQLProtocolLogLevel");
-	if (logLevel != null)
-		log.setLevel(Level.parse(logLevel));
-	else
-		log.setLevel(Level.OFF);
-
-        final SocketFactory socketFactory = SocketFactory.getDefault();
+        String logLevel = info.getProperty("MySQLProtocolLogLevel");
+        if (logLevel != null)
+        	log.setLevel(Level.parse(logLevel));
+        else
+        	log.setLevel(Level.OFF);
+        SocketFactory socketFactory = null;
+        String socketFactoryName = info.getProperty("socketFactory");
+        if (socketFactoryName != null)
+        {
+        	try {
+        		socketFactory = (SocketFactory) (Class.forName(socketFactoryName).newInstance());
+        	}
+        	catch (Exception sfex)
+        	{
+        		log.info("Failed to create socket factory " + socketFactoryName);
+        		socketFactory = SocketFactory.getDefault();
+        	}
+        }
+        else
+        {
+        	socketFactory = SocketFactory.getDefault();
+        }
         try {
             // Extract connectTimeout URL parameter
             String connectTimeoutString = info.getProperty("connectTimeout");
@@ -126,6 +141,23 @@ public class MySQLProtocol implements Protocol {
             // Create socket with timeout if required
             InetSocketAddress sockAddr = new InetSocketAddress(host, port);
             socket = socketFactory.createSocket();
+            try {
+            	String value = info.getProperty("tcpNoDelay", "false");
+            	if (value.equalsIgnoreCase("true"))
+            		socket.setTcpNoDelay(true);
+            	value = info.getProperty("tcpKeepAlive", "false");
+                if (value.equalsIgnoreCase("true"))
+                	socket.setKeepAlive(true);
+                value = info.getProperty("tcpRcvBuf");
+                if (value != null)
+                	socket.setReceiveBufferSize(Integer.parseInt(value));
+                value = info.getProperty("tcpSndBuf");
+                if (value != null)
+                	socket.setSendBufferSize(Integer.parseInt(value));
+            }
+            catch (Exception e) {
+            	log.finest("Failed to set socket option: " + e.getLocalizedMessage());
+            }
             
             // Bind the socket to a particular interface if the connection property
             // localSocketAddress has been defined.

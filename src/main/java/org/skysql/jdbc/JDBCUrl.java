@@ -52,7 +52,7 @@ public class JDBCUrl {
         this.hostname = hostname;
         this.port = port;
         this.database = database;
-	this.hostlist = hostlist;
+        this.hostlist = hostlist;
     }
 
     /*
