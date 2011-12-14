@@ -627,7 +627,7 @@ public class MySQLStatement implements Statement {
      * @since 1.4
      */
     public int executeUpdate(final String sql, final int[] columnIndexes) throws SQLException {
-        throw SQLExceptionMapper.getFeatureNotSupportedException("Not supported");
+       return executeUpdate(sql);
     }
 
     /**
@@ -652,7 +652,7 @@ public class MySQLStatement implements Statement {
      * @since 1.4
      */
     public int executeUpdate(final String sql, final String[] columnNames) throws SQLException {
-        throw SQLExceptionMapper.getFeatureNotSupportedException("Not supported");
+        return executeUpdate(sql);
     }
 
     /**
@@ -722,7 +722,7 @@ public class MySQLStatement implements Statement {
      * @since 1.4
      */
     public boolean execute(final String sql, final int[] columnIndexes) throws SQLException {
-        throw SQLExceptionMapper.getFeatureNotSupportedException("Not supported");
+        return execute(sql);
     }
 
     /**
@@ -757,7 +757,7 @@ public class MySQLStatement implements Statement {
      * @since 1.4
      */
     public boolean execute(final String sql, final String[] columnNames) throws SQLException {
-        throw SQLExceptionMapper.getFeatureNotSupportedException("Not supported");
+        return execute(sql);
     }
 
     /**
