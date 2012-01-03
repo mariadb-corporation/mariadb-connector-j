@@ -573,7 +573,7 @@ public class MySQLStatement implements Statement {
     public ResultSet getGeneratedKeys() throws SQLException {
         if (queryResult != null && queryResult.getResultSetType() == ResultSetType.MODIFY) {
             final QueryResult genRes = ((ModifyQueryResult) queryResult).getGeneratedKeysResult();
-            return new MySQLResultSet(genRes, this, protocol);
+            return new MySQLGeneratedKeysResultSet(genRes, this, protocol);
         }
         return MySQLResultSet.EMPTY;
     }

@@ -60,6 +60,8 @@ public class MySQLResultSet implements ResultSet {
     private boolean warningsCleared;
     ColumnNameMap columnNameMap;
 
+    protected MySQLResultSet() {
+    }
     public MySQLResultSet(QueryResult dqr, Statement statement, MySQLProtocol protocol) {
         this.queryResult = dqr;
         this.statement = statement;
