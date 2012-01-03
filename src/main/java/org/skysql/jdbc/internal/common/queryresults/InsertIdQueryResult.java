@@ -57,22 +57,8 @@ public class InsertIdQueryResult extends SelectQueryResult {
         return new GeneratedIdValueObject(insertId);
     }
 
-    public ValueObject getValueObject(final String columnName) throws NoSuchColumnException {
-        if (!columnName.toLowerCase().equals("insert_id")) {
-            throw new NoSuchColumnException("No such column: " + columnName);
-        }
-        return new GeneratedIdValueObject(insertId + rowPointer - 1);
-    }
-
     public int getRows() {
         return (int) rows;
-    }
-
-    public int getColumnId(final String columnLabel) throws NoSuchColumnException {
-        if (columnLabel.equals("insert_id")) {
-            return 0;
-        }
-        throw new NoSuchColumnException("No such column");
     }
 
     public void moveRowPointerTo(final int i) {
