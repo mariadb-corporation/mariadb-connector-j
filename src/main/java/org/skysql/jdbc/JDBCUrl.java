@@ -61,7 +61,7 @@ public class JDBCUrl {
 
      */
     private static JDBCUrl parseConnectorJUrl(String url) {
-        Pattern p = Pattern.compile("^jdbc:mysql://([A-Za-z0-9._,]+)?(:\\d+)?(/\\w+)?");
+        Pattern p = Pattern.compile("^jdbc:mysql://([A-Za-z0-9._,-]+)?(:\\d+)?(/\\w+)?");
         Matcher m = p.matcher(url);
         if (m.find()){
            String hostname = m.group(1);
