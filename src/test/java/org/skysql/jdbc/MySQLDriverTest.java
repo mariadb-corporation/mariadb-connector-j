@@ -198,6 +198,14 @@ public class MySQLDriverTest extends BaseTest {
     }
 
     @Test
+    public void FiftyMBRow() throws SQLException  {
+        ResultSet rs = connection.createStatement().executeQuery("select repeat('a',50000000),1");
+        assertTrue(rs.next());
+        assertEquals(rs.getString(1).length(), 50000000);
+        assertEquals(rs.getString(2).length(), 1);
+        rs.close();
+    }
+    @Test
     // Test query with length around max  packet length. Requires max_allowed_packet to be >16M
     public void largeQueryWrite() throws SQLException {
         if (!checkMaxAllowedPacket("largeQueryWrite")) {

@@ -60,7 +60,7 @@ public class MySQLRowPacket {
 
     public List<ValueObject> getRow(PacketFetcher packetFetcher) throws IOException {
         for (final ColumnInformation currentColumn : columnInformation) {
-            if(!isPacketComplete()) {
+            while(!isPacketComplete()) {
                 appendPacket(packetFetcher.getRawPacket());
             }
             final ValueObject dvo = new MySQLValueObject(reader.getLengthEncodedBytes(), currentColumn);
