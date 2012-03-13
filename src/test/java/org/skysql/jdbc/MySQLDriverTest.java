@@ -199,7 +199,16 @@ public class MySQLDriverTest extends BaseTest {
 
     @Test
     public void FiftyMBRow() throws SQLException  {
-        ResultSet rs = connection.createStatement().executeQuery("select repeat('a',50000000),1");
+        ResultSet rs =   connection.createStatement().executeQuery("select @max_allowed_packet");
+        rs.next();
+        if (rs.getInt(1) < 50000000)
+        {
+            rs.close();
+            return;
+        }
+        rs.close();
+
+        rs = connection.createStatement().executeQuery("select repeat('a',50000000),1");
         assertTrue(rs.next());
         assertEquals(rs.getString(1).length(), 50000000);
         assertEquals(rs.getString(2).length(), 1);
