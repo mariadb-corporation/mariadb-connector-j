@@ -141,4 +141,86 @@ public class DatabaseMetadataTest extends BaseTest{
         DatabaseMetaData dmd = connection.getMetaData();
         dmd.getBestRowIdentifier(null,"test","t1",DatabaseMetaData.bestRowSession, true);
     }
+
+    static void checkType(String name, int actualType, String colName, int expectedType)
+    {
+       if (name.equals(colName))
+           assertEquals(actualType, expectedType);
+    }
+    @Test
+     public void getColumnsTest() throws SQLException {
+        connection.createStatement().execute(
+                        "CREATE TABLE  IF NOT EXISTS `manycols` (\n" +
+                        "  `tiny` tinyint(4) DEFAULT NULL,\n" +
+                        "  `tiny_uns` tinyint(3) unsigned DEFAULT NULL,\n" +
+                        "  `small` smallint(6) DEFAULT NULL,\n" +
+                        "  `small_uns` smallint(5) unsigned DEFAULT NULL,\n" +
+                        "  `medium` mediumint(9) DEFAULT NULL,\n" +
+                        "  `medium_uns` mediumint(8) unsigned DEFAULT NULL,\n" +
+                        "  `int_col` int(11) DEFAULT NULL,\n" +
+                        "  `int_col_uns` int(10) unsigned DEFAULT NULL,\n" +
+                        "  `big` bigint(20) DEFAULT NULL,\n" +
+                        "  `big_uns` bigint(20) unsigned DEFAULT NULL,\n" +
+                        "  `decimal_col` decimal(10,5) DEFAULT NULL,\n" +
+                        "  `fcol` float DEFAULT NULL,\n" +
+                        "  `fcol_uns` float unsigned DEFAULT NULL,\n" +
+                        "  `dcol` double DEFAULT NULL,\n" +
+                        "  `dcol_uns` double unsigned DEFAULT NULL,\n" +
+                        "  `date_col` date DEFAULT NULL,\n" +
+                        "  `time_col` time DEFAULT NULL,\n" +
+                        "  `timestamp_col` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE\n" +
+                        "CURRENT_TIMESTAMP,\n" +
+                        "  `year_col` year(4) DEFAULT NULL,\n" +
+                        "  `bit_col` bit(5) DEFAULT NULL,\n" +
+                        "  `char_col` char(5) DEFAULT NULL,\n" +
+                        "  `varchar_col` varchar(10) DEFAULT NULL,\n" +
+                        "  `binary_col` binary(10) DEFAULT NULL,\n" +
+                        "  `varbinary_col` varbinary(10) DEFAULT NULL,\n" +
+                        "  `tinyblob_col` tinyblob,\n" +
+                        "  `blob_col` blob,\n" +
+                        "  `mediumblob_col` mediumblob,\n" +
+                        "  `longblob_col` longblob,\n" +
+                        "  `text_col` text,\n" +
+                        "  `mediumtext_col` mediumtext,\n" +
+                        "  `longtext_col` longtext\n" +
+                        ")"
+        );
+        DatabaseMetaData dmd = connection.getMetaData();
+        ResultSet rs = dmd.getColumns(null, null, "manycols", null);
+        while(rs.next()) {
+            String columnName = rs.getString("column_name");
+            int type = rs.getInt("data_type");
+            checkType(columnName, type, "tiny", Types.TINYINT);
+            checkType(columnName, type, "tiny_uns", Types.TINYINT);
+            checkType(columnName, type, "small", Types.SMALLINT);
+            checkType(columnName, type, "small_uns", Types.SMALLINT);
+            checkType(columnName, type, "medium", Types.INTEGER);
+            checkType(columnName, type, "medium_uns", Types.INTEGER);
+            checkType(columnName, type, "int_col", Types.INTEGER);
+            checkType(columnName, type, "int_col_uns", Types.INTEGER);
+            checkType(columnName, type, "big", Types.BIGINT);
+            checkType(columnName, type, "big_uns", Types.BIGINT);
+            checkType(columnName, type ,"decimal_col",Types.DECIMAL);
+            checkType(columnName, type, "fcol", Types.FLOAT);
+            checkType(columnName, type, "fcol_uns", Types.FLOAT);
+            checkType(columnName, type, "dcol", Types.DOUBLE);
+            checkType(columnName, type, "dcol_uns", Types.DOUBLE);
+            checkType(columnName, type, "date_col", Types.DATE);
+            checkType(columnName, type, "time_col", Types.TIME);
+            checkType(columnName, type, "timestamp_col", Types.TIMESTAMP);
+            checkType(columnName, type, "year_col", Types.SMALLINT);
+            checkType(columnName, type, "bit_col", Types.BIT);
+            checkType(columnName, type, "char_col", Types.CHAR);
+            checkType(columnName, type, "varchar_col", Types.VARCHAR);
+            checkType(columnName, type, "binary_col", Types.BINARY);
+            checkType(columnName, type, "tinyblob_col", Types.LONGVARBINARY);
+            checkType(columnName, type, "blob_col", Types.LONGVARBINARY);
+            checkType(columnName, type, "longblob_col", Types.LONGVARBINARY);
+            checkType(columnName, type, "mediumblob_col", Types.LONGVARBINARY);
+            checkType(columnName, type, "text_col", Types.LONGVARCHAR);
+            checkType(columnName, type, "mediumtext_col", Types.LONGVARCHAR);
+            checkType(columnName, type, "longtext_col", Types.LONGVARCHAR);
+        }
+    }
+
 }

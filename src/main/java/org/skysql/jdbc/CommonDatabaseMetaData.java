@@ -24,16 +24,11 @@
 
 package org.skysql.jdbc;
 
+import org.skysql.jdbc.internal.SQLExceptionMapper;
 import org.skysql.jdbc.internal.common.SupportedDatabases;
 import org.skysql.jdbc.internal.common.Utils;
-import org.skysql.jdbc.internal.SQLExceptionMapper;
 
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.Types;
+import java.sql.*;
 import java.util.logging.Logger;
 
 /**
@@ -1790,21 +1785,39 @@ public abstract class CommonDatabaseMetaData implements DatabaseMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
 
+
     protected final String dataTypeClause =
             " CASE data_type" +
-                    " WHEN 'int' THEN " + Types.INTEGER +
-                    " WHEN 'mediumint' THEN "+Types.INTEGER +
-                    " WHEN 'varchar' THEN " + Types.VARCHAR +
-                    " WHEN 'datetime' THEN " + Types.TIMESTAMP +
-                    " WHEN 'date' THEN " + Types.DATE +
-                    " WHEN 'time' THEN " + Types.TIME +
-                    " WHEN 'text' THEN " + Types.VARCHAR +
-                    " WHEN 'bigint' THEN " + Types.BIGINT +
-                    " WHEN 'varbinary' THEN " + Types.VARBINARY +
-                    " WHEN 'timestamp' THEN " + Types.TIMESTAMP +
-                    " WHEN 'double' THEN " + Types.DOUBLE +
-                    " WHEN 'bit' THEN " + Types.BIT +
-                    " END";
+                    " when 'bit' then "         + Types.BIT +
+                    " when 'tinyblob' then "    + Types.LONGVARBINARY +
+                    " when 'mediumblob' then "  + Types.LONGVARBINARY +
+                    " when 'longblob' then "    + Types.LONGVARBINARY +
+                    " when 'blob' then "        + Types.LONGVARBINARY +
+                    " when 'tinytext' then "    + Types.LONGVARCHAR +
+                    " when 'mediumtext' then "  + Types.LONGVARCHAR +
+                    " when 'longtext' then "    + Types.LONGVARCHAR +
+                    " when 'text' then "        + Types.LONGVARCHAR +
+                    " when 'date' then "        + Types.DATE +
+                    " when 'datetime' then "    + Types.TIMESTAMP +
+                    " when 'decimal' then "     + Types.DECIMAL +
+                    " when 'double' then "      + Types.DOUBLE +
+                    " when 'enum' then "        + Types.VARCHAR +
+                    " when 'float' then "       + Types.FLOAT +
+                    " when 'int' then "         + Types.INTEGER +
+                    " when 'bigint' then "      + Types.BIGINT +
+                    " when 'mediumint' then "   + Types.INTEGER +
+                    " when 'null' then "        + Types.NULL +
+                    " when 'set' then "         + Types.VARCHAR +
+                    " when 'smallint' then "    + Types.SMALLINT +
+                    " when 'varchar' then "     + Types.VARCHAR +
+                    " when 'varbinary' then "   + Types.VARBINARY +
+                    " when 'char' then "        + Types.CHAR +
+                    " when 'binary' then "      + Types.BINARY +
+                    " when 'time' then "        + Types.TIME +
+                    " when 'timestamp' then "   + Types.TIMESTAMP +
+                    " when 'tinyint' then "     + Types.TINYINT +
+                    " when 'year' then "        + Types.SMALLINT +
+                    " END ";
 
     public abstract ResultSet getBestRowIdentifier(final String catalog, final String schema, final String table, final int scope, final boolean nullable)
             throws SQLException;
