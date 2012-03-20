@@ -36,6 +36,7 @@ import org.skysql.jdbc.internal.common.query.Query;
 import org.skysql.jdbc.internal.common.queryresults.*;
 import org.skysql.jdbc.internal.mysql.packet.MySQLGreetingReadPacket;
 import org.skysql.jdbc.internal.mysql.packet.commands.*;
+import org.skysql.jdbc.internal.mysql.MySQLQueryLogger;
 
 import javax.net.SocketFactory;
 import javax.net.ssl.SSLSocket;
@@ -73,6 +74,8 @@ public class MySQLProtocol implements Protocol {
     private final long serverThreadId;
     private volatile boolean queryWasCancelled = false;
     private volatile boolean queryTimedOut = false;
+    private boolean dumpQueryOnException = false;
+    private MySQLQueryLogger queryLogger = null;
     public boolean moreResults = false;
     public StreamingSelectResult activeResult= null;
     public int datatypeMappingFlags;
@@ -103,6 +106,15 @@ public class MySQLProtocol implements Protocol {
         this.database = (database == null ? "" : database);
         this.username = (username == null ? "" : username);
         this.password = (password == null ? "" : password);
+        
+        /*
+         * Under development
+         */
+        if (info.getProperty("logSlowQueries") != null)
+        {
+        	this.queryLogger = new MySQLQueryLogger(info);
+        }
+
 
         String logLevel = info.getProperty("MySQLProtocolLogLevel");
         if (logLevel != null)
@@ -154,6 +166,9 @@ public class MySQLProtocol implements Protocol {
                 value = info.getProperty("tcpSndBuf");
                 if (value != null)
                 	socket.setSendBufferSize(Integer.parseInt(value));
+                value = info.getProperty("dumpQueriesOnException", "false");
+            	if (value.equalsIgnoreCase("true"))
+            		dumpQueryOnException = true;
             }
             catch (Exception e) {
             	log.finest("Failed to set socket option: " + e.getLocalizedMessage());
@@ -490,6 +505,7 @@ public class MySQLProtocol implements Protocol {
     public QueryResult getResult(Query dQuery, boolean streaming) throws QueryException{
              RawPacket rawPacket;
         ResultPacket resultPacket;
+        String msg = "";
         try {
             rawPacket = packetFetcher.getRawPacket();
             resultPacket = ResultPacketFactory.createResultPacket(rawPacket);
@@ -519,7 +535,9 @@ public class MySQLProtocol implements Protocol {
                 } else {
                     log.warning("Got error from server: " + ((ErrorPacket) resultPacket).getMessage());
                 }
-                throw new QueryException(ep.getMessage(),
+                if (this.dumpQueryOnException)
+                	msg = ":\nQuery is: " + dQuery.getQuery();
+                throw new QueryException(ep.getMessage() + msg,
                         ep.getErrorNumber(),
                         ep.getSqlState());
             case OK:
@@ -538,6 +556,8 @@ public class MySQLProtocol implements Protocol {
                 try {
                     return this.createQueryResult(resultSetPacket, streaming);
                 } catch (IOException e) {
+                	if (this.dumpQueryOnException)
+                		msg = ":\nQuery is: " + dQuery.getQuery();
                     throw new QueryException("Could not read result set: " + e.getMessage(),
                             -1,
                             SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
@@ -545,7 +565,9 @@ public class MySQLProtocol implements Protocol {
                 }
             default:
                 log.severe("Could not parse result..." + resultPacket.getResultType());
-                throw new QueryException("Could not parse result", (short) -1, SQLExceptionMapper.SQLStates.INTERRUPTED_EXCEPTION.getSqlState());
+                if (this.dumpQueryOnException)
+                	msg = ":\nQuery is: " + dQuery.getQuery();
+                throw new QueryException("Could not parse result" + msg, (short) -1, SQLExceptionMapper.SQLStates.INTERRUPTED_EXCEPTION.getSqlState());
         }
     }
 
