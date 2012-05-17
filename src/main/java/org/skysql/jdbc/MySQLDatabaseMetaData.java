@@ -24,11 +24,7 @@
 
 package org.skysql.jdbc;
 
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 
 public final class MySQLDatabaseMetaData extends CommonDatabaseMetaData {
     public MySQLDatabaseMetaData(CommonDatabaseMetaData.Builder builder) {
@@ -38,7 +34,7 @@ public final class MySQLDatabaseMetaData extends CommonDatabaseMetaData {
     @Override
     public ResultSet getPrimaryKeys(final String catalog, final String schema, final String table) throws SQLException {
         final Connection conn = getConnection();
-    	String query = "SELECT table_catalog TABLE_CAT, " +
+    	String query = "SELECT NULL TABLE_CAT, " +
                 "table_schema TABLE_SCHEM, " +
                 "table_name, " +
                 "column_name, " +
@@ -178,8 +174,8 @@ public final class MySQLDatabaseMetaData extends CommonDatabaseMetaData {
         return stmt.executeQuery(query);
     }
     public ResultSet getImportedKeys(final String catalog, final String schema, final String table) throws SQLException {
-    	final Connection conn = getConnection();
-    	final String query = "SELECT null PKTABLE_CAT, \n" +
+    	Connection conn = getConnection();
+    	String query = "SELECT null PKTABLE_CAT, \n" +
                 "kcu.referenced_table_schema PKTABLE_SCHEM, \n" +
                 "kcu.referenced_table_name PKTABLE_NAME, \n" +
                 "kcu.referenced_column_name PKCOLUMN_NAME, \n" +
@@ -214,9 +210,9 @@ public final class MySQLDatabaseMetaData extends CommonDatabaseMetaData {
                 "kcu.table_name='" +
                 table +
                 "'" +
-                "ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ";
+                " ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ";
         
-        final Statement stmt = conn.createStatement();
+        Statement stmt = conn.createStatement();
         return stmt.executeQuery(query);
     }
 

@@ -70,14 +70,14 @@ public class DatabaseMetadataTest extends BaseTest{
         stmt.execute("drop table if exists prim_key");
 
         stmt.execute("create table prim_key (id int not null primary key, " +
-                                            "val varchar(20))");
+                                            "val varchar(20)) engine=innodb");
         stmt.execute("create table fore_key0 (id int not null primary key, " +
-                                            "id_ref0 int, foreign key (id_ref0) references prim_key(id))");
+                                            "id_ref0 int, foreign key (id_ref0) references prim_key(id)) engine=innodb");
         stmt.execute("create table fore_key1 (id int not null primary key, " +
-                                            "id_ref1 int, foreign key (id_ref1) references prim_key(id) on update cascade)");
+                                            "id_ref1 int, foreign key (id_ref1) references prim_key(id) on update cascade) engine=innodb");
 
         DatabaseMetaData dbmd = connection.getMetaData();
-        ResultSet rs = dbmd.getImportedKeys("","test","fore_key0");
+        ResultSet rs = dbmd.getImportedKeys("test",null,"fore_key0");
         int i = 0;
         while(rs.next()) {
             assertEquals("id",rs.getString("pkcolumn_name"));

@@ -51,13 +51,13 @@ public class MySQLValueObject extends AbstractValueObject {
         switch (dataType.getType()) {
             case BIT:
                 if (columnInfo.getLength() == 1) {
-                    return getInt() == 1;
+                    return (getBytes()[0] != 0);
                 }
                 return getBytes();
             case TINYINT:
                 if ((datatypeMappingFlags & TINYINT1_IS_BIT) != 0) {
                     if (columnInfo.getLength() == 1) {
-                        return getInt() == 1;
+                        return (getBytes()[0] != '0');
                     }
                 }
                 return getInt();
