@@ -36,7 +36,6 @@ import org.skysql.jdbc.internal.common.query.Query;
 import org.skysql.jdbc.internal.common.queryresults.*;
 import org.skysql.jdbc.internal.mysql.packet.MySQLGreetingReadPacket;
 import org.skysql.jdbc.internal.mysql.packet.commands.*;
-import org.skysql.jdbc.internal.mysql.MySQLQueryLogger;
 
 import javax.net.SocketFactory;
 import javax.net.ssl.SSLSocket;
@@ -44,12 +43,14 @@ import javax.net.ssl.SSLSocketFactory;
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.util.*;
-import java.util.logging.Logger;
 import java.util.logging.Level;
+import java.util.logging.Logger;
+
 
 /**
  * TODO: refactor, clean up TODO: when should i read up the resultset? TODO: thread safety? TODO: exception handling
@@ -60,7 +61,7 @@ public class MySQLProtocol implements Protocol {
     private boolean connected = false;
     private Socket socket;
     private PacketOutputStream writer;
-    private final String version;
+    private  String version;
     private boolean readOnly = false;
     private final String host;
     private final int port;
@@ -68,10 +69,10 @@ public class MySQLProtocol implements Protocol {
     private final String username;
     private final String password;
     private int maxRows;  /* max rows returned by a statement */
-    private final List<Query> batchList;
+    private  List<Query> batchList;
     private SyncPacketFetcher packetFetcher;
     private final Properties info;
-    private final long serverThreadId;
+    private  long serverThreadId;
     private volatile boolean queryWasCancelled = false;
     private volatile boolean queryTimedOut = false;
     private boolean dumpQueryOnException = false;
@@ -121,209 +122,221 @@ public class MySQLProtocol implements Protocol {
         	log.setLevel(Level.parse(logLevel));
         else
         	log.setLevel(Level.OFF);
+        try {
+            connect();
+        } catch (IOException e) {
+            throw new QueryException("Could not connect to " + this.host + ":" +
+           	this.port + ": " + e.getMessage(),
+            -1,
+            SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
+            e);
+         }
+    }
+
+    /**
+     * Connect the client and perform handshake
+     *
+     * @throws QueryException  : handshake error, e.g wrong user or password
+     * @throws IOException : connection error (host/port not available)
+     */
+    void connect() throws QueryException, IOException{
         SocketFactory socketFactory = null;
-        String socketFactoryName = info.getProperty("socketFactory");
-        if (socketFactoryName != null)
-        {
-        	try {
-        		socketFactory = (SocketFactory) (Class.forName(socketFactoryName).newInstance());
-        	}
-        	catch (Exception sfex)
-        	{
-        		log.info("Failed to create socket factory " + socketFactoryName);
-        		socketFactory = SocketFactory.getDefault();
-        	}
-        }
-        else
-        {
-        	socketFactory = SocketFactory.getDefault();
-        }
-        try {
-            // Extract connectTimeout URL parameter
-            String connectTimeoutString = info.getProperty("connectTimeout");
-            Integer connectTimeout = null;
-            if (connectTimeoutString != null) {
-                try {
-                    connectTimeout = Integer.valueOf(connectTimeoutString);
-                } catch (Exception e) {
-                    connectTimeout = null;
-                }
-            }
+           String socketFactoryName = info.getProperty("socketFactory");
+           if (socketFactoryName != null)
+           {
+           	try {
+           		socketFactory = (SocketFactory) (Class.forName(socketFactoryName).newInstance());
+           	}
+           	catch (Exception sfex)
+           	{
+           		log.info("Failed to create socket factory " + socketFactoryName);
+           		socketFactory = SocketFactory.getDefault();
+           	}
+           }
+           else
+           {
+           	socketFactory = SocketFactory.getDefault();
+           }
 
-            // Create socket with timeout if required
-            InetSocketAddress sockAddr = new InetSocketAddress(host, port);
-            socket = socketFactory.createSocket();
-            try {
-            	String value = info.getProperty("tcpNoDelay", "false");
-            	if (value.equalsIgnoreCase("true"))
-            		socket.setTcpNoDelay(true);
-            	value = info.getProperty("tcpKeepAlive", "false");
-                if (value.equalsIgnoreCase("true"))
-                	socket.setKeepAlive(true);
-                value = info.getProperty("tcpRcvBuf");
-                if (value != null)
-                	socket.setReceiveBufferSize(Integer.parseInt(value));
-                value = info.getProperty("tcpSndBuf");
-                if (value != null)
-                	socket.setSendBufferSize(Integer.parseInt(value));
-                value = info.getProperty("dumpQueriesOnException", "false");
-            	if (value.equalsIgnoreCase("true"))
-            		dumpQueryOnException = true;
-            }
-            catch (Exception e) {
-            	log.finest("Failed to set socket option: " + e.getLocalizedMessage());
-            }
-            
-            // Bind the socket to a particular interface if the connection property
-            // localSocketAddress has been defined.
-            String localHost = info.getProperty("localSocketAddress");
-            if (localHost != null)
-            {
-            	InetSocketAddress localAddress = new InetSocketAddress(localHost, 0);
-            	socket.bind(localAddress);
-            }
-            
-            if (connectTimeout != null) {
-                socket.connect(sockAddr, connectTimeout * 1000);
-            } else {
-                socket.connect(sockAddr);
-            }
-            
-            // Extract socketTimeout URL parameter
-            String socketTimeoutString = info.getProperty("socketTimeout");
-            Integer socketTimeout = null;
-            if (socketTimeoutString != null) {
-                try {
-                    socketTimeout = Integer.valueOf(socketTimeoutString);
-                } catch (Exception e) {
-                    socketTimeout = null;
-                }
-            }
-            if (socketTimeout != null)
-            	socket.setSoTimeout(socketTimeout);
-            
-        } catch (IOException e) {
-            throw new QueryException("Could not connect to " + this.host + ":" +
-				this.port + ": " + e.getMessage(),
-                    -1,
-                    SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
-                    e);
-        }
-        batchList = new ArrayList<Query>();
-        try {
-            BufferedInputStream reader = new BufferedInputStream(socket.getInputStream(), 32768);
-            packetFetcher = new SyncPacketFetcher(reader);
-            writer = new PacketOutputStream(socket.getOutputStream());
-            RawPacket packet =  packetFetcher.getRawPacket();
-            if (ReadUtil.isErrorPacket(packet)) {
-                reader.close();
-                ErrorPacket errorPacket = (ErrorPacket)ResultPacketFactory.createResultPacket(packet);
-                throw new QueryException(errorPacket.getMessage());
-            }
-            final MySQLGreetingReadPacket greetingPacket = new MySQLGreetingReadPacket(packet);
-            this.serverThreadId = greetingPacket.getServerThreadID();
-            boolean useCompression = false;
+           // Extract connectTimeout URL parameter
+           String connectTimeoutString = info.getProperty("connectTimeout");
+           Integer connectTimeout = null;
+           if (connectTimeoutString != null) {
+               try {
+                   connectTimeout = Integer.valueOf(connectTimeoutString);
+               } catch (Exception e) {
+                   connectTimeout = null;
+               }
+           }
 
-            log.finest("Got greeting packet");
-            this.version = greetingPacket.getServerVersion();
-            byte packetSeq = 1;
-            final Set<MySQLServerCapabilities> capabilities = EnumSet.of(MySQLServerCapabilities.LONG_PASSWORD,
-                    MySQLServerCapabilities.IGNORE_SPACE,
-                    MySQLServerCapabilities.CLIENT_PROTOCOL_41,
-                    MySQLServerCapabilities.TRANSACTIONS,
-                    MySQLServerCapabilities.SECURE_CONNECTION,
-                    MySQLServerCapabilities.LOCAL_FILES,
-                    MySQLServerCapabilities.MULTI_RESULTS,
-                    MySQLServerCapabilities.FOUND_ROWS);
-            if(info.getProperty("allowMultiQueries") != null) {
-                capabilities.add(MySQLServerCapabilities.MULTI_STATEMENTS);
-            }
-            if(info.getProperty("useCompression") != null) {
-                capabilities.add(MySQLServerCapabilities.COMPRESS);
-                useCompression = true;
-            }
-            if(info.getProperty("interactiveClient") != null) {
-                capabilities.add(MySQLServerCapabilities.CLIENT_INTERACTIVE);
-            }
-            if(info.getProperty("useSSL") != null && greetingPacket.getServerCapabilities().contains(MySQLServerCapabilities.SSL)) {
-                capabilities.add(MySQLServerCapabilities.SSL);
-                AbbreviatedMySQLClientAuthPacket amcap = new AbbreviatedMySQLClientAuthPacket(capabilities);
-                amcap.send(writer);
+           // Create socket with timeout if required
+           InetSocketAddress sockAddr = new InetSocketAddress(host, port);
+           socket = socketFactory.createSocket();
+           try {
+            String value = info.getProperty("tcpNoDelay", "false");
+            if (value.equalsIgnoreCase("true"))
+                socket.setTcpNoDelay(true);
+            value = info.getProperty("tcpKeepAlive", "false");
+               if (value.equalsIgnoreCase("true"))
+                socket.setKeepAlive(true);
+               value = info.getProperty("tcpRcvBuf");
+               if (value != null)
+                socket.setReceiveBufferSize(Integer.parseInt(value));
+               value = info.getProperty("tcpSndBuf");
+               if (value != null)
+                socket.setSendBufferSize(Integer.parseInt(value));
+               value = info.getProperty("dumpQueriesOnException", "false");
+            if (value.equalsIgnoreCase("true"))
+                dumpQueryOnException = true;
+           }
+           catch (Exception e) {
+            log.finest("Failed to set socket option: " + e.getLocalizedMessage());
+           }
 
-                SSLSocketFactory sslSocketFactory = (SSLSocketFactory)SSLSocketFactory.getDefault();
-                SSLSocket sslSocket = (SSLSocket)sslSocketFactory.createSocket(socket,
-                        socket.getInetAddress().getHostAddress(),
-                        socket.getPort(),
-                        false);
-                sslSocket.setEnabledProtocols(new String [] {"TLSv1"});
-                sslSocket.setUseClientMode(true);
-                sslSocket.startHandshake();
-                socket = sslSocket;
-                writer = new PacketOutputStream(socket.getOutputStream());
-                writer.flush();
-                reader = new BufferedInputStream(socket.getInputStream(), 32768);
-                packetFetcher = new SyncPacketFetcher(reader);
+           // Bind the socket to a particular interface if the connection property
+           // localSocketAddress has been defined.
+           String localHost = info.getProperty("localSocketAddress");
+           if (localHost != null)
+           {
+            InetSocketAddress localAddress = new InetSocketAddress(localHost, 0);
+            socket.bind(localAddress);
+           }
 
-                packetSeq++;
-            } else if(info.getProperty("useSSL") != null){
-                throw new QueryException("Trying to connect with ssl, but ssl not enabled in the server");
-            }
+           if (connectTimeout != null) {
+               socket.connect(sockAddr, connectTimeout * 1000);
+           } else {
+               socket.connect(sockAddr);
+           }
 
-            // If a database is given, but createDB is not defined or is false,
-            // then just try to connect to the given database
-            if (database != null && !createDB())
-                capabilities.add(MySQLServerCapabilities.CONNECT_WITH_DB);
+           // Extract socketTimeout URL parameter
+           String socketTimeoutString = info.getProperty("socketTimeout");
+           Integer socketTimeout = null;
+           if (socketTimeoutString != null) {
+               try {
+                   socketTimeout = Integer.valueOf(socketTimeoutString);
+               } catch (Exception e) {
+                   socketTimeout = null;
+               }
+           }
+           if (socketTimeout != null)
+            socket.setSoTimeout(socketTimeout);
 
-            final MySQLClientAuthPacket cap = new MySQLClientAuthPacket(this.username,
-                    this.password,
-                    database,
-                    capabilities,
-                    greetingPacket.getSeed(),
-                    packetSeq);
-            cap.send(writer);
-            log.finest("Sending auth packet");
 
-            RawPacket rp = packetFetcher.getRawPacket();
+           batchList = new ArrayList<Query>();
+           try {
+               BufferedInputStream reader = new BufferedInputStream(socket.getInputStream(), 32768);
+               packetFetcher = new SyncPacketFetcher(reader);
+               writer = new PacketOutputStream(socket.getOutputStream());
+               RawPacket packet =  packetFetcher.getRawPacket();
+               if (ReadUtil.isErrorPacket(packet)) {
+                   reader.close();
+                   ErrorPacket errorPacket = (ErrorPacket)ResultPacketFactory.createResultPacket(packet);
+                   throw new QueryException(errorPacket.getMessage());
+               }
+               final MySQLGreetingReadPacket greetingPacket = new MySQLGreetingReadPacket(packet);
+               this.serverThreadId = greetingPacket.getServerThreadID();
+               boolean useCompression = false;
 
-            if ((rp.getByteBuffer().get(0) & 0xFF) == 0xFE) {   // Server asking for old format password
-                final MySQLClientOldPasswordAuthPacket oldPassPacket = new MySQLClientOldPasswordAuthPacket(
-                        this.password, Utils.copyWithLength(greetingPacket.getSeed(),
-                        8), rp.getPacketSeq() + 1);
-                oldPassPacket.send(writer);
+               log.finest("Got greeting packet");
+               this.version = greetingPacket.getServerVersion();
+               byte packetSeq = 1;
+               final Set<MySQLServerCapabilities> capabilities = EnumSet.of(MySQLServerCapabilities.LONG_PASSWORD,
+                       MySQLServerCapabilities.IGNORE_SPACE,
+                       MySQLServerCapabilities.CLIENT_PROTOCOL_41,
+                       MySQLServerCapabilities.TRANSACTIONS,
+                       MySQLServerCapabilities.SECURE_CONNECTION,
+                       MySQLServerCapabilities.LOCAL_FILES,
+                       MySQLServerCapabilities.MULTI_RESULTS,
+                       MySQLServerCapabilities.FOUND_ROWS);
+               if(info.getProperty("allowMultiQueries") != null) {
+                   capabilities.add(MySQLServerCapabilities.MULTI_STATEMENTS);
+               }
+               if(info.getProperty("useCompression") != null) {
+                   capabilities.add(MySQLServerCapabilities.COMPRESS);
+                   useCompression = true;
+               }
+               if(info.getProperty("interactiveClient") != null) {
+                   capabilities.add(MySQLServerCapabilities.CLIENT_INTERACTIVE);
+               }
+               if(info.getProperty("useSSL") != null && greetingPacket.getServerCapabilities().contains(MySQLServerCapabilities.SSL)) {
+                   capabilities.add(MySQLServerCapabilities.SSL);
+                   AbbreviatedMySQLClientAuthPacket amcap = new AbbreviatedMySQLClientAuthPacket(capabilities);
+                   amcap.send(writer);
 
-                rp = packetFetcher.getRawPacket();
-            }
+                   SSLSocketFactory sslSocketFactory = (SSLSocketFactory)SSLSocketFactory.getDefault();
+                   SSLSocket sslSocket = (SSLSocket)sslSocketFactory.createSocket(socket,
+                           socket.getInetAddress().getHostAddress(),
+                           socket.getPort(),
+                           false);
+                   sslSocket.setEnabledProtocols(new String [] {"TLSv1"});
+                   sslSocket.setUseClientMode(true);
+                   sslSocket.startHandshake();
+                   socket = sslSocket;
+                   writer = new PacketOutputStream(socket.getOutputStream());
+                   writer.flush();
+                   reader = new BufferedInputStream(socket.getInputStream(), 32768);
+                   packetFetcher = new SyncPacketFetcher(reader);
 
-            if (useCompression) {
-                writer = new PacketOutputStream(new CompressOutputStream(socket.getOutputStream()));
-                packetFetcher = new SyncPacketFetcher(new DecompressInputStream(socket.getInputStream()));
-            }
+                   packetSeq++;
+               } else if(info.getProperty("useSSL") != null){
+                   throw new QueryException("Trying to connect with ssl, but ssl not enabled in the server");
+               }
 
-            final ResultPacket resultPacket = ResultPacketFactory.createResultPacket(rp);
-            if (resultPacket.getResultType() == ResultPacket.ResultType.ERROR) {
-                final ErrorPacket ep = (ErrorPacket) resultPacket;
-                final String message = ep.getMessage();
-                throw new QueryException("Could not connect: " + message);
-            }
+               // If a database is given, but createDB is not defined or is false,
+               // then just try to connect to the given database
+               if (database != null && !createDB())
+                   capabilities.add(MySQLServerCapabilities.CONNECT_WITH_DB);
 
-            // At this point, the driver is connected to the database, if createDB is true, 
-            // then just try to create the database and to use it
-            if (createDB()) {
-                // Try to create the database if it does not exist
-                executeQuery(new MySQLQuery("CREATE DATABASE IF NOT EXISTS " + this.database));
-                // and switch to this database
-                executeQuery(new MySQLQuery("USE " + this.database));
-            }
+               final MySQLClientAuthPacket cap = new MySQLClientAuthPacket(this.username,
+                       this.password,
+                       database,
+                       capabilities,
+                       greetingPacket.getSeed(),
+                       packetSeq);
+               cap.send(writer);
+               log.finest("Sending auth packet");
 
-            connected = true;
-        } catch (IOException e) {
-            throw new QueryException("Could not connect to " + this.host + ":" +
-				this.port + ": " + e.getMessage(),
-                    -1,
-                    SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
-                    e);
-        }
-        setDatatypeMappingFlags();
+               RawPacket rp = packetFetcher.getRawPacket();
+
+               if ((rp.getByteBuffer().get(0) & 0xFF) == 0xFE) {   // Server asking for old format password
+                   final MySQLClientOldPasswordAuthPacket oldPassPacket = new MySQLClientOldPasswordAuthPacket(
+                           this.password, Utils.copyWithLength(greetingPacket.getSeed(),
+                           8), rp.getPacketSeq() + 1);
+                   oldPassPacket.send(writer);
+
+                   rp = packetFetcher.getRawPacket();
+               }
+
+               if (useCompression) {
+                   writer = new PacketOutputStream(new CompressOutputStream(socket.getOutputStream()));
+                   packetFetcher = new SyncPacketFetcher(new DecompressInputStream(socket.getInputStream()));
+               }
+
+               final ResultPacket resultPacket = ResultPacketFactory.createResultPacket(rp);
+               if (resultPacket.getResultType() == ResultPacket.ResultType.ERROR) {
+                   final ErrorPacket ep = (ErrorPacket) resultPacket;
+                   final String message = ep.getMessage();
+                   throw new QueryException("Could not connect: " + message);
+               }
+
+               // At this point, the driver is connected to the database, if createDB is true,
+               // then just try to create the database and to use it
+               if (createDB()) {
+                   // Try to create the database if it does not exist
+                   executeQuery(new MySQLQuery("CREATE DATABASE IF NOT EXISTS " + this.database));
+                   // and switch to this database
+                   executeQuery(new MySQLQuery("USE " + this.database));
+               }
+
+               connected = true;
+           } catch (IOException e) {
+               throw new QueryException("Could not connect to " + this.host + ":" +
+                       this.port + ": " + e.getMessage(),
+                       -1,
+                       SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
+                       e);
+           }
+           setDatatypeMappingFlags();
     }
 
     public boolean inTransaction()
@@ -364,23 +377,22 @@ public class MySQLProtocol implements Protocol {
     }
     /**
      * Closes socket and stream readers/writers
-     *
+     * Attempts graceful shutdown.
      * @throws org.skysql.jdbc.internal.common.QueryException
      *          if the socket or readers/writes cannot be closed
      */
     public void close() throws QueryException {
         try {
-            socket.shutdownInput();
-        } catch (IOException ignored) {
-        }
-        try {
-            final ClosePacket closePacket = new ClosePacket();
+            ClosePacket closePacket = new ClosePacket();
             try {
                 closePacket.send(writer);
+                socket.shutdownOutput();
+                socket.setSoTimeout(3);
+                InputStream is = socket.getInputStream();
+                while(is.read() != -1) { };
             } catch (Throwable t) {
-
+               // Ignore exceptions here
             }
-            socket.shutdownOutput();
             writer.close();
             packetFetcher.close();
         } catch (IOException e) {
