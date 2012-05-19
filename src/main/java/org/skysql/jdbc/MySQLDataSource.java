@@ -63,12 +63,14 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource {
     private String	username = null;
     private String	password = null;
     private Properties	info = null;
+    private JDBCUrl url;
 
-    public MySQLDataSource(final String hostname, final int port, final String database) {
-        this.hostname = hostname;
-        this.port = port;
-        this.database = database;
-	this.info = new Properties();
+    public MySQLDataSource(String hostname, int port, String database) {
+        url  = JDBCUrl.parse("jdbc:mysql://" + hostname + ":" +port + "/" +database);
+        this.hostname = url.getHostname();
+        this.port = url.getPort();
+        this.database = url.getDatabase();
+        this.info = new Properties();
     }
 
     public MySQLDataSource() {
@@ -217,33 +219,33 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource {
      * @param url
      *            the connection string
      */
-    public void setUrl(String url) {
+    public void setUrl(String s) {
 
-	String baseUrl = url;
-	int idx = url.lastIndexOf("?");        
+	String baseUrl = s;
+	int idx = s.lastIndexOf("?");
 	if (idx > 0) {
-		baseUrl = url.substring(0,idx);
-		String urlParams = url.substring(idx+1);
+		baseUrl = s.substring(0,idx);
+		String urlParams = s.substring(idx+1);
 		setProperties(urlParams);
 	}
-	JDBCUrl connURL = JDBCUrl.parse(baseUrl);
+	this.url = JDBCUrl.parse(baseUrl);
 
 	String tmpStr;
-	if ((tmpStr = connURL.getDatabase()) != null) {
+	if ((tmpStr = url.getDatabase()) != null) {
 		this.database = tmpStr;
 	}
-	if ((tmpStr = connURL.getHostname()) != null) {
+	if ((tmpStr = url.getHostname()) != null) {
 		this.hostname = tmpStr;
 	}
-	tmpStr = connURL.getUsername();
+	tmpStr = url.getUsername();
 	if (!tmpStr.equals("")) {
 		this.username = tmpStr;
 	}
-	tmpStr = connURL.getPassword();
+	tmpStr = url.getPassword();
 	if (!tmpStr.equals("")) {
 		this.password = tmpStr;
 	}
-	this.port = connURL.getPort();
+	this.port = url.getPort();
     }
 
     /**
@@ -264,7 +266,7 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource {
      */
     public Connection getConnection() throws SQLException {
         try {
-            return MySQLConnection.newConnection(new MySQLProtocol(hostname, port, database, username, password, info),
+            return MySQLConnection.newConnection(new MySQLProtocol(url, username, password, info),
                     new MySQLQueryFactory());
         } catch (QueryException e) {
             SQLExceptionMapper.throwException(e, null, null);
@@ -283,7 +285,7 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource {
      */
     public Connection getConnection(final String username, final String password) throws SQLException {
         try {
-            return MySQLConnection.newConnection(new MySQLProtocol(hostname, port, database, username, password, new Properties()),
+            return MySQLConnection.newConnection(new MySQLProtocol(url, username, password, new Properties()),
                     new MySQLQueryFactory());
         } catch (QueryException e) {
             SQLExceptionMapper.throwException(e, null, null);
@@ -404,7 +406,6 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource {
      *         connection to the database that this
      *         <code>ConnectionPoolDataSource</code> object represents
      * @throws java.sql.SQLException if a database access error occurs
-     * @throws SQLFeatureNotSupportedException
      *                               if the JDBC driver does not support
      *                               this method
      * @since 1.4
@@ -423,9 +424,6 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource {
      *         connection to the database that this
      *         <code>ConnectionPoolDataSource</code> object represents
      * @throws java.sql.SQLException if a database access error occurs
-     * @throws SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support
-     *                               this method
      * @since 1.4
      */
     public PooledConnection getPooledConnection(String user, String password) throws SQLException {

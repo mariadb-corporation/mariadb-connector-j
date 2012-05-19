@@ -84,12 +84,7 @@ public final class Driver implements java.sql.Driver {
             String userName = info.getProperty("user",jdbcUrl.getUsername());
             String password = info.getProperty("password",jdbcUrl.getPassword());
 
-            MySQLProtocol protocol = new MySQLProtocol(jdbcUrl.getHostname(),
-                        jdbcUrl.getPort(),
-                        jdbcUrl.getDatabase(),
-                        userName,
-                        password,
-                        info);
+            MySQLProtocol protocol = new MySQLProtocol(jdbcUrl, userName,  password,  info);
 
             return MySQLConnection.newConnection(protocol, new MySQLQueryFactory());
         } catch (QueryException e) {

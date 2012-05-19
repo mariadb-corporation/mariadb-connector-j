@@ -24,6 +24,7 @@
 
 package org.skysql.jdbc.internal.mysql;
 
+import org.skysql.jdbc.JDBCUrl;
 import org.skysql.jdbc.internal.SQLExceptionMapper;
 import org.skysql.jdbc.internal.common.*;
 import org.skysql.jdbc.internal.common.packet.*;
@@ -81,30 +82,27 @@ public class MySQLProtocol implements Protocol {
     public StreamingSelectResult activeResult= null;
     public int datatypeMappingFlags;
     public Set<ServerStatus> serverStatus;
+    JDBCUrl jdbcUrl;
 
     /**
      * Get a protocol instance
-     *
-     * @param host     the host to connect to
-     * @param port     the port to connect to
-     * @param database the initial database
+     * @param jdbcUrl connection URL
      * @param username the username
      * @param password the password
      * @param info
      * @throws org.skysql.jdbc.internal.common.QueryException
      *          if there is a problem reading / sending the packets
      */
-    public MySQLProtocol(final String host,
-                         final int port,
-                         final String database,
+    public MySQLProtocol(JDBCUrl url,
                          final String username,
                          final String password,
                          Properties info)
             throws QueryException {
         this.info = info;
-        this.host = host;
-        this.port = port;
-        this.database = (database == null ? "" : database);
+        this.jdbcUrl = url;
+        this.host = jdbcUrl.getHostname();
+        this.port = jdbcUrl.getPort();
+        this.database = (jdbcUrl.getDatabase() == null ? "" : jdbcUrl.getDatabase());
         this.username = (username == null ? "" : username);
         this.password = (password == null ? "" : password);
         
@@ -673,14 +671,14 @@ public class MySQLProtocol implements Protocol {
      * @throws QueryException
      */
     public  void cancelCurrentQuery() throws QueryException, IOException {
-        Protocol copiedProtocol = new MySQLProtocol(host, port, database, username, password, info);
+        Protocol copiedProtocol = new MySQLProtocol(jdbcUrl, username, password, info);
         queryWasCancelled = true;
         copiedProtocol.executeQuery(new MySQLQuery("KILL QUERY " + serverThreadId));
         copiedProtocol.close();
     }
 
     public   void timeOut() throws QueryException, IOException {
-        Protocol copiedProtocol = new MySQLProtocol(host, port, database, username, password, info);
+        Protocol copiedProtocol = new MySQLProtocol(jdbcUrl, username, password, info);
         queryTimedOut = true;
         copiedProtocol.executeQuery(new MySQLQuery("KILL QUERY " + serverThreadId));
         copiedProtocol.close();
