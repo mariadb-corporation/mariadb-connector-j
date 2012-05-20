@@ -33,26 +33,22 @@ import java.util.regex.Pattern;
  * User: marcuse Date: Apr 21, 2009 Time: 9:32:34 AM
  */
 public class JDBCUrl {
-    private final DBType dbType;
-    private final String username;
-    private final String password;
-    private final String hostname;
-    private final int port;
-    private final String database;
-    private final String hostlist[];
+    private DBType dbType;
+    private String username;
+    private String password;
+    private String database;
+    private HostAddress addresses[];
 
     public enum DBType {
         DRIZZLE, MYSQL
     }
 
-    private JDBCUrl(DBType dbType, String username, String password, String hostname, int port, String database, String hostlist[]) {
+    private JDBCUrl(DBType dbType, String username, String password, String database, HostAddress addresses[]) {
         this.dbType = dbType;
         this.username = username;
         this.password = password;
-        this.hostname = hostname;
-        this.port = port;
         this.database = database;
-        this.hostlist = hostlist;
+        this.addresses = addresses;
     }
 
     /*
@@ -61,28 +57,20 @@ public class JDBCUrl {
 
      */
     private static JDBCUrl parseConnectorJUrl(String url) {
-        Pattern p = Pattern.compile("^jdbc:mysql://([A-Za-z0-9._,-]+)?(:\\d+)?(/\\w+)?");
+        Pattern p = Pattern.compile("^jdbc:mysql://([A-Za-z0-9._,-:]+)?(/\\w+)?");
         Matcher m = p.matcher(url);
         if (m.find()){
            String hostname = m.group(1);
-	   String hostlist[] = null;
-	   if (hostname.indexOf(',') != -1)	// We have a failover list
-	   {
-		hostlist = hostname.split(",");
-		hostname = hostlist[0];
-	   }
-           String port = m.group(2);
-           if(port == null) {
-               port = "3306";
+           HostAddress addresses[] = null;
+           if (hostname.indexOf(',') != -1)	{
+               // We have a failover list
+               addresses = HostAddress.parse(hostname);
            }
-           else {
-               port = port.substring(1);
+           String database = null;
+           if ( m.group(2)!= null) {
+               database=m.group(2).substring(1);
            }
-           String database="";
-           if ( m.group(3)!= null) {
-               database=m.group(3).substring(1);
-           }
-           return new JDBCUrl(DBType.MYSQL, "", "", hostname, Integer.valueOf(port), database, hostlist);
+           return new JDBCUrl(DBType.MYSQL, "", "",  database, addresses);
         }
         return null;
     }
@@ -120,7 +108,10 @@ public class JDBCUrl {
                 }
             }
             database = m.group(10);
-            return new JDBCUrl(dbType, username, password, hostname, port, database, null);
+            HostAddress addresses[] = new HostAddress[1];
+            addresses[0].host = hostname;
+            addresses[0].port = port;
+            return new JDBCUrl(dbType, username, password, database, addresses);
         } else {
             return null;
         }
@@ -134,11 +125,11 @@ public class JDBCUrl {
     }
 
     public String getHostname() {
-        return hostname;
+        return addresses[0].host;
     }
 
     public int getPort() {
-        return port;
+        return addresses[0].port;
     }
 
     public String getDatabase() {
@@ -149,8 +140,8 @@ public class JDBCUrl {
         return this.dbType;
     }
 
-    public String[] getHostlist() {
-	return this.hostlist;
+    public HostAddress[] getHostAddresses() {
+	return this.addresses;
     }
 
 }

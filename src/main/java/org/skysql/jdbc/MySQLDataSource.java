@@ -58,7 +58,7 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource {
 
 
     private String 	hostname = "localhost";
-    private int		port = 3306;
+    private int		port = 0;
     private String	database = "";
     private String	username = null;
     private String	password = null;
@@ -66,7 +66,15 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource {
     private JDBCUrl url;
 
     public MySQLDataSource(String hostname, int port, String database) {
-        url  = JDBCUrl.parse("jdbc:mysql://" + hostname + ":" +port + "/" +database);
+        String urlString = "jdbc:mysql://" + hostname;
+
+        if (port != 0)
+            urlString = urlString + ":" + port;
+
+        if (database != null)
+            urlString = urlString + "/" + database;
+
+        url  = JDBCUrl.parse(urlString);
         this.hostname = url.getHostname();
         this.port = url.getPort();
         this.database = url.getDatabase();
@@ -74,7 +82,7 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource {
     }
 
     public MySQLDataSource() {
-	this.info = new Properties();
+	    this.info = new Properties();
     }
 
     /**
