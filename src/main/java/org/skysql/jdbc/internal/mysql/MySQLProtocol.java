@@ -130,6 +130,7 @@ public class MySQLProtocol implements Protocol {
             currentHost = addrs[i];
             try {
                 connect(currentHost.host, currentHost.port);
+                return;
             } catch (IOException e) {
                 if (i == addrs.length - 1) {
                     throw new QueryException("Could not connect to " + currentHost.host + ":" +

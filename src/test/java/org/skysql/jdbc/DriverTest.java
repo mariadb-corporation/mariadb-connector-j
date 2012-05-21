@@ -446,6 +446,15 @@ public class DriverTest extends BaseTest{
     }
 
     @Test
+    public void connectFailover() throws SQLException {
+        Connection c  = DriverManager.getConnection("jdbc:mysql://localhost:3306,localhost:3307/test?user=root");
+        MySQLConnection my=(MySQLConnection) c;
+        System.out.println(""+my.getPort());
+        ResultSet rs = c.createStatement().executeQuery("select 1");
+        rs.next();
+        assertEquals(rs.getInt(1), 1);
+    }
+    @Test
     public void batchTest() throws SQLException {
         connection.createStatement().execute("drop table if exists test_batch");
         connection.createStatement().execute("create table test_batch (id int not null primary key auto_increment, test varchar(10))");
