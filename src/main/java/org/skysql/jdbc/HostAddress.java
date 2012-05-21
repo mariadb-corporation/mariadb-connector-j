@@ -39,5 +39,15 @@ public class HostAddress {
         }
         return arr;
     }
+
+    public static String toString(HostAddress[] addrs) {
+        String s="";
+        for(int i=0; i < addrs.length; i++) {
+            s += addrs[i].host + ":" + addrs[i].port;
+            if (i < addrs.length -1)
+                s += ",";
+        }
+        return s;
+    }
 }
 

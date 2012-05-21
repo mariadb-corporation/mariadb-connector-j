@@ -133,11 +133,8 @@ public class MySQLProtocol implements Protocol {
                 return;
             } catch (IOException e) {
                 if (i == addrs.length - 1) {
-                    throw new QueryException("Could not connect to " + currentHost.host + ":" +
-                        currentHost.port + ": " + e.getMessage(),
-                        -1,
-                        SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
-                        e);
+                    throw new QueryException("Could not connect to " + HostAddress.toString(addrs) +
+                      " : " + e.getMessage(),  -1,  SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), e);
                 }
             }
         }

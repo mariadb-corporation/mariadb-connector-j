@@ -139,4 +139,13 @@ public class JDBCUrl {
 	return this.addresses;
     }
 
+    public String toString() {
+        String s = "jdbc:mysql://";
+        if (addresses != null)
+            s += HostAddress.toString(addresses);
+        if (database != null)
+            s += "/" + database;
+       return s;
+    }
+
 }
