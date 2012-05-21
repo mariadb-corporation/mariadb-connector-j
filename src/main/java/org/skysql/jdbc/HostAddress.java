@@ -16,6 +16,7 @@ public class HostAddress {
         HostAddress[] arr = new HostAddress[tokens.length];
 
         for (int i=0; i < tokens.length; i++) {
+            arr[i] = new HostAddress();
             String t = tokens[i];
             if (t.contains(":")) {
                 String[] hostPort = t.split(":");

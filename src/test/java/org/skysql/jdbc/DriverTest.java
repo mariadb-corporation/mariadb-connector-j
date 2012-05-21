@@ -384,6 +384,22 @@ public class DriverTest extends BaseTest{
         assertEquals(3306,url.getPort());
         assertEquals("bbb",url.getDatabase());
         assertEquals(JDBCUrl.DBType.MYSQL, url.getDBType());
+
+        url = JDBCUrl.parse("jdbc:mysql://localhost:3306,otherhost:3307/");
+        HostAddress ha[] = url.getHostAddresses();
+        assertEquals(ha.length,2);
+        assertEquals(ha[0].host, "localhost");
+        assertEquals(ha[0].port, 3306);
+        assertEquals(ha[1].host, "otherhost");
+        assertEquals(ha[1].port, 3307);
+
+        url = JDBCUrl.parse("jdbc:mysql://localhost,otherhost:3307/");
+        ha = url.getHostAddresses();
+        assertEquals(ha.length,2);
+        assertEquals(ha[0].host, "localhost");
+        assertEquals(ha[0].port, 3307);
+        assertEquals(ha[1].host, "otherhost");
+        assertEquals(ha[1].port, 3307);
     }
 
     @Test

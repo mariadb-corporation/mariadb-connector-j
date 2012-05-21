@@ -57,22 +57,16 @@ public class JDBCUrl {
 
      */
     private static JDBCUrl parseConnectorJUrl(String url) {
-        Pattern p = Pattern.compile("^jdbc:mysql://([A-Za-z0-9._,-:]+)?(/\\w+)?");
-        Matcher m = p.matcher(url);
-        if (m.find()){
-           String hostname = m.group(1);
-           HostAddress addresses[] = null;
-           if (hostname.indexOf(',') != -1)	{
-               // We have a failover list
-               addresses = HostAddress.parse(hostname);
-           }
-           String database = null;
-           if ( m.group(2)!= null) {
-               database=m.group(2).substring(1);
-           }
-           return new JDBCUrl(DBType.MYSQL, "", "",  database, addresses);
+        if (!url.startsWith("jdbc:mysql://")) {
+            return null;
         }
-        return null;
+        url = url.substring(13);
+        String hostname;
+        String database;
+        String[] tokens = url.split("/");
+        hostname=tokens[0];
+        database=(tokens.length > 1)?tokens[1]:null;
+        return new JDBCUrl(DBType.MYSQL, "", "",  database, HostAddress.parse(hostname));
     }
 
     public static JDBCUrl parse(final String url) {
@@ -109,6 +103,7 @@ public class JDBCUrl {
             }
             database = m.group(10);
             HostAddress addresses[] = new HostAddress[1];
+            addresses[0] = new HostAddress();
             addresses[0].host = hostname;
             addresses[0].port = port;
             return new JDBCUrl(dbType, username, password, database, addresses);

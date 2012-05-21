@@ -110,7 +110,7 @@ public final class Driver implements java.sql.Driver {
     public boolean acceptsURL(final String url) {
         return url.startsWith("jdbc:drizzle://")
                 || url.startsWith("jdbc:mysql:thin://")
-                || (url.startsWith("jdbc:mysql://") && url.indexOf(',') == -1);  /*Connector/J compatible, no failover host*/
+                || url.startsWith("jdbc:mysql://");
     }
 
     /**
