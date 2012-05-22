@@ -34,7 +34,6 @@ public class MySQLPooledConnection implements  PooledConnection{
      * @return a <code>Connection</code> object that is a handle to
      *         this <code>PooledConnection</code> object
      * @throws java.sql.SQLException if a database access error occurs
-     * @throws SQLFeatureNotSupportedException
      *                               if the JDBC driver does not support
      *                               this method
      * @since 1.4
@@ -52,7 +51,6 @@ public class MySQLPooledConnection implements  PooledConnection{
      * information.
      *
      * @throws java.sql.SQLException if a database access error occurs
-     * @throws SQLFeatureNotSupportedException
      *                               if the JDBC driver does not support
      *                               this method
      * @since 1.4

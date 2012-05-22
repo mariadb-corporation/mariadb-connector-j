@@ -244,21 +244,16 @@ public final class MySQLConnection
      * @throws SQLException if there is a problem talking to the server.
      */
     public void close() throws SQLException {
-        try {
-          this.timeoutExecutor.shutdown();
-          if (pooledConnection != null) {
+        this.timeoutExecutor.shutdown();
+        if (pooledConnection != null) {
             if (protocol != null && protocol.inTransaction()) {
                 /* Rollback transaction prior to returning physical connection to the pool */
                 rollback();
             }
             pooledConnection.fireConnectionClosed();
             return;
-          }
-          protocol.close();
-        } catch (QueryException e) {
-            SQLExceptionMapper.throwException(e, null, null);
         }
-
+        protocol.close();
     }
 
     /**
@@ -1311,5 +1306,9 @@ public final class MySQLConnection
 
     protected ScheduledExecutorService getTimeoutExecutor() {
         return timeoutExecutor;
+    }
+
+    public void setHostFailed() {
+        protocol.setHostFailed();
     }
 }

@@ -17,6 +17,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertNotSame;
 import static junit.framework.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
 
@@ -1508,5 +1509,35 @@ public class DriverTest extends BaseTest{
         ResultSet rs = st.executeQuery("select * from unsignedtest");
         rs.next();
         Object o = rs.getLong(1);
+    }
+
+    @Test
+    public void autoreconnect() throws Exception {
+       Connection c = DriverManager.getConnection("jdbc:mysql://localhost:3306?user=root&autoReconnect=true");
+       ResultSet rs= c.createStatement().executeQuery("select connection_id()");
+       rs.next();
+       long connectionId = rs.getLong(1);
+       rs.close();
+
+       c.createStatement().execute("set wait_timeout=1");
+       Thread.sleep(3000);
+
+       Exception caughtException = null;
+       boolean success = false;
+       for (int i=0; i < 2; i++) {
+           try {
+               rs = c.createStatement().executeQuery("select 1");
+               rs.close();
+               success = true;
+               break;
+           } catch (Exception e) {
+              caughtException = e;
+           }
+       }
+       assertTrue(success);
+       rs = c.createStatement().executeQuery("select connection_id()");
+       rs.next();
+       long connectionId2 = rs.getLong(1);
+       assertNotSame(connectionId, connectionId2);
     }
 }

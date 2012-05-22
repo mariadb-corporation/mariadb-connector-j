@@ -83,11 +83,14 @@ public class SQLExceptionMapper {
         SQLException sqlException = get(e);
         String sqlState = e.getSqlState();
         SQLStates state = SQLStates.fromString(sqlState);
-        if (connection != null && connection.pooledConnection != null) {
+        if (connection != null) {
             if (state.equals(SQLStates.CONNECTION_EXCEPTION)) {
-               connection.pooledConnection.fireConnectionErrorOccured(sqlException);
+                connection.setHostFailed();
+                if (connection.pooledConnection != null) {
+                    connection.pooledConnection.fireConnectionErrorOccured(sqlException);
+                }
             }
-            else if(statement != null) {
+            else if(connection.pooledConnection!= null && statement != null) {
                connection.pooledConnection.fireStatementErrorOccured(statement, sqlException);
             }
         }

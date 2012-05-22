@@ -123,6 +123,19 @@ public class MySQLStatement implements Statement {
     }
 
     void executeQueryProlog() throws SQLException{
+        if (protocol.shouldReconnect()) {
+            try {
+                protocol.connect();
+            } catch (QueryException qe) {
+                SQLExceptionMapper.throwException(qe, connection, this);
+            }
+        }  else if (protocol.shouldTryFailback()) {
+            try {
+                protocol.reconnectToMaster();
+            } catch (Exception e) {
+                // Do nothing
+            }
+        }
         if (protocol.hasUnreadData()) {
             throw new  SQLException("There is an open result set on the current connection, "+
                     "which must be closed prior to executing a query");
@@ -133,6 +146,7 @@ public class MySQLStatement implements Statement {
             while(getMoreResults(true)) {
             }
         }
+
         cachedResultSets.clear();
         MySQLConnection conn = (MySQLConnection)getConnection();
         conn.reenableWarnings();

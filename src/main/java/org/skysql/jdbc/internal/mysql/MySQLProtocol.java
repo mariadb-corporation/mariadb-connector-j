@@ -84,6 +84,61 @@ public class MySQLProtocol implements Protocol {
     JDBCUrl jdbcUrl;
     HostAddress currentHost;
 
+    boolean hostFailed;
+    long failTimestamp;
+    int reconnectCount;
+    int queriesSinceFailover;
+
+    /* =========================== HA  parameters ========================================= */
+    /**
+     * 	Should the driver try to re-establish stale and/or dead connections?
+     * 	NOTE: exceptions will still be thrown, yet the next retry will repair the connection
+     */
+    private boolean autoReconnect = false;
+
+    /**
+     * 	When failing over in autoReconnect mode, should the connection be set to 'read-only'?
+     */
+    private boolean failOverReadOnly = true;
+
+    /**
+     * Maximum number of reconnects to attempt if autoReconnect is true, default is 3
+     */
+    private int maxReconnects=3;
+
+    /**
+     *  If autoReconnect is set to true, should the driver attempt reconnections at the end of every transaction?
+     */
+    private boolean reconnectAtTxEnd = false;
+
+    /**
+     * When using loadbalancing, the number of times the driver should cycle through available hosts, attempting to connect.
+     * Between cycles, the driver will pause for 250ms if no servers are available.	120
+     */
+    int retriesAllDown = 120;
+    /**
+     * If autoReconnect is enabled, the initial time to wait between re-connect attempts (in seconds, defaults to 2)
+     */
+    int initialTimeout = 2;
+    /**
+     * When autoReconnect is enabled, and failoverReadonly is false, should we pick hosts to connect to on a round-robin
+     * basis?
+     */
+
+    boolean roundRobinLoadBalance  = false;
+    /**
+     * 	Number of queries to issue before falling back to master when failed over (when using multi-host failover).
+     * 	Whichever condition is met first, 'queriesBeforeRetryMaster' or 'secondsBeforeRetryMaster' will cause an
+     * 	attempt to be made to reconnect to the master. Defaults to 50
+     */
+    int queriesBeforeRetryMaster =  50;
+
+    /**
+     * How long should the driver wait, when failed over, before attempting	30
+     */
+    int secondsBeforeRetryMaster =  30;
+
+
     /**
      * Get a protocol instance
      * @param url connection URL
@@ -107,9 +162,13 @@ public class MySQLProtocol implements Protocol {
         /*
          * Under development
          */
-        if (info.getProperty("logSlowQueries") != null)
-        {
+        if (info.getProperty("logSlowQueries") != null) {
         	this.queryLogger = new MySQLQueryLogger(info);
+        }
+
+        String s = info.getProperty("autoReconnect");
+        if (s != null && s.equals("true")) {
+            autoReconnect = true;
         }
 
 
@@ -121,23 +180,7 @@ public class MySQLProtocol implements Protocol {
 
         batchList = new ArrayList<Query>();
         setDatatypeMappingFlags();
-
-        HostAddress addrs[] =  url.getHostAddresses();
-
-        // There could be several addresses given in the URL spec, try all of them, and throw exception if all hosts
-        // fail.
-        for(int i = 0; i < addrs.length; i++) {
-            currentHost = addrs[i];
-            try {
-                connect(currentHost.host, currentHost.port);
-                return;
-            } catch (IOException e) {
-                if (i == addrs.length - 1) {
-                    throw new QueryException("Could not connect to " + HostAddress.toString(addrs) +
-                      " : " + e.getMessage(),  -1,  SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), e);
-                }
-            }
-        }
+        connect();
     }
 
     /**
@@ -330,7 +373,11 @@ public class MySQLProtocol implements Protocol {
                executeQuery(new MySQLQuery("USE " + this.database));
            }
 
+           activeResult = null;
+           moreResults = false;
            connected = true;
+           hostFailed = false; // Prevent reconnects
+
        } catch (IOException e) {
            throw new QueryException("Could not connect to " + host + ":" +
                    port + ": " + e.getMessage(),
@@ -338,6 +385,88 @@ public class MySQLProtocol implements Protocol {
                    SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
                    e);
        }
+
+    }
+
+
+    public void setHostFailed() {
+        hostFailed = true;
+        failTimestamp = System.currentTimeMillis();
+    }
+
+
+    public boolean shouldReconnect() {
+        return (!inTransaction() && hostFailed && autoReconnect && reconnectCount < maxReconnects);
+    }
+
+    public void reconnectToMaster() throws IOException,QueryException {
+        SyncPacketFetcher saveFetcher = this.packetFetcher;
+        PacketOutputStream saveWriter = this.writer;
+        Socket saveSocket = this.socket;
+        HostAddress[] addrs = jdbcUrl.getHostAddresses();
+        boolean success = false;
+        try {
+           connect(addrs[0].host, addrs[0].port);
+           try {
+            close(saveFetcher, saveWriter, saveSocket);
+           } catch (Exception e) {
+           }
+           success = true;
+        } finally {
+            if (!success) {
+                failTimestamp = System.currentTimeMillis();
+                queriesSinceFailover = 0;
+                this.packetFetcher = saveFetcher;
+                this.writer = saveWriter;
+                this.socket = saveSocket;
+            }
+        }
+    }
+    public void connect() throws QueryException {
+        if (!isClosed()) {
+            close();
+        }
+
+        HostAddress[] addrs = jdbcUrl.getHostAddresses();
+
+        // There could be several addresses given in the URL spec, try all of them, and throw exception if all hosts
+        // fail.
+        for(int i = 0; i < addrs.length; i++) {
+            currentHost = addrs[i];
+            try {
+                connect(currentHost.host, currentHost.port);
+                return;
+            } catch (IOException e) {
+                if (i == addrs.length - 1) {
+                    throw new QueryException("Could not connect to " + HostAddress.toString(addrs) +
+                      " : " + e.getMessage(),  -1,  SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), e);
+                }
+            }
+        }
+    }
+    public boolean isMasterConnection() {
+        return currentHost == jdbcUrl.getHostAddresses()[0];
+    }
+
+    /**
+     * Check if fail back to master connection is desired,
+     * @return
+     */
+    public boolean shouldTryFailback() {
+        if (isMasterConnection())
+            return false;
+
+        if (inTransaction())
+            return false;
+        if (reconnectCount >= maxReconnects)
+            return false;
+
+        long now = System.currentTimeMillis();
+        if ((now - failTimestamp)/1000 > secondsBeforeRetryMaster)
+            return true;
+        if (queriesSinceFailover > queriesBeforeRetryMaster)
+            return true;
+        return false;
     }
 
     public boolean inTransaction()
@@ -346,6 +475,7 @@ public class MySQLProtocol implements Protocol {
             return serverStatus.contains(ServerStatus.IN_TRANSACTION);
         return false;
     }
+
     private void setDatatypeMappingFlags() {
         datatypeMappingFlags = 0;
         String tinyInt1isBit = info.getProperty("tinyInt1isBit");
@@ -376,40 +506,52 @@ public class MySQLProtocol implements Protocol {
     public boolean  hasMoreResults() {
         return moreResults;
     }
+
+    private static void close(PacketFetcher fetcher, PacketOutputStream packetOutputStream, Socket socket)
+            throws QueryException
+    {
+        ClosePacket closePacket = new ClosePacket();
+        try {
+            closePacket.send(packetOutputStream);
+            socket.shutdownOutput();
+            socket.setSoTimeout(3);
+            InputStream is = socket.getInputStream();
+            try {
+                while(is.read() != -1) {}
+            } catch (Throwable t) {
+            }
+            packetOutputStream.close();
+            fetcher.close();
+        } catch (IOException e) {
+                 throw new QueryException("Could not close connection: " + e.getMessage(),
+                         -1,
+                         SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
+                         e);
+        } finally {
+            try {
+                socket.close();
+            } catch (IOException e) {
+                log.warning("Could not close socket");
+            }
+        }
+    }
     /**
      * Closes socket and stream readers/writers
      * Attempts graceful shutdown.
      * @throws org.skysql.jdbc.internal.common.QueryException
      *          if the socket or readers/writes cannot be closed
      */
-    public void close() throws QueryException {
+    public void close()  {
         try {
-            ClosePacket closePacket = new ClosePacket();
-            try {
-                closePacket.send(writer);
-                socket.shutdownOutput();
-                socket.setSoTimeout(3);
-                InputStream is = socket.getInputStream();
-                while(is.read() != -1) { };
-            } catch (Throwable t) {
-               // Ignore exceptions here
-            }
-            writer.close();
-            packetFetcher.close();
-        } catch (IOException e) {
-            throw new QueryException("Could not close connection: " + e.getMessage(),
-                    -1,
-                    SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
-                    e);
-        } finally {
-            try {
-                this.connected = false;
-                socket.close();
-            } catch (IOException e) {
-                log.warning("Could not close socket");
-            }
+           close(packetFetcher,writer, socket);
         }
-        this.connected = false;
+        catch (Exception e) {
+            // socket is closed, so it is ok to ignore exception
+            log.info("got exception " + e + " while closing connection");
+        }
+        finally {
+            this.connected = false;
+        }
     }
 
     /**
@@ -598,6 +740,8 @@ public class MySQLProtocol implements Protocol {
                     SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
                     e);
         }
+        if (!isMasterConnection())
+            queriesSinceFailover++;
         return getResult(dQuery, streaming);
     }
 
