@@ -166,12 +166,6 @@ public class MySQLProtocol implements Protocol {
         	this.queryLogger = new MySQLQueryLogger(info);
         }
 
-        String s = info.getProperty("autoReconnect");
-        if (s != null && s.equals("true")) {
-            autoReconnect = true;
-        }
-
-
         String logLevel = info.getProperty("MySQLProtocolLogLevel");
         if (logLevel != null)
         	log.setLevel(Level.parse(logLevel));
@@ -180,9 +174,24 @@ public class MySQLProtocol implements Protocol {
 
         batchList = new ArrayList<Query>();
         setDatatypeMappingFlags();
+        parseHAOptions();
         connect();
     }
 
+    private void parseHAOptions() {
+        String s = info.getProperty("autoReconnect");
+        if (s != null && s.equals("true"))
+            autoReconnect = true;
+        s = info.getProperty("maxReconnects");
+        if (s != null)
+            maxReconnects = Integer.parseInt(s);
+        s = info.getProperty("queriesBeforeRetryMaster");
+        if (s != null)
+            queriesBeforeRetryMaster = Integer.parseInt(s);
+        s = info.getProperty("secondsBeforeRetryMaster");
+        if (s != null)
+            secondsBeforeRetryMaster = Integer.parseInt(s);
+    }
     /**
      * Connect the client and perform handshake
      *
