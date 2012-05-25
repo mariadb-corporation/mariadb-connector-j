@@ -860,7 +860,6 @@ public class MySQLProtocol implements Protocol {
         if ((buffer.length - offset) > 0) {
             dump.append(String.format("%02x", buffer[offset]));
             for (int i = offset + 1; i < buffer.length; i++) {
-                dump.append("_");
                 dump.append(String.format("%02x", buffer[i]));
             }
         }

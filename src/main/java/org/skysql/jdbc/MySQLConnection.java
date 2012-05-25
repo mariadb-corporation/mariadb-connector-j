@@ -153,13 +153,7 @@ public final class MySQLConnection
                 parameterizedBatchHandlerFactory.get(strippedQuery, protocol));
     }
 
-    /**
-     * not implemented.
-     *
-     * @param sql unused
-     * @return nothing.
-     * @throws SQLException always since this is not implemented.
-     */
+
     public CallableStatement prepareCall(final String sql) throws SQLException {
        return new MySQLCallableStatement(this, sql);
     }

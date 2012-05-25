@@ -29,20 +29,16 @@ import org.skysql.jdbc.internal.common.QueryException;
 import org.skysql.jdbc.internal.common.query.MySQLQueryFactory;
 import org.skysql.jdbc.internal.mysql.MySQLProtocol;
 
-import javax.sql.ConnectionPoolDataSource;
-import javax.sql.DataSource;
-import javax.sql.PooledConnection;
+import javax.sql.*;
 import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Properties;
-import org.skysql.jdbc.Driver;
-import org.skysql.jdbc.JDBCUrl;
 
 /**
  * User: marcuse Date: Feb 7, 2009 Time: 10:53:22 PM
  */
-public class MySQLDataSource implements DataSource, ConnectionPoolDataSource {
+public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XADataSource {
 
     /** The driver to create connections with */
     protected final static Driver skysqlDriver;
@@ -66,18 +62,9 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource {
     private JDBCUrl url;
 
     public MySQLDataSource(String hostname, int port, String database) {
-        String urlString = "jdbc:mysql://" + hostname;
-
-        if (port != 0)
-            urlString = urlString + ":" + port;
-
-        if (database != null)
-            urlString = urlString + "/" + database;
-
-        url  = JDBCUrl.parse(urlString);
-        this.hostname = url.getHostname();
-        this.port = url.getPort();
-        this.database = url.getDatabase();
+        this.hostname = hostname;
+        this.port = port;
+        this.database = database;
         this.info = new Properties();
     }
 
@@ -224,7 +211,7 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource {
     /**
      * Sets the connection string URL.
      * 
-     * @param url
+     * @param s
      *            the connection string
      */
     public void setUrl(String s) {
@@ -266,6 +253,17 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource {
     }
 
 
+    void createUrl() {
+        if (url != null)
+            return;
+
+        String urlString = "jdbc:mysql://" + hostname;
+        if (port != 0)
+            urlString = urlString + ":" + port;
+        if (database != null)
+            urlString = urlString + "/" + database;
+        url  = JDBCUrl.parse(urlString);
+    }
     /**
      * <p>Attempts to establish a connection with the data source that this <code>DataSource</code> object represents.
      *
@@ -273,6 +271,7 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public Connection getConnection() throws SQLException {
+        createUrl();
         try {
             return MySQLConnection.newConnection(new MySQLProtocol(url, username, password, info),
                     new MySQLQueryFactory());
@@ -292,6 +291,7 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource {
      * @since 1.4
      */
     public Connection getConnection(final String username, final String password) throws SQLException {
+        createUrl();
         try {
             return MySQLConnection.newConnection(new MySQLProtocol(url, username, password, new Properties()),
                     new MySQLQueryFactory());
@@ -436,5 +436,12 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource {
      */
     public PooledConnection getPooledConnection(String user, String password) throws SQLException {
        return new MySQLPooledConnection((MySQLConnection)getConnection(user,password));
+    }
+
+    public XAConnection getXAConnection() throws SQLException {
+        return new MySQLXAConnection((MySQLConnection)getConnection());
+    }
+    public XAConnection getXAConnection(String user, String password) throws SQLException {
+        return new MySQLXAConnection((MySQLConnection)getConnection(user,password));
     }
 }
