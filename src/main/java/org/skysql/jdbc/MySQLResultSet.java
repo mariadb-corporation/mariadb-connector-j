@@ -472,7 +472,10 @@ public class MySQLResultSet implements ResultSet {
      * @since 1.2
      */
     public Reader getCharacterStream(int columnIndex) throws SQLException {
-        return new StringReader(getValueObject(columnIndex).getString());
+        String s = getValueObject(columnIndex).getString();
+        if (s == null)
+            return null;
+        return new StringReader(s);
     }
 
     /**
