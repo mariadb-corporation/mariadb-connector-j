@@ -168,6 +168,16 @@ public class DriverTest extends BaseTest{
         }
         assertEquals("updated",result);
     }
+    
+    @Test
+    public void ralfTest() throws SQLException {
+    	PreparedStatement ps = 
+    			connection.prepareStatement(
+    					"select serverrequ0_.id as id75_, serverrequ0_.date_time as date2_75_, serverrequ0_.name as name75_, serverrequ0_.server_request_type as server4_75_, serverrequ0_.response_code_storage_tag as response5_75_, serverrequ0_.storage_tag as storage6_75_, serverrequ0_.timeout as "+
+    					" timeout75_, serverrequ0_.url as url75_ from ussd_server_request_tag serverrequ0_ where serverrequ0_.name='ß' limit ?"); 
+    							
+    							
+    }
     @Test
     public void autoIncTest() throws SQLException {
         String query = "CREATE TABLE t2 (id int not null primary key auto_increment, test varchar(10))";

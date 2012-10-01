@@ -125,29 +125,23 @@ public class Utils {
         int lastQueryPos = 0;
         List<String> queryParts = new LinkedList<String>();
 
-        byte [] queryBytes;
-        try {
-            queryBytes = query.getBytes("UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException("UTF-8 not supported", e);
-        }
         
-        for (final byte b : queryBytes) {
+        for (char c : query.toCharArray()) {
 
-            if (b == '"' && !isWithinQuotes && !isWithinDoubleQuotes) {
+            if (c == '"' && !isWithinQuotes && !isWithinDoubleQuotes) {
                 isWithinDoubleQuotes = true;
-            } else if (b == '"' && !isWithinQuotes) {
+            } else if (c == '"' && !isWithinQuotes) {
                 isWithinDoubleQuotes = false;
             }
 
-            if (b == '\'' && !isWithinQuotes && !isWithinDoubleQuotes) {
+            if (c == '\'' && !isWithinQuotes && !isWithinDoubleQuotes) {
                 isWithinQuotes = true;
-            } else if (b == '\'' && !isWithinDoubleQuotes) {
+            } else if (c == '\'' && !isWithinDoubleQuotes) {
                 isWithinQuotes = false;
             }
 
             if (!isWithinDoubleQuotes && !isWithinQuotes) {
-                if (b == '?') {
+                if (c == '?') {
                     queryParts.add(query.substring(lastQueryPos, queryPos));
                     lastQueryPos = queryPos + 1;
                 }
