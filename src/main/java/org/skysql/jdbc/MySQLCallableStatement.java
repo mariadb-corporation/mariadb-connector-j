@@ -1573,4 +1573,24 @@ public class MySQLCallableStatement implements CallableStatement
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
         return false;
     }
+
+	public void closeOnCompletion() throws SQLException {
+		// TODO Auto-generated method stub
+		
+	}
+
+	public boolean isCloseOnCompletion() throws SQLException {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	public <T> T getObject(int arg0, Class<T> arg1) throws SQLException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	public <T> T getObject(String arg0, Class<T> arg1) throws SQLException {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

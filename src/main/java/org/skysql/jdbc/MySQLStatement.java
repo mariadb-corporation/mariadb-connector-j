@@ -1146,4 +1146,14 @@ public class MySQLStatement implements Statement {
     protected void setQueryResult(final QueryResult result) {
         this.queryResult = result;
     }
+
+	public void closeOnCompletion() throws SQLException {
+		// TODO Auto-generated method stub
+		
+	}
+
+	public boolean isCloseOnCompletion() throws SQLException {
+		// TODO Auto-generated method stub
+		return false;
+	}
 }
