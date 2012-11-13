@@ -62,7 +62,11 @@ public final class MySQLDatabaseMetaData extends CommonDatabaseMetaData {
         return tableType;
     }
     @Override
-    public ResultSet getTables(final String catalog, final String schemaPattern, final String tableNamePattern, final String[] types) throws SQLException {
+    public ResultSet getTables(String catalog, String schemaPattern, String tableNamePattern, final String[] types) throws SQLException {
+
+        if (tableNamePattern == null || tableNamePattern.equals(""))
+            tableNamePattern = "%";
+
         String query = "SELECT table_catalog table_cat, "
                         + "table_schema table_schem, "
                         + "table_name, "
@@ -94,8 +98,18 @@ public final class MySQLDatabaseMetaData extends CommonDatabaseMetaData {
         return stmt.executeQuery(query);
     }
 
-        public ResultSet getColumns(final String catalog, final String schemaPattern, final String tableNamePattern, final String columnNamePattern)
+        public ResultSet getColumns( String catalog,  String schemaPattern,  String tableNamePattern,  String columnNamePattern)
             throws SQLException {
+
+        if (tableNamePattern == null || tableNamePattern.equals(""))
+            tableNamePattern = "%";
+
+        if (columnNamePattern == null || columnNamePattern.equals(""))
+            columnNamePattern = "%";
+
+        if (schemaPattern == null || schemaPattern.equals(""))
+            schemaPattern = "%";
+
         String query = "     SELECT null as table_cat," +
                 "            table_schema as table_schem," +
                 "            table_name," +
@@ -123,10 +137,10 @@ public final class MySQLDatabaseMetaData extends CommonDatabaseMetaData {
                 "WHERE ";
         if (((MySQLConnection)getConnection()).noSchemaPattern == false)
         {
-        	query = query + "table_schema LIKE '" + ((schemaPattern == null) ? "%" : schemaPattern) + "' AND ";
+        	query = query + "table_schema LIKE '" + schemaPattern + "' AND ";
         }
-        query = query + "table_name LIKE '" + ((tableNamePattern == null) ? "%" : tableNamePattern) + "'" +
-                " AND column_name LIKE '" + ((columnNamePattern == null) ? "%" : columnNamePattern) + "'" +
+        query = query + "table_name LIKE '" + tableNamePattern  + "'" +
+                " AND column_name LIKE '" +  columnNamePattern + "'" +
                 " ORDER BY table_cat, table_schem, table_name, ordinal_position";
         final Statement stmt = getConnection().createStatement();
         return stmt.executeQuery(query);
