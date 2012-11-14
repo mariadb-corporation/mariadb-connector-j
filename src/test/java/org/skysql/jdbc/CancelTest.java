@@ -37,23 +37,19 @@ public class CancelTest extends BaseTest {
         }
     }
 
+
     @Test(expected = SQLQueryTimedOutException.class)
-    public void timeoutQuery() throws SQLException, InterruptedException {
+    public void timeoutSleep() throws Exception{
+           PreparedStatement stmt = connection.prepareStatement("select sleep(2)");
+           stmt.setQueryTimeout(1);
+           stmt.execute();
+     }
+
+    @Test
+    public void NoTimeoutSleep() throws Exception{
         Statement stmt = connection.createStatement();
         stmt.setQueryTimeout(1);
-        stmt.executeQuery("select * from information_schema.columns, information_schema.tables, information_schema.table_constraints");
+        stmt.execute("select sleep(0.5)");
 
     }
-    @Test(expected = SQLQueryTimedOutException.class)
-    public void timeoutPrepQuery() throws SQLException, InterruptedException {
-        PreparedStatement stmt = connection.prepareStatement("select * from information_schema.columns, information_schema.tables, information_schema.table_constraints");
-        stmt.setQueryTimeout(1);
-        stmt.execute();
-    }
-    @Test(expected = SQLNonTransientException.class)
-    public void connectionTimeout() throws SQLException {
-        DriverManager.getConnection("jdbc:drizzle://www.google.com:1234/test?connectTimeout=1");
-    }
-
-    
 }

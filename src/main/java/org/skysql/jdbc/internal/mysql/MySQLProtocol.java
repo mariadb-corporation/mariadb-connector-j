@@ -48,6 +48,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.logging.Level;
@@ -75,6 +77,7 @@ public class MySQLProtocol implements Protocol {
     private  long serverThreadId;
     private volatile boolean queryWasCancelled = false;
     private volatile boolean queryTimedOut = false;
+    private int queryTimeout;
     private boolean dumpQueryOnException = false;
     private MySQLQueryLogger queryLogger = null;
     public boolean moreResults = false;
@@ -516,6 +519,19 @@ public class MySQLProtocol implements Protocol {
         return moreResults;
     }
 
+    public void setQueryTimeout(int timeout) {
+        try {
+            if (timeout > Integer.MAX_VALUE/1000)
+                timeout = 0; /* long timeout (> ~30 days) == no timeout  */
+            if(timeout == queryTimeout)
+                return;
+            socket.setSoTimeout(timeout*1000);
+            queryTimeout = timeout;
+        }  catch (SocketException se)    {
+           throw new AssertionError("does not happen");
+        }
+    }
+
     private static void close(PacketFetcher fetcher, PacketOutputStream packetOutputStream, Socket socket)
             throws QueryException
     {
@@ -682,7 +698,13 @@ public class MySQLProtocol implements Protocol {
                 rawPacket = packetFetcher.getRawPacket();
                 resultPacket = ResultPacketFactory.createResultPacket(rawPacket);
             }
-        } catch (IOException e) {
+        }
+        catch (SocketTimeoutException ste) {
+            throw new QueryException("timeout reading resultset: " + ste.getMessage(),
+                    -1,  "JZ0002" , ste);
+
+        }
+        catch (IOException e) {
             throw new QueryException("Could not read resultset: " + e.getMessage(),
                     -1,
                     SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
@@ -735,7 +757,8 @@ public class MySQLProtocol implements Protocol {
         }
     }
 
-    public QueryResult executeQuery(final Query dQuery, boolean streaming) throws QueryException {
+    public QueryResult executeQuery(final Query dQuery, boolean streaming) throws QueryException
+    {
         dQuery.validate();
         log.finest("Executing streamed query: " + dQuery);
         this.moreResults = false;

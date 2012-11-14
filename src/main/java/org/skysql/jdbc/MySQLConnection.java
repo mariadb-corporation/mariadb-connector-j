@@ -35,8 +35,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 
 /**
  * A JDBC Connection.
@@ -73,12 +71,6 @@ public final class MySQLConnection
     boolean noSchemaPattern = false;
 
 
-    /**
-     * Executor that keeps track of timeouts for statements
-     *
-     * Works having just one thread for this since it is not legal to have several executing queries on the same connection!
-     */
-    private final ScheduledExecutorService timeoutExecutor = Executors.newSingleThreadScheduledExecutor();
     /**
      * Creates a new connection with a given protocol and query factory.
      *
@@ -239,7 +231,6 @@ public final class MySQLConnection
      * @throws SQLException if there is a problem talking to the server.
      */
     public void close() throws SQLException {
-        this.timeoutExecutor.shutdown();
         if (pooledConnection != null) {
             if (protocol != null && protocol.inTransaction()) {
                 /* Rollback transaction prior to returning physical connection to the pool */
@@ -1299,8 +1290,8 @@ public final class MySQLConnection
         this.parameterizedBatchHandlerFactory = batchHandlerFactory;
     }
 
-    protected ScheduledExecutorService getTimeoutExecutor() {
-        return timeoutExecutor;
+    public void setTimeout(int timeout) {
+        protocol.setQueryTimeout(timeout);
     }
 
     public void setHostFailed() {

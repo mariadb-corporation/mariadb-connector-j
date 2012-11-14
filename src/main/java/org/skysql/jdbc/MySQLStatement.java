@@ -40,8 +40,6 @@ import java.sql.*;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 
 /**
  * A sql statement.
@@ -83,7 +81,6 @@ public class MySQLStatement implements Statement {
 
 
     private int queryTimeout;
-    private ScheduledFuture<?> timoutFuture;
     private boolean escapeProcessing;
     private int fetchSize;
     private int maxRows;
@@ -150,7 +147,7 @@ public class MySQLStatement implements Statement {
         cachedResultSets.clear();
         MySQLConnection conn = (MySQLConnection)getConnection();
         conn.reenableWarnings();
-        startTimer();
+        conn.setTimeout(queryTimeout);
         try {
             protocol.setMaxRows(maxRows);
         } catch(QueryException qe) {
@@ -180,23 +177,11 @@ public class MySQLStatement implements Statement {
 
 
     protected void startTimer() {
-        if(this.queryTimeout > 0) {
-            this.timoutFuture = this.connection.getTimeoutExecutor().schedule(new Runnable() {
-                public void run() {
-                    try {
-                        getProtocol().timeOut();
-                    } catch (Exception e) {
-                        throw new RuntimeException("Could not time out query.", e);
-                    }
-                }
-            }, queryTimeout, TimeUnit.SECONDS);
-        }
+        connection.setTimeout(queryTimeout);
     }
     
     protected void stopTimer() {
-        if(this.timoutFuture != null && !this.timoutFuture.isDone()) {
-            this.timoutFuture.cancel(true);
-        }
+
     }
 
     /**
@@ -851,7 +836,6 @@ public class MySQLStatement implements Statement {
 
 
     private boolean getMoreResults(boolean streaming) throws SQLException {
-        startTimer();
         try {
             synchronized(protocol) {
                 if (queryResult != null) {
@@ -867,8 +851,6 @@ public class MySQLStatement implements Statement {
         } catch (QueryException e) {
             SQLExceptionMapper.throwException(e, connection, this);
             return false;
-        } finally {
-            stopTimer();
         }
     }
 
