@@ -34,6 +34,17 @@ public class DatabaseMetadataTest extends BaseTest{
         }
         assertEquals(2,i);
     }
+
+    @Test
+    public void datetimeTest() throws SQLException {
+        Statement stmt = connection.createStatement();
+        stmt.execute("drop table if exists datetime_test");
+        stmt.execute("create table datetime_test (dt datetime)");
+        ResultSet rs = stmt.executeQuery("select * from datetime_test");
+        assertEquals(93,rs.getMetaData().getColumnType(1));
+
+    }
+
     @Test
     public void exportedKeysTest() throws SQLException {
         Statement stmt = connection.createStatement();

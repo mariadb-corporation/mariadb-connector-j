@@ -64,7 +64,7 @@ public class MySQLType implements DataType {
         TIMESTAMP(java.sql.Types.TIMESTAMP),
         BIGINT(java.sql.Types.BIGINT),
         MEDIUMINT(java.sql.Types.INTEGER),
-        DATETIME(java.sql.Types.DATE),
+        DATETIME(Types.TIMESTAMP),
         DATE(java.sql.Types.DATE),
         TIME(java.sql.Types.TIME),
         YEAR(java.sql.Types.SMALLINT),
