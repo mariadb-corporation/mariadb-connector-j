@@ -1,11 +1,11 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.mariadb.jdbc</groupId>
-    <artifactId>mariadb-jdbc</artifactId>
+    <artifactId>mariadb-client</artifactId>
     <packaging>jar</packaging>
-    <name>mariadb-JDBC</name>
-    <version>1.3.10</version>
-    <description>BSD Licensed JDBC driver for MySQL</description>
+    <name>mariadb-client</name>
+    <version>1.0.0</version>
+    <description>BSD Licensed JDBC driver for MariaDB and MySQK</description>
     <url>http://launchpad.net/mariadb-jdbc/</url>
     <properties>
       <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -20,7 +20,7 @@
 
     <issueManagement>
       <system>Launchpad</system>
-      <url>http://bugs.launchpad.net/mariadb/</url>
+      <url>http://bugs.launchpad.net/mariadb-client/</url>
     </issueManagement>
 
     <build>
