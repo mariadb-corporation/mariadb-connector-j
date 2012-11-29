@@ -60,9 +60,7 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 
-/**
- * . User: marcuse Date: Mar 9, 2009 Time: 8:34:44 PM
- */
+
 public class InsertIdQueryResult extends SelectQueryResult {
 
     private final long insertId;

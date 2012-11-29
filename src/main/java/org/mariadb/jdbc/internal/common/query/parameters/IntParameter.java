@@ -54,9 +54,7 @@ package org.mariadb.jdbc.internal.common.query.parameters;
 import java.io.IOException;
 import java.io.OutputStream;
 
-/**
- * . User: marcuse Date: Feb 19, 2009 Time: 8:48:15 PM
- */
+
 public class IntParameter implements ParameterHolder {
     int value;
 

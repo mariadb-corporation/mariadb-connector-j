@@ -72,9 +72,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-/**
- * . User: marcuse Date: Jan 19, 2009 Time: 10:25:00 PM
- */
+
 public class MySQLResultSet implements ResultSet {
 
     public static final MySQLResultSet EMPTY = createEmptyResultSet();

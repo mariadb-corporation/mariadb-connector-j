@@ -8,9 +8,7 @@ import java.sql.*;
 import java.text.ParseException;
 import java.util.Calendar;
 
-/**
- * . User: marcuse Date: Feb 16, 2009 Time: 9:16:36 PM
- */
+
 public interface ValueObject {
 
     public static final int TINYINT1_IS_BIT = 1;

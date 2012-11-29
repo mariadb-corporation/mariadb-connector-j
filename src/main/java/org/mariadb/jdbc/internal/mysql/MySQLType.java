@@ -56,9 +56,6 @@ import org.mariadb.jdbc.internal.common.DataType;
 import java.sql.Types;
 
 
-/**
- * User: marcuse Date: Feb 23, 2009 Time: 10:42:02 PM
- */
 public class MySQLType implements DataType {
     private final Type type;
 

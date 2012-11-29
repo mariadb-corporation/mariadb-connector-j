@@ -12,13 +12,7 @@ import static org.mockito.Mockito.verify;
 
 import static junit.framework.Assert.assertTrue;
 
-/**
- * Created by IntelliJ IDEA.
- * User: marcuse
- * Date: Jul 17, 2009
- * Time: 3:46:33 PM
- * To change this template use File | Settings | File Templates.
- */
+
 public class RewriteBatchHandlerTest {
     @Test
     public void testRewriteBatchHanderMockProtocol() throws QueryException, IllegalParameterException {

@@ -57,9 +57,7 @@ import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 
-/**
- * . User: marcuse Date: Feb 14, 2009 Time: 10:14:13 PM
- */
+
 public class MySQLPingPacket implements CommandPacket {
     public MySQLPingPacket() {
     }

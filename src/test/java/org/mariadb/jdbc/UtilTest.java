@@ -8,11 +8,7 @@ import java.sql.SQLException;
 import static junit.framework.Assert.assertEquals;
 import static org.mariadb.jdbc.internal.common.Utils.countChars;
 
-/**
- * User: marcuse
- * Date: Feb 19, 2009
- * Time: 9:19:24 PM
- */
+
 public class UtilTest {
     @Test
     public void testCountChars() {

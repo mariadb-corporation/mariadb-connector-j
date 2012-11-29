@@ -63,9 +63,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Properties;
 
-/**
- * User: marcuse Date: Feb 7, 2009 Time: 10:53:22 PM
- */
+
 public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XADataSource {
 
 

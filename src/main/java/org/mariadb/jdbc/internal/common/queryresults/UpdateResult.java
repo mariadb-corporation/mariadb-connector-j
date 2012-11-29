@@ -55,9 +55,7 @@ import org.mariadb.jdbc.internal.common.ColumnInformation;
 
 import java.util.List;
 
-/**
- * . User: marcuse Date: Mar 9, 2009 Time: 8:20:04 PM
- */
+
 public class UpdateResult extends ModifyQueryResult {
     private final long updateCount;
     private final short warnings;

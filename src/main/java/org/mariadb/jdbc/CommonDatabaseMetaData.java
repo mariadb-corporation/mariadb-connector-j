@@ -57,9 +57,7 @@ import org.mariadb.jdbc.internal.common.Utils;
 import java.sql.*;
 import java.util.logging.Logger;
 
-/**
- * TODO: complete it! User: marcuse Date: Jan 31, 2009 Time: 8:59:57 PM
- */
+
 public abstract class CommonDatabaseMetaData implements DatabaseMetaData {
     private final String version;
     private final String url;

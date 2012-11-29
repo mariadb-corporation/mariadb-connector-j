@@ -54,9 +54,6 @@ package org.mariadb.jdbc;
 import java.sql.SQLException;
 import java.sql.Savepoint;
 
-/**
- * . User: marcuse Date: Feb 6, 2009 Time: 9:56:55 PM
- */
 public class MySQLSavepoint implements Savepoint {
     private final int savepointId;
     private final String name;

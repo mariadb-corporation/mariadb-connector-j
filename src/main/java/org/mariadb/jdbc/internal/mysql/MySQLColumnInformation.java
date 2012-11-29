@@ -60,9 +60,7 @@ import java.util.Collections;
 import java.util.Set;
 
 
-/**
- * User: marcuse Date: Mar 9, 2009 Time: 8:53:40 PM
- */
+
 public class MySQLColumnInformation implements ColumnInformation {
     private final String catalog;
     private final String db;

@@ -71,9 +71,7 @@ import java.util.Calendar;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-/**
- * User: marcuse Date: Jan 27, 2009 Time: 10:49:42 PM
- */
+
 public class MySQLPreparedStatement extends MySQLStatement implements PreparedStatement {
     private final static Logger log = Logger.getLogger(MySQLPreparedStatement.class.getName());
     private ParameterizedQuery dQuery;

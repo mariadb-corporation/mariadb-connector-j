@@ -56,9 +56,7 @@ import org.mariadb.jdbc.internal.common.QueryException;
 import java.io.IOException;
 import java.io.OutputStream;
 
-/**
- * . User: marcuse Date: Mar 25, 2009 Time: 9:37:59 PM
- */
+
 public interface CommandPacket {
     int send(OutputStream os) throws IOException, QueryException;
 }

@@ -59,9 +59,7 @@ import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 
 
-/**
- * . User: marcuse Date: Feb 20, 2009 Time: 10:43:58 PM
- */
+
 public class MySQLQuery implements Query {
 
     private final String query;

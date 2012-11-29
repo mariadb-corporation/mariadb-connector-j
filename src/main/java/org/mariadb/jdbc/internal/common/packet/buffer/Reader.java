@@ -57,9 +57,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-/**
- * . User: marcuse Date: Jan 16, 2009 Time: 8:27:38 PM
- */
+
 public class Reader {
     private final byte packetSeq;
     private ByteBuffer byteBuffer;

@@ -54,14 +54,12 @@ package org.mariadb.jdbc.internal.common.query.parameters;
 import java.io.IOException;
 import java.io.OutputStream;
 
-/**
- * . User: marcuse Date: Feb 19, 2009 Time: 8:29:14 PM
- */
+
 public interface ParameterHolder {
     /**
      * Write parameter value
      * @param os the stream to write to
-     * @throws IOException when everything goes wrong
+     * @throws IOException when something goes wrong
      */
     void writeTo(OutputStream os) throws IOException;
 }

@@ -54,11 +54,7 @@ package org.mariadb.jdbc.internal.mysql;
 import java.util.EnumSet;
 import java.util.Set;
 
-/**
- * Represents what the server is capable of
- * <p/>
- * User: marcuse Date: Feb 27, 2009 Time: 9:01:29 PM
- */
+
 public enum MySQLServerCapabilities {
     LONG_PASSWORD((int) 1),       /* new more secure passwords */
     FOUND_ROWS((int) 2),       /* Found instead of affected rows */

@@ -63,11 +63,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executor;
 
-/**
- * A JDBC Connection.
- * <p/>
- * User: marcuse Date: Jan 14, 2009 Time: 7:47:37 AM
- */
+
 public final class MySQLConnection
         implements Connection, ReplicationConnection {
     /**

@@ -54,11 +54,7 @@ package org.mariadb.jdbc;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * Parses a jdbc url.
- * <p/>
- * User: marcuse Date: Apr 21, 2009 Time: 9:32:34 AM
- */
+
 public class JDBCUrl {
     private String username;
     private String password;

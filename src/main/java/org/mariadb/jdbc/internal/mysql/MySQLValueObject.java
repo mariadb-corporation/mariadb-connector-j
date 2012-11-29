@@ -61,7 +61,6 @@ import java.text.ParseException;
  * <p/>
  * Is immutable
  * <p/>
- * User: marcuse Date: Feb 16, 2009 Time: 9:18:26 PM
  */
 public class MySQLValueObject extends AbstractValueObject {
     ColumnInformation columnInfo;

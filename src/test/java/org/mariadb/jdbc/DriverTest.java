@@ -21,11 +21,7 @@ import static junit.framework.Assert.assertNotSame;
 import static junit.framework.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
 
-/**
- * User: marcuse
- * Date: Jan 14, 2009
- * Time: 7:58:11 AM
- */
+
 public class DriverTest extends BaseTest{
     static { Logger.getLogger("").setLevel(Level.OFF); }
 

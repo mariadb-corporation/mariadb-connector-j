@@ -60,9 +60,7 @@ import org.mariadb.jdbc.internal.mysql.MySQLServerCapabilities;
 import java.io.IOException;
 import java.util.Set;
 
-/**
- * Greeting from drizzle looks like this User: marcuse Date: Jan 15, 2009 Time: 3:18:11 PM
- */
+
 public class MySQLGreetingReadPacket {
     private final String serverVersion;
     private final byte protocolVersion;

@@ -58,9 +58,7 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 
 
-/**
- * . User: marcuse Date: Jan 16, 2009 Time: 8:27:38 PM
- */
+
 public final class ReadUtil {
     private ReadUtil() {
 

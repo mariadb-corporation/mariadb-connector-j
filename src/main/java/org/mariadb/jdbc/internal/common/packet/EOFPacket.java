@@ -57,9 +57,7 @@ import java.io.IOException;
 import java.util.EnumSet;
 import java.util.Set;
 
-/**
- * . User: marcuse Date: Jan 16, 2009 Time: 4:23:54 PM
- */
+
 public class EOFPacket extends ResultPacket {
     public enum ServerStatus {
         SERVER_STATUS_IN_TRANS(1),

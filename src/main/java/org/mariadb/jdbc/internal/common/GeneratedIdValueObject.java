@@ -56,10 +56,7 @@ import org.mariadb.jdbc.internal.mysql.MySQLType;
 import java.sql.Types;
 import java.text.ParseException;
 
-/**
- * Created by IntelliJ IDEA. User: marcuse Date: Jun 12, 2009 Time: 4:16:09 PM To change this template use File |
- * Settings | File Templates.
- */
+
 public class GeneratedIdValueObject extends AbstractValueObject {
     public GeneratedIdValueObject(final long insertId) {
         super(String.valueOf(insertId).getBytes(), new DataType() {

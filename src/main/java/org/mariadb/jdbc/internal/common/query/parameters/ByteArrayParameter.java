@@ -53,9 +53,7 @@ package org.mariadb.jdbc.internal.common.query.parameters;
 import java.io.IOException;
 import java.io.OutputStream;
 
-/**
- * . User: marcuse Date: Feb 27, 2009 Time: 9:56:17 PM
- */
+
 public class ByteArrayParameter implements ParameterHolder {
     byte[] bytes;
     boolean noBackslashEscapes;

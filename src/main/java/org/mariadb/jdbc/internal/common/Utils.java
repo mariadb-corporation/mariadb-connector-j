@@ -56,9 +56,7 @@ import java.sql.SQLException;
 import java.util.LinkedList;
 import java.util.List;
 
-/**
- * User: marcuse Date: Feb 19, 2009 Time: 8:40:51 PM
- */
+
 public class Utils {
     private static final int START_BIT_MILLISECONDS = 17;
     private static final int START_BIT_SECONDS = 11;

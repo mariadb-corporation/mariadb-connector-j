@@ -55,9 +55,6 @@ package org.mariadb.jdbc.internal.common.query.parameters;
 import java.io.IOException;
 import java.io.OutputStream;
 
-/**
- * . User: marcuse Date: Feb 19, 2009 Time: 8:50:52 PM
- */
 public class LongParameter implements ParameterHolder {
     private long value;
 

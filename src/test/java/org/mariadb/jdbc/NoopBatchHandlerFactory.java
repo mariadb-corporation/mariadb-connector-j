@@ -15,13 +15,7 @@ import org.mariadb.jdbc.internal.common.Protocol;
 import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.common.query.ParameterizedQuery;
 
-/**
- * Created by IntelliJ IDEA.
- * User: marcuse
- * Date: Jun 7, 2009
- * Time: 12:39:30 PM
- * To change this template use File | Settings | File Templates.
- */
+
 public class NoopBatchHandlerFactory implements ParameterizedBatchHandlerFactory {
     public ParameterizedBatchHandler get(final String sql, final Protocol protocol) {
         return new TestNoopBatchHandler();
@@ -31,11 +25,10 @@ public class NoopBatchHandlerFactory implements ParameterizedBatchHandlerFactory
    public class TestNoopBatchHandler implements ParameterizedBatchHandler {
 
         public void addToBatch(ParameterizedQuery query) {
-            //To change body of implemented methods use File | Settings | File Templates.
         }
 
         public int[] executeBatch() throws QueryException {
-            return new int[0];  //To change body of implemented methods use File | Settings | File Templates.
+            return new int[0];
         }
     }
 }

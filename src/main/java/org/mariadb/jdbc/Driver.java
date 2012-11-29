@@ -64,9 +64,7 @@ import java.sql.SQLFeatureNotSupportedException;
 import java.util.Properties;
 import java.util.logging.Logger;
 
-/**
- * The base SQL Driver class. User: marcuse Date: Jan 14, 2009 Time: 7:46:09 AM
- */
+
 public final class Driver implements java.sql.Driver {
     /**
      * the logger.

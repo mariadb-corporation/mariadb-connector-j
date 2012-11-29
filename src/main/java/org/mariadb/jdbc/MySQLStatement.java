@@ -68,11 +68,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 
-/**
- * A sql statement.
- * <p/>
- * User: marcuse Date: Jan 19, 2009 Time: 10:10:58 PM
- */
+
 public class MySQLStatement implements Statement {
     /**
      * the protocol used to talk to the server.

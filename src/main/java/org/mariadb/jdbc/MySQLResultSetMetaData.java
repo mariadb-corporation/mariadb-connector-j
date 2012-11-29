@@ -63,11 +63,7 @@ import java.sql.SQLException;
 import java.sql.Types;
 import java.util.List;
 
-/**
- * TODO: finish implem.
- * <p/>
- * User: marcuse Date: Feb 8, 2009 Time: 9:48:12 PM
- */
+
 public class MySQLResultSetMetaData implements ResultSetMetaData {
 
     private List<ColumnInformation> fieldPackets;

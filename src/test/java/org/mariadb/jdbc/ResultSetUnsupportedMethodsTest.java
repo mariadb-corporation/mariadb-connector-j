@@ -8,13 +8,7 @@ import java.sql.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-/**
- * Created by IntelliJ IDEA.
- * User: marcuse
- * Date: Sep 9, 2009
- * Time: 7:20:25 PM
- * To change this template use File | Settings | File Templates.
- */
+
 public class ResultSetUnsupportedMethodsTest {
     private  ResultSet rs;
     Connection connection;

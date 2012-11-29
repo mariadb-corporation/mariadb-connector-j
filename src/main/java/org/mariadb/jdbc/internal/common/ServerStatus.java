@@ -54,11 +54,7 @@ package org.mariadb.jdbc.internal.common;
 import java.util.EnumSet;
 import java.util.Set;
 
-/**
- * Represents the server status
- * <p/>
- * User: marcuse Date: Feb 27, 2009 Time: 8:36:46 PM
- */
+
 public enum ServerStatus {
     IN_TRANSACTION((short) 1),
     AUTOCOMMIT((short) 2),

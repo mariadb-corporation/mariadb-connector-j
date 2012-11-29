@@ -65,10 +65,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
-/**
- * Created by IntelliJ IDEA. User: marcuse Date: Jun 10, 2009 Time: 4:13:03 PM To change this template use File |
- * Settings | File Templates.
- */
+
 public abstract class AbstractValueObject implements ValueObject {
     private final byte[] rawBytes;
     protected final DataType dataType;

@@ -51,9 +51,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.common;
 
-/**
- * . User: marcuse Date: Feb 7, 2009 Time: 10:16:17 PM
- */
+
 public class QueryException extends Exception {
     /**
      * the internal code.

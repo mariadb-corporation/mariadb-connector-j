@@ -56,11 +56,7 @@ import java.io.OutputStream;
 import java.util.Calendar;
 import java.sql.Date;
 
-/**
- * Represents a time stamp
- * <p/>
- * User: marcuse Date: Feb 19, 2009 Time: 8:50:52 PM
- */
+
 public class DateParameter implements ParameterHolder {
     Date date;
     Calendar calendar;

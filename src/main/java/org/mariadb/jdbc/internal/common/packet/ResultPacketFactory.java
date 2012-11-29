@@ -55,7 +55,7 @@ import java.io.IOException;
 
 /**
  * Creates result packets only handles error, ok, eof and result set packets since field and row packets require a
- * previous result set packet User: marcuse Date: Jan 16, 2009 Time: 1:12:23 PM
+ * previous result set packet
  */
 public class ResultPacketFactory {
     private final static byte ERROR = (byte) 0xff;

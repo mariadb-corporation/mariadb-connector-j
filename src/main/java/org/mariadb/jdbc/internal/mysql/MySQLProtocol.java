@@ -84,10 +84,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 
-/**
- * TODO: refactor, clean up TODO: when should i read up the resultset? TODO: thread safety? TODO: exception handling
- * User: marcuse Date: Jan 14, 2009 Time: 4:06:26 PM
- */
+
 public class MySQLProtocol implements Protocol {
     private final static Logger log = Logger.getLogger(MySQLProtocol.class.getName());
     private boolean connected = false;

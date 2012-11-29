@@ -57,9 +57,7 @@ import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 
-/**
- * . User: marcuse Date: Feb 10, 2009 Time: 9:40:08 PM
- */
+
 public class ClosePacket implements CommandPacket {
 
     public ClosePacket() {

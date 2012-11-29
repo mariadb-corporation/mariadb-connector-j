@@ -58,9 +58,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 
-/**
- * . User: marcuse Date: Jan 20, 2009 Time: 10:50:47 PM
- */
+
 public class SelectDBPacket implements CommandPacket {
 
     String database;

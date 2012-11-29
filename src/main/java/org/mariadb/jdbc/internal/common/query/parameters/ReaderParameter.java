@@ -55,9 +55,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.Reader;
 
-/**
- * . User: marcuse Date: Feb 27, 2009 Time: 9:53:04 PM
- */
+
 public class ReaderParameter implements  ParameterHolder{
     Reader reader;
     long length;

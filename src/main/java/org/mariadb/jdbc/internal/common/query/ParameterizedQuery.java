@@ -54,9 +54,7 @@ package org.mariadb.jdbc.internal.common.query;
 
 import org.mariadb.jdbc.internal.common.query.parameters.ParameterHolder;
 
-/**
- * . User: marcuse Date: Mar 18, 2009 Time: 10:07:57 PM
- */
+
 public interface ParameterizedQuery extends Query {
     /**
      * get the number of parameters in this query.

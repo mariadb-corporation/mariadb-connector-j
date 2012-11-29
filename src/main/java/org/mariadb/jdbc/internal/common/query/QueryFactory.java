@@ -51,9 +51,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.common.query;
 
-/**
- * . User: marcuse Date: Mar 18, 2009 Time: 10:06:11 PM
- */
+
 public interface QueryFactory {
     Query createQuery(String query);
     Query createQuery(byte[] query);

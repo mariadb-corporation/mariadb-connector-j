@@ -5,10 +5,7 @@ import org.mariadb.jdbc.internal.common.Utils;
 
 import static org.junit.Assert.assertEquals;
 
-/**
- * Created by IntelliJ IDEA. User: marcuse Date: Mar 28, 2010 Time: 2:46:20 PM To change this template use File |
- * Settings | File Templates.
- */
+
 public class PrepareQueryTest {
 
     @Test

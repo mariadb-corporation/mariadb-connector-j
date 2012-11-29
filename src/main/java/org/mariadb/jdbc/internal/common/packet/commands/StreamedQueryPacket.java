@@ -60,9 +60,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.logging.Logger;
 
-/**
- * User: marcuse Date: Jan 19, 2009 Time: 10:14:32 PM
- */
+
 public class StreamedQueryPacket implements CommandPacket
 {
 

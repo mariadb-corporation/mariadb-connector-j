@@ -10,13 +10,7 @@ import java.util.logging.Level;
 
 import static junit.framework.Assert.assertEquals;
 
-/**
- * Created by IntelliJ IDEA.
- * User: marcuse
- * Date: Mar 1, 2009
- * Time: 4:56:26 PM
- * To change this template use File | Settings | File Templates.
- */
+
 public class UnicodeTest {
 static { Logger.getLogger("").setLevel(Level.OFF); }
 

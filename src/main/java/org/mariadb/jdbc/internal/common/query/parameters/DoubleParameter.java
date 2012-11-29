@@ -55,9 +55,7 @@ package org.mariadb.jdbc.internal.common.query.parameters;
 import java.io.IOException;
 import java.io.OutputStream;
 
-/**
- * . User: marcuse Date: Feb 27, 2009 Time: 10:00:38 PM
- */
+
 public class DoubleParameter implements ParameterHolder {
     double value;
 

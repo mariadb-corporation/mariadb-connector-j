@@ -51,11 +51,6 @@ OF SUCH DAMAGE.
                          
 package org.mariadb.jdbc.internal.common.query;
 
-import java.util.concurrent.ConcurrentHashMap;
-
-/**
- * . User: marcuse Date: Mar 18, 2009 Time: 10:14:27 PM
- */
 public class MySQLQueryFactory implements QueryFactory {
     public Query createQuery(final String query) {
         return new MySQLQuery(query);

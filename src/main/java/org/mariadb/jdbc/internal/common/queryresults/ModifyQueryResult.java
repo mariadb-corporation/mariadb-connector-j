@@ -51,9 +51,7 @@ OF SUCH DAMAGE.
 */
 package org.mariadb.jdbc.internal.common.queryresults;
 
-/**
- * . User: marcuse Date: Mar 9, 2009 Time: 9:51:19 PM
- */
+
 public abstract class ModifyQueryResult extends QueryResult {
     public abstract long getUpdateCount();
 

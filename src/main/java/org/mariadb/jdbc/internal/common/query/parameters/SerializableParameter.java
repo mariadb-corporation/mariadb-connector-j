@@ -54,9 +54,7 @@ package org.mariadb.jdbc.internal.common.query.parameters;
 import java.io.IOException;
 import java.io.OutputStream;
 
-/**
- * User: marcuse Date: Feb 19, 2009 Time: 8:53:14 PM
- */
+
 public class SerializableParameter implements ParameterHolder {
     Object object;
     boolean noBackSlashEscapes;

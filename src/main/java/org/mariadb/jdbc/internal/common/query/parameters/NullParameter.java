@@ -54,9 +54,7 @@ package org.mariadb.jdbc.internal.common.query.parameters;
 import java.io.IOException;
 import java.io.OutputStream;
 
-/**
- * . User: marcuse Date: Feb 19, 2009 Time: 9:35:15 PM
- */
+
 public class NullParameter implements ParameterHolder {
     private static final byte[] NULL = {'N','U','L','L'};
     public NullParameter() {

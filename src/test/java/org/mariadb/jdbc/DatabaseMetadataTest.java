@@ -8,11 +8,7 @@ import java.util.logging.Logger;
 
 import static junit.framework.Assert.assertEquals;
 
-/**
- * User: marcuse
- * Date: Feb 26, 2009
- * Time: 10:12:52 PM
- */
+
 public class DatabaseMetadataTest extends BaseTest{
     static { Logger.getLogger("").setLevel(Level.OFF); }
 

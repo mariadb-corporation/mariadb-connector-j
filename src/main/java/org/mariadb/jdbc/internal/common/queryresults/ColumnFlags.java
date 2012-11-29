@@ -51,9 +51,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.common.queryresults;
 
-/**
- * . User: marcuse Date: Mar 9, 2009 Time: 8:57:46 PM
- */
+
 public enum ColumnFlags {
     NOT_NULL((short) 1),
     PRIMARY_KEY((short) 2),

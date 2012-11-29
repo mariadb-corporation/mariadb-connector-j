@@ -60,9 +60,7 @@ import java.util.List;
 
 import static org.mariadb.jdbc.internal.common.Utils.createQueryParts;
 
-/**
- * . User: marcuse Date: Feb 18, 2009 Time: 10:13:42 PM
- */
+
 public class MySQLParameterizedQuery implements ParameterizedQuery {
 
     private ParameterHolder[] parameters;

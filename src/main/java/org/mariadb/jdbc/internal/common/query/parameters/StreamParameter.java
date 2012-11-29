@@ -55,9 +55,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-/**
- * . User: marcuse Date: Feb 19, 2009 Time: 8:56:34 PM
- */
+
 public class StreamParameter implements ParameterHolder {
     InputStream is;
     long length;

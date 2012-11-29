@@ -51,10 +51,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.common.query;
 
-/**
- * Created by IntelliJ IDEA. User: marcuse Date: Aug 13, 2009 Time: 8:58:08 PM To change this template use File |
- * Settings | File Templates.
- */
+
 public enum QueryType {
     REPLACE, INSERT, SELECT, UPDATE, DELETE, ALTER, UNCLASSIFIABLE;
 

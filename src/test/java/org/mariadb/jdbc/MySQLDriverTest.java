@@ -18,13 +18,7 @@ import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
 
-/**
- * Created by IntelliJ IDEA.
- * User: marcuse
- * Date: Jun 13, 2009
- * Time: 1:29:33 PM
- * To change this template use File | Settings | File Templates.
- */
+
 public class MySQLDriverTest extends BaseTest {
     
     public MySQLDriverTest() throws SQLException {

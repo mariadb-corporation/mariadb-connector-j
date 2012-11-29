@@ -58,10 +58,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * <p/>
- * User: marcuse Date: Jan 23, 2009 Time: 8:15:55 PM
- */
+
 public  class CachedSelectResult extends SelectQueryResult {
 
     private  List<List<ValueObject>> resultSet;

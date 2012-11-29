@@ -84,7 +84,6 @@ import java.util.Set;
  * <p/>
  * databasename:            name of schema to use initially
  * <p/>
- * User: marcuse Date: Jan 16, 2009 Time: 11:19:31 AM
  */
 public class MySQLClientAuthPacket implements CommandPacket {
     private final WriteBuffer writeBuffer;

@@ -54,9 +54,7 @@ package org.mariadb.jdbc.internal.common.query.parameters;
 import java.io.IOException;
 import java.io.OutputStream;
 
-/**
- * User: marcuse Date: Feb 18, 2009 Time: 10:17:14 PM
- */
+
 public class StringParameter implements ParameterHolder {
     String s;
     boolean noBackslashEscapes;
