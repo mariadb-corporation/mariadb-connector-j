@@ -1090,20 +1090,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
         setParameter(parameterIndex, new DateParameter(date));
     }
 
-    /**
-     * Since Drizzle has no TIME datatype, time in milliseconds is stored in a packed integer
-     *
-     * @param parameterIndex the first parameter is 1, the second is 2, ...
-     * @param x              the parameter value
-     * @throws java.sql.SQLException if parameterIndex does not correspond to a parameter marker in the SQL statement;
-     *                               if a database access error occurs or this method is called on a closed
-     *                               <code>PreparedStatement</code>
-     * @see org.mariadb.jdbc.internal.common.Utils#packTime(long)
-     * @see org.mariadb.jdbc.internal.common.Utils#unpackTime(int)
-     *      <p/>
-     *      Sets the designated parameter to the given <code>java.sql.Time</code> value. The driver converts this to an
-     *      SQL <code>TIME</code> value when it sends it to the database.
-     */
+
     public void setTime(final int parameterIndex, final Time x) throws SQLException {
         if(x == null) {
             setNull(parameterIndex, Types.TIME);

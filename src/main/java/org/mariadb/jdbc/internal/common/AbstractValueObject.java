@@ -180,14 +180,7 @@ public abstract class AbstractValueObject implements ValueObject {
         return new Date(utilDate.getTime());
     }
 
-    /**
-     * Since drizzle has no TIME datatype, JDBC Time is stored in a packed integer
-     *
-     * @return the time
-     * @throws java.text.ParseException
-     * @see Utils#packTime(long)
-     * @see Utils#unpackTime(int)
-     */
+
     public Time getTime() throws ParseException {
         if (rawBytes == null) {
             return null;

@@ -838,21 +838,9 @@ public class DriverTest extends BaseTest{
 
     @Test
     public void testExceptionDivByZero() throws SQLException {
-
-
-        if(connection.getMetaData().getDatabaseProductName().toLowerCase().equals("drizzle")) {
-            boolean threwException = false;
-            try{
-                ResultSet rs = connection.createStatement().executeQuery("select 1/0");
-            } catch(SQLException e) {
-                threwException = true;
-            }
-            assertEquals(true,threwException);
-        } else {
-            ResultSet rs = connection.createStatement().executeQuery("select 1/0");
-            assertEquals(rs.next(),true);
-            assertEquals(null, rs.getString(1));
-        }
+        ResultSet rs = connection.createStatement().executeQuery("select 1/0");
+        assertEquals(rs.next(),true);
+        assertEquals(null, rs.getString(1));
     }
     @Test(expected = SQLSyntaxErrorException.class)
     public void testSyntaxError() throws SQLException {
