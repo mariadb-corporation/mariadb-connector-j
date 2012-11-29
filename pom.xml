@@ -5,7 +5,7 @@
     <packaging>jar</packaging>
     <name>mariadb-client</name>
     <version>1.0.0</version>
-    <description>BSD Licensed JDBC driver for MariaDB and MySQK</description>
+    <description>BSD Licensed JDBC driver for MariaDB and MySQL</description>
     <url>http://launchpad.net/mariadb-jdbc/</url>
     <properties>
       <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
