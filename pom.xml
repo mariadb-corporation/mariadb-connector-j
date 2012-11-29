@@ -1,26 +1,24 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.mariadb.jdbc</groupId>
-    <artifactId>mariadb-client</artifactId>
+    <artifactId>mariadb-java-client</artifactId>
     <packaging>jar</packaging>
-    <name>mariadb-client</name>
+    <name>mariadb-java-client</name>
     <version>1.0.0</version>
-    <description>BSD Licensed JDBC driver for MariaDB and MySQL</description>
-    <url>http://launchpad.net/mariadb-jdbc/</url>
+    <description>JDBC driver for MariaDB and MySQL</description>
+    <url>http://launchpad.net/mariadb-java-client</url>
     <properties>
       <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
     <licenses>
         <license>
-            <name>Simplified BSD</name>
-            <url>http://www.opensource.org/licenses/bsd-license.php</url>
-            <distribution>repo</distribution>
+            <name>LGPL-2.1</name>
         </license>
     </licenses>
 
     <issueManagement>
       <system>Launchpad</system>
-      <url>http://bugs.launchpad.net/mariadb-client/</url>
+      <url>http://bugs.launchpad.net/mariadb-java-client/</url>
     </issueManagement>
 
     <build>
