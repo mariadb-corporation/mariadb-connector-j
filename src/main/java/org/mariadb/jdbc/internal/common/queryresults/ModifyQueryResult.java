@@ -17,7 +17,7 @@ for more details.
 You should have received a copy of the GNU Lesser General Public License along
 with this library; if not, write to Monty Program Ab info@montyprogram.com.
 
-This particular MariaDB C Connector Library APIClient for Java file is work
+This particular MariaDB Client for Java file is work
 derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
 the following copyright and notice provisions:
 
