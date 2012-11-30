@@ -560,10 +560,10 @@ public class MySQLProtocol implements Protocol {
         ClosePacket closePacket = new ClosePacket();
         try {
             closePacket.send(packetOutputStream);
-            socket.shutdownOutput();
-            socket.setSoTimeout(3);
-            InputStream is = socket.getInputStream();
             try {
+                socket.shutdownOutput();
+                socket.setSoTimeout(3);
+                InputStream is = socket.getInputStream();
                 while(is.read() != -1) {}
             } catch (Throwable t) {
             }

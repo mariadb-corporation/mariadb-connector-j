@@ -1373,7 +1373,7 @@ public class DriverTest extends BaseTest{
         st.execute("insert into unsignedtest values(4294967295)");
         ResultSet rs = st.executeQuery("select * from unsignedtest");
         rs.next();
-        Object o = rs.getLong(1);
+        Object o = rs.getLong("unsignedtest.a");
     }
 
     @Test
