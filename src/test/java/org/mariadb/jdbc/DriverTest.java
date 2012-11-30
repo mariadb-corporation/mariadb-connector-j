@@ -1405,4 +1405,22 @@ public class DriverTest extends BaseTest{
        long connectionId2 = rs.getLong(1);
        assertNotSame(connectionId, connectionId2);
     }
+
+    @Test
+    public void useSSL()  throws Exception {
+        Connection c = DriverManager.getConnection("jdbc:mysql://localhost:3306?user=root");
+        Statement st = c.createStatement();
+        ResultSet rs = st.executeQuery("select @@have_openssl");
+        rs.next();
+        boolean have_openssl = rs.getString(1).equals("YES");
+        c.close();
+        if(!have_openssl) {
+            System.out.println("test 'useSSL' skipped  due to server variable have_openssl != 'YES'");
+            return;
+        }
+        c = DriverManager.getConnection("jdbc:mysql://localhost:3306?user=root&useSSL=1&trustServerCertificate=1");
+        c.createStatement().execute("select 1");
+        c.close();
+
+    }
 }

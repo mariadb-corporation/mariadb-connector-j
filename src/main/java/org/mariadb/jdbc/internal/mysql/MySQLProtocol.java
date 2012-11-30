@@ -68,19 +68,34 @@ import org.mariadb.jdbc.internal.mysql.packet.MySQLGreetingReadPacket;
 import org.mariadb.jdbc.internal.mysql.packet.commands.*;
 
 import javax.net.SocketFactory;
+import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.X509TrustManager;
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.*;
 import java.nio.ByteBuffer;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 
+class DummyX509TrustManager implements X509TrustManager {
+    public void checkClientTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
+    }
+
+    public void checkServerTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
+    }
+
+    public X509Certificate[] getAcceptedIssuers() {
+        return null;
+    }
+}
 
 public class MySQLProtocol implements Protocol {
     private final static Logger log = Logger.getLogger(MySQLProtocol.class.getName());
@@ -163,7 +178,21 @@ public class MySQLProtocol implements Protocol {
      */
     int secondsBeforeRetryMaster =  30;
 
+    private SSLSocketFactory getSSLSocketFactory(boolean trustServerCertificate)  throws QueryException
+    {
+        if (!trustServerCertificate)
+            return (SSLSocketFactory)SSLSocketFactory.getDefault();
 
+        try {
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            X509TrustManager[] m = {new DummyX509TrustManager()};
+            sslContext.init(null, m ,null);
+        return sslContext.getSocketFactory();
+        } catch (Exception e) {
+            throw new QueryException(e.getMessage());
+        }
+
+    }
     /**
      * Get a protocol instance
      * @param url connection URL
@@ -342,17 +371,17 @@ public class MySQLProtocol implements Protocol {
                AbbreviatedMySQLClientAuthPacket amcap = new AbbreviatedMySQLClientAuthPacket(capabilities);
                amcap.send(writer);
 
-               SSLSocketFactory sslSocketFactory = (SSLSocketFactory)SSLSocketFactory.getDefault();
-               SSLSocket sslSocket = (SSLSocket)sslSocketFactory.createSocket(socket,
-                       socket.getInetAddress().getHostAddress(),
-                       socket.getPort(),
-                       false);
+               boolean trustServerCertificate  =  info.getProperty("trustServerCertificate") != null;
+
+               SSLSocketFactory f = getSSLSocketFactory(trustServerCertificate);
+               SSLSocket sslSocket = (SSLSocket)f.createSocket(socket,
+                       socket.getInetAddress().getHostAddress(),  socket.getPort(),  false);
+
                sslSocket.setEnabledProtocols(new String [] {"TLSv1"});
                sslSocket.setUseClientMode(true);
                sslSocket.startHandshake();
                socket = sslSocket;
                writer = new PacketOutputStream(socket.getOutputStream());
-               writer.flush();
                reader = new BufferedInputStream(socket.getInputStream(), 32768);
                packetFetcher = new SyncPacketFetcher(reader);
 
@@ -411,7 +440,6 @@ public class MySQLProtocol implements Protocol {
            moreResults = false;
            connected = true;
            hostFailed = false; // Prevent reconnects
-
        } catch (IOException e) {
            throw new QueryException("Could not connect to " + host + ":" +
                    port + ": " + e.getMessage(),
