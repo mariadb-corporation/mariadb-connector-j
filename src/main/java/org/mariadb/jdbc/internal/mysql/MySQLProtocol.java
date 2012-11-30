@@ -74,10 +74,7 @@ import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.SocketException;
-import java.net.SocketTimeoutException;
+import java.net.*;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.logging.Level;
@@ -717,9 +714,22 @@ public class MySQLProtocol implements Protocol {
 
             if (resultPacket.getResultType() == ResultPacket.ResultType.LOCALINFILE) {
                 // Server request the local file (LOCAL DATA LOCAL INFILE)
+                // We do accept general URLs, too
+
                 LocalInfilePacket localInfilePacket= (LocalInfilePacket)resultPacket;
                 log.fine("sending local file " + localInfilePacket.getFileName());
-                writer.sendFile(new FileInputStream(localInfilePacket.getFileName()),rawPacket.getPacketSeq()+1);
+                String localInfile = localInfilePacket.getFileName();
+
+                InputStream is;
+                try {
+                    URL u = new URL(localInfile);
+                    is = u.openStream();
+                } catch (IOException ioe)   {
+                    is = new FileInputStream(localInfile);
+                }
+
+                writer.sendFile(is, rawPacket.getPacketSeq()+1);
+                is.close();
                 rawPacket = packetFetcher.getRawPacket();
                 resultPacket = ResultPacketFactory.createResultPacket(rawPacket);
             }

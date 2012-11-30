@@ -66,15 +66,6 @@ public class PacketOutputStream extends OutputStream{
           finishPacket();
         }
         writeEmptyPacket(seq);
-
-        /*lastSeq  = seqNo;
-        boolean doWriteEmptyPacket = (position != HEADER_LENGTH);
-        finishPacket();
-
-        if (doWriteEmptyPacket) {
-            writeEmptyPacket(lastSeq+1);
-        }
-        */
     }
 
     public void finishPacket() throws IOException{
