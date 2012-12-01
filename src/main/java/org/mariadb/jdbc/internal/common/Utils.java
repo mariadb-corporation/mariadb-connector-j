@@ -103,43 +103,6 @@ public class Utils {
         }
     }
 
-    /**
-     * returns count of characters c in str.
-     * <p/>
-     * Does not count chars enclosed in single or double quotes
-     *
-     * @param str the string to count
-     * @param c   the character
-     * @return the number of chars c in str
-     */
-    public static int countChars(final String str, final char c) {
-        int count = 0;
-        boolean isWithinDoubleQuotes = false;
-        boolean isWithinQuotes = false;
-
-        for (final byte b : str.getBytes()) {
-            if (b == '"' && !isWithinQuotes && !isWithinDoubleQuotes) {
-                isWithinDoubleQuotes = true;
-            } else if (b == '"' && !isWithinQuotes) {
-                isWithinDoubleQuotes = false;
-            }
-
-            if (b == '\'' && !isWithinQuotes && !isWithinDoubleQuotes) {
-                isWithinQuotes = true;
-            } else if (b == '\'' && !isWithinDoubleQuotes) {
-                isWithinQuotes = false;
-            }
-
-            if (!isWithinDoubleQuotes && !isWithinQuotes) {
-                if (c == b) {
-                    count++;
-                }
-            }
-        }
-        return count;
-    }
-
-
     public static List<String> createQueryParts(String query) {
         boolean isWithinDoubleQuotes = false;
         boolean isWithinQuotes = false;

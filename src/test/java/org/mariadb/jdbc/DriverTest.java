@@ -947,13 +947,6 @@ public class DriverTest extends BaseTest{
     }
 
     @Test
-    public void testCountChars() {
-        assertEquals(1, Utils.countChars("?",'?'));
-        assertEquals(2, Utils.countChars("??",'?'));
-        assertEquals(1, Utils.countChars("?'?'",'?'));
-        assertEquals(1, Utils.countChars("?\"?\"",'?'));
-    }
-    @Test
     public void bigDecimalTest() throws SQLException {
         BigDecimal bd = BigDecimal.TEN;
         connection.createStatement().execute("drop table if exists bigdectest");
