@@ -68,9 +68,9 @@ public class MySQLParameterizedQuery implements ParameterizedQuery {
     private final String query;
     private final byte[][] queryPartsArray;
 
-    public MySQLParameterizedQuery(final String query) {
+    public MySQLParameterizedQuery(String query, boolean noBackslashEscapes) {
         this.query = query;
-        List<String> queryParts = createQueryParts(query);
+        List<String> queryParts = createQueryParts(query, noBackslashEscapes);
         queryPartsArray = new byte[queryParts.size()][];
         for(int i=0;i < queryParts.size(); i++) {
             try {

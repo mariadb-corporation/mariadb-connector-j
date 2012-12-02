@@ -30,48 +30,6 @@ public class ResultSetUnsupportedMethodsTest {
         connection.close();
     }
 
-    /*    @Test
-public void runTests() throws SQLException, InvocationTargetException, IllegalAccessException {
-ResultSet rs = connection.createStatement().executeQuery("SELECT 1");
-
-Method[] methods = rs.getClass().getMethods();
-int i = 0;
-for(Method method : methods) {
-if(method.getName().startsWith("update")) {
-System.out.println("@Test(expected=SQLFeatureNotSupportedException.class)");
-String args = "";
-Class[] c = method.getParameterTypes();
-if(c.length > 0) {
-if(c[0] == String.class) {
-args = "\"a\"";
-} else {
-args = "1";
-}
-
-if(c.length > 1) {
-if(c[1].getName().equals("int") ||
-c[1].getName().equals("long") ||
-c[1].getName().equals("short")||
-c[1].getName().equals("byte")||
-c[1].getName().equals("float")||
-c[1].getName().equals("double")  )  {
-args+=",("+c[1].getName()+")1";
-} else {
-args+=",("+c[1].getName()+")null";
-}
-
-
-}
-System.out.println("public void test"+method.getName()+(i++)+"() throws SQLException {");
-System.out.println("   rs."+method.getName()+"("+args+");");
-System.out.println("}");
-}
-}
-}
-}
-
-
-                                            */
     @Test(expected=SQLFeatureNotSupportedException.class)
     public void testGetRef() throws SQLException {
        rs.getRef(1);

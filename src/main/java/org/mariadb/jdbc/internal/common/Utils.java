@@ -53,7 +53,7 @@ package org.mariadb.jdbc.internal.common;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -103,97 +103,111 @@ public class Utils {
         }
     }
 
-    public static List<String> createQueryParts(String query) {
-        boolean isWithinDoubleQuotes = false;
-        boolean isWithinQuotes = false;
-        int queryPos = 0;
-        int lastQueryPos = 0;
-        List<String> queryParts = new LinkedList<String>();
-
-        
-        for (char c : query.toCharArray()) {
-
-            if (c == '"' && !isWithinQuotes && !isWithinDoubleQuotes) {
-                isWithinDoubleQuotes = true;
-            } else if (c == '"' && !isWithinQuotes) {
-                isWithinDoubleQuotes = false;
-            }
-
-            if (c == '\'' && !isWithinQuotes && !isWithinDoubleQuotes) {
-                isWithinQuotes = true;
-            } else if (c == '\'' && !isWithinDoubleQuotes) {
-                isWithinQuotes = false;
-            }
-
-            if (!isWithinDoubleQuotes && !isWithinQuotes) {
-                if (c == '?') {
-                    queryParts.add(query.substring(lastQueryPos, queryPos));
-                    lastQueryPos = queryPos + 1;
-                }
-            }
-            queryPos++;
-        }
-        queryParts.add(query.substring(lastQueryPos, queryPos));
-        return queryParts;
-    }
+    enum LexState
+    {
+        Normal, /* inside  query */
+        String, /* inside string */
+        SlashStarComment, /* inside slash-star comment */
+        Escape, /* found backslash */
+        Parameter, /* parameter placeholder found */
+        EOLComment /* # comment, or // comment, or -- comment */
+    };
 
 
-    private enum ParsingState {
-        WITHIN_COMMENT, WITHIN_QUOTES, WITHIN_DOUBLE_QUOTES, NORMAL
-    }
+     public static List<String> createQueryParts(String queryString, boolean noBackslashEscapes)
+     {
+          List<String> list = new ArrayList<String>();
+          LexState state = LexState.Normal;
+          char lastChar= '\0';
 
-    public static String stripQuery(final String query) {
-        final StringBuilder sb = new StringBuilder();
-        ParsingState parsingState = ParsingState.NORMAL;
-        ParsingState nextParsingState = ParsingState.NORMAL;
-        //final byte[] queryBytes = query.getBytes();
+          StringBuffer sb = new StringBuffer();
 
-        for (int i = 0; i < query.length(); i++) {
-            final int b = query.codePointAt(i);
-            int nextCodePoint = 0;
+          boolean singleQuotes = false;
+          boolean isParam = false;
 
-            if (i < query.length() - 1) {
-                nextCodePoint = query.codePointAt(i + 1);
-            }
+          char[] query = queryString.toCharArray();
 
-            switch (parsingState) {
-                case WITHIN_DOUBLE_QUOTES:
-                    if (b == '"') {
-                        nextParsingState = ParsingState.NORMAL;
-                    }
-                    break;
-                case WITHIN_QUOTES:
-                    if (b == '\'') {
-                        nextParsingState = ParsingState.NORMAL;
-                    }
-                    break;
-                case NORMAL:
-                    if (b == '\'') {
-                        nextParsingState = ParsingState.WITHIN_QUOTES;
-                    } else if (b == '"') {
-                        nextParsingState = ParsingState.WITHIN_DOUBLE_QUOTES;
-                    } else if (b == '/' && nextCodePoint == '*') {
-                        nextParsingState = ParsingState.WITHIN_COMMENT;
-                        parsingState = ParsingState.WITHIN_COMMENT;
-                    } else if (b == '#') {
-                        return sb.toString();
-                    }
-                    break;
-                case WITHIN_COMMENT:
-                    if (b == '*' && nextCodePoint == '/') {
-                        nextParsingState = ParsingState.NORMAL;
-                        i++;
-                    }
-                    break;
-            }
+          for (int i = 0; i < query.length; i++)  {
+              if (state == LexState.Escape) {
+                  i++;
+                  sb.append(query[i]);
+                  state = LexState.String;
+                  continue;
+              }
 
-            if (parsingState != ParsingState.WITHIN_COMMENT) {
-                sb.append((char) b);
-            }
-            parsingState = nextParsingState;
-        }
-        return sb.toString();
-    }
+              char c = query[i];
+              switch (c)  {
+                  case '*':
+                      if (state == LexState.Normal && lastChar == '/')
+                          state = LexState.SlashStarComment;
+                      break;
+                  case '/':
+                      if (state == LexState.SlashStarComment && lastChar == '*')
+                          state = LexState.Normal;
+                      else if (state == LexState.Normal && lastChar == '/')
+                          state = LexState.EOLComment;
+                      break;
+
+                  case '#':
+                      if (state == LexState.Normal)
+                          state = LexState.EOLComment;
+                      break;
+
+                  case '-':
+                      if (state == LexState.Normal && lastChar == '-')
+                          state = LexState.EOLComment;
+                      break;
+
+                  case '\n':
+                      if (state == LexState.EOLComment)
+                          state = LexState.Normal;
+                      break;
+
+                  case '"':
+                      if (state == LexState.Normal) {
+                          state = LexState.String;
+                          singleQuotes = false;
+                      }
+                      else if (state == LexState.String && !singleQuotes)
+                          state = LexState.Normal;
+                      break;
+
+                  case '\'':
+                      if (state == LexState.Normal) {
+                          state = LexState.String;
+                          singleQuotes = true;
+                      }
+                      else if (state == LexState.String && singleQuotes)
+                          state = LexState.Normal;
+                      break;
+
+                  case '\\':
+                      if (noBackslashEscapes)
+                          break;
+                      if (state == LexState.String)
+                          state = LexState.Escape;
+                      break;
+
+                  case '?':
+                      if (state == LexState.Normal)
+                          isParam = true;
+                      break;
+              }
+              lastChar = c;
+              if (isParam)  {
+                  list.add(sb.toString());
+                  sb.setLength(0);
+                  isParam = false;
+              }
+              else  {
+                  sb.append(c);
+              }
+
+          }
+          list.add(sb.toString());
+          return list;
+     }
+
 
     /**
      * encrypts a password

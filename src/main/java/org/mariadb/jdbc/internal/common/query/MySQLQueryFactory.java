@@ -60,11 +60,11 @@ public class MySQLQueryFactory implements QueryFactory {
     {
         return new MySQLQuery(query);
     }
-    public ParameterizedQuery createParameterizedQuery(final String query) {
-    	return new MySQLParameterizedQuery(query);
+    public ParameterizedQuery createParameterizedQuery( String query, boolean noBackslashEscapes) {
+    	return new MySQLParameterizedQuery(query, noBackslashEscapes);
     }
 
-    public ParameterizedQuery createParameterizedQuery(final ParameterizedQuery dQuery) {
+    public ParameterizedQuery createParameterizedQuery( ParameterizedQuery dQuery) {
         return new MySQLParameterizedQuery(dQuery);
     }
 }

@@ -90,7 +90,8 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
         if(log.isLoggable(Level.FINEST)) {
             log.finest("Creating prepared statement for " + query);
         }
-        dQuery = queryFactory.createParameterizedQuery(Utils.nativeSQL(query, connection.noBackslashEscapes));
+        dQuery = queryFactory.createParameterizedQuery(Utils.nativeSQL(query, connection.noBackslashEscapes),
+                connection.noBackslashEscapes);
         this.parameterizedBatchHandler = parameterizedBatchHandler;
     }
 
@@ -190,7 +191,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
         dQuery = getQueryFactory().createParameterizedQuery(dQuery);
     }
     public void addBatch(final String sql) throws SQLException {
-        parameterizedBatchHandler.addToBatch(getQueryFactory().createParameterizedQuery(sql));
+        parameterizedBatchHandler.addToBatch(getQueryFactory().createParameterizedQuery(sql, connection.noBackslashEscapes));
     }
     @Override
     public int[] executeBatch() throws SQLException {

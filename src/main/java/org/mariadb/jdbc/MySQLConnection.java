@@ -161,12 +161,11 @@ public final class MySQLConnection
         if (parameterizedBatchHandlerFactory == null) {
             this.parameterizedBatchHandlerFactory = new DefaultParameterizedBatchHandlerFactory();
         }
-        final String strippedQuery = Utils.stripQuery(sql);
         return new MySQLPreparedStatement(protocol,
                 this,
-                strippedQuery,
+                sql,
                 queryFactory,
-                parameterizedBatchHandlerFactory.get(strippedQuery, protocol));
+                parameterizedBatchHandlerFactory.get(sql, protocol));
     }
 
 
@@ -174,13 +173,7 @@ public final class MySQLConnection
        return new MySQLCallableStatement(this, sql);
     }
 
-    /**
-     * currently does nothing. //TODO: implement
-     *
-     * @param sql
-     * @return
-     * @throws SQLException
-     */
+
     public String nativeSQL(final String sql) throws SQLException {
         return Utils.nativeSQL(sql,noBackslashEscapes);
     }
@@ -191,17 +184,13 @@ public final class MySQLConnection
      * @param autoCommit if it should be auto commited.
      * @throws SQLException if something goes wrong talking to the server.
      */
-    public void setAutoCommit(final boolean autoCommit) throws SQLException {
+    public void setAutoCommit(boolean autoCommit) throws SQLException {
         Statement stmt = createStatement();
-        String clause;
-
-        if(autoCommit) {
-            clause = "1";
-        } else {
-            clause = "0";
+        try {
+            stmt.executeUpdate("set autocommit="+((autoCommit)?"1":"0"));
+        } finally {
+            stmt.close();
         }
-
-        stmt.executeUpdate("set autocommit="+clause);
     }
 
     /**

@@ -8,8 +8,6 @@ import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
 import java.sql.Connection;
 import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Savepoint;
 import java.util.UUID;
 
 import static junit.framework.Assert.*;
@@ -148,116 +146,5 @@ public class XA extends BaseTest {
         }
     }
 
-    /**
-   	 * Tests operation of local transactions on XAConnections when global
-   	 * transactions are in or not in progress (follows from BUG#17401).
-   	 *
-   	 * @throws Exception
-   	 *             if the testcase fails
-   	 */
-    @Test
-   	public void testLocalTransaction() throws Exception {
 
-
-
-   		connection.createStatement().execute("DROP TABLE IF EXISTS t");
-        connection.createStatement().execute("CREATE TABLE t(i int) engine=InnoDB");
-
-   		Connection conn1 = null;
-
-   		XAConnection xaConn1 = null;
-
-   		try {
-   			xaConn1 = dataSource.getXAConnection();
-   			XAResource xaRes1 = xaConn1.getXAResource();
-   			conn1 = xaConn1.getConnection();
-   			assertEquals(true, conn1.getAutoCommit());
-   			conn1.setAutoCommit(true);
-   			conn1.createStatement().executeUpdate(
-   					"INSERT INTO t  VALUES (1)");
-
-
-   			conn1.createStatement().executeUpdate(
-   					"TRUNCATE TABLE t");
-   			conn1.setAutoCommit(false);
-   			conn1.createStatement().executeUpdate(
-   					"INSERT INTO t VALUES (2)");
-
-   			conn1.rollback();
-
-   			conn1.createStatement().executeUpdate(
-   					"INSERT INTO t  VALUES (3)");
-   			conn1.commit();
-
-   			Savepoint sp = conn1.setSavepoint();
-   			conn1.rollback(sp);
-   			sp = conn1.setSavepoint("abcd");
-   			conn1.rollback(sp);
-   			Savepoint spSaved = sp;
-
-   			Xid xid = newXid();
-   			xaRes1.start(xid, XAResource.TMNOFLAGS);
-
-   			try {
-   				try {
-   					conn1.setAutoCommit(true);
-   				} catch (SQLException sqlEx) {
-   					// we expect an exception here
-   					assertEquals("XAE07", sqlEx.getSQLState());
-   				}
-
-   				try {
-   					conn1.commit();
-   				} catch (SQLException sqlEx) {
-   					// we expect an exception here
-   					assertEquals("XAE07", sqlEx.getSQLState());
-   				}
-
-   				try {
-   					conn1.rollback();
-   				} catch (SQLException sqlEx) {
-   					// we expect an exception here
-   					assertEquals("XAE07", sqlEx.getSQLState());
-   				}
-
-   				try {
-   					sp = conn1.setSavepoint();
-   				} catch (SQLException sqlEx) {
-   					// we expect an exception here
-   					assertEquals("XAE07", sqlEx.getSQLState());
-   				}
-
-   				try {
-   					conn1.rollback(spSaved);
-   				} catch (SQLException sqlEx) {
-   					// we expect an exception here
-   					assertEquals("42000", sqlEx.getSQLState());
-   				}
-
-   				try {
-   					sp = conn1.setSavepoint("abcd");
-   				} catch (SQLException sqlEx) {
-   					// we expect an exception here
-   					assertEquals("XAE07", sqlEx.getSQLState());
-   				}
-
-   				try {
-   					conn1.rollback(spSaved);
-   				} catch (SQLException sqlEx) {
-   					// we expect an exception here
-   					assertEquals("42000", sqlEx.getSQLState());
-   				}
-   			} finally {
-   				xaRes1.forget(xid);
-   			}
-   		} finally {
-   			if (xaConn1 != null) {
-   				try {
-   					xaConn1.close();
-   				} catch (SQLException sqlEx) {
-   					// this is just busted in the server right now
-   				}
-   			}
-   		}
-   	}
 }

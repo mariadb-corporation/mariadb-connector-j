@@ -3,7 +3,6 @@ package org.mariadb.jdbc;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mariadb.jdbc.internal.common.RewriteParameterizedBatchHandlerFactory;
-import org.mariadb.jdbc.internal.common.Utils;
 import org.mariadb.jdbc.internal.common.packet.RawPacket;
 import org.mariadb.jdbc.internal.common.packet.buffer.WriteBuffer;
 
@@ -16,9 +15,7 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertNotSame;
-import static junit.framework.Assert.assertTrue;
+import static junit.framework.Assert.*;
 import static org.junit.Assert.assertFalse;
 
 
@@ -379,34 +376,6 @@ public class DriverTest extends BaseTest{
             assertEquals("hej"+i,rs.getString(2));
         }
         assertEquals(false,rs.next());
-
-    }
-    @Test
-    public void testChangeBatchHandler() throws SQLException {
-        connection.createStatement().execute("drop table if exists test_batch3");
-        connection.createStatement().execute("create table test_batch3 (id int not null primary key auto_increment, test varchar(10))");
-
-        if(connection.isWrapperFor(MySQLConnection.class)) {
-            MySQLConnection dc = connection.unwrap(MySQLConnection.class);
-            dc.setBatchQueryHandlerFactory(new NoopBatchHandlerFactory());
-        }
-        PreparedStatement ps = connection.prepareStatement("insert into test_batch3 (test) values (?)");
-        PreparedStatement ps2 = connection.prepareStatement("insert into test_batch3 (test) values (?)");
-        ps.setString(1,"From nr1");
-        ps.addBatch();
-
-        ps2.setString(1,"From nr2");
-        ps2.addBatch();
-
-        ps2.setString(1,"from nr2 2");
-        ps.setString(1,"from nr1 2");
-        ps.addBatch();
-        ps2.addBatch();
-
-        ps2.executeBatch();
-        ps.executeBatch();
-
-
 
     }
 
@@ -900,27 +869,6 @@ public class DriverTest extends BaseTest{
             assertEquals(i++, rs.getInt("id"));
         }
         assertEquals(1,i);
-    }
-    @Test
-    public void testStripQueryWithComments() {
-        String q = "select 'some query without comments'";
-        String expectedQ = q;
-        assertEquals(q, Utils.stripQuery(q));
-        q = "select 1 /*this should be removed*/ from b";
-        expectedQ = "select 1  from b";
-        assertEquals(expectedQ,Utils.stripQuery(q));
-        q = "select 1 /*this should be # removed*/ from b# crap";
-        expectedQ = "select 1  from b";
-        assertEquals(expectedQ,Utils.stripQuery(q));
-        q = "select \"1 /*this should not be # removed*/\" from b# crap";
-        expectedQ = "select \"1 /*this should not be # removed*/\" from b";
-        assertEquals(expectedQ,Utils.stripQuery(q));
-        q = "/**/select \"1 /*this should not be # removed*/\" from b# crap/**/";
-        expectedQ = "select \"1 /*this should not be # removed*/\" from b";
-        assertEquals(expectedQ,Utils.stripQuery(q));
-        q = "/**/select '1 /*this should not be # removed*/' from b# crap/**/";
-        expectedQ = "select '1 /*this should not be # removed*/' from b";
-        assertEquals(expectedQ,Utils.stripQuery(q));
     }
 
     @Test

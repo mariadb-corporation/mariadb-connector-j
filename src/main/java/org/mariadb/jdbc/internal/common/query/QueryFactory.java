@@ -56,7 +56,7 @@ public interface QueryFactory {
     Query createQuery(String query);
     Query createQuery(byte[] query);
     
-    ParameterizedQuery createParameterizedQuery(String query);
+    ParameterizedQuery createParameterizedQuery(String query, boolean noBackslashEscapes);
 
     ParameterizedQuery createParameterizedQuery(ParameterizedQuery dQuery);
 }
