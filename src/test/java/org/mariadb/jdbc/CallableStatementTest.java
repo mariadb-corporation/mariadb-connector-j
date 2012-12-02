@@ -3,10 +3,9 @@
 
     import org.junit.Test;
 
-    import java.sql.*;
+import java.sql.*;
 
-    import static junit.framework.Assert.assertEquals;
-    import static junit.framework.Assert.assertTrue;
+    import static junit.framework.Assert.*;
 
     public class CallableStatementTest extends BaseTest{
 
@@ -43,245 +42,70 @@
         private void createFunction(String name, String body) throws SQLException {
             create("function", name , body) ;
         }
+
         @Test
-        public void testInOut() throws SQLException{
+        public void withResultSet() throws Exception {
+            createProcedure("withResultSet", "(a int) begin select a; end");
+            CallableStatement stmt = connection.prepareCall("{call withResultSet(?)}");
+            stmt.setInt(1,1);
+            ResultSet rs = stmt.executeQuery();
+            rs.next();
+            int res = rs.getInt(1);
+            assertEquals(res, 1);
+        }
+
+        @Test
+        public void useParameterName() throws Exception {
+            createProcedure("useParameterName", "(a int) begin select a; end");
+            CallableStatement stmt = connection.prepareCall("{call useParameterName(?)}");
+            stmt.setInt("a",1);
+            ResultSet rs = stmt.executeQuery();
+            rs.next();
+            int res = rs.getInt(1);
+            assertEquals(res, 1);
+        }
+
+        @Test
+        public void useWrongParameterName() throws Exception {
+            createProcedure("useWrongParameterName", "(a int) begin select a; end");
+            CallableStatement stmt = connection.prepareCall("{call useParameterName(?)}");
+
+            try {
+                stmt.setInt("b",1);
+                fail("must fail");
+            } catch (SQLException sqle) {
+                assertTrue(sqle.getMessage().equals("there is no parameter with the name b"));
+            }
+        }
+        @Test
+        public void multiResultSets() throws Exception {
+            createProcedure("multiResultSets", "() BEGIN  SELECT 1; SELECT 2; END");
+            CallableStatement stmt = connection.prepareCall("{call multiResultSets()}");
+            stmt.execute();
+            ResultSet rs = stmt.getResultSet();
+            assertTrue(rs.next());
+            assertEquals(1, rs.getInt(1));
+            assertFalse(rs.next());
+            assertTrue(stmt.getMoreResults());
+            rs = stmt.getResultSet();
+            assertTrue(rs.next());
+            assertEquals(2, rs.getInt(1));
+            assertFalse(rs.next());
+        }
+
+        @Test
+        public void inoutParam() throws SQLException{
             CallableStatement storedProc = null;
 
-            createProcedure("testInOutParam",
-                    "(IN p1 VARCHAR(255), INOUT p2 INT)\n" + "begin\n"
-                            + " DECLARE z INT;\n" + "SET z = p2 + 1;\n"
-                            + "SET p2 = z;\n" + "SELECT p1;\n"
-                            + "SELECT CONCAT('zyxw', p1);\n" + "end\n");
+            createProcedure("inoutParam",
+                    "(INOUT p1 INT) begin set p1 = p1 + 1; end\n");
 
-            storedProc = connection.prepareCall("{call testInOutParam(?, ?)}");
+            storedProc = connection.prepareCall("{call inOutParam(?)}");
 
-            storedProc.setString(1, "abcd");
-            storedProc.setInt(2, 4);
-            storedProc.registerOutParameter(2, Types.VARCHAR);
+            storedProc.setInt(1,1);
+            storedProc.registerOutParameter(1, Types.INTEGER);
             storedProc.execute();
-            Object o = storedProc.getObject("p2");
-            System.out.println("object = " + o + ":" + o.getClass());
-            assertEquals(5, storedProc.getInt("p2"));
-            //ParameterMetaData md= storedProc.getParameterMetaData();
+            assertEquals(2, storedProc.getObject(1));
+
         }
-
-        @Test
-        public void testParameterParser() throws Exception {
-
-            CallableStatement cstmt = null;
-
-            try {
-
-                createTable("t1",
-                        "(id   char(16) not null default '', data int not null)");
-                createTable("t2", "(s   char(16),  i   int,  d   double)");
-
-                createProcedure("foo42",
-                        "() insert into test.t1 values ('foo', 42);");
-                PreparedStatement s = this.connection.prepareCall("{CALL foo42()}");
-                assertEquals(s.getParameterMetaData().getParameterCount(), 0);
-
-                this.connection.prepareCall("{CALL foo42}");
-                assertEquals(s.getParameterMetaData().getParameterCount(), 0);
-
-
-                createProcedure("bar",
-                        "(x char(16), y int, z DECIMAL(10)) insert into test.t1 values (x, y);");
-                cstmt = this.connection.prepareCall("{CALL bar(?, ?, ?)}");
-
-                ParameterMetaData md = cstmt.getParameterMetaData();
-                assertEquals(3, md.getParameterCount());
-                assertEquals(Types.CHAR, md.getParameterType(1));
-                assertEquals(Types.INTEGER, md.getParameterType(2));
-                assertEquals(Types.DECIMAL, md.getParameterType(3));
-
-                createProcedure("p", "() label1: WHILE @a=0 DO SET @a=1; END WHILE");
-                this.connection.prepareCall("{CALL p()}");
-
-                createFunction("f", "() RETURNS INT NO SQL return 1; ");
-                cstmt = this.connection.prepareCall("{? = CALL f()}");
-
-                md = cstmt.getParameterMetaData();
-                assertEquals(Types.INTEGER, md.getParameterType(1));
-
-            } finally {
-                if (cstmt != null) {
-                    cstmt.close();
-                }
-            }
-        }
-
-        @Test
-        public void testBatch() throws SQLException{
-            createTable("testBatchTable", "(field1 INT)");
-            createProcedure("testBatch", "(IN foo VARCHAR(15))\n"
-                            + "begin\n"
-                            + "INSERT INTO testBatchTable VALUES (foo);\n"
-                            + "end\n");
-            CallableStatement st = connection.prepareCall("{call testBatch(?)}");
-            try {
-                for(int i=0; i< 100; i++) {
-                    st.setInt(1, i);
-                    st.addBatch();
-                }
-                int[] a = st.executeBatch();
-                assertEquals(a.length,100);
-                for(int i=0; i< 100; i++)
-                    assertEquals(a[i],1);
-            }
-            finally {
-                st.close();
-            }
-
-            Statement s = connection.createStatement();
-            ResultSet rs = st.executeQuery("select * from testBatchTable");
-            for(int i=0; i< 100; i++) {
-                assertTrue(rs.next());
-                assertEquals(i,rs.getInt(1));
-            }
-        }
-
-        @Test
-        public void testOutParamsNoBodies() throws Exception {
-
-                CallableStatement storedProc = null;
-
-
-                createProcedure("testOutParam", "(x int, out y int)\n" + "begin\n"
-                        + "declare z int;\n" + "set z = x+1, y = z;\n" + "end\n");
-
-                storedProc = connection.prepareCall("{call testOutParam(?, ?)}");
-
-                storedProc.setInt(1, 5);
-                storedProc.registerOutParameter(2, Types.INTEGER);
-
-                storedProc.execute();
-
-                int indexedOutParamToTest = storedProc.getInt(2);
-
-                assertTrue("Output value not returned correctly",
-                        indexedOutParamToTest == 6);
-
-                storedProc.clearParameters();
-                storedProc.setInt(1, 32);
-                storedProc.registerOutParameter(2, Types.INTEGER);
-
-                storedProc.execute();
-
-                indexedOutParamToTest = storedProc.getInt(2);
-
-                assertTrue("Output value not returned correctly",
-                        indexedOutParamToTest == 33);
-        }
-
-
-        @Test
-        public void testSPNoParams() throws Exception {
-                CallableStatement storedProc = null;
-                createProcedure("testSPNoParams", "()\n" + "BEGIN\n"
-                        + "SELECT 1;\n" + "end\n");
-                storedProc = connection.prepareCall("{call testSPNoParams()}");
-                storedProc.execute();
-        }
-
-        @Test
-        public void testResultSet() throws Exception {
-
-                CallableStatement storedProc = null;
-
-                createTable("testSpResultTbl1", "(field1 INT)");
-                Statement stmt = connection.createStatement();
-                stmt.executeUpdate("INSERT INTO testSpResultTbl1 VALUES (1), (2)");
-                createTable("testSpResultTbl2", "(field2 varchar(255))");
-                stmt.executeUpdate("INSERT INTO testSpResultTbl2 VALUES ('abc'), ('def')");
-                stmt.close();
-
-                createProcedure(
-                        "testSpResult",
-                        "()\n"
-                                + "BEGIN\n"
-                                + "SELECT field2 FROM testSpResultTbl2 WHERE field2='abc';\n"
-                                + "UPDATE testSpResultTbl1 SET field1=2;\n"
-                                + "SELECT field2 FROM testSpResultTbl2 WHERE field2='def';\n"
-                                + "end\n");
-
-                storedProc = connection.prepareCall("{call testSpResult()}");
-
-                storedProc.execute();
-
-                ResultSet rs = storedProc.getResultSet();
-
-                ResultSetMetaData rsmd = rs.getMetaData();
-
-                assertTrue(rsmd.getColumnCount() == 1);
-                assertTrue("field2".equals(rsmd.getColumnName(1)));
-                assertTrue(rsmd.getColumnType(1) == Types.VARCHAR);
-
-                assertTrue(rs.next());
-
-                assertTrue("abc".equals(rs.getString(1)));
-
-                assertTrue(storedProc.getMoreResults());
-
-                ResultSet nextResultSet = storedProc.getResultSet();
-
-                rsmd = nextResultSet.getMetaData();
-
-                assertTrue(rsmd.getColumnCount() == 1);
-                assertTrue("field2".equals(rsmd.getColumnName(1)));
-                assertTrue(rsmd.getColumnType(1) == Types.VARCHAR);
-
-                assertTrue(nextResultSet.next());
-
-                assertTrue("def".equals(nextResultSet.getString(1)));
-
-                nextResultSet.close();
-
-                rs.close();
-                storedProc.getMoreResults();
-                storedProc.execute();
-        }
-
-        @Test
-        public void testOutParams() throws Exception {
-                CallableStatement storedProc = null;
-
-                createProcedure("testOutParam", "(x int, out y int)\n" + "begin\n"
-                        + "declare z int;\n" + "set z = x+1, y = z;\n" + "end\n");
-
-                storedProc = connection.prepareCall("{call testOutParam(?, ?)}");
-
-                storedProc.setInt(1, 5);
-                storedProc.registerOutParameter(2, Types.INTEGER);
-
-                storedProc.execute();
-
-                System.out.println(storedProc);
-
-                int indexedOutParamToTest = storedProc.getInt(2);
-
-
-                int namedOutParamToTest = storedProc.getInt("y");
-
-                assertTrue("Named and indexed parameter are not the same",
-                        indexedOutParamToTest == namedOutParamToTest);
-                assertTrue("Output value not returned correctly",
-                        indexedOutParamToTest == 6);
-
-                // Start over, using named parameters, this time
-                storedProc.clearParameters();
-                storedProc.setInt("x", 32);
-                storedProc.registerOutParameter("y", Types.INTEGER);
-
-                storedProc.execute();
-
-                indexedOutParamToTest = storedProc.getInt(2);
-                namedOutParamToTest = storedProc.getInt("y");
-
-                assertTrue("Named and indexed parameter are not the same",
-                        indexedOutParamToTest == namedOutParamToTest);
-                assertTrue("Output value not returned correctly",
-                        indexedOutParamToTest == 33);
-            }
-
     }
