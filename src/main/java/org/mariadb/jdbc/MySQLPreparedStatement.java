@@ -1234,32 +1234,21 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
      * @see java.sql.Types
      */
     public void setObject(final int parameterIndex, final Object x, final int targetSqlType) throws SQLException {
-        if (Utils.isJava5()) {
-            switch(targetSqlType ) {
-                case Types.ARRAY:
-                case Types.CLOB:
-                case Types.DATALINK:
-                case Types.JAVA_OBJECT:
-                case Types.REF:
-                case Types.STRUCT:
-                    throw SQLExceptionMapper.getFeatureNotSupportedException("Type not supported");
-            }
-        } else {
-            switch(targetSqlType ) {
-                case Types.ARRAY:
-                case Types.CLOB:
-                case Types.DATALINK:
-                case Types.JAVA_OBJECT:
-                case Types.NCHAR:
-                case Types.NCLOB:
-                case Types.NVARCHAR:
-                case Types.LONGNVARCHAR:
-                case Types.REF:
-                case Types.ROWID:
-                case Types.SQLXML:
-                case Types.STRUCT:
-                    throw SQLExceptionMapper.getFeatureNotSupportedException("Type not supported");
-            }
+
+        switch(targetSqlType ) {
+            case Types.ARRAY:
+            case Types.CLOB:
+            case Types.DATALINK:
+            case Types.JAVA_OBJECT:
+            case Types.NCHAR:
+            case Types.NCLOB:
+            case Types.NVARCHAR:
+            case Types.LONGNVARCHAR:
+            case Types.REF:
+            case Types.ROWID:
+            case Types.SQLXML:
+            case Types.STRUCT:
+                throw SQLExceptionMapper.getFeatureNotSupportedException("Type not supported");
         }
         
         if (x == null) {

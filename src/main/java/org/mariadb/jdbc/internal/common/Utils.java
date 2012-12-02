@@ -58,20 +58,6 @@ import java.util.List;
 
 
 public class Utils {
-    private static final int START_BIT_MILLISECONDS = 17;
-    private static final int START_BIT_SECONDS = 11;
-    private static final int START_BIT_MINUTES = 5;
-    /*
-     * These masks allow us to "cut up" the packed integer into
-     * its components.
-     */
-    private static final int MASK_HOURS = 0x0000001F;
-    private static final int MASK_MINUTES = 0x000007E0;
-    private static final int MASK_SECONDS = 0x0001F800;
-    private static final int MASK_MILLISECONDS = 0xFFFE0000;
-
-    private static boolean java5Determined = false;
-    private static boolean isJava5 = false;
 
 
     /**
@@ -245,58 +231,7 @@ public class Utils {
         return returnBytes;
     }
 
-    /**
-     * packs the time portion of a millisecond time stamp into an int
-     * <p/>
-     * format:
-     * <pre>
-     * The part of the day, stored in a 4 byte integer as follows:
-     * <p/>
-     * | 31 | 30 | 29 | 28 | 27 | 26 | 25 | 24 |
-     * | mS | mS | mS | mS | mS | mS | mS | mS |
-     * | 23 | 22 | 21 | 20 | 19 | 18 | 17 | 16 |
-     * | mS | mS | mS | mS | mS | mS | mS | SS |
-     * | 15 | 14 | 13 | 12 | 11 | 10 | 09 | 08 |
-     * | SS | SS | SS | SS | SS | MM | MM | MM |
-     * | 07 | 06 | 05 | 04 | 03 | 02 | 01 | 00 |
-     * | MM | MM | MM | HH | HH | HH | HH | HH |
-     * </pre>
-     *
-     * @param milliseconds the milliseconds to pack
-     * @return a packed integer containing the time
-     */
 
-
-    public static int packTime(final long milliseconds) {
-        final int millis = (int) (milliseconds % 1000);
-        final int seconds = (int) ((milliseconds / 1000) % 60);
-        final int minutes = (int) ((milliseconds / (1000 * 60)) % 60);
-        final int hours = (int) ((milliseconds / (1000 * 60 * 60)) % 24);
-        /* OK, now we pack the pieces into a 4-byte integer */
-        return (millis * (1 << START_BIT_MILLISECONDS))
-                + (seconds * (1 << START_BIT_SECONDS))
-                + (minutes * (1 << START_BIT_MINUTES))
-                + hours;
-    }
-
-    /**
-     * unpacks an integer packed by packTime
-     *
-     * @param packedTime the packed time
-     * @return a millisecond time
-     * @see Utils#packTime(long)
-     */
-    public static long unpackTime(final int packedTime) {
-        final int hours = (packedTime & MASK_HOURS);
-        final int minutes = (packedTime & MASK_MINUTES) >> (START_BIT_MINUTES);
-        final int seconds = (packedTime & MASK_SECONDS) >> (START_BIT_SECONDS);
-        final int millis = (packedTime & MASK_MILLISECONDS) >> (START_BIT_MILLISECONDS);
-        long returnValue = (long) hours * 60 * 60 * 1000;
-        returnValue += (long) minutes * 60 * 1000;
-        returnValue += (long) seconds * 1000;
-        returnValue += (long) millis;
-        return returnValue;
-    }
 
     /**
      * Copies the original byte array content to a new byte array. The resulting byte array is
@@ -334,23 +269,6 @@ public class Utils {
         return result;
     }
 
-    /**
-     * Returns if it is a Java version up to Java 5.
-     *
-     * @return true if the VM is <= Java 5
-     */
-    public static boolean isJava5() {
-        if (!java5Determined) {
-            try {
-                java.util.Arrays.copyOf(new byte[0], 0);
-                isJava5 = false;
-            } catch (java.lang.NoSuchMethodError e) {
-                 isJava5 = true;
-            }
-            java5Determined = true;
-        }
-        return isJava5;
-    }
 
 
     /**

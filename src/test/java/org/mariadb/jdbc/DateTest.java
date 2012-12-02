@@ -1,7 +1,6 @@
 package org.mariadb.jdbc;
 
 import org.junit.Test;
-import org.mariadb.jdbc.internal.common.Utils;
 
 import java.sql.*;
 import java.util.Calendar;
@@ -67,21 +66,6 @@ public class DateTest extends BaseTest{
         ResultSet rs = stmt.executeQuery("select 'aaa' as a");
         rs.next();
         rs.getTimestamp("a");
-    }
-
-
-    @Test
-    public void timePackTest() {
-        for(int hours = 0;hours<24;hours++) {
-            for(int minutes=0;minutes<60;minutes++) {
-                for(int seconds = 0;seconds<60;seconds++) {
-                    long millis = hours*60*60*1000 + minutes*60*1000 + seconds*1000;
-                    int packed = Utils.packTime(millis);
-                    long unPacked = Utils.unpackTime(packed);
-                    assertEquals(millis, unPacked);
-                }
-            }
-        }
     }
 
     @Test

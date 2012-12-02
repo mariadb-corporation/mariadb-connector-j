@@ -52,7 +52,6 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc;
 
 import org.mariadb.jdbc.internal.SQLExceptionMapper;
-import org.mariadb.jdbc.internal.common.Utils;
 
 import java.sql.*;
 import java.util.logging.Logger;
@@ -2630,11 +2629,7 @@ public abstract class CommonDatabaseMetaData implements DatabaseMetaData {
      * @since 1.4
      */
     public int getSQLStateType() throws SQLException {
-        if (Utils.isJava5()) {
-            return sqlStateXOpen;
-        } else {
-            return sqlStateSQL;
-        }
+         return sqlStateSQL;
     }
 
     /**

@@ -32,7 +32,7 @@ public class BigQueryTest extends BaseTest{
         Statement s= connection.createStatement();
         StringBuilder query = new StringBuilder("INSERT INTO bigblob VALUES (null, '").
                 append(arr).append("')");
-        //System.out.println(query.toString() );
+
         s.executeUpdate(query.toString());
 
         ResultSet rs = stmt.executeQuery("select * from bigblob");
