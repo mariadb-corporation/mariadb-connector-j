@@ -122,8 +122,11 @@ public final class Driver implements java.sql.Driver {
     private void setURLParameters(String urlParameters, Properties info) {
         String [] parameters = urlParameters.split("&");
         for(String param : parameters) {
-            String [] keyVal = param.split("=");
-            info.setProperty(keyVal[0], keyVal[1]);
+            int pos = param.indexOf('=');
+            if (pos == -1)  {
+                throw new IllegalArgumentException("Invalid connection URL, expected key=value pairs, found " + param);
+            }
+            info.setProperty(param.substring(0, pos), param.substring(pos + 1));
         }
     }
 

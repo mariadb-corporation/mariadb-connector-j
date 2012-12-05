@@ -1364,4 +1364,11 @@ public class DriverTest extends BaseTest{
         c.close();
 
     }
+
+    @Test
+    // Bug in URL parser
+    public void mdev3916() throws Exception {
+       Connection c = DriverManager.getConnection("jdbc:mysql://localhost:3306/test?user=root&password=");
+       c.close();
+    }
 }
