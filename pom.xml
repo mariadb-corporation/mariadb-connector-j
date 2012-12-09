@@ -32,6 +32,24 @@
                 </configuration>
             </plugin>
             <plugin>
+               <groupId>org.apache.maven.plugins</groupId>
+               <artifactId>maven-jar-plugin</artifactId>
+               <configuration>
+                 <archive>
+                   <!-- manifestFile entry seems to be required to do any tweaking -->
+                   <manifestFile>src/main/resources/META-INF/MANIFEST.MF</manifestFile>
+                   <manifestEntries>
+                     <Bundle-Version>${pom.version}.0</Bundle-Version>
+                     <Bundle-ManifestVersion>2</Bundle-ManifestVersion>
+                     <Bundle-Name>MariaDB JDBC Client</Bundle-Name>
+                     <Bundle-SymbolicName>org.mariadb.jdbc</Bundle-SymbolicName>
+                     <Export-Package>org.mariadb.jdbc </Export-Package>
+                     <Import-Package>javax.net;resolution:=optional,javax.net.ssl;resolution:=optional,javax.sql;resolution:=optional,javax.transaction.xa;resolution:=optional</Import-Package>
+                   </manifestEntries>
+                 </archive>
+               </configuration>
+            </plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>2.4.2</version>
