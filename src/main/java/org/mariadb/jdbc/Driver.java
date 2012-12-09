@@ -136,9 +136,8 @@ public final class Driver implements java.sql.Driver {
      * @param url the url to test
      * @return true if the url is valid for this driver
      */
-    public boolean acceptsURL(final String url) {
-        return  url.startsWith("jdbc:mysql:thin://")
-                || url.startsWith("jdbc:mysql://");
+    public boolean acceptsURL(String url) {
+        return  JDBCUrl.acceptsURL(url);
     }
 
     /**
@@ -149,8 +148,8 @@ public final class Driver implements java.sql.Driver {
      * @return something - not implemented
      * @throws SQLException if there is a problem getting the property info
      */
-    public DriverPropertyInfo[] getPropertyInfo(final String url,
-                                                final Properties info)
+    public DriverPropertyInfo[] getPropertyInfo(String url,
+                                                Properties info)
             throws SQLException {
         return new DriverPropertyInfo[0];
     }

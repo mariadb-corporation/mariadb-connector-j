@@ -51,8 +51,6 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 
 public class JDBCUrl {
@@ -87,39 +85,26 @@ public class JDBCUrl {
         return new JDBCUrl("", "",  database, HostAddress.parse(hostname));
     }
 
+    static boolean acceptsURL(String url) {
+    	return (url != null) &&
+    			( 
+    		    // url.startsWith("jdbc:mysql:thin://") ||
+    			url.startsWith("jdbc:mariadb://") ||
+    			url.startsWith("jdbc:mysql://")
+    			);
+    	
+    }
     public static JDBCUrl parse(final String url) {
-
-        final String username;
-        final String password;
-        final String hostname;
-        final int port;
-        final String database;        
-
         if(url.startsWith("jdbc:mysql://")) {
             return parseConnectorJUrl(url);
         }
-        final Pattern p = Pattern.compile("^jdbc:(mysql:thin)://((\\w+)(:(\\w*))?@)?([^/:]+)(:(\\d+))?(/(\\w+))?");
-        final Matcher m = p.matcher(url);
-        if (m.find()) {
-
-
-            username = (m.group(3) == null ? "" : m.group(3));
-            password = (m.group(5) == null ? "" : m.group(5));
-            hostname = (m.group(6) == null ? "" : m.group(6));
-            if (m.group(8) != null) {
-                port = Integer.parseInt(m.group(8));
-            } else {
-                port = 3306;
-            }
-            database = m.group(10);
-            HostAddress addresses[] = new HostAddress[1];
-            addresses[0] = new HostAddress();
-            addresses[0].host = hostname;
-            addresses[0].port = port;
-            return new JDBCUrl(username, password, database, addresses);
-        } else {
-            return null;
+        String[] arr = new String[] {"jdbc:mysql:thin://","jdbc:mariadb://"};
+        for (String prefix : arr) {
+        	if (url.startsWith(prefix)) {
+        		return parseConnectorJUrl("jdbc:mysql://" + url.substring(prefix.length()));
+        	}
         }
+        return null;
     }
     public String getUsername() {
         return username;
