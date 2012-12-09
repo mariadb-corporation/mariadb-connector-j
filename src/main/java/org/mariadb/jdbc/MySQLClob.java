@@ -7,8 +7,9 @@ import java.sql.NClob;
 import java.sql.SQLException;
 
 public class MySQLClob extends MySQLBlob implements Clob, NClob, Serializable {
+	private static final long serialVersionUID = -2006825230517923067L;
 
-    public String toString() {
+	public String toString() {
       try {
         return new String(blobContent, "UTF-8");
       }
@@ -99,7 +100,6 @@ public class MySQLClob extends MySQLBlob implements Clob, NClob, Serializable {
 
 
     public Reader getCharacterStream(long pos, long length) throws SQLException {
-       String s = toString();
        String sub = toString().substring((int)pos -1, (int)pos -1 + (int)length);
        return new StringReader(sub);
     }

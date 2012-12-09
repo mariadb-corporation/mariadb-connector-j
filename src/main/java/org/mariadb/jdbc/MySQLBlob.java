@@ -60,7 +60,8 @@ import java.sql.SQLException;
 
 
 public  class MySQLBlob implements Blob, Serializable {
-    /**
+	private static final long serialVersionUID = 8557003556592493381L;
+	/**
      * the actual blob content.
      */
     protected byte[] blobContent;
@@ -85,11 +86,6 @@ public  class MySQLBlob implements Blob, Serializable {
             in.readFully(blobContent, 0, actualSize);
         }
     }
-
-    /**
-     * How big the blob should be initially.
-     */
-    private static final int INITIAL_BLOB_CONTENT_SIZE = 100;
 
     /**
      * creates an empty blob.
@@ -382,7 +378,6 @@ class BlobOutputStream  extends OutputStream{
     public void write(int b) throws IOException {
 
        if(this.pos >= blob.blobContent.length){
-           int newLen = Math.max(pos,2*blob.blobContent.length + 1);
            byte[] tmp = new byte[2*blob.blobContent.length + 1];
            System.arraycopy(blob.blobContent,0, tmp, 0, blob.blobContent.length);
            blob.blobContent = tmp;

@@ -55,7 +55,9 @@ import java.io.IOException;
 
 
 public class BinlogDumpException extends Exception {
-    public BinlogDumpException(final String s, final IOException e) {
+	private static final long serialVersionUID = 8892027708547035277L;
+
+	public BinlogDumpException(final String s, final IOException e) {
         super(s, e);
     }
 }

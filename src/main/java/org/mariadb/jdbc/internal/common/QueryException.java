@@ -53,7 +53,8 @@ package org.mariadb.jdbc.internal.common;
 
 
 public class QueryException extends Exception {
-    /**
+	private static final long serialVersionUID = 974263994278018455L;
+	/**
      * the internal code.
      */
     private final int errorCode;

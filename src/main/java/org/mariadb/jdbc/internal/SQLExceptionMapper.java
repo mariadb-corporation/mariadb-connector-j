@@ -136,7 +136,6 @@ public class SQLExceptionMapper {
             case INVALID_AUTHORIZATION:
                 return new java.sql.SQLInvalidAuthorizationSpecException(e.getMessage(), sqlState, e.getErrorCode(), e);
             case CONNECTION_EXCEPTION:
-                // TODO: check transient / non transient
                 return new java.sql.SQLNonTransientConnectionException(e.getMessage(), sqlState, e.getErrorCode(), e);
             case SYNTAX_ERROR_ACCESS_RULE:
                 return new java.sql.SQLSyntaxErrorException(e.getMessage(), sqlState, e.getErrorCode(), e);
@@ -147,9 +146,10 @@ public class SQLExceptionMapper {
             case JAVA_SPECIFIC:
                 if(sqlState.equals("JZ0001")) return new SQLQueryCancelledException(e.getMessage(), sqlState, e.getErrorCode(), e);
                 return new SQLQueryTimedOutException(e.getMessage(), sqlState, e.getErrorCode(), e);
+            default:
+            	// DISTRIBUTED_TRANSACTION_ERROR, 
+            	 return new SQLException(e.getMessage(), sqlState, e.getErrorCode(), e);
         }
-        return new SQLException(e.getMessage(), sqlState, e.getErrorCode(), e);
-
     }
 
     public static SQLException getSQLException(String message, Exception e) {

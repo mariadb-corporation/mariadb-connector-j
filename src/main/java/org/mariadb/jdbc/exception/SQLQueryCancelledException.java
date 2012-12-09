@@ -56,7 +56,9 @@ import org.mariadb.jdbc.internal.common.QueryException;
 import java.sql.SQLException;
 
 public class SQLQueryCancelledException extends SQLException {
-    public SQLQueryCancelledException(String message) {
+	private static final long serialVersionUID = 4054387247900900027L;
+
+	public SQLQueryCancelledException(String message) {
         super(message);
     }
 

@@ -56,7 +56,9 @@ import org.mariadb.jdbc.internal.common.QueryException;
 import java.sql.SQLException;
 
 public class SQLQueryTimedOutException extends SQLException {
-    public SQLQueryTimedOutException(String message, String sqlState, int errorCode, QueryException e) {
+	private static final long serialVersionUID = 1105964004438675149L;
+
+	public SQLQueryTimedOutException(String message, String sqlState, int errorCode, QueryException e) {
         super(message, sqlState, errorCode, e);
     }
 }
