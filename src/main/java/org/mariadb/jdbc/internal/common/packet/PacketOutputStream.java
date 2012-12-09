@@ -11,8 +11,7 @@ public class PacketOutputStream extends OutputStream{
     private static final int SEQNO_OFFSET = 3;
     private static final int HEADER_LENGTH = 4;
     private static final int MAX_SEQNO = 0xff;
-    private static final int COMPRESSION_SIZE_THRESHOLD = 16*1024;
-    private static final float COMPRESSION_RATIO_THRESHOLD = 0.9f;
+
 
     OutputStream baseStream;
     byte[] byteBuffer;
@@ -57,7 +56,6 @@ public class PacketOutputStream extends OutputStream{
 
     /* Used by LOAD DATA INFILE. End of data is indicated by packet of length 0. */
     public void sendFile(InputStream is, int seq) throws IOException{
-        int lastSeq;
         byte[] buffer = new byte[8192];
         int len;
         while((len = is.read(buffer)) > 0) {
@@ -109,9 +107,6 @@ public class PacketOutputStream extends OutputStream{
       }
     }
 
-    private void setHeaderLength(int off, int dataLen) {
-
-    }
 
     @Override
     public  void flush() throws IOException {

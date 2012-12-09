@@ -55,7 +55,7 @@ public class DatatypeTest extends BaseTest {
 
     ResultSet resultSet;
 
-    void checkClass(String column, Class clazz, String mysqlType, int javaSqlType) throws Exception{
+    void checkClass(String column, Class<?> clazz, String mysqlType, int javaSqlType) throws Exception{
         int index = resultSet.findColumn(column);
 
         if (clazz == null) {
@@ -79,7 +79,7 @@ public class DatatypeTest extends BaseTest {
         resultSet = c.createStatement().executeQuery("select * from datatypetest");
         resultSet.next();
 
-        Class byteArrayClass = (new byte[0]).getClass();
+        Class<?> byteArrayClass = (new byte[0]).getClass();
 
         checkClass("bit1",Boolean.class,"BIT", Types.BIT);
         checkClass("bit2", byteArrayClass, "BIT", Types.VARBINARY);

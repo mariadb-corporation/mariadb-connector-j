@@ -34,7 +34,7 @@ public class MySQLDriverTest extends BaseTest {
         Statement stmt = null;
         ResultSet rs = null;
         try {
-            conn = DriverManager.getConnection("jdbc:mysql:thin://test:test@localhost:3306/test&password=test");
+            conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/test?user=test&password=test");
             stmt = conn.createStatement();
             stmt.executeUpdate("create table if not exists test_authconnection(i int)");
         }
@@ -58,7 +58,7 @@ public class MySQLDriverTest extends BaseTest {
         props.setProperty("password","test");
         Statement st = connection.createStatement();
         st.execute("grant all privileges on *.* to 'test'@'localhost' identified by 'test'");
-        Connection conn = DriverManager.getConnection("jdbc:mysql:thin://teest:teest@localhost:3306/test",props);
+        Connection conn = DriverManager.getConnection("jdbc:mysql:thin://localhost:3306/test",props);
         conn.close();
     }
     @Test

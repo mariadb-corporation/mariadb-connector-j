@@ -123,8 +123,7 @@ public abstract class AbstractValueObject implements ValueObject {
         if (rawBytes == null) {
             return 0;
         }
-        switch(dataType.getType()) {
-            case BIT:
+        if(dataType.getType() == MySQLType.Type.BIT) {
                 return rawBytes[0];
         }
         return Byte.valueOf(getString());

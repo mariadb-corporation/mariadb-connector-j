@@ -16,6 +16,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static junit.framework.Assert.*;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
 
@@ -164,10 +165,9 @@ public class DriverTest extends BaseTest{
     
     @Test
     public void ralfTest() throws SQLException {
-    	PreparedStatement ps = 
-    			connection.prepareStatement(
-    					"select serverrequ0_.id as id75_, serverrequ0_.date_time as date2_75_, serverrequ0_.name as name75_, serverrequ0_.server_request_type as server4_75_, serverrequ0_.response_code_storage_tag as response5_75_, serverrequ0_.storage_tag as storage6_75_, serverrequ0_.timeout as "+
-    					" timeout75_, serverrequ0_.url as url75_ from ussd_server_request_tag serverrequ0_ where serverrequ0_.name='ß' limit ?"); 
+    	connection.prepareStatement(
+    				"select serverrequ0_.id as id75_, serverrequ0_.date_time as date2_75_, serverrequ0_.name as name75_, serverrequ0_.server_request_type as server4_75_, serverrequ0_.response_code_storage_tag as response5_75_, serverrequ0_.storage_tag as storage6_75_, serverrequ0_.timeout as "+
+    				" timeout75_, serverrequ0_.url as url75_ from ussd_server_request_tag serverrequ0_ where serverrequ0_.name='ß' limit ?"); 
     							
     							
     }
@@ -260,14 +260,17 @@ public class DriverTest extends BaseTest{
     }
     @Test
     public void isolationLevel() throws SQLException {
-        connection.setTransactionIsolation(connection.TRANSACTION_READ_UNCOMMITTED);
-        assertEquals(connection.TRANSACTION_READ_UNCOMMITTED,connection.getTransactionIsolation());
-        connection.setTransactionIsolation(connection.TRANSACTION_READ_COMMITTED);
-        assertEquals(connection.TRANSACTION_READ_COMMITTED,connection.getTransactionIsolation());
-        connection.setTransactionIsolation(connection.TRANSACTION_SERIALIZABLE);
-        assertEquals(connection.TRANSACTION_SERIALIZABLE,connection.getTransactionIsolation());
-        connection.setTransactionIsolation(connection.TRANSACTION_REPEATABLE_READ);
-        assertEquals(connection.TRANSACTION_REPEATABLE_READ,connection.getTransactionIsolation());
+    	
+    	int[] levels = new int[]{
+    			Connection.TRANSACTION_READ_UNCOMMITTED,
+    			Connection.TRANSACTION_READ_COMMITTED,
+    			Connection.TRANSACTION_SERIALIZABLE,
+    			Connection.TRANSACTION_REPEATABLE_READ
+    			};
+    	for (int level : levels) {
+    		connection.setTransactionIsolation(level);
+            assertEquals(level,connection.getTransactionIsolation());
+    	}
     }
 
     @Test
@@ -389,8 +392,8 @@ public class DriverTest extends BaseTest{
         ps.executeUpdate();
         ResultSet rs = connection.createStatement().executeQuery("select a from test_float");
         assertEquals(true,rs.next());
-        assertEquals((float)3.99, rs.getFloat(1));
-        assertEquals((float)3.99, rs.getFloat("a"));
+        assertEquals((float)3.99, rs.getFloat(1),0.00001);
+        assertEquals((float)3.99, rs.getFloat("a"),0.00001);
         assertEquals(false,rs.next());
     }
 
@@ -472,7 +475,8 @@ public class DriverTest extends BaseTest{
         }
     }
     
-    @Test
+    @SuppressWarnings("deprecation")
+	@Test
     public void testCharacterStreams() throws SQLException, IOException {
         connection.createStatement().execute("drop table if exists streamtest");
         connection.createStatement().execute("create table streamtest (id int not null primary key, strm text)");
@@ -591,8 +595,6 @@ public class DriverTest extends BaseTest{
         ResultSet rs = connection.createStatement().executeQuery("select * from clobtest");
         rs.next();
         Reader readStuff = rs.getClob("strm").getCharacterStream();
-        int ch;
-        int pos=0;
         char[] a = new char[4];
         readStuff.read(a);
         Assert.assertEquals(new String(a), clob);
@@ -671,6 +673,7 @@ public class DriverTest extends BaseTest{
         Object theTimestamp = rs.getObject(3);
         assertTrue(theTimestamp instanceof Timestamp);
         Object theBlob = rs.getObject(4);
+        assertNotNull(theBlob);
 
         byte [] rawBytes = rs.getBytes(4);
         ByteArrayInputStream bais = new ByteArrayInputStream(rawBytes);
@@ -704,7 +707,7 @@ public class DriverTest extends BaseTest{
 
         ResultSet rs = connection.createStatement().executeQuery("select bin1,bin2 from bintest");
         assertTrue(rs.next());
-        Blob blob = rs.getBlob(1);
+        rs.getBlob(1);
         InputStream is = rs.getBinaryStream(1);
 
         for(int i=0;i<256;i++) {
@@ -1032,8 +1035,9 @@ public class DriverTest extends BaseTest{
     }
     @Test
     public void getStatementTest() throws SQLException {
-        ResultSet rs = connection.createStatement().executeQuery("select 1 as 'hej'");
-        Statement stmt = rs.getStatement();
+        Statement stmt1 = connection.createStatement();
+        ResultSet rs = stmt1.executeQuery("select 1 as 'hej'");
+        assertEquals(stmt1,rs.getStatement());
     }
     @Test
     public void getUrlTest() throws SQLException {
@@ -1050,6 +1054,7 @@ public class DriverTest extends BaseTest{
         ResultSet rs = connection.createStatement().executeQuery("select 'asdf' as url");
         rs.next();
         URL url = rs.getURL(1);
+        assertNotNull(url);
         
 
     }
@@ -1058,8 +1063,7 @@ public class DriverTest extends BaseTest{
         ResultSet rs = connection.createStatement().executeQuery("select 'asdf' as url");
         rs.next();
         URL url = rs.getURL("url");
-
-
+        assertNotNull(url);
     }
     @Test
     public void setNull() throws SQLException {
@@ -1314,7 +1318,7 @@ public class DriverTest extends BaseTest{
         st.execute("insert into unsignedtest values(4294967295)");
         ResultSet rs = st.executeQuery("select * from unsignedtest");
         rs.next();
-        Object o = rs.getLong("unsignedtest.a");
+        assertNotNull(rs.getLong("unsignedtest.a"));
     }
 
     @Test
@@ -1328,7 +1332,6 @@ public class DriverTest extends BaseTest{
        c.createStatement().execute("set wait_timeout=1");
        Thread.sleep(3000);
 
-       Exception caughtException = null;
        boolean success = false;
        for (int i=0; i < 2; i++) {
            try {
@@ -1337,7 +1340,7 @@ public class DriverTest extends BaseTest{
                success = true;
                break;
            } catch (Exception e) {
-              caughtException = e;
+        	   // eat exception
            }
        }
        assertTrue(success);
@@ -1370,5 +1373,23 @@ public class DriverTest extends BaseTest{
     public void mdev3916() throws Exception {
        Connection c = DriverManager.getConnection("jdbc:mysql://localhost:3306/test?user=root&password=");
        c.close();
+    }
+
+    @Test 
+    public void conj1() throws Exception {
+    	Statement st = connection.createStatement();
+		st.setQueryTimeout(1);
+		st.execute("select sleep(0.5)");
+		try {
+			st.execute("select sleep(1.5)");
+			assertFalse("must be exception here", true);
+		}catch (Exception e) {
+			
+		}
+		
+		Statement st2 = connection.createStatement();
+		assertEquals(st2.getQueryTimeout(),0);
+		// no exception
+		st2.execute("select sleep(1.5)");
     }
 }

@@ -41,15 +41,14 @@ public class CatalogTest extends BaseTest {
 
     @Test
     public void catalogTest5() throws SQLException {
-        MySQLConnection c = (MySQLConnection)connection;
         String[] weirdDbNames = new String[] {"abc 123","\"", "`"};
         for(String name : weirdDbNames) {
             Statement stmt = connection.createStatement();
-            stmt.execute("drop database if exists " + c.quoteIdentifier(name));
-            stmt.execute("create database " + c.quoteIdentifier(name));
+            stmt.execute("drop database if exists " + MySQLConnection.quoteIdentifier(name));
+            stmt.execute("create database " + MySQLConnection.quoteIdentifier(name));
             connection.setCatalog(name);
             assertEquals(name, connection.getCatalog());
-            stmt.execute("drop database if exists " + c.quoteIdentifier(name));
+            stmt.execute("drop database if exists " + MySQLConnection.quoteIdentifier(name));
             stmt.close();
         }
     }

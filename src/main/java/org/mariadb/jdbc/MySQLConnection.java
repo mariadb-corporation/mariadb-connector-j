@@ -89,7 +89,6 @@ public final class MySQLConnection
 
 
     private boolean warningsCleared;
-    private Statement activeStatement;
     boolean noBackslashEscapes;
     boolean noSchemaPattern = false;
 
@@ -104,7 +103,6 @@ public final class MySQLConnection
         this.protocol = protocol;
         clientInfoProperties = new Properties();
         this.queryFactory = queryFactory;
-        activeStatement = null;
 
     }
 

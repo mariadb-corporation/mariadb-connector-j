@@ -61,7 +61,9 @@ import javax.sql.*;
 import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.util.Properties;
+import java.util.logging.Logger;
 
 
 public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XADataSource {
@@ -458,4 +460,9 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XA
     public XAConnection getXAConnection(String user, String password) throws SQLException {
         return new MySQLXAConnection((MySQLConnection)getConnection(user,password));
     }
+
+	public Logger getParentLogger() throws SQLFeatureNotSupportedException {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

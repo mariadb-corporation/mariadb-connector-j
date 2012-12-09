@@ -61,7 +61,8 @@ import java.io.IOException;
  * . User: marcuse Date: Jan 16, 2009 Time: 4:23:40 PM
  */
 public class OKPacket extends ResultPacket {
-    private final byte fieldCount;
+    @SuppressWarnings("unused")
+	private final byte fieldCount;
     private final long affectedRows;
     private final long insertId;
     private final Set<ServerStatus> serverStatus;

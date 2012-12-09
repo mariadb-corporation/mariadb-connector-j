@@ -79,8 +79,6 @@ public class MySQLResultSet implements ResultSet {
     private QueryResult queryResult;
     private Statement statement;
     private MySQLProtocol protocol;
-    // dont want these, but jdbc forces them with "lastGetWasNull" etc...
-    private boolean isClosed;
     private boolean lastGetWasNull;
     private boolean warningsCleared;
     ColumnNameMap columnNameMap;
@@ -90,7 +88,6 @@ public class MySQLResultSet implements ResultSet {
     public MySQLResultSet(QueryResult dqr, Statement statement, MySQLProtocol protocol) {
         this.queryResult = dqr;
         this.statement = statement;
-        isClosed = false;
         this.protocol = protocol;
         this.columnNameMap = new ColumnNameMap(dqr.getColumnInformation());
     }
@@ -114,7 +111,6 @@ public class MySQLResultSet implements ResultSet {
     }
 
     public void close() throws SQLException {
-        this.isClosed = true;
         if (this.queryResult != null) {
             this.queryResult.close();
         }

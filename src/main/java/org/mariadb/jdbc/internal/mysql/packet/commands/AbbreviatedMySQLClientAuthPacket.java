@@ -68,7 +68,6 @@ public class AbbreviatedMySQLClientAuthPacket implements CommandPacket {
 
     public AbbreviatedMySQLClientAuthPacket(final Set<MySQLServerCapabilities> serverCapabilities) {
         writeBuffer = new WriteBuffer();
-        final int packetLength = 4;
         writeBuffer.writeInt(MySQLServerCapabilities.fromSet(serverCapabilities));
     }
 

@@ -58,20 +58,10 @@ import org.mariadb.jdbc.internal.common.query.Query;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.logging.Logger;
 
 
 public class StreamedQueryPacket implements CommandPacket
 {
-
-    // Maximum packet length coded on 3 bytes
-    private static final int MAX_PACKET_LENGTH =  0x00FFFFFF;
-
-    private final static Logger log = Logger
-                                            .getLogger(StreamedQueryPacket.class
-                                                    .getName());
-
-    private static final int HEADER_LENGTH = 4;
 
     private final Query         query;
 

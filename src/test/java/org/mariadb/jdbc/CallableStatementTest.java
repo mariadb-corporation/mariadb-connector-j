@@ -35,14 +35,6 @@ import java.sql.*;
             create("procedure", name, body);
         }
 
-        private void createTable(String name, String body) throws SQLException {
-            create("table", name, body);
-        }
-
-        private void createFunction(String name, String body) throws SQLException {
-            create("function", name , body) ;
-        }
-
         @Test
         public void withResultSet() throws Exception {
             createProcedure("withResultSet", "(a int) begin select a; end");

@@ -52,7 +52,6 @@ package org.mariadb.jdbc;
 
 import org.mariadb.jdbc.internal.SQLExceptionMapper;
 import org.mariadb.jdbc.internal.common.ParameterizedBatchHandler;
-import org.mariadb.jdbc.internal.common.Protocol;
 import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.common.Utils;
 import org.mariadb.jdbc.internal.common.query.IllegalParameterException;

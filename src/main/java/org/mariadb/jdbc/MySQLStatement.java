@@ -75,15 +75,6 @@ public class MySQLStatement implements Statement {
      */
     private final MySQLProtocol protocol;
     /**
-     * the result set produced by execute().
-     */
-    private ResultSet resultSet;
-
-    /**
-     * how many rows were updated.
-     */
-    private long updateCount;
-    /**
      * the sql Connection object.
      */
     protected MySQLConnection connection;
@@ -199,13 +190,7 @@ public class MySQLStatement implements Statement {
     }
 
 
-    protected void startTimer() {
-        connection.setTimeout(queryTimeout);
-    }
-    
-    protected void stopTimer() {
-
-    }
+   
 
     /**
      * executes a query.
@@ -226,14 +211,11 @@ public class MySQLStatement implements Statement {
                 if (queryResult.getResultSetType() == ResultSetType.SELECT) {
                     return true;
                 }
-                setUpdateCount(((ModifyQueryResult) queryResult).getUpdateCount());
                 return false;
             } catch (QueryException e) {
                SQLExceptionMapper.throwException(e, connection, this);
                return false;
-            } finally {
-                stopTimer();
-            }
+            } 
         }
     }
 
@@ -1128,11 +1110,6 @@ public class MySQLStatement implements Statement {
         return false;
     }
 
-
-
-    protected void setUpdateCount(final long updateCount) {
-        this.updateCount = updateCount;
-    }
 
     /**
      * returns the query result.

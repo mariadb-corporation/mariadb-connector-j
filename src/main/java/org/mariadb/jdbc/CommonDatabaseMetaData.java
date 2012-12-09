@@ -2899,8 +2899,6 @@ public abstract class CommonDatabaseMetaData implements DatabaseMetaData {
         private String username;
         private final Connection connection;
 
-        private String databaseProductName;
-
         public Builder(final Connection connection) {
             this.connection = connection;
         }
@@ -2921,7 +2919,6 @@ public abstract class CommonDatabaseMetaData implements DatabaseMetaData {
         }
 
         public Builder databaseProductName(final String name) {
-            this.databaseProductName = name;
             return this;
         }
 

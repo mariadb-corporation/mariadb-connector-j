@@ -113,6 +113,16 @@ public class MySQLValueObject extends AbstractValueObject {
                 return getBigDecimal();
             case BLOB:
                 return getBytes();
+            case LONGBLOB:
+            	return getBytes();
+            case MEDIUMBLOB:
+            	return getBytes();
+            case TINYBLOB:
+            	return getBytes();
+            	
+            case NULL:
+            	return null;
+            
             case YEAR:
                 if ((datatypeMappingFlags & YEAR_IS_DATE_TYPE) != 0) {
                     return getDate();
@@ -129,6 +139,8 @@ public class MySQLValueObject extends AbstractValueObject {
                 return getString();
             case CHAR:
                 return getString();
+            case OLDDECIMAL:
+            	return getString();
         }
         return null;
     }

@@ -116,7 +116,6 @@ public class MySQLProtocol implements Protocol {
     private volatile boolean queryTimedOut = false;
     private int queryTimeout;
     private boolean dumpQueryOnException = false;
-    private MySQLQueryLogger queryLogger = null;
     public boolean moreResults = false;
     public StreamingSelectResult activeResult= null;
     public int datatypeMappingFlags;
@@ -137,19 +136,9 @@ public class MySQLProtocol implements Protocol {
     private boolean autoReconnect = false;
 
     /**
-     * 	When failing over in autoReconnect mode, should the connection be set to 'read-only'?
-     */
-    private boolean failOverReadOnly = true;
-
-    /**
      * Maximum number of reconnects to attempt if autoReconnect is true, default is 3
      */
     private int maxReconnects=3;
-
-    /**
-     *  If autoReconnect is set to true, should the driver attempt reconnections at the end of every transaction?
-     */
-    private boolean reconnectAtTxEnd = false;
 
     /**
      * When using loadbalancing, the number of times the driver should cycle through available hosts, attempting to connect.
@@ -213,12 +202,6 @@ public class MySQLProtocol implements Protocol {
         this.username = (username == null ? "" : username);
         this.password = (password == null ? "" : password);
         
-        /*
-         * Under development
-         */
-        if (info.getProperty("logSlowQueries") != null) {
-        	this.queryLogger = new MySQLQueryLogger(info);
-        }
 
         String logLevel = info.getProperty("MySQLProtocolLogLevel");
         if (logLevel != null)
@@ -560,7 +543,7 @@ public class MySQLProtocol implements Protocol {
          }
 
          while (moreResults) {
-            QueryResult queryResult =  getMoreResults(true);
+            getMoreResults(true);
          }
 
     }
