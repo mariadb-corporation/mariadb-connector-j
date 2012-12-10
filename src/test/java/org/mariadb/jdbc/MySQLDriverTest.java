@@ -538,4 +538,14 @@ public class MySQLDriverTest extends BaseTest {
            assertTrue(st.getMaxRows() == 3); /* limit should not change */
         }
     }
+    
+    @Test 
+    public void sessionVariables() throws Exception {
+    	Connection c = DriverManager.getConnection("jdbc:mysql://localhost/test?user=root&sessionVariables=sql_mode=ANSI_QUOTES,collation_connection = utf8_bin");
+    	ResultSet rs = c.createStatement().executeQuery("select @@sql_mode,@@collation_connection");
+    	rs.next();
+    	assertEquals("ANSI_QUOTES",rs.getString(1));
+    	assertEquals("utf8_bin",rs.getString(2));
+    	c.close();
+    }
 }

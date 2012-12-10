@@ -111,25 +111,30 @@ public final class MySQLConnection
         
         String value;
         if ((value = protocol.getInfo().getProperty("NoSchemaPattern")) != null
-        		&& value.equalsIgnoreCase("true"))
-        {
+        		&& value.equalsIgnoreCase("true")) {
         	connection.noSchemaPattern = true;
         }
         
-        if (protocol.getInfo().get("fastConnect") != null) {
-            return connection;
-        }
-
-
+        boolean fastConnect =  protocol.getInfo().get("fastConnect") != null ;
+        String sessionVariables = protocol.getInfo().getProperty("sessionVariables");
+        
+        if (fastConnect && (sessionVariables == null))
+        	return connection;
+        
         Statement st = null;
         try {
-            st = connection.createStatement();
-            ResultSet rs = st.executeQuery("select @@sql_mode");
-            rs.next();
-            String sqlMode = rs.getString(1);
-            if (sqlMode.contains("NO_BACKSLASH_ESCAPES")) {
-                connection.noBackslashEscapes = true;
-            }
+    		st = connection.createStatement();        		
+        	if (sessionVariables != null) {
+        	  st.executeUpdate("set session " + sessionVariables);
+        	}
+        	if (!fastConnect) {
+        		ResultSet rs = st.executeQuery("select @@sql_mode");
+        		rs.next();
+        		String sqlMode = rs.getString(1);
+        		if (sqlMode.contains("NO_BACKSLASH_ESCAPES")) {
+        			connection.noBackslashEscapes = true;
+        		}
+        	}
         } finally {
             if (st != null)
                 st.close();
