@@ -1391,5 +1391,10 @@ public class DriverTest extends BaseTest{
 		assertEquals(st2.getQueryTimeout(),0);
 		// no exception
 		st2.execute("select sleep(1.5)");
+		
+		Statement st3 = connection.createStatement();
+		st3.setQueryTimeout(1);
+		st3.execute("select sleep(0.1)");
+		assertEquals(st3.getQueryTimeout(),1);
     }
 }
