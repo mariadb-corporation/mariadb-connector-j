@@ -196,7 +196,7 @@ public interface Protocol {
     boolean createDB();
 
     void cancelCurrentQuery() throws QueryException,IOException;
-    void timeOut() throws QueryException,IOException;
+
 
     boolean hasMoreResults();
     QueryResult getMoreResults(boolean streaming) throws QueryException;

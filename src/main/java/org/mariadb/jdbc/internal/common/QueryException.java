@@ -83,7 +83,7 @@ public class QueryException extends Exception {
      * @param sqlState  the sqlstate
      */
     public QueryException(final String message,
-                          final short errorCode,
+                          final int errorCode,
                           final String sqlState) {
         super(message);
         this.errorCode = errorCode;

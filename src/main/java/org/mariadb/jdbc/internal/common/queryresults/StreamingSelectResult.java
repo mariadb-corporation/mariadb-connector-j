@@ -93,7 +93,6 @@ public class StreamingSelectResult extends SelectQueryResult {
                 protocol.activeResult = null;
                 protocol.moreResults = false;
                 ErrorPacket errorPacket = (ErrorPacket) ResultPacketFactory.createResultPacket(rawPacket);
-                protocol.checkIfCancelled();
                 throw new QueryException(errorPacket.getMessage(), errorPacket.getErrorNumber(), errorPacket.getSqlState());
             }
 
@@ -102,7 +101,6 @@ public class StreamingSelectResult extends SelectQueryResult {
                 protocol.activeResult = null;
                 protocol.moreResults = eofPacket.getStatusFlags().contains(EOFPacket.ServerStatus.SERVER_MORE_RESULTS_EXISTS);
                 warningCount = eofPacket.getWarningCount();
-                //protocol.checkIfCancelled();
                 isEOF = true;
                 values = null;
                 return false;

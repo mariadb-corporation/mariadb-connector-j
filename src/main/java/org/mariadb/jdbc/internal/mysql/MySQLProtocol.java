@@ -112,9 +112,6 @@ public class MySQLProtocol implements Protocol {
     private SyncPacketFetcher packetFetcher;
     private final Properties info;
     private  long serverThreadId;
-    private volatile boolean queryWasCancelled = false;
-    private volatile boolean queryTimedOut = false;
-    private int queryTimeout;
     private boolean dumpQueryOnException = false;
     public boolean moreResults = false;
     public StreamingSelectResult activeResult= null;
@@ -552,18 +549,6 @@ public class MySQLProtocol implements Protocol {
         return moreResults;
     }
 
-    public void setQueryTimeout(int timeout) {
-        try {
-            if (timeout > Integer.MAX_VALUE/1000)
-                timeout = 0; /* long timeout (> ~30 days) == no timeout  */
-            if(timeout == queryTimeout)
-                return;
-            socket.setSoTimeout(timeout*1000);
-            queryTimeout = timeout;
-        }  catch (SocketException se)    {
-           throw new AssertionError("does not happen");
-        }
-    }
 
     private static void close(PacketFetcher fetcher, PacketOutputStream packetOutputStream, Socket socket)
             throws QueryException
@@ -633,17 +618,6 @@ public class MySQLProtocol implements Protocol {
             return streamingResult;
 
         return CachedSelectResult.createCachedSelectResult(streamingResult);
-    }
-
-    public void checkIfCancelled() throws QueryException {
-        if (queryWasCancelled) {
-            queryWasCancelled = false;
-            throw new QueryException("Query was cancelled by another thread", (short) -1, "JZ0001");
-        }
-        if (queryTimedOut) {
-            queryTimedOut = false;
-            throw new QueryException("Query timed out", (short) -1, "JZ0002");
-        }
     }
 
     public void selectDB(final String database) throws QueryException {
@@ -745,11 +719,6 @@ public class MySQLProtocol implements Protocol {
                 resultPacket = ResultPacketFactory.createResultPacket(rawPacket);
             }
         }
-        catch (SocketTimeoutException ste) {
-            throw new QueryException("timeout reading resultset: " + ste.getMessage(),
-                    -1,  "JZ0002" , ste);
-
-        }
         catch (IOException e) {
             throw new QueryException("Could not read resultset: " + e.getMessage(),
                     -1,
@@ -761,7 +730,6 @@ public class MySQLProtocol implements Protocol {
             case ERROR:
                 this.moreResults = false;
                 final ErrorPacket ep = (ErrorPacket) resultPacket;
-                checkIfCancelled();
                 if (dQuery != null) {
                     log.warning("Could not execute query " + dQuery + ": " + ((ErrorPacket) resultPacket).getMessage());
                 } else {
@@ -891,14 +859,6 @@ public class MySQLProtocol implements Protocol {
      */
     public  void cancelCurrentQuery() throws QueryException, IOException {
         Protocol copiedProtocol = new MySQLProtocol(jdbcUrl, username, password, info);
-        queryWasCancelled = true;
-        copiedProtocol.executeQuery(new MySQLQuery("KILL QUERY " + serverThreadId));
-        copiedProtocol.close();
-    }
-
-    public   void timeOut() throws QueryException, IOException {
-        Protocol copiedProtocol = new MySQLProtocol(jdbcUrl, username, password, info);
-        queryTimedOut = true;
         copiedProtocol.executeQuery(new MySQLQuery("KILL QUERY " + serverThreadId));
         copiedProtocol.close();
     }

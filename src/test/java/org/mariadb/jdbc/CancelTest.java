@@ -1,17 +1,18 @@
 package org.mariadb.jdbc;
 
 import org.junit.Test;
-import org.mariadb.jdbc.exception.SQLQueryCancelledException;
-import org.mariadb.jdbc.exception.SQLQueryTimedOutException;
 
-import java.sql.*;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.SQLTransientException;
+import java.sql.Statement;
 
 public class CancelTest extends BaseTest {
-    @Test(expected = SQLQueryCancelledException.class)
-    public void cancelQuery() throws SQLException, InterruptedException {
+    @Test(expected = SQLTransientException.class)
+    public void cancelTest() throws SQLException{
 
         Statement stmt = connection.createStatement();
-         new CancelThread(stmt).start();
+        new CancelThread(stmt).start();
         stmt.execute("select * from information_schema.columns, information_schema.tables, information_schema.table_constraints");
 
     }
@@ -32,15 +33,15 @@ public class CancelTest extends BaseTest {
                 e.printStackTrace();
                 throw new RuntimeException(e);
             } catch (InterruptedException e) {
-                e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+                e.printStackTrace();
             }
         }
     }
 
 
-    @Test(expected = SQLQueryTimedOutException.class)
+    @Test (expected = java.sql.SQLTimeoutException.class)
     public void timeoutSleep() throws Exception{
-           PreparedStatement stmt = connection.prepareStatement("select sleep(2)");
+           PreparedStatement stmt = connection.prepareStatement("select sleep(100)");
            stmt.setQueryTimeout(1);
            stmt.execute();
      }

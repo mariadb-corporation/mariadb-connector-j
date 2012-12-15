@@ -52,11 +52,10 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal;
 
 import org.mariadb.jdbc.MySQLConnection;
-import org.mariadb.jdbc.exception.SQLQueryCancelledException;
-import org.mariadb.jdbc.exception.SQLQueryTimedOutException;
 import org.mariadb.jdbc.internal.common.QueryException;
 
 import java.sql.SQLException;
+import java.sql.SQLTimeoutException;
 import java.sql.SQLWarning;
 
 
@@ -78,7 +77,7 @@ public class SQLExceptionMapper {
         INVALID_CATALOG("3D"),
         INTERRUPTED_EXCEPTION("70"),
         UNDEFINED_SQLSTATE("HY"),
-        JAVA_SPECIFIC("JZ"),
+        TIMEOUT_EXCEPTION("JZ"),
         DISTRIBUTED_TRANSACTION_ERROR("XA"); // is this true?
 
         private final String sqlStateGroup;
@@ -143,9 +142,10 @@ public class SQLExceptionMapper {
                 return new java.sql.SQLTransactionRollbackException(e.getMessage(), sqlState, e.getErrorCode(), e);
             case WARNING:
                 return new SQLWarning(e.getMessage(), sqlState, e.getErrorCode(), e);
-            case JAVA_SPECIFIC:
-                if(sqlState.equals("JZ0001")) return new SQLQueryCancelledException(e.getMessage(), sqlState, e.getErrorCode(), e);
-                return new SQLQueryTimedOutException(e.getMessage(), sqlState, e.getErrorCode(), e);
+            case INTERRUPTED_EXCEPTION:
+                return new java.sql.SQLTransientException(e.getMessage(), sqlState, e.getErrorCode(), e);
+            case TIMEOUT_EXCEPTION:
+                return new SQLTimeoutException(e.getMessage(), sqlState, e.getErrorCode(), e);
             default:
             	// DISTRIBUTED_TRANSACTION_ERROR, 
             	 return new SQLException(e.getMessage(), sqlState, e.getErrorCode(), e);

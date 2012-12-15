@@ -67,6 +67,8 @@ import java.sql.*;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
+import java.util.Timer;
+import java.util.TimerTask;
 
 
 public class MySQLStatement implements Statement {
@@ -75,7 +77,7 @@ public class MySQLStatement implements Statement {
      */
     private final MySQLProtocol protocol;
     /**
-     * the sql Connection object.
+     * the  Connection object.
      */
     protected MySQLConnection connection;
 
@@ -99,6 +101,8 @@ public class MySQLStatement implements Statement {
     private int fetchSize;
     private int maxRows;
     private boolean  isClosed;
+    Timer timer;
+    private boolean isTimedout;
 
     Queue<Object> cachedResultSets;
 
@@ -122,6 +126,7 @@ public class MySQLStatement implements Statement {
         this.queryFactory = queryFactory;
         this.escapeProcessing = true;
         cachedResultSets = new LinkedList<Object>();
+        timer = new Timer();
     }
 
     /**
@@ -133,27 +138,48 @@ public class MySQLStatement implements Statement {
         return protocol;
     }
 
-    void executeQueryProlog() throws SQLException{
+    // Part of query prolog - setup timeout timer
+    private void setTimer() {
+        TimerTask task = new TimerTask() {
+             @Override
+             public void run() {
+                  try {
+                      isTimedout = true;
+                      protocol.cancelCurrentQuery();
+                  } catch (Throwable e) {	
+                  }  
+             }
+
+         };
+         timer.schedule(task, queryTimeout*1000);
+    }
+    
+    // Part of query prolog - check if connection is broken and reconnect
+    private void checkReconnect() throws SQLException {
         if (protocol.shouldReconnect()) {
-            try {
-                protocol.connect();
-            } catch (QueryException qe) {
-                SQLExceptionMapper.throwException(qe, connection, this);
-            }
-        }  else if (protocol.shouldTryFailback()) {
-            try {
-                protocol.reconnectToMaster();
-            } catch (Exception e) {
-                // Do nothing
-            }
-        }
+             try {
+                 protocol.connect();
+             } catch (QueryException qe) {
+                 SQLExceptionMapper.throwException(qe, connection, this);
+             }
+         }  else if (protocol.shouldTryFailback()) {
+             try {
+                 protocol.reconnectToMaster();
+             } catch (Exception e) {
+                 // Do nothing
+             }
+         }
+    }
+    
+    void executeQueryProlog() throws SQLException{
+        checkReconnect();
         if (protocol.hasUnreadData()) {
             throw new  SQLException("There is an open result set on the current connection, "+
                     "which must be closed prior to executing a query");
         }
         if (protocol.hasMoreResults()) {
-            // Skip remaining result sets. CallableStatement might return many of them  - not only the "select" result sets
-            // but also the "update" results
+            // Skip remaining result sets. CallableStatement might return many of them  - 
+        	// not only the "select" result sets, but also the "update" results
             while(getMoreResults(true)) {
             }
         }
@@ -161,11 +187,15 @@ public class MySQLStatement implements Statement {
         cachedResultSets.clear();
         MySQLConnection conn = (MySQLConnection)getConnection();
         conn.reenableWarnings();
-        conn.setTimeout(queryTimeout);
+        
         try {
             protocol.setMaxRows(maxRows);
         } catch(QueryException qe) {
             SQLExceptionMapper.throwException(qe, connection, this);
+        }
+        
+        if (queryTimeout != 0) {
+	    	setTimer();
         }
     }
 
@@ -190,7 +220,27 @@ public class MySQLStatement implements Statement {
     }
 
 
-   
+    static void throwTimeoutException(QueryException e, MySQLConnection c, Statement s) throws SQLException {
+        
+    }
+
+    /*
+     Reset timeout after query, re-throw correct SQL  exception
+    */
+    private void executeQueryEpilog(QueryException e) throws SQLException{
+
+        if (queryTimeout > 0) {
+          timer.cancel();
+        }
+        if (isTimedout)  {
+            isTimedout = false;
+            QueryException timeoutEx = new QueryException("Query timed out", 1317, "JZ0002", e);
+            SQLExceptionMapper.throwException(timeoutEx, connection, this);
+        }
+        
+        if (e != null)
+            SQLExceptionMapper.throwException(e, connection, this);
+    }
 
     /**
      * executes a query.
@@ -200,22 +250,22 @@ public class MySQLStatement implements Statement {
      * @throws SQLException
      */
      protected boolean execute(Query query) throws SQLException {
-        if (isClosed()) {
-            throw new SQLException("execute() is called on closed statement");
-        }
         synchronized (protocol) {
+            if (isClosed()) {
+                throw new SQLException("execute() is called on closed statement");
+            }
+            QueryException exception = null;
             executeQueryProlog();
             try {
                 queryResult = protocol.executeQuery(query, isStreaming());
                 cacheMoreResults();
-                if (queryResult.getResultSetType() == ResultSetType.SELECT) {
-                    return true;
-                }
-                return false;
+                return (queryResult.getResultSetType() == ResultSetType.SELECT);
             } catch (QueryException e) {
-               SQLExceptionMapper.throwException(e, connection, this);
-               return false;
-            } 
+              exception = e;
+              return false;
+            } finally {
+                executeQueryEpilog(exception);
+            }
         }
     }
 
