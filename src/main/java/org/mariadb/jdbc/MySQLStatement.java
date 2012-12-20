@@ -100,7 +100,7 @@ public class MySQLStatement implements Statement {
     private boolean escapeProcessing;
     private int fetchSize;
     private int maxRows;
-    private boolean  isClosed;
+    boolean  isClosed;
     Timer timer;
     private boolean isTimedout;
 
@@ -372,14 +372,7 @@ public class MySQLStatement implements Statement {
                 }
             }
         }
-        if (connection != null && connection.pooledConnection != null
-            && !connection.pooledConnection.statementEventListeners.isEmpty()
-            && this instanceof PreparedStatement) {
-            isClosed = false;
-            connection.pooledConnection.fireStatementClosed(this);
-        } else {
-            isClosed = true;
-        }
+        isClosed = true;
     }
 
     /**

@@ -1522,4 +1522,18 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
 
         setParameter(parameterIndex, new BigDecimalParameter(x));
     }
+
+    // Close prepared statement, maybe fire closed-statement events
+    @Override
+    public synchronized  void close() throws SQLException {
+        super.close();
+
+        if (connection == null ||  connection.pooledConnection == null ||
+               connection.pooledConnection.statementEventListeners.isEmpty())  {
+            return;
+        }
+
+        isClosed = false;
+        connection.pooledConnection.fireStatementClosed(this);
+    }
 }

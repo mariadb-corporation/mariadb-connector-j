@@ -1303,10 +1303,7 @@ public final class MySQLConnection
         this.parameterizedBatchHandlerFactory = batchHandlerFactory;
     }
 
-    public void setTimeout(int timeout) {
-        protocol.setQueryTimeout(timeout);
-    }
-
+   
     public void setHostFailed() {
         protocol.setHostFailed();
     }
