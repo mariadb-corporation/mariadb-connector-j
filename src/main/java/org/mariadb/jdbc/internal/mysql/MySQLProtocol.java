@@ -275,8 +275,6 @@ public class MySQLProtocol implements Protocol {
             if (value != null)
                 socket.setSendBufferSize(Integer.parseInt(value));
 
-            value = info.getProperty("dumpQueriesOnException", "false");
-            if (value.equalsIgnoreCase("true"))
                 dumpQueryOnException = true;
        } catch (Exception e) {
             log.finest("Failed to set socket option: " + e.getLocalizedMessage());
@@ -727,17 +725,14 @@ public class MySQLProtocol implements Protocol {
         switch (resultPacket.getResultType()) {
             case ERROR:
                 this.moreResults = false;
-                final ErrorPacket ep = (ErrorPacket) resultPacket;
+                ErrorPacket ep = (ErrorPacket) resultPacket;
                 if (dQuery != null) {
                     log.warning("Could not execute query " + dQuery + ": " + ((ErrorPacket) resultPacket).getMessage());
                 } else {
                     log.warning("Got error from server: " + ((ErrorPacket) resultPacket).getMessage());
                 }
-                if (this.dumpQueryOnException)
-                	msg = ":\nQuery is: " + dQuery.getQuery();
-                throw new QueryException(ep.getMessage() + msg,
-                        ep.getErrorNumber(),
-                        ep.getSqlState());
+                throw new QueryException(ep.getMessage(), ep.getErrorNumber(),  ep.getSqlState());
+
             case OK:
                 final OKPacket okpacket = (OKPacket) resultPacket;
                 serverStatus = okpacket.getServerStatus();
@@ -754,8 +749,7 @@ public class MySQLProtocol implements Protocol {
                 try {
                     return this.createQueryResult(resultSetPacket, streaming);
                 } catch (IOException e) {
-                	if (this.dumpQueryOnException)
-                		msg = ":\nQuery is: " + dQuery.getQuery();
+
                     throw new QueryException("Could not read result set: " + e.getMessage(),
                             -1,
                             SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
@@ -763,9 +757,7 @@ public class MySQLProtocol implements Protocol {
                 }
             default:
                 log.severe("Could not parse result..." + resultPacket.getResultType());
-                if (this.dumpQueryOnException)
-                	msg = ":\nQuery is: " + dQuery.getQuery();
-                throw new QueryException("Could not parse result" + msg, (short) -1, SQLExceptionMapper.SQLStates.INTERRUPTED_EXCEPTION.getSqlState());
+                throw new QueryException("Could not parse result", (short) -1, SQLExceptionMapper.SQLStates.INTERRUPTED_EXCEPTION.getSqlState());
         }
     }
 

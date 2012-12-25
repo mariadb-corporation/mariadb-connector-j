@@ -218,26 +218,29 @@ public class MySQLStatement implements Statement {
     }
 
 
-    static void throwTimeoutException(QueryException e, MySQLConnection c, Statement s) throws SQLException {
-        
-    }
 
     /*
      Reset timeout after query, re-throw correct SQL  exception
     */
-    private void executeQueryEpilog(QueryException e) throws SQLException{
+    private void executeQueryEpilog(QueryException e, Query query) throws SQLException{
 
         if (queryTimeout > 0) {
           timer.cancel();
         }
+
         if (isTimedout)  {
             isTimedout = false;
-            QueryException timeoutEx = new QueryException("Query timed out", 1317, "JZ0002", e);
-            SQLExceptionMapper.throwException(timeoutEx, connection, this);
+            e = new QueryException("Query timed out", 1317, "JZ0002", e);
         }
         
-        if (e != null)
-            SQLExceptionMapper.throwException(e, connection, this);
+        if (e == null)
+        	return;
+        
+        if (protocol.getInfo().getProperty("dumpQueriesOnException", "false").equalsIgnoreCase("true")) {
+        	e.setMessage(e.getMessage()+ "\nQuery is : " + query);
+        }
+        	
+        SQLExceptionMapper.throwException(e, connection, this);
     }
 
     /**
@@ -262,7 +265,7 @@ public class MySQLStatement implements Statement {
               exception = e;
               return false;
             } finally {
-                executeQueryEpilog(exception);
+                executeQueryEpilog(exception, query);
             }
         }
     }

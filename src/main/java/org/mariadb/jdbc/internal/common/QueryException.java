@@ -55,11 +55,12 @@ public class QueryException extends Exception {
 	/**
      * the internal code.
      */
-    private final int errorCode;
+    private int errorCode;
     /**
      * the sql state.
      */
-    private final String sqlState;
+    private String sqlState;
+    private String message;
 
     /**
      * Creates a default query exception with errorCode -1 and sqlState HY0000.
@@ -68,6 +69,7 @@ public class QueryException extends Exception {
      */
     public QueryException(final String message) {
         super(message);
+        this.message = message;
         this.errorCode = -1;
         this.sqlState = "HY0000";
 
@@ -84,6 +86,7 @@ public class QueryException extends Exception {
                           final int errorCode,
                           final String sqlState) {
         super(message);
+        this.message = message;
         this.errorCode = errorCode;
         this.sqlState = sqlState;
     }
@@ -96,15 +99,24 @@ public class QueryException extends Exception {
      * @param sqlState  the sql state
      * @param cause     the cause of the exception
      */
-    public QueryException(final String message,
-                          final int errorCode,
-                          final String sqlState,
-                          final Throwable cause) {
+    public QueryException(String message,
+                          int errorCode,
+                          String sqlState,
+                          Throwable cause) {
         super(message, cause);
+    	this.message= message;
         this.errorCode = errorCode;
         this.sqlState = sqlState;
     }
 
+    @Override
+    public String getMessage() {
+    	return message;
+    }
+    
+    public void setMessage(String message) {
+    	this.message = message;
+    }
     /**
      * returns the error code.
      *
@@ -113,8 +125,9 @@ public class QueryException extends Exception {
     public final int getErrorCode() {
         return errorCode;
     }
-
-    /**
+    
+   
+    /**S
      * gets the sql state.
      *
      * @return the sql state

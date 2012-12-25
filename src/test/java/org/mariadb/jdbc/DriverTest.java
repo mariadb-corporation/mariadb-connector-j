@@ -18,6 +18,7 @@ import java.util.logging.Logger;
 import static junit.framework.Assert.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 
 public class DriverTest extends BaseTest{
@@ -1396,5 +1397,21 @@ public class DriverTest extends BaseTest{
 		st3.setQueryTimeout(1);
 		st3.execute("select sleep(0.1)");
 		assertEquals(st3.getQueryTimeout(),1);
+    }
+
+    @Test
+    public void dumpQueriesOnException() throws Exception {
+        Connection c = DriverManager.getConnection("jdbc:mysql://localhost:3306/statistics?user=root&dumpQueriesOnException=true");
+        String syntacticallyWrongQuery = "banana";
+        try {
+            Statement st = c.createStatement();
+            st.execute(syntacticallyWrongQuery);
+        } catch (SQLException sqle) {
+            System.out.println(sqle.getMessage());
+           assertTrue(sqle.getMessage().contains("Query is : " + syntacticallyWrongQuery));
+
+        } finally {
+            c.close();
+        }
     }
 }
