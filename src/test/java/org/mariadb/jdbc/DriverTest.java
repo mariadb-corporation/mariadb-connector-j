@@ -1401,15 +1401,13 @@ public class DriverTest extends BaseTest{
 
     @Test
     public void dumpQueriesOnException() throws Exception {
-        Connection c = DriverManager.getConnection("jdbc:mysql://localhost:3306/statistics?user=root&dumpQueriesOnException=true");
+        Connection c = DriverManager.getConnection("jdbc:mysql://localhost:3306?user=root&dumpQueriesOnException=true");
         String syntacticallyWrongQuery = "banana";
         try {
             Statement st = c.createStatement();
             st.execute(syntacticallyWrongQuery);
         } catch (SQLException sqle) {
-            System.out.println(sqle.getMessage());
            assertTrue(sqle.getMessage().contains("Query is : " + syntacticallyWrongQuery));
-
         } finally {
             c.close();
         }
