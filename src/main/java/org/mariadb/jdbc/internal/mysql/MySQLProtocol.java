@@ -110,7 +110,6 @@ public class MySQLProtocol implements Protocol {
     private SyncPacketFetcher packetFetcher;
     private final Properties info;
     private  long serverThreadId;
-    private boolean dumpQueryOnException = false;
     public boolean moreResults = false;
     public StreamingSelectResult activeResult= null;
     public int datatypeMappingFlags;
@@ -274,8 +273,6 @@ public class MySQLProtocol implements Protocol {
             value = info.getProperty("tcpSndBuf");
             if (value != null)
                 socket.setSendBufferSize(Integer.parseInt(value));
-
-                dumpQueryOnException = true;
        } catch (Exception e) {
             log.finest("Failed to set socket option: " + e.getLocalizedMessage());
        }
@@ -688,7 +685,6 @@ public class MySQLProtocol implements Protocol {
     public QueryResult getResult(Query dQuery, boolean streaming) throws QueryException{
              RawPacket rawPacket;
         ResultPacket resultPacket;
-        String msg = "";
         try {
             rawPacket = packetFetcher.getRawPacket();
             resultPacket = ResultPacketFactory.createResultPacket(rawPacket);
