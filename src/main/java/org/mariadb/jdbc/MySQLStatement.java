@@ -99,7 +99,9 @@ public class MySQLStatement implements Statement {
     private int fetchSize;
     private int maxRows;
     boolean  isClosed;
-    Timer timer;
+    private static volatile Timer timer;
+    private TimerTask timerTask;
+    
     private boolean isTimedout;
 
     Queue<Object> cachedResultSets;
@@ -124,7 +126,7 @@ public class MySQLStatement implements Statement {
         this.queryFactory = queryFactory;
         this.escapeProcessing = true;
         cachedResultSets = new LinkedList<Object>();
-        timer = new Timer();
+
     }
 
     /**
@@ -136,9 +138,23 @@ public class MySQLStatement implements Statement {
         return protocol;
     }
 
+    private static Timer getTimer() {
+        Timer result = timer;
+        if (result == null) {
+            synchronized(MySQLStatement.class) {
+                result = timer;
+                if (result == null) {
+                    timer = result = new Timer();
+                }
+            }
+        }
+        return result;
+    }
+    
     // Part of query prolog - setup timeout timer
-    private void setTimer() {
-        TimerTask task = new TimerTask() {
+    private void setTimerTask() {
+    	assert(timerTask == null);
+        timerTask = new TimerTask() {
              @Override
              public void run() {
                   try {
@@ -147,9 +163,8 @@ public class MySQLStatement implements Statement {
                   } catch (Throwable e) {	
                   }  
              }
-
          };
-         timer.schedule(task, queryTimeout*1000);
+         getTimer().schedule(timerTask, queryTimeout*1000);
     }
     
     // Part of query prolog - check if connection is broken and reconnect
@@ -193,7 +208,7 @@ public class MySQLStatement implements Statement {
         }
         
         if (queryTimeout != 0) {
-	    	setTimer();
+	    	setTimerTask();
         }
     }
 
@@ -224,8 +239,9 @@ public class MySQLStatement implements Statement {
     */
     private void executeQueryEpilog(QueryException e, Query query) throws SQLException{
 
-        if (queryTimeout > 0) {
-          timer.cancel();
+        if (timerTask != null) {
+          timerTask.cancel();
+          timerTask = null;
         }
 
         if (isTimedout)  {
