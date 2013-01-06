@@ -50,6 +50,12 @@ public class MySQLDriverTest extends BaseTest {
             st.close();
         }
     }
+    
+    @Test
+    public void testIPV6inURL() throws SQLException {
+        Connection conn = DriverManager.getConnection("jdbc:mysql://[::1]:3306/test");
+        conn.close();    	
+    }
 
     @Test
     public void testAuthConnectionProperties() throws SQLException {
@@ -58,7 +64,7 @@ public class MySQLDriverTest extends BaseTest {
         props.setProperty("password","test");
         Statement st = connection.createStatement();
         st.execute("grant all privileges on *.* to 'test'@'localhost' identified by 'test'");
-        Connection conn = DriverManager.getConnection("jdbc:mysql:thin://localhost:3306/test",props);
+        Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/test",props);
         conn.close();
     }
     @Test

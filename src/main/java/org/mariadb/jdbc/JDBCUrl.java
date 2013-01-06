@@ -74,6 +74,7 @@ public class JDBCUrl {
         if (!url.startsWith("jdbc:mysql://")) {
             return null;
         }
+        
         url = url.substring(13);
         String hostname;
         String database;
@@ -85,13 +86,12 @@ public class JDBCUrl {
 
     static boolean acceptsURL(String url) {
     	return (url != null) &&
-    			( 
-    		    // url.startsWith("jdbc:mysql:thin://") ||
-    			url.startsWith("jdbc:mariadb://") ||
-    			url.startsWith("jdbc:mysql://")
-    			);
+    			(url.startsWith("jdbc:mariadb://") || url.startsWith("jdbc:mysql://")) &&
+    			!(url.startsWith("jdbc:mysql://address="));
     	
     }
+    
+
     public static JDBCUrl parse(final String url) {
         if(url.startsWith("jdbc:mysql://")) {
             return parseConnectorJUrl(url);

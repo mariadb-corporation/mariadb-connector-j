@@ -16,15 +16,7 @@ public class HostAddress {
         HostAddress[] arr = new HostAddress[tokens.length];
 
         for (int i=0; i < tokens.length; i++) {
-            arr[i] = new HostAddress();
-            String t = tokens[i];
-            if (t.contains(":")) {
-                String[] hostPort = t.split(":");
-                arr[i].host = hostPort[0];
-                arr[i].port = Integer.parseInt(hostPort[1]);
-            } else {
-                arr[i].host = t;
-            }
+          arr[i] = parseSingleHostAddress(tokens[i]);
         }
 
         int  defaultPort = arr[arr.length-1].port;
@@ -40,10 +32,33 @@ public class HostAddress {
         return arr;
     }
 
+    static HostAddress parseSingleHostAddress(String s) {
+    	 HostAddress result = new HostAddress(); 
+    	 if (s.startsWith("[")) {
+    		/* IPv6 addresses in URLs are enclosed in square brackets */
+          	int ind = s.indexOf(']');
+          	result.host = s.substring(1,ind);
+          	if (ind != (s.length() -1) && s.charAt(ind + 1) == ':') { 
+          		result.port = Integer.parseInt(s.substring(ind+2));
+          	}
+          }
+          else if (s.contains(":")) {
+        	  /* Parse host:port */
+              String[] hostPort = s.split(":");
+              result.host = hostPort[0];
+              result.port = Integer.parseInt(hostPort[1]);
+          } else {
+        	  /* Just host name is given */
+              result.host = s;
+          }
+          return result;
+    }
     public static String toString(HostAddress[] addrs) {
         String s="";
         for(int i=0; i < addrs.length; i++) {
-            s += addrs[i].host + ":" + addrs[i].port;
+        	boolean isIPv6 = addrs[i].host != null && addrs[i].host.contains(":");
+        	String host = (isIPv6)?("[" + addrs[i].host + "]"):addrs[i].host;
+            s += host + ":" + addrs[i].port;
             if (i < addrs.length -1)
                 s += ",";
         }
