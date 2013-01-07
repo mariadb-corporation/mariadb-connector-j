@@ -272,13 +272,8 @@ public final class MySQLConnection
      * @throws SQLException if there is a problem creating the meta data.
      */
     public DatabaseMetaData getMetaData() throws SQLException {
-        return new CommonDatabaseMetaData.Builder(this).
-                url("jdbc:mysql://" + protocol.getHost()
-                        + ":" + protocol.getPort()
-                        + "/" + protocol.getDatabase()).
-                username(protocol.getUsername()).
-                version(protocol.getServerVersion()).
-                build();
+        return new MySQLDatabaseMetaData(this,protocol.getUsername(),
+        		"jdbc:mysql://" + protocol.getHost()  + ":" + protocol.getPort() + "/" + protocol.getDatabase());
     }
 
     /**
