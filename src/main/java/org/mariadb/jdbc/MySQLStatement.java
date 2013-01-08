@@ -185,6 +185,12 @@ public class MySQLStatement implements Statement {
     }
     
     void executeQueryProlog() throws SQLException{
+        if (isClosed()) {
+            throw new SQLException("execute() is called on closed statement");
+        }
+        if (protocol.isClosed()){
+            throw new SQLException("execute() is called on closed connection");     
+        }
         checkReconnect();
         if (protocol.hasUnreadData()) {
             throw new  SQLException("There is an open result set on the current connection, "+
@@ -268,9 +274,6 @@ public class MySQLStatement implements Statement {
      */
      protected boolean execute(Query query) throws SQLException {
         synchronized (protocol) {
-            if (isClosed()) {
-                throw new SQLException("execute() is called on closed statement");
-            }
             QueryException exception = null;
             executeQueryProlog();
             try {

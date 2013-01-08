@@ -448,9 +448,9 @@ public final class MySQLConnection
      * @see java.sql.SQLWarning
      */
     public SQLWarning getWarnings() throws SQLException {
-        if (warningsCleared)
+        if (warningsCleared || isClosed()) {
             return null;
-
+        }
         Statement st = null;
         ResultSet rs = null;
         SQLWarning last = null;

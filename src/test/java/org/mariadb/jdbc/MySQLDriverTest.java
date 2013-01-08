@@ -554,4 +554,16 @@ public class MySQLDriverTest extends BaseTest {
     	assertEquals("utf8_bin",rs.getString(2));
     	c.close();
     }
+    
+    @Test 
+    public void executeStatementAfterConnectionClose() throws Exception {
+        Connection c = DriverManager.getConnection("jdbc:mysql://localhost/test?user=root");
+        Statement st = c.createStatement();
+        c.close();
+        try {
+            st.execute("select 1");        
+        } catch (SQLException sqle) {
+            assertTrue(sqle.getMessage().contains("closed connection"));
+        }
+    }
 }
