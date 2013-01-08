@@ -736,7 +736,7 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
 
 
     public boolean supportsSchemasInDataManipulation() throws SQLException {
-        return true;
+        return false;
     }
 
 
@@ -745,11 +745,11 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
     }
 
     public boolean supportsSchemasInTableDefinitions() throws SQLException {
-        return true;
+        return false;
     }
 
     public boolean supportsSchemasInIndexDefinitions() throws SQLException {
-        return true;
+        return false;
     }
 
     public boolean supportsSchemasInPrivilegeDefinitions() throws SQLException {
@@ -757,23 +757,23 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
     }
 
     public boolean supportsCatalogsInDataManipulation() throws SQLException {
-        return false;
+        return true;
     }
 
     public boolean supportsCatalogsInProcedureCalls() throws SQLException {
-        return false;
+        return true;
     }
 
     public boolean supportsCatalogsInTableDefinitions() throws SQLException {
-        return false;
+        return true;
     }
 
     public boolean supportsCatalogsInIndexDefinitions() throws SQLException {
-        return false;
+        return true;
     }
 
     public boolean supportsCatalogsInPrivilegeDefinitions() throws SQLException {
-        return false;
+        return true;
     }
 
     public boolean supportsPositionedDelete() throws SQLException {
