@@ -193,6 +193,19 @@ public class Utils {
      }
 
 
+    public static String escapeString(String s, boolean noBackslashEscapes) {
+    	if (s.indexOf("'") == -1) {
+    		if (noBackslashEscapes)
+    			return s;
+    		if (s.indexOf("\\") == -1)
+    			return s;
+    	}
+    	String escaped = s.replace("'", "''");
+    	if(noBackslashEscapes)
+    		return escaped;
+    	return escaped.replace("\\","\\\\");
+    }
+     
     /**
      * encrypts a password
      * <p/>

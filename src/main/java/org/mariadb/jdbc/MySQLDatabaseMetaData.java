@@ -51,71 +51,101 @@ package org.mariadb.jdbc;
 
 import java.sql.*;
 
+import org.mariadb.jdbc.internal.common.Utils;
+
 
 public class MySQLDatabaseMetaData implements DatabaseMetaData {
     private String version;
     private String url;
-    private String username;
-    private Connection connection;
+    private MySQLConnection connection;
     private String databaseProductName = "MySQL";
-
-    protected final String dataTypeClause = " CASE data_type" +
-                        " when 'bit' then "         + Types.BIT +
-                        " when 'tinyblob' then "    + Types.LONGVARBINARY +
-                        " when 'mediumblob' then "  + Types.LONGVARBINARY +
-                        " when 'longblob' then "    + Types.LONGVARBINARY +
-                        " when 'blob' then "        + Types.LONGVARBINARY +
-                        " when 'tinytext' then "    + Types.LONGVARCHAR +
-                        " when 'mediumtext' then "  + Types.LONGVARCHAR +
-                        " when 'longtext' then "    + Types.LONGVARCHAR +
-                        " when 'text' then "        + Types.LONGVARCHAR +
-                        " when 'date' then "        + Types.DATE +
-                        " when 'datetime' then "    + Types.TIMESTAMP +
-                        " when 'decimal' then "     + Types.DECIMAL +
-                        " when 'double' then "      + Types.DOUBLE +
-                        " when 'enum' then "        + Types.VARCHAR +
-                        " when 'float' then "       + Types.FLOAT +
-                        " when 'int' then "         + Types.INTEGER +
-                        " when 'bigint' then "      + Types.BIGINT +
-                        " when 'mediumint' then "   + Types.INTEGER +
-                        " when 'null' then "        + Types.NULL +
-                        " when 'set' then "         + Types.VARCHAR +
-                        " when 'smallint' then "    + Types.SMALLINT +
-                        " when 'varchar' then "     + Types.VARCHAR +
-                        " when 'varbinary' then "   + Types.VARBINARY +
-                        " when 'char' then "        + Types.CHAR +
-                        " when 'binary' then "      + Types.BINARY +
-                        " when 'time' then "        + Types.TIME +
-                        " when 'timestamp' then "   + Types.TIMESTAMP +
-                        " when 'tinyint' then "     + Types.TINYINT +
-                        " when 'year' then "        + Types.SMALLINT +
+    private String username;
+    
+    private static final String dataTypeClause = 
+    		            " CASE data_type" +
+                        " WHEN 'bit' THEN "         + Types.BIT +
+                        " WHEN 'tinyblob' THEN "    + Types.LONGVARBINARY +
+                        " WHEN 'mediumblob' THEN "  + Types.LONGVARBINARY +
+                        " WHEN 'longblob' THEN "    + Types.LONGVARBINARY +
+                        " WHEN 'blob' THEN "        + Types.LONGVARBINARY +
+                        " WHEN 'tinytext' THEN "    + Types.LONGVARCHAR +
+                        " WHEN 'mediumtext' THEN "  + Types.LONGVARCHAR +
+                        " WHEN 'longtext' THEN "    + Types.LONGVARCHAR +
+                        " WHEN 'text' THEN "        + Types.LONGVARCHAR +
+                        " WHEN 'date' THEN "        + Types.DATE +
+                        " WHEN 'datetime' THEN "    + Types.TIMESTAMP +
+                        " WHEN 'decimal' THEN "     + Types.DECIMAL +
+                        " WHEN 'double' THEN "      + Types.DOUBLE +
+                        " WHEN 'enum' THEN "        + Types.VARCHAR +
+                        " WHEN 'float' THEN "       + Types.FLOAT +
+                        " WHEN 'int' THEN "         + Types.INTEGER +
+                        " WHEN 'bigint' THEN "      + Types.BIGINT +
+                        " WHEN 'mediumint' THEN "   + Types.INTEGER +
+                        " WHEN 'null' THEN "        + Types.NULL +
+                        " WHEN 'set' THEN "         + Types.VARCHAR +
+                        " WHEN 'smallint' THEN "    + Types.SMALLINT +
+                        " WHEN 'varchar' THEN "     + Types.VARCHAR +
+                        " WHEN 'varbinary' THEN "   + Types.VARBINARY +
+                        " WHEN 'char' THEN "        + Types.CHAR +
+                        " WHEN 'binary' THEN "      + Types.BINARY +
+                        " WHEN 'time' THEN "        + Types.TIME +
+                        " WHEN 'timestamp' THEN "   + Types.TIMESTAMP +
+                        " WHEN 'tinyint' THEN "     + Types.TINYINT +
+                        " WHEN 'year' THEN "        + Types.SMALLINT +
+                        " ELSE "                    + Types.OTHER +  
                         " END ";
 
     public MySQLDatabaseMetaData(Connection connection, String user, String url) {
-        this.connection = connection;
+        this.connection = (MySQLConnection)connection;
         this.username = user;
         this.url = url;
     }
 
 
-    public ResultSet getPrimaryKeys(final String catalog, final String schema, final String table) throws SQLException {
-        final Connection conn = getConnection();
-        String query = "SELECT NULL TABLE_CAT, " +
-                "table_schema TABLE_SCHEM, " +
-                "table_name, " +
-                "column_name, " +
-                "ordinal_position KEY_SEQ," +
-                "null pk_name " +
-                "FROM information_schema.columns " +
-                "WHERE table_name='" + table + "' AND column_key='pri'";
-
-        if (schema != null && (((MySQLConnection)conn).noSchemaPattern == false)) {
-            query += " AND table_schema = '" + schema + "'";
-        }
-        query += " ORDER BY column_name";
-        final Statement stmt = conn.createStatement();
-        return stmt.executeQuery(query);
+    private ResultSet executeQuery(String sql) throws SQLException {
+    	return connection.createStatement().executeQuery(sql);
     }
+    
+    
+    private String escapeString(String s) {
+    	return Utils.escapeString(s, connection.noBackslashEscapes);
+    }
+    
+    String catalogCond(String columnName, String catalog) {
+    	if (catalog == null){
+    		return "(1 = 1)"; 
+    	}
+    	if (catalog.equals("")) {
+    		return "(ISNULL(database()) OR (" + columnName + " = database()))";
+    	}
+    	return "(" + columnName + " = '" + escapeString(catalog) + "')" ;
+    	
+    }
+    
+     // Helper to generate  information schema queries with "like" condition (typically  on table name)
+    String patternCond(String columnName, String tableName) {
+    	if (tableName == null) {
+    		return "(1 = 1)";
+    	}
+    	return "(" + columnName + " LIKE '" + Utils.escapeString(tableName, true) + "')";
+    }
+    
+    public ResultSet getPrimaryKeys(String catalog, String schema, String table) throws SQLException {
+        
+        String sql = 
+        "SELECT TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, TABLE_NAME, COLUMN_NAME, ORDINAL_POSITION KEY_SEQ, NULL PK_NAME " 
+        + " FROM INFORMATION_SCHEMA.COLUMNS"
+        + " WHERE COLUMN_KEY='pri'"
+        + " AND " 
+        + catalogCond("TABLE_SCHEMA",catalog) 
+        + " AND " 
+        + patternCond("TABLE_NAME", table)
+        + " ORDER BY column_name";
+
+        return executeQuery(sql);
+    }
+    
+    
    /**
      * Maps standard table types to mysql ones - helper since table type is never "table" in mysql, it is "base table"
      * @param tableType the table type defined by user
@@ -128,208 +158,173 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
         return tableType;
     }
 
+    public ResultSet getTables(String catalog, String schemaPattern, String tableNamePattern, String[] types) 
+    		throws SQLException {
 
-    public ResultSet getTables(String catalog, String schemaPattern, String tableNamePattern, final String[] types) throws SQLException {
-
-        if (tableNamePattern == null || tableNamePattern.equals(""))
-            tableNamePattern = "%";
-
-        String query = "SELECT table_catalog table_cat, "
-                        + "table_schema table_schem, "
-                        + "table_name, "
-                        + "table_type, "
-                        + "table_comment as remarks,"
-                        + "null as type_cat, "
-                        + "null as type_schem,"
-                        + "null as type_name, "
-                        + "null as self_referencing_col_name,"
-                        + "null as ref_generation "
-                        + "FROM information_schema.tables "
-                        + "WHERE table_name LIKE '"+(tableNamePattern == null?"%":tableNamePattern)+"'"
-                        + getSchemaPattern(schemaPattern);
-
-        if(types != null) {
-            query += " AND table_type in (";
-            boolean first = true;
-            for(String s : types) {
-                String mappedType = mapTableTypes(s);
-                if(!first) {
-                    query += ",";
-                }
-                first = false;
-                query += "'"+mappedType+"'";
-            }
-            query += ")";
+        String sql = 
+         "SELECT TABLE_SCHEMA TABLE_CAT, NULL  TABLE_SCHEM,  TABLE_NAME, TABLE_TYPE, TABLE_COMMENT REMARKS,"
+         + " NULL TYPE_CAT, NULL TYPE_SCHEM, NULL TYPE_NAME, NULL SELF_REFERENCING_COL_NAME, " 
+         + " NULL REF_GENERATION" 
+         + " FROM INFORMATION_SCHEMA.TABLES "
+         + " WHERE "
+         + catalogCond("TABLE_SCHEMA",catalog)  
+         + " AND "
+         + patternCond("TABLE_NAME", tableNamePattern);
+        
+        if (types != null && types.length > 0) {
+        	sql += " AND TABLE_TYPE IN (" ; 
+        	for (int i=0 ; i < types.length; i++) {
+        		if(types[i] == null)
+        			continue;
+        		String type = escapeString(mapTableTypes(types[i]));
+        		if (i == types.length -1)
+        			sql += "'" + type +"')";
+        		else
+        			sql += "'" + type + "',";
+        	}			
         }
-        final Statement stmt = getConnection().createStatement();
-        return stmt.executeQuery(query);
+        
+        sql += " ORDER BY TABLE_TYPE, TABLE_SCHEMA, TABLE_NAME";
+
+        return executeQuery(sql);
+    }
+    
+    public ResultSet getColumns(String catalog,  String schemaPattern,  String tableNamePattern,  String columnNamePattern)
+        throws SQLException {
+
+        String sql = 
+        "SELECT TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, TABLE_NAME, COLUMN_NAME," 
+        + dataTypeClause + " DATA_TYPE,"
+        + " COLUMN_TYPE TYPE_NAME, CHARACTER_MAXIMUM_LENGTH COLUMN_SIZE, 0 BUFFER_LENGTH, NUMERIC_PRECISION DECIMAL_DIGITS,"  
+        + " NUMERIC_SCALE NUM_PREC_RADIX, IF(IS_NULLABLE = 'yes',1,0) NULLABLE,COLUMN_COMMENT REMARKS," 
+        + " COLUMN_DEFAULT COLUMN_DEF, 0 SQL_DATA_TYPE, 0 SQL_DATETIME_SUB,  CHARACTER_OCTET_LENGTH CHAR_OCTET_LENGTH,"
+        + " ORDINAL_POSITION, IS_NULLABLE, NULL SCOPE_CATALOG, NULL SCOPE_SCHEMA, NULL SCOPE_TABLE, NULL SOURCE_DATA_TYPE,"
+        + " '' IS_AUTOINCREMENT "
+        + " FROM INFORMATION_SCHEMA.COLUMNS  WHERE "
+        + catalogCond("TABLE_SCHEMA", catalog)
+        + " AND "
+        + patternCond("TABLE_NAME", tableNamePattern)
+        + " AND "
+        + patternCond("COLUMN_NAME", columnNamePattern) 
+        + " ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, ORDINAL_POSITION";
+        
+        return executeQuery(sql);
     }
 
-        public ResultSet getColumns( String catalog,  String schemaPattern,  String tableNamePattern,  String columnNamePattern)
+    public ResultSet getExportedKeys(String catalog, String schema, String table) throws SQLException {
+    	if (table == null) {
+    		throw new SQLException("'table' parameter in getImportedKeys cannot be null"); 
+    	}
+        String sql =
+        "SELECT KCU.REFERENCED_TABLE_SCHEMA PKTABLE_CAT, NULL PKTABLE_SCHEM,  KCU.REFERENCED_TABLE_NAME PKTABLE_NAME," 
+        + " KCU.REFERENCED_COLUMN_NAME PKCOLUMN_NAME, KCU.TABLE_SCHEMA FKTABLE_CAT, NULL FKTABLE_SCHEM, "
+        + " KCU.TABLE_NAME FKTABLE_NAME, KCU.COLUMN_NAME FKCOLUMN_NAME, KCU.POSITION_IN_UNIQUE_CONSTRAINT KEY_SEQ,"
+        + " CASE update_rule "
+        + "   WHEN 'RESTRICT' THEN 1" 
+        + "   WHEN 'NO ACTION' THEN 3" 
+        + "   WHEN 'CASCADE' THEN 0" 
+        + "   WHEN 'SET NULL' THEN 2"
+        + "   WHEN 'SET DEFAULT' THEN 4"
+        + " END UPDATE_RULE,"
+        + " CASE DELETE_RULE" 
+        + "  WHEN 'RESTRICT' THEN 1"
+        + "  WHEN 'NO ACTION' THEN 3"
+        + "  WHEN 'CASCADE' THEN 0"
+        + "  WHEN 'SET NULL' THEN 2"
+        + "  WHEN 'SET DEFAULT' THEN 4"
+        + " END DELETE_RULE,"
+        + " RC.CONSTRAINT_NAME FK_NAME,"
+        + " NULL PK_NAME,"
+        + " 6 DEFERRABILITY"
+        + " FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU"
+        + " INNER JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS RC"
+        + " ON KCU.CONSTRAINT_SCHEMA = RC.CONSTRAINT_SCHEMA"
+        + " AND KCU.CONSTRAINT_NAME = RC.CONSTRAINT_NAME"
+        + " WHERE "
+        + catalogCond("KCU.REFERENCED_TABLE_SCHEMA", catalog)
+        + " AND "
+        + " KCU.REFERENCED_TABLE_NAME = '" + escapeString(table) + "'" +
+        " ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ";
+ 
+        return executeQuery(sql);
+    }
+    
+    public ResultSet getImportedKeys( String catalog,  String schema,  String table) throws SQLException {
+    	if (table == null) {
+    		throw new SQLException("'table' parameter in getImportedKeys cannot be null"); 
+    	}
+        String sql = 
+          "SELECT KCU.REFERENCED_TABLE_SCHEMA PKTABLE_CAT, NULL PKTABLE_SCHEM,  KCU.REFERENCED_TABLE_NAME PKTABLE_NAME," 
+	    + " KCU.REFERENCED_COLUMN_NAME PKCOLUMN_NAME, KCU.TABLE_SCHEMA FKTABLE_CAT, NULL FKTABLE_SCHEM, "
+	    + " KCU.TABLE_NAME FKTABLE_NAME, KCU.COLUMN_NAME FKCOLUMN_NAME, KCU.POSITION_IN_UNIQUE_CONSTRAINT KEY_SEQ,"
+	    + " CASE update_rule "
+	    + "   WHEN 'RESTRICT' THEN 1" 
+	    + "   WHEN 'NO ACTION' THEN 3" 
+	    + "   WHEN 'CASCADE' THEN 0" 
+	    + "   WHEN 'SET NULL' THEN 2"
+	    + "   WHEN 'SET DEFAULT' THEN 4"
+	    + " END UPDATE_RULE,"
+	    + " CASE DELETE_RULE" 
+	    + "  WHEN 'RESTRICT' THEN 1"
+	    + "  WHEN 'NO ACTION' THEN 3"
+	    + "  WHEN 'CASCADE' THEN 0"
+	    + "  WHEN 'SET NULL' THEN 2"
+	    + "  WHEN 'SET DEFAULT' THEN 4"
+	    + " END DELETE_RULE,"
+	    + " RC.CONSTRAINT_NAME FK_NAME,"
+	    + " NULL PK_NAME,"
+	    + " 6 DEFERRABILITY"
+	    + " FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU"
+	    + " INNER JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS RC"
+	    + " ON KCU.CONSTRAINT_SCHEMA = RC.CONSTRAINT_SCHEMA"
+	    + " AND KCU.CONSTRAINT_NAME = RC.CONSTRAINT_NAME"
+	    + " WHERE "
+	    + catalogCond("KCU.TABLE_SCHEMA", catalog)
+        + " AND "
+        + " KCU.TABLE_NAME = '" + escapeString(table) + "'" 
+        + " ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ";
+        
+        return executeQuery(sql);
+    }
+
+    public ResultSet getBestRowIdentifier(String catalog, String schema, String table, int scope, final boolean nullable)
             throws SQLException {
-
-        if (tableNamePattern == null || tableNamePattern.equals(""))
-            tableNamePattern = "%";
-
-        if (columnNamePattern == null || columnNamePattern.equals(""))
-            columnNamePattern = "%";
-
-        if (schemaPattern == null || schemaPattern.equals(""))
-            schemaPattern = "%";
-
-        String query = "     SELECT null as table_cat," +
-                "            table_schema as table_schem," +
-                "            table_name," +
-                "            column_name," +
-                dataTypeClause + " data_type," +
-                "            column_type type_name," +
-                "            character_maximum_length column_size," +
-                "            0 buffer_length," +
-                "            numeric_precision decimal_digits," +
-                "            numeric_scale num_prec_radix," +
-                "            if(is_nullable='yes',1,0) nullable," +
-                "            column_comment remarks," +
-                "            column_default column_def," +
-                "            0 sql_data," +
-                "            0 sql_datetime_sub," +
-                "            character_octet_length char_octet_length," +
-                "            ordinal_position," +
-                "            is_nullable," +
-                "            null scope_catalog," +
-                "            null scope_schema," +
-                "            null scope_table," +
-                "            null source_data_type," +
-                "            '' is_autoincrement" +
-                "    FROM information_schema.columns " +
-                "WHERE ";
-        if (((MySQLConnection)getConnection()).noSchemaPattern == false)
-        {
-            query = query + "table_schema LIKE '" + schemaPattern + "' AND ";
-        }
-        query = query + "table_name LIKE '" + tableNamePattern  + "'" +
-                " AND column_name LIKE '" +  columnNamePattern + "'" +
-                " ORDER BY table_cat, table_schem, table_name, ordinal_position";
-        final Statement stmt = getConnection().createStatement();
-        return stmt.executeQuery(query);
-    }
-
-    public ResultSet getExportedKeys(final String catalog, final String schema, final String table) throws SQLException {
-        final Connection conn = getConnection();
-        final String query = "SELECT null PKTABLE_CAT, \n" +
-                "kcu.referenced_table_schema PKTABLE_SCHEM, \n" +
-                "kcu.referenced_table_name PKTABLE_NAME, \n" +
-                "kcu.referenced_column_name PKCOLUMN_NAME, \n" +
-                "null FKTABLE_CAT, \n" +
-                "kcu.table_schema FKTABLE_SCHEM, \n" +
-                "kcu.table_name FKTABLE_NAME, \n" +
-                "kcu.column_name FKCOLUMN_NAME, \n" +
-                "kcu.position_in_unique_constraint KEY_SEQ,\n" +
-                "CASE update_rule \n" +
-                "   WHEN 'RESTRICT' THEN 1\n" +
-                "   WHEN 'NO ACTION' THEN 3\n" +
-                "   WHEN 'CASCADE' THEN 0\n" +
-                "   WHEN 'SET NULL' THEN 2\n" +
-                "   WHEN 'SET DEFAULT' THEN 4\n" +
-                "END UPDATE_RULE,\n" +
-                "CASE delete_rule \n" +
-                "   WHEN 'RESTRICT' THEN 1\n" +
-                "   WHEN 'NO ACTION' THEN 3\n" +
-                "   WHEN 'CASCADE' THEN 0\n" +
-                "   WHEN 'SET NULL' THEN 2\n" +
-                "   WHEN 'SET DEFAULT' THEN 4\n" +
-                "END UPDATE_RULE,\n" +
-                "rc.constraint_name FK_NAME,\n" +
-                "null PK_NAME,\n" +
-                "6 DEFERRABILITY\n" +
-                "FROM information_schema.key_column_usage kcu\n" +
-                "INNER JOIN information_schema.referential_constraints rc\n" +
-                "ON kcu.constraint_schema=rc.constraint_schema\n" +
-                "AND kcu.constraint_name=rc.constraint_name\n" +
-                "WHERE " +
-                (schema != null && (((MySQLConnection)conn).noSchemaPattern == false) ? "kcu.referenced_table_schema='" + schema + "' AND " : "") +
-                "kcu.referenced_table_name='" +
-                table +
-                "'" +
-                " ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ";
-        final Statement stmt = getConnection().createStatement();
-        return stmt.executeQuery(query);
-    }
-    public ResultSet getImportedKeys(final String catalog, final String schema, final String table) throws SQLException {
-        Connection conn = getConnection();
-        String query = "SELECT null PKTABLE_CAT, \n" +
-                "kcu.referenced_table_schema PKTABLE_SCHEM, \n" +
-                "kcu.referenced_table_name PKTABLE_NAME, \n" +
-                "kcu.referenced_column_name PKCOLUMN_NAME, \n" +
-                "null FKTABLE_CAT, \n" +
-                "kcu.table_schema FKTABLE_SCHEM, \n" +
-                "kcu.table_name FKTABLE_NAME, \n" +
-                "kcu.column_name FKCOLUMN_NAME, \n" +
-                "kcu.position_in_unique_constraint KEY_SEQ,\n" +
-                "CASE update_rule \n" +
-                "   WHEN 'RESTRICT' THEN 1\n" +
-                "   WHEN 'NO ACTION' THEN 3\n" +
-                "   WHEN 'CASCADE' THEN 0\n" +
-                "   WHEN 'SET NULL' THEN 2\n" +
-                "   WHEN 'SET DEFAULT' THEN 4\n" +
-                "END UPDATE_RULE,\n" +
-                "CASE delete_rule \n" +
-                "   WHEN 'RESTRICT' THEN 1\n" +
-                "   WHEN 'NO ACTION' THEN 3\n" +
-                "   WHEN 'CASCADE' THEN 0\n" +
-                "   WHEN 'SET NULL' THEN 2\n" +
-                "   WHEN 'SET DEFAULT' THEN 4\n" +
-                "END UPDATE_RULE,\n" +
-                "rc.constraint_name FK_NAME,\n" +
-                "null PK_NAME,\n" +
-                "6 DEFERRABILITY\n" +
-                "FROM information_schema.key_column_usage kcu\n" +
-                "INNER JOIN information_schema.referential_constraints rc\n" +
-                "ON kcu.constraint_schema=rc.constraint_schema\n" +
-                "AND kcu.constraint_name=rc.constraint_name\n" +
-                "WHERE " +
-                (schema != null && (((MySQLConnection)conn).noSchemaPattern == false) ? "kcu.table_schema='" + schema + "' AND " : "") +
-                "kcu.table_name='" +
-                table +
-                "'" +
-                " ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ";
-
-        Statement stmt = conn.createStatement();
-        return stmt.executeQuery(query);
-    }
-
-    public ResultSet getBestRowIdentifier(final String catalog, final String schema, final String table, final int scope, final boolean nullable)
-            throws SQLException {
-        String query = "SELECT " + DatabaseMetaData.bestRowSession + " scope," +
-                "column_name," +
-                dataTypeClause + " data_type," +
-                "data_type type_name," +
-                "if(numeric_precision is null, character_maximum_length, numeric_precision) column_size," +
-                "0 buffer_length," +
-                "numeric_scale decimal_digits," +
-                DatabaseMetaData.bestRowNotPseudo + " pseudo_column" +
-                " FROM information_schema.columns" +
-                " WHERE column_key in('PRI', 'MUL', 'UNI') ";
-        Connection conn = getConnection();
-        if (((MySQLConnection)conn).noSchemaPattern == false)
-        {
-                query = query + " AND table_schema like " + (schema != null ? "'%'" : "'" + schema + "'");
-        }
-        query = query + " AND table_name='" + table + "' ORDER BY scope";
-        final Statement stmt = conn.createStatement();
-        return stmt.executeQuery(query);
+    	
+    	if (table == null) {
+    		throw new SQLException("'table' parameter cannot be null in getBestRowIdentifier()");
+    	}
+    	
+    	String sql = 
+    	"SELECT " + DatabaseMetaData.bestRowUnknown + " SCOPE, COLUMN_NAME,"
+        + dataTypeClause + " DATA_TYPE, DATA_TYPE TYPE_NAME,"
+        + " IF(NUMERIC_PRECISION IS NULL, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION) COLUMN_SIZE, 0 BUFFER_LENGTH," 
+        + " NUMERIC_SCALE DECIMAL_DIGITS,"
+        + " 1 PSEUDO_COLUMN" 
+        + " FROM INFORMATION_SCHEMA.COLUMNS" 
+        + " WHERE COLUMN_KEY IN('PRI', 'MUL', 'UNI')" 
+        + " AND "
+        + catalogCond("TABLE_SCHEMA",catalog)
+        + " AND TABLE_NAME = '" + escapeString(table)+ "'";
+    	
+        return executeQuery(sql);
     }
 
     public boolean generatedKeyAlwaysReturned() throws SQLException {
         return true;
     }
 
-    public ResultSet getPseudoColumns(String arg0, String arg1, String arg2,
-            String arg3) throws SQLException {
-        return MySQLResultSet.EMPTY;
+    public ResultSet getPseudoColumns(String catalog,  String schemaPattern, String tableNamePattern,
+    		String columnNamePattern) throws SQLException {
+    	
+        return connection.createStatement().executeQuery(
+        		"SELECT ' ' TABLE_CAT, ' ' TABLE_SCHEM," +
+        		"' ' TABLE_NAME, ' ' COLUMN_NAME, 0 DATA_TYPE, 0 COLUMN_SIZE, 0 DECIMAL_DIGITS," + 
+        		"10 NUM_PREC_RADIX, ' ' COLUMN_USAGE,  ' ' REMARKS, 0 CHAR_OCTET_LENGTH, 'YES' IS_NULLABLE FROM DUAL " +
+        		"WHERE 1=0");
     }
 
     public boolean allProceduresAreCallable() throws SQLException {
-        return false;
+        return true;
     }
 
     public boolean allTablesAreSelectable() throws SQLException {
@@ -375,12 +370,11 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
 
 
     public String getDatabaseProductVersion() throws SQLException {
-        if (version == null) {
-            ResultSet rs = connection.createStatement().executeQuery("select version()");
-            rs.next();
-            version = rs.getString(1);
-        }
-        return version;
+    	ResultSet rs  = connection.createStatement().executeQuery("select version()");
+    	rs.next();
+    	String version = rs.getString(1);
+    	rs.close();
+    	return version;
     }
 
 
@@ -623,7 +617,7 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
         return false; //TODO: fix
     }
 
-    public boolean supportsConvert(final int fromType, final int toType)
+    public boolean supportsConvert(int fromType, int toType)
             throws SQLException {
                 return false; // TODO: fix
             }
@@ -712,7 +706,7 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
     }
 
     public String getSchemaTerm() throws SQLException {
-        return "schema";
+        return "";
     }
 
 
@@ -939,29 +933,26 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
     }
 
 
-    public boolean supportsTransactionIsolationLevel(final int level)
-            throws SQLException {
-                switch (level) {
-                    case Connection.TRANSACTION_READ_UNCOMMITTED:
-                    case Connection.TRANSACTION_READ_COMMITTED:
-                    case Connection.TRANSACTION_REPEATABLE_READ:
-                    case Connection.TRANSACTION_SERIALIZABLE:
-                        return true;
-                    default:
-                        return false;
-                }
+    public boolean supportsTransactionIsolationLevel(int level) throws SQLException {
+            switch (level) {
+                case Connection.TRANSACTION_READ_UNCOMMITTED:
+                case Connection.TRANSACTION_READ_COMMITTED:
+                case Connection.TRANSACTION_REPEATABLE_READ:
+                case Connection.TRANSACTION_SERIALIZABLE:
+                    return true;
+                default:
+                    return false;
             }
+    }
 
 
-    public boolean supportsDataDefinitionAndDataManipulationTransactions()
-            throws SQLException {
-                return true;
-            }
+    public boolean supportsDataDefinitionAndDataManipulationTransactions() throws SQLException {
+    	return true;
+    }
 
-    public boolean supportsDataManipulationTransactionsOnly()
-            throws SQLException {
-                return false;
-            }
+    public boolean supportsDataManipulationTransactionsOnly() throws SQLException {
+    	return false;
+    }
 
     public boolean dataDefinitionCausesTransactionCommit() throws SQLException {
         return true;
@@ -972,152 +963,209 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
         return false;
     }
 
+    		
+    /* Helper to generate  information schema with "equality" condition (typically on catalog name)
+     */
+    
 
-    public ResultSet getProcedures(final String catalog, final String schemaPattern, final String procedureNamePattern)
+    public ResultSet getProcedures(String catalog, String schemaPattern, String procedureNamePattern)
             throws SQLException {
-
-                return MySQLResultSet.EMPTY; /*TODO: return real ones */
-            }
-
-    public ResultSet getProcedureColumns(final String catalog, final String schemaPattern, final String procedureNamePattern,
-            String columnNamePattern) throws SQLException {
-                return MySQLResultSet.EMPTY; /*TODO: return real ones */
-            }
-
-    protected String getSchemaPattern(String schemaPattern) {
-        if(schemaPattern != null && ((MySQLConnection)connection).noSchemaPattern == false) {
-            return " AND table_schema LIKE '" + schemaPattern + "'";
-        } else {
-            return " AND table_schema LIKE IFNULL(database(), '%')";
-        }
+    	
+    
+    	String sql = 
+    	"SELECT ROUTINE_SCHEMA PROCEDURE_CAT,NULL PROCEDURE_SCHEM, ROUTINE_NAME PROCEDURE_NAME,"  
+        + " NULL NUM_INPUT_PARAMS, NULL NUM_OUTPUT_PARAMS, NULL NUM_RESULT_PARAMS,"         
+        + " CASE ROUTINE_TYPE  WHEN 'FUNCTION' THEN 2  WHEN 'PROCEDURE' THEN 1 ELSE 0 END PROCEDURE_TYPE,"
+        + " ROUTINE_COMMENT REMARKS, SPECIFIC_NAME "
+        + " FROM INFORMATION_SCHEMA.ROUTINES "  
+    	+ " WHERE " 
+        + catalogCond("ROUTINE_SCHEMA" , catalog)
+        + " AND "
+        + patternCond("ROUTINE_NAME", procedureNamePattern)
+        + " AND ROUTINE_TYPE='PROCEDURE'";
+    	
+    	return executeQuery(sql);
     }
 
+    public ResultSet getProcedureColumns(String catalog, String schemaPattern, String procedureNamePattern,
+            String columnNamePattern) throws SQLException {
+                return MySQLResultSet.EMPTY; /*TODO: return real ones */
+    }
+
+    
     public ResultSet getSchemas() throws SQLException {
-        final Statement stmt = connection.createStatement();
-        return stmt.executeQuery("SELECT schema_name table_schem, catalog_name table_catalog " +
-                "FROM information_schema.schemata");
+        return executeQuery(
+        		"SELECT '' TABLE_SCHEM, '' TABLE_catalog  FROM DUAL WHERE 1=0");
     }
 
 
     public ResultSet getCatalogs() throws SQLException {
-        final Statement stmt = connection.createStatement();
-        return stmt.executeQuery("SELECT null as table_cat");
+        return executeQuery(
+        		"SELECT SCHEMA_NAME TABLE_CAT FROM INFORMATION_SCHEMA.SCHEMATA ORDER BY 1");
     }
 
     public ResultSet getTableTypes() throws SQLException {
-        final Statement stmt = connection.createStatement();
-        return stmt.executeQuery("SELECT DISTINCT(table_type) FROM information_schema.tables");
+        return executeQuery(
+        		"SELECT 'BASE TABLE' TABLE_TYPE UNION SELECT 'SYSTEM VIEW' TABLE_TYPE UNION SELECT 'VIEW' TABLE_TYPE");
     }
 
-    public ResultSet getColumnPrivileges(final String catalog, final String schema, final String table,
-            final String columnNamePattern) throws SQLException {
-      return MySQLResultSet.EMPTY;
-            }
-
-
-    public ResultSet getTablePrivileges(final String catalog, final String schemaPattern, final String tableNamePattern)
-            throws SQLException {
-                final Statement stmt = connection.createStatement();
-                final String query = "SELECT null table_cat, " +
-                        "table_schema table_schem, " +
-                        "table_name, " +
-                        "null grantor, " +
-                        "user() grantee, " +
-                        "'update' privilege, " +
-                        "'yes' is_grantable " +
-                        "FROM information_schema.columns " +
-                        "WHERE table_schema LIKE '" + ((schemaPattern == null) ? "%" : schemaPattern) + "'" +
-                        " AND table_name LIKE '" + ((tableNamePattern == null) ? "%" : tableNamePattern) + "'";
-
-                return stmt.executeQuery(query);
-            }
-
-    public ResultSet getVersionColumns(final String catalog, final String schema, final String table)
-            throws SQLException {
-        return MySQLResultSet.EMPTY;
+    public ResultSet getColumnPrivileges(String catalog, String schema, String table,
+            String columnNamePattern) throws SQLException {
+    	
+    	if(table == null) {
+    		throw new SQLException("'table' parameter must not be null");
+    	}
+    	String sql = 
+	       "SELECT TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, TABLE_NAME,"
+		 + " COLUMN_NAME, NULL AS GRANTOR, GRANTEE, PRIVILEGE_TYPE AS PRIVILEGE, IS_GRANTABLE FROM "
+		 + " INFORMATION_SCHEMA.COLUMN_PRIVILEGES WHERE "
+		 + catalogCond("TABLE_SCHEMA", catalog)
+		 + " AND "
+		 + " TABLE_NAME = '" + escapeString(table) + "'"
+		 + " AND "
+		 + patternCond("COLUMN_NAME",columnNamePattern) 
+		 + " ORDER BY COLUMN_NAME, PRIVILEGE_TYPE";
+    	
+      return executeQuery(sql);
     }
 
-    public ResultSet getCrossReference(final String parentCatalog, final String parentSchema, final String parentTable,
-            final String foreignCatalog, final String foreignSchema, final String foreignTable) throws SQLException {
-               return MySQLResultSet.EMPTY;
-            }
+    public ResultSet getTablePrivileges(String catalog, String schemaPattern, String tableNamePattern)
+            throws SQLException {
+      String sql = 
+      "SELECT TABLE_SCHEMA TABLE_CAT,NULL  TABLE_SCHEM, TABLE_NAME, NULL GRANTOR," 
+      + "GRANTEE, PRIVILEGE_TYPE  PRIVILEGE, IS_GRANTABLE  FROM INFORMATION_SCHEMA.TABLE_PRIVILEGES "
+      + " WHERE "
+      + catalogCond("TABLE_SCHEMA", catalog)   
+      + " AND "
+      + patternCond("TABLE_NAME",tableNamePattern)
+      + "ORDER BY TABLE_SCHEMA, TABLE_NAME,  PRIVILEGE_TYPE ";
+        
+      return executeQuery(sql);
+   }
+
+    public ResultSet getVersionColumns(String catalog, String schema, String table)
+            throws SQLException {
+        String sql = 
+        	"SELECT 0 SCOPE, ' ' COLUMN_NAME, 0 DATA_TYPE,"  
+            + " ' ' TYPE_NAME, 0 COLUMN_SIZE, 0 BUFFER_LENGTH,"  
+            + " 0 DECIMAL_DIGITS, 0 PSEUDO_COLUMN "
+            + " FROM DUAL WHERE 1 = 0";
+        return executeQuery(sql);
+    }
+
+    public ResultSet getCrossReference(String parentCatalog, String parentSchema, String parentTable,
+            String foreignCatalog, String foreignSchema, String foreignTable) 
+            		throws SQLException {
+    	
+    	 String sql =
+	        "SELECT KCU.REFERENCED_TABLE_SCHEMA PKTABLE_CAT, NULL PKTABLE_SCHEM,  KCU.REFERENCED_TABLE_NAME PKTABLE_NAME," 
+	        + " KCU.REFERENCED_COLUMN_NAME PKCOLUMN_NAME, KCU.TABLE_SCHEMA FKTABLE_CAT, NULL FKTABLE_SCHEM, "
+	        + " KCU.TABLE_NAME FKTABLE_NAME, KCU.COLUMN_NAME FKCOLUMN_NAME, KCU.POSITION_IN_UNIQUE_CONSTRAINT KEY_SEQ,"
+	        + " CASE update_rule "
+	        + "   WHEN 'RESTRICT' THEN 1" 
+	        + "   WHEN 'NO ACTION' THEN 3" 
+	        + "   WHEN 'CASCADE' THEN 0" 
+	        + "   WHEN 'SET NULL' THEN 2"
+	        + "   WHEN 'SET DEFAULT' THEN 4"
+	        + " END UPDATE_RULE,"
+	        + " CASE DELETE_RULE" 
+	        + "  WHEN 'RESTRICT' THEN 1"
+	        + "  WHEN 'NO ACTION' THEN 3"
+	        + "  WHEN 'CASCADE' THEN 0"
+	        + "  WHEN 'SET NULL' THEN 2"
+	        + "  WHEN 'SET DEFAULT' THEN 4"
+	        + " END DELETE_RULE,"
+	        + " RC.CONSTRAINT_NAME FK_NAME,"
+	        + " NULL PK_NAME,"
+	        + " 6 DEFERRABILITY"
+	        + " FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU"
+	        + " INNER JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS RC"
+	        + " ON KCU.CONSTRAINT_SCHEMA = RC.CONSTRAINT_SCHEMA"
+	        + " AND KCU.CONSTRAINT_NAME = RC.CONSTRAINT_NAME"
+	        + " WHERE "
+	        + catalogCond("KCU.REFERENCED_TABLE_SCHEMA", parentCatalog)
+	        + " AND "
+	        + catalogCond("KCU.TABLE_SCHEMA", foreignCatalog) 
+	        + " AND "
+	        + " KCU.REFERENCED_TABLE_NAME = '" + escapeString(parentTable) + "'"
+	        + " AND "
+	        + " KCU.TABLE_NAME = '" + escapeString(foreignTable) + "'"
+	        + " ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ";
+	 
+	    return executeQuery(sql);
+    }
 
     public ResultSet getTypeInfo() throws SQLException {
         return MySQLResultSet.EMPTY;
     }
 
-    public ResultSet getIndexInfo(final String catalog, final String schema, final String table,
-            final boolean unique, final boolean approximate) throws SQLException {
-                final String query = "SELECT null table_cat," +
-                        "       table_schema table_schem," +
-                        "       table_name," +
-                        "       non_unique," +
-                        "       table_schema index_qualifier," +
-                        "       index_name," +
-                        "       " + tableIndexOther + " type," +
-                        "       seq_in_index ordinal_position," +
-                        "       column_name," +
-                        "       collation asc_or_desc," +
-                        "       cardinality," +
-                        "       null as pages," +
-                        "       null as filter_condition" +
-                        " FROM information_schema.statistics" +
-                        " WHERE table_name='" + table + "' " +
-                        ((schema != null) ? (" AND table_schema like '" + schema + "' ") : "") +
-                        (unique ? " AND NON_UNIQUE = 0" : "") +
-                        " ORDER BY NON_UNIQUE, TYPE, INDEX_NAME, ORDINAL_POSITION";
-                final Statement stmt = connection.createStatement();
-                return stmt.executeQuery(query);
-            }
-    public boolean supportsResultSetType(final int type) throws SQLException {
+    public ResultSet getIndexInfo(String catalog, String schema, String table,
+            boolean unique,boolean approximate) throws SQLException {
+    
+    	String sql = 
+    		"SELECT  TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, TABLE_NAME, NON_UNIQUE, "
+    		+ " TABLE_SCHEMA INDEX_QUALIFIER, index_name, 3 type,"
+    		+ " SEQ_IN_INDEX ORDINAL_POSITION, COLUMN_NAME, COLLATION ASC_OR_DESC," 
+            + " CARDINALITY, NULL PAGES, NULL FILTER_CONDITION"
+    		+ " FROM INFORMATION_SCHEMA.STATISTICS" 
+            + " WHERE table_name = '" + escapeString(table) + "'"
+            + " AND "
+            + catalogCond("TABLE_SCHEMA",catalog)
+            + ((unique) ? " AND NON_UNIQUE = 0" : "") 
+            + " ORDER BY NON_UNIQUE, TYPE, INDEX_NAME, ORDINAL_POSITION";
+            
+            return executeQuery(sql);
+    }
+    
+    
+    public boolean supportsResultSetType(int type) throws SQLException {
         return true;
     }
 
 
-    public boolean supportsResultSetConcurrency(final int type, final int concurrency)
-            throws SQLException {
-                return concurrency == ResultSet.CONCUR_READ_ONLY;
-            }
+    public boolean supportsResultSetConcurrency(int type, int concurrency) throws SQLException {
+         return concurrency == ResultSet.CONCUR_READ_ONLY;
+    }
 
-    public boolean ownUpdatesAreVisible(final int type) throws SQLException {
+    public boolean ownUpdatesAreVisible(int type) throws SQLException {
         return false;
     }
 
 
-    public boolean ownDeletesAreVisible(final int type) throws SQLException {
+    public boolean ownDeletesAreVisible(int type) throws SQLException {
         return false;
     }
 
 
-    public boolean ownInsertsAreVisible(final int type) throws SQLException {
+    public boolean ownInsertsAreVisible(int type) throws SQLException {
         return false;
     }
 
 
-    public boolean othersUpdatesAreVisible(final int type) throws SQLException {
+    public boolean othersUpdatesAreVisible(int type) throws SQLException {
         return false;
     }
 
 
-    public boolean othersDeletesAreVisible(final int type) throws SQLException {
+    public boolean othersDeletesAreVisible(int type) throws SQLException {
         return false;
     }
 
-    public boolean othersInsertsAreVisible(final int type) throws SQLException {
+    public boolean othersInsertsAreVisible(int type) throws SQLException {
         return false;
     }
 
-    public boolean updatesAreDetected(final int type) throws SQLException {
-        return false;
-    }
-
-
-    public boolean deletesAreDetected(final int type) throws SQLException {
+    public boolean updatesAreDetected(int type) throws SQLException {
         return false;
     }
 
 
-    public boolean insertsAreDetected(final int type) throws SQLException {
+    public boolean deletesAreDetected(int type) throws SQLException {
+        return false;
+    }
+
+
+    public boolean insertsAreDetected(int type) throws SQLException {
         return false;
     }
 
@@ -1127,10 +1175,14 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
     }
 
 
-    public ResultSet getUDTs(final String catalog, final String schemaPattern, final String typeNamePattern, final int[] types)
+    public ResultSet getUDTs(String catalog, String schemaPattern, String typeNamePattern, int[] types)
             throws SQLException {
-                return MySQLResultSet.EMPTY;
-            }
+    	String sql = 
+    	"SELECT ' ' TYPE_CAT, NULL TYPE_SCHEM, ' ' TYPE_NAME, ' ' CLASS_NAME, 0 DATA_TYPE, ' ' REMARKS, 0 BASE_TYPE"
+    	+ " FROM DUAL WHERE 1=0";
+    	
+        return executeQuery(sql);
+    }
 
 
 
@@ -1159,25 +1211,42 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
     }
 
 
-    public ResultSet getSuperTypes(final String catalog, final String schemaPattern, final String typeNamePattern)
+    public ResultSet getSuperTypes(String catalog, String schemaPattern, String typeNamePattern)
             throws SQLException {
+    	String sql = 
+		"SELECT  ' ' TYPE_CAT, NULL TYPE_SCHEM, ' ' TYPE_NAME, ' ' SUPERTYPE_CAT, ' ' SUPERTYPE_SCHEM, ' '  SUPERTYPE_NAME" 
+		+ " FROM DUAL WHERE 1=0";
+    	
+    	return executeQuery(sql);	
+    }
 
-        return MySQLResultSet.EMPTY;
-            }
 
-
-    public ResultSet getSuperTables(final String catalog, final String schemaPattern, final String tableNamePattern)
+    public ResultSet getSuperTables(String catalog, String schemaPattern, String tableNamePattern)
             throws SQLException {
-return MySQLResultSet.EMPTY;
-            }
+    	String sql = 
+		"SELECT  ' ' TABLE_CAT, ' ' TABLE_SCHEM, ' ' TABLE_NAME, ' ' SUPERTABLE_NAME FROM DUAL WHERE 1=0";
+    	return executeQuery(sql); 					
+    }
 
 
-    public ResultSet getAttributes(final String catalog, final String schemaPattern, final String typeNamePattern,
-            final String attributeNamePattern) throws SQLException {
-return MySQLResultSet.EMPTY;
-            }
+    public ResultSet getAttributes(String catalog, String schemaPattern, String typeNamePattern,
+            String attributeNamePattern) throws SQLException {
+ 
+      String sql = 
+        "SELECT ' ' TYPE_CAT, ' ' TYPE_SCHEM, ' ' TYPE_NAME, ' ' ATTR_NAME, 0 DATA_TYPE,"
+		+ " ' ' ATTR_TYPE_NAME, 0 ATTR_SIZE, 0 DECIMAL_DIGITS, 0 NUM_PREC_RADIX, 0 NULLABLE,"
+		+ " ' ' REMARKS, ' ' ATTR_DEF,  0 SQL_DATA_TYPE, 0 SQL_DATETIME_SUB, 0 CHAR_OCTET_LENGTH,"
+		+ " 0 ORDINAL_POSITION, ' ' IS_NULLABLE, ' ' SCOPE_CATALOG, ' ' SCOPE_SCHEMA, ' ' SCOPE_TABLE," 
+		+ " 0 SOURCE_DATA_TYPE"
+		+ " FROM DUAL " 
+		+ " WHERE 1=0";
+     
+     return executeQuery(sql);
+     
+     
+    }
 
-    public boolean supportsResultSetHoldability(final int holdability)
+    public boolean supportsResultSetHoldability(int holdability)
             throws SQLException {
                 return holdability == ResultSet.HOLD_CURSORS_OVER_COMMIT;
             }
@@ -1229,14 +1298,8 @@ return MySQLResultSet.EMPTY;
     }
 
 
-    public ResultSet getSchemas(final String catalog, final String schemaPattern) throws SQLException {
-        final String query = "SELECT schema_name table_schem, " +
-                "null table_catalog " +
-                "FROM information_schema.schemata " +
-                (schemaPattern != null ? "WHERE schema_name like '" + schemaPattern + "'" : "") +
-                " ORDER BY table_schem";
-        final Statement stmt = connection.createStatement();
-        return stmt.executeQuery(query);
+    public ResultSet getSchemas(String catalog, String schemaPattern) throws SQLException {
+        return executeQuery("SELECT  ' ' table_schem, ' ' table_catalog FROM DUAL WHERE 1=0");
     }
 
     public boolean supportsStoredFunctionsUsingCallSyntax() throws SQLException {
@@ -1249,18 +1312,29 @@ return MySQLResultSet.EMPTY;
 
 
     public ResultSet getClientInfoProperties() throws SQLException {
-        return MySQLResultSet.EMPTY; //TODO: look into this
+    	String sql = "SELECT ' ' NAME, 0 MAX_LEN, ' ' DEFAULT_VALUE, ' ' DESCRIPTION FROM DUAL WHERE 1=0";
+        return executeQuery(sql);
     }
 
 
-    public ResultSet getFunctions(final String catalog, final String schemaPattern, final String functionNamePattern)
+    public ResultSet getFunctions(String catalog, String schemaPattern, String functionNamePattern)
             throws SQLException {
-return MySQLResultSet.EMPTY; //TODO: fix
+    	String sql = 
+    	"SELECT ROUTINE_SCHEMA FUNCTION_CAT,NULL FUNCTION_SCHEM, ROUTINE_NAME FUNCTION_NAME,"  
+        + " NULL NUM_INPUT_PARAMS, NULL NUM_OUTPUT_PARAMS, NULL NUM_RESULT_PARAMS,"         
+        + " ROUTINE_COMMENT REMARKS," + functionNoTable + " FUNCTION_TYPE, SPECIFIC_NAME "
+        + " FROM INFORMATION_SCHEMA.ROUTINES "  
+    	+ " WHERE " 
+        + catalogCond("ROUTINE_SCHEMA" , catalog)
+        + " AND "
+        + patternCond("ROUTINE_NAME", functionNamePattern)
+        + " AND ROUTINE_TYPE='FUNCTION'";
+    	
+    	return executeQuery(sql);
+    }
 
-            }
-
-    public ResultSet getFunctionColumns(final String catalog, final String schemaPattern, final String functionNamePattern,
-            final String columnNamePattern) throws SQLException {
+    public ResultSet getFunctionColumns(String catalog, String schemaPattern, String functionNamePattern,
+            String columnNamePattern) throws SQLException {
         return MySQLResultSet.EMPTY; //TODO: fix
             }
 

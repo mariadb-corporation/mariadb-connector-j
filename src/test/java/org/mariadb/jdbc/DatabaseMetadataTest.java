@@ -7,6 +7,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static junit.framework.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 
 public class DatabaseMetadataTest extends BaseTest{
@@ -22,8 +23,8 @@ public class DatabaseMetadataTest extends BaseTest{
         int i=0;
         while(rs.next()) {
             i++;
-            assertEquals(null,rs.getString("table_cat"));
-            assertEquals("test",rs.getString("table_schem"));
+            assertEquals("test",rs.getString("table_cat"));
+            assertEquals(null,rs.getString("table_schem"));
             assertEquals("pk_test",rs.getString("table_name"));
             assertEquals("id"+i,rs.getString("column_name"));
             assertEquals(i,rs.getShort("key_seq"));
@@ -84,7 +85,7 @@ public class DatabaseMetadataTest extends BaseTest{
                                             "id_ref1 int, foreign key (id_ref1) references prim_key(id) on update cascade) engine=innodb");
 
         DatabaseMetaData dbmd = connection.getMetaData();
-        ResultSet rs = dbmd.getImportedKeys("test",null,"fore_key0");
+        ResultSet rs = dbmd.getImportedKeys(connection.getCatalog(),null,"fore_key0");
         int i = 0;
         while(rs.next()) {
             assertEquals("id",rs.getString("pkcolumn_name"));
@@ -94,16 +95,22 @@ public class DatabaseMetadataTest extends BaseTest{
         assertEquals(1,i);
     }
     @Test
-    public void testGetSchemas() throws SQLException {
+    public void testGetCatalogs() throws SQLException {
         DatabaseMetaData dbmd = connection.getMetaData();
-        ResultSet rs = dbmd.getSchemas(null,"information_schema");
-        assertEquals(true,rs.next());
-        assertEquals("information_schema",rs.getString("table_schem").toLowerCase());
-        assertEquals(false,rs.next());
-        rs = dbmd.getSchemas(null,"test");
-        assertEquals(true,rs.next());
-        assertEquals("test",rs.getString("table_schem"));
-        assertEquals(false,rs.next());
+        
+        ResultSet rs = dbmd.getCatalogs();
+        boolean haveMysql = false;
+        boolean haveInformationSchema = false;
+        while(rs.next()) {
+        	String cat = rs.getString(1);
+        	
+        	if (cat.equalsIgnoreCase("mysql"))
+        		haveMysql = true;
+        	else if (cat.equalsIgnoreCase("information_schema"))
+        		haveInformationSchema = true;
+        }
+        assertTrue(haveMysql);
+        assertTrue(haveInformationSchema);
     }
     
     @Test
@@ -111,13 +118,14 @@ public class DatabaseMetadataTest extends BaseTest{
         DatabaseMetaData dbmd = connection.getMetaData();
         ResultSet rs = dbmd.getTables(null,null,"prim_key",null);
         assertEquals(true,rs.next());
-        rs = dbmd.getTables(null,"test","prim_key",null);
+        rs = dbmd.getTables("", null,"prim_key",null);
         assertEquals(true,rs.next());
     }
     @Test
     public void testGetTables2() throws SQLException {
         DatabaseMetaData dbmd = connection.getMetaData();
-        ResultSet rs = dbmd.getTables(null,"information_schema","TABLE_PRIVILEGES",new String[]{"SYSTEM VIEW"});
+        ResultSet rs = 
+        		dbmd.getTables("information_schema",null,"TABLE_PRIVILEGES",new String[]{"SYSTEM VIEW"});
         assertEquals(true, rs.next());
         assertEquals(false, rs.next());
         rs = dbmd.getTables(null,null,"TABLE_PRIVILEGES",new String[]{"TABLE"});
@@ -132,10 +140,175 @@ public class DatabaseMetadataTest extends BaseTest{
             System.out.println(rs.getString(3));
         }
     }
+    
+    void testResultSetColumnNames(ResultSet rs, String spec) throws SQLException {
+   	 	ResultSetMetaData rsmd = rs.getMetaData();
+   	 	String[] tokens   = spec.split(",");
+   	 	
+   	 	for(int i = 0; i < tokens.length; i++) {
+   	 		String[] a = tokens[i].trim().split(" ");
+   	 		String label = a[0];
+   	 		String type = a[1];
+   	 		
+   	 		int col = i +1;
+   	 		assertEquals(label,rsmd.getColumnLabel(col));
+   	 		int t = rsmd.getColumnType(col);
+   	 		if (type.equals("String")) {
+   	 			assertTrue("invalid type  " + t + " for " + rsmd.getColumnLabel(col) + ",expected String",
+   	 					t == java.sql.Types.VARCHAR || t == java.sql.Types.NULL );
+   	 		} else if (type.equals("int") || type.equals("short")) {
+   	 			
+   	 			assertTrue("invalid type  " + t + " for " + rsmd.getColumnLabel(col) + ",expected numeric",
+   	 					t == java.sql.Types.BIGINT || t == java.sql.Types.INTEGER ||
+   	 					t == java.sql.Types.SMALLINT || t == java.sql.Types.TINYINT);
+   	 			
+   	 		} else if (type.equals("null")){
+   	 			assertTrue("invalid type  " + t + " for " + rsmd.getColumnLabel(col) + ",expected null",
+   	 					t == java.sql.Types.NULL);	
+   	 		} else {
+   	 			assertTrue("invalid type '"+ type + "'", false);
+   	 		}
+   	 	}
+    }
+    
+    @Test 
+    public void getAttributesBasic()throws Exception {
+    	 testResultSetColumnNames(
+    		 connection.getMetaData().getAttributes(null, null, null, null),
+			 "TYPE_CAT String,TYPE_SCHEM String,TYPE_NAME String," 
+			 +"ATTR_NAME String,DATA_TYPE int,ATTR_TYPE_NAME String,ATTR_SIZE int,DECIMAL_DIGITS int," 
+			 +"NUM_PREC_RADIX int,NULLABLE int,REMARKS String,ATTR_DEF String,SQL_DATA_TYPE int,SQL_DATETIME_SUB int," 
+			 +"CHAR_OCTET_LENGTH int,ORDINAL_POSITION int,IS_NULLABLE String,SCOPE_CATALOG String,SCOPE_SCHEMA String,"
+			 +"SCOPE_TABLE String,SOURCE_DATA_TYPE short");
+    }
+    
+    
+    @Test
+    public void getBestRowIdentifierBasic()throws SQLException {
+    	testResultSetColumnNames(
+    		connection.getMetaData().getBestRowIdentifier(null, null, "", 0, true), 
+    		"SCOPE short,COLUMN_NAME String,DATA_TYPE int, TYPE_NAME String,"
+    		+"COLUMN_SIZE int,BUFFER_LENGTH int,"
+    		+"DECIMAL_DIGITS short,PSEUDO_COLUMN short"); 
+    }
+    
+    @Test 
+    public void getClientInfoPropertiesBasic() throws Exception {
+    	testResultSetColumnNames(
+    		connection.getMetaData().getClientInfoProperties(),
+    		"NAME String, MAX_LEN int, DEFAULT_VALUE String, DESCRIPTION String");
+    }
+
+    @Test
+    public void getCatalogsBasic()throws SQLException  {
+    	testResultSetColumnNames(
+    		connection.getMetaData().getCatalogs(),
+    		"TABLE_CAT String");
+    }
+    
+    
+    @Test
+    public void getColumnsBasic()throws SQLException {
+    	testResultSetColumnNames(connection.getMetaData().getColumns(null, null, null, null),
+			"TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,COLUMN_NAME String,"  
+			+"DATA_TYPE int,TYPE_NAME String,COLUMN_SIZE int,BUFFER_LENGTH int," 
+			+"DECIMAL_DIGITS int,NUM_PREC_RADIX int,NULLABLE int," 
+	        +"REMARKS String,COLUMN_DEF String,SQL_DATA_TYPE int," 
+			+"SQL_DATETIME_SUB int, CHAR_OCTET_LENGTH int," 
+			+"ORDINAL_POSITION int,IS_NULLABLE String," 
+			+"SCOPE_CATALOG String,SCOPE_SCHEMA String," 
+			+"SCOPE_TABLE String,SOURCE_DATA_TYPE null");
+    }
+    
+    @Test
+    public void getColumnPrivilegesBasic()throws SQLException {
+    	testResultSetColumnNames(
+		 connection.getMetaData().getColumnPrivileges(null, null,"", null),
+		 "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,COLUMN_NAME String," +
+		 "GRANTOR String,GRANTEE String,PRIVILEGE String,IS_GRANTABLE String");
+    }
+    
+    @Test
+    public void getTablePrivilegesBasic()throws SQLException {
+    	testResultSetColumnNames(
+		 connection.getMetaData().getTablePrivileges(null, null, null),
+		 "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,GRANTOR String," 
+		 +"GRANTEE String,PRIVILEGE String,IS_GRANTABLE String");
+    	
+    }
+
+    @Test 
+    public void getVersionColumnsBasic()throws SQLException {
+   	 	testResultSetColumnNames(
+		 connection.getMetaData().getVersionColumns(null, null, null),
+		 "SCOPE short, COLUMN_NAME String,DATA_TYPE int,TYPE_NAME String,"
+		 +"COLUMN_SIZE int,BUFFER_LENGTH int,DECIMAL_DIGITS short,"
+		 +"PSEUDO_COLUMN short");
+    }
+    @Test
+    public void getPrimaryKeysBasic()throws SQLException {
+   	 	testResultSetColumnNames(
+		 connection.getMetaData().getPrimaryKeys(null, null, null),
+		"TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,COLUMN_NAME String,KEY_SEQ short,PK_NAME String"
+		 ); 
+    }
+    @Test
+    public void getImportedKeysBasic()throws SQLException {
+    	testResultSetColumnNames(
+   			 connection.getMetaData().getImportedKeys(null, null, ""),
+        "PKTABLE_CAT String,PKTABLE_SCHEM String,PKTABLE_NAME String, PKCOLUMN_NAME String,FKTABLE_CAT String," 
+    	+"FKTABLE_SCHEM String,FKTABLE_NAME String,FKCOLUMN_NAME String,KEY_SEQ short,UPDATE_RULE short," 
+    	+"DELETE_RULE short,FK_NAME String,PK_NAME String,DEFERRABILITY short");
+
+    }
+   
+    
+    @Test
+    public void getExportedKeysBasic()throws SQLException {
+    	testResultSetColumnNames(
+   			 connection.getMetaData().getExportedKeys(null, null, ""),
+        "PKTABLE_CAT String,PKTABLE_SCHEM String,PKTABLE_NAME String, PKCOLUMN_NAME String,FKTABLE_CAT String," 
+    	+"FKTABLE_SCHEM String,FKTABLE_NAME String,FKCOLUMN_NAME String,KEY_SEQ short,UPDATE_RULE short," 
+    	+"DELETE_RULE short,FK_NAME String,PK_NAME String,DEFERRABILITY short");
+
+    }
+    
+    @Test 
+    public void getCrossReferenceBasic()throws SQLException {
+    	testResultSetColumnNames(
+        connection.getMetaData().getCrossReference(null, null, "", null, null, ""),
+        "PKTABLE_CAT String,PKTABLE_SCHEM String,PKTABLE_NAME String, PKCOLUMN_NAME String,FKTABLE_CAT String," 
+       	+"FKTABLE_SCHEM String,FKTABLE_NAME String,FKCOLUMN_NAME String,KEY_SEQ short,UPDATE_RULE short," 
+       	+"DELETE_RULE short,FK_NAME String,PK_NAME String,DEFERRABILITY short");
+    }
+    
+    @Test 
+    public void getUDTsBasic() throws SQLException {
+    	testResultSetColumnNames(
+    	connection.getMetaData().getUDTs(null, null, null, null),
+	    "TYPE_CAT String,TYPE_SCHEM String,TYPE_NAME String,CLASS_NAME String,DATA_TYPE int,"
+    	+"REMARKS String,BASE_TYPE short" );
+    }
+    
+    @Test
+    public void getSuperTypesBasic() throws SQLException {
+    	testResultSetColumnNames(
+    	connection.getMetaData().getSuperTypes(null, null, null),
+    	"TYPE_CAT String,TYPE_SCHEM String,TYPE_NAME String,SUPERTYPE_CAT String," 
+    	+"SUPERTYPE_SCHEM String,SUPERTYPE_NAME String");
+    }
+    
+    @Test 
+    public void getSuperTablesBasic() throws SQLException {
+    	testResultSetColumnNames(
+    	connection.getMetaData().getSuperTables(null, null, null),
+    	"TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String, SUPERTABLE_NAME String") ;
+    }
+    
     @Test
     public void testGetSchemas2() throws SQLException {
         DatabaseMetaData dbmd = connection.getMetaData();
-        ResultSet rs = dbmd.getSchemas();
+        ResultSet rs = dbmd.getCatalogs();
         boolean foundTestUnitsJDBC = false;
         while(rs.next()) {
             if(rs.getString(1).equals("test"))
@@ -143,6 +316,8 @@ public class DatabaseMetadataTest extends BaseTest{
         }
         assertEquals(true,foundTestUnitsJDBC);
     }
+    
+
     @Test
     public void dbmetaTest() throws SQLException {
         DatabaseMetaData dmd = connection.getMetaData();
@@ -193,7 +368,7 @@ public class DatabaseMetadataTest extends BaseTest{
                         ")"
         );
         DatabaseMetaData dmd = connection.getMetaData();
-        ResultSet rs = dmd.getColumns(null, null, "manycols", null);
+        ResultSet rs = dmd.getColumns(connection.getCatalog(), null, "manycols", null);
         while(rs.next()) {
             String columnName = rs.getString("column_name");
             int type = rs.getInt("data_type");

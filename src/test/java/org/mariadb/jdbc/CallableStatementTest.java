@@ -98,6 +98,27 @@ import java.sql.*;
             storedProc.registerOutParameter(1, Types.INTEGER);
             storedProc.execute();
             assertEquals(2, storedProc.getObject(1));
+        }
+        
+        @Test
+        public void getProcedures() throws SQLException{
 
+            createProcedure("testGetProcedures",
+                    "(INOUT p1 INT) begin set p1 = p1 + 1; end\n");
+
+            ResultSet rs = connection.getMetaData().getProcedures(null, null, "testGetProc%");
+            
+            ResultSetMetaData md = rs.getMetaData();
+            
+        	for(int i = 1; i <= md.getColumnCount();i++) {
+        		System.out.println(md.getColumnLabel(i));
+        	}
+            while(rs.next()) {
+
+            	for(int i = 1; i <= rs.getMetaData().getColumnCount();i++) {
+            		System.out.print(rs.getObject(i)+ " ");
+            	}
+            	System.out.println();
+            }
         }
     }
