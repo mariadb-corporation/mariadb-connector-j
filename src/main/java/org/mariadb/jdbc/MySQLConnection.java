@@ -88,7 +88,6 @@ public final class MySQLConnection
 
     private boolean warningsCleared;
     boolean noBackslashEscapes;
-    boolean noSchemaPattern = false;
 
 
     /**
@@ -106,12 +105,6 @@ public final class MySQLConnection
 
     public static MySQLConnection newConnection(MySQLProtocol protocol, QueryFactory queryFactory) throws SQLException {
         MySQLConnection connection = new MySQLConnection(protocol, queryFactory);
-        
-        String value;
-        if ((value = protocol.getInfo().getProperty("NoSchemaPattern")) != null
-        		&& value.equalsIgnoreCase("true")) {
-        	connection.noSchemaPattern = true;
-        }
         
         boolean fastConnect =  protocol.getInfo().get("fastConnect") != null ;
         String sessionVariables = protocol.getInfo().getProperty("sessionVariables");
