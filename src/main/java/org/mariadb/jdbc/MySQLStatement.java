@@ -188,10 +188,10 @@ public class MySQLStatement implements Statement {
         if (isClosed()) {
             throw new SQLException("execute() is called on closed statement");
         }
+        checkReconnect();
         if (protocol.isClosed()){
             throw new SQLException("execute() is called on closed connection");     
         }
-        checkReconnect();
         if (protocol.hasUnreadData()) {
             throw new  SQLException("There is an open result set on the current connection, "+
                     "which must be closed prior to executing a query");
@@ -241,7 +241,7 @@ public class MySQLStatement implements Statement {
 
 
     /*
-     Reset timeout after query, re-throw correct SQL  exception
+     Reset timeout after query, re-throw  SQL  exception
     */
     private void executeQueryEpilog(QueryException e, Query query) throws SQLException{
 
@@ -258,8 +258,19 @@ public class MySQLStatement implements Statement {
         if (e == null)
         	return;
         
-        if (protocol.getInfo().getProperty("dumpQueriesOnException", "false").equalsIgnoreCase("true")) {
-        	e.setMessage(e.getMessage()+ "\nQuery is : " + query);
+        /* Include query into exception message, if dumpQueriesOnException is true, 
+         * or on SQL syntax error (MySQL error code 1064). 
+         * 
+         * If SQL query is too long, truncate it to reasonable (for exception messages) 
+         * length. 
+         */
+        if (protocol.getInfo().getProperty("dumpQueriesOnException", "false").equalsIgnoreCase("true") 
+        		|| e.getErrorCode() == 1064 ) {
+        	String queryString = query.toString();
+            if (queryString.length() > 1024) {
+        	    queryString = queryString.substring(0, 1024);
+            }
+            e.setMessage(e.getMessage()+ "\nQuery is : " + queryString);
         }
         	
         SQLExceptionMapper.throwException(e, connection, this);
@@ -273,6 +284,7 @@ public class MySQLStatement implements Statement {
      * @throws SQLException
      */
      protected boolean execute(Query query) throws SQLException {
+    	//System.out.println(query);
         synchronized (protocol) {
             QueryException exception = null;
             executeQueryProlog();

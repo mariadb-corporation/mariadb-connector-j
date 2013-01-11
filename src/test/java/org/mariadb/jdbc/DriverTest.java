@@ -1157,10 +1157,10 @@ public class DriverTest extends BaseTest{
         } catch (Exception e) {}
         conn = DriverManager.getConnection("jdbc:mysql:thin://localhost:3306/test_testdrop?createDB=true&user=root");
         DatabaseMetaData dbmd = conn.getMetaData();
-        ResultSet rs = dbmd.getSchemas();
+        ResultSet rs = dbmd.getCatalogs();
         boolean foundDb = false;
         while(rs.next()) {
-            if(rs.getString("table_schem").equals("test_testdrop")) foundDb = true;
+            if(rs.getString("table_cat").equals("test_testdrop")) foundDb = true;
         }
         assertTrue(foundDb);
 
@@ -1399,15 +1399,28 @@ public class DriverTest extends BaseTest{
 		assertEquals(st3.getQueryTimeout(),1);
     }
 
+    /* Check that exception contains SQL statement, for queries with syntax errors */
     @Test
-    public void dumpQueriesOnException() throws Exception {
-        Connection c = DriverManager.getConnection("jdbc:mysql://localhost:3306?user=root&dumpQueriesOnException=true");
+    public void dumpQueryOnSyntaxException() throws Exception {
         String syntacticallyWrongQuery = "banana";
         try {
-            Statement st = c.createStatement();
+            Statement st = connection.createStatement();
             st.execute(syntacticallyWrongQuery);
         } catch (SQLException sqle) {
            assertTrue(sqle.getMessage().contains("Query is : " + syntacticallyWrongQuery));
+        } 
+    }
+    
+    /* Check that query contains SQL statement, if dumpQueryOnException is true */
+    @Test
+    public void dumpQueryOnException() throws Exception {
+        Connection c = DriverManager.getConnection("jdbc:mysql://localhost:3306?user=root&dumpQueriesOnException=true");
+        String selectFromNonExistingTable = "select * from banana";
+        try {
+            Statement st = c.createStatement();
+            st.execute(selectFromNonExistingTable);
+        } catch (SQLException sqle) {
+           assertTrue(sqle.getMessage().contains("Query is : " + selectFromNonExistingTable));
         } finally {
             c.close();
         }
