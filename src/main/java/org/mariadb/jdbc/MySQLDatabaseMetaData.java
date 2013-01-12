@@ -107,8 +107,10 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
     }
     
     
-    private String escapeString(String s) {
-    	return Utils.escapeString(s, connection.noBackslashEscapes);
+    private String escapeQuote(String s) {
+    	if (s == null)
+    		return "NULL";	
+    	return "'" + Utils.escapeString(s, connection.noBackslashEscapes) + "'";
     }
     
     String catalogCond(String columnName, String catalog) {
@@ -118,7 +120,7 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
     	if (catalog.equals("")) {
     		return "(ISNULL(database()) OR (" + columnName + " = database()))";
     	}
-    	return "(" + columnName + " = '" + escapeString(catalog) + "')" ;
+    	return "(" + columnName + " = " + escapeQuote(catalog) + ")" ;
     	
     }
     
@@ -176,11 +178,11 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
         	for (int i=0 ; i < types.length; i++) {
         		if(types[i] == null)
         			continue;
-        		String type = escapeString(mapTableTypes(types[i]));
+        		String type = escapeQuote(mapTableTypes(types[i]));
         		if (i == types.length -1)
-        			sql += "'" + type +"')";
+        			sql += type + ")";
         		else
-        			sql += "'" + type + "',";
+        			sql += type + ",";
         	}			
         }
         
@@ -243,8 +245,8 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
         + " WHERE "
         + catalogCond("KCU.REFERENCED_TABLE_SCHEMA", catalog)
         + " AND "
-        + " KCU.REFERENCED_TABLE_NAME = '" + escapeString(table) + "'" +
-        " ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ";
+        + " KCU.REFERENCED_TABLE_NAME = " + escapeQuote(table) 
+        + " ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ";
  
         return executeQuery(sql);
     }
@@ -281,7 +283,7 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
 	    + " WHERE "
 	    + catalogCond("KCU.TABLE_SCHEMA", catalog)
         + " AND "
-        + " KCU.TABLE_NAME = '" + escapeString(table) + "'" 
+        + " KCU.TABLE_NAME = " + escapeQuote(table) 
         + " ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ";
         
         return executeQuery(sql);
@@ -304,7 +306,7 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
         + " WHERE COLUMN_KEY IN('PRI', 'MUL', 'UNI')" 
         + " AND "
         + catalogCond("TABLE_SCHEMA",catalog)
-        + " AND TABLE_NAME = '" + escapeString(table)+ "'";
+        + " AND TABLE_NAME = " + escapeQuote(table);
     	
         return executeQuery(sql);
     }
@@ -987,11 +989,58 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
     	return executeQuery(sql);
     }
 
+    
     public ResultSet getProcedureColumns(String catalog, String schemaPattern, String procedureNamePattern,
             String columnNamePattern) throws SQLException {
-                return MySQLResultSet.EMPTY; /*TODO: return real ones */
+    	
+    	String sql = 
+		"SELECT SPECIFIC_SCHEMA PROCEDURE_CAT, NULL PROCEDURE_SCHEM, SPECIFIC_NAME PROCEDURE_NAME,"
+		+" PARAMETER_NAME COLUMN_NAME, " 
+		+ " CASE PARAMETER_MODE "
+		+ "  WHEN 'IN' THEN " + procedureColumnIn   
+		+ "  WHEN 'OUT' THEN " + procedureColumnOut
+		+ "  WHEN 'INOUT' THEN " + procedureColumnInOut 
+		+ "  ELSE " + procedureColumnUnknown
+		+ " END COLUMN_TYPE,"
+		+ dataTypeClause + " DATA_TYPE,"
+		+ "DATA_TYPE TYPE_NAME,NUMERIC_PRECISION `PRECISION`,CHARACTER_MAXIMUM_LENGTH LENGTH,NUMERIC_SCALE SCALE,10 RADIX," 
+		+ procedureNullableUnknown +" NULLABLE,NULL REMARKS,NULL COLUMN_DEF,0 SQL_DATA_TYPE,0 SQL_DATETIME_SUB,"
+		+ "CHARACTER_OCTET_LENGTH CHAR_OCTET_LENGTH ,ORDINAL_POSITION, '' IS_NULLABLE, SPECIFIC_NAME "
+		+ " FROM INFORMATION_SCHEMA.PARAMETERS "  
+		+ " WHERE " 
+		+ catalogCond("SPECIFIC_SCHEMA" , catalog)
+		+ " AND "+ patternCond("SPECIFIC_NAME", procedureNamePattern)
+		+ " AND "+ patternCond("COLUMN_NAME", columnNamePattern)
+		+ " AND ROUTINE_TYPE='PROCEDURE'"
+		+ " ORDER BY SPECIFIC_SCHEMA, SPECIFIC_NAME, ORDINAL_POSITION"; 
+    	return executeQuery(sql);
     }
-
+    
+    public ResultSet getFunctionColumns(String catalog, String schemaPattern, String procedureNamePattern,
+            String columnNamePattern) throws SQLException {
+    	
+    	String sql = 
+		"SELECT SPECIFIC_SCHEMA FUNCTION_CAT, NULL FUNCTION_SCHEM, SPECIFIC_NAME FUNCTION_NAME,"
+		+" PARAMETER_NAME COLUMN_NAME, " 
+		+ " CASE PARAMETER_MODE "
+		+ "  WHEN 'IN' THEN " + functionColumnIn   
+		+ "  WHEN 'OUT' THEN " + functionColumnOut
+		+ "  WHEN 'INOUT' THEN " + functionColumnInOut   
+		+ "  ELSE " + functionReturn
+		+ " END COLUMN_TYPE,"
+		+ dataTypeClause + " DATA_TYPE,"
+		+ "DATA_TYPE TYPE_NAME,NUMERIC_PRECISION `PRECISION`,CHARACTER_MAXIMUM_LENGTH LENGTH,NUMERIC_SCALE SCALE,10 RADIX," 
+		+ procedureNullableUnknown +" NULLABLE,NULL REMARKS,"
+		+ "CHARACTER_OCTET_LENGTH CHAR_OCTET_LENGTH ,ORDINAL_POSITION, '' IS_NULLABLE, SPECIFIC_NAME "
+		+ " FROM INFORMATION_SCHEMA.PARAMETERS "  
+		+ " WHERE " 
+		+ catalogCond("SPECIFIC_SCHEMA" , catalog)
+		+ " AND "+ patternCond("SPECIFIC_NAME", procedureNamePattern)
+		+ " AND "+ patternCond("COLUMN_NAME", columnNamePattern)
+		+ " AND ROUTINE_TYPE='FUNCTION'"
+		+ " ORDER BY SPECIFIC_SCHEMA, SPECIFIC_NAME, ORDINAL_POSITION"; 
+        return executeQuery(sql);
+    }
     
     public ResultSet getSchemas() throws SQLException {
         return executeQuery(
@@ -1021,7 +1070,7 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
 		 + " INFORMATION_SCHEMA.COLUMN_PRIVILEGES WHERE "
 		 + catalogCond("TABLE_SCHEMA", catalog)
 		 + " AND "
-		 + " TABLE_NAME = '" + escapeString(table) + "'"
+		 + " TABLE_NAME = " + escapeQuote(table) 
 		 + " AND "
 		 + patternCond("COLUMN_NAME",columnNamePattern) 
 		 + " ORDER BY COLUMN_NAME, PRIVILEGE_TYPE";
@@ -1087,9 +1136,9 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
 	        + " AND "
 	        + catalogCond("KCU.TABLE_SCHEMA", foreignCatalog) 
 	        + " AND "
-	        + " KCU.REFERENCED_TABLE_NAME = '" + escapeString(parentTable) + "'"
+	        + " KCU.REFERENCED_TABLE_NAME = " + escapeQuote(parentTable) 
 	        + " AND "
-	        + " KCU.TABLE_NAME = '" + escapeString(foreignTable) + "'"
+	        + " KCU.TABLE_NAME = " + escapeQuote(foreignTable)
 	        + " ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ";
 	 
 	    return executeQuery(sql);
@@ -1108,7 +1157,7 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
     		+ " SEQ_IN_INDEX ORDINAL_POSITION, COLUMN_NAME, COLLATION ASC_OR_DESC," 
             + " CARDINALITY, NULL PAGES, NULL FILTER_CONDITION"
     		+ " FROM INFORMATION_SCHEMA.STATISTICS" 
-            + " WHERE table_name = '" + escapeString(table) + "'"
+            + " WHERE table_name = " + escapeQuote(table)
             + " AND "
             + catalogCond("TABLE_SCHEMA",catalog)
             + ((unique) ? " AND NON_UNIQUE = 0" : "") 
@@ -1333,10 +1382,6 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
     	return executeQuery(sql);
     }
 
-    public ResultSet getFunctionColumns(String catalog, String schemaPattern, String functionNamePattern,
-            String columnNamePattern) throws SQLException {
-        return MySQLResultSet.EMPTY; //TODO: fix
-            }
 
 
     public <T> T unwrap(final Class<T> iface) throws SQLException {

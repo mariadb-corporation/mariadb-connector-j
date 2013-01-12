@@ -42,6 +42,36 @@ public class DatabaseMetadataTest extends BaseTest{
 
     }
 
+    @Test 
+    public void functionColumns() throws SQLException {
+      Statement stmt = connection.createStatement();
+      stmt.execute("DROP FUNCTION IF EXISTS hello");
+      stmt.execute("CREATE FUNCTION hello (s CHAR(20), i int) RETURNS CHAR(50) DETERMINISTIC  RETURN CONCAT('Hello, ',s,'!')");
+      ResultSet rs = connection.getMetaData().getFunctionColumns(null, null, "hello", null);
+      
+      rs.next();
+      /* First row is for return value */
+      assertEquals(rs.getString("FUNCTION_CAT"),connection.getCatalog());
+      assertEquals(rs.getString("FUNCTION_SCHEM"), null);
+      assertEquals(rs.getString("COLUMN_NAME"), null); /* No name, since it is return value */
+      assertEquals(rs.getInt("COLUMN_TYPE"), DatabaseMetaData.functionReturn);
+      System.out.println(rs.getObject("DATA_TYPE"));
+      assertEquals(rs.getInt("DATA_TYPE"), java.sql.Types.CHAR);
+      assertEquals(rs.getString("TYPE_NAME"), "char");
+      
+      rs.next();
+      assertEquals(rs.getString("COLUMN_NAME"), "s"); /* input parameter 's' (CHAR) */
+      assertEquals(rs.getInt("COLUMN_TYPE"), DatabaseMetaData.functionColumnIn);
+      assertEquals(rs.getInt("DATA_TYPE"), java.sql.Types.CHAR);
+      assertEquals(rs.getString("TYPE_NAME"), "char");
+      
+      rs.next();
+      assertEquals(rs.getString("COLUMN_NAME"), "i"); /* input parameter 'i' (INT) */
+      assertEquals(rs.getInt("COLUMN_TYPE"), DatabaseMetaData.functionColumnIn);
+      assertEquals(rs.getInt("DATA_TYPE"), java.sql.Types.INTEGER);
+      assertEquals(rs.getString("TYPE_NAME"), "int");
+    }
+    
     @Test
     public void exportedKeysTest() throws SQLException {
         Statement stmt = connection.createStatement();
@@ -141,7 +171,7 @@ public class DatabaseMetadataTest extends BaseTest{
         }
     }
     
-    void testResultSetColumnNames(ResultSet rs, String spec) throws SQLException {
+    void testResultSetColumns(ResultSet rs, String spec) throws SQLException {
    	 	ResultSetMetaData rsmd = rs.getMetaData();
    	 	String[] tokens   = spec.split(",");
    	 	
@@ -173,7 +203,7 @@ public class DatabaseMetadataTest extends BaseTest{
     
     @Test 
     public void getAttributesBasic()throws Exception {
-    	 testResultSetColumnNames(
+    	 testResultSetColumns(
     		 connection.getMetaData().getAttributes(null, null, null, null),
 			 "TYPE_CAT String,TYPE_SCHEM String,TYPE_NAME String," 
 			 +"ATTR_NAME String,DATA_TYPE int,ATTR_TYPE_NAME String,ATTR_SIZE int,DECIMAL_DIGITS int," 
@@ -185,7 +215,7 @@ public class DatabaseMetadataTest extends BaseTest{
     
     @Test
     public void getBestRowIdentifierBasic()throws SQLException {
-    	testResultSetColumnNames(
+    	testResultSetColumns(
     		connection.getMetaData().getBestRowIdentifier(null, null, "", 0, true), 
     		"SCOPE short,COLUMN_NAME String,DATA_TYPE int, TYPE_NAME String,"
     		+"COLUMN_SIZE int,BUFFER_LENGTH int,"
@@ -194,14 +224,14 @@ public class DatabaseMetadataTest extends BaseTest{
     
     @Test 
     public void getClientInfoPropertiesBasic() throws Exception {
-    	testResultSetColumnNames(
+    	testResultSetColumns(
     		connection.getMetaData().getClientInfoProperties(),
     		"NAME String, MAX_LEN int, DEFAULT_VALUE String, DESCRIPTION String");
     }
 
     @Test
     public void getCatalogsBasic()throws SQLException  {
-    	testResultSetColumnNames(
+    	testResultSetColumns(
     		connection.getMetaData().getCatalogs(),
     		"TABLE_CAT String");
     }
@@ -209,7 +239,7 @@ public class DatabaseMetadataTest extends BaseTest{
     
     @Test
     public void getColumnsBasic()throws SQLException {
-    	testResultSetColumnNames(connection.getMetaData().getColumns(null, null, null, null),
+    	testResultSetColumns(connection.getMetaData().getColumns(null, null, null, null),
 			"TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,COLUMN_NAME String,"  
 			+"DATA_TYPE int,TYPE_NAME String,COLUMN_SIZE int,BUFFER_LENGTH int," 
 			+"DECIMAL_DIGITS int,NUM_PREC_RADIX int,NULLABLE int," 
@@ -221,8 +251,27 @@ public class DatabaseMetadataTest extends BaseTest{
     }
     
     @Test
+    public void getProcedureColumnsBasic() throws SQLException {
+    	testResultSetColumns(connection.getMetaData().getProcedureColumns(null, null, null, null),
+		"PROCEDURE_CAT String,PROCEDURE_SCHEM String,PROCEDURE_NAME String,COLUMN_NAME String ,COLUMN_TYPE short," 
+		+"DATA_TYPE int,TYPE_NAME String,PRECISION int,LENGTH int,SCALE short,RADIX short,NULLABLE short," 
+		+"REMARKS String,COLUMN_DEF String,SQL_DATA_TYPE int,SQL_DATETIME_SUB int ,CHAR_OCTET_LENGTH int,"
+		+"ORDINAL_POSITION int,IS_NULLABLE String,SPECIFIC_NAME String");
+    	
+    }
+    
+    @Test
+    public void getFunctionColumnsBasic() throws SQLException {
+    	testResultSetColumns(connection.getMetaData().getFunctionColumns(null, null, null, null),
+		 "FUNCTION_CAT String,FUNCTION_SCHEM String,FUNCTION_NAME String,COLUMN_NAME String,COLUMN_TYPE short,"
+    	+"DATA_TYPE int,TYPE_NAME String,PRECISION int,LENGTH int,SCALE short,RADIX short,NULLABLE short,REMARKS String,"
+	    +"CHAR_OCTET_LENGTH int,ORDINAL_POSITION int,IS_NULLABLE String,SPECIFIC_NAME String");
+    	
+    }
+    
+    @Test
     public void getColumnPrivilegesBasic()throws SQLException {
-    	testResultSetColumnNames(
+    	testResultSetColumns(
 		 connection.getMetaData().getColumnPrivileges(null, null,"", null),
 		 "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,COLUMN_NAME String," +
 		 "GRANTOR String,GRANTEE String,PRIVILEGE String,IS_GRANTABLE String");
@@ -230,7 +279,7 @@ public class DatabaseMetadataTest extends BaseTest{
     
     @Test
     public void getTablePrivilegesBasic()throws SQLException {
-    	testResultSetColumnNames(
+    	testResultSetColumns(
 		 connection.getMetaData().getTablePrivileges(null, null, null),
 		 "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,GRANTOR String," 
 		 +"GRANTEE String,PRIVILEGE String,IS_GRANTABLE String");
@@ -239,7 +288,7 @@ public class DatabaseMetadataTest extends BaseTest{
 
     @Test 
     public void getVersionColumnsBasic()throws SQLException {
-   	 	testResultSetColumnNames(
+   	 	testResultSetColumns(
 		 connection.getMetaData().getVersionColumns(null, null, null),
 		 "SCOPE short, COLUMN_NAME String,DATA_TYPE int,TYPE_NAME String,"
 		 +"COLUMN_SIZE int,BUFFER_LENGTH int,DECIMAL_DIGITS short,"
@@ -247,14 +296,14 @@ public class DatabaseMetadataTest extends BaseTest{
     }
     @Test
     public void getPrimaryKeysBasic()throws SQLException {
-   	 	testResultSetColumnNames(
+   	 	testResultSetColumns(
 		 connection.getMetaData().getPrimaryKeys(null, null, null),
 		"TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,COLUMN_NAME String,KEY_SEQ short,PK_NAME String"
 		 ); 
     }
     @Test
     public void getImportedKeysBasic()throws SQLException {
-    	testResultSetColumnNames(
+    	testResultSetColumns(
    			 connection.getMetaData().getImportedKeys(null, null, ""),
         "PKTABLE_CAT String,PKTABLE_SCHEM String,PKTABLE_NAME String, PKCOLUMN_NAME String,FKTABLE_CAT String," 
     	+"FKTABLE_SCHEM String,FKTABLE_NAME String,FKCOLUMN_NAME String,KEY_SEQ short,UPDATE_RULE short," 
@@ -265,7 +314,7 @@ public class DatabaseMetadataTest extends BaseTest{
     
     @Test
     public void getExportedKeysBasic()throws SQLException {
-    	testResultSetColumnNames(
+    	testResultSetColumns(
    			 connection.getMetaData().getExportedKeys(null, null, ""),
         "PKTABLE_CAT String,PKTABLE_SCHEM String,PKTABLE_NAME String, PKCOLUMN_NAME String,FKTABLE_CAT String," 
     	+"FKTABLE_SCHEM String,FKTABLE_NAME String,FKCOLUMN_NAME String,KEY_SEQ short,UPDATE_RULE short," 
@@ -275,7 +324,7 @@ public class DatabaseMetadataTest extends BaseTest{
     
     @Test 
     public void getCrossReferenceBasic()throws SQLException {
-    	testResultSetColumnNames(
+    	testResultSetColumns(
         connection.getMetaData().getCrossReference(null, null, "", null, null, ""),
         "PKTABLE_CAT String,PKTABLE_SCHEM String,PKTABLE_NAME String, PKCOLUMN_NAME String,FKTABLE_CAT String," 
        	+"FKTABLE_SCHEM String,FKTABLE_NAME String,FKCOLUMN_NAME String,KEY_SEQ short,UPDATE_RULE short," 
@@ -284,7 +333,7 @@ public class DatabaseMetadataTest extends BaseTest{
     
     @Test 
     public void getUDTsBasic() throws SQLException {
-    	testResultSetColumnNames(
+    	testResultSetColumns(
     	connection.getMetaData().getUDTs(null, null, null, null),
 	    "TYPE_CAT String,TYPE_SCHEM String,TYPE_NAME String,CLASS_NAME String,DATA_TYPE int,"
     	+"REMARKS String,BASE_TYPE short" );
@@ -292,7 +341,7 @@ public class DatabaseMetadataTest extends BaseTest{
     
     @Test
     public void getSuperTypesBasic() throws SQLException {
-    	testResultSetColumnNames(
+    	testResultSetColumns(
     	connection.getMetaData().getSuperTypes(null, null, null),
     	"TYPE_CAT String,TYPE_SCHEM String,TYPE_NAME String,SUPERTYPE_CAT String," 
     	+"SUPERTYPE_SCHEM String,SUPERTYPE_NAME String");
@@ -300,7 +349,7 @@ public class DatabaseMetadataTest extends BaseTest{
     
     @Test 
     public void getSuperTablesBasic() throws SQLException {
-    	testResultSetColumnNames(
+    	testResultSetColumns(
     	connection.getMetaData().getSuperTables(null, null, null),
     	"TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String, SUPERTABLE_NAME String") ;
     }
