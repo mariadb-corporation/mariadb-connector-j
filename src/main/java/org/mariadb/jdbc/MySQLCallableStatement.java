@@ -128,12 +128,12 @@ class CallableParameterMetaData implements ParameterMetaData {
         if(dotIndex > 0) {
             dbname = name.substring(0, dotIndex);
             dbname = dbname.replace("`", "");
-            dbname = "'" + Utils.sqlEscapeString(dbname,noBackslashEscapes)  + "'";
+            dbname = "'" + Utils.escapeString(dbname,noBackslashEscapes)  + "'";
             procedureNameNoDb= name.substring(dotIndex+1);
         }
 
         procedureNameNoDb = procedureNameNoDb.replace("`","");
-        procedureNameNoDb = "'" + Utils.sqlEscapeString(procedureNameNoDb,noBackslashEscapes) + "'";
+        procedureNameNoDb = "'" + Utils.escapeString(procedureNameNoDb,noBackslashEscapes) + "'";
 
         Statement st = con.createStatement();
         ResultSet rs = null;

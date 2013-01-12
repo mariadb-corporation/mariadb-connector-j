@@ -58,34 +58,7 @@ import java.util.List;
 public class Utils {
 
 
-    /**
-     * escapes the given string, new string length is at most twice the length of str
-     *
-     * @param str the string to escape
-     * @return an escaped string
-     */
-    public static String sqlEscapeString(final String str, boolean noBackslashEscapes) {
-        if (noBackslashEscapes) {
-            return str.replaceAll("'", "''");
-        }
-        else {
-            int indexQuote = str.indexOf('\'');
-            int indexBackslash = str.indexOf('\\');
-            if (indexQuote >=0 || indexBackslash >=0) {
-               StringBuffer sb = new StringBuffer(str.length()+1);
-               for(int i=0; i < str.length(); i++) {
-                   char c = str.charAt(i);
-                   if (c == '\'' || c == '\\') {
-                       sb.append('\\');
-                   }
-                   sb.append(c);
-               }
-               return sb.toString();
-            } else {
-                return str;
-            }
-        }
-    }
+    
 
     enum LexState
     {
