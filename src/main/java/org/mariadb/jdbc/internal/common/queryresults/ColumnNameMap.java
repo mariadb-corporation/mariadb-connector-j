@@ -18,10 +18,18 @@ public class ColumnNameMap {
     }
 
     public int getIndex(String name) throws SQLException {
-
         if (columnInfo == null) {
            throw new SQLException("No such column :" + name);
         }
+        // The specs in JDBC 4.0 specify that ResultSet.findColumn and
+        // ResultSet.getXXX(String name) should use column alias (AS in the query). If label is not found, we use 
+        // original table name.
+    	Integer res = getLabelIndex(name);
+
+    	
+    	if (res != null) {
+    		return res;
+    	}
         if (map == null) {
             map = new HashMap<String, Integer>();
             int i=0;
@@ -39,19 +47,8 @@ public class ColumnNameMap {
                 i++;
             }
         }
-        Integer res = map.get(name.toLowerCase());
-        if (res == null) {
-            // The specs in JDBC 4.0 specify that ResultSet.findColumn and
-            // ResultSet.getXXX(String name) should use original column name rather than column alias (AS in the query)
-            // However, in the past there was no consensus about it and different drivers implemented it differently
-            // and for Connector/J the result might even differ from version to version, and is controlled by a special
-            //  connection parameter.
-
-            // To cope with this situation, we implement a fallback mechanism - we try the original column name as in
-            // JDBC 4.0, if not found we try the label. The point is that user program continues to run rather than die
-            // on exception.
-            res = getLabelIndex(name);
-        }
+        res = map.get(name.toLowerCase());
+       
         if (res == null) {
             throw new SQLException("No such column :" + name);
         }
