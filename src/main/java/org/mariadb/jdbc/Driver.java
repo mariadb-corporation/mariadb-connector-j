@@ -158,7 +158,7 @@ public final class Driver implements java.sql.Driver {
      * @return the major versions
      */
     public int getMajorVersion() {
-        return 0;
+        return 1;
     }
 
     /**
