@@ -324,6 +324,10 @@ public class DriverTest extends BaseTest{
         assertEquals(true,rs.wasNull());
     }
 
+    @Test 
+    public void testDatabaseServerVersion() throws SQLException {
+    	assertTrue(connection.getMetaData().getDatabaseMajorVersion() >=5);
+    }
     @Test
     public void connectFailover() throws SQLException {
         Connection c  = DriverManager.getConnection("jdbc:mysql://localhost:3306,localhost:3307/test?user=root");
@@ -1407,7 +1411,7 @@ public class DriverTest extends BaseTest{
             Statement st = connection.createStatement();
             st.execute(syntacticallyWrongQuery);
         } catch (SQLException sqle) {
-           assertTrue(sqle.getMessage().contains("Query is : " + syntacticallyWrongQuery));
+           assertTrue(sqle.getMessage().contains("Query is:\n" + syntacticallyWrongQuery));
         } 
     }
     
@@ -1420,7 +1424,7 @@ public class DriverTest extends BaseTest{
             Statement st = c.createStatement();
             st.execute(selectFromNonExistingTable);
         } catch (SQLException sqle) {
-           assertTrue(sqle.getMessage().contains("Query is : " + selectFromNonExistingTable));
+           assertTrue(sqle.getMessage().contains("Query is:\n" + selectFromNonExistingTable));
         } finally {
             c.close();
         }

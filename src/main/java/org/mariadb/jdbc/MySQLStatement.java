@@ -267,10 +267,10 @@ public class MySQLStatement implements Statement {
         if (protocol.getInfo().getProperty("dumpQueriesOnException", "false").equalsIgnoreCase("true") 
         		|| e.getErrorCode() == 1064 ) {
         	String queryString = query.toString();
-            if (queryString.length() > 1024) {
-        	    queryString = queryString.substring(0, 1024);
+            if (queryString.length() > 4096) {
+        	    queryString = queryString.substring(0, 4096);
             }
-            e.setMessage(e.getMessage()+ "\nQuery is : " + queryString);
+            e.setMessage(e.getMessage()+ "\nQuery is:\n" + queryString);
         }
         	
         SQLExceptionMapper.throwException(e, connection, this);

@@ -45,6 +45,13 @@ public class DatabaseMetadataTest extends BaseTest{
     @Test 
     public void functionColumns() throws SQLException {
       Statement stmt = connection.createStatement();
+      DatabaseMetaData md = connection.getMetaData();
+      
+      if (md.getDatabaseMajorVersion() < 5)
+    	  return;
+      if (md.getDatabaseMajorVersion() == 5 && md.getDatabaseMinorVersion() < 5)
+    	  return;
+      
       stmt.execute("DROP FUNCTION IF EXISTS hello");
       stmt.execute("CREATE FUNCTION hello (s CHAR(20), i int) RETURNS CHAR(50) DETERMINISTIC  RETURN CONCAT('Hello, ',s,'!')");
       ResultSet rs = connection.getMetaData().getFunctionColumns(null, null, "hello", null);
@@ -347,6 +354,15 @@ public class DatabaseMetadataTest extends BaseTest{
     	+"SUPERTYPE_SCHEM String,SUPERTYPE_NAME String");
     }
     
+    @Test
+    public void getFunctionsBasic() throws SQLException {
+    	testResultSetColumns(
+    	connection.getMetaData().getFunctions(null, null, null),
+    	"FUNCTION_CAT String, FUNCTION_SCHEM String,FUNCTION_NAME String,REMARKS String,FUNCTION_TYPE short, "
+    	+"SPECIFIC_NAME String");
+    }
+    
+    
     @Test 
     public void getSuperTablesBasic() throws SQLException {
     	testResultSetColumns(
@@ -421,19 +437,24 @@ public class DatabaseMetadataTest extends BaseTest{
         while(rs.next()) {
             String columnName = rs.getString("column_name");
             int type = rs.getInt("data_type");
+            String typeName = rs.getString("type_name");
+            assertTrue(typeName.indexOf("(") == -1);
+            for(char c : typeName.toCharArray()) {
+            	assertTrue("bad typename " + typeName, c == ' ' || Character.isUpperCase(c));
+            }
             checkType(columnName, type, "tiny", Types.TINYINT);
             checkType(columnName, type, "tiny_uns", Types.TINYINT);
             checkType(columnName, type, "small", Types.SMALLINT);
-            checkType(columnName, type, "small_uns", Types.SMALLINT);
+            checkType(columnName, type, "small_uns", Types.INTEGER);
             checkType(columnName, type, "medium", Types.INTEGER);
             checkType(columnName, type, "medium_uns", Types.INTEGER);
             checkType(columnName, type, "int_col", Types.INTEGER);
-            checkType(columnName, type, "int_col_uns", Types.INTEGER);
+            checkType(columnName, type, "int_col_uns", Types.BIGINT);
             checkType(columnName, type, "big", Types.BIGINT);
             checkType(columnName, type, "big_uns", Types.BIGINT);
             checkType(columnName, type ,"decimal_col",Types.DECIMAL);
             checkType(columnName, type, "fcol", Types.FLOAT);
-            checkType(columnName, type, "fcol_uns", Types.FLOAT);
+            checkType(columnName, type, "fcol_uns", Types.DOUBLE);
             checkType(columnName, type, "dcol", Types.DOUBLE);
             checkType(columnName, type, "dcol_uns", Types.DOUBLE);
             checkType(columnName, type, "date_col", Types.DATE);

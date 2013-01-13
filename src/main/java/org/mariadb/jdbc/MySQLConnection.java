@@ -102,7 +102,10 @@ public final class MySQLConnection
         this.queryFactory = queryFactory;
 
     }
-
+    
+    MySQLProtocol getProtocol() {
+    	return protocol;
+    }
     public static MySQLConnection newConnection(MySQLProtocol protocol, QueryFactory queryFactory) throws SQLException {
         MySQLConnection connection = new MySQLConnection(protocol, queryFactory);
         

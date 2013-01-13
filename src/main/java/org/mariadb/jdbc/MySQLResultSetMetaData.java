@@ -195,7 +195,7 @@ public class MySQLResultSetMetaData implements ResultSetMetaData {
      * @return schema name or "" if not applicable
      * @throws java.sql.SQLException if a database access error occurs
      */
-    public String getSchemaName(final int column) throws SQLException {
+    public String getCatalogName(int column) throws SQLException {
         return getColumnInformation(column).getDb();
     }
 
@@ -237,14 +237,8 @@ public class MySQLResultSetMetaData implements ResultSetMetaData {
         return getColumnInformation(column).getTable();
     }
 
-    /**
-     * Gets the designated column's table's catalog name.
-     *
-     * @param column the first column is 1, the second is 2, ...
-     * @return the name of the catalog for the table in which the given column appears or "" if not applicable
-     * @throws java.sql.SQLException if a database access error occurs
-     */
-    public String getCatalogName(final int column) throws SQLException {
+
+    public String getSchemaName(int column) throws SQLException {
         return "";
     }
 
@@ -449,7 +443,7 @@ public class MySQLResultSetMetaData implements ResultSetMetaData {
     }
 
     private ColumnInformation getColumnInformation(int column) throws SQLException {
-        if (column - 1 >= 0 && column - 1 <= fieldPackets.size()) {
+        if (column >= 1 && column <= fieldPackets.size()) {
             return fieldPackets.get(column - 1);
         }
         throw SQLExceptionMapper.getSQLException("No such column");

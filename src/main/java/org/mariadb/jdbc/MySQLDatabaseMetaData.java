@@ -55,81 +55,91 @@ import org.mariadb.jdbc.internal.common.Utils;
 
 
 public class MySQLDatabaseMetaData implements DatabaseMetaData {
-    private String version;
     private String url;
     private MySQLConnection connection;
     private String databaseProductName = "MySQL";
     private String username;
     
-    private static final String dataTypeClause = 
-    		            " CASE data_type" +
-                        " WHEN 'bit' THEN "         + Types.BIT +
-                        " WHEN 'tinyblob' THEN "    + Types.LONGVARBINARY +
-                        " WHEN 'mediumblob' THEN "  + Types.LONGVARBINARY +
-                        " WHEN 'longblob' THEN "    + Types.LONGVARBINARY +
-                        " WHEN 'blob' THEN "        + Types.LONGVARBINARY +
-                        " WHEN 'tinytext' THEN "    + Types.LONGVARCHAR +
-                        " WHEN 'mediumtext' THEN "  + Types.LONGVARCHAR +
-                        " WHEN 'longtext' THEN "    + Types.LONGVARCHAR +
-                        " WHEN 'text' THEN "        + Types.LONGVARCHAR +
-                        " WHEN 'date' THEN "        + Types.DATE +
-                        " WHEN 'datetime' THEN "    + Types.TIMESTAMP +
-                        " WHEN 'decimal' THEN "     + Types.DECIMAL +
-                        " WHEN 'double' THEN "      + Types.DOUBLE +
-                        " WHEN 'enum' THEN "        + Types.VARCHAR +
-                        " WHEN 'float' THEN "       + Types.FLOAT +
-                        " WHEN 'int' THEN "         + Types.INTEGER +
-                        " WHEN 'bigint' THEN "      + Types.BIGINT +
-                        " WHEN 'mediumint' THEN "   + Types.INTEGER +
-                        " WHEN 'null' THEN "        + Types.NULL +
-                        " WHEN 'set' THEN "         + Types.VARCHAR +
-                        " WHEN 'smallint' THEN "    + Types.SMALLINT +
-                        " WHEN 'varchar' THEN "     + Types.VARCHAR +
-                        " WHEN 'varbinary' THEN "   + Types.VARBINARY +
-                        " WHEN 'char' THEN "        + Types.CHAR +
-                        " WHEN 'binary' THEN "      + Types.BINARY +
-                        " WHEN 'time' THEN "        + Types.TIME +
-                        " WHEN 'timestamp' THEN "   + Types.TIMESTAMP +
-                        " WHEN 'tinyint' THEN "     + Types.TINYINT +
-                        " WHEN 'year' THEN "        + Types.SMALLINT +
-                        " ELSE "                    + Types.OTHER +  
-                        " END ";
+    private static  String dataTypeClause (String fullTypeColumnName){
+        return
+        " CASE data_type" +
+        " WHEN 'bit' THEN "         + Types.BIT +
+        " WHEN 'tinyblob' THEN "    + Types.LONGVARBINARY +
+        " WHEN 'mediumblob' THEN "  + Types.LONGVARBINARY +
+        " WHEN 'longblob' THEN "    + Types.LONGVARBINARY +
+        " WHEN 'blob' THEN "        + Types.LONGVARBINARY +
+        " WHEN 'tinytext' THEN "    + Types.LONGVARCHAR +
+        " WHEN 'mediumtext' THEN "  + Types.LONGVARCHAR +
+        " WHEN 'longtext' THEN "    + Types.LONGVARCHAR +
+        " WHEN 'text' THEN "        + Types.LONGVARCHAR +
+        " WHEN 'date' THEN "        + Types.DATE +
+        " WHEN 'datetime' THEN "    + Types.TIMESTAMP +
+        " WHEN 'decimal' THEN "     + Types.DECIMAL +
+        " WHEN 'double' THEN "      + Types.DOUBLE +
+        " WHEN 'enum' THEN "        + Types.VARCHAR +
+        " WHEN 'float' THEN IF(" + fullTypeColumnName +" like '%unsigned%', "+Types.DOUBLE+","+ Types.FLOAT+ ")" +
+        " WHEN 'int' THEN IF( " + fullTypeColumnName + " like '%unsigned%', "+Types.BIGINT+","+ Types.INTEGER+ ")" + 
+        " WHEN 'bigint' THEN "      + Types.BIGINT +
+        " WHEN 'mediumint' THEN "   + Types.INTEGER +
+        " WHEN 'null' THEN "        + Types.NULL +
+        " WHEN 'set' THEN "         + Types.VARCHAR +
+        " WHEN 'smallint' THEN IF( " + fullTypeColumnName + " like '%unsigned%', "+Types.INTEGER+","+ Types.SMALLINT + ")" +
+        " WHEN 'varchar' THEN "     + Types.VARCHAR +
+        " WHEN 'varbinary' THEN "   + Types.VARBINARY +
+        " WHEN 'char' THEN "        + Types.CHAR +
+        " WHEN 'binary' THEN "      + Types.BINARY +
+        " WHEN 'time' THEN "        + Types.TIME +
+        " WHEN 'timestamp' THEN "   + Types.TIMESTAMP +
+        " WHEN 'tinyint' THEN "     + Types.TINYINT +
+        " WHEN 'year' THEN "        + Types.SMALLINT +
+        " ELSE "                    + Types.OTHER +  
+        " END ";
+    }
 
+    /* Remove length from column type spec,convert to uppercase,  e.g  bigint(10) unsigned becomes BIGINT UNSIGNED */ 
+    static String columnTypeClause(String columnName) {
+    
+        return 
+                " UCASE(IF( " + columnName +  " LIKE '%(%)%', CONCAT (SUBSTRING( " + columnName + ",1, LOCATE('('," 
+                + columnName +") - 1 ), SUBSTRING(" + columnName + ",1+locate(')'," + columnName + "))), " 
+                + columnName + "))";
+    }
     public MySQLDatabaseMetaData(Connection connection, String user, String url) {
         this.connection = (MySQLConnection)connection;
         this.username = user;
         this.url = url;
+        this.connection.getProtocol().getServerVersion();
     }
 
 
     private ResultSet executeQuery(String sql) throws SQLException {
-    	return connection.createStatement().executeQuery(sql);
+        return connection.createStatement().executeQuery(sql);
     }
     
     
     private String escapeQuote(String s) {
-    	if (s == null)
-    		return "NULL";	
-    	return "'" + Utils.escapeString(s, connection.noBackslashEscapes) + "'";
+        if (s == null)
+            return "NULL";    
+        return "'" + Utils.escapeString(s, connection.noBackslashEscapes) + "'";
     }
     
     String catalogCond(String columnName, String catalog) {
-    	if (catalog == null){
-    		return "(1 = 1)"; 
-    	}
-    	if (catalog.equals("")) {
-    		return "(ISNULL(database()) OR (" + columnName + " = database()))";
-    	}
-    	return "(" + columnName + " = " + escapeQuote(catalog) + ")" ;
-    	
+        if (catalog == null){
+            return "(1 = 1)"; 
+        }
+        if (catalog.equals("")) {
+            return "(ISNULL(database()) OR (" + columnName + " = database()))";
+        }
+        return "(" + columnName + " = " + escapeQuote(catalog) + ")" ;
+        
     }
     
      // Helper to generate  information schema queries with "like" condition (typically  on table name)
     String patternCond(String columnName, String tableName) {
-    	if (tableName == null) {
-    		return "(1 = 1)";
-    	}
-    	return "(" + columnName + " LIKE '" + Utils.escapeString(tableName, true) + "')";
+        if (tableName == null) {
+            return "(1 = 1)";
+        }
+        return "(" + columnName + " LIKE '" + Utils.escapeString(tableName, true) + "')";
     }
     
     public ResultSet getPrimaryKeys(String catalog, String schema, String table) throws SQLException {
@@ -161,7 +171,7 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
     }
 
     public ResultSet getTables(String catalog, String schemaPattern, String tableNamePattern, String[] types) 
-    		throws SQLException {
+            throws SQLException {
 
         String sql = 
          "SELECT TABLE_SCHEMA TABLE_CAT, NULL  TABLE_SCHEM,  TABLE_NAME, TABLE_TYPE, TABLE_COMMENT REMARKS,"
@@ -174,16 +184,16 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
          + patternCond("TABLE_NAME", tableNamePattern);
         
         if (types != null && types.length > 0) {
-        	sql += " AND TABLE_TYPE IN (" ; 
-        	for (int i=0 ; i < types.length; i++) {
-        		if(types[i] == null)
-        			continue;
-        		String type = escapeQuote(mapTableTypes(types[i]));
-        		if (i == types.length -1)
-        			sql += type + ")";
-        		else
-        			sql += type + ",";
-        	}			
+            sql += " AND TABLE_TYPE IN (" ; 
+            for (int i=0 ; i < types.length; i++) {
+                if(types[i] == null)
+                    continue;
+                String type = escapeQuote(mapTableTypes(types[i]));
+                if (i == types.length -1)
+                    sql += type + ")";
+                else
+                    sql += type + ",";
+            }            
         }
         
         sql += " ORDER BY TABLE_TYPE, TABLE_SCHEMA, TABLE_NAME";
@@ -196,12 +206,15 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
 
         String sql = 
         "SELECT TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, TABLE_NAME, COLUMN_NAME," 
-        + dataTypeClause + " DATA_TYPE,"
-        + " COLUMN_TYPE TYPE_NAME, CHARACTER_MAXIMUM_LENGTH COLUMN_SIZE, 0 BUFFER_LENGTH, NUMERIC_PRECISION DECIMAL_DIGITS,"  
-        + " NUMERIC_SCALE NUM_PREC_RADIX, IF(IS_NULLABLE = 'yes',1,0) NULLABLE,COLUMN_COMMENT REMARKS," 
-        + " COLUMN_DEFAULT COLUMN_DEF, 0 SQL_DATA_TYPE, 0 SQL_DATETIME_SUB,  CHARACTER_OCTET_LENGTH CHAR_OCTET_LENGTH,"
+        + dataTypeClause("COLUMN_TYPE") + " DATA_TYPE,"
+        + columnTypeClause("COLUMN_TYPE") +" TYPE_NAME, "
+        + " IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_OCTET_LENGTH,"+Integer.MAX_VALUE+"), NUMERIC_PRECISION) " 
+        + " COLUMN_SIZE, 65535 BUFFER_LENGTH, NUMERIC_SCALE DECIMAL_DIGITS,"  
+        + " 10 NUM_PREC_RADIX, IF(IS_NULLABLE = 'yes',1,0) NULLABLE,COLUMN_COMMENT REMARKS," 
+        + " COLUMN_DEFAULT COLUMN_DEF, 0 SQL_DATA_TYPE, 0 SQL_DATETIME_SUB,  "  
+        + " LEAST(CHARACTER_OCTET_LENGTH," + Integer.MAX_VALUE + ") CHAR_OCTET_LENGTH,"
         + " ORDINAL_POSITION, IS_NULLABLE, NULL SCOPE_CATALOG, NULL SCOPE_SCHEMA, NULL SCOPE_TABLE, NULL SOURCE_DATA_TYPE,"
-        + " '' IS_AUTOINCREMENT "
+        + " IF(EXTRA = 'auto_increment','YES','NO') IS_AUTOINCREMENT "
         + " FROM INFORMATION_SCHEMA.COLUMNS  WHERE "
         + catalogCond("TABLE_SCHEMA", catalog)
         + " AND "
@@ -214,9 +227,9 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
     }
 
     public ResultSet getExportedKeys(String catalog, String schema, String table) throws SQLException {
-    	if (table == null) {
-    		throw new SQLException("'table' parameter in getImportedKeys cannot be null"); 
-    	}
+        if (table == null) {
+            throw new SQLException("'table' parameter in getImportedKeys cannot be null"); 
+        }
         String sql =
         "SELECT KCU.REFERENCED_TABLE_SCHEMA PKTABLE_CAT, NULL PKTABLE_SCHEM,  KCU.REFERENCED_TABLE_NAME PKTABLE_NAME," 
         + " KCU.REFERENCED_COLUMN_NAME PKCOLUMN_NAME, KCU.TABLE_SCHEMA FKTABLE_CAT, NULL FKTABLE_SCHEM, "
@@ -252,36 +265,36 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
     }
     
     public ResultSet getImportedKeys( String catalog,  String schema,  String table) throws SQLException {
-    	if (table == null) {
-    		throw new SQLException("'table' parameter in getImportedKeys cannot be null"); 
-    	}
+        if (table == null) {
+            throw new SQLException("'table' parameter in getImportedKeys cannot be null"); 
+        }
         String sql = 
           "SELECT KCU.REFERENCED_TABLE_SCHEMA PKTABLE_CAT, NULL PKTABLE_SCHEM,  KCU.REFERENCED_TABLE_NAME PKTABLE_NAME," 
-	    + " KCU.REFERENCED_COLUMN_NAME PKCOLUMN_NAME, KCU.TABLE_SCHEMA FKTABLE_CAT, NULL FKTABLE_SCHEM, "
-	    + " KCU.TABLE_NAME FKTABLE_NAME, KCU.COLUMN_NAME FKCOLUMN_NAME, KCU.POSITION_IN_UNIQUE_CONSTRAINT KEY_SEQ,"
-	    + " CASE update_rule "
-	    + "   WHEN 'RESTRICT' THEN 1" 
-	    + "   WHEN 'NO ACTION' THEN 3" 
-	    + "   WHEN 'CASCADE' THEN 0" 
-	    + "   WHEN 'SET NULL' THEN 2"
-	    + "   WHEN 'SET DEFAULT' THEN 4"
-	    + " END UPDATE_RULE,"
-	    + " CASE DELETE_RULE" 
-	    + "  WHEN 'RESTRICT' THEN 1"
-	    + "  WHEN 'NO ACTION' THEN 3"
-	    + "  WHEN 'CASCADE' THEN 0"
-	    + "  WHEN 'SET NULL' THEN 2"
-	    + "  WHEN 'SET DEFAULT' THEN 4"
-	    + " END DELETE_RULE,"
-	    + " RC.CONSTRAINT_NAME FK_NAME,"
-	    + " NULL PK_NAME,"
-	    + " 6 DEFERRABILITY"
-	    + " FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU"
-	    + " INNER JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS RC"
-	    + " ON KCU.CONSTRAINT_SCHEMA = RC.CONSTRAINT_SCHEMA"
-	    + " AND KCU.CONSTRAINT_NAME = RC.CONSTRAINT_NAME"
-	    + " WHERE "
-	    + catalogCond("KCU.TABLE_SCHEMA", catalog)
+        + " KCU.REFERENCED_COLUMN_NAME PKCOLUMN_NAME, KCU.TABLE_SCHEMA FKTABLE_CAT, NULL FKTABLE_SCHEM, "
+        + " KCU.TABLE_NAME FKTABLE_NAME, KCU.COLUMN_NAME FKCOLUMN_NAME, KCU.POSITION_IN_UNIQUE_CONSTRAINT KEY_SEQ,"
+        + " CASE update_rule "
+        + "   WHEN 'RESTRICT' THEN 1" 
+        + "   WHEN 'NO ACTION' THEN 3" 
+        + "   WHEN 'CASCADE' THEN 0" 
+        + "   WHEN 'SET NULL' THEN 2"
+        + "   WHEN 'SET DEFAULT' THEN 4"
+        + " END UPDATE_RULE,"
+        + " CASE DELETE_RULE" 
+        + "  WHEN 'RESTRICT' THEN 1"
+        + "  WHEN 'NO ACTION' THEN 3"
+        + "  WHEN 'CASCADE' THEN 0"
+        + "  WHEN 'SET NULL' THEN 2"
+        + "  WHEN 'SET DEFAULT' THEN 4"
+        + " END DELETE_RULE,"
+        + " RC.CONSTRAINT_NAME FK_NAME,"
+        + " NULL PK_NAME,"
+        + " 6 DEFERRABILITY"
+        + " FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU"
+        + " INNER JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS RC"
+        + " ON KCU.CONSTRAINT_SCHEMA = RC.CONSTRAINT_SCHEMA"
+        + " AND KCU.CONSTRAINT_NAME = RC.CONSTRAINT_NAME"
+        + " WHERE "
+        + catalogCond("KCU.TABLE_SCHEMA", catalog)
         + " AND "
         + " KCU.TABLE_NAME = " + escapeQuote(table) 
         + " ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ";
@@ -291,14 +304,14 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
 
     public ResultSet getBestRowIdentifier(String catalog, String schema, String table, int scope, final boolean nullable)
             throws SQLException {
-    	
-    	if (table == null) {
-    		throw new SQLException("'table' parameter cannot be null in getBestRowIdentifier()");
-    	}
-    	
-    	String sql = 
-    	"SELECT " + DatabaseMetaData.bestRowUnknown + " SCOPE, COLUMN_NAME,"
-        + dataTypeClause + " DATA_TYPE, DATA_TYPE TYPE_NAME,"
+        
+        if (table == null) {
+            throw new SQLException("'table' parameter cannot be null in getBestRowIdentifier()");
+        }
+        
+        String sql = 
+        "SELECT " + DatabaseMetaData.bestRowUnknown + " SCOPE, COLUMN_NAME,"
+        + dataTypeClause("COLUMN_TYPE") + " DATA_TYPE, DATA_TYPE TYPE_NAME,"
         + " IF(NUMERIC_PRECISION IS NULL, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION) COLUMN_SIZE, 0 BUFFER_LENGTH," 
         + " NUMERIC_SCALE DECIMAL_DIGITS,"
         + " 1 PSEUDO_COLUMN" 
@@ -307,7 +320,7 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
         + " AND "
         + catalogCond("TABLE_SCHEMA",catalog)
         + " AND TABLE_NAME = " + escapeQuote(table);
-    	
+        
         return executeQuery(sql);
     }
 
@@ -316,13 +329,13 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
     }
 
     public ResultSet getPseudoColumns(String catalog,  String schemaPattern, String tableNamePattern,
-    		String columnNamePattern) throws SQLException {
-    	
+            String columnNamePattern) throws SQLException {
+        
         return connection.createStatement().executeQuery(
-        		"SELECT ' ' TABLE_CAT, ' ' TABLE_SCHEM," +
-        		"' ' TABLE_NAME, ' ' COLUMN_NAME, 0 DATA_TYPE, 0 COLUMN_SIZE, 0 DECIMAL_DIGITS," + 
-        		"10 NUM_PREC_RADIX, ' ' COLUMN_USAGE,  ' ' REMARKS, 0 CHAR_OCTET_LENGTH, 'YES' IS_NULLABLE FROM DUAL " +
-        		"WHERE 1=0");
+                "SELECT ' ' TABLE_CAT, ' ' TABLE_SCHEM," +
+                "' ' TABLE_NAME, ' ' COLUMN_NAME, 0 DATA_TYPE, 0 COLUMN_SIZE, 0 DECIMAL_DIGITS," + 
+                "10 NUM_PREC_RADIX, ' ' COLUMN_USAGE,  ' ' REMARKS, 0 CHAR_OCTET_LENGTH, 'YES' IS_NULLABLE FROM DUAL " +
+                "WHERE 1=0");
     }
 
     public boolean allProceduresAreCallable() throws SQLException {
@@ -372,11 +385,11 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
 
 
     public String getDatabaseProductVersion() throws SQLException {
-    	ResultSet rs  = connection.createStatement().executeQuery("select version()");
-    	rs.next();
-    	String version = rs.getString(1);
-    	rs.close();
-    	return version;
+        ResultSet rs  = connection.createStatement().executeQuery("select version()");
+        rs.next();
+        String version = rs.getString(1);
+        rs.close();
+        return version;
     }
 
 
@@ -949,11 +962,11 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
 
 
     public boolean supportsDataDefinitionAndDataManipulationTransactions() throws SQLException {
-    	return true;
+        return true;
     }
 
     public boolean supportsDataManipulationTransactionsOnly() throws SQLException {
-    	return false;
+        return false;
     }
 
     public boolean dataDefinitionCausesTransactionCommit() throws SQLException {
@@ -965,116 +978,154 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
         return false;
     }
 
-    		
+            
     /* Helper to generate  information schema with "equality" condition (typically on catalog name)
      */
     
 
     public ResultSet getProcedures(String catalog, String schemaPattern, String procedureNamePattern)
             throws SQLException {
-    	
     
-    	String sql = 
-    	"SELECT ROUTINE_SCHEMA PROCEDURE_CAT,NULL PROCEDURE_SCHEM, ROUTINE_NAME PROCEDURE_NAME,"  
+    String sql = 
+        "SELECT ROUTINE_SCHEMA PROCEDURE_CAT,NULL PROCEDURE_SCHEM, ROUTINE_NAME PROCEDURE_NAME,"  
         + " NULL NUM_INPUT_PARAMS, NULL NUM_OUTPUT_PARAMS, NULL NUM_RESULT_PARAMS,"         
         + " CASE ROUTINE_TYPE  WHEN 'FUNCTION' THEN 2  WHEN 'PROCEDURE' THEN 1 ELSE 0 END PROCEDURE_TYPE,"
         + " ROUTINE_COMMENT REMARKS, SPECIFIC_NAME "
         + " FROM INFORMATION_SCHEMA.ROUTINES "  
-    	+ " WHERE " 
+        + " WHERE " 
         + catalogCond("ROUTINE_SCHEMA" , catalog)
         + " AND "
         + patternCond("ROUTINE_NAME", procedureNamePattern)
-        + " AND ROUTINE_TYPE='PROCEDURE'";
-    	
-    	return executeQuery(sql);
+        + "/* AND ROUTINE_TYPE='PROCEDURE' */";
+    return executeQuery(sql);
     }
 
     
+    /* Is INFORMATION_SCHEMA.PARAMETERS available ?*/
+    boolean haveInformationSchemaParameters() {
+    return connection.getProtocol().versionGreaterOrEqual(5, 5, 3);
+    }
+    
     public ResultSet getProcedureColumns(String catalog, String schemaPattern, String procedureNamePattern,
             String columnNamePattern) throws SQLException {
-    	
-    	String sql = 
-		"SELECT SPECIFIC_SCHEMA PROCEDURE_CAT, NULL PROCEDURE_SCHEM, SPECIFIC_NAME PROCEDURE_NAME,"
-		+" PARAMETER_NAME COLUMN_NAME, " 
-		+ " CASE PARAMETER_MODE "
-		+ "  WHEN 'IN' THEN " + procedureColumnIn   
-		+ "  WHEN 'OUT' THEN " + procedureColumnOut
-		+ "  WHEN 'INOUT' THEN " + procedureColumnInOut 
-		+ "  ELSE " + procedureColumnUnknown
-		+ " END COLUMN_TYPE,"
-		+ dataTypeClause + " DATA_TYPE,"
-		+ "DATA_TYPE TYPE_NAME,NUMERIC_PRECISION `PRECISION`,CHARACTER_MAXIMUM_LENGTH LENGTH,NUMERIC_SCALE SCALE,10 RADIX," 
-		+ procedureNullableUnknown +" NULLABLE,NULL REMARKS,NULL COLUMN_DEF,0 SQL_DATA_TYPE,0 SQL_DATETIME_SUB,"
-		+ "CHARACTER_OCTET_LENGTH CHAR_OCTET_LENGTH ,ORDINAL_POSITION, '' IS_NULLABLE, SPECIFIC_NAME "
-		+ " FROM INFORMATION_SCHEMA.PARAMETERS "  
-		+ " WHERE " 
-		+ catalogCond("SPECIFIC_SCHEMA" , catalog)
-		+ " AND "+ patternCond("SPECIFIC_NAME", procedureNamePattern)
-		+ " AND "+ patternCond("COLUMN_NAME", columnNamePattern)
-		+ " AND ROUTINE_TYPE='PROCEDURE'"
-		+ " ORDER BY SPECIFIC_SCHEMA, SPECIFIC_NAME, ORDINAL_POSITION"; 
-    	return executeQuery(sql);
+        String sql;
+        
+        if (haveInformationSchemaParameters()) {
+            /*
+             *  Get info from information_schema.parameters 
+             */
+            sql = 
+            "SELECT SPECIFIC_SCHEMA PROCEDURE_CAT, NULL PROCEDURE_SCHEM, SPECIFIC_NAME PROCEDURE_NAME,"
+            +" PARAMETER_NAME COLUMN_NAME, " 
+            + " CASE PARAMETER_MODE "
+            + "  WHEN 'IN' THEN " + procedureColumnIn   
+            + "  WHEN 'OUT' THEN " + procedureColumnOut
+            + "  WHEN 'INOUT' THEN " + procedureColumnInOut 
+            + "  ELSE IF(PARAMETER_MODE IS NULL," + procedureColumnReturn + "," + procedureColumnUnknown + ")"
+            + " END COLUMN_TYPE,"
+            + dataTypeClause("DTD_IDENTIFIER") + " DATA_TYPE,"
+            + "DATA_TYPE TYPE_NAME,NUMERIC_PRECISION `PRECISION`,CHARACTER_MAXIMUM_LENGTH LENGTH,NUMERIC_SCALE SCALE,10 RADIX," 
+            + procedureNullableUnknown +" NULLABLE,NULL REMARKS,NULL COLUMN_DEF,0 SQL_DATA_TYPE,0 SQL_DATETIME_SUB,"
+            + "CHARACTER_OCTET_LENGTH CHAR_OCTET_LENGTH ,ORDINAL_POSITION, '' IS_NULLABLE, SPECIFIC_NAME "
+            + " FROM INFORMATION_SCHEMA.PARAMETERS "  
+            + " WHERE " 
+            + catalogCond("SPECIFIC_SCHEMA" , catalog)
+            + " AND "+ patternCond("SPECIFIC_NAME", procedureNamePattern)
+            + " AND "+ patternCond("PARAMETER_NAME", columnNamePattern)
+            + " /* AND ROUTINE_TYPE='PROCEDURE' */ "
+            + " ORDER BY SPECIFIC_SCHEMA, SPECIFIC_NAME, ORDINAL_POSITION";
+        } else {
+            
+            /* No information_schema.parameters
+             * TODO : figure out what to do with older versions (get info via mysql.proc) 
+             * For now, just a dummy result set is returned. 
+             */
+            sql = 
+                "SELECT '' PROCEDURE_CAT, '' PROCEDURE_SCHEM , '' PROCEDURE_NAME,'' COLUMN_NAME, 0 COLUMN_TYPE,"
+            + "0 DATA_TYPE,'' TYPE_NAME, 0 `PRECISION`,0 LENGTH, 0 SCALE,10 RADIX," 
+            + "0 NULLABLE,NULL REMARKS,NULL COLUMN_DEF,0 SQL_DATA_TYPE,0 SQL_DATETIME_SUB,"
+            + "0 CHAR_OCTET_LENGTH ,0 ORDINAL_POSITION, '' IS_NULLABLE, '' SPECIFIC_NAME "
+            + " FROM DUAL "  
+            + " WHERE 1=0 ";
+        }
+        return executeQuery(sql);
     }
     
     public ResultSet getFunctionColumns(String catalog, String schemaPattern, String procedureNamePattern,
             String columnNamePattern) throws SQLException {
-    	
-    	String sql = 
-		"SELECT SPECIFIC_SCHEMA FUNCTION_CAT, NULL FUNCTION_SCHEM, SPECIFIC_NAME FUNCTION_NAME,"
-		+" PARAMETER_NAME COLUMN_NAME, " 
-		+ " CASE PARAMETER_MODE "
-		+ "  WHEN 'IN' THEN " + functionColumnIn   
-		+ "  WHEN 'OUT' THEN " + functionColumnOut
-		+ "  WHEN 'INOUT' THEN " + functionColumnInOut   
-		+ "  ELSE " + functionReturn
-		+ " END COLUMN_TYPE,"
-		+ dataTypeClause + " DATA_TYPE,"
-		+ "DATA_TYPE TYPE_NAME,NUMERIC_PRECISION `PRECISION`,CHARACTER_MAXIMUM_LENGTH LENGTH,NUMERIC_SCALE SCALE,10 RADIX," 
-		+ procedureNullableUnknown +" NULLABLE,NULL REMARKS,"
-		+ "CHARACTER_OCTET_LENGTH CHAR_OCTET_LENGTH ,ORDINAL_POSITION, '' IS_NULLABLE, SPECIFIC_NAME "
-		+ " FROM INFORMATION_SCHEMA.PARAMETERS "  
-		+ " WHERE " 
-		+ catalogCond("SPECIFIC_SCHEMA" , catalog)
-		+ " AND "+ patternCond("SPECIFIC_NAME", procedureNamePattern)
-		+ " AND "+ patternCond("COLUMN_NAME", columnNamePattern)
-		+ " AND ROUTINE_TYPE='FUNCTION'"
-		+ " ORDER BY SPECIFIC_SCHEMA, SPECIFIC_NAME, ORDINAL_POSITION"; 
+        
+        String sql;
+        if (haveInformationSchemaParameters()) {
+        
+            sql = "SELECT SPECIFIC_SCHEMA FUNCTION_CAT, NULL FUNCTION_SCHEM, SPECIFIC_NAME FUNCTION_NAME,"
+            +" PARAMETER_NAME COLUMN_NAME, " 
+            + " CASE PARAMETER_MODE "
+            + "  WHEN 'IN' THEN " + functionColumnIn   
+            + "  WHEN 'OUT' THEN " + functionColumnOut
+            + "  WHEN 'INOUT' THEN " + functionColumnInOut   
+            + "  ELSE " + functionReturn
+            + " END COLUMN_TYPE,"
+            + dataTypeClause("DTD_IDENTIFIER") + " DATA_TYPE,"
+            + "DATA_TYPE TYPE_NAME,NUMERIC_PRECISION `PRECISION`,CHARACTER_MAXIMUM_LENGTH LENGTH,NUMERIC_SCALE SCALE,10 RADIX," 
+            + procedureNullableUnknown +" NULLABLE,NULL REMARKS,"
+            + "CHARACTER_OCTET_LENGTH CHAR_OCTET_LENGTH ,ORDINAL_POSITION, '' IS_NULLABLE, SPECIFIC_NAME "
+            + " FROM INFORMATION_SCHEMA.PARAMETERS "  
+            + " WHERE " 
+            + catalogCond("SPECIFIC_SCHEMA" , catalog)
+            + " AND "+ patternCond("SPECIFIC_NAME", procedureNamePattern)
+            + " AND "+ patternCond("PARAMETER_NAME", columnNamePattern)
+            + " AND ROUTINE_TYPE='FUNCTION'"
+            + " ORDER BY SPECIFIC_SCHEMA, SPECIFIC_NAME, ORDINAL_POSITION";
+        } else {
+            /* 
+             * No information_schema.parameters
+             * TODO : figure out what to do with older versions (get info via mysql.proc) 
+             * For now, just a dummy result set is returned. 
+             */
+            sql = 
+            "SELECT '' FUNCTION_CAT, NULL FUNCTION_SCHEM, '' FUNCTION_NAME,"
+            + " '' COLUMN_NAME, 0  COLUMN_TYPE, 0 DATA_TYPE,"
+            + " '' TYPE_NAME,0 `PRECISION`,0 LENGTH, 0 SCALE,0 RADIX," 
+            + " 0 NULLABLE,NULL REMARKS, 0 CHAR_OCTET_LENGTH , 0 ORDINAL_POSITION, " 
+            + " '' IS_NULLABLE, '' SPECIFIC_NAME "
+            + " FROM DUAL WHERE 1=0 " ;
+        }
         return executeQuery(sql);
     }
     
     public ResultSet getSchemas() throws SQLException {
         return executeQuery(
-        		"SELECT '' TABLE_SCHEM, '' TABLE_catalog  FROM DUAL WHERE 1=0");
+            "SELECT '' TABLE_SCHEM, '' TABLE_catalog  FROM DUAL WHERE 1=0");
     }
 
 
     public ResultSet getCatalogs() throws SQLException {
         return executeQuery(
-        		"SELECT SCHEMA_NAME TABLE_CAT FROM INFORMATION_SCHEMA.SCHEMATA ORDER BY 1");
+          "SELECT SCHEMA_NAME TABLE_CAT FROM INFORMATION_SCHEMA.SCHEMATA ORDER BY 1");
     }
 
     public ResultSet getTableTypes() throws SQLException {
         return executeQuery(
-        		"SELECT 'BASE TABLE' TABLE_TYPE UNION SELECT 'SYSTEM VIEW' TABLE_TYPE UNION SELECT 'VIEW' TABLE_TYPE");
+          "SELECT 'BASE TABLE' TABLE_TYPE UNION SELECT 'SYSTEM VIEW' TABLE_TYPE UNION SELECT 'VIEW' TABLE_TYPE");
     }
 
     public ResultSet getColumnPrivileges(String catalog, String schema, String table,
             String columnNamePattern) throws SQLException {
-    	
-    	if(table == null) {
-    		throw new SQLException("'table' parameter must not be null");
-    	}
-    	String sql = 
-	       "SELECT TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, TABLE_NAME,"
-		 + " COLUMN_NAME, NULL AS GRANTOR, GRANTEE, PRIVILEGE_TYPE AS PRIVILEGE, IS_GRANTABLE FROM "
-		 + " INFORMATION_SCHEMA.COLUMN_PRIVILEGES WHERE "
-		 + catalogCond("TABLE_SCHEMA", catalog)
-		 + " AND "
-		 + " TABLE_NAME = " + escapeQuote(table) 
-		 + " AND "
-		 + patternCond("COLUMN_NAME",columnNamePattern) 
-		 + " ORDER BY COLUMN_NAME, PRIVILEGE_TYPE";
-    	
+        
+        if(table == null) {
+            throw new SQLException("'table' parameter must not be null");
+        }
+        String sql = 
+           "SELECT TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, TABLE_NAME,"
+         + " COLUMN_NAME, NULL AS GRANTOR, GRANTEE, PRIVILEGE_TYPE AS PRIVILEGE, IS_GRANTABLE FROM "
+         + " INFORMATION_SCHEMA.COLUMN_PRIVILEGES WHERE "
+         + catalogCond("TABLE_SCHEMA", catalog)
+         + " AND "
+         + " TABLE_NAME = " + escapeQuote(table) 
+         + " AND "
+         + patternCond("COLUMN_NAME",columnNamePattern) 
+         + " ORDER BY COLUMN_NAME, PRIVILEGE_TYPE";
+        
       return executeQuery(sql);
     }
 
@@ -1095,7 +1146,7 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
     public ResultSet getVersionColumns(String catalog, String schema, String table)
             throws SQLException {
         String sql = 
-        	"SELECT 0 SCOPE, ' ' COLUMN_NAME, 0 DATA_TYPE,"  
+            "SELECT 0 SCOPE, ' ' COLUMN_NAME, 0 DATA_TYPE,"  
             + " ' ' TYPE_NAME, 0 COLUMN_SIZE, 0 BUFFER_LENGTH,"  
             + " 0 DECIMAL_DIGITS, 0 PSEUDO_COLUMN "
             + " FROM DUAL WHERE 1 = 0";
@@ -1104,44 +1155,44 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
 
     public ResultSet getCrossReference(String parentCatalog, String parentSchema, String parentTable,
             String foreignCatalog, String foreignSchema, String foreignTable) 
-            		throws SQLException {
-    	
-    	 String sql =
-	        "SELECT KCU.REFERENCED_TABLE_SCHEMA PKTABLE_CAT, NULL PKTABLE_SCHEM,  KCU.REFERENCED_TABLE_NAME PKTABLE_NAME," 
-	        + " KCU.REFERENCED_COLUMN_NAME PKCOLUMN_NAME, KCU.TABLE_SCHEMA FKTABLE_CAT, NULL FKTABLE_SCHEM, "
-	        + " KCU.TABLE_NAME FKTABLE_NAME, KCU.COLUMN_NAME FKCOLUMN_NAME, KCU.POSITION_IN_UNIQUE_CONSTRAINT KEY_SEQ,"
-	        + " CASE update_rule "
-	        + "   WHEN 'RESTRICT' THEN 1" 
-	        + "   WHEN 'NO ACTION' THEN 3" 
-	        + "   WHEN 'CASCADE' THEN 0" 
-	        + "   WHEN 'SET NULL' THEN 2"
-	        + "   WHEN 'SET DEFAULT' THEN 4"
-	        + " END UPDATE_RULE,"
-	        + " CASE DELETE_RULE" 
-	        + "  WHEN 'RESTRICT' THEN 1"
-	        + "  WHEN 'NO ACTION' THEN 3"
-	        + "  WHEN 'CASCADE' THEN 0"
-	        + "  WHEN 'SET NULL' THEN 2"
-	        + "  WHEN 'SET DEFAULT' THEN 4"
-	        + " END DELETE_RULE,"
-	        + " RC.CONSTRAINT_NAME FK_NAME,"
-	        + " NULL PK_NAME,"
-	        + " 6 DEFERRABILITY"
-	        + " FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU"
-	        + " INNER JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS RC"
-	        + " ON KCU.CONSTRAINT_SCHEMA = RC.CONSTRAINT_SCHEMA"
-	        + " AND KCU.CONSTRAINT_NAME = RC.CONSTRAINT_NAME"
-	        + " WHERE "
-	        + catalogCond("KCU.REFERENCED_TABLE_SCHEMA", parentCatalog)
-	        + " AND "
-	        + catalogCond("KCU.TABLE_SCHEMA", foreignCatalog) 
-	        + " AND "
-	        + " KCU.REFERENCED_TABLE_NAME = " + escapeQuote(parentTable) 
-	        + " AND "
-	        + " KCU.TABLE_NAME = " + escapeQuote(foreignTable)
-	        + " ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ";
-	 
-	    return executeQuery(sql);
+                    throws SQLException {
+        
+         String sql =
+            "SELECT KCU.REFERENCED_TABLE_SCHEMA PKTABLE_CAT, NULL PKTABLE_SCHEM,  KCU.REFERENCED_TABLE_NAME PKTABLE_NAME," 
+            + " KCU.REFERENCED_COLUMN_NAME PKCOLUMN_NAME, KCU.TABLE_SCHEMA FKTABLE_CAT, NULL FKTABLE_SCHEM, "
+            + " KCU.TABLE_NAME FKTABLE_NAME, KCU.COLUMN_NAME FKCOLUMN_NAME, KCU.POSITION_IN_UNIQUE_CONSTRAINT KEY_SEQ,"
+            + " CASE update_rule "
+            + "   WHEN 'RESTRICT' THEN 1" 
+            + "   WHEN 'NO ACTION' THEN 3" 
+            + "   WHEN 'CASCADE' THEN 0" 
+            + "   WHEN 'SET NULL' THEN 2"
+            + "   WHEN 'SET DEFAULT' THEN 4"
+            + " END UPDATE_RULE,"
+            + " CASE DELETE_RULE" 
+            + "  WHEN 'RESTRICT' THEN 1"
+            + "  WHEN 'NO ACTION' THEN 3"
+            + "  WHEN 'CASCADE' THEN 0"
+            + "  WHEN 'SET NULL' THEN 2"
+            + "  WHEN 'SET DEFAULT' THEN 4"
+            + " END DELETE_RULE,"
+            + " RC.CONSTRAINT_NAME FK_NAME,"
+            + " NULL PK_NAME,"
+            + " 6 DEFERRABILITY"
+            + " FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU"
+            + " INNER JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS RC"
+            + " ON KCU.CONSTRAINT_SCHEMA = RC.CONSTRAINT_SCHEMA"
+            + " AND KCU.CONSTRAINT_NAME = RC.CONSTRAINT_NAME"
+            + " WHERE "
+            + catalogCond("KCU.REFERENCED_TABLE_SCHEMA", parentCatalog)
+            + " AND "
+            + catalogCond("KCU.TABLE_SCHEMA", foreignCatalog) 
+            + " AND "
+            + " KCU.REFERENCED_TABLE_NAME = " + escapeQuote(parentTable) 
+            + " AND "
+            + " KCU.TABLE_NAME = " + escapeQuote(foreignTable)
+            + " ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ";
+     
+        return executeQuery(sql);
     }
 
     public ResultSet getTypeInfo() throws SQLException {
@@ -1151,13 +1202,13 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
     public ResultSet getIndexInfo(String catalog, String schema, String table,
             boolean unique,boolean approximate) throws SQLException {
     
-    	String sql = 
-    		"SELECT  TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, TABLE_NAME, NON_UNIQUE, "
-    		+ " TABLE_SCHEMA INDEX_QUALIFIER, index_name, 3 type,"
-    		+ " SEQ_IN_INDEX ORDINAL_POSITION, COLUMN_NAME, COLLATION ASC_OR_DESC," 
+        String sql = 
+            "SELECT  TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, TABLE_NAME, NON_UNIQUE, "
+            + " TABLE_SCHEMA INDEX_QUALIFIER, INDEX_NAME, 3 TYPE,"
+            + " SEQ_IN_INDEX ORDINAL_POSITION, COLUMN_NAME, COLLATION ASC_OR_DESC," 
             + " CARDINALITY, NULL PAGES, NULL FILTER_CONDITION"
-    		+ " FROM INFORMATION_SCHEMA.STATISTICS" 
-            + " WHERE table_name = " + escapeQuote(table)
+            + " FROM INFORMATION_SCHEMA.STATISTICS" 
+            + " WHERE TABLE_NAME = " + escapeQuote(table)
             + " AND "
             + catalogCond("TABLE_SCHEMA",catalog)
             + ((unique) ? " AND NON_UNIQUE = 0" : "") 
@@ -1226,10 +1277,10 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
 
     public ResultSet getUDTs(String catalog, String schemaPattern, String typeNamePattern, int[] types)
             throws SQLException {
-    	String sql = 
-    	"SELECT ' ' TYPE_CAT, NULL TYPE_SCHEM, ' ' TYPE_NAME, ' ' CLASS_NAME, 0 DATA_TYPE, ' ' REMARKS, 0 BASE_TYPE"
-    	+ " FROM DUAL WHERE 1=0";
-    	
+        String sql = 
+        "SELECT ' ' TYPE_CAT, NULL TYPE_SCHEM, ' ' TYPE_NAME, ' ' CLASS_NAME, 0 DATA_TYPE, ' ' REMARKS, 0 BASE_TYPE"
+        + " FROM DUAL WHERE 1=0";
+        
         return executeQuery(sql);
     }
 
@@ -1262,19 +1313,19 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
 
     public ResultSet getSuperTypes(String catalog, String schemaPattern, String typeNamePattern)
             throws SQLException {
-    	String sql = 
-		"SELECT  ' ' TYPE_CAT, NULL TYPE_SCHEM, ' ' TYPE_NAME, ' ' SUPERTYPE_CAT, ' ' SUPERTYPE_SCHEM, ' '  SUPERTYPE_NAME" 
-		+ " FROM DUAL WHERE 1=0";
-    	
-    	return executeQuery(sql);	
+        String sql = 
+        "SELECT  ' ' TYPE_CAT, NULL TYPE_SCHEM, ' ' TYPE_NAME, ' ' SUPERTYPE_CAT, ' ' SUPERTYPE_SCHEM, ' '  SUPERTYPE_NAME" 
+        + " FROM DUAL WHERE 1=0";
+        
+        return executeQuery(sql);    
     }
 
 
     public ResultSet getSuperTables(String catalog, String schemaPattern, String tableNamePattern)
             throws SQLException {
-    	String sql = 
-		"SELECT  ' ' TABLE_CAT, ' ' TABLE_SCHEM, ' ' TABLE_NAME, ' ' SUPERTABLE_NAME FROM DUAL WHERE 1=0";
-    	return executeQuery(sql); 					
+        String sql = 
+        "SELECT  ' ' TABLE_CAT, ' ' TABLE_SCHEM, ' ' TABLE_NAME, ' ' SUPERTABLE_NAME FROM DUAL WHERE 1=0";
+        return executeQuery(sql);                     
     }
 
 
@@ -1283,16 +1334,14 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
  
       String sql = 
         "SELECT ' ' TYPE_CAT, ' ' TYPE_SCHEM, ' ' TYPE_NAME, ' ' ATTR_NAME, 0 DATA_TYPE,"
-		+ " ' ' ATTR_TYPE_NAME, 0 ATTR_SIZE, 0 DECIMAL_DIGITS, 0 NUM_PREC_RADIX, 0 NULLABLE,"
-		+ " ' ' REMARKS, ' ' ATTR_DEF,  0 SQL_DATA_TYPE, 0 SQL_DATETIME_SUB, 0 CHAR_OCTET_LENGTH,"
-		+ " 0 ORDINAL_POSITION, ' ' IS_NULLABLE, ' ' SCOPE_CATALOG, ' ' SCOPE_SCHEMA, ' ' SCOPE_TABLE," 
-		+ " 0 SOURCE_DATA_TYPE"
-		+ " FROM DUAL " 
-		+ " WHERE 1=0";
+        + " ' ' ATTR_TYPE_NAME, 0 ATTR_SIZE, 0 DECIMAL_DIGITS, 0 NUM_PREC_RADIX, 0 NULLABLE,"
+        + " ' ' REMARKS, ' ' ATTR_DEF,  0 SQL_DATA_TYPE, 0 SQL_DATETIME_SUB, 0 CHAR_OCTET_LENGTH,"
+        + " 0 ORDINAL_POSITION, ' ' IS_NULLABLE, ' ' SCOPE_CATALOG, ' ' SCOPE_SCHEMA, ' ' SCOPE_TABLE," 
+        + " 0 SOURCE_DATA_TYPE"
+        + " FROM DUAL " 
+        + " WHERE 1=0";
      
      return executeQuery(sql);
-     
-     
     }
 
     public boolean supportsResultSetHoldability(int holdability)
@@ -1307,14 +1356,12 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
 
 
     public int getDatabaseMajorVersion() throws SQLException {
-        String components[] = version.split("\\.");
-        return Integer.parseInt(components[0]);
+       return connection.getProtocol().getMajorServerVersion();
     }
 
 
     public int getDatabaseMinorVersion() throws SQLException {
-        String components[] = version.split("\\.");
-        return Integer.parseInt(components[1]);
+        return connection.getProtocol().getMajorServerVersion();
     }
 
 
@@ -1361,25 +1408,24 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
 
 
     public ResultSet getClientInfoProperties() throws SQLException {
-    	String sql = "SELECT ' ' NAME, 0 MAX_LEN, ' ' DEFAULT_VALUE, ' ' DESCRIPTION FROM DUAL WHERE 1=0";
+        String sql = "SELECT ' ' NAME, 0 MAX_LEN, ' ' DEFAULT_VALUE, ' ' DESCRIPTION FROM DUAL WHERE 1=0";
         return executeQuery(sql);
     }
 
 
     public ResultSet getFunctions(String catalog, String schemaPattern, String functionNamePattern)
             throws SQLException {
-    	String sql = 
-    	"SELECT ROUTINE_SCHEMA FUNCTION_CAT,NULL FUNCTION_SCHEM, ROUTINE_NAME FUNCTION_NAME,"  
-        + " NULL NUM_INPUT_PARAMS, NULL NUM_OUTPUT_PARAMS, NULL NUM_RESULT_PARAMS,"         
+        String sql = 
+        "SELECT ROUTINE_SCHEMA FUNCTION_CAT,NULL FUNCTION_SCHEM, ROUTINE_NAME FUNCTION_NAME,"       
         + " ROUTINE_COMMENT REMARKS," + functionNoTable + " FUNCTION_TYPE, SPECIFIC_NAME "
         + " FROM INFORMATION_SCHEMA.ROUTINES "  
-    	+ " WHERE " 
+        + " WHERE " 
         + catalogCond("ROUTINE_SCHEMA" , catalog)
         + " AND "
         + patternCond("ROUTINE_NAME", functionNamePattern)
         + " AND ROUTINE_TYPE='FUNCTION'";
-    	
-    	return executeQuery(sql);
+        
+        return executeQuery(sql);
     }
 
 

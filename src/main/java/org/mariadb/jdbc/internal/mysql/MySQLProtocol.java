@@ -116,6 +116,10 @@ public class MySQLProtocol implements Protocol {
     public Set<ServerStatus> serverStatus;
     JDBCUrl jdbcUrl;
     HostAddress currentHost;
+    
+    private int majorVersion;
+    private int minorVersion;
+    private int patchVersion;
 
     boolean hostFailed;
     long failTimestamp;
@@ -320,6 +324,7 @@ public class MySQLProtocol implements Protocol {
 
            log.finest("Got greeting packet");
            this.version = greetingPacket.getServerVersion();
+           parseVersion();
            byte packetSeq = 1;
            final Set<MySQLServerCapabilities> capabilities = EnumSet.of(MySQLServerCapabilities.LONG_PASSWORD,
                    MySQLServerCapabilities.IGNORE_SPACE,
@@ -898,4 +903,48 @@ public class MySQLProtocol implements Protocol {
             maxRows = max;
         }
     }
+    
+    void parseVersion() {
+    	String[] a = version.split("[^0-9]");
+    	if (a.length > 0)
+    		majorVersion = Integer.parseInt(a[0]);
+    	if (a.length > 1)
+    		minorVersion = Integer.parseInt(a[1]);
+    	if (a.length > 2)
+    		patchVersion = Integer.parseInt(a[2]);
+    }
+    
+    public int getMajorServerVersion() {
+    	return majorVersion;
+    		
+    }
+    public int getMinorServerVersion() {
+    	return minorVersion;
+    }
+    
+    public boolean versionGreaterOrEqual(int major, int minor, int patch) {
+    	if (this.majorVersion > major)
+    		return true;
+    	if (this.majorVersion < major)
+    		return false;
+    	/*
+    	 * Major versions are equal, compare minor versions
+    	 */
+    	if (this.minorVersion > minor)
+    		return true;
+    	if (this.minorVersion < minor)
+    		return false;
+    	
+    	/*
+    	 * Minor versions are equal, compare patch version
+    	 */
+    	if (this.patchVersion > patch)
+    		return true;
+    	if (this.patchVersion < patch)
+    		return false;
+    	
+    	/* Patch versions are equal => versions are equal */
+    	return true;
+    }
+    
 }
