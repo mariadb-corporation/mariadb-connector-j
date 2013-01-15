@@ -54,7 +54,10 @@ import org.mariadb.jdbc.internal.common.ColumnInformation;
 import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.common.ValueObject;
 import org.mariadb.jdbc.internal.common.queryresults.*;
+import org.mariadb.jdbc.internal.mysql.MySQLColumnInformation;
 import org.mariadb.jdbc.internal.mysql.MySQLProtocol;
+import org.mariadb.jdbc.internal.mysql.MySQLType;
+import org.mariadb.jdbc.internal.mysql.MySQLValueObject;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -65,8 +68,11 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.*;
 import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 
@@ -3673,4 +3679,53 @@ public class MySQLResultSet implements ResultSet {
 		// TODO Auto-generated method stub
 		return null;
 	}
+	
+	
+    /*
+    * Create a result set from given data. Useful for creating "fake" resultsets for DatabaseMetaData,
+    * (one example is  MySQLDatabaseMetaData.getTypeInfo())
+    * @param columnName  - string array of column names
+    * @param columnTypes - column types
+    * @data - each element of this array represents a complete row in the ResultSet.
+    *  
+    * Each value is given in its string representation, as in MySQL text protocol, except boolean (BIT(1)) values
+    * that are represented as "1" or "0" strings
+    */
+    static ResultSet createResultSet(String[] columnNames, MySQLType.Type[] columnTypes, String[][] data, 
+            MySQLProtocol protocol)  {
+        
+        MySQLColumnInformation.Builder b = new MySQLColumnInformation.Builder();
+        b.catalog("").charsetNumber((short)33).db("").flags(EnumSet.noneOf(ColumnFlags.class));
+
+        int N = columnNames.length;
+        ColumnInformation[] columns = new ColumnInformation[N];
+        
+        for (int i = 0; i < N ; i++) {
+           if (columnTypes[i] == MySQLType.Type.BIT)
+               b.length(1);
+           else
+               b.length(0);
+           columns[i] = b.name(columnNames[i]).type(new MySQLType(columnTypes[i])).build();
+        }
+        
+        byte[] BOOL_TRUE = {1};
+        byte[] BOOL_FALSE ={0};
+        List<List<ValueObject>> rows  = new ArrayList<List<ValueObject>>();
+        for(String[] rowData : data) {
+            List<ValueObject> row = new ArrayList<ValueObject>();
+ 
+            if (rowData.length != N) {
+                throw new RuntimeException("Number of elements in the row != number of columns :" + rowData[0]);
+            }
+            for(int i = 0; i < N; i++){
+                if (columnTypes[i] == MySQLType.Type.BIT)
+                    row.add(new MySQLValueObject(rowData[i].equals("0")?BOOL_FALSE:BOOL_TRUE,columns[i]));
+                else
+                    row.add(new MySQLValueObject(rowData[i].getBytes(),columns[i]));
+            }
+            rows.add(row);
+        }
+        return new MySQLResultSet(new CachedSelectResult(Arrays.asList(columns), rows, (short)0),
+                null, protocol);
+    }
 }

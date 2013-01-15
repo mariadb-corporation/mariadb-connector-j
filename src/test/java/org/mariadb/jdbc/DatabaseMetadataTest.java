@@ -195,12 +195,16 @@ public class DatabaseMetadataTest extends BaseTest{
    	 					t == java.sql.Types.VARCHAR || t == java.sql.Types.NULL );
    	 		} else if (type.equals("int") || type.equals("short")) {
    	 			
-   	 			assertTrue("invalid type  " + t + " for " + rsmd.getColumnLabel(col) + ",expected numeric",
+   	 			assertTrue("invalid type  " + t + "( " + rsmd.getColumnTypeName(col) + " ) for " + rsmd.getColumnLabel(col) + ",expected numeric",
    	 					t == java.sql.Types.BIGINT || t == java.sql.Types.INTEGER ||
    	 					t == java.sql.Types.SMALLINT || t == java.sql.Types.TINYINT);
    	 			
+   	 		} else if (type.equals("boolean")) {
+   	 		    assertTrue("invalid type  " + t + "( " + rsmd.getColumnTypeName(col) + " ) for "  + rsmd.getColumnLabel(col) + ",expected boolean",
+                    t == java.sql.Types.BOOLEAN || t == java.sql.Types.BIT);
+   	 		    
    	 		} else if (type.equals("null")){
-   	 			assertTrue("invalid type  " + t + " for " + rsmd.getColumnLabel(col) + ",expected null",
+   	 		        assertTrue("invalid type  " + t + " for " + rsmd.getColumnLabel(col) + ",expected null",
    	 					t == java.sql.Types.NULL);	
    	 		} else {
    	 			assertTrue("invalid type '"+ type + "'", false);
@@ -383,10 +387,15 @@ public class DatabaseMetadataTest extends BaseTest{
     }
     
 
-    @Test
-    public void dbmetaTest() throws SQLException {
-        DatabaseMetaData dmd = connection.getMetaData();
-        dmd.getBestRowIdentifier(null,"test","t1",DatabaseMetaData.bestRowSession, true);
+    @Test 
+    public void testGetTypeInfoBasic() throws SQLException {
+        testResultSetColumns(
+        connection.getMetaData().getTypeInfo(),
+        "TYPE_NAME String,DATA_TYPE int,PRECISION int,LITERAL_PREFIX String," 
+        + "LITERAL_SUFFIX String,CREATE_PARAMS String, NULLABLE short,CASE_SENSITIVE boolean," 
+        + "SEARCHABLE short,UNSIGNED_ATTRIBUTE boolean,FIXED_PREC_SCALE boolean, AUTO_INCREMENT boolean,"
+        + "LOCAL_TYPE_NAME String,MINIMUM_SCALE short,MAXIMUM_SCALE short,SQL_DATA_TYPE int,SQL_DATETIME_SUB int,"
+        + "NUM_PREC_RADIX int");   
     }
 
     static void checkType(String name, int actualType, String colName, int expectedType)
@@ -454,7 +463,7 @@ public class DatabaseMetadataTest extends BaseTest{
             checkType(columnName, type, "big_uns", Types.BIGINT);
             checkType(columnName, type ,"decimal_col",Types.DECIMAL);
             checkType(columnName, type, "fcol", Types.FLOAT);
-            checkType(columnName, type, "fcol_uns", Types.DOUBLE);
+            checkType(columnName, type, "fcol_uns", Types.FLOAT);
             checkType(columnName, type, "dcol", Types.DOUBLE);
             checkType(columnName, type, "dcol_uns", Types.DOUBLE);
             checkType(columnName, type, "date_col", Types.DATE);

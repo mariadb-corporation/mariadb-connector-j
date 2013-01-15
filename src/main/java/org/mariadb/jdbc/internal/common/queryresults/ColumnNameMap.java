@@ -62,13 +62,14 @@ public class ColumnNameMap {
             for(ColumnInformation ci : columnInfo) {
                 String columnAlias = ci.getName().toLowerCase();
                 labelMap.put(columnAlias, i);
-                String tableName = ci.getTable().toLowerCase();
-                if (!tableName.equals("")) {
-                    labelMap.put(tableName + "." + columnAlias, i);
+                if (ci.getTable() != null) {
+                    String tableName = ci.getTable().toLowerCase();
+                    if (!tableName.equals("")) {
+                        labelMap.put(tableName + "." + columnAlias, i);
+                    }
                 }
                 i++;
             }
-
         }
         Integer res = labelMap.get(name.toLowerCase());
         if (res == null) {

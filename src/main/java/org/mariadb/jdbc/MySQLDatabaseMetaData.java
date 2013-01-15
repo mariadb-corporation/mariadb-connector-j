@@ -49,9 +49,14 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Types;
 
 import org.mariadb.jdbc.internal.common.Utils;
+import org.mariadb.jdbc.internal.mysql.MySQLType;
 
 
 public class MySQLDatabaseMetaData implements DatabaseMetaData {
@@ -77,7 +82,7 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
         " WHEN 'decimal' THEN "     + Types.DECIMAL +
         " WHEN 'double' THEN "      + Types.DOUBLE +
         " WHEN 'enum' THEN "        + Types.VARCHAR +
-        " WHEN 'float' THEN IF(" + fullTypeColumnName +" like '%unsigned%', "+Types.DOUBLE+","+ Types.FLOAT+ ")" +
+        " WHEN 'float' THEN "        + Types.FLOAT+
         " WHEN 'int' THEN IF( " + fullTypeColumnName + " like '%unsigned%', "+Types.BIGINT+","+ Types.INTEGER+ ")" + 
         " WHEN 'bigint' THEN "      + Types.BIGINT +
         " WHEN 'mediumint' THEN "   + Types.INTEGER +
@@ -330,12 +335,11 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
 
     public ResultSet getPseudoColumns(String catalog,  String schemaPattern, String tableNamePattern,
             String columnNamePattern) throws SQLException {
-        
         return connection.createStatement().executeQuery(
-                "SELECT ' ' TABLE_CAT, ' ' TABLE_SCHEM," +
-                "' ' TABLE_NAME, ' ' COLUMN_NAME, 0 DATA_TYPE, 0 COLUMN_SIZE, 0 DECIMAL_DIGITS," + 
-                "10 NUM_PREC_RADIX, ' ' COLUMN_USAGE,  ' ' REMARKS, 0 CHAR_OCTET_LENGTH, 'YES' IS_NULLABLE FROM DUAL " +
-                "WHERE 1=0");
+            "SELECT ' ' TABLE_CAT, ' ' TABLE_SCHEM," +
+            "' ' TABLE_NAME, ' ' COLUMN_NAME, 0 DATA_TYPE, 0 COLUMN_SIZE, 0 DECIMAL_DIGITS," + 
+            "10 NUM_PREC_RADIX, ' ' COLUMN_USAGE,  ' ' REMARKS, 0 CHAR_OCTET_LENGTH, 'YES' IS_NULLABLE FROM DUAL " +
+            "WHERE 1=0");
     }
 
     public boolean allProceduresAreCallable() throws SQLException {
@@ -988,8 +992,12 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
     
     String sql = 
         "SELECT ROUTINE_SCHEMA PROCEDURE_CAT,NULL PROCEDURE_SCHEM, ROUTINE_NAME PROCEDURE_NAME,"  
-        + " NULL NUM_INPUT_PARAMS, NULL NUM_OUTPUT_PARAMS, NULL NUM_RESULT_PARAMS,"         
-        + " CASE ROUTINE_TYPE  WHEN 'FUNCTION' THEN 2  WHEN 'PROCEDURE' THEN 1 ELSE 0 END PROCEDURE_TYPE,"
+        + " NULL RESERVED1, NULL RESERVED2, NULL RESERVED3,"
+        + " CASE ROUTINE_TYPE "
+        +  "  WHEN 'FUNCTION' THEN " + procedureReturnsResult 
+        +  "  WHEN 'PROCEDURE' THEN " + procedureNoResult  
+        +  "  ELSE " + procedureResultUnknown
+        + " END PROCEDURE_TYPE,"
         + " ROUTINE_COMMENT REMARKS, SPECIFIC_NAME "
         + " FROM INFORMATION_SCHEMA.ROUTINES "  
         + " WHERE " 
@@ -1196,14 +1204,70 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
     }
 
     public ResultSet getTypeInfo() throws SQLException {
-        return MySQLResultSet.EMPTY;
+        String[] columnNames  = {
+                "TYPE_NAME","DATA_TYPE","PRECISION","LITERAL_PREFIX","LITERAL_SUFFIX",
+                "CREATE_PARAMS","NULLABLE","CASE_SENSITIVE","SEARCHABLE","UNSIGNED_ATTRIBUTE",
+                "FIXED_PREC_SCALE","AUTO_INCREMENT","LOCAL_TYPE_NAME","MINIMUM_SCALE","MAXIMUM_SCALE",
+                "SQL_DATA_TYPE","SQL_DATETIME_SUB","NUM_PREC_RADIX"
+                };
+        MySQLType.Type [] columnTypes =  {
+                MySQLType.Type.VARCHAR, MySQLType.Type.INTEGER,MySQLType.Type.INTEGER,MySQLType.Type.VARCHAR, MySQLType.Type.VARCHAR, 
+                MySQLType.Type.VARCHAR, MySQLType.Type.INTEGER,MySQLType.Type.BIT,MySQLType.Type.SMALLINT,MySQLType.Type.BIT,
+                MySQLType.Type.BIT, MySQLType.Type.BIT, MySQLType.Type.VARCHAR,MySQLType.Type.SMALLINT,MySQLType.Type.SMALLINT,
+                MySQLType.Type.INTEGER, MySQLType.Type.INTEGER,MySQLType.Type.INTEGER
+                };
+        
+        String[][] data= {
+        {"BIT","-7","1","","","","1","1","3","0","0","0","BIT","0","0","0","0","10"},
+        {"BOOL","-7","1","","","","1","1","3","0","0","0","BOOL","0","0","0","0","10"},
+        {"TINYINT","-6","3","","","[(M)] [UNSIGNED] [ZEROFILL]","1","0","3","1","0","1","TINYINT","0","0","0","0","10"},
+        {"TINYINT UNSIGNED","-6","3","","","[(M)] [UNSIGNED] [ZEROFILL]","1","0","3","1","0","1","TINYINT UNSIGNED","0","0","0","0","10"},
+        {"BIGINT","-5","19","","","[(M)] [UNSIGNED] [ZEROFILL]","1","0","3","1","0","1","BIGINT","0","0","0","0","10"},
+        {"BIGINT UNSIGNED","-5","20","","","[(M)] [ZEROFILL]","1","0","3","1","0","1","BIGINT UNSIGNED","0","0","0","0","10"},
+        {"LONG VARBINARY","-4","16777215","'","'","","1","1","3","0","0","0","LONG VARBINARY","0","0","0","0","10"},
+        {"MEDIUMBLOB","-4","16777215","'","'","","1","1","3","0","0","0","MEDIUMBLOB","0","0","0","0","10"},
+        {"LONGBLOB","-4","2147483647","'","'","","1","1","3","0","0","0","LONGBLOB","0","0","0","0","10"},
+        {"BLOB","-4","65535","'","'","","1","1","3","0","0","0","BLOB","0","0","0","0","10"},
+        {"TINYBLOB","-4","255","'","'","","1","1","3","0","0","0","TINYBLOB","0","0","0","0","10"},
+        {"VARBINARY","-3","255","'","'","(M)","1","1","3","0","0","0","VARBINARY","0","0","0","0","10"},
+        {"BINARY","-2","255","'","'","(M)","1","1","3","0","0","0","BINARY","0","0","0","0","10"},
+        {"LONG VARCHAR","-1","16777215","'","'","","1","0","3","0","0","0","LONG VARCHAR","0","0","0","0","10"},
+        {"MEDIUMTEXT","-1","16777215","'","'","","1","0","3","0","0","0","MEDIUMTEXT","0","0","0","0","10"},
+        {"LONGTEXT","-1","2147483647","'","'","","1","0","3","0","0","0","LONGTEXT","0","0","0","0","10"},
+        {"TEXT","-1","65535","'","'","","1","0","3","0","0","0","TEXT","0","0","0","0","10"},
+        {"TINYTEXT","-1","255","'","'","","1","0","3","0","0","0","TINYTEXT","0","0","0","0","10"},
+        {"CHAR","1","255","'","'","(M)","1","0","3","0","0","0","CHAR","0","0","0","0","10"},
+        {"NUMERIC","2","65","","","[(M,D])] [ZEROFILL]","1","0","3","0","0","1","NUMERIC","-308","308","0","0","10"},
+        {"DECIMAL","3","65","","","[(M,D])] [ZEROFILL]","1","0","3","0","0","1","DECIMAL","-308","308","0","0","10"},
+        {"INTEGER","4","10","","","[(M)] [UNSIGNED] [ZEROFILL]","1","0","3","1","0","1","INTEGER","0","0","0","0","10"},
+        {"INTEGER UNSIGNED","4","10","","","[(M)] [ZEROFILL]","1","0","3","1","0","1","INTEGER UNSIGNED","0","0","0","0","10"},
+        {"INT","4","10","","","[(M)] [UNSIGNED] [ZEROFILL]","1","0","3","1","0","1","INT","0","0","0","0","10"},
+        {"INT UNSIGNED","4","10","","","[(M)] [ZEROFILL]","1","0","3","1","0","1","INT UNSIGNED","0","0","0","0","10"},
+        {"MEDIUMINT","4","7","","","[(M)] [UNSIGNED] [ZEROFILL]","1","0","3","1","0","1","MEDIUMINT","0","0","0","0","10"},
+        {"MEDIUMINT UNSIGNED","4","8","","","[(M)] [ZEROFILL]","1","0","3","1","0","1","MEDIUMINT UNSIGNED","0","0","0","0","10"},
+        {"SMALLINT","5","5","","","[(M)] [UNSIGNED] [ZEROFILL]","1","0","3","1","0","1","SMALLINT","0","0","0","0","10"},
+        {"SMALLINT UNSIGNED","5","5","","","[(M)] [ZEROFILL]","1","0","3","1","0","1","SMALLINT UNSIGNED","0","0","0","0","10"},
+        {"FLOAT","7","10","","","[(M|D)] [ZEROFILL]","1","0","3","0","0","1","FLOAT","-38","38","0","0","10"},
+        {"DOUBLE","8","17","","","[(M|D)] [ZEROFILL]","1","0","3","0","0","1","DOUBLE","-308","308","0","0","10"},
+        {"DOUBLE PRECISION","8","17","","","[(M,D)] [ZEROFILL]","1","0","3","0","0","1","DOUBLE PRECISION","-308","308","0","0","10"},
+        {"REAL","8","17","","","[(M,D)] [ZEROFILL]","1","0","3","0","0","1","REAL","-308","308","0","0","10"},
+        {"VARCHAR","12","255","'","'","(M)","1","0","3","0","0","0","VARCHAR","0","0","0","0","10"},
+        {"ENUM","12","65535","'","'","","1","0","3","0","0","0","ENUM","0","0","0","0","10"},
+        {"SET","12","64","'","'","","1","0","3","0","0","0","SET","0","0","0","0","10"},
+        {"DATE","91","10","'","'","","1","0","3","0","0","0","DATE","0","0","0","0","10"},
+        {"TIME","92","18","'","'","[(M)]","1","0","3","0","0","0","TIME","0","0","0","0","10"},
+        {"DATETIME","93","27","'","'","[(M)]","1","0","3","0","0","0","DATETIME","0","0","0","0","10"},
+        {"TIMESTAMP","93","27","'","'","[(M)]","1","0","3","0","0","0","TIMESTAMP","0","0","0","0","10"}
+        };
+
+        return MySQLResultSet.createResultSet(columnNames, columnTypes, data, connection.getProtocol());
     }
 
     public ResultSet getIndexInfo(String catalog, String schema, String table,
             boolean unique,boolean approximate) throws SQLException {
     
         String sql = 
-            "SELECT  TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, TABLE_NAME, NON_UNIQUE, "
+            "SELECT TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, TABLE_NAME, NON_UNIQUE, "
             + " TABLE_SCHEMA INDEX_QUALIFIER, INDEX_NAME, 3 TYPE,"
             + " SEQ_IN_INDEX ORDINAL_POSITION, COLUMN_NAME, COLLATION ASC_OR_DESC," 
             + " CARDINALITY, NULL PAGES, NULL FILTER_CONDITION"
@@ -1427,6 +1491,7 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
         
         return executeQuery(sql);
     }
+
 
 
 
