@@ -68,6 +68,16 @@ public class MySQLValueObject extends AbstractValueObject {
         this.columnInfo = columnInfo;
     }
 
+    public String getString() {
+        byte[] bytes = getBytes();
+        if (bytes == null)
+            return null;
+        if (columnInfo.getType().getType() == MySQLType.Type.BIT && columnInfo.getLength() == 1)
+            return (bytes[0] == 0)?"false":"true";
+        
+        return super.getString();
+    }
+    
     public Object getObject(int datatypeMappingFlags) throws ParseException {
         if (this.getBytes() == null) {
             return null;
