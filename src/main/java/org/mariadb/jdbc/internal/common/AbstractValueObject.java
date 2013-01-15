@@ -52,7 +52,6 @@ package org.mariadb.jdbc.internal.common;
 import org.mariadb.jdbc.MySQLBlob;
 import org.mariadb.jdbc.MySQLClob;
 import org.mariadb.jdbc.internal.mysql.MySQLType;
-
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
@@ -91,7 +90,12 @@ public abstract class AbstractValueObject implements ValueObject {
         try {
             return Long.valueOf(getString());
         } catch(NumberFormatException nfe) {
-            return (long) Double.parseDouble(getString());
+            BigDecimal d = new BigDecimal(getString());
+            if (d.compareTo(BigDecimal.valueOf(Long.MIN_VALUE)) < 0) 
+                return Long.MIN_VALUE;
+            if (d.compareTo(BigDecimal.valueOf(Long.MAX_VALUE)) > 0)
+                return Long.MAX_VALUE;
+            return d.longValue();
         }
     }
 
@@ -102,7 +106,12 @@ public abstract class AbstractValueObject implements ValueObject {
         try {
             return Integer.valueOf(getString());
         } catch(NumberFormatException nfe) {
-            return (int) Double.parseDouble(getString());
+            BigDecimal d = new BigDecimal(getString());
+            if (d.compareTo(BigDecimal.valueOf(Integer.MIN_VALUE)) < 0) 
+                return Integer.MIN_VALUE;
+            if (d.compareTo(BigDecimal.valueOf(Integer.MAX_VALUE)) > 0)
+                return Integer.MAX_VALUE;
+            return d.intValue();
         }
     }
 
@@ -113,7 +122,12 @@ public abstract class AbstractValueObject implements ValueObject {
         try {
             return Short.valueOf(getString());
         } catch(NumberFormatException nfe) {
-           return (short) Double.parseDouble(getString());
+            BigDecimal d = new BigDecimal(getString());
+            if (d.compareTo(BigDecimal.valueOf(Short.MIN_VALUE)) < 0) 
+                return Short.MIN_VALUE;
+            if (d.compareTo(BigDecimal.valueOf(Short.MAX_VALUE)) > 0)
+                return Short.MAX_VALUE;
+            return d.shortValue();
         }
     }
 
