@@ -904,12 +904,15 @@ public class MySQLStatement implements Statement {
 
 
     public ResultSet getResultSet() throws SQLException {
+        if (queryResult == null || queryResult.getResultSetType() != ResultSetType.SELECT) {
+            return null; /* Result is an update count, or there are no more results */
+        }
         return new MySQLResultSet(queryResult,this,protocol);
     }
 
     public int getUpdateCount() throws SQLException {
-        if(queryResult.getResultSetType() == ResultSetType.SELECT) {
-            return -1;
+        if (queryResult == null || queryResult.getResultSetType() == ResultSetType.SELECT) {
+            return -1;  /* Result comes from SELECT , or there are no more results */
         }
         return (int) ((ModifyQueryResult) queryResult).getUpdateCount();
     }
@@ -951,9 +954,11 @@ public class MySQLStatement implements Statement {
     public boolean getMoreResults() throws SQLException {
          if (!isStreaming()) {
             /* return pre-cached result set, if available */
-            if(cachedResultSets.isEmpty())
+            if(cachedResultSets.isEmpty()) {
+                queryResult = null;
                 return false;
-
+            }
+            
             Object o = cachedResultSets.remove();
             if (o instanceof SQLException)
                 throw (SQLException)o;

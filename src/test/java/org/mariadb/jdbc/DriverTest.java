@@ -1429,4 +1429,81 @@ public class DriverTest extends BaseTest{
             c.close();
         }
     }
+    
+    /* CONJ-14 
+     * getUpdateCount(), getResultSet() should indicate "no more results" with
+     * (getUpdateCount() == -1 && getResultSet() == null)  
+     */
+    @Test
+    public void conj14() throws Exception {
+        Statement st = connection.createStatement();
+        
+        /* 1. Test update statement */
+        st.execute("use test");
+        assertEquals(0,st.getUpdateCount());
+
+        /* No more results */
+        assertFalse(st.getMoreResults());
+        assertEquals(-1,st.getUpdateCount());
+        assertEquals(null, st.getResultSet());
+        
+        /* 2. Test select statement */
+        st.execute("select 1");
+        assertEquals(-1,st.getUpdateCount());
+        assertTrue(st.getResultSet() != null);
+        
+        /* No More results */ 
+        assertFalse(st.getMoreResults());
+        assertEquals(-1,st.getUpdateCount());
+        assertEquals(null, st.getResultSet());
+        
+        /* Test batch  */
+        Connection c = null;
+        try {
+            /* Create connection that allows batching queries */
+            c = DriverManager.getConnection("jdbc:mysql://localhost:3306?user=root&allowMultiQueries=true");
+            st = c.createStatement();
+            
+            /* 3. Batch with two SELECTs */
+            
+            st.execute("select 1;select 2");
+            /* First result (select)*/
+            assertEquals(-1,st.getUpdateCount());
+            assertTrue(st.getResultSet() != null);
+            
+            /* has more results */
+            assertTrue(st.getMoreResults()); 
+            
+            /* Second result (select) */
+            assertEquals(-1,st.getUpdateCount());
+            assertTrue(st.getResultSet() != null);
+            
+            /* no more results */
+            assertFalse(st.getMoreResults());
+            assertEquals(-1,st.getUpdateCount());
+            assertEquals(null, st.getResultSet());
+            
+            /* 4. Batch with a SELECT and non-SELECT */
+            
+            st.execute("select 1; use test");
+            /* First result (select)*/
+            assertEquals(-1,st.getUpdateCount());
+            assertTrue(st.getResultSet() != null);
+            
+            /* has more results */
+            assertTrue(st.getMoreResults()); 
+            
+            /* Second result (use) */
+            assertEquals(0,st.getUpdateCount());
+            assertTrue(st.getResultSet() == null);
+            
+            /* no more results */
+            assertFalse(st.getMoreResults());
+            assertEquals(-1,st.getUpdateCount());
+            assertEquals(null, st.getResultSet());
+        } finally {
+            if (c != null)
+                c.close();
+        }
+    }
 }
