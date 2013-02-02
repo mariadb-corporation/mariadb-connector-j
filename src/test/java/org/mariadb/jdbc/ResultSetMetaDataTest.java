@@ -7,6 +7,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertTrue;
 
 
 public class ResultSetMetaDataTest extends BaseTest {
@@ -50,4 +51,13 @@ public class ResultSetMetaDataTest extends BaseTest {
         assertEquals("us",cols.getString("COLUMN_NAME"));
         assertEquals(Types.INTEGER, cols.getInt("DATA_TYPE"));  
     }
+    
+    @Test 
+    public void conj17() throws Exception { 
+        ResultSet rs = connection.createStatement().executeQuery("select count(*),1 from information_schema.tables"); 
+        rs.next(); 
+        assertEquals(rs.getMetaData().getColumnName(1),"count(*)"); 
+        assertEquals(rs.getMetaData().getColumnName(2),"1"); 
+    } 
+
 }
