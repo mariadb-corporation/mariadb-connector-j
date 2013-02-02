@@ -127,9 +127,36 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
             return "NULL";    
         return "'" + Utils.escapeString(s, connection.noBackslashEscapes) + "'";
     }
-    
+
+    /**
+     * Generate part of the information schema query that restricts catalog names
+     * In the driver, catalogs is the equivalent to MySQL schemas.
+     * 
+     * @param columnName - column name in the information schema table
+     * @param catalog - catalog name.
+     * 
+     * This driver does not (always) follow JDBC standard for following special values, due 
+     * to ConnectorJ compatibility
+     * 
+     * 1. empty string ("") - matches current catalog (i.e database).JDBC standard says
+     * only tables without catalog should be returned - such tables do not exist in MySQL.
+     * If there is no current catalog, then empty string matches any catalog.
+     *   
+     * 2. null  - if nullCatalogMeansCurrent=true (which is the default), then the handling is the same
+     * as for "" . i.e return current catalog.
+     *   
+     * JDBC-conforming way would be to match any catalog with null parameter. This 
+     * can be switched with nullCatalogMeansCurrent=false in the connection URL.
+     * 
+     * @return part of SQL query ,that restricts search for the catalog.
+     */
     String catalogCond(String columnName, String catalog) {
-        if (catalog == null){
+        if (catalog == null && connection.nullCatalogMeansCurrent) {
+            /* Treat null catalog as current */
+            catalog = "";
+        }
+        
+        if (catalog == null) {
             return "(1 = 1)"; 
         }
         if (catalog.equals("")) {

@@ -88,6 +88,7 @@ public final class MySQLConnection
 
     private boolean warningsCleared;
     boolean noBackslashEscapes;
+    boolean nullCatalogMeansCurrent = true;
 
 
     /**
@@ -113,22 +114,27 @@ public final class MySQLConnection
         String sessionVariables = protocol.getInfo().getProperty("sessionVariables");
         
         if (fastConnect && (sessionVariables == null))
-        	return connection;
+            return connection;
         
         Statement st = null;
         try {
-    		st = connection.createStatement();        		
-        	if (sessionVariables != null) {
-        	  st.executeUpdate("set session " + sessionVariables);
-        	}
-        	if (!fastConnect) {
-        		ResultSet rs = st.executeQuery("select @@sql_mode");
-        		rs.next();
-        		String sqlMode = rs.getString(1);
-        		if (sqlMode.contains("NO_BACKSLASH_ESCAPES")) {
-        			connection.noBackslashEscapes = true;
-        		}
-        	}
+                st = connection.createStatement();        		
+                if (sessionVariables != null) {
+                    st.executeUpdate("set session " + sessionVariables);
+                }
+                if (!fastConnect) {
+                    ResultSet rs = st.executeQuery("select @@sql_mode");
+                    rs.next();
+                    String sqlMode = rs.getString(1);
+                    if (sqlMode.contains("NO_BACKSLASH_ESCAPES")) {
+                        connection.noBackslashEscapes = true;
+                    }
+                }
+                String nullCatalogMeansCurrentString = protocol.getInfo().getProperty("nullCatalogMeansCurrent");
+                if (nullCatalogMeansCurrentString != null && nullCatalogMeansCurrentString.equals("false")) {
+                    connection.nullCatalogMeansCurrent = false;
+                }
+                
         } finally {
             if (st != null)
                 st.close();

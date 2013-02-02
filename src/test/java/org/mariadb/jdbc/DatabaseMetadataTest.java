@@ -387,6 +387,35 @@ public class DatabaseMetadataTest extends BaseTest{
     }
     
 
+    /* Verify default behavior for nullCatalogMeansCurrent (=true) */
+    @Test 
+    public void nullCatalogMeansCurrent() throws Exception {
+        String catalog = connection.getCatalog();
+        ResultSet rs = connection.getMetaData().getColumns(null, null, null, null);
+        while(rs.next()) {
+            assertTrue(rs.getString("TABLE_CAT").equalsIgnoreCase(catalog));
+        }
+    }
+    
+    /* Verify that "nullCatalogMeansCurrent=false" works (i.e information_schema columns are returned)*/
+    @Test 
+    public void nullCatalogMeansCurrent2() throws Exception {
+        Connection c = DriverManager.getConnection("jdbc:mysql://localhost/test?user=root&nullCatalogMeansCurrent=false");
+        boolean haveInformationSchema = false;
+        try {
+            ResultSet rs = c.getMetaData().getColumns(null, null, null, null);
+            while(rs.next()) {
+                if (rs.getString("TABLE_CAT").equalsIgnoreCase("information_schema")) {
+                    haveInformationSchema = true;
+                    break;
+                }
+            }
+        }  finally {
+            c.close();
+        }
+        assertTrue(haveInformationSchema);
+    }
+ 
     @Test 
     public void testGetTypeInfoBasic() throws SQLException {
         testResultSetColumns(
