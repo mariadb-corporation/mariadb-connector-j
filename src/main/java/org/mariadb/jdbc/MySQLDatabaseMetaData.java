@@ -57,6 +57,7 @@ import java.sql.Types;
 
 import org.mariadb.jdbc.internal.common.Utils;
 import org.mariadb.jdbc.internal.mysql.MySQLType;
+import org.mariadb.jdbc.internal.mysql.MySQLValueObject;
 
 
 public class MySQLDatabaseMetaData implements DatabaseMetaData {
@@ -65,7 +66,7 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
     private String databaseProductName = "MySQL";
     private String username;
     
-    private static  String dataTypeClause (String fullTypeColumnName){
+    private  String dataTypeClause (String fullTypeColumnName){
         return
         " CASE data_type" +
         " WHEN 'bit' THEN "         + Types.BIT +
@@ -96,7 +97,7 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
         " WHEN 'time' THEN "        + Types.TIME +
         " WHEN 'timestamp' THEN "   + Types.TIMESTAMP +
         " WHEN 'tinyint' THEN "     + Types.TINYINT +
-        " WHEN 'year' THEN "        + Types.SMALLINT +
+        " WHEN 'year' THEN "  + (((connection.getProtocol().datatypeMappingFlags &  MySQLValueObject.YEAR_IS_DATE_TYPE)== 0)? Types.SMALLINT :Types.DATE) +  
         " ELSE "                    + Types.OTHER +  
         " END ";
     }

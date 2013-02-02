@@ -498,7 +498,7 @@ public class DatabaseMetadataTest extends BaseTest{
             checkType(columnName, type, "date_col", Types.DATE);
             checkType(columnName, type, "time_col", Types.TIME);
             checkType(columnName, type, "timestamp_col", Types.TIMESTAMP);
-            checkType(columnName, type, "year_col", Types.SMALLINT);
+            checkType(columnName, type, "year_col", Types.DATE);
             checkType(columnName, type, "bit_col", Types.BIT);
             checkType(columnName, type, "char_col", Types.CHAR);
             checkType(columnName, type, "varchar_col", Types.VARCHAR);
@@ -510,10 +510,35 @@ public class DatabaseMetadataTest extends BaseTest{
             checkType(columnName, type, "text_col", Types.LONGVARCHAR);
             checkType(columnName, type, "mediumtext_col", Types.LONGVARCHAR);
             checkType(columnName, type, "longtext_col", Types.LONGVARCHAR);
-            if (columnName.equals("char_col")) {
-                assertEquals(rs.getInt("COLUMN_SIZE"),5);
-            }
         }
     }
 
+    @Test
+    public void yearIsShortType() throws Exception {
+        Connection c = DriverManager.getConnection("jdbc:mysql://localhost:3306/test?user=root&yearIsDateType=false");
+        try {
+            c.createStatement().execute("CREATE TABLE  IF NOT EXISTS ytab (y year)");
+            c.createStatement().execute("insert into ytab values(72)");
+            ResultSet rs = c.getMetaData().getColumns(connection.getCatalog(), null, "ytab", null);
+            assertTrue(rs.next());
+            assertEquals(rs.getInt("DATA_TYPE"),Types.SMALLINT);
+            ResultSet rs1 = c.createStatement().executeQuery("select * from ytab");
+            assertEquals(rs1.getMetaData().getColumnType(1), Types.SMALLINT);
+            assertTrue(rs1.next());
+            assertTrue(rs1.getObject(1) instanceof Short);
+            assertEquals(rs1.getShort(1), 1972);
+        } finally {
+            c.close();
+        }
+    }
+
+    /* CONJ-15 */
+    @Test
+    public void maxCharLengthUTF8() throws Exception {
+         connection.createStatement().execute("CREATE TABLE  IF NOT EXISTS maxcharlength (maxcharlength char(1)) character set utf8");
+         DatabaseMetaData dmd = connection.getMetaData();
+         ResultSet rs = dmd.getColumns(connection.getCatalog(), null, "maxcharlength", null);
+         assertTrue(rs.next());
+         assertEquals(rs.getInt("COLUMN_SIZE"),1);
+    }
 }
