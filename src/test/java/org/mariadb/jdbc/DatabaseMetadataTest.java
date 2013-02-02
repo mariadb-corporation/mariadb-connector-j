@@ -510,6 +510,9 @@ public class DatabaseMetadataTest extends BaseTest{
             checkType(columnName, type, "text_col", Types.LONGVARCHAR);
             checkType(columnName, type, "mediumtext_col", Types.LONGVARCHAR);
             checkType(columnName, type, "longtext_col", Types.LONGVARCHAR);
+            if (columnName.equals("char_col")) {
+                assertEquals(rs.getInt("COLUMN_SIZE"),5);
+            }
         }
     }
 
