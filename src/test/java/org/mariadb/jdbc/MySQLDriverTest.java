@@ -53,7 +53,7 @@ public class MySQLDriverTest extends BaseTest {
     
     @Test
     public void testIPV6inURL() throws SQLException {
-        Connection conn = DriverManager.getConnection("jdbc:mysql://[::1]:3306/test");
+        Connection conn = DriverManager.getConnection("jdbc:mysql://[::1]:3306/test?user=root");
         conn.close();    	
     }
 
