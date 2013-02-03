@@ -146,6 +146,8 @@ public class MySQLValueObject extends AbstractValueObject {
             case CLOB:
                 return getString();
             case CHAR:
+                if (columnInfo.isBinary())
+                    return getBytes();
                 return getString();
             case OLDDECIMAL:
             	return getString();

@@ -112,7 +112,8 @@ public class DatatypeTest extends BaseTest {
                 yearIsDateType? Types.DATE: Types.SMALLINT);
         checkClass("char0", String.class, "CHAR", Types.CHAR);
         checkClass("varchar0", String.class, "VARCHAR", Types.VARCHAR);
-        checkClass("varchar_binary",byteArrayClass, "VARCHAR", Types.VARBINARY);
+        checkClass("varchar_binary",byteArrayClass, "VARBINARY", Types.VARBINARY);
+        checkClass("binary0", byteArrayClass, "BINARY", Types.BINARY);
         checkClass("tinyblob0",byteArrayClass, "TINYBLOB", Types.VARBINARY);
         checkClass("tinytext0", String.class, "VARCHAR", Types.VARCHAR);
         checkClass("blob0", byteArrayClass, "BLOB",Types.VARBINARY);

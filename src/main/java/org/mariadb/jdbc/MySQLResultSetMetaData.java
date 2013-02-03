@@ -293,7 +293,10 @@ public class MySQLResultSetMetaData implements ResultSetMetaData {
                 if (ci.getLength() < 0)
                     return Types.LONGVARCHAR;
                 return Types.VARCHAR;
-
+            case CHAR :
+                if (ci.isBinary())
+                    return Types.BINARY;
+                return Types.CHAR;
             default:
                 return ci.getType().getSqlType();
         }
@@ -336,6 +339,15 @@ public class MySQLResultSetMetaData implements ResultSetMetaData {
                 } else {
                     return "LONGBLOB";
                 }
+            case VARCHAR:
+                if (ci.isBinary())
+                    return "VARBINARY";
+                return "VARCHAR";
+            case CHAR :
+                if (ci.isBinary())
+                    return "BINARY";
+                return "CHAR";
+                
             default:
                 return ci.getType().getTypeName();
         }
@@ -439,6 +451,8 @@ public class MySQLResultSetMetaData implements ResultSetMetaData {
           case CLOB:
               return String.class.getName();
           case CHAR:
+              if (ci.isBinary())
+                  return byteArrayClassName;
               return String.class.getName();
           default:
               return byteArrayClassName;
