@@ -111,6 +111,7 @@ public class MySQLProtocol implements Protocol {
     private final Properties info;
     private  long serverThreadId;
     public boolean moreResults = false;
+    public boolean hasWarnings = false;
     public StreamingSelectResult activeResult= null;
     public int datatypeMappingFlags;
     public Set<ServerStatus> serverStatus;
@@ -416,6 +417,7 @@ public class MySQLProtocol implements Protocol {
 
            activeResult = null;
            moreResults = false;
+           hasWarnings = false;
            connected = true;
            hostFailed = false; // Prevent reconnects
        } catch (IOException e) {
@@ -726,6 +728,7 @@ public class MySQLProtocol implements Protocol {
         switch (resultPacket.getResultType()) {
             case ERROR:
                 this.moreResults = false;
+                this.hasWarnings = false;
                 ErrorPacket ep = (ErrorPacket) resultPacket;
                 if (dQuery != null) {
                     log.warning("Could not execute query " + dQuery + ": " + ((ErrorPacket) resultPacket).getMessage());
@@ -738,6 +741,7 @@ public class MySQLProtocol implements Protocol {
                 final OKPacket okpacket = (OKPacket) resultPacket;
                 serverStatus = okpacket.getServerStatus();
                 this.moreResults = serverStatus.contains(ServerStatus.MORE_RESULTS_EXISTS);
+                this.hasWarnings = (okpacket.getWarnings() > 0);
                 final QueryResult updateResult = new UpdateResult(okpacket.getAffectedRows(),
                         okpacket.getWarnings(),
                         okpacket.getMessage(),
@@ -745,6 +749,7 @@ public class MySQLProtocol implements Protocol {
                 log.fine("OK, " + okpacket.getAffectedRows());
                 return updateResult;
             case RESULTSET:
+                this.hasWarnings = false;
                 log.fine("SELECT executed, fetching result set");
                 ResultSetPacket resultSetPacket = (ResultSetPacket)resultPacket;
                 try {

@@ -450,7 +450,7 @@ public final class MySQLConnection
      * @see java.sql.SQLWarning
      */
     public SQLWarning getWarnings() throws SQLException {
-        if (warningsCleared || isClosed()) {
+        if (warningsCleared || isClosed() || !protocol.hasWarnings) {
             return null;
         }
         Statement st = null;

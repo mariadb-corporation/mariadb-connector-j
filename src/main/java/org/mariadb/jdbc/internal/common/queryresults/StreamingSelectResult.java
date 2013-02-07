@@ -101,6 +101,7 @@ public class StreamingSelectResult extends SelectQueryResult {
                 protocol.activeResult = null;
                 protocol.moreResults = eofPacket.getStatusFlags().contains(EOFPacket.ServerStatus.SERVER_MORE_RESULTS_EXISTS);
                 warningCount = eofPacket.getWarningCount();
+                protocol.hasWarnings = (warningCount > 0);
                 isEOF = true;
                 values = null;
                 return false;
