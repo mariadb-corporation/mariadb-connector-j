@@ -50,12 +50,6 @@ public class MySQLDriverTest extends BaseTest {
             st.close();
         }
     }
-    
-    @Test
-    public void testIPV6inURL() throws SQLException {
-        Connection conn = DriverManager.getConnection("jdbc:mysql://[::1]:3306/test?user=root");
-        conn.close();    	
-    }
 
     @Test
     public void testAuthConnectionProperties() throws SQLException {
