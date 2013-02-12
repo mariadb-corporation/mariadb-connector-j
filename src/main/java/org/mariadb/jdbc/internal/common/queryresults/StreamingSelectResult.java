@@ -6,23 +6,22 @@ import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.common.ValueObject;
 import org.mariadb.jdbc.internal.common.packet.*;
 import org.mariadb.jdbc.internal.common.packet.buffer.ReadUtil;
+import org.mariadb.jdbc.internal.mysql.MySQLColumnInformation;
 import org.mariadb.jdbc.internal.mysql.MySQLProtocol;
-import org.mariadb.jdbc.internal.mysql.packet.MySQLFieldPacket;
 import org.mariadb.jdbc.internal.mysql.packet.MySQLRowPacket;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
 public class StreamingSelectResult extends SelectQueryResult {
     PacketFetcher packetFetcher;
-    public List<ValueObject> values;
+    public ValueObject[] values;
     MySQLProtocol protocol;
     boolean isEOF;
     boolean beforeFirst;
 
 
-    private StreamingSelectResult(List<ColumnInformation> info, MySQLProtocol protocol, PacketFetcher fetcher) throws QueryException {
+    private StreamingSelectResult(ColumnInformation[] info, MySQLProtocol protocol, PacketFetcher fetcher) throws QueryException {
         this.columnInformation = info;
         this.protocol = protocol;
         this.packetFetcher = fetcher;
@@ -46,9 +45,10 @@ public class StreamingSelectResult extends SelectQueryResult {
             throw new  QueryException("There is an active result set on the current connection, "+
                     "which must be closed prior to opening a new one");
         }
-
-        final List<ColumnInformation> ci = new ArrayList<ColumnInformation>();
-        for (int i = 0; i < packet.getFieldCount(); i++) {
+        long fieldCount = packet.getFieldCount();
+        ColumnInformation[] ci = new ColumnInformation[(int)fieldCount];
+        
+        for (int i = 0; i < fieldCount; i++) {
             final RawPacket rawPacket = packetFetcher.getRawPacket();
 
             // We do not expect an error packet, but check it just for safety
@@ -60,14 +60,13 @@ public class StreamingSelectResult extends SelectQueryResult {
             // We do not expect OK or EOF packets either
             byte b = rawPacket.getByteBuffer().get(0);
             if (b == 0 || b == (byte)0xfe) {
-                // We do not expect OK or EOF packets here
                 throw new QueryException("Packets out of order when trying to read field packet - " +
                     "got packet starting with byte " + b + "packet content (hex) = "
                         + MySQLProtocol.hexdump(rawPacket.getByteBuffer(), 0));
             }
+            
             try {
-                ColumnInformation columnInfo = MySQLFieldPacket.columnInformationFactory(rawPacket);
-                ci.add(columnInfo);
+                ci[i] = new MySQLColumnInformation(rawPacket);
             } catch (Exception e) {
                 throw new QueryException("Error when trying to parse field packet : " + e + ",packet content (hex) = " +
                         MySQLProtocol.hexdump(rawPacket.getByteBuffer(), 0) , 0, "HY000", e);
@@ -151,7 +150,7 @@ public class StreamingSelectResult extends SelectQueryResult {
      */
     @Override
     public ValueObject getValueObject(int i) throws NoSuchColumnException {
-        return values.get(i);
+        return values[i];
     }
 
     public int getRows() {

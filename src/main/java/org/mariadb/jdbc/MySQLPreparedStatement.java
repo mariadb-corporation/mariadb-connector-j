@@ -322,8 +322,9 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
      * @since 1.2
      */
     public ResultSetMetaData getMetaData() throws SQLException {
-        if (super.getResultSet() != null) {
-            return super.getResultSet().getMetaData();
+        ResultSet rs = getResultSet();
+        if (rs != null) {
+            return rs.getMetaData();
         }
         return null;
     }

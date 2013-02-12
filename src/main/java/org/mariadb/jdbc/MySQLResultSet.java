@@ -69,7 +69,6 @@ import java.net.URL;
 import java.sql.*;
 import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
@@ -96,8 +95,8 @@ public class MySQLResultSet implements ResultSet {
     }
 
     private static MySQLResultSet createEmptyResultSet() {
-        List<ColumnInformation> colList = Collections.emptyList();
-        List<List<ValueObject>> voList = Collections.emptyList();
+        ColumnInformation[] colList = new ColumnInformation[0];
+        List<ValueObject[]> voList = Collections.emptyList();
         QueryResult qr = new CachedSelectResult(colList, voList, (short) 0);
         return new MySQLResultSet(qr, null, null);
     }
@@ -3701,22 +3700,22 @@ public class MySQLResultSet implements ResultSet {
         
         byte[] BOOL_TRUE = {1};
         byte[] BOOL_FALSE ={0};
-        List<List<ValueObject>> rows  = new ArrayList<List<ValueObject>>();
+        List<ValueObject[]> rows  = new ArrayList<ValueObject[]>();
         for(String[] rowData : data) {
-            List<ValueObject> row = new ArrayList<ValueObject>();
+            ValueObject[] row = new ValueObject[N];
  
             if (rowData.length != N) {
                 throw new RuntimeException("Number of elements in the row != number of columns :" + rowData[0]);
             }
             for(int i = 0; i < N; i++){
                 if (columnTypes[i] == MySQLType.Type.BIT)
-                    row.add(new MySQLValueObject(rowData[i].equals("0")?BOOL_FALSE:BOOL_TRUE,columns[i]));
+                    row[i] = new MySQLValueObject(rowData[i].equals("0")?BOOL_FALSE:BOOL_TRUE,columns[i]);
                 else
-                    row.add(new MySQLValueObject(rowData[i].getBytes(),columns[i]));
+                    row[i] = new MySQLValueObject(rowData[i].getBytes(),columns[i]);
             }
             rows.add(row);
         }
-        return new MySQLResultSet(new CachedSelectResult(Arrays.asList(columns), rows, (short)0),
+        return new MySQLResultSet(new CachedSelectResult(columns , rows, (short)0),
                 null, protocol);
     }
 }

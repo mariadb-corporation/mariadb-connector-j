@@ -54,16 +54,13 @@ import org.mariadb.jdbc.internal.common.ValueObject;
 import org.mariadb.jdbc.internal.mysql.MySQLColumnInformation;
 import org.mariadb.jdbc.internal.mysql.MySQLType;
 
-import java.util.ArrayList;
-import java.util.List;
-
 
 public class InsertIdQueryResult extends SelectQueryResult {
 
     private final long insertId;
     private int rowPointer = 0;
     private final long rows;
-    private static List<ColumnInformation> ci;
+    private static ColumnInformation[] ci;
 
 
     public InsertIdQueryResult(final long insertId, final long rows) {
@@ -94,16 +91,12 @@ public class InsertIdQueryResult extends SelectQueryResult {
         return rowPointer++ < rows;
     }
 
-    public synchronized List<ColumnInformation> getColumnInformation() {
+    public synchronized ColumnInformation[] getColumnInformation() {
         if (ci != null)
             return ci;
-
         MySQLColumnInformation info = MySQLColumnInformation.create("insert_id", MySQLType.Type.BIGINT);
-
-
-         ci =  new ArrayList<ColumnInformation>();
-         ci.add(info);
-         return ci;
+        ci = new ColumnInformation[] {info};
+        return ci;
     }
 
 

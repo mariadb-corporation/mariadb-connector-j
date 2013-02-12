@@ -59,11 +59,11 @@ import java.util.List;
 
 public  class CachedSelectResult extends SelectQueryResult {
 
-    private  List<List<ValueObject>> resultSet;
+    private  List<ValueObject[]> resultSet;
     protected short warningCount;
     private int rowPointer;
 
-    public CachedSelectResult(List<ColumnInformation> ci, List<List<ValueObject>> result, short warningCount) {
+    public CachedSelectResult(ColumnInformation[] ci, List<ValueObject[]> result, short warningCount) {
         this.columnInformation = ci;
         this.resultSet = result;
         this.warningCount = warningCount;
@@ -72,7 +72,7 @@ public  class CachedSelectResult extends SelectQueryResult {
 
 
     public static CachedSelectResult createCachedSelectResult(StreamingSelectResult streamingResult) throws IOException, QueryException {
-         final List<List<ValueObject>> valueObjects = new ArrayList<List<ValueObject>>();
+         final List<ValueObject[]> valueObjects = new ArrayList<ValueObject[]>();
 
         while(streamingResult.next()){
            valueObjects.add(streamingResult.values);
@@ -96,7 +96,7 @@ public  class CachedSelectResult extends SelectQueryResult {
         return null;
     }
 
-    public List<ColumnInformation> getColumnInformation() {
+    public ColumnInformation[] getColumnInformation() {
         return columnInformation;
     }
 
@@ -113,10 +113,11 @@ public  class CachedSelectResult extends SelectQueryResult {
         if (rowPointer >= resultSet.size()) {
             throw new NoSuchColumnException("Current position is after the last row");
         }
-        if (i < 0 || i > resultSet.get(rowPointer).size()) {
+        ValueObject[] row = resultSet.get(rowPointer);
+        if (i < 0 || i > row.length) {
             throw new NoSuchColumnException("No such column: " + i);
         }
-        return resultSet.get(rowPointer).get(i);
+        return row[i];
     }
 
     public int getRows() {

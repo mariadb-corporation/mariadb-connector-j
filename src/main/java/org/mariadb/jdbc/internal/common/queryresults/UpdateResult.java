@@ -51,8 +51,6 @@ package org.mariadb.jdbc.internal.common.queryresults;
 
 import org.mariadb.jdbc.internal.common.ColumnInformation;
 
-import java.util.List;
-
 
 public class UpdateResult extends ModifyQueryResult {
     private final long updateCount;
@@ -89,7 +87,7 @@ public class UpdateResult extends ModifyQueryResult {
         return message;
     }
 
-    public List<ColumnInformation> getColumnInformation() {
+    public ColumnInformation[] getColumnInformation() {
         return null;
     }
 

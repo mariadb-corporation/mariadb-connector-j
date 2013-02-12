@@ -51,8 +51,6 @@ package org.mariadb.jdbc.internal.common.queryresults;
 
 import org.mariadb.jdbc.internal.common.ColumnInformation;
 
-import java.util.List;
-
 
 public abstract class QueryResult {
     public abstract ResultSetType getResultSetType();
@@ -69,7 +67,7 @@ public abstract class QueryResult {
 
     public abstract String getMessage();
 
-    public abstract List<ColumnInformation> getColumnInformation();
+    public abstract ColumnInformation[] getColumnInformation();
 
     public abstract int getRows();
 }

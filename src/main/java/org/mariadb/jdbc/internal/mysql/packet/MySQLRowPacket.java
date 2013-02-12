@@ -56,24 +56,21 @@ import org.mariadb.jdbc.internal.common.packet.RawPacket;
 import org.mariadb.jdbc.internal.common.packet.buffer.Reader;
 import org.mariadb.jdbc.internal.mysql.MySQLValueObject;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.io.IOException;
 
 
 public class MySQLRowPacket {
-    private final List<ValueObject> columns;
+    private final ValueObject[] columns;
     private final Reader reader;
-    private final List<ColumnInformation> columnInformation;
+    private final ColumnInformation[] columnInformation;
 
-    public MySQLRowPacket(final RawPacket rawPacket, final List<ColumnInformation> columnInformation) throws IOException {
-        columns = new ArrayList<ValueObject>(columnInformation.size());
+    public MySQLRowPacket(final RawPacket rawPacket, final ColumnInformation[] columnInformation2) throws IOException {
+        columns = new ValueObject[columnInformation2.length];
         reader = new Reader(rawPacket);
-        this.columnInformation = columnInformation;
+        this.columnInformation = columnInformation2;
     }
 
     public boolean isPacketComplete() throws IOException {
-
         long encLength = reader.getSilentLengthEncodedBinary();
         long remaining = reader.getRemainingSize();
         return encLength<=remaining;
@@ -83,13 +80,12 @@ public class MySQLRowPacket {
         reader.appendPacket(rawPacket);
     }
 
-    public List<ValueObject> getRow(PacketFetcher packetFetcher) throws IOException {
-        for (final ColumnInformation currentColumn : columnInformation) {
+    public ValueObject[] getRow(PacketFetcher packetFetcher) throws IOException {
+        for (int i = 0; i < columnInformation.length; i++) {
             while(!isPacketComplete()) {
                 appendPacket(packetFetcher.getRawPacket());
             }
-            final ValueObject dvo = new MySQLValueObject(reader.getLengthEncodedBytes(), currentColumn);
-            columns.add(dvo);
+            columns[i] = new MySQLValueObject(reader.getLengthEncodedBytes(), columnInformation[i]);
         }
         return columns;
     }

@@ -56,15 +56,14 @@ import org.mariadb.jdbc.internal.common.ValueObject;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
-import java.util.List;
 
 
 public abstract class SelectQueryResult extends QueryResult {
 
-    List<ColumnInformation> columnInformation;
+    ColumnInformation[] columnInformation;
     short warningCount;
 
-    public List<ColumnInformation> getColumnInformation() {
+    public ColumnInformation[] getColumnInformation() {
         return columnInformation;
     }
 

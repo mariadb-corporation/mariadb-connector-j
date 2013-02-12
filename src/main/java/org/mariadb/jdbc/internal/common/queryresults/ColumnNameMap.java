@@ -4,17 +4,16 @@ import org.mariadb.jdbc.internal.common.ColumnInformation;
 
 import java.sql.SQLException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 
 public class ColumnNameMap {
     Map<String, Integer> map;
     Map<String, Integer> labelMap;
-    List<ColumnInformation> columnInfo;
+    ColumnInformation[] columnInfo;
 
-    public ColumnNameMap(List<ColumnInformation> columnInfo) {
-       this.columnInfo = columnInfo;
+    public ColumnNameMap(ColumnInformation[] columnInformations) {
+       this.columnInfo = columnInformations;
     }
 
     public int getIndex(String name) throws SQLException {

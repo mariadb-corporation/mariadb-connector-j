@@ -59,15 +59,14 @@ import java.math.BigInteger;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Types;
-import java.util.List;
 
 
 public class MySQLResultSetMetaData implements ResultSetMetaData {
 
-    private List<ColumnInformation> fieldPackets;
+    private ColumnInformation[] fieldPackets;
     private int datatypeMappingflags;
 
-    public MySQLResultSetMetaData(List<ColumnInformation> fieldPackets, int datatypeMappingFlags) {
+    public MySQLResultSetMetaData(ColumnInformation[] fieldPackets, int datatypeMappingFlags) {
         this.fieldPackets = fieldPackets;
         this.datatypeMappingflags = datatypeMappingFlags;
     }
@@ -79,7 +78,7 @@ public class MySQLResultSetMetaData implements ResultSetMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public int getColumnCount() throws SQLException {
-        return fieldPackets.size();
+        return fieldPackets.length;
     }
 
     /**
@@ -460,8 +459,8 @@ public class MySQLResultSetMetaData implements ResultSetMetaData {
     }
 
     private ColumnInformation getColumnInformation(int column) throws SQLException {
-        if (column >= 1 && column <= fieldPackets.size()) {
-            return fieldPackets.get(column - 1);
+        if (column >= 1 && column <= fieldPackets.length) {
+            return fieldPackets[column - 1];
         }
         throw SQLExceptionMapper.getSQLException("No such column");
     }
