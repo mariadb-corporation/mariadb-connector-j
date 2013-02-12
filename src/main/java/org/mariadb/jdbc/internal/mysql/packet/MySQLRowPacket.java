@@ -90,7 +90,6 @@ public class MySQLRowPacket {
             }
             final ValueObject dvo = new MySQLValueObject(reader.getLengthEncodedBytes(), currentColumn);
             columns.add(dvo);
-            currentColumn.updateDisplaySize(dvo.getDisplayLength());
         }
         return columns;
     }

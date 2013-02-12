@@ -79,5 +79,5 @@ public interface ColumnInformation {
     boolean isBinary();
     Set<ColumnFlags> getFlags();
 
-    void updateDisplaySize(int displayLength);
+    //void updateDisplaySize(int displayLength);
 }

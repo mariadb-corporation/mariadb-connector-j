@@ -55,7 +55,6 @@ import org.mariadb.jdbc.internal.mysql.MySQLColumnInformation;
 import org.mariadb.jdbc.internal.mysql.MySQLType;
 
 import java.util.ArrayList;
-import java.util.EnumSet;
 import java.util.List;
 
 
@@ -99,10 +98,8 @@ public class InsertIdQueryResult extends SelectQueryResult {
         if (ci != null)
             return ci;
 
-        MySQLColumnInformation.Builder b = new MySQLColumnInformation.Builder();
-        MySQLColumnInformation info = b.db("").catalog("").charsetNumber((short) 0).decimals((byte) 0).name("insert_id" +
-                "").originalName("insert_id").flags(EnumSet.noneOf(ColumnFlags.class)).
-                originalTable("").table("").type(new MySQLType(MySQLType.Type.BIGINT)).build();
+        MySQLColumnInformation info = MySQLColumnInformation.create("insert_id", MySQLType.Type.BIGINT);
+
 
          ci =  new ArrayList<ColumnInformation>();
          ci.add(info);

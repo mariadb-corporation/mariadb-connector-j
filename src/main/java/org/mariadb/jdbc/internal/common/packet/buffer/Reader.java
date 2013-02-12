@@ -139,6 +139,15 @@ public class Reader {
         return bytesToSkip;
     }
 
+    public Reader skipLengthEncodedBytes() throws IOException {
+        long encLength = getLengthEncodedBinary();
+        if (encLength == -1) {
+               return null;
+        }
+        skipBytes((int)encLength);
+        return this;
+    }
+    
     public int read24bitword() throws IOException {
         final byte[] tmpArr = new byte[3];
         for (int i = 0; i < 3; i++) {

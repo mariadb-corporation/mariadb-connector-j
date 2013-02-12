@@ -89,7 +89,7 @@ public final class RawPacket {
      * @param byteBuffer the byte buffer containing the packet
      * @param packetSeq the packet sequence
      */
-    private RawPacket(final ByteBuffer byteBuffer, final int packetSeq) {
+    public  RawPacket(final ByteBuffer byteBuffer, final int packetSeq) {
         this.byteBuffer = byteBuffer;
         this.packetSeq = packetSeq;
     }

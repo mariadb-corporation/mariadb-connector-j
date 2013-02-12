@@ -72,7 +72,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 
@@ -3693,19 +3692,11 @@ public class MySQLResultSet implements ResultSet {
     */
     static ResultSet createResultSet(String[] columnNames, MySQLType.Type[] columnTypes, String[][] data, 
             MySQLProtocol protocol)  {
-        
-        MySQLColumnInformation.Builder b = new MySQLColumnInformation.Builder();
-        b.catalog("").charsetNumber((short)33).db("").flags(EnumSet.noneOf(ColumnFlags.class));
-
         int N = columnNames.length;
         ColumnInformation[] columns = new ColumnInformation[N];
         
         for (int i = 0; i < N ; i++) {
-           if (columnTypes[i] == MySQLType.Type.BIT)
-               b.length(1);
-           else
-               b.length(0);
-           columns[i] = b.name(columnNames[i]).type(new MySQLType(columnTypes[i])).build();
+            columns[i] = MySQLColumnInformation.create(columnNames[i],columnTypes[i]);
         }
         
         byte[] BOOL_TRUE = {1};

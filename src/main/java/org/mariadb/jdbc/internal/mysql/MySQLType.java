@@ -176,4 +176,42 @@ public class MySQLType implements DataType {
                 return new MySQLType(Type.VARCHAR);
         }
     }
+
+    public static byte toServer(int javaType) {
+
+        switch (javaType) {
+            case Types.TINYINT:
+                return 1;
+            case Types.SMALLINT:
+                return 2;
+            case Types.INTEGER:
+                return 3;
+            case Types.FLOAT:
+                return 4;
+            case Types.DOUBLE:
+                return 5;
+            case Types.NULL:
+                return 6;
+            case Types.TIMESTAMP:
+                return 7;
+            case Types.BIGINT:
+                return 8;
+            case Types.DATE:
+                return 10;
+            case Types.TIME:
+                return 11;
+            case Types.VARCHAR:
+                return 15;
+            case Types.BIT:
+                return 16;
+            case Types.BOOLEAN:
+                return 16;
+            case Types.DECIMAL:
+                return (byte)246;
+            case Types.CHAR:
+                return (byte)254;
+            default:
+                return (byte)255;
+        }
+    }
 }
