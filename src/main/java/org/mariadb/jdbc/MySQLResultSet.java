@@ -3685,12 +3685,12 @@ public class MySQLResultSet implements ResultSet {
     * @param columnName  - string array of column names
     * @param columnTypes - column types
     * @data - each element of this array represents a complete row in the ResultSet.
-    *  
     * Each value is given in its string representation, as in MySQL text protocol, except boolean (BIT(1)) values
     * that are represented as "1" or "0" strings
+    * @findColumnReturnsOne - special parameter, used only in generated key result sets
     */
     static ResultSet createResultSet(String[] columnNames, MySQLType.Type[] columnTypes, String[][] data, 
-            MySQLProtocol protocol)  {
+            MySQLProtocol protocol, boolean findColumnReturnsOne)  {
         int N = columnNames.length;
         ColumnInformation[] columns = new ColumnInformation[N];
         
@@ -3715,7 +3715,25 @@ public class MySQLResultSet implements ResultSet {
             }
             rows.add(row);
         }
+        if (findColumnReturnsOne) {
+            return new MySQLResultSet(new CachedSelectResult(columns , rows, (short)0),
+                    null, protocol) {
+                public int findColumn(String name) {
+                    return 1;
+                } 
+            };
+        }
         return new MySQLResultSet(new CachedSelectResult(columns , rows, (short)0),
                 null, protocol);
+    }
+    
+    static ResultSet createResultSet(String[] columnNames, MySQLType.Type[] columnTypes, String[][] data, 
+            MySQLProtocol protocol)  {
+        return createResultSet(columnNames, columnTypes, data, protocol,false);
+    }
+    
+    static ResultSet createGeneratedKeysResultSet(long id, MySQLProtocol protocol) {
+        return createResultSet(new String[]{"insert_id"}, new MySQLType.Type[] {MySQLType.Type.BIGINT},
+                new String[][]{{""+id}}, protocol,true);
     }
 }

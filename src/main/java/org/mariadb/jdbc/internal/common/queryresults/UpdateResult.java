@@ -57,14 +57,13 @@ public class UpdateResult extends ModifyQueryResult {
     private final short warnings;
     private final String message;
     private final long insertId;
-    private final QueryResult generatedKeysResult;
+
 
     public UpdateResult(final long updateCount, final short warnings, final String message, final long insertId) {
         this.updateCount = updateCount;
         this.warnings = warnings;
         this.message = message;
         this.insertId = insertId;
-        generatedKeysResult = new InsertIdQueryResult(insertId, updateCount);
     }
 
     public long getUpdateCount() {
@@ -76,7 +75,6 @@ public class UpdateResult extends ModifyQueryResult {
     }
 
     public void close() {
-        generatedKeysResult.close();
     }
 
     public short getWarnings() {
@@ -97,9 +95,5 @@ public class UpdateResult extends ModifyQueryResult {
 
     public long getInsertId() {
         return insertId;
-    }
-
-    public QueryResult getGeneratedKeysResult() {
-        return generatedKeysResult;
     }
 }

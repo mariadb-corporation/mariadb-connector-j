@@ -106,7 +106,7 @@ public  class CachedSelectResult extends SelectQueryResult {
      * @param i index, starts at 0
      * @return
      */
-    public ValueObject getValueObject(final int i) throws NoSuchColumnException {
+    public ValueObject getValueObject(int i) throws NoSuchColumnException {
         if (rowPointer < 0) {
             throw new NoSuchColumnException("Current position is before the first row");
         }
@@ -114,7 +114,7 @@ public  class CachedSelectResult extends SelectQueryResult {
             throw new NoSuchColumnException("Current position is after the last row");
         }
         ValueObject[] row = resultSet.get(rowPointer);
-        if (i < 0 || i > row.length) {
+        if (i < 0 || i >= row.length) {
             throw new NoSuchColumnException("No such column: " + i);
         }
         return row[i];

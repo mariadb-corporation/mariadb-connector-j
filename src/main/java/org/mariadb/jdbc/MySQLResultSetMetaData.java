@@ -122,7 +122,7 @@ public class MySQLResultSetMetaData implements ResultSetMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public boolean isCurrency(final int column) throws SQLException {
-        return false;  // no currency columns in drizzle
+        return false;
     }
 
     /**

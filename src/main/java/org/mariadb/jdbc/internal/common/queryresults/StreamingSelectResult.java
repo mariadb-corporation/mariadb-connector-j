@@ -11,7 +11,6 @@ import org.mariadb.jdbc.internal.mysql.MySQLProtocol;
 import org.mariadb.jdbc.internal.mysql.packet.MySQLRowPacket;
 
 import java.io.IOException;
-import java.util.List;
 
 public class StreamingSelectResult extends SelectQueryResult {
     PacketFetcher packetFetcher;

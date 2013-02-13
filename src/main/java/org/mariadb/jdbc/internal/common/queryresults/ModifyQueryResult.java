@@ -56,6 +56,4 @@ public abstract class ModifyQueryResult extends QueryResult {
     public abstract String getMessage();
 
     public abstract long getInsertId();
-
-    public abstract QueryResult getGeneratedKeysResult();
 }

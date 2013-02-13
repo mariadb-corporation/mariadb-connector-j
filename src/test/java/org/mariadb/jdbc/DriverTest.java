@@ -744,12 +744,14 @@ public class DriverTest extends BaseTest{
       Statement st = connection.createStatement();
       st.executeUpdate("insert into genkeys(dataField) values('a')", Statement.RETURN_GENERATED_KEYS);
       ResultSet rs = st.getGeneratedKeys();
+      assertTrue(rs.next());
       assertEquals(rs.getInt(1), 1);
       assertEquals(rs.getInt("priKey"), 1);
       assertEquals(rs.getInt("foo"),1);
       int indexes[] = {1,2,3};
       st.executeUpdate("insert into genkeys(dataField) values('b')", indexes);
       rs = st.getGeneratedKeys();
+      assertTrue(rs.next());
       assertEquals(rs.getInt(1), 2);
       try {
         assertEquals(rs.getInt(2), 2);
@@ -761,6 +763,7 @@ public class DriverTest extends BaseTest{
       String columnNames[] = {"priKey", "Alice", "Bob"};
       st.executeUpdate("insert into genkeys(dataField) values('c')", columnNames);
       rs = st.getGeneratedKeys();
+      assertTrue(rs.next());
       for(int i=0; i < 3; i++)  {
           assertEquals(rs.getInt(columnNames[i]), 3);
       }
