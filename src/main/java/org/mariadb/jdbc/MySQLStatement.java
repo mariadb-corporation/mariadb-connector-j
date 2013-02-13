@@ -144,7 +144,7 @@ public class MySQLStatement implements Statement {
             synchronized(MySQLStatement.class) {
                 result = timer;
                 if (result == null) {
-                    timer = result = new Timer();
+                    timer = result = new Timer(true);
                 }
             }
         }
