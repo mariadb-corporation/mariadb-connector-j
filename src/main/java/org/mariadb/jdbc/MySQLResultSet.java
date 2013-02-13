@@ -562,7 +562,8 @@ public class MySQLResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean isBeforeFirst() throws SQLException {
-        return (queryResult.getResultSetType() == ResultSetType.SELECT  && ((SelectQueryResult) queryResult).isBeforeFirst());
+        return (queryResult.getResultSetType() == ResultSetType.SELECT  
+                && ((SelectQueryResult) queryResult).isBeforeFirst());
     }
 
     /**
@@ -669,12 +670,15 @@ public class MySQLResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean first() throws SQLException {
-        if (queryResult.getResultSetType() == ResultSetType.SELECT && queryResult.getRows() > 0) {
-             if (!(queryResult instanceof CachedSelectResult)) {
+        if (queryResult.getResultSetType() == ResultSetType.SELECT) {
+            if (!(queryResult instanceof CachedSelectResult)) {
               throw new SQLException("Invalid operation for result set type TYPE_FORWARD_ONLY");
             }
-            ((SelectQueryResult) queryResult).moveRowPointerTo(0);
-            return true;
+             
+            if (queryResult.getRows() > 0) {
+                ((SelectQueryResult) queryResult).moveRowPointerTo(0);
+                return true;
+            }
         }
         return false;
     }

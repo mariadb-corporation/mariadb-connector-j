@@ -16,7 +16,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static junit.framework.Assert.*;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -124,7 +123,21 @@ public class DriverTest extends BaseTest{
         assertEquals(2, prepStmt.getParameterMetaData().getParameterCount());
     }
 
-   
+    
+    @Test
+    public void streamingResultSet() throws Exception {
+        Statement stmt = connection.createStatement();
+        stmt.setFetchSize(Integer.MIN_VALUE);
+        ResultSet rs = stmt.executeQuery("SELECT 1");
+        assertTrue(rs.isBeforeFirst());
+        try {
+            rs.first();
+            assertFalse("should not get there", true);
+        }
+        catch (SQLException sqle) {
+            assertTrue(sqle.getMessage().toLowerCase().contains("invalid operation"));
+        }
+    }
     @Test
     public void preparedTest2() throws SQLException {
         Statement stmt = connection.createStatement();
