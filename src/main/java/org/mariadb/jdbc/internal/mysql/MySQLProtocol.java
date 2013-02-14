@@ -586,6 +586,12 @@ public class MySQLProtocol implements Protocol {
      */
     public void close()  {
         try {
+            /* If a streaming result set is open, close it.*/ 
+            skip();
+        } catch (Exception e) {
+            /* eat exception */
+        }
+        try {
            close(packetFetcher,writer, socket);
         }
         catch (Exception e) {

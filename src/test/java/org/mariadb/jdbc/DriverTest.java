@@ -1522,4 +1522,24 @@ public class DriverTest extends BaseTest{
                 c.close();
         }
     }
+    
+    @Test
+    public void conj25() throws Exception {
+        String dsn = "jdbc:mysql://localhost:3306/test?user=root";
+        Statement stmt;
+        ResultSet rs;
+        Connection conn = DriverManager.getConnection(dsn);
+        stmt = conn.createStatement();
+        stmt.execute("DROP TABLE IF EXISTS t1");
+        stmt.execute("CREATE TABLE t1 (a VARCHAR(1024))");
+        String st = "INSERT INTO t1 VALUES (REPEAT('a',1024))";
+        for ( int i=1; i<=100; i++) {
+          st = st + ",(REPEAT('a',1024))";
+        }
+        stmt.setFetchSize(Integer.MIN_VALUE);
+        stmt.execute(st);
+        rs = stmt.executeQuery("SELECT * FROM t1 a, t1 b");
+        conn.close();  
+
+    }
 }
