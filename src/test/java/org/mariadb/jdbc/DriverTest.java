@@ -1527,7 +1527,6 @@ public class DriverTest extends BaseTest{
     public void conj25() throws Exception {
         String dsn = "jdbc:mysql://localhost:3306/test?user=root";
         Statement stmt;
-        ResultSet rs;
         Connection conn = DriverManager.getConnection(dsn);
         stmt = conn.createStatement();
         stmt.execute("DROP TABLE IF EXISTS t1");
@@ -1538,7 +1537,7 @@ public class DriverTest extends BaseTest{
         }
         stmt.setFetchSize(Integer.MIN_VALUE);
         stmt.execute(st);
-        rs = stmt.executeQuery("SELECT * FROM t1 a, t1 b");
+        stmt.executeQuery("SELECT * FROM t1 a, t1 b");
         conn.close();  
 
     }
