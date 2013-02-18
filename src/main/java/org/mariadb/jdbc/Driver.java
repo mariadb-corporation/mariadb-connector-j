@@ -51,7 +51,6 @@ package org.mariadb.jdbc;
 
 import org.mariadb.jdbc.internal.SQLExceptionMapper;
 import org.mariadb.jdbc.internal.common.QueryException;
-import org.mariadb.jdbc.internal.common.query.MySQLQueryFactory;
 import org.mariadb.jdbc.internal.mysql.MySQLProtocol;
 
 import java.sql.Connection;
@@ -110,7 +109,7 @@ public final class Driver implements java.sql.Driver {
 
             MySQLProtocol protocol = new MySQLProtocol(jdbcUrl, userName,  password,  info);
 
-            return MySQLConnection.newConnection(protocol, new MySQLQueryFactory());
+            return MySQLConnection.newConnection(protocol);
         } catch (QueryException e) {
             SQLExceptionMapper.throwException(e, null, null);
             return null;

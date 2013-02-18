@@ -53,8 +53,8 @@ import org.mariadb.jdbc.internal.SQLExceptionMapper;
 import org.mariadb.jdbc.internal.common.Protocol;
 import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.common.Utils;
+import org.mariadb.jdbc.internal.common.query.MySQLQuery;
 import org.mariadb.jdbc.internal.common.query.Query;
-import org.mariadb.jdbc.internal.common.query.QueryFactory;
 import org.mariadb.jdbc.internal.common.queryresults.ModifyQueryResult;
 import org.mariadb.jdbc.internal.common.queryresults.QueryResult;
 import org.mariadb.jdbc.internal.common.queryresults.ResultSetType;
@@ -88,10 +88,6 @@ public class MySQLStatement implements Statement {
      * are warnings cleared?
      */
     private boolean warningsCleared;
-    /**
-     * creates queries.
-     */
-    private final QueryFactory queryFactory;
 
 
     private int queryTimeout;
@@ -112,18 +108,12 @@ public class MySQLStatement implements Statement {
 
     /**
      * Creates a new Statement.
-     *
-     * @param protocol     the protocol to use.
      * @param connection   the connection to return in getConnection.
-     * @param queryFactory the query factory to produce internal queries.
      */
 
-    public MySQLStatement(final MySQLProtocol protocol,
-                         final MySQLConnection connection,
-                         final QueryFactory queryFactory) {
-        this.protocol = protocol;
+    public MySQLStatement(MySQLConnection connection) {
+        this.protocol = connection.getProtocol();
         this.connection = connection;
-        this.queryFactory = queryFactory;
         this.escapeProcessing = true;
         cachedResultSets = new LinkedList<Object>();
 
@@ -333,7 +323,7 @@ public class MySQLStatement implements Statement {
         if (escapeProcessing) {
             queryString = Utils.nativeSQL(queryString,connection.noBackslashEscapes);
         }
-        return queryFactory.createQuery(queryString);
+        return new MySQLQuery(queryString);
     }
 
 
@@ -371,9 +361,6 @@ public class MySQLStatement implements Statement {
         return executeQuery(stringToQuery(queryString));
     }
 
-    public QueryFactory getQueryFactory() {
-        return queryFactory;
-    }
 
     /**
      * Releases this <code>Statement</code> object's database and JDBC resources immediately instead of waiting for this
@@ -1075,10 +1062,10 @@ public class MySQLStatement implements Statement {
      * @since 1.2
      */
     public void addBatch(final String sql) throws SQLException {
-        this.protocol.addToBatch(queryFactory.createQuery(sql));
+        this.protocol.addToBatch(new MySQLQuery(sql));
     }
     public void addBatch(final byte[] sql) throws SQLException {
-        this.protocol.addToBatch(queryFactory.createQuery(sql));
+        this.protocol.addToBatch(new MySQLQuery(sql));
     }
 
     /**

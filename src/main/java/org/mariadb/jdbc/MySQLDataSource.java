@@ -52,7 +52,6 @@ package org.mariadb.jdbc;
 
 import org.mariadb.jdbc.internal.SQLExceptionMapper;
 import org.mariadb.jdbc.internal.common.QueryException;
-import org.mariadb.jdbc.internal.common.query.MySQLQueryFactory;
 import org.mariadb.jdbc.internal.mysql.MySQLProtocol;
 
 import javax.sql.*;
@@ -287,8 +286,7 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XA
     public Connection getConnection() throws SQLException {
         createUrl();
         try {
-            return MySQLConnection.newConnection(new MySQLProtocol(url, username, password, info),
-                    new MySQLQueryFactory());
+            return MySQLConnection.newConnection(new MySQLProtocol(url, username, password, info));
         } catch (QueryException e) {
             SQLExceptionMapper.throwException(e, null, null);
             return null;
@@ -307,8 +305,7 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XA
     public Connection getConnection(final String username, final String password) throws SQLException {
         createUrl();
         try {
-            return MySQLConnection.newConnection(new MySQLProtocol(url, username, password, new Properties()),
-                    new MySQLQueryFactory());
+            return MySQLConnection.newConnection(new MySQLProtocol(url, username, password, new Properties()));
         } catch (QueryException e) {
             SQLExceptionMapper.throwException(e, null, null);
             return null;

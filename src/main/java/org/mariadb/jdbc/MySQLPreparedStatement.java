@@ -53,8 +53,8 @@ import org.mariadb.jdbc.internal.common.ParameterizedBatchHandler;
 import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.common.Utils;
 import org.mariadb.jdbc.internal.common.query.IllegalParameterException;
+import org.mariadb.jdbc.internal.common.query.MySQLParameterizedQuery;
 import org.mariadb.jdbc.internal.common.query.ParameterizedQuery;
-import org.mariadb.jdbc.internal.common.query.QueryFactory;
 import org.mariadb.jdbc.internal.common.query.parameters.*;
 import org.mariadb.jdbc.internal.mysql.MySQLProtocol;
 
@@ -78,16 +78,15 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
     public MySQLPreparedStatement(final MySQLProtocol protocol,
                                   final MySQLConnection connection,
                                   final String query,
-                                  final QueryFactory queryFactory,
                                   final ParameterizedBatchHandler parameterizedBatchHandler) throws SQLException {
-        super(protocol, connection, queryFactory);
+        super(connection);
         useFractionalSeconds =
                 ((MySQLProtocol)protocol).getInfo().getProperty("useFractionalSeconds") != null;
 
         if(log.isLoggable(Level.FINEST)) {
             log.finest("Creating prepared statement for " + query);
         }
-        dQuery = queryFactory.createParameterizedQuery(Utils.nativeSQL(query, connection.noBackslashEscapes),
+        dQuery = new MySQLParameterizedQuery(Utils.nativeSQL(query, connection.noBackslashEscapes),
                 connection.noBackslashEscapes);
         this.parameterizedBatchHandler = parameterizedBatchHandler;
     }
@@ -185,10 +184,10 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
      */
     public void addBatch() throws SQLException {
         parameterizedBatchHandler.addToBatch(dQuery);
-        dQuery = getQueryFactory().createParameterizedQuery(dQuery);
+        dQuery = new MySQLParameterizedQuery(dQuery);
     }
     public void addBatch(final String sql) throws SQLException {
-        parameterizedBatchHandler.addToBatch(getQueryFactory().createParameterizedQuery(sql, connection.noBackslashEscapes));
+        parameterizedBatchHandler.addToBatch(new MySQLParameterizedQuery(sql, connection.noBackslashEscapes));
     }
     @Override
     public int[] executeBatch() throws SQLException {

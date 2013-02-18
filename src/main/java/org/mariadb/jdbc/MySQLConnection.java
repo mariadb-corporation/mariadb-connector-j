@@ -52,7 +52,6 @@ package org.mariadb.jdbc;
 import org.mariadb.jdbc.internal.SQLExceptionMapper;
 import org.mariadb.jdbc.internal.common.*;
 import org.mariadb.jdbc.internal.common.packet.RawPacket;
-import org.mariadb.jdbc.internal.common.query.QueryFactory;
 import org.mariadb.jdbc.internal.mysql.MySQLProtocol;
 
 import java.sql.*;
@@ -76,10 +75,6 @@ public final class MySQLConnection
      * the properties for the client.
      */
     private final Properties clientInfoProperties;
-    /**
-     * a query factory.
-     */
-    private final QueryFactory queryFactory;
 
     private ParameterizedBatchHandlerFactory parameterizedBatchHandlerFactory;
 
@@ -95,20 +90,18 @@ public final class MySQLConnection
      * Creates a new connection with a given protocol and query factory.
      *
      * @param protocol     the protocol to use.
-     * @param queryFactory the query factory to use.
      */
-    private MySQLConnection( MySQLProtocol protocol, QueryFactory queryFactory) {
+    private MySQLConnection( MySQLProtocol protocol) {
         this.protocol = protocol;
         clientInfoProperties = new Properties();
-        this.queryFactory = queryFactory;
 
     }
     
     MySQLProtocol getProtocol() {
     	return protocol;
     }
-    public static MySQLConnection newConnection(MySQLProtocol protocol, QueryFactory queryFactory) throws SQLException {
-        MySQLConnection connection = new MySQLConnection(protocol, queryFactory);
+    public static MySQLConnection newConnection(MySQLProtocol protocol) throws SQLException {
+        MySQLConnection connection = new MySQLConnection(protocol);
         
         boolean fastConnect =  protocol.getInfo().get("fastConnect") != null ;
         String sessionVariables = protocol.getInfo().getProperty("sessionVariables");
@@ -150,7 +143,7 @@ public final class MySQLConnection
      * @throws SQLException if we cannot create the statement.
      */
     public Statement createStatement() throws SQLException {
-        return new MySQLStatement(protocol, this, queryFactory);
+        return new MySQLStatement(this);
     }
 
     /**
@@ -167,7 +160,6 @@ public final class MySQLConnection
         return new MySQLPreparedStatement(protocol,
                 this,
                 sql,
-                queryFactory,
                 parameterizedBatchHandlerFactory.get(sql, protocol));
     }
 
