@@ -266,8 +266,8 @@ public class MySQLProtocol implements Protocol {
             String value = info.getProperty("tcpNoDelay", "false");
             if (value.equalsIgnoreCase("true"))
                 socket.setTcpNoDelay(true);
+            
             value = info.getProperty("tcpKeepAlive", "false");
-
             if (value.equalsIgnoreCase("true"))
                 socket.setKeepAlive(true);
 
@@ -278,6 +278,11 @@ public class MySQLProtocol implements Protocol {
             value = info.getProperty("tcpSndBuf");
             if (value != null)
                 socket.setSendBufferSize(Integer.parseInt(value));
+            
+            value = info.getProperty("tcpAbortiveClose","false");
+            if (value.equalsIgnoreCase("true"))
+                socket.setSoLinger(true, 0);
+                
        } catch (Exception e) {
             log.finest("Failed to set socket option: " + e.getLocalizedMessage());
        }
