@@ -4,7 +4,7 @@
     <artifactId>mariadb-java-client</artifactId>
     <packaging>jar</packaging>
     <name>mariadb-java-client</name>
-    <version>1.1.0</version>
+    <version>1.1.1</version>
     <description>JDBC driver for MariaDB and MySQL</description>
     <url>http://launchpad.net/mariadb-java-client</url>
     <properties>
