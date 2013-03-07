@@ -58,7 +58,7 @@ public enum ColumnFlags {
     BLOB((short) 16),
     UNSIGNED((short) 32),
     DECIMAL((short) 64),
-    BINARY((short) 128),
+    BINARY_COLLATION((short) 128),
     ENUM((short) 256),
     AUTO_INCREMENT((short) 512),
     TIMESTAMP((short) 1024),

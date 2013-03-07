@@ -100,7 +100,7 @@ public class MySQLResultSetMetaData implements ResultSetMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public boolean isCaseSensitive(final int column) throws SQLException {
-        return getColumnInformation(column).getFlags().contains(ColumnFlags.BINARY);
+        return getColumnInformation(column).getFlags().contains(ColumnFlags.BINARY_COLLATION);
     }
 
     /**

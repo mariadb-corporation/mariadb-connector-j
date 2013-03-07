@@ -161,7 +161,7 @@ public class MySQLColumnInformation implements ColumnInformation {
     }
 
     public boolean isBinary() {
-       return (flags.contains(ColumnFlags.BINARY) || getCharsetNumber() == 63);
+       return (getCharsetNumber() == 63);
     }
 
 }

@@ -38,6 +38,7 @@ public class DatatypeTest extends BaseTest {
                       "year2 YEAR(2) default 99," +
                       "year4 YEAR(4) default 2011," +
                       "char0 CHAR(1) default '0'," +
+                      "char_binary CHAR (1) binary default '0'," +
                       "varchar0 VARCHAR(1) default '1'," +
                       "varchar_binary VARCHAR(10) BINARY default 0x1," +
                       "binary0 BINARY(10) default 0x1," +
@@ -111,9 +112,11 @@ public class DatatypeTest extends BaseTest {
                 yearIsDateType? java.sql.Date.class: Short.class, "YEAR",
                 yearIsDateType? Types.DATE: Types.SMALLINT);
         checkClass("char0", String.class, "CHAR", Types.CHAR);
+        checkClass("char_binary", String.class, "CHAR", Types.CHAR);
         checkClass("varchar0", String.class, "VARCHAR", Types.VARCHAR);
-        checkClass("varchar_binary",byteArrayClass, "VARBINARY", Types.VARBINARY);
+        checkClass("varchar_binary",String.class, "VARCHAR", Types.VARCHAR);
         checkClass("binary0", byteArrayClass, "BINARY", Types.BINARY);
+        checkClass("varbinary0", byteArrayClass, "VARBINARY", Types.VARBINARY);
         checkClass("tinyblob0",byteArrayClass, "TINYBLOB", Types.VARBINARY);
         checkClass("tinytext0", String.class, "VARCHAR", Types.VARCHAR);
         checkClass("blob0", byteArrayClass, "BLOB",Types.VARBINARY);
@@ -153,5 +156,6 @@ public class DatatypeTest extends BaseTest {
         Connection c = DriverManager.getConnection("jdbc:mysql://localhost:3306/test?user=root&tinyInt1isBit=0&yearIsDateType=1");
         datatypes(c, false, true);
     }
+
 
 }
