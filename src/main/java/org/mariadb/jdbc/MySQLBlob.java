@@ -147,7 +147,7 @@ public  class MySQLBlob implements Blob, Serializable {
      * @see #setBinaryStream
      */
     public InputStream getBinaryStream() throws SQLException {
-        return new ByteArrayInputStream(this.blobContent);
+        return getBinaryStream(1, actualSize);
     }
 
     /**
@@ -354,9 +354,7 @@ public  class MySQLBlob implements Blob, Serializable {
             throw SQLExceptionMapper.getSQLException("Out of range");
         }
 
-        return new ByteArrayInputStream(Utils.copyRange(blobContent,
-                (int) pos,
-                (int) length));
+        return new ByteArrayInputStream(blobContent, (int)pos-1, (int)length);
     }
 }
 
