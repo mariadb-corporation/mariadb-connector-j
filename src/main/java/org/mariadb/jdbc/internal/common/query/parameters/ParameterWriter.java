@@ -14,7 +14,7 @@ import java.util.Calendar;
 public class ParameterWriter {
     static final byte[] BINARY_INTRODUCER = {'_','b','i','n','a','r','y',' ','\''};
     static final Charset UTF8 = Charset.forName("UTF-8");
-    static final int QUOTE = '\'';
+    static final byte[] QUOTE = {'\''};
 
     private static void writeBytesEscaped(OutputStream out, byte[] bytes, int count, boolean noBackslashEscapes)
             throws IOException{
@@ -65,8 +65,12 @@ public class ParameterWriter {
         out.write(QUOTE);
     }
 
-    public static void write(OutputStream out, InputStream is, boolean noBackslashEscapes) throws IOException{
-        out.write(BINARY_INTRODUCER);
+    public static void write(OutputStream out, InputStream is, boolean noBackslashEscapes, boolean isText) throws IOException{
+        if (isText) {
+            out.write(QUOTE);
+        } else {
+            out.write(BINARY_INTRODUCER);
+        }
         byte[] buffer = new byte[1024];
         int len;
         while ((len = is.read(buffer)) >= 0) {
@@ -75,8 +79,12 @@ public class ParameterWriter {
         out.write(QUOTE);
     }
 
-     public static void write(OutputStream out, InputStream is, long length, boolean noBackslashEscapes) throws IOException{
-        out.write(BINARY_INTRODUCER);
+     public static void write(OutputStream out, InputStream is, long length, boolean noBackslashEscapes, boolean isText) throws IOException{
+        if (isText) {
+            out.write(QUOTE);
+        } else {
+            out.write(BINARY_INTRODUCER);
+        }
         byte[] buffer = new byte[1024];
         long bytesLeft = length;
         int len;
@@ -118,7 +126,8 @@ public class ParameterWriter {
             len = reader.read(buffer,0, charsToRead);
             if (len <= 0)
                 break;
-            writeBytesEscaped(out, new String(buffer).getBytes(UTF8), len, noBackslashEscapes);
+            byte[] bytes = new String(buffer, 0, len).getBytes(UTF8);
+            writeBytesEscaped(out, bytes, bytes.length, noBackslashEscapes);
             charsLeft -= len;
         }
         out.write(QUOTE);

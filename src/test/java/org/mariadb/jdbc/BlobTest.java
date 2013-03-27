@@ -4,14 +4,23 @@ import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.OutputStream;
+import java.io.Reader;
+import java.io.StringReader;
+import java.io.Writer;
 import java.sql.Blob;
+import java.sql.Clob;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.junit.Assert;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -61,7 +70,167 @@ public class BlobTest extends BaseTest {
         assertEquals(arr.getClass(), rs.getObject(3).getClass());
         assertEquals(String.class, rs.getObject(4).getClass());
     }
+    
 
+    @Test
+    public void testCharacterStreamWithMultibyteCharacterAndLength() throws Exception {
+        connection.createStatement().execute("drop table if exists streamtest2");
+        connection.createStatement().execute("create table streamtest2 (id int primary key not null, strm text)");
+        PreparedStatement stmt = connection.prepareStatement("insert into streamtest2 (id, strm) values (?,?)");
+        stmt.setInt(1,2);
+        String toInsert = "\u00D8abcdefgh\njklmn\"";
+        Reader reader = new StringReader(toInsert);
+        stmt.setCharacterStream(2, reader, 5);
+        stmt.execute();
+        ResultSet rs = connection.createStatement().executeQuery("select * from streamtest2");
+        rs.next();
+        Reader rdr = rs.getCharacterStream("strm");
+        StringBuilder sb = new StringBuilder();
+        int ch;
+        while((ch = rdr.read()) != -1) {
+            sb.append((char)ch);
+        }
+        assertEquals(toInsert.substring(0,5), sb.toString());
+    }
+
+    @Test
+    public void testCharacterStreamWithMultibyteCharacter() throws Exception {
+        connection.createStatement().execute("drop table if exists streamtest2");
+        connection.createStatement().execute("create table streamtest2 (id int primary key not null, strm text)");
+        PreparedStatement stmt = connection.prepareStatement("insert into streamtest2 (id, strm) values (?,?)");
+        stmt.setInt(1,2);
+        String toInsert = "\u00D8abcdefgh\njklmn\"";
+        Reader reader = new StringReader(toInsert);
+        stmt.setCharacterStream(2, reader);
+        stmt.execute();
+        ResultSet rs = connection.createStatement().executeQuery("select * from streamtest2");
+        rs.next();
+        Reader rdr = rs.getCharacterStream("strm");
+        StringBuilder sb = new StringBuilder();
+        int ch;
+        while((ch = rdr.read()) != -1) {
+            sb.append((char)ch);
+        }
+        assertEquals(toInsert, sb.toString());
+    }
+ 
+    @Test
+    public void testClobWithLengthAndMultibyteCharacter() throws SQLException, IOException {
+        connection.createStatement().execute("drop table if exists clobtest");
+        connection.createStatement().execute("create table clobtest (id int not null primary key, strm text)");
+        PreparedStatement stmt = connection.prepareStatement("insert into clobtest (id, strm) values (?,?)");
+        String clob = "\u00D8clob";
+        stmt.setInt(1,1);
+        stmt.setClob(2, new StringReader(clob));
+        stmt.execute();
+        ResultSet rs = connection.createStatement().executeQuery("select * from clobtest");
+        rs.next();
+        Reader readStuff = rs.getClob("strm").getCharacterStream();
+        char[] a = new char[5];
+        readStuff.read(a);
+        assertEquals(new String(a), clob);
+    }
+
+    @Test
+    public void  testClob3() throws Exception {
+        connection.createStatement().execute("drop table if exists clobtest");
+        connection.createStatement().execute("create table clobtest (strm text)");
+        PreparedStatement stmt = connection.prepareStatement("insert into clobtest (strm) values (?)");
+        Clob clob = connection.createClob();
+        Writer writer = clob.setCharacterStream(1);
+        writer.write("\u00D8hello", 0, 6);
+        writer.flush();
+        stmt.setClob(1,clob);
+        stmt.execute();
+        ResultSet rs = connection.createStatement().executeQuery("select * from clobtest");
+        rs.next();
+        Object o = rs.getObject(1);
+        assertTrue(o instanceof String);
+        String s = rs.getString(1);
+        assertEquals("\u00D8hello", s);
+    }
+    
+       @Test
+    public void testBlob() throws SQLException, IOException {
+        connection.createStatement().execute("drop table if exists blobtest");
+        connection.createStatement().execute("create table blobtest (id int not null primary key, strm blob)");
+        PreparedStatement stmt = connection.prepareStatement("insert into blobtest (id, strm) values (?,?)");
+        byte [] theBlob = {1,2,3,4,5,6};
+        InputStream stream = new ByteArrayInputStream(theBlob);
+        stmt.setInt(1,1);
+        stmt.setBlob(2,stream);
+        stmt.execute();
+        ResultSet rs = connection.createStatement().executeQuery("select * from blobtest");
+        rs.next();
+        InputStream readStuff = rs.getBlob("strm").getBinaryStream();
+        int ch;
+        int pos=0;
+        while((ch = readStuff.read())!=-1) {
+            assertEquals(theBlob[pos++],ch);
+        }
+
+        readStuff = rs.getBinaryStream("strm");
+
+        pos=0;
+        while((ch = readStuff.read())!=-1) {
+            assertEquals(theBlob[pos++],ch);
+        }
+    }
+   @Test
+    public void testBlobWithLength() throws SQLException, IOException {
+        connection.createStatement().execute("drop table if exists blobtest");
+        connection.createStatement().execute("create table blobtest (id int not null primary key, strm blob)");
+        PreparedStatement stmt = connection.prepareStatement("insert into blobtest (id, strm) values (?,?)");
+        byte [] theBlob = {1,2,3,4,5,6};
+        InputStream stream = new ByteArrayInputStream(theBlob);
+        stmt.setInt(1,1);
+        stmt.setBlob(2,stream,4);
+        stmt.execute();
+        ResultSet rs = connection.createStatement().executeQuery("select * from blobtest");
+        rs.next();
+        InputStream readStuff = rs.getBlob("strm").getBinaryStream();
+        int ch;
+        int pos=0;
+        while((ch = readStuff.read())!=-1) {
+            assertEquals(theBlob[pos++],ch);
+        }
+    }
+    @Test
+    public void testClobWithLength() throws SQLException, IOException {
+        connection.createStatement().execute("drop table if exists clobtest");
+        connection.createStatement().execute("create table clobtest (id int not null primary key, strm text)");
+        PreparedStatement stmt = connection.prepareStatement("insert into clobtest (id, strm) values (?,?)");
+        String clob = "clob";
+        stmt.setInt(1,1);
+        stmt.setClob(2, new StringReader(clob));
+        stmt.execute();
+        ResultSet rs = connection.createStatement().executeQuery("select * from clobtest");
+        rs.next();
+        Reader readStuff = rs.getClob("strm").getCharacterStream();
+        char[] a = new char[4];
+        readStuff.read(a);
+        Assert.assertEquals(new String(a), clob);
+    }
+
+    @Test
+    public void  testClob2() throws SQLException, IOException {
+        connection.createStatement().execute("drop table if exists clobtest");
+        connection.createStatement().execute("create table clobtest (id int not null primary key, strm text)");
+        PreparedStatement stmt = connection.prepareStatement("insert into clobtest (id, strm) values (?,?)");
+        Clob clob = connection.createClob();
+        OutputStream ostream = clob.setAsciiStream(1);
+        byte[] bytes = "hello".getBytes();
+        ostream.write(bytes);
+        stmt.setInt(1,1);
+        stmt.setClob(2,clob);
+        stmt.execute();
+        ResultSet rs = connection.createStatement().executeQuery("select * from clobtest");
+        rs.next();
+        Object o = rs.getObject(2);
+        assertTrue(o instanceof String);
+        String s = rs.getString(2);
+        assertTrue(s.equals("hello"));
+    }
     @Test
     public void blobSerialization() throws Exception {
        Blob b = new MySQLBlob(new byte[]{1,2,3});

@@ -350,8 +350,14 @@ public  class MySQLBlob implements Blob, Serializable {
      *                               <code>Blob</code>
      */
     public InputStream getBinaryStream(final long pos, final long length) throws SQLException {
-        if (pos < 1 || pos > actualSize || pos + length > actualSize) {
-            throw SQLExceptionMapper.getSQLException("Out of range");
+        if (pos < 1) {
+             throw SQLExceptionMapper.getSQLException("Out of range (position should be > 0)");
+        }
+        if (pos > actualSize) {
+            throw SQLExceptionMapper.getSQLException("Out of range (position > stream size)");
+        }
+        if (pos + length - 1 > actualSize) {
+            throw SQLExceptionMapper.getSQLException("Out of range (position + length - 1 > streamSize)");
         }
 
         return new ByteArrayInputStream(blobContent, (int)pos-1, (int)length);
