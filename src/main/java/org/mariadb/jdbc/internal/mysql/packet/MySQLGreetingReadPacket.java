@@ -60,7 +60,7 @@ import java.util.Set;
 
 
 public class MySQLGreetingReadPacket {
-    private final String serverVersion;
+    private String serverVersion;
     private final byte protocolVersion;
     private final long serverThreadID;
     //private final byte[] seed1;
@@ -85,6 +85,12 @@ public class MySQLGreetingReadPacket {
         seed = Utils.copyWithLength(seed1, seed1.length + seed2.length);
         System.arraycopy(seed2, 0, seed, seed1.length, seed2.length);
         reader.readByte(); // seems the seed is null terminated
+        
+        /* MariaDB 10.x hack for replication (fake version)*/ 
+        if (serverCapabilities.contains(MySQLServerCapabilities.PLUGIN_AUTH) 
+                && serverVersion.startsWith("5.5.5-")) {
+            serverVersion = serverVersion.substring(6);
+        }
     }
 
     @Override

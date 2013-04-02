@@ -71,8 +71,10 @@ public enum MySQLServerCapabilities {
     RESERVED((int) 16384),   /* Old flag for 4.1 protocol  */
     SECURE_CONNECTION((int) 32768),  /* New 4.1 authentication */
     MULTI_STATEMENTS((int) (1L << 16)), /* Enable/disable multi-stmt support */
-    MULTI_RESULTS((int) (1L << 17)); /* Enable/disable multi-results */
+    MULTI_RESULTS((int) (1L << 17)), /* Enable/disable multi-results */
 
+    PLUGIN_AUTH((int)(1L << 19)), /* Client supports plugin authentication */
+    PROGRESS((int)(1L << 29));   /* Client support progress indicator */
 
     private final int bitmapFlag;
 
