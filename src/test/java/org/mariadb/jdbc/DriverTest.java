@@ -1041,11 +1041,62 @@ public class DriverTest extends BaseTest{
     }
 
     @Test
-    public void testBug525946() throws SQLException {
+    public void testAutocommit() throws SQLException {
         Connection conn = connection;
         assertTrue(conn.getAutoCommit());
         conn.setAutoCommit(false);
         assertFalse(conn.getAutoCommit());
+        
+        /* Check that autocommit value "false" , that driver derives from server status flags
+         * remains the same when EOF, ERROR or OK packet were received.
+         */
+        conn.createStatement().executeQuery("select 1");
+        assertFalse(conn.getAutoCommit());
+        conn.createStatement().execute("set @a=1");
+        assertFalse(conn.getAutoCommit());
+        try {
+            conn.createStatement().execute("insert into nosuchtable values(1)");
+        } catch(Exception e) {
+            
+        }
+        assertFalse(conn.getAutoCommit());
+        ResultSet  rs = conn.createStatement().executeQuery("select @@autocommit");
+        rs.next();
+        assertEquals(0,rs.getInt(1)); 
+        
+        
+        conn.setAutoCommit(true);
+        
+        /* Check that autocommit value "true" , that driver derives from server status flags
+         * remains the same when EOF, ERROR or OK packet were received.
+         */
+        assertTrue(conn.getAutoCommit());
+        conn.createStatement().execute("set @a=1");
+        assertTrue(conn.getAutoCommit());
+        try {
+            conn.createStatement().execute("insert into nosuchtable values(1)");
+        } catch(Exception e) {
+            
+        }
+        assertTrue(conn.getAutoCommit());
+        rs = conn.createStatement().executeQuery("select @@autocommit");
+        rs.next();
+        assertEquals(1,rs.getInt(1)); 
+        
+        /* Set autocommit value using Statement.execute */ 
+        conn.createStatement().execute("set @@autocommit=0");
+        assertFalse(conn.getAutoCommit());
+        
+        conn.createStatement().execute("set @@autocommit=1");
+        assertTrue(conn.getAutoCommit());
+        
+        /* Use session variable to set autocommit to 0 */
+        Connection conn2 = DriverManager.getConnection("jdbc:mysql://localhost:3306?user=root&sessionVariables=autocommit=0");
+        assertFalse(conn2.getAutoCommit());
+        conn2.close();
+        
+        
+        
     }
     @Test
     public void testUpdateCount() throws SQLException {
@@ -1461,4 +1512,6 @@ public class DriverTest extends BaseTest{
         conn.close();  
 
     }
+    
+    
 }

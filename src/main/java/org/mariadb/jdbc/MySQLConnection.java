@@ -180,6 +180,9 @@ public final class MySQLConnection
      * @throws SQLException if something goes wrong talking to the server.
      */
     public void setAutoCommit(boolean autoCommit) throws SQLException {
+        if (autoCommit == getAutoCommit())
+            return;
+        
         Statement stmt = createStatement();
         try {
             stmt.executeUpdate("set autocommit="+((autoCommit)?"1":"0"));
@@ -195,13 +198,7 @@ public final class MySQLConnection
      * @throws SQLException
      */
     public boolean getAutoCommit() throws SQLException {
-        Statement stmt = createStatement();
-        ResultSet rs = stmt.executeQuery("select @@autocommit");
-        rs.next();
-        boolean autocommit = rs.getBoolean(1);
-        rs.close();
-        stmt.close();
-        return autocommit;
+        return protocol.getAutocommit();
     }
 
     /**

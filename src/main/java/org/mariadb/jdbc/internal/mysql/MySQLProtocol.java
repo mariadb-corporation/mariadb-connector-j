@@ -410,6 +410,13 @@ public class MySQLProtocol implements Protocol {
                final String message = ep.getMessage();
                throw new QueryException("Could not connect: " + message);
            }
+           OKPacket ok = (OKPacket)resultPacket;
+           serverStatus = ok.getServerStatus();
+           
+           // In JDBC, connection must start in autocommit mode.
+           if (!serverStatus.contains(ServerStatus.AUTOCOMMIT)) {
+               executeQuery(new MySQLQuery("set autocommit=1"));
+           }
 
            // At this point, the driver is connected to the database, if createDB is true,
            // then just try to create the database and to use it
@@ -446,6 +453,9 @@ public class MySQLProtocol implements Protocol {
         return (!inTransaction() && hostFailed && autoReconnect && reconnectCount < maxReconnects);
     }
 
+    public boolean getAutocommit() {
+        return serverStatus.contains(ServerStatus.AUTOCOMMIT);
+    }
     public void reconnectToMaster() throws IOException,QueryException {
         SyncPacketFetcher saveFetcher = this.packetFetcher;
         PacketOutputStream saveWriter = this.writer;
