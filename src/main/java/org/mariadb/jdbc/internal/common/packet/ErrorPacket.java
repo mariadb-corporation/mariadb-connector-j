@@ -52,6 +52,7 @@ package org.mariadb.jdbc.internal.common.packet;
 import org.mariadb.jdbc.internal.common.packet.buffer.Reader;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 
 
 public class ErrorPacket extends ResultPacket {
@@ -61,7 +62,7 @@ public class ErrorPacket extends ResultPacket {
     private final String message;
 
 
-    public ErrorPacket(final RawPacket rawPacket) throws IOException {
+    public ErrorPacket(final RawPacket rawPacket){
         final Reader reader = new Reader(rawPacket);
         reader.readByte();
         this.errorNumber = reader.readShort();
@@ -81,9 +82,12 @@ public class ErrorPacket extends ResultPacket {
                     break;
                 msgBuf[cnt++] = b;
             }
-
-            this.message = new String(msgBuf, "UTF-8");
-            this.sqlState = "HY000".getBytes("UTF-8");
+            try {
+                this.message = new String(msgBuf, "UTF-8");
+            } catch (UnsupportedEncodingException uee) {
+                throw new AssertionError("UTF8 not supported");
+            }
+            this.sqlState = "HY000".getBytes();
         }
     }
 

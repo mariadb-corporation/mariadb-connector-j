@@ -70,7 +70,7 @@ public class OKPacket extends ResultPacket {
 
 
     public OKPacket(final RawPacket rawPacket) throws IOException {
-        final Reader reader = new Reader(rawPacket);
+        Reader reader = new Reader(rawPacket);
         packetSeqNum = 0;
         fieldCount = reader.readByte();
         affectedRows = reader.getLengthEncodedBinary();

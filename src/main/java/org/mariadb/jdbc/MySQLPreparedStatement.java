@@ -72,21 +72,22 @@ import java.util.logging.Logger;
 public class MySQLPreparedStatement extends MySQLStatement implements PreparedStatement {
     private final static Logger log = Logger.getLogger(MySQLPreparedStatement.class.getName());
     private ParameterizedQuery dQuery;
+    private String sql;
     private final ParameterizedBatchHandler parameterizedBatchHandler;
     private boolean useFractionalSeconds;
 
     public MySQLPreparedStatement(final MySQLProtocol protocol,
                                   final MySQLConnection connection,
-                                  final String query,
+                                  final String sql,
                                   final ParameterizedBatchHandler parameterizedBatchHandler) throws SQLException {
         super(connection);
+        this.sql = sql;
         useFractionalSeconds =
                 ((MySQLProtocol)protocol).getInfo().getProperty("useFractionalSeconds") != null;
-
         if(log.isLoggable(Level.FINEST)) {
-            log.finest("Creating prepared statement for " + query);
+            log.finest("Creating prepared statement for " + sql);
         }
-        dQuery = new MySQLParameterizedQuery(Utils.nativeSQL(query, connection.noBackslashEscapes),
+        dQuery = new MySQLParameterizedQuery(Utils.nativeSQL(sql, connection.noBackslashEscapes),
                 connection.noBackslashEscapes);
         this.parameterizedBatchHandler = parameterizedBatchHandler;
     }
@@ -326,7 +327,9 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
         if (rs != null) {
             return rs.getMetaData();
         }
-        return null;
+        MySQLServerSidePreparedStatement ssps = new MySQLServerSidePreparedStatement(connection, this.sql);
+        ssps.close();
+        return ssps.getMetaData();
     }
 
     /**

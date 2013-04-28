@@ -81,6 +81,8 @@ import java.security.cert.X509Certificate;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.mariadb.jdbc.internal.common.packet.buffer.Reader;
+
 
 
 class DummyX509TrustManager implements X509TrustManager {
@@ -403,13 +405,8 @@ public class MySQLProtocol implements Protocol {
                writer = new PacketOutputStream(new CompressOutputStream(socket.getOutputStream()));
                packetFetcher = new SyncPacketFetcher(new DecompressInputStream(socket.getInputStream()));
            }
-
-           final ResultPacket resultPacket = ResultPacketFactory.createResultPacket(rp);
-           if (resultPacket.getResultType() == ResultPacket.ResultType.ERROR) {
-               final ErrorPacket ep = (ErrorPacket) resultPacket;
-               final String message = ep.getMessage();
-               throw new QueryException("Could not connect: " + message);
-           }
+           checkErrorPacket(rp);
+           ResultPacket resultPacket = ResultPacketFactory.createResultPacket(rp);
            OKPacket ok = (OKPacket)resultPacket;
            serverStatus = ok.getServerStatus();
            
@@ -442,7 +439,109 @@ public class MySQLProtocol implements Protocol {
 
     }
 
+    void checkErrorPacket(RawPacket rp) throws QueryException{
+        if (rp.getByteBuffer().get(0) == -1) {
+            ErrorPacket ep = new ErrorPacket(rp);
+            String message = ep.getMessage();
+            throw new QueryException("Could not connect: " + message);
+        }
+    }
+    
+    
+    void readEOFPacket() throws QueryException, IOException {
+        RawPacket rp = packetFetcher.getRawPacket();
+        checkErrorPacket(rp);
+        ResultPacket resultPacket = ResultPacketFactory.createResultPacket(rp);
+        if (resultPacket.getResultType() != ResultPacket.ResultType.EOF) {
+            throw new QueryException("Unexpected packet type " + resultPacket.getResultType()  + 
+                    "insted of EOF");
+        }
+        EOFPacket eof = (EOFPacket)resultPacket;
+        this.hasWarnings = eof.getWarningCount() > 0;
+        this.serverStatus = eof.getStatusFlags();
+    }
+    
+    void readOKPacket()  throws QueryException, IOException  {
+        RawPacket rp = packetFetcher.getRawPacket();
+        checkErrorPacket(rp);
+        ResultPacket resultPacket = ResultPacketFactory.createResultPacket(rp);
+        if (resultPacket.getResultType() != ResultPacket.ResultType.OK) {
+            throw new QueryException("Unexpected packet type " + resultPacket.getResultType()  + 
+                    "insted of OK");
+        }
+        OKPacket ok = (OKPacket)resultPacket;
+        this.hasWarnings = ok.getWarnings() > 0;
+        this.serverStatus = ok.getServerStatus();
+    }
+    
+    public class PrepareResult {
+        public int statementId;
+        public MySQLColumnInformation[] columns;
+        public MySQLColumnInformation[] parameters;
+        public PrepareResult(int statementId, MySQLColumnInformation[] columns,  MySQLColumnInformation parameters[]) {
+            this.statementId = statementId;
+            this.columns = columns;
+            this.parameters = parameters;
+        }
+    }
 
+    public  PrepareResult prepare(String sql) throws QueryException {
+        try {
+            writer.startPacket(0);
+            writer.write(0x16);
+            writer.write(sql.getBytes("UTF8"));
+            writer.finishPacket();
+            
+            RawPacket rp  = packetFetcher.getRawPacket();
+            checkErrorPacket(rp);
+            byte b = rp.getByteBuffer().get(0);
+            if (b == 0) {
+                /* Prepared Statement OK */
+                Reader r = new Reader(rp);
+                r.readByte(); /* skip field count */
+                int statementId = r.readInt();
+                int numColumns = r.readShort();
+                int numParams = r.readShort();
+                r.readByte(); // reserved
+                this.hasWarnings = r.readShort() > 0;
+                MySQLColumnInformation[] columns = new MySQLColumnInformation[numColumns];
+                if (numColumns > 0) {
+                    for (int i = 0; i < numColumns; i++) {
+                        columns[i] = new MySQLColumnInformation(packetFetcher.getRawPacket());
+                    }
+                    readEOFPacket();
+                }
+                
+                MySQLColumnInformation[] params = new MySQLColumnInformation[numParams];
+                if (numParams > 0) {
+                    for (int i = 0; i < numParams; i++) {
+                        params[i] = new MySQLColumnInformation(packetFetcher.getRawPacket());
+                    }
+                    readEOFPacket();
+                }
+                return new PrepareResult(statementId,columns,params);
+            } else {
+                throw new QueryException("Unexpected packet returned by server, first byte " + b);
+            }
+        } catch (IOException e) {
+            throw new QueryException(e.getMessage(), -1,
+                    SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
+                   e);
+        }
+    }
+    
+    public synchronized void closePreparedStatement(int statementId) throws QueryException{
+        try {
+            writer.startPacket(0);
+            writer.write(0x19); /*COM_STMT_CLOSE*/
+            writer.write(statementId); 
+            writer.finishPacket();
+        } catch(IOException e) {
+            throw new QueryException(e.getMessage(), -1,
+                    SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
+                    e);
+        }
+    }
     public void setHostFailed() {
         hostFailed = true;
         failTimestamp = System.currentTimeMillis();

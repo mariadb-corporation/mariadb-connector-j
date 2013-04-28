@@ -11,6 +11,7 @@ import org.mariadb.jdbc.internal.mysql.MySQLProtocol;
 import org.mariadb.jdbc.internal.mysql.packet.MySQLRowPacket;
 
 import java.io.IOException;
+import org.mariadb.jdbc.internal.common.ServerStatus;
 
 public class StreamingSelectResult extends SelectQueryResult {
     PacketFetcher packetFetcher;
@@ -97,7 +98,7 @@ public class StreamingSelectResult extends SelectQueryResult {
             if (ReadUtil.eofIsNext(rawPacket)) {
                 final EOFPacket eofPacket = (EOFPacket) ResultPacketFactory.createResultPacket(rawPacket);
                 protocol.activeResult = null;
-                protocol.moreResults = eofPacket.getStatusFlags().contains(EOFPacket.ServerStatus.SERVER_MORE_RESULTS_EXISTS);
+                protocol.moreResults = eofPacket.getStatusFlags().contains(ServerStatus.MORE_RESULTS_EXISTS);
                 warningCount = eofPacket.getWarningCount();
                 protocol.hasWarnings = (warningCount > 0);
                 isEOF = true;

@@ -54,36 +54,11 @@ import org.mariadb.jdbc.internal.common.packet.buffer.Reader;
 import java.io.IOException;
 import java.util.EnumSet;
 import java.util.Set;
+import org.mariadb.jdbc.internal.common.ServerStatus;
 
 
 public class EOFPacket extends ResultPacket {
-    public enum ServerStatus {
-        SERVER_STATUS_IN_TRANS(1),
-        SERVER_STATUS_AUTOCOMMIT(2),
-        SERVER_MORE_RESULTS_EXISTS(8),
-        SERVER_QUERY_NO_GOOD_INDEX_USED(16),
-        SERVER_QUERY_NO_INDEX_USED(32),
-        SERVER_STATUS_DB_DROPPED(256);
-        private final int bitmapFlag;
-        ServerStatus(int bitmapFlag) {
-            this.bitmapFlag = bitmapFlag;
-        }
-        public static Set<ServerStatus> getServerCapabilitiesSet(final short i) {
-            final Set<ServerStatus> statusSet = EnumSet.noneOf(ServerStatus.class);
-            for (ServerStatus value : ServerStatus.values()) {
-                if ((i & value.getBitmapFlag()) == value.getBitmapFlag()) {
-                    statusSet.add(value);
-                }
-            }
-            return statusSet;
-        }
-
-
-        public int getBitmapFlag() {
-            return bitmapFlag;
-        }
-    }
-
+ 
     private final byte packetSeq;
     private final short warningCount;
     private final Set<ServerStatus> statusFlags;
@@ -94,7 +69,7 @@ public class EOFPacket extends ResultPacket {
         packetSeq = 0;
         reader.readByte();
         warningCount = reader.readShort();
-        statusFlags = ServerStatus.getServerCapabilitiesSet(reader.readShort());
+        statusFlags = ServerStatus.getServerStatusSet(reader.readShort());
     }
 
     public ResultType getResultType() {

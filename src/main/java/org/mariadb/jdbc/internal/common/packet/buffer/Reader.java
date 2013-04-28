@@ -52,8 +52,10 @@ package org.mariadb.jdbc.internal.common.packet.buffer;
 import org.mariadb.jdbc.internal.common.packet.RawPacket;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.Charset;
 
 
 public class Reader {
@@ -71,25 +73,23 @@ public class Reader {
      *
      * @param charset the charset to use, for example ASCII
      * @return the read string
-     * @throws java.io.IOException if it is not possible to create the string from the buffer
      */
-    public String readString(final String charset) throws IOException {
+    public String readString(final String charset) {
         byte ch;
         int cnt = 0;
         final byte [] byteArrBuff = new byte[byteBuffer.remaining()];
         while (byteBuffer.remaining() > 0 && ((ch = byteBuffer.get()) != 0)) {
             byteArrBuff[cnt++] = ch;
         }
-        return new String(byteArrBuff,0,cnt);
+        return new String(byteArrBuff,0,cnt,Charset.forName(charset));
     }
 
     /**
      * read a short (2 bytes) from the buffer;
      *
      * @return an short
-     * @throws java.io.IOException if there are not 2 bytes left in the buffer
      */
-    public short readShort() throws IOException {
+    public short readShort() {
         return byteBuffer.getShort();
     }
 
@@ -97,9 +97,8 @@ public class Reader {
      * read a int (4 bytes) from the buffer;
      *
      * @return a int
-     * @throws java.io.IOException if there are not 4 bytes left in the buffer
      */
-    public int readInt() throws IOException {
+    public int readInt() {
         return byteBuffer.getInt();
     }
 
@@ -107,9 +106,8 @@ public class Reader {
      * read a long (8 bytes) from the buffer;
      *
      * @return a long
-     * @throws java.io.IOException if there are not 8 bytes left in the buffer
      */
-    public long readLong() throws IOException {
+    public long readLong() {
         return byteBuffer.getLong();
     }
 
@@ -118,13 +116,12 @@ public class Reader {
      * reads a byte from the buffer
      *
      * @return the byte
-     * @throws java.io.IOException if bufferPointer exceeds the length of the buffer
      */
-    public byte readByte() throws IOException {
+    public byte readByte()  {
         return byteBuffer.get();
     }
 
-    public byte[] readRawBytes(final int numberOfBytes) throws IOException {
+    public byte[] readRawBytes(final int numberOfBytes) {
         final byte [] tmpArr = new byte[numberOfBytes];
         byteBuffer.get(tmpArr, 0,numberOfBytes);
         return tmpArr;
@@ -134,12 +131,12 @@ public class Reader {
         byteBuffer.get();
     }
 
-    public long skipBytes(final int bytesToSkip) throws IOException {
+    public long skipBytes(final int bytesToSkip) {
         byteBuffer.position(byteBuffer.position()+bytesToSkip);
         return bytesToSkip;
     }
 
-    public Reader skipLengthEncodedBytes() throws IOException {
+    public Reader skipLengthEncodedBytes() {
         long encLength = getLengthEncodedBinary();
         if (encLength == -1) {
                return null;
@@ -148,7 +145,7 @@ public class Reader {
         return this;
     }
     
-    public int read24bitword() throws IOException {
+    public int read24bitword(){
         final byte[] tmpArr = new byte[3];
         for (int i = 0; i < 3; i++) {
             tmpArr[i] = byteBuffer.get();
@@ -157,7 +154,7 @@ public class Reader {
         return (tmpArr[0] & 0xff) + ((tmpArr[1] & 0xff) << 8) + ((tmpArr[2] & 0xff) << 16);
     }
 
-    public long getLengthEncodedBinary() throws IOException {
+    public long getLengthEncodedBinary() {
         if(byteBuffer.remaining() == 0) {
             return 0;
         }
@@ -182,14 +179,18 @@ public class Reader {
         return 0;
     }
 
-    public String getLengthEncodedString() throws IOException {
+    public String getLengthEncodedString() {
         final long encLength = getLengthEncodedBinary();
         if (encLength == -1) {
             return null;
         }
         final byte[] tmpBuf = new byte[(int) encLength];
-        byteBuffer.get(tmpBuf);
-        return new String(tmpBuf, "UTF-8");
+        byteBuffer.get(tmpBuf); 
+        try {
+            return new String(tmpBuf, "UTF-8");
+        } catch (UnsupportedEncodingException uee) {
+            throw new AssertionError("UTF-8 not supported");
+        }
     }
 
     public byte[] getLengthEncodedBytes() throws IOException {
@@ -230,7 +231,7 @@ public class Reader {
         byteBuffer = newBuffer;
     }
 
-    public long getSilentLengthEncodedBinary() throws IOException {
+    public long getSilentLengthEncodedBinary(){
         if (byteBuffer.remaining() == 0)
             return 0;
         int pos1 = byteBuffer.position();
