@@ -84,6 +84,18 @@
 		</execution>
 	      </executions>
 	    </plugin>
+	    <plugin>
+         <groupId>org.codehaus.mojo</groupId>
+         <artifactId>exec-maven-plugin</artifactId>
+         <version>1.2</version>
+         <configuration>
+            <executable>bzr</executable>
+            <arguments>
+            <argument>export</argument>
+            <argument>${pom.name}-${pom.version}.tar.gz</argument>
+            </arguments>
+         </configuration>
+        </plugin>
         </plugins>
     </build>
     <dependencies>
@@ -135,6 +147,7 @@
 		<xmlOutput>true</xmlOutput>
 	      </configuration>
 	    </plugin>
+
         </plugins>
     </reporting>
     <parent>
