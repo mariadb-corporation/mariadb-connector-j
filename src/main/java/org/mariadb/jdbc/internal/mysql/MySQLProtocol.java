@@ -890,7 +890,7 @@ public class MySQLProtocol implements Protocol {
     public QueryResult executeQuery(final Query dQuery, boolean streaming) throws QueryException
     {
         dQuery.validate();
-        log.finest("Executing streamed query: " + dQuery);
+        log.log(Level.FINEST, "Executing streamed query: {0}", dQuery);
         this.moreResults = false;
         final StreamedQueryPacket packet = new StreamedQueryPacket(dQuery);
 
