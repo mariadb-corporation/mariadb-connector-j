@@ -21,6 +21,24 @@
       <url>http://bugs.launchpad.net/mariadb-java-client/</url>
     </issueManagement>
 
+  <profiles><profile>
+  <id>package-source</id>
+  <activation><property><name>package-source</name></property></activation>
+  <build><plugins><plugin>
+
+         <groupId>org.codehaus.mojo</groupId>
+         <artifactId>exec-maven-plugin</artifactId>
+         <version>1.2</version>
+         <configuration>
+            <executable>bzr</executable>
+            <arguments>
+            <argument>export</argument>
+            <argument>${pom.name}-${pom.version}.tar.gz</argument>
+            </arguments>
+         </configuration>
+  </plugin></plugins></build>
+   </profile></profiles>
+   
     <build>
         <plugins>
             <plugin>
@@ -84,20 +102,11 @@
 		</execution>
 	      </executions>
 	    </plugin>
-	    <plugin>
-         <groupId>org.codehaus.mojo</groupId>
-         <artifactId>exec-maven-plugin</artifactId>
-         <version>1.2</version>
-         <configuration>
-            <executable>bzr</executable>
-            <arguments>
-            <argument>export</argument>
-            <argument>${pom.name}-${pom.version}.tar.gz</argument>
-            </arguments>
-         </configuration>
-        </plugin>
+	   
+        
         </plugins>
     </build>
+  
     <dependencies>
         <dependency>
             <groupId>junit</groupId>
