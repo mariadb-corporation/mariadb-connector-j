@@ -33,9 +33,9 @@ public class PacketOutputStream extends OutputStream{
         compress = value;
     }
 
-    public void startPacket(int seqNo) {
+    public void startPacket(int seqNo) throws IOException {
         if (this.seqNo != -1) {
-           throw new AssertionError("Last packet not finished");
+           throw new IOException("Last packet not finished");
         }
         this.seqNo = seqNo;
         position = HEADER_LENGTH;
