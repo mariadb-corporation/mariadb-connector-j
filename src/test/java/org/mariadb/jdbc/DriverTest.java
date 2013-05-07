@@ -1513,5 +1513,31 @@ public class DriverTest extends BaseTest{
 
     }
     
+    @Test
+    public void namedpipe() throws Exception {
+        String namedPipeName = null;
+        try {
+            ResultSet rs = connection.createStatement().executeQuery("select @@named_pipe,@@socket");
+            rs.next();
+            if(rs.getBoolean(1)) {
+                namedPipeName = rs.getString(2);
+            } else {
+                System.out.println("skipping named pipe test");
+                return;
+            }
+        }  catch(SQLException e) {
+            //named pipe not found,
+            System.out.println("skipping named pipe test");
+            return;
+        }
+        String url = "jdbc:mysql://localhost/test?user=root&pipe="  + namedPipeName;
+        Connection conn = DriverManager.getConnection(url);
+        Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT 1");
+        assertTrue(rs.next());
+        rs.close();
+        conn.close();
+    }
+    
     
 }

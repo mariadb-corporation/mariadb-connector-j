@@ -263,7 +263,11 @@ public class MySQLProtocol implements Protocol {
 
         // Create socket with timeout if required
         InetSocketAddress sockAddr = new InetSocketAddress(host, port);
-        socket = socketFactory.createSocket();
+        if (info.getProperty("pipe") != null) {
+            socket = new org.mariadb.jdbc.internal.mysql.NamedPipeSocket(host, info.getProperty("pipe"));
+        } else {
+            socket = socketFactory.createSocket();
+        }
         try {
             String value = info.getProperty("tcpNoDelay", "false");
             if (value.equalsIgnoreCase("true"))
