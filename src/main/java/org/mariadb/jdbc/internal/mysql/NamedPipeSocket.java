@@ -37,7 +37,7 @@ public class NamedPipeSocket extends Socket {
         if(host == null || host.equals("localhost")) {
             filename = "\\\\.\\pipe\\" + name;
         } else {
-            filename = "\\\\" +  host + "\\" + name;
+            filename = "\\\\" +  host + "\\pipe\\" + name;
         }
         file = new RandomAccessFile(filename, "rw");
         
