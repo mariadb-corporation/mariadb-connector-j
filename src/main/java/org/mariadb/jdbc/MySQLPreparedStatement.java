@@ -75,6 +75,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
     private String sql;
     private final ParameterizedBatchHandler parameterizedBatchHandler;
     private boolean useFractionalSeconds;
+    boolean parametersCleared;
 
     public MySQLPreparedStatement(final MySQLProtocol protocol,
                                   final MySQLConnection connection,
@@ -90,6 +91,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
         dQuery = new MySQLParameterizedQuery(Utils.nativeSQL(sql, connection.noBackslashEscapes),
                 connection.noBackslashEscapes);
         this.parameterizedBatchHandler = parameterizedBatchHandler;
+        parametersCleared = true;
     }
 
     /**
@@ -439,6 +441,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
     private void setParameter(final int parameterIndex, final ParameterHolder holder) throws SQLException {
         try {
             dQuery.setParameter(parameterIndex - 1, holder);
+            parametersCleared = false;
         } catch (IllegalParameterException e) {
             throw SQLExceptionMapper.getSQLException("Could not set parameter", e);
         }
@@ -1194,8 +1197,9 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
      * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed
      *                               <code>PreparedStatement</code>
      */
-    public void clearParameters() throws SQLException {
+    public void clearParameters() {
         dQuery.clearParameters();
+        parametersCleared = true;
     }
 
     /**
