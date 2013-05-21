@@ -262,7 +262,6 @@ public class MySQLProtocol implements Protocol {
         }
 
         // Create socket with timeout if required
-        InetSocketAddress sockAddr = new InetSocketAddress(host, port);
         if (info.getProperty("pipe") != null) {
             socket = new org.mariadb.jdbc.internal.mysql.NamedPipeSocket(host, info.getProperty("pipe"));
         } else {
@@ -301,10 +300,13 @@ public class MySQLProtocol implements Protocol {
            socket.bind(localAddress);
        }
 
-       if (connectTimeout != null) {
-           socket.connect(sockAddr, connectTimeout * 1000);
-       } else {
-           socket.connect(sockAddr);
+       if (!socket.isConnected()) {
+            InetSocketAddress sockAddr = new InetSocketAddress(host, port);
+            if (connectTimeout != null) {
+                socket.connect(sockAddr, connectTimeout * 1000);
+            } else {
+                socket.connect(sockAddr);
+            }
        }
 
        // Extract socketTimeout URL parameter
