@@ -3709,13 +3709,22 @@ public class MySQLResultSet implements ResultSet {
             ValueObject[] row = new ValueObject[N];
  
             if (rowData.length != N) {
-                throw new RuntimeException("Number of elements in the row != number of columns :" + rowData[0]);
+                throw new RuntimeException("Number of elements in the row != number of columns :" + rowData.length + " vs " + N);
             }
             for(int i = 0; i < N; i++){
-                if (columnTypes[i] == MySQLType.Type.BIT)
-                    row[i] = new MySQLValueObject(rowData[i].equals("0")?BOOL_FALSE:BOOL_TRUE,columns[i]);
-                else
-                    row[i] = new MySQLValueObject(rowData[i].getBytes(),columns[i]);
+                byte[] bytes;
+                if (rowData[i] == null) {
+                    bytes = null;
+                } else if (columnTypes[i] == MySQLType.Type.BIT) {
+                    bytes = rowData[i].equals("0")?BOOL_FALSE:BOOL_TRUE;
+                } else  { 
+                    try {
+                        bytes = rowData[i].getBytes("UTF-8");
+                    } catch(Exception e) {
+                        throw new RuntimeException ("No UTF-8");
+                    }
+                }
+                row[i] = new MySQLValueObject(bytes,columns[i]);
             }
             rows.add(row);
         }
@@ -3736,8 +3745,24 @@ public class MySQLResultSet implements ResultSet {
         return createResultSet(columnNames, columnTypes, data, protocol,false);
     }
     
-    static ResultSet createGeneratedKeysResultSet(long id, MySQLProtocol protocol) {
-        return createResultSet(new String[]{"insert_id"}, new MySQLType.Type[] {MySQLType.Type.BIGINT},
-                new String[][]{{""+id}}, protocol,true);
+    static ResultSet createGeneratedKeysResultSet(long lastInsertId, int updateCount, 
+            MySQLConnection connection) {
+        if (updateCount <= 0) {
+            return null;
+        }
+        int autoIncrementIncrement = 1; 
+        /* only interesting if many rows were updated */
+        if (updateCount > 1) {
+          autoIncrementIncrement = connection.getAutoIncrementIncrement();
+        }
+
+        String[][] data =  new String[updateCount][];
+        for(int i=0; i < updateCount; i++) {
+             long id = lastInsertId + i*autoIncrementIncrement;
+             data[i] = new String[] {"" +  id};
+        }
+        return createResultSet(new String[]{"insert_id"}, 
+                new MySQLType.Type[] {MySQLType.Type.BIGINT},
+                data, connection.getProtocol(),true);
     }
 }

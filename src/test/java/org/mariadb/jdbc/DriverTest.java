@@ -193,36 +193,40 @@ public class DriverTest extends BaseTest{
         stmt.execute(query);
         stmt.execute("INSERT INTO t2 (test) VALUES ('aa')");
         ResultSet rs = stmt.getGeneratedKeys();
-        if(rs.next()) {
-            assertEquals(1,rs.getInt(1));
-            assertEquals(1,rs.getInt("insert_id"));
-        } else {
-            throw new SQLException("Could not get generated keys");
-        }
-        stmt.execute("INSERT INTO t2 (test) VALUES ('aa')");
-        rs = stmt.getGeneratedKeys();
-        if(rs.next()) {
-            assertEquals(2,rs.getInt(1));
-            assertEquals(2,rs.getInt("insert_id"));
-        } else {
-            throw new SQLException("Could not get generated keys");
-        }
-
-    }
-    @Test
-    public void autoIncPrepStmtTest() throws SQLException {
-        String query = "CREATE TABLE test_a_inc_prep_stmt (id int not null primary key auto_increment, test varchar(10))";
-        Statement stmt = connection.createStatement();
-        stmt.execute("DROP TABLE IF EXISTS test_a_inc_prep_stmt");
-        stmt.execute(query);
-        PreparedStatement ps = connection.prepareStatement("insert into test_a_inc_prep_stmt (test) values (?)");
-        ps.setString(1,"test123");
-        ps.execute();
-        ResultSet rs = ps.getGeneratedKeys();
-        assertTrue(rs.next());
+        assert (rs.next());
+        
         assertEquals(1,rs.getInt(1));
         assertEquals(1,rs.getInt("insert_id"));
-    }    
+        
+        stmt.execute("INSERT INTO t2 (test) VALUES ('aa')");
+        rs = stmt.getGeneratedKeys();
+        assert(rs.next());
+        
+        assertEquals(2,rs.getInt(1));
+        assertEquals(2,rs.getInt("insert_id"));
+        
+        
+        /* multi-row inserts */
+        stmt.execute("INSERT INTO t2 (test) VALUES ('bb'),('cc'),('dd')");
+        rs = stmt.getGeneratedKeys();
+        for(int i=0 ; i < 3; i++) {
+            assert(rs.next());
+            assertEquals(3 +i ,rs.getInt(1));
+        }
+        
+        /* non-standard auto_increment_increment */
+        int auto_increment_increment=2;
+        Connection c = DriverManager.getConnection("jdbc:mysql://localhost/test?user=root&sessionVariables=auto_increment_increment="+auto_increment_increment);
+        stmt = c.createStatement();
+        stmt.execute("INSERT INTO t2 (test) values ('bb'),('cc')");
+        rs = stmt.getGeneratedKeys();
+        assert(rs.next());
+        assertEquals(7 ,rs.getInt(1));
+        assert(rs.next());
+        assertEquals(7+ auto_increment_increment ,rs.getInt(1)); 
+        c.close();
+    }
+
     @Test
     public void transactionTest() throws SQLException {
         Statement stmt = connection.createStatement();
