@@ -84,7 +84,7 @@ public final class MySQLConnection
     private boolean warningsCleared;
     boolean noBackslashEscapes;
     boolean nullCatalogMeansCurrent = true;
-
+    int autoIncrementIncrement;
 
     /**
      * Creates a new connection with a given protocol and query factory.
@@ -122,6 +122,7 @@ public final class MySQLConnection
                     if (sqlMode.contains("NO_BACKSLASH_ESCAPES")) {
                         connection.noBackslashEscapes = true;
                     }
+                    
                 }
                 String nullCatalogMeansCurrentString = protocol.getInfo().getProperty("nullCatalogMeansCurrent");
                 if (nullCatalogMeansCurrentString != null && nullCatalogMeansCurrentString.equals("false")) {
@@ -136,6 +137,18 @@ public final class MySQLConnection
     }
 
 
+    int getAutoIncrementIncrement() {
+        if(autoIncrementIncrement == 0) {
+            try {
+                ResultSet rs = createStatement().executeQuery("select @@auto_increment_increment");
+                rs.next();
+                autoIncrementIncrement = rs.getInt(1);
+            } catch (SQLException e) {
+                autoIncrementIncrement = 1;
+            }
+        }
+        return autoIncrementIncrement;
+    }
     /**
      * creates a new statement.
      *
@@ -290,6 +303,13 @@ public final class MySQLConnection
 
     public static String quoteIdentifier(String s) {
       return "`" + s.replaceAll("`","``") + "`";
+    }
+    
+    public static String unquoteIdentifier(String s) {
+    	if (s != null && s.startsWith("`") && s.endsWith("`") && s.length()>= 2) {
+    		return s.substring(1, s.length()-1).replace("``", "`");
+    	}
+    	return s;
     }
     /**
      * Sets the given catalog name in order to select a subspace of this <code>Connection</code> object's database in

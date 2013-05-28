@@ -193,14 +193,14 @@ public class DriverTest extends BaseTest{
         stmt.execute(query);
         stmt.execute("INSERT INTO t2 (test) VALUES ('aa')");
         ResultSet rs = stmt.getGeneratedKeys();
-        assert (rs.next());
+        assertTrue (rs.next());
         
         assertEquals(1,rs.getInt(1));
         assertEquals(1,rs.getInt("insert_id"));
         
         stmt.execute("INSERT INTO t2 (test) VALUES ('aa')");
         rs = stmt.getGeneratedKeys();
-        assert(rs.next());
+        assertTrue(rs.next());
         
         assertEquals(2,rs.getInt(1));
         assertEquals(2,rs.getInt("insert_id"));
@@ -210,7 +210,7 @@ public class DriverTest extends BaseTest{
         stmt.execute("INSERT INTO t2 (test) VALUES ('bb'),('cc'),('dd')");
         rs = stmt.getGeneratedKeys();
         for(int i=0 ; i < 3; i++) {
-            assert(rs.next());
+            assertTrue(rs.next());
             assertEquals(3 +i ,rs.getInt(1));
         }
         
@@ -220,9 +220,9 @@ public class DriverTest extends BaseTest{
         stmt = c.createStatement();
         stmt.execute("INSERT INTO t2 (test) values ('bb'),('cc')");
         rs = stmt.getGeneratedKeys();
-        assert(rs.next());
+        assertTrue(rs.next());
         assertEquals(7 ,rs.getInt(1));
-        assert(rs.next());
+        assertTrue(rs.next());
         assertEquals(7+ auto_increment_increment ,rs.getInt(1)); 
         c.close();
     }
