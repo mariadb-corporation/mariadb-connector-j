@@ -18,8 +18,11 @@ public class UtilTest {
                 "SELECT 'David_' LIKE 'David|_' {escape '|'}",
                 "select {fn dayname ({fn abs({fn now()})})}",
                 "{d '1997-05-24'}",
+                "{d'1997-05-24'}",
                 "{t '10:30:29'}",
+                "{t'10:30:29'}",
                 "{ts '1997-05-24 10:30:29.123'}",
+                "{ts'1997-05-24 10:30:29.123'}",
                 "'{string data with { or } will not be altered'",
                 "--  Also note that you can safely include { and } in comments"
         } ;
@@ -30,7 +33,10 @@ public class UtilTest {
                 "SELECT 'David_' LIKE 'David|_' escape '|'",
                 "select dayname (abs(now()))",
                 "'1997-05-24'",
+                "'1997-05-24'",
                 "'10:30:29'",
+                "'10:30:29'",
+                "'1997-05-24 10:30:29.123'" ,
                 "'1997-05-24 10:30:29.123'" ,
                 "'{string data with { or } will not be altered'",
                 "--  Also note that you can safely include { and } in comments"

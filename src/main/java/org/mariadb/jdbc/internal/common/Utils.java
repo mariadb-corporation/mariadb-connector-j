@@ -345,6 +345,18 @@ public class Utils {
             //timestamp literal
             return escaped.substring(4, endIndex);
         }
+        else if(escaped.startsWith("{d'"))  {
+            // date literal, no space 
+            return escaped.substring(2, endIndex);
+        }
+        else if(escaped.startsWith("{t'")) {
+            // time literal
+            return escaped.substring(2, endIndex);
+        }
+        else if (escaped.startsWith("{ts'")) {
+            //timestamp literal
+            return escaped.substring(3, endIndex);
+        }
         else if (escaped.startsWith("{call ") || escaped.startsWith("{CALL ")) {
             // We support uppercase "{CALL" only because Connector/J supports it. It is not in the JDBC spec.
 
