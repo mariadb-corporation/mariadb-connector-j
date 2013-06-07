@@ -510,6 +510,13 @@ public class MySQLProtocol implements Protocol {
                 int numParams = r.readShort();
                 r.readByte(); // reserved
                 this.hasWarnings = r.readShort() > 0;
+                MySQLColumnInformation[] params = new MySQLColumnInformation[numParams];
+                if (numParams > 0) {
+                    for (int i = 0; i < numParams; i++) {
+                        params[i] = new MySQLColumnInformation(packetFetcher.getRawPacket());
+                    }
+                    readEOFPacket();
+                }
                 MySQLColumnInformation[] columns = new MySQLColumnInformation[numColumns];
                 if (numColumns > 0) {
                     for (int i = 0; i < numColumns; i++) {
@@ -518,13 +525,6 @@ public class MySQLProtocol implements Protocol {
                     readEOFPacket();
                 }
                 
-                MySQLColumnInformation[] params = new MySQLColumnInformation[numParams];
-                if (numParams > 0) {
-                    for (int i = 0; i < numParams; i++) {
-                        params[i] = new MySQLColumnInformation(packetFetcher.getRawPacket());
-                    }
-                    readEOFPacket();
-                }
                 return new PrepareResult(statementId,columns,params);
             } else {
                 throw new QueryException("Unexpected packet returned by server, first byte " + b);

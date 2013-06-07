@@ -319,6 +319,27 @@ public class MySQLDriverTest extends BaseTest {
         }
     }
     
+     @Test
+    public void preparedStatementMetadata2() throws Exception{
+        PreparedStatement ps = connection.prepareStatement("select * from information_schema.tables where table_type=?");
+        ResultSetMetaData m1 = ps.getMetaData();
+        assertTrue(m1 != null);
+        ps.setString(1, "");
+        ResultSet rs1 = ps.executeQuery();
+        ResultSetMetaData m2 = rs1.getMetaData();
+        
+        assertEquals(m1.getColumnCount(), m2.getColumnCount());
+        for(int i=1; i <= m1.getColumnCount(); i++) {
+            assertEquals(m1.getCatalogName(i), m2.getCatalogName(i));
+            assertEquals(m1.getColumnClassName(i),m2.getColumnClassName(i));
+            assertEquals(m1.getColumnDisplaySize(i),m2.getColumnDisplaySize(i));
+            assertEquals(m1.getColumnLabel(i),m2.getColumnLabel(i));
+            assertEquals(m1.getColumnName(i),m2.getColumnName(i));
+            assertEquals(m1.getColumnType(i), m2.getColumnType(i));
+            assertEquals(m1.getColumnTypeName(i),m2.getColumnTypeName(i));
+        }
+    }
+    
     @Test
     public void testWarnings() throws SQLException{
         Statement st= connection.createStatement();
