@@ -1070,7 +1070,11 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
      *                               if a database access error occurs or this method is called on a closed
      *                               <code>PreparedStatement</code>
      */
-    public void setDate(final int parameterIndex, final Date date) throws SQLException {
+    public void setDate(int parameterIndex, java.sql.Date date) throws SQLException {
+        setDate(parameterIndex, (java.util.Date)date);
+    } 
+    
+    public void setDate(int parameterIndex,  java.util.Date date) throws SQLException{
         if(date == null) {
             setNull(parameterIndex, Types.DATE);
             return;
@@ -1334,8 +1338,8 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
             } else {
                 throw SQLExceptionMapper.getSQLException("Can only convert a byte[] to BINARY, VARBINARY or LONGVARBINARY");
             }
-        } else if (x instanceof Date) {
-            setDate(parameterIndex, (Date) x);      // works even if targetSqlType is non date-column
+        } else if (x instanceof java.util.Date) {
+            setDate(parameterIndex, (java.util.Date) x);      // works even if targetSqlType is non date-column
         } else if (x instanceof Time) {
             setTime(parameterIndex, (Time) x);      // it is just a string anyway
         } else if (x instanceof Timestamp) {

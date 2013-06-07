@@ -52,7 +52,7 @@ package org.mariadb.jdbc.internal.common.query.parameters;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Calendar;
-import java.sql.Date;
+import java.util.Date;
 
 
 public class DateParameter implements ParameterHolder {

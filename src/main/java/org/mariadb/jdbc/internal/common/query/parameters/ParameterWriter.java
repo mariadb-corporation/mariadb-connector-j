@@ -149,7 +149,7 @@ public class ParameterWriter {
         out.write(bd.toPlainString().getBytes());
     }
 
-    public static void writeDate(OutputStream out, java.sql.Date date, Calendar calendar) throws IOException {
+    public static void writeDate(OutputStream out, java.util.Date date, Calendar calendar) throws IOException {
        out.write(QUOTE);
        String dateString;
        if (calendar != null) {

@@ -341,6 +341,11 @@ public class MySQLDriverTest extends BaseTest {
     }
     
     @Test
+    public void conj40()  throws Exception{
+      PreparedStatement ps = connection.prepareStatement("select ?");
+      ps.setObject(1, new java.util.Date(), Types.TIMESTAMP);
+    }
+    @Test
     public void testWarnings() throws SQLException{
         Statement st= connection.createStatement();
 
