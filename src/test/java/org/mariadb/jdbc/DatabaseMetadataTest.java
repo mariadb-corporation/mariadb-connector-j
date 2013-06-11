@@ -17,7 +17,7 @@ public class DatabaseMetadataTest extends BaseTest{
     public void primaryKeysTest() throws SQLException {
         Statement stmt = connection.createStatement();
         stmt.execute("drop table if exists pk_test");
-        stmt.execute("create table pk_test (id1 int not null, id2 int not null, val varchar(20), primary key(id1, id2)) engine=innodb");
+        stmt.execute("create table pk_test (val varchar(20), id1 int not null, id2 int not null,primary key(id1, id2)) engine=innodb");
         DatabaseMetaData dbmd = connection.getMetaData();
         ResultSet rs = dbmd.getPrimaryKeys("test",null,"pk_test");
         int i=0;
@@ -31,7 +31,6 @@ public class DatabaseMetadataTest extends BaseTest{
         }
         assertEquals(2,i);
     }
-
     @Test
     public void datetimeTest() throws SQLException {
         Statement stmt = connection.createStatement();

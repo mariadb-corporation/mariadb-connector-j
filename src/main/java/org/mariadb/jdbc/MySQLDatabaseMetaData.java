@@ -49,15 +49,11 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Types;
-
 import org.mariadb.jdbc.internal.common.Utils;
 import org.mariadb.jdbc.internal.mysql.MySQLType;
 import org.mariadb.jdbc.internal.mysql.MySQLValueObject;
+
+import java.sql.*;
 
 
 public class MySQLDatabaseMetaData implements DatabaseMetaData {
@@ -167,28 +163,35 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
         
     }
     
-     // Helper to generate  information schema queries with "like" condition (typically  on table name)
+     // Helper to generate  information schema queries with "like" or "equals" condition (typically  on table name)
     String patternCond(String columnName, String tableName) {
         if (tableName == null) {
             return "(1 = 1)";
         }
-        return "(" + columnName + " LIKE '" + Utils.escapeString(tableName, true) + "')";
+        String predicate = (tableName.indexOf('%') == -1 && tableName.indexOf('_') == -1)? "="  : "LIKE";
+        return "(" + columnName + " " + predicate + " '" + Utils.escapeString(tableName, true) + "')";
     }
-    
+
     public ResultSet getPrimaryKeys(String catalog, String schema, String table) throws SQLException {
-        
-        String sql = 
-        "SELECT TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, TABLE_NAME, COLUMN_NAME, ORDINAL_POSITION KEY_SEQ, NULL PK_NAME " 
-        + " FROM INFORMATION_SCHEMA.COLUMNS"
-        + " WHERE COLUMN_KEY='pri'"
-        + " AND " 
-        + catalogCond("TABLE_SCHEMA",catalog) 
-        + " AND " 
-        + patternCond("TABLE_NAME", table)
-        + " ORDER BY column_name";
+        String sql =
+                "SELECT A.TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, A.TABLE_NAME, A.COLUMN_NAME, B.SEQ_IN_INDEX KEY_SEQ, NULL PK_NAME "
+                 + " FROM INFORMATION_SCHEMA.COLUMNS A, INFORMATION_SCHEMA.STATISTICS B"
+                 + " WHERE A.COLUMN_KEY='pri'"
+                 + " AND "
+                 + catalogCond("A.TABLE_SCHEMA",catalog)
+                 + " AND "
+                 + catalogCond("B.TABLE_SCHEMA",catalog)
+                 + " AND "
+                 + patternCond("A.TABLE_NAME", table)
+                 + " AND "
+                 + patternCond("B.TABLE_NAME", table)
+                 + " AND A.TABLE_SCHEMA = B.TABLE_SCHEMA AND A.TABLE_NAME = B.TABLE_NAME AND A.COLUMN_NAME = B.COLUMN_NAME "
+                 + " ORDER BY A.COLUMN_NAME";
 
         return executeQuery(sql);
+
     }
+
     
     
    /**
