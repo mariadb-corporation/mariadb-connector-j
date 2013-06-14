@@ -54,7 +54,11 @@ import org.mariadb.jdbc.internal.mysql.MySQLType;
 import org.mariadb.jdbc.internal.mysql.MySQLValueObject;
 
 import java.sql.*;
-
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
 
 public class MySQLDatabaseMetaData implements DatabaseMetaData {
     private String url;
@@ -271,7 +275,7 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
 
     public ResultSet getExportedKeys(String catalog, String schema, String table) throws SQLException {
         if (table == null) {
-            throw new SQLException("'table' parameter in getImportedKeys cannot be null"); 
+            throw new SQLException("'table' parameter in getExportedKeys cannot be null");
         }
         String sql =
         "SELECT KCU.REFERENCED_TABLE_SCHEMA PKTABLE_CAT, NULL PKTABLE_SCHEM,  KCU.REFERENCED_TABLE_NAME PKTABLE_NAME," 
@@ -306,8 +310,43 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
  
         return executeQuery(sql);
     }
-    
-    public ResultSet getImportedKeys( String catalog,  String schema,  String table) throws SQLException {
+
+
+
+
+
+   public ResultSet getImportedKeys(String catalog, String schema, String table) throws SQLException {
+
+       // We avoid using information schema queries by default, because this appears to be an expensive
+       // query (CONJ-41).
+       if (table == null) {
+         throw new SQLException("'table' parameter in getImportedKeys cannot be null");
+       }
+
+       if (catalog == null && connection.nullCatalogMeansCurrent) {
+            /* Treat null catalog as current */
+            catalog = "";
+       }
+       if (catalog == null) {
+           return getImportedKeysUsingInformationSchema(catalog, schema, table);
+       }
+
+       if (catalog.equals("")) {
+           catalog = connection.getCatalog();
+           if (catalog == null || catalog.equals("")) {
+               return getImportedKeysUsingInformationSchema(catalog, schema, table);
+           }
+       }
+
+       try {
+            return getImportedKeysUsingShowCreateTable(catalog, schema, table);
+       } catch (Exception e) {
+           // Likely, parsing failed, try out I_S query.
+           return getImportedKeysUsingInformationSchema(catalog, schema, table);
+       }
+   }
+
+    public ResultSet getImportedKeysUsingInformationSchema( String catalog,  String schema,  String table) throws SQLException {
         if (table == null) {
             throw new SQLException("'table' parameter in getImportedKeys cannot be null"); 
         }
@@ -340,9 +379,24 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
         + catalogCond("KCU.TABLE_SCHEMA", catalog)
         + " AND "
         + " KCU.TABLE_NAME = " + escapeQuote(table) 
-        + " ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ";
+        + " ORDER BY PKTABLE_CAT, PKTABLE_SCHEM, PKTABLE_NAME, KEY_SEQ";
         
         return executeQuery(sql);
+    }
+
+    public  ResultSet  getImportedKeysUsingShowCreateTable( String catalog,  String schema,  String table) throws Exception {
+
+      if (catalog == null || catalog.equals(""))
+          throw new IllegalArgumentException("catalog");
+
+      if (table == null || table.equals(""))
+          throw new IllegalArgumentException("table");
+
+      ResultSet rs = connection.createStatement().executeQuery("SHOW CREATE TABLE "  +
+      MySQLConnection.quoteIdentifier(catalog) + "." +  MySQLConnection.quoteIdentifier(table));
+      rs.next();
+      String tableDef = rs.getString(2);
+      return ShowCreateTableParser.getImportedKeys(tableDef, table, catalog, connection);
     }
 
     public ResultSet getBestRowIdentifier(String catalog, String schema, String table, int scope, final boolean nullable)
@@ -1543,3 +1597,214 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
 
 
 }
+
+/*  Create table parsing stuff */
+
+/*
+ Identifier, i.e table, or column name. Put into ` quotes in SHOW CREATE TABLE. Can be "multi-part", i.e `schema`.`table`
+ */
+class Identifier {
+    public String schema;
+    public String name;
+    public String toString() {
+        if (schema != null)
+            return schema + "." + name;
+        return name;
+    }
+}
+
+/*
+ Parse foreign key constraints from "SHOW CREATE TABLE". The single usage of this class is to speedup getImportedKeys
+ (I_S appear to be too slow, see CONJ-41)
+*/
+class ShowCreateTableParser {
+     // Extract identifier quoted string from input String.
+     // Return new position, or -1 on error
+     static int skipWhite(char [] s, int startPos) {
+         for(int i = startPos; i < s.length; i++) {
+             if(!Character.isWhitespace(s[i])) {
+                 return i;
+             }
+         }
+         return s.length;
+     }
+
+     static int parseIdentifier(char[] s, int startPos, Identifier identifier) throws ParseException {
+        int pos = skipWhite(s , startPos);
+        if (s[pos] != '`')
+            throw new ParseException(new String(s),pos);
+        pos++;
+        StringBuffer sb = new StringBuffer();
+        int nQuotes=0;
+        for(; pos < s.length; pos++) {
+            char ch = s[pos];
+            if (ch  == '`') {
+                nQuotes++;
+            } else {
+                for (int j = 0; j < nQuotes/2; j++)
+                    sb.append('`');
+                if (nQuotes %2 == 1) {
+                    if (ch == '.') {
+                        if (identifier.schema != null)
+                            throw new ParseException(new String(s), pos);
+                        identifier.schema = sb.toString();
+                        return parseIdentifier(s, pos + 1,identifier);
+                    }
+                    identifier.name = sb.toString();
+                    return pos;
+                }
+                nQuotes = 0;
+                sb.append(ch);
+            }
+        }
+        throw new ParseException(new String(s),startPos);
+     }
+    static int parseIdentifierList(char[] s, int startPos,List<Identifier> list) throws ParseException {
+        int pos = skipWhite(s , startPos);
+        if (s[pos] != '(') {
+            throw new ParseException(new String(s),pos);
+        }
+        pos++;
+        for(;;) {
+            pos = skipWhite(s, pos);
+            char ch = s[pos];
+            switch (ch) {
+                case ')':
+                    return pos +1 ;
+                case '`':
+                    Identifier id = new Identifier();
+                    pos = parseIdentifier(s, pos, id);
+                    list.add(id);
+                    break;
+                case ',':
+                    pos++;
+                    break;
+                default:
+                    throw new ParseException(new String(s,startPos, s.length - startPos),startPos);
+            }
+        }
+    }
+     static int skipKeyword(char[] s, int startPos, String keyword)  throws ParseException{
+         int pos = skipWhite(s , startPos);
+         for (int i = 0 ; i < keyword.length(); i++,pos++){
+             if (s[pos] != keyword.charAt(i)) {
+                throw new ParseException(new String(s),pos);
+             }
+         }
+         return pos;
+     }
+
+     static int getImportedKeyAction(String s) {
+         if(s == null)
+             return DatabaseMetaData.importedKeyRestrict;
+         if (s.equals("NO ACTION"))
+             return DatabaseMetaData.importedKeyNoAction;
+         if (s.equals("CASCADE"))
+             return DatabaseMetaData.importedKeyCascade;
+         if (s.equals("SET NULL"))
+             return DatabaseMetaData.importedKeySetNull;
+         if (s.equals("SET DEFAULT"))
+             return DatabaseMetaData.importedKeySetDefault;
+         if (s.equals("RESTRICT"))
+             return DatabaseMetaData.importedKeyRestrict;
+         throw new AssertionError("should not happen");
+     }
+
+
+     public static ResultSet getImportedKeys(String tableDef, String tableName, String catalog, MySQLConnection c) throws ParseException {
+         String[] columnNames  = {
+                 "PKTABLE_CAT","PKTABLE_SCHEM", "PKTABLE_NAME",
+                 "PKCOLUMN_NAME","FKTABLE_CAT","FKTABLE_SCHEM",
+                 "FKTABLE_NAME", "FKCOLUMN_NAME", "KEY_SEQ",
+                 "UPDATE_RULE","DELETE_RULE","FK_NAME",
+                 "PK_NAME","DEFERRABILITY"
+                 };
+         MySQLType.Type [] columnTypes =  {
+                 MySQLType.Type.VARCHAR, MySQLType.Type.NULL, MySQLType.Type.VARCHAR,
+                 MySQLType.Type.VARCHAR, MySQLType.Type.VARCHAR, MySQLType.Type.NULL,
+                 MySQLType.Type.VARCHAR, MySQLType.Type.VARCHAR, MySQLType.Type.SMALLINT,
+                 MySQLType.Type.SMALLINT, MySQLType.Type.SMALLINT, MySQLType.Type.VARCHAR,
+                 MySQLType.Type.NULL,MySQLType.Type.SMALLINT};
+
+         String[] parts = tableDef.split("\n");
+
+         List<String[]> data = new ArrayList<String[]>();
+
+         for (String p:parts) {
+              //System.out.println("--" + p);
+              p = p.trim();
+              if (!p.startsWith("CONSTRAINT") && !p.contains("FOREIGN KEY"))
+                  continue;
+              char [] s = p.toCharArray();
+
+              Identifier constraintName = new Identifier();
+              Identifier pkTable = new Identifier();
+              List<Identifier> foreignKeyCols = new ArrayList<Identifier>();
+              List<Identifier> primaryKeyCols = new ArrayList<Identifier>();
+
+              int pos = skipKeyword(s, 0, "CONSTRAINT");
+              pos = parseIdentifier(s, pos, constraintName);
+              pos = skipKeyword(s, pos, "FOREIGN KEY");
+              pos = parseIdentifierList(s, pos, foreignKeyCols);
+              pos = skipKeyword(s, pos, "REFERENCES");
+              pos = parseIdentifier(s, pos, pkTable);
+              parseIdentifierList(s, pos, primaryKeyCols);
+              if (primaryKeyCols.size() != foreignKeyCols.size()) {
+                  throw new ParseException(tableDef,0);
+              }
+              int onUpdateReferenceAction = DatabaseMetaData.importedKeyRestrict;
+              int onDeleteReferenceAction = DatabaseMetaData.importedKeyRestrict;
+
+
+             for (String referenceAction : new String[] {"RESTRICT", "CASCADE",  "SET NULL", "NO ACTION"}) {
+                  if (p.contains("ON UPDATE " + referenceAction))
+                      onUpdateReferenceAction = getImportedKeyAction(referenceAction);
+                  if (p.contains("ON DELETE " + referenceAction))
+                      onDeleteReferenceAction =  getImportedKeyAction(referenceAction);
+             }
+
+             for(int i = 0; i < primaryKeyCols.size(); i++) {
+
+                 String[] row = new String[columnNames.length];
+                 row[0] =  pkTable.schema;
+                 if (row[0] == null) {
+                     row[0] = catalog;
+                 }
+                 row[1] = null;
+                 row[2] = pkTable.name;
+                 row[3] = primaryKeyCols.get(i).name;
+                 row[4] = catalog;
+                 row[5] = null;
+                 row[6] = tableName;
+                 row[7] = foreignKeyCols.get(i).name;
+                 row[8] = Integer.toString(i+1);
+                 row[9] = Integer.toString(onUpdateReferenceAction);
+                 row[10] = Integer.toString(onDeleteReferenceAction);
+                 row[11] = constraintName.name;
+                 row[12] = null;
+                 row[13] = Integer.toString(DatabaseMetaData.importedKeyInitiallyImmediate);
+                 data.add(row);
+             }
+         }
+         String[][] arr = data.toArray(new String[0][]);
+
+         /* Sort array by PKTABLE_CAT, PKTABLE_NAME, and KEY_SEQ.*/
+         Arrays.sort(arr, new Comparator<String[]>() {
+             @Override
+             public int compare(String[] row1, String[] row2) {
+                 int result = row1[0].compareTo(row2[0]);   //PKTABLE_CAT
+                 if (result == 0){
+                    result = row1[2].compareTo(row2[2]);   //PKTABLE_NAME
+                    if (result == 0) {
+                        result = row1[8].length() - row2[8].length();  // KEY_SEQ
+                        if (result == 0)
+                            result =  row1[8].compareTo(row2[8]);
+                    }
+                 }
+                 return result;
+             }
+         });
+         ResultSet ret =  MySQLResultSet.createResultSet(columnNames,columnTypes,arr, c.getProtocol());
+         return ret;
+      }
+ }

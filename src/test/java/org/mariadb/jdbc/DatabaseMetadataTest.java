@@ -77,7 +77,96 @@ public class DatabaseMetadataTest extends BaseTest{
       assertEquals(rs.getInt("DATA_TYPE"), java.sql.Types.INTEGER);
       assertEquals(rs.getString("TYPE_NAME"), "int");
     }
-    
+
+
+     /** Same as getImportedKeys, with one foreign key in a table in another catalog */
+     @Test
+     public void getImportedKeys() throws Exception{
+           Statement st  = connection.createStatement();
+
+           st.execute("DROP TABLE IF EXISTS product_order");
+           st.execute("DROP TABLE IF EXISTS t1.product ");
+           st.execute("DROP TABLE IF EXISTS `cus``tomer`");
+           st.execute("DROP DATABASE IF EXISTS test1");
+
+           st.execute("CREATE DATABASE IF NOT EXISTS t1");
+
+           st.execute("CREATE TABLE t1.product (\n" +
+                   "    category INT NOT NULL, id INT NOT NULL,\n" +
+                   "    price DECIMAL,\n" +
+                   "    PRIMARY KEY(category, id)\n" +
+                   ")   ENGINE=INNODB");
+
+           st.execute("CREATE TABLE `cus``tomer` (\n" +
+                   "    id INT NOT NULL,\n" +
+                   "    PRIMARY KEY (id)\n" +
+                   ")   ENGINE=INNODB");
+
+           st.execute("CREATE TABLE product_order (\n" +
+                   "    no INT NOT NULL AUTO_INCREMENT,\n" +
+                   "    product_category INT NOT NULL,\n" +
+                   "    product_id INT NOT NULL,\n" +
+                   "    customer_id INT NOT NULL,\n" +
+                   "\n" +
+                   "    PRIMARY KEY(no),\n" +
+                   "    INDEX (product_category, product_id),\n" +
+                   "    INDEX (customer_id),\n" +
+                   "\n" +
+                   "    FOREIGN KEY (product_category, product_id)\n" +
+                   "      REFERENCES t1.product(category, id)\n" +
+                   "      ON UPDATE CASCADE ON DELETE RESTRICT,\n" +
+                   "\n" +
+                   "    FOREIGN KEY (customer_id)\n" +
+                   "      REFERENCES `cus``tomer`(id)\n" +
+                   ")   ENGINE=INNODB;"
+                   )   ;
+
+
+           /*
+            Test that I_S implementation is equivalent to parsing "show create table" .
+             Get result sets using either method and compare (ignore minor differences INT vs SMALLINT
+           */
+           ResultSet rs1 = ((MySQLDatabaseMetaData)connection.getMetaData()).getImportedKeysUsingShowCreateTable("test", null, "product_order");
+           ResultSet rs2 = ((MySQLDatabaseMetaData)connection.getMetaData()).getImportedKeysUsingInformationSchema("test", null, "product_order");
+           assertEquals(rs1.getMetaData().getColumnCount(), rs2.getMetaData().getColumnCount());
+
+
+           while(rs1.next()) {
+               assertTrue(rs2.next());
+               for (int i = 1; i <= rs1.getMetaData().getColumnCount(); i++) {
+                   Object s1 = rs1.getObject(i);
+                   Object s2 = rs2.getObject(i);
+                   if (s1 instanceof  Number && s2 instanceof Number) {
+                       assertEquals(((Number)s1).intValue(), ((Number)s2).intValue());
+                   } else {
+                       if (s1 != null && s2 != null && !s1.equals(s2)) {
+                          System.out.println("s1= " + s1 + "," + "s2 = " + s2) ;
+                       }
+                       assertEquals(s1,s2);
+                   }
+               }
+           }
+
+           /* Also compare metadata */
+           ResultSetMetaData md1 =  rs1.getMetaData();
+           ResultSetMetaData md2 =  rs2.getMetaData();
+           for (int i = 1; i <= md1.getColumnCount(); i++) {
+               assertEquals(md1.getColumnLabel(i),md2.getColumnLabel(i));
+           }
+       }
+
+    @Test
+    public void ttt() throws Exception {
+        ResultSet rs = connection.getMetaData().getImportedKeys("test",null,"product_order");
+        int k=0;
+        while(rs.next()) {
+            k++;
+            System.out.println( "" + k +   " ===================");
+            for (int i = 1 ; i <= rs.getMetaData().getColumnCount();i++) {
+                System.out.println(rs.getMetaData().getColumnLabel(i) + " = " + rs.getObject(i));
+            }
+        }
+    }
     @Test
     public void exportedKeysTest() throws SQLException {
         Statement stmt = connection.createStatement();
