@@ -86,7 +86,6 @@ public class Utils {
 
           for (int i = 0; i < query.length; i++)  {
               if (state == LexState.Escape) {
-                  i++;
                   sb.append(query[i]);
                   state = LexState.String;
                   continue;

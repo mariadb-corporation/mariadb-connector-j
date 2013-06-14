@@ -607,4 +607,14 @@ public class MySQLDriverTest extends BaseTest {
             assertTrue(sqle.getMessage().contains("closed connection"));
         }
     }
+
+    @Test
+     public void conj-44() throws Exception {
+       ResultSet rs = connection.prepareStatement("select '\\''").executeQuery();
+       rs.next();
+       assertEquals("'",rs.getString(1));
+       rs = connection.prepareStatement("select '\\'a'").executeQuery();
+       rs.next();
+       assertEquals("'a",rs.getString(1));
+    }
 }
