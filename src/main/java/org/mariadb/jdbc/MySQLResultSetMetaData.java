@@ -160,7 +160,7 @@ public class MySQLResultSetMetaData implements ResultSetMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public int getColumnDisplaySize(final int column) throws SQLException {
-        return (int) getColumnInformation(column).getLength();
+       return getColumnInformation(column).getDisplaySize();
     }
 
     /**
@@ -418,7 +418,7 @@ public class MySQLResultSetMetaData implements ResultSetMetaData {
           case DOUBLE:
               return Double.class.getName();
           case NULL:
-              return null;
+              return String.class.getName();
           case TIMESTAMP:
               return java.sql.Timestamp.class.getName();
           case BIGINT:

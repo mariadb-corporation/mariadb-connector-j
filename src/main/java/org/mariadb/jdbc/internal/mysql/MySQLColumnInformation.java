@@ -49,18 +49,18 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.mysql;
 
+import org.mariadb.jdbc.internal.common.ColumnInformation;
+import org.mariadb.jdbc.internal.common.DataType;
+import org.mariadb.jdbc.internal.common.packet.RawPacket;
+import org.mariadb.jdbc.internal.common.packet.buffer.Reader;
+import org.mariadb.jdbc.internal.common.queryresults.ColumnFlags;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.sql.Types;
 import java.util.EnumSet;
 import java.util.Set;
-
-import org.mariadb.jdbc.internal.common.ColumnInformation;
-import org.mariadb.jdbc.internal.common.DataType;
-import org.mariadb.jdbc.internal.common.packet.RawPacket;
-import org.mariadb.jdbc.internal.common.packet.buffer.Reader;
-import org.mariadb.jdbc.internal.common.queryresults.ColumnFlags;
 
 public class MySQLColumnInformation implements ColumnInformation {
     RawPacket buffer;
@@ -82,7 +82,25 @@ public class MySQLColumnInformation implements ColumnInformation {
             }
             baos.write(0xc);
             baos.write(new byte[]{33,0});  /* charset  = UTF8 */
-            baos.write(new byte[]{1, 0 ,0, 0});  /*  length */
+            int  len = 1;
+
+            /* Sensible predefined length - since we're dealing with I_S here, most char fields are 64 char long */
+            switch(type.getSqlType()) {
+                case Types.VARCHAR:
+                case Types.CHAR:
+                    len = 64*3; /* 3 bytes per UTF8 char */
+                    break;
+                case Types.SMALLINT:
+                    len = 5;
+                    break;
+                case Types.NULL:
+                    len = 0;
+                    break;
+                default:
+                    len = 1;
+                    break;
+            }
+            baos.write(new byte[]{(byte)len, 0 ,0, 0});  /*  length */
             baos.write(MySQLType.toServer(type.getSqlType()));
             baos.write(new byte[]{0,0});   /* flags */
             baos.write(0); /* decimals */
@@ -193,18 +211,26 @@ public class MySQLColumnInformation implements ColumnInformation {
         return length;
     }
 
-    public DataType getType() {
-        return type;
+    public int getDisplaySize() {
+        int t = type.getSqlType();
+        if (t == Types.VARCHAR || t == Types.CHAR) {
+            if (charsetNumber == 33) {  /*UTF8*/
+                return (int)length / 3;
+            }
+        }
+        return (int)length;
     }
 
     public byte getDecimals() {
         return decimals;
     }
 
+    public DataType getType() {
+        return type;
+    }
     public Set<ColumnFlags> getFlags() {
         return flags;
     }
-
     public boolean isSigned() {
         return !flags.contains(ColumnFlags.UNSIGNED);
     }

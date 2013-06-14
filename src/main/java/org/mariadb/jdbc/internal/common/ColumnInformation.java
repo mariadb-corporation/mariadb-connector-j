@@ -78,6 +78,7 @@ public interface ColumnInformation {
     boolean isSigned();
     boolean isBinary();
     Set<ColumnFlags> getFlags();
+    int getDisplaySize();
 
     //void updateDisplaySize(int displayLength);
 }

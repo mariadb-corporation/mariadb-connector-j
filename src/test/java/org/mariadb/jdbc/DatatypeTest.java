@@ -59,13 +59,10 @@ public class DatatypeTest extends BaseTest {
     void checkClass(String column, Class<?> clazz, String mysqlType, int javaSqlType) throws Exception{
         int index = resultSet.findColumn(column);
 
-        if (clazz == null) {
-            assertEquals("Expected null for column " + column, null, resultSet.getObject(index));
-            assertEquals("Expected class name for column " + column, null, resultSet.getMetaData().getColumnClassName(index));
-        } else {
+        if(resultSet.getObject(column) != null) {
             assertEquals("Unexpected class for column " + column, clazz, resultSet.getObject(column).getClass());
-            assertEquals("Unexpected class name for column " + column, clazz.getName(), resultSet.getMetaData().getColumnClassName(index));
         }
+        assertEquals("Unexpected class name for column " + column, clazz.getName(), resultSet.getMetaData().getColumnClassName(index));
         assertEquals("Unexpected MySQL type for column " + column, mysqlType,resultSet.getMetaData().getColumnTypeName(index));
         assertEquals("Unexpected java sql type for column " + column, javaSqlType, resultSet.getMetaData().getColumnType(index));
     }
@@ -130,7 +127,7 @@ public class DatatypeTest extends BaseTest {
 
         resultSet = c.createStatement().executeQuery("select NULL as foo");
         resultSet.next();
-        checkClass("foo", null, "NULL",Types.NULL);
+        checkClass("foo", String.class, "NULL",Types.NULL);
 
     }
 
