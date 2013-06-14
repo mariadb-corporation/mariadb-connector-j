@@ -154,19 +154,6 @@ public class DatabaseMetadataTest extends BaseTest{
                assertEquals(md1.getColumnLabel(i),md2.getColumnLabel(i));
            }
        }
-
-    @Test
-    public void ttt() throws Exception {
-        ResultSet rs = connection.getMetaData().getImportedKeys("test",null,"product_order");
-        int k=0;
-        while(rs.next()) {
-            k++;
-            System.out.println( "" + k +   " ===================");
-            for (int i = 1 ; i <= rs.getMetaData().getColumnCount();i++) {
-                System.out.println(rs.getMetaData().getColumnLabel(i) + " = " + rs.getObject(i));
-            }
-        }
-    }
     @Test
     public void exportedKeysTest() throws SQLException {
         Statement stmt = connection.createStatement();
