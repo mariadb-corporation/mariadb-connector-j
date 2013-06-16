@@ -609,7 +609,7 @@ public class MySQLDriverTest extends BaseTest {
     }
 
     @Test
-     public void conj-44() throws Exception {
+     public void conj44() throws Exception {
        ResultSet rs = connection.prepareStatement("select '\\''").executeQuery();
        rs.next();
        assertEquals("'",rs.getString(1));
