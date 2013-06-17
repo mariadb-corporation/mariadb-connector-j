@@ -30,8 +30,7 @@ public class DriverTest extends BaseTest{
     @Test
     public void doQuery() throws SQLException{
         Statement stmt = connection.createStatement();
-        try { stmt.execute("drop table t1"); } catch (Exception e) {}
-        stmt.execute("create table t1 (id int not null primary key auto_increment, test varchar(20))");
+        createTablet1(stmt);
         stmt.execute("insert into t1 (test) values ('hej1')");
         stmt.execute("insert into t1 (test) values ('hej2')");
         stmt.execute("insert into t1 (test) values ('hej3')");
@@ -45,11 +44,16 @@ public class DriverTest extends BaseTest{
         rs.next();
         assertEquals(null,rs.getString("test"));
     }
+
+    private void createTablet1(Statement stmt) throws SQLException {
+        try { stmt.execute("drop table t1"); } catch (Exception e) {}
+        stmt.execute("create table t1 (id int not null primary key auto_increment, test varchar(20))");
+    }
+
     @Test(expected = SQLException.class)
     public void askForBadColumnTest() throws SQLException{
         Statement stmt = connection.createStatement();
-        try { stmt.execute("drop table t1"); } catch (Exception e) {}
-        stmt.execute("create table t1 (id int not null primary key auto_increment, test varchar(20))");
+        createTablet1(stmt);
         stmt.execute("insert into t1 (test) values ('hej1')");
         stmt.execute("insert into t1 (test) values ('hej2')");
         stmt.execute("insert into t1 (test) values ('hej3')");
@@ -62,8 +66,7 @@ public class DriverTest extends BaseTest{
     public void askForBadColumnIndexTest() throws SQLException{
 
         Statement stmt = connection.createStatement();
-        try { stmt.execute("drop table t1"); } catch (Exception e) {}
-        stmt.execute("create table t1 (id int not null primary key auto_increment, test varchar(20))");
+        createTablet1(stmt);
         stmt.execute("insert into t1 (test) values ('hej1')");
         stmt.execute("insert into t1 (test) values ('hej2')");
         stmt.execute("insert into t1 (test) values ('hej3')");
@@ -110,6 +113,11 @@ public class DriverTest extends BaseTest{
     }
     @Test
     public void preparedTest() throws SQLException {
+        Statement stmt = connection.createStatement();
+        createTablet1(stmt);
+        stmt.execute("insert into t1 (test) values ('hej1')");
+        stmt.close();
+
         String query = "SELECT * FROM t1 WHERE test = ? and id = ?";
         PreparedStatement prepStmt = connection.prepareStatement(query);
         prepStmt.setString(1,"hej1");
@@ -153,8 +161,7 @@ public class DriverTest extends BaseTest{
     @Test
     public void updateTest() throws SQLException {
         Statement stmt = connection.createStatement();
-        try { stmt.execute("drop table t1"); } catch (Exception e) {}
-        stmt.execute("create table t1 (id int not null primary key auto_increment, test varchar(20))");
+        createTablet1(stmt);
         stmt.execute("insert into t1 (test) values ('hej1')");
         stmt.execute("insert into t1 (test) values ('hej2')");
         stmt.execute("insert into t1 (test) values ('hej3')");

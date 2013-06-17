@@ -80,7 +80,7 @@ public class MySQLType implements DataType {
         TINYINT(java.sql.Types.SMALLINT),
         SMALLINT(java.sql.Types.SMALLINT),
         INTEGER(java.sql.Types.INTEGER),
-        FLOAT(java.sql.Types.FLOAT),
+        FLOAT(java.sql.Types.REAL),
         DOUBLE(java.sql.Types.DOUBLE),
         NULL(java.sql.Types.NULL),
         TIMESTAMP(java.sql.Types.TIMESTAMP),

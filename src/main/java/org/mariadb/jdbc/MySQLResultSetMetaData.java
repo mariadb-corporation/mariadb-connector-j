@@ -269,19 +269,6 @@ public class MySQLResultSetMetaData implements ResultSetMetaData {
                     return Types.DATE;
                 else
                     return Types.SMALLINT;
-
-            case SMALLINT:
-               if(!ci.isSigned()) {
-                   return Types.INTEGER;
-               } else {
-                   return Types.SMALLINT;
-               }
-            case INTEGER:
-               if(!ci.isSigned()) {
-                   return Types.BIGINT;
-               } else {
-                   return Types.INTEGER;
-               }
             case BLOB:
                 if (ci.getLength() < 0 || ci.getLength() > 16777215)
                     return Types.LONGVARBINARY;

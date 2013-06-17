@@ -89,14 +89,14 @@ public class DatatypeTest extends BaseTest {
         checkClass("bool0", tinyInt1isBit?Boolean.class:Integer.class,"TINYINT",
                 tinyInt1isBit?Types.BIT:Types.TINYINT);
         checkClass("smallint0", Integer.class, "SMALLINT", Types.SMALLINT);
-        checkClass("smallint_unsigned", Integer.class, "SMALLINT UNSIGNED", Types.INTEGER);
+        checkClass("smallint_unsigned", Integer.class, "SMALLINT UNSIGNED", Types.SMALLINT);
         checkClass("mediumint0", Integer.class, "MEDIUMINT", Types.INTEGER);
         checkClass("mediumint_unsigned", Integer.class, "MEDIUMINT UNSIGNED", Types.INTEGER);
         checkClass("int0", Integer.class, "INTEGER", Types.INTEGER);
-        checkClass("int_unsigned", Long.class, "INTEGER UNSIGNED", Types.BIGINT);
+        checkClass("int_unsigned", Long.class, "INTEGER UNSIGNED", Types.INTEGER);
         checkClass("bigint0", Long.class, "BIGINT", Types.BIGINT);
         checkClass("bigint_unsigned", BigInteger.class, "BIGINT UNSIGNED", Types.BIGINT);
-        checkClass("float0", Float.class, "FLOAT",Types.FLOAT);
+        checkClass("float0", Float.class, "FLOAT",Types.REAL);
         checkClass("double0", Double.class, "DOUBLE", Types.DOUBLE);
         checkClass("decimal0", BigDecimal.class, "DECIMAL", Types.DECIMAL);
         checkClass("date0", java.sql.Date.class, "DATE", Types.DATE);

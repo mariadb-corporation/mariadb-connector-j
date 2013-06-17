@@ -34,7 +34,7 @@ public class ResultSetMetaDataTest extends BaseTest {
         assertEquals("something",rsmd.getColumnLabel(3));
         assertEquals("unikey_col",rsmd.getColumnName(3));
         assertEquals(rsmd.getColumnType(4), Types.CHAR);
-        assertEquals(rsmd.getColumnType(5), Types.INTEGER);
+        assertEquals(rsmd.getColumnType(5), Types.SMALLINT);
         
         DatabaseMetaData md = connection.getMetaData();
         ResultSet cols = md.getColumns(null, null, "test\\_rsmd",null);
