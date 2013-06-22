@@ -50,7 +50,6 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc;
 
 import org.mariadb.jdbc.internal.SQLExceptionMapper;
-import org.mariadb.jdbc.internal.common.Protocol;
 import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.common.Utils;
 import org.mariadb.jdbc.internal.common.query.MySQLQuery;
@@ -62,11 +61,7 @@ import org.mariadb.jdbc.internal.mysql.MySQLProtocol;
 
 import java.io.IOException;
 import java.sql.*;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Queue;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
 
 
 public class MySQLStatement implements Statement {
@@ -97,8 +92,9 @@ public class MySQLStatement implements Statement {
     boolean  isClosed;
     private static volatile Timer timer;
     private TimerTask timerTask;
-    
-    private boolean isTimedout;
+    boolean isTimedout;
+
+    List<String> batchQueries;
 
     Queue<Object> cachedResultSets;
 
@@ -124,7 +120,7 @@ public class MySQLStatement implements Statement {
      *
      * @return the protocol used.
      */
-    public Protocol getProtocol() {
+    public MySQLProtocol getProtocol() {
         return protocol;
     }
 
@@ -1065,11 +1061,12 @@ public class MySQLStatement implements Statement {
      * @since 1.2
      */
     public void addBatch(final String sql) throws SQLException {
-        this.protocol.addToBatch(new MySQLQuery(sql));
+        if (batchQueries == null) {
+            batchQueries = new ArrayList<String>();
+        }
+        batchQueries.add(sql);
     }
-    public void addBatch(final byte[] sql) throws SQLException {
-        this.protocol.addToBatch(new MySQLQuery(sql));
-    }
+
 
     /**
      * Empties this <code>Statement</code> object's current list of SQL commands.
@@ -1082,7 +1079,7 @@ public class MySQLStatement implements Statement {
      * @since 1.2
      */
     public void clearBatch() throws SQLException {
-        this.protocol.clearBatch();
+        batchQueries.clear();
     }
 
     /**
@@ -1121,24 +1118,26 @@ public class MySQLStatement implements Statement {
      * @since 1.3
      */
     public int[] executeBatch() throws SQLException {
+        int[] ret = new int[batchQueries.size()];
+        int i = 0;
         try {
-
-            final List<QueryResult> queryRes = protocol.executeBatch();
-            final int[] retVals = new int[queryRes.size()];
-            int i = 0;
-            for (final QueryResult qr : queryRes) {
-                if (qr.getResultSetType() == ResultSetType.MODIFY) {
-                    retVals[i++] =
-                            (int) ((ModifyQueryResult) qr).getUpdateCount(); //TODO: this needs to be handled according to javadoc
-                } else {
-                    retVals[i++] = SUCCESS_NO_INFO;
+            synchronized (this.protocol) {
+                for(; i < batchQueries.size(); i++)  {
+                    execute(batchQueries.get(i));
+                    int updateCount = getUpdateCount();
+                    if (updateCount == -1) {
+                        ret[i] = SUCCESS_NO_INFO;
+                    } else {
+                        ret[i] = updateCount;
+                    }
                 }
             }
-            return retVals;
-        } catch (QueryException e) {
-            SQLExceptionMapper.throwException(e, connection, this);
-            return null;
+        } catch (SQLException sqle) {
+            throw new BatchUpdateException(sqle.getMessage(), sqle.getSQLState(),Arrays.copyOf(ret, i), sqle);
+        } finally {
+            clearBatch();
         }
+        return ret;
     }
 
     /**

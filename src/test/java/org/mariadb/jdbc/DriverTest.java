@@ -2,7 +2,6 @@ package org.mariadb.jdbc;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.mariadb.jdbc.internal.common.RewriteParameterizedBatchHandlerFactory;
 import org.mariadb.jdbc.internal.common.packet.RawPacket;
 import org.mariadb.jdbc.internal.common.packet.buffer.WriteBuffer;
 
@@ -772,18 +771,12 @@ public class DriverTest extends BaseTest{
     }
 
     @Test
-    public void testRewriteBatchHandler() throws SQLException {
+    public void testBatchLoop() throws SQLException {
         connection.createStatement().execute("drop table if exists rewritetest");
         connection.createStatement().execute(
                 "create table rewritetest (id int not null primary key, a varchar(10), b int) engine=innodb");
-
-        if(connection.isWrapperFor(MySQLConnection.class)) {
-            MySQLConnection dc = connection.unwrap(MySQLConnection.class);
-            dc.setBatchQueryHandlerFactory(new RewriteParameterizedBatchHandlerFactory());
-        }
-
         PreparedStatement ps = connection.prepareStatement("insert into rewritetest values (?,?,?)");
-        for(int i = 0;i<10000;i++) {
+        for(int i = 0;i<10;i++) {
             ps.setInt(1,i);
             ps.setString(2,"bbb"+i);
             ps.setInt(3,30+i);
@@ -795,22 +788,17 @@ public class DriverTest extends BaseTest{
         while(rs.next()) {
             assertEquals(i++, rs.getInt("id"));
         }
-        assertEquals(10000,i);
+        assertEquals(10,i);
     }
     @Test
-    public void testRewriteBatchHandlerWithDupKey() throws SQLException {
+    public void testBatchLoopWithDupKey() throws SQLException {
         connection.createStatement().execute("drop table if exists rewritetest2");
         connection.createStatement().execute(
                 "create table rewritetest2 (id int not null primary key, a varchar(10), b int) engine=innodb");
-                
-        if(connection.isWrapperFor(MySQLConnection.class)) {
-            MySQLConnection dc = connection.unwrap(MySQLConnection.class);
-            dc.setBatchQueryHandlerFactory(new RewriteParameterizedBatchHandlerFactory());
-        }
 
         long startTime = System.currentTimeMillis();
         PreparedStatement ps = connection.prepareStatement("insert into rewritetest2 values (?,?,?) on duplicate key update a=values(a)");
-        for(int i = 0;i<10000;i++) {
+        for(int i = 0;i<2;i++) {
             ps.setInt(1,0);
             ps.setString(2,"bbb"+i);
             ps.setInt(3,30+i);
@@ -1026,10 +1014,6 @@ public class DriverTest extends BaseTest{
     @Test
     public void testBug501452() throws SQLException {
         Connection conn = connection;
-        if(conn.isWrapperFor(MySQLConnection.class)) {
-            MySQLConnection dc = conn.unwrap(MySQLConnection.class);
-            dc.setBatchQueryHandlerFactory(new RewriteParameterizedBatchHandlerFactory());
-        }
         Statement stmt = conn.createStatement();
         stmt.executeUpdate("drop table if exists bug501452");
         stmt.executeUpdate("CREATE TABLE bug501452 (id int not null primary key, value varchar(20))");
@@ -1548,6 +1532,29 @@ public class DriverTest extends BaseTest{
         assertTrue(rs.next());
         rs.close();
         conn.close();
+    }
+
+    @Test
+    public void batchUpdateException() throws Exception {
+        Statement st = connection.createStatement();
+        st.execute("DROP TABLE IF EXISTS t1");
+        st.execute("CREATE TABLE t1(i int,PRIMARY KEY (i))");
+
+        st.addBatch("insert into t1 values(1)");
+        st.addBatch("insert into t1 values(2)");
+        st.addBatch("insert into t1 values(1)"); // will fail, duplicate primary key
+
+
+        try {
+            st.executeBatch();
+            fail("exception should be throw above");
+        } catch (BatchUpdateException bue) {
+            int[] updateCounts = bue.getUpdateCounts();
+            assertEquals(2, updateCounts.length);
+            assertEquals(1, updateCounts[0]);
+            assertEquals(1, updateCounts[1]);
+            assertTrue(bue.getCause() instanceof SQLIntegrityConstraintViolationException);
+        }
     }
     
     

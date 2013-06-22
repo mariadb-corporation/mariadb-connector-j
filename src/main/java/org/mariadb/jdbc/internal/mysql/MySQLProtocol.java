@@ -56,6 +56,7 @@ import org.mariadb.jdbc.internal.SQLExceptionMapper;
 import org.mariadb.jdbc.internal.common.*;
 import org.mariadb.jdbc.internal.common.packet.*;
 import org.mariadb.jdbc.internal.common.packet.buffer.ReadUtil;
+import org.mariadb.jdbc.internal.common.packet.buffer.Reader;
 import org.mariadb.jdbc.internal.common.packet.commands.ClosePacket;
 import org.mariadb.jdbc.internal.common.packet.commands.SelectDBPacket;
 import org.mariadb.jdbc.internal.common.packet.commands.StreamedQueryPacket;
@@ -74,14 +75,15 @@ import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.*;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.URL;
 import java.nio.ByteBuffer;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.mariadb.jdbc.internal.common.packet.buffer.Reader;
 
 
 
@@ -97,7 +99,7 @@ class DummyX509TrustManager implements X509TrustManager {
     }
 }
 
-public class MySQLProtocol implements Protocol {
+public class MySQLProtocol {
     private final static Logger log = Logger.getLogger(MySQLProtocol.class.getName());
     private boolean connected = false;
     private Socket socket;
@@ -913,24 +915,6 @@ public class MySQLProtocol implements Protocol {
         return getResult(dQuery, streaming);
     }
 
-    public void addToBatch(final Query dQuery) {
-        batchList.add(dQuery);
-    }
-
-    public synchronized List<QueryResult> executeBatch() throws QueryException {
-        final List<QueryResult> retList = new ArrayList<QueryResult>(batchList.size());
-
-        for (final Query query : batchList) {
-            retList.add(executeQuery(query));
-        }
-        clearBatch();
-        return retList;
-
-    }
-
-    public void clearBatch() {
-        batchList.clear();
-    }
 
     public List<RawPacket> startBinlogDump(final int startPos, final String filename) throws BinlogDumpException {
         final MySQLBinlogDumpPacket mbdp = new MySQLBinlogDumpPacket(startPos, filename);
@@ -980,7 +964,7 @@ public class MySQLProtocol implements Protocol {
      * @throws QueryException
      */
     public  void cancelCurrentQuery() throws QueryException, IOException {
-        Protocol copiedProtocol = new MySQLProtocol(jdbcUrl, username, password, info);
+        MySQLProtocol copiedProtocol = new MySQLProtocol(jdbcUrl, username, password, info);
         copiedProtocol.executeQuery(new MySQLQuery("KILL QUERY " + serverThreadId));
         copiedProtocol.close();
     }

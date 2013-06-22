@@ -76,8 +76,6 @@ public final class MySQLConnection
      */
     private final Properties clientInfoProperties;
 
-    private ParameterizedBatchHandlerFactory parameterizedBatchHandlerFactory;
-
     public MySQLPooledConnection pooledConnection;
 
 
@@ -167,13 +165,7 @@ public final class MySQLConnection
      * @throws SQLException if there is a problem preparing the statement.
      */
     public PreparedStatement prepareStatement(final String sql) throws SQLException {
-        if (parameterizedBatchHandlerFactory == null) {
-            this.parameterizedBatchHandlerFactory = new DefaultParameterizedBatchHandlerFactory();
-        }
-        return new MySQLPreparedStatement(protocol,
-                this,
-                sql,
-                parameterizedBatchHandlerFactory.get(sql, protocol));
+        return new MySQLPreparedStatement(this, sql);
     }
 
 
@@ -1301,10 +1293,6 @@ public final class MySQLConnection
         } catch (BinlogDumpException e) {
             throw SQLExceptionMapper.getSQLException("Could not dump binlog", e);
         }
-    }
-
-    public void setBatchQueryHandlerFactory(final ParameterizedBatchHandlerFactory batchHandlerFactory) {
-        this.parameterizedBatchHandlerFactory = batchHandlerFactory;
     }
 
    

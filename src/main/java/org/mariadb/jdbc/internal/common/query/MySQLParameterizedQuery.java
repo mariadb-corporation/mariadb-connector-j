@@ -62,9 +62,9 @@ import static org.mariadb.jdbc.internal.common.Utils.createQueryParts;
 public class MySQLParameterizedQuery implements ParameterizedQuery {
 
     private ParameterHolder[] parameters;
-    private final int paramCount;
-    private final String query;
-    private final byte[][] queryPartsArray;
+    private int paramCount;
+    private String query;
+    private byte[][] queryPartsArray;
 
     public MySQLParameterizedQuery(String query, boolean noBackslashEscapes) {
         this.query = query;
@@ -81,11 +81,19 @@ public class MySQLParameterizedQuery implements ParameterizedQuery {
         parameters = new ParameterHolder[paramCount];
     }
 
-    public MySQLParameterizedQuery(final ParameterizedQuery paramQuery) {
-        this.query = paramQuery.getQuery();
-        this.queryPartsArray = paramQuery.getQueryPartsArray();
-        paramCount = queryPartsArray.length - 1;
-        parameters = new ParameterHolder[paramCount];
+    private  MySQLParameterizedQuery() {
+
+    }
+    public MySQLParameterizedQuery cloneQuery() {
+        MySQLParameterizedQuery q = new  MySQLParameterizedQuery();
+        q.parameters = new ParameterHolder[parameters.length];
+        for (int i = 0; i < parameters.length;i++) {
+            q.parameters[i] = parameters[i];
+        }
+        q.paramCount = paramCount;
+        q.query = query;
+        q.queryPartsArray = queryPartsArray;
+        return q;
     }
 
     public void setParameter(final int position, final ParameterHolder parameter) throws IllegalParameterException {

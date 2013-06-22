@@ -48,15 +48,11 @@ OF SUCH DAMAGE.
 */
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.SQLExceptionMapper;
-import org.mariadb.jdbc.internal.common.ParameterizedBatchHandler;
-import org.mariadb.jdbc.internal.common.QueryException;
+ import org.mariadb.jdbc.internal.SQLExceptionMapper;
 import org.mariadb.jdbc.internal.common.Utils;
 import org.mariadb.jdbc.internal.common.query.IllegalParameterException;
 import org.mariadb.jdbc.internal.common.query.MySQLParameterizedQuery;
-import org.mariadb.jdbc.internal.common.query.ParameterizedQuery;
 import org.mariadb.jdbc.internal.common.query.parameters.*;
-import org.mariadb.jdbc.internal.mysql.MySQLProtocol;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -64,34 +60,42 @@ import java.io.Reader;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 
 public class MySQLPreparedStatement extends MySQLStatement implements PreparedStatement {
     private final static Logger log = Logger.getLogger(MySQLPreparedStatement.class.getName());
-    private ParameterizedQuery dQuery;
+    private MySQLParameterizedQuery dQuery;
     private String sql;
-    private final ParameterizedBatchHandler parameterizedBatchHandler;
     private boolean useFractionalSeconds;
     boolean parametersCleared;
+    List<MySQLPreparedStatement> batchPreparedStatements;
 
-    public MySQLPreparedStatement(final MySQLProtocol protocol,
-                                  final MySQLConnection connection,
-                                  final String sql,
-                                  final ParameterizedBatchHandler parameterizedBatchHandler) throws SQLException {
+
+    public MySQLPreparedStatement(MySQLConnection connection,
+                                  String sql) throws SQLException {
         super(connection);
         this.sql = sql;
         useFractionalSeconds =
-                ((MySQLProtocol)protocol).getInfo().getProperty("useFractionalSeconds") != null;
+              connection.getProtocol().getInfo().getProperty("useFractionalSeconds") != null;
         if(log.isLoggable(Level.FINEST)) {
             log.finest("Creating prepared statement for " + sql);
         }
         dQuery = new MySQLParameterizedQuery(Utils.nativeSQL(sql, connection.noBackslashEscapes),
                 connection.noBackslashEscapes);
-        this.parameterizedBatchHandler = parameterizedBatchHandler;
         parametersCleared = true;
+    }
+
+    private MySQLPreparedStatement (MySQLConnection connection, String sql, MySQLParameterizedQuery dQuery, boolean useFractionalSeconds ) {
+        super(connection);
+        this.dQuery = dQuery.cloneQuery();
+        this.sql = sql;
+        this.useFractionalSeconds = useFractionalSeconds;
     }
 
     /**
@@ -186,20 +190,45 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
      * @since 1.2
      */
     public void addBatch() throws SQLException {
-        parameterizedBatchHandler.addToBatch(dQuery);
-        dQuery = new MySQLParameterizedQuery(dQuery);
+        if (batchPreparedStatements == null) {
+            batchPreparedStatements = new ArrayList<MySQLPreparedStatement>();
+        }
+        batchPreparedStatements.add(new MySQLPreparedStatement(connection,sql, dQuery, useFractionalSeconds));
     }
     public void addBatch(final String sql) throws SQLException {
-        parameterizedBatchHandler.addToBatch(new MySQLParameterizedQuery(sql, connection.noBackslashEscapes));
+        if (batchPreparedStatements == null) {
+            batchPreparedStatements = new ArrayList<MySQLPreparedStatement>();
+        }
+        batchPreparedStatements.add(new MySQLPreparedStatement(connection, sql));
     }
+
+    public void clearBatch() {
+        batchPreparedStatements.clear();
+    }
+
     @Override
     public int[] executeBatch() throws SQLException {
+        int[] ret = new int[batchPreparedStatements.size()];
+        int i = 0;
         try {
-            return parameterizedBatchHandler.executeBatch();
-        } catch (QueryException e) {
-            SQLExceptionMapper.throwException(e,this.connection,this);
-            return null;
+            synchronized (this.getProtocol()) {
+                for(; i < batchPreparedStatements.size(); i++)  {
+                    PreparedStatement ps =  batchPreparedStatements.get(i);
+                    ps.execute();
+                    int updateCount = ps.getUpdateCount();
+                    if (updateCount == -1) {
+                        ret[i] = SUCCESS_NO_INFO;
+                    } else {
+                        ret[i] = updateCount;
+                    }
+                }
+            }
+        } catch (SQLException sqle) {
+            throw new BatchUpdateException(sqle.getMessage(), sqle.getSQLState(), Arrays.copyOf(ret, i), sqle);
+        } finally {
+            clearBatch();
         }
+        return ret;
     }
 
 
@@ -389,7 +418,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
      * application.
      *
      * @param parameterIndex the first parameter is 1, the second is 2, ...
-     * @param x              the parameter value
+     * @param timestamp              the parameter value
      * @param cal            the <code>Calendar</code> object the driver will use to construct the timestamp
      * @throws java.sql.SQLException if parameterIndex does not correspond to a parameter marker in the SQL statement;
      *                               if a database access error occurs or this method is called on a closed
@@ -1197,9 +1226,6 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
      * of a statement. Setting a parameter value automatically clears its previous value.  However, in some cases it is
      * useful to immediately release the resources used by the current parameter values; this can be done by calling the
      * method <code>clearParameters</code>.
-     *
-     * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed
-     *                               <code>PreparedStatement</code>
      */
     public void clearParameters() {
         dQuery.clearParameters();
@@ -1435,9 +1461,6 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
             setCharacterStream(parameterIndex, (Reader) x);
         } else if (x instanceof BigDecimal) {
             setBigDecimal(parameterIndex, (BigDecimal)x);
-        }
-        else if (x instanceof Blob) {
-            setBlob(parameterIndex, (Blob)x);
         }
         else if (x instanceof Clob) {
             setClob(parameterIndex, (Clob)x);
