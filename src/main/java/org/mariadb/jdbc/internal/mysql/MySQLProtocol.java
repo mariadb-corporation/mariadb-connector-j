@@ -67,19 +67,15 @@ import org.mariadb.jdbc.internal.mysql.packet.MySQLGreetingReadPacket;
 import org.mariadb.jdbc.internal.mysql.packet.commands.*;
 
 import javax.net.SocketFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.X509TrustManager;
-import java.io.BufferedInputStream;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import javax.net.ssl.*;
+import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URL;
 import java.nio.ByteBuffer;
+import java.security.KeyStore;
 import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.*;
 import java.util.logging.Level;
@@ -87,11 +83,61 @@ import java.util.logging.Logger;
 
 
 
-class DummyX509TrustManager implements X509TrustManager {
+class MyX509TrustManager implements X509TrustManager {
+    boolean trustServerCeritifcate;
+    String serverCertFile;
+    X509TrustManager  trustManager;
+
+    public MyX509TrustManager(Properties props) throws Exception{
+        boolean trustServerCertificate  =  props.getProperty("trustServerCertificate") != null;
+        if (trustServerCertificate)
+            return;
+
+        serverCertFile =  props.getProperty("serverSslCert");
+        InputStream inStream;
+
+        if (serverCertFile.startsWith("-----BEGIN CERTIFICATE-----")) {
+            inStream = new ByteArrayInputStream(serverCertFile.getBytes());
+        } else if (serverCertFile.startsWith("classpath:")) {
+            // Load it from a classpath relative file
+            String classpathFile = serverCertFile.substring("classpath:".length());
+            inStream = Thread.currentThread().getContextClassLoader().getResourceAsStream(classpathFile);
+        } else {
+            inStream = new FileInputStream(serverCertFile);
+        }
+
+        CertificateFactory cf = CertificateFactory.getInstance("X.509");
+        X509Certificate ca = (X509Certificate) cf.generateCertificate(inStream);
+        inStream.close();
+        KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
+        try {
+            // Note: KeyStore requires it be loaded even if you don't load anything into it:
+            ks.load(null);
+        } catch (Exception e) {
+
+        }
+        ks.setCertificateEntry(UUID.randomUUID().toString(), ca);
+        TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        tmf.init(ks);
+        for(TrustManager tm : tmf.getTrustManagers()) {
+        	if (tm instanceof X509TrustManager) {
+      	        trustManager = (X509TrustManager) tm;
+      		    break;
+            }
+        }
+        if (trustManager == null) {
+            throw new RuntimeException("No X509TrustManager found");
+        }
+    }
     public void checkClientTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
+
     }
 
     public void checkServerTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
+        if (trustManager == null) {
+            return;
+        }
+        trustManager.checkServerTrusted(x509Certificates, s);
     }
 
     public X509Certificate[] getAcceptedIssuers() {
@@ -110,7 +156,6 @@ public class MySQLProtocol {
     private final String username;
     private final String password;
     private int maxRows;  /* max rows returned by a statement */
-    private  List<Query> batchList;
     private SyncPacketFetcher packetFetcher;
     private final Properties info;
     private  long serverThreadId;
@@ -172,16 +217,18 @@ public class MySQLProtocol {
 
     private SSLSocketFactory getSSLSocketFactory(boolean trustServerCertificate)  throws QueryException
     {
-        if (!trustServerCertificate)
+        if (info.getProperty("trustServerCertificate") == null
+            && info.getProperty("serverSslCert") == null) {
             return (SSLSocketFactory)SSLSocketFactory.getDefault();
+        }
 
         try {
             SSLContext sslContext = SSLContext.getInstance("TLS");
-            X509TrustManager[] m = {new DummyX509TrustManager()};
+            X509TrustManager[] m = {new MyX509TrustManager(info)};
             sslContext.init(null, m ,null);
         return sslContext.getSocketFactory();
         } catch (Exception e) {
-            throw new QueryException(e.getMessage());
+            throw new QueryException(e.getMessage(),0, "HY000", e);
         }
 
     }
@@ -212,7 +259,6 @@ public class MySQLProtocol {
         else
         	log.setLevel(Level.OFF);
 
-        batchList = new ArrayList<Query>();
         setDatatypeMappingFlags();
         parseHAOptions();
         connect();
