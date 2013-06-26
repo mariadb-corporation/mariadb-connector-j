@@ -1,14 +1,15 @@
 package org.mariadb.jdbc;
+import org.mariadb.jdbc.internal.SQLExceptionMapper;
+import org.mariadb.jdbc.internal.common.QueryException;
+import org.mariadb.jdbc.internal.mysql.MySQLColumnInformation;
+import org.mariadb.jdbc.internal.mysql.MySQLProtocol;
+
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.*;
 import java.util.Calendar;
-import org.mariadb.jdbc.internal.SQLExceptionMapper;
-import org.mariadb.jdbc.internal.common.QueryException;
-import org.mariadb.jdbc.internal.mysql.MySQLColumnInformation;
-import org.mariadb.jdbc.internal.mysql.MySQLProtocol;
 /**
  *
  * @author vvaintroub
@@ -533,6 +534,16 @@ public class MySQLServerSidePreparedStatement implements PreparedStatement{
     @Override
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
         throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public void closeOnCompletion() {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public boolean isCloseOnCompletion() {
+          throw new UnsupportedOperationException("Not supported yet.");
     }
     
 }
