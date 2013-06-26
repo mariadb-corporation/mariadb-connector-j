@@ -536,12 +536,11 @@ public class MySQLServerSidePreparedStatement implements PreparedStatement{
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
-    @Override
+    /* new JDK 7 methods */
     public void closeOnCompletion() {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
-    @Override
     public boolean isCloseOnCompletion() {
           throw new UnsupportedOperationException("Not supported yet.");
     }
