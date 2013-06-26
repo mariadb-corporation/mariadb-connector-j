@@ -43,7 +43,7 @@ public class BaseTest {
                 ResultSet rs = connection.createStatement().executeQuery("select @@have_ssl");
                 rs.next();
                 String value = rs.getString(1);
-                return !value.equals("DISABLED");
+                return value.equals("YES");
             } catch (Exception e)  {
                 throw new RuntimeException(e);
             }
