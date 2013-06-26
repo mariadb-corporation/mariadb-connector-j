@@ -145,17 +145,6 @@ public class DriverTest extends BaseTest{
             assertTrue(sqle.getMessage().toLowerCase().contains("invalid operation"));
         }
     }
-    @Test
-    public void preparedTest2() throws SQLException {
-        Statement stmt = connection.createStatement();
-        stmt.execute("DROP TABLE IF EXISTS prep_test");
-        stmt.execute("CREATE TABLE prep_test (id int not null primary key auto_increment, test varchar(20)) engine=innodb");
-        PreparedStatement prepStmt = connection.prepareStatement("insert into prep_test (test) values (?) ");
-        for(int i=0;i<1000;i++) {
-            prepStmt.setString(1,"mee");
-            prepStmt.execute();
-        }
-    }
 
     @Test
     public void updateTest() throws SQLException {
