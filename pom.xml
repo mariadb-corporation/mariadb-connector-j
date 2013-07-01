@@ -6,7 +6,7 @@
     <name>mariadb-java-client</name>
     <version>1.1.3</version>
     <description>JDBC driver for MariaDB and MySQL</description>
-    <url>http://launchpad.net/mariadb-java-client</url>
+    <url>https://kb.askmonty.org/en/about-the-mariadb-java-client/</url>
     <properties>
       <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
@@ -15,7 +15,11 @@
             <name>LGPL-2.1</name>
         </license>
     </licenses>
-
+   <scm>
+       <connection>scm:bazaar:http://bazaar.launchpad.net/+branch/mariadb-java-client</connection>
+       <url>http://bazaar.launchpad.net/+branch/mariadb-java-client</url>
+       <developerConnection>scm:bazaar:sftp://bazaar.launchpad.net/+branch/mariadb-java-client</developerConnection>
+   </scm>
     <issueManagement>
       <system>Launchpad</system>
       <url>http://bugs.launchpad.net/mariadb-java-client/</url>
@@ -103,8 +107,18 @@
 		</execution>
 	      </executions>
 	    </plugin>
-	   
-        
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-javadoc-plugin</artifactId>
+            <executions>
+       		    <execution>
+                 <id>attach-javadocs</id>
+                 <goals>
+                   <goal>jar</goal>
+                 </goals>
+       		    </execution>
+            </executions>
+        </plugin>
         </plugins>
     </build>
   
