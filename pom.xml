@@ -24,7 +24,13 @@
       <system>Launchpad</system>
       <url>http://bugs.launchpad.net/mariadb-java-client/</url>
     </issueManagement>
-
+    <developers>
+        <developer>
+          <id>wlad</id>
+          <name>Vladislav Vaintroub</name>
+          <email>wlad@montyprogram.com</email>
+        </developer>
+    </developers>
   <profiles><profile>
   <id>package-source</id>
   <activation><property><name>package-source</name></property></activation>
