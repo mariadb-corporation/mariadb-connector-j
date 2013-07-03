@@ -9,6 +9,7 @@
     <url>https://kb.askmonty.org/en/about-the-mariadb-java-client/</url>
     <properties>
       <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+      <jna.version>3.3.0</jna.version>
     </properties>
     <licenses>
         <license>
@@ -135,6 +136,17 @@
             <version>4.6</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+        	<groupId>net.java.dev.jna</groupId>
+        	<artifactId>jna</artifactId>
+        	<version>${jna.version}</version>
+    	</dependency>
+    	<dependency>
+        	<groupId>net.java.dev.jna</groupId>
+        	<artifactId>jna</artifactId>
+        	<version>${jna.version}</version>
+        	<classifier>platform</classifier>
+    	</dependency>
     </dependencies>
     <reporting>
         <plugins>

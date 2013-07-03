@@ -312,6 +312,13 @@ public class MySQLProtocol {
         // Create socket with timeout if required
         if (info.getProperty("pipe") != null) {
             socket = new org.mariadb.jdbc.internal.mysql.NamedPipeSocket(host, info.getProperty("pipe"));
+        } else if(info.getProperty("localSocket") != null){
+            try {
+        	    socket = new org.mariadb.jdbc.internal.mysql.UnixDomainSocket(info.getProperty("localSocket"));
+            } catch( RuntimeException re) {
+                //  could be e.g library loading error
+                throw new IOException(re.getMessage(),re.getCause());
+            }
         } else {
             socket = socketFactory.createSocket();
         }

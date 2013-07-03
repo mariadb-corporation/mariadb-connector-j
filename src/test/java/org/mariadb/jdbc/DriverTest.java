@@ -1546,5 +1546,22 @@ public class DriverTest extends BaseTest{
         }
     }
     
-    
+    @Test
+    public void localSocket() throws  Exception {
+
+        Statement st = connection.createStatement();
+       	ResultSet rs = st.executeQuery("select @@version_compile_os,@@socket");
+       	if (!rs.next())
+       		return;
+
+        String os = rs.getString(1);
+        if (os.toLowerCase().startsWith("win"))
+               return;
+
+    	String path = rs.getString(1);
+     	Connection c = DriverManager.getConnection("jdbc:mysql://localhost/test?user=root&localSocket=" + path);
+     	rs = c.createStatement().executeQuery("select 1");
+     	rs.next();
+     	c.close();
+    }
 }
