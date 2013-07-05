@@ -308,7 +308,6 @@ public class MySQLProtocol {
                connectTimeout = null;
            }
         }
-
         // Create socket with timeout if required
         if (info.getProperty("pipe") != null) {
             socket = new org.mariadb.jdbc.internal.mysql.NamedPipeSocket(host, info.getProperty("pipe"));
@@ -319,9 +318,17 @@ public class MySQLProtocol {
                 //  could be e.g library loading error
                 throw new IOException(re.getMessage(),re.getCause());
             }
+        } else if(info.getProperty("sharedMemory")!= null) {
+            try {
+                socket = new SharedMemorySocket(info.getProperty("sharedMemory"));
+            } catch( RuntimeException re) {
+               //  could be e.g library loading error
+               throw new IOException(re.getMessage(),re.getCause());
+            }
         } else {
             socket = socketFactory.createSocket();
         }
+
         try {
             String value = info.getProperty("tcpNoDelay", "false");
             if (value.equalsIgnoreCase("true"))
@@ -378,7 +385,8 @@ public class MySQLProtocol {
            socket.setSoTimeout(socketTimeout);
 
        try {
-           BufferedInputStream reader = new BufferedInputStream(socket.getInputStream(), 32768);
+           InputStream reader;
+           reader = new BufferedInputStream(socket.getInputStream(), 32768);
            packetFetcher = new SyncPacketFetcher(reader);
            writer = new PacketOutputStream(socket.getOutputStream());
            RawPacket packet =  packetFetcher.getRawPacket();

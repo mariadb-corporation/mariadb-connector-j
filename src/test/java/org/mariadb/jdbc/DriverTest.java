@@ -1564,4 +1564,38 @@ public class DriverTest extends BaseTest{
      	rs.next();
      	c.close();
     }
+
+    @Test
+    public void sharedMemory() throws Exception {
+        Statement st = connection.createStatement();
+       	ResultSet rs = st.executeQuery("select @@version_compile_os");
+       	if (!rs.next()) {
+       		return;
+        }
+
+        String os = rs.getString(1);
+        if (!os.toLowerCase().startsWith("win")) {
+               return;  // skip test on non-Windows
+        }
+
+        rs = st.executeQuery("select @@shared_memory,@@shared_memory_base_name");
+        if (!rs.next()) {
+            return;
+        }
+
+        if (!rs.getString(1).equals("1"))  {
+            return;
+        }
+
+    	String shmBaseName = rs.getString(2);
+     	Connection c = DriverManager.getConnection("jdbc:mysql://localhost//test?user=root&sharedMemory=" + shmBaseName);
+     	rs = c.createStatement().executeQuery("select repeat('a',100000)");
+     	rs.next();
+        assertEquals(100000,rs.getString(1).length());
+        char [] arr = new char [100000];
+        Arrays.fill(arr,'a');
+        rs = c.createStatement().executeQuery("select '" + new String(arr)+ "'");
+        rs.next();
+        assertEquals(100000,rs.getString(1).length());
+    }
 }
