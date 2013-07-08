@@ -315,11 +315,12 @@ public class DriverTest extends BaseTest{
 
     @Test
     public void testEscapes() throws SQLException {
-        String query = "select * from t1 where test = ?";
+        String query = "select ?";
         PreparedStatement stmt = connection.prepareStatement(query);
         stmt.setString(1,"hej\"");
         ResultSet rs = stmt.executeQuery();
-        assertEquals(false,rs.next());
+        assertEquals(true,rs.next());
+        assertEquals(rs.getString(1),"hej\"");
     }
 
     @Test

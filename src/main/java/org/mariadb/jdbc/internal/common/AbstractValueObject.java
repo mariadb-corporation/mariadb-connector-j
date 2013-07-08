@@ -232,6 +232,12 @@ public abstract class AbstractValueObject implements ValueObject {
             return null;
         }
         String rawValue = getString();
+        if (rawValue.length() >= 4  &&  rawValue.charAt(4) != '-') {
+           /* This is probably a time value, since year separator is missing */
+           Time t = getTime();
+           return new Timestamp(t.getTime());
+        }
+
         SimpleDateFormat sdf;
 
         if (rawValue.length() > 11) {

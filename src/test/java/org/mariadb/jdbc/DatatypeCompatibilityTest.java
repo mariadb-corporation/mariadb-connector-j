@@ -85,4 +85,17 @@ public class DatatypeCompatibilityTest extends BaseTest {
         }
     }
 
+    @Test
+    public void timeAsTimestamp() throws Exception{
+       java.sql.Time aTime = new java.sql.Time(12,0,0);
+       PreparedStatement ps =  connection.prepareStatement("SELECT ?");
+       ps.setTime(1,aTime);
+       ResultSet rs = ps.executeQuery();
+       rs.next() ;
+       Timestamp ts = rs.getTimestamp(1);
+       Time time = rs.getTime(1);
+       assertEquals(aTime,ts);
+       assertEquals(aTime,time);
+    }
+
 }

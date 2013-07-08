@@ -3469,7 +3469,9 @@ public class MySQLResultSet implements ResultSet {
         try {
             return getValueObject(columnIndex).getDate();
         } catch (ParseException e) {
-            throw SQLExceptionMapper.getSQLException("Could not parse field as date", e);
+            throw SQLExceptionMapper.getSQLException("Could not parse column as date, was: \"" +
+                    getValueObject(columnIndex).getString() +
+                    "\"", e);
         }
     }
 
@@ -3505,7 +3507,9 @@ public class MySQLResultSet implements ResultSet {
         try {
             return getValueObject(columnIndex).getTimestamp();
         } catch (ParseException e) {
-            throw SQLExceptionMapper.getSQLException("Could not parse field as date");
+            throw SQLExceptionMapper.getSQLException("Could not parse column as timestamp, was: \""  +
+                    getValueObject(columnIndex).getString() +
+                    "\"", e);
         }
     }
 
