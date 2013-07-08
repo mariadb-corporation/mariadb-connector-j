@@ -3,6 +3,8 @@ package org.mariadb.jdbc.internal.mysql;
 import com.sun.jna.*;
 import com.sun.jna.platform.win32.BaseTSD.SIZE_T;
 import com.sun.jna.platform.win32.WinNT.HANDLE;
+import com.sun.jna.ptr.IntByReference;
+import com.sun.jna.ptr.PointerByReference;
 import com.sun.jna.win32.StdCallLibrary;
 import com.sun.jna.win32.W32APIFunctionMapper;
 import com.sun.jna.win32.W32APITypeMapper;
@@ -12,49 +14,60 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
 public class SharedMemorySocket extends Socket {
 
+    final static Map<String, Object> WIN32API_OPTIONS = new HashMap<String, Object>() {
+        {
+            put(Library.OPTION_FUNCTION_MAPPER, W32APIFunctionMapper.UNICODE);
+            put(Library.OPTION_TYPE_MAPPER, W32APITypeMapper.UNICODE);
+        }
+    };
     public interface Kernel32 extends StdCallLibrary {
-
-        final static Map<String, Object> WIN32API_OPTIONS = new HashMap<String, Object>() {
-
-            {
-                put(Library.OPTION_FUNCTION_MAPPER, W32APIFunctionMapper.UNICODE);
-                put(Library.OPTION_TYPE_MAPPER, W32APITypeMapper.UNICODE);
-            }
-        };
-
         public Kernel32 INSTANCE = (Kernel32) Native.loadLibrary("Kernel32", Kernel32.class, WIN32API_OPTIONS);
-
-        public static int FILE_MAP_WRITE = 0x0002;
-        public static int FILE_MAP_READ = 0x0004;
-        public static int EVENT_MODIFY_STATE = 0x0002;
-        public static int SYNCHRONIZE = 0x00100000;
-        public static int INFINITE = -1;
+        public static final int FILE_MAP_WRITE = 0x0002;
+        public static final int FILE_MAP_READ = 0x0004;
+        public static final int EVENT_MODIFY_STATE = 0x0002;
+        public static final int SYNCHRONIZE = 0x00100000;
+        public static final int INFINITE = -1;
 
         public HANDLE OpenEvent(int dwDesiredAccess, boolean bInheritHandle, String name) throws LastErrorException;
-
         public HANDLE OpenFileMapping(int dwDesiredAccess, boolean bInheritHandle, String name) throws LastErrorException;
-
         public Pointer MapViewOfFile(HANDLE hFileMappingObject, int dwDesiredAccess, int dwFileOffsetHigh, int dwFileOffsetLow,
                                      SIZE_T dwNumberOfBytesToMap) throws LastErrorException;
-
         public boolean UnmapViewOfFile(Pointer view) throws LastErrorException;
-
         public boolean SetEvent(HANDLE handle) throws LastErrorException;
-
         public boolean CloseHandle(HANDLE handle) throws LastErrorException;
-
         public int WaitForSingleObject(HANDLE handle, int timeout) throws LastErrorException;
-
         public int WaitForMultipleObjects(int count, HANDLE[] handles, boolean waitAll, int millis) throws LastErrorException;
-
         public int GetLastError() throws LastErrorException;
+        public HANDLE CreateMutex(Advapi32.SECURITY_ATTRIBUTES sa, boolean initialOwner, String name);
+        public boolean ReleaseMutex(HANDLE hMutex);
+        public Pointer LocalFree(Pointer p);
+
 
     }
+
+    public interface Advapi32 extends StdCallLibrary {
+        public Advapi32 INSTANCE = (Advapi32) Native.loadLibrary("advapi32", Advapi32.class,WIN32API_OPTIONS);
+        public static class SECURITY_ATTRIBUTES extends Structure {
+            public int nLength;
+            public Pointer lpSecurityDescriptor;
+            public boolean bInheritHandle;
+
+            protected java.util.List getFieldOrder() {
+                   return Arrays.asList(new String[]{"nLength", "lpSecurityDescriptor", "bInheritHandle"});
+            }
+        }
+        boolean ConvertStringSecurityDescriptorToSecurityDescriptor(String sddl, int sddlVersion, PointerByReference psd,
+                                                                    IntByReference length);
+
+    }
+    //SDDL string for mutex security flags (Everyone group has SYNCHRONIZE right)
+    public static final String EVERYONE_SYNCHRONIZE_SDDL = "D:(A;;0x100000;;;WD)";
 
     // Size of memory mapped region
     static int BUFFERLEN = 16004;
@@ -179,6 +192,26 @@ public class SharedMemorySocket extends Socket {
         return v;
     }
 
+    /*
+    Create a mutex to synchronize login. Without mutex, different connections that are created at about the same
+    time, could get the same connection number. Note, that this mutex, or any synchronization does not exist in
+    in either C or .NET connectors (i.e they are racy)
+    */
+    private HANDLE lockMutex() throws IOException{
+        PointerByReference securityDescriptor = new PointerByReference();
+        Advapi32.INSTANCE.ConvertStringSecurityDescriptorToSecurityDescriptor(EVERYONE_SYNCHRONIZE_SDDL, 1, securityDescriptor,null);
+        Advapi32.SECURITY_ATTRIBUTES sa = new Advapi32.SECURITY_ATTRIBUTES();
+        sa.nLength = sa.size();
+        sa.lpSecurityDescriptor = securityDescriptor.getValue();
+        sa.bInheritHandle = false;
+        HANDLE mutex = Kernel32.INSTANCE.CreateMutex(sa, false, memoryName + "_CONNECT_MUTEX");
+        Kernel32.INSTANCE.LocalFree(securityDescriptor.getValue());
+        if (Kernel32.INSTANCE.WaitForSingleObject(mutex, timeout) == -1) {
+            Kernel32.INSTANCE.CloseHandle(mutex);
+            throw new IOException("wait failed (timeout, last error =  " + Kernel32.INSTANCE.GetLastError());
+        }
+        return mutex;
+    }
 
     public int getConnectNumber() throws IOException {
         HANDLE connectRequest;
@@ -194,20 +227,28 @@ public class SharedMemorySocket extends Socket {
         }
 
         HANDLE connectAnswer = openEvent(memoryName + "_CONNECT_ANSWER");
-        Kernel32.INSTANCE.SetEvent(connectRequest);
 
-        Pointer connectData = mapMemory(memoryName + "_CONNECT_DATA", Kernel32.FILE_MAP_READ, 4);
 
-        int ret = Kernel32.INSTANCE.WaitForSingleObject(connectAnswer, timeout);
-        if (ret != 0) {
-            throw new IOException("WaitForSingleObject returned " + ret + ", last error " + Kernel32.INSTANCE.GetLastError());
+        HANDLE mutex = lockMutex();
+        Pointer connectData = null;
+        try {
+            Kernel32.INSTANCE.SetEvent(connectRequest);
+            connectData = mapMemory(memoryName + "_CONNECT_DATA", Kernel32.FILE_MAP_READ, 4);
+            int ret = Kernel32.INSTANCE.WaitForSingleObject(connectAnswer, timeout);
+            if (ret != 0) {
+                throw new IOException("WaitForSingleObject returned " + ret + ", last error " + Kernel32.INSTANCE.GetLastError());
+            }
+            int nr = connectData.getInt(0);
+            return nr;
+        } finally {
+            Kernel32.INSTANCE.ReleaseMutex(mutex);
+            Kernel32.INSTANCE.CloseHandle(mutex);
+            if (connectData != null)  {
+                Kernel32.INSTANCE.UnmapViewOfFile(connectData);
+            }
+            Kernel32.INSTANCE.CloseHandle(connectRequest);
+            Kernel32.INSTANCE.CloseHandle(connectAnswer);
         }
-
-        int nr = connectData.getInt(0);
-        Kernel32.INSTANCE.UnmapViewOfFile(connectData);
-        Kernel32.INSTANCE.CloseHandle(connectRequest);
-        Kernel32.INSTANCE.CloseHandle(connectAnswer);
-        return nr;
     }
 
 
