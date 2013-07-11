@@ -481,11 +481,7 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
 
 
     public String getDatabaseProductVersion() throws SQLException {
-        ResultSet rs  = connection.createStatement().executeQuery("select version()");
-        rs.next();
-        String version = rs.getString(1);
-        rs.close();
-        return version;
+        return connection.getProtocol().getServerVersion();
     }
 
 
@@ -503,7 +499,7 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
     }
 
     public int getDriverMinorVersion() {
-        return 2;
+        return 1;
     }
 
 
