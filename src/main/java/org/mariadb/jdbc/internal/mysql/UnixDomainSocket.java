@@ -10,6 +10,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.util.Arrays;
 
 
 public class UnixDomainSocket extends Socket {
@@ -29,6 +30,11 @@ public class UnixDomainSocket extends Socket {
             System.arraycopy(arr, 0, sun_path, 0, Math.min(sun_path.length - 1, arr.length));
             allocateMemory();
         }
+
+        protected java.util.List getFieldOrder() {
+               return Arrays.asList(new String[]{"sun_family", "sun_path"});
+        }
+
     }
 
     public static native int socket(int domain, int type, int protocol) throws LastErrorException;
