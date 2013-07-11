@@ -1559,7 +1559,7 @@ public class DriverTest extends BaseTest{
         if (os.toLowerCase().startsWith("win"))
                return;
 
-    	String path = rs.getString(1);
+    	String path = rs.getString(2);
      	Connection c = DriverManager.getConnection("jdbc:mysql://localhost/test?user=root&localSocket=" + path);
      	rs = c.createStatement().executeQuery("select 1");
      	rs.next();
