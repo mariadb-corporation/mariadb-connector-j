@@ -15,16 +15,15 @@ import java.util.Arrays;
 
 public class UnixDomainSocket extends Socket {
     public static final int AF_UNIX = 1;
-    public static final int SOCK_STREAM = 1;
+    public static final int SOCK_STREAM = Platform.isSolaris()?2:1;
     public static final int PROTOCOL = 0;
-    public static final short AF_INET = 1;
 
     public static class SockAddr extends Structure {
         public short  sun_family;
-        public byte[] sun_path;
+        public byte[] sun_path ;
 
         public SockAddr(String sunPath) {
-            sun_family = AF_INET;
+            sun_family = AF_UNIX;
             byte[] arr = sunPath.getBytes();
             sun_path = new byte[arr.length +1];
             System.arraycopy(arr, 0, sun_path, 0, Math.min(sun_path.length - 1, arr.length));
@@ -39,14 +38,16 @@ public class UnixDomainSocket extends Socket {
 
     public static native int socket(int domain, int type, int protocol) throws LastErrorException;
     public static native int connect(int sockfd, SockAddr sockaddr, int addrlen) throws LastErrorException;
-    public static native int read(int fd, byte[] buffer, int count) throws LastErrorException;
-    public static native int write(int fd, byte[] buffer, int count) throws LastErrorException;
     public static native int recv(int fd, byte[] buffer , int count, int flags) throws LastErrorException;
     public static native int send(int fd, byte[] buffer, int count, int flags) throws LastErrorException;
     public static native int close(int fd) throws LastErrorException;
     public static native String strerror(int errno);
 
     static {
+        if (Platform.isSolaris()) {
+            System.loadLibrary("nsl");
+            System.loadLibrary("socket");
+        }
         if (!Platform.isWindows() && !Platform.isWindowsCE()){
             Native.register("c");
         }
