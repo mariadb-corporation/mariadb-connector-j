@@ -1300,6 +1300,16 @@ public final class MySQLConnection
         protocol.setHostFailed();
     }
 
+    volatile int lowercaseTableNames = -1;
+    public int getLowercaseTableNames() throws SQLException {
+        if (lowercaseTableNames == -1) {
+            Statement st = createStatement();
+            ResultSet rs = st.executeQuery("select @@lower_case_table_names");
+            rs.next();
+            lowercaseTableNames  = rs.getInt(1);
+        }
+        return lowercaseTableNames;
+    }
 	public void abort(Executor arg0) throws SQLException {
 		// TODO Auto-generated method stub
 		

@@ -512,7 +512,7 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
     }
 
     public boolean supportsMixedCaseIdentifiers() throws SQLException {
-        return true;
+        return (connection.getLowercaseTableNames() == 0);
     }
 
     public boolean storesUpperCaseIdentifiers() throws SQLException {
@@ -520,27 +520,27 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
     }
 
     public boolean storesLowerCaseIdentifiers() throws SQLException {
-        return !storesUpperCaseIdentifiers();
+        return (connection.getLowercaseTableNames() == 1);
     }
 
     public boolean storesMixedCaseIdentifiers() throws SQLException {
-        return false;
+        return (connection.getLowercaseTableNames() == 2);
     }
 
     public boolean supportsMixedCaseQuotedIdentifiers() throws SQLException {
-        return false;
+        return supportsMixedCaseIdentifiers();
     }
 
     public boolean storesUpperCaseQuotedIdentifiers() throws SQLException {
-        return !storesMixedCaseQuotedIdentifiers();
+        return storesUpperCaseIdentifiers();
     }
 
     public boolean storesLowerCaseQuotedIdentifiers() throws SQLException {
-        return false;
+        return storesLowerCaseIdentifiers();
     }
 
     public boolean storesMixedCaseQuotedIdentifiers() throws SQLException {
-        return false;
+        return storesMixedCaseIdentifiers();
     }
 
     public String getIdentifierQuoteString() throws SQLException {

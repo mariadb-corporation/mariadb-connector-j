@@ -8,6 +8,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.fail;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 
@@ -303,7 +305,72 @@ public class DatabaseMetadataTest extends BaseTest{
 			 +"CHAR_OCTET_LENGTH int,ORDINAL_POSITION int,IS_NULLABLE String,SCOPE_CATALOG String,SCOPE_SCHEMA String,"
 			 +"SCOPE_TABLE String,SOURCE_DATA_TYPE short");
     }
-    
+
+    @Test
+    public void identifierCaseSensitivity() throws Exception {
+        connection.createStatement().execute("drop table if exists aB");
+        connection.createStatement().execute("drop table if exists AB");
+        if (connection.getMetaData().supportsMixedCaseIdentifiers()) {
+            /* Case-sensitive identifier handling, we can create both t1 and T1 */
+            connection.createStatement().execute("create table aB(i int)");
+            connection.createStatement().execute("create table AB(i int)");
+            /* Check there is an entry for both T1 and t1 in getTables */
+            ResultSet rs = connection.getMetaData().getTables(null, null, "aB", null);
+            assertTrue(rs.next());
+            assertFalse(rs.next());
+            rs = connection.getMetaData().getTables(null, null, "AB", null);
+            assertTrue(rs.next());
+            assertFalse(rs.next());
+        }
+
+        if (connection.getMetaData().storesMixedCaseIdentifiers()) {
+            /* Case-insensitive, case-preserving */
+            connection.createStatement().execute("create table aB(i int)");
+            try {
+                connection.createStatement().execute("create table AB(i int)");
+                fail("should not get there, since names are case-insensitive");
+            } catch (SQLException e) {
+            }
+
+            /* Check that table is stored case-preserving */
+            ResultSet rs = connection.getMetaData().getTables(null, null, "aB%", null);
+            while(rs.next()) {
+                String tableName = rs.getString("TABLE_NAME");
+                if (tableName.length() == 2) {
+                   assertEquals("aB",tableName);
+                }
+            }
+
+            rs = connection.getMetaData().getTables(null, null, "AB", null);
+            assertTrue(rs.next());
+            assertFalse(rs.next());
+        }
+
+        if (connection.getMetaData().storesLowerCaseIdentifiers()) {
+            /* case-insensitive, identifiers converted to lowercase */
+              /* Case-insensitive, case-preserving */
+            connection.createStatement().execute("create table aB(i int)");
+            try {
+                connection.createStatement().execute("create table AB(i int)");
+                fail("should not get there, since names are case-insensitive");
+            } catch (SQLException e) {
+            }
+
+            /* Check that table is stored lowercase */
+            ResultSet rs = connection.getMetaData().getTables(null, null, "aB%", null);
+            while(rs.next()) {
+                String tableName = rs.getString("TABLE_NAME");
+                if (tableName.length() == 2) {
+                   assertEquals("ab",tableName);
+                }
+            }
+
+            rs = connection.getMetaData().getTables(null, null, "AB", null);
+            assertTrue(rs.next());
+            assertFalse(rs.next());
+        }
+        assertFalse(connection.getMetaData().storesUpperCaseIdentifiers());
+    }
     
     @Test
     public void getBestRowIdentifierBasic()throws SQLException {
