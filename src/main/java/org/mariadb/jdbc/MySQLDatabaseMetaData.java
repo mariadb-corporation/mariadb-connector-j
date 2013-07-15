@@ -1513,7 +1513,7 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
 
 
     public int getDatabaseMinorVersion() throws SQLException {
-        return connection.getProtocol().getMajorServerVersion();
+        return connection.getProtocol().getMinorServerVersion();
     }
 
 
