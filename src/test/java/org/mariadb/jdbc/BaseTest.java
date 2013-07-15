@@ -45,7 +45,16 @@ public class BaseTest {
                 String value = rs.getString(1);
                 return value.equals("YES");
             } catch (Exception e)  {
-                throw new RuntimeException(e);
+                return false; /* maybe 4.x ? */
             }
         }
+
+    void requireMinimumVersion(int major, int minor) throws SQLException {
+        DatabaseMetaData md = connection.getMetaData();
+        int dbMajor = md.getDatabaseMajorVersion();
+        int dbMinor = md.getDatabaseMinorVersion();
+        org.junit.Assume.assumeTrue(dbMajor > major ||
+                (dbMajor == major && dbMinor >= minor));
+
+    }
 }

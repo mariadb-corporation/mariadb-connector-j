@@ -208,7 +208,8 @@ public class DriverTest extends BaseTest{
             assertTrue(rs.next());
             assertEquals(3 +i ,rs.getInt(1));
         }
-        
+
+        requireMinimumVersion(5,0);
         /* non-standard auto_increment_increment */
         int auto_increment_increment=2;
         Connection c = DriverManager.getConnection("jdbc:mysql://localhost/test?user=root&sessionVariables=auto_increment_increment="+auto_increment_increment);
@@ -337,10 +338,7 @@ public class DriverTest extends BaseTest{
         assertEquals(true,rs.wasNull());
     }
 
-    @Test 
-    public void testDatabaseServerVersion() throws SQLException {
-    	assertTrue(connection.getMetaData().getDatabaseMajorVersion() >=5);
-    }
+
     @Test
     public void connectFailover() throws SQLException {
         Connection c  = DriverManager.getConnection("jdbc:mysql://localhost:3306,localhost:3307/test?user=root");
@@ -829,6 +827,7 @@ public class DriverTest extends BaseTest{
 
     @Test
     public void bigDecimalTest() throws SQLException {
+        requireMinimumVersion(5,0);
         BigDecimal bd = BigDecimal.TEN;
         connection.createStatement().execute("drop table if exists bigdectest");
         connection.createStatement().execute(
@@ -1126,12 +1125,12 @@ public class DriverTest extends BaseTest{
 
     @Test
     public void testConnectWithDB() throws SQLException {
-
+        requireMinimumVersion(5,0);
         Connection conn = connection;
         try {
             conn.createStatement().executeUpdate("drop database test_testdrop");
         } catch (Exception e) {}
-        conn = DriverManager.getConnection("jdbc:mysql:thin://localhost:3306/test_testdrop?createDB=true&user=root");
+        conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/test_testdrop?createDB=true&user=root");
         DatabaseMetaData dbmd = conn.getMetaData();
         ResultSet rs = dbmd.getCatalogs();
         boolean foundDb = false;
@@ -1183,6 +1182,7 @@ public class DriverTest extends BaseTest{
     // Test if driver works with sql_mode= NO_BACKSLASH_ESCAPES
     @Test
     public void NoBackslashEscapes() throws SQLException {
+        requireMinimumVersion(5,0);
         Statement st = connection.createStatement();
         ResultSet rs = st.executeQuery("select @@global.sql_mode");
         rs.next();
@@ -1216,6 +1216,7 @@ public class DriverTest extends BaseTest{
  // Test if driver works with sql_mode= NO_BACKSLASH_ESCAPES
     @Test
     public void NoBackslashEscapes2() throws SQLException {
+        requireMinimumVersion(5,0);
         Statement st = connection.createStatement();
         ResultSet rs = st.executeQuery("select @@global.sql_mode");
         rs.next();
@@ -1329,17 +1330,8 @@ public class DriverTest extends BaseTest{
 
     @Test
     public void useSSL()  throws Exception {
-        Connection c = DriverManager.getConnection("jdbc:mysql://localhost:3306?user=root");
-        Statement st = c.createStatement();
-        ResultSet rs = st.executeQuery("select @@have_openssl");
-        rs.next();
-        boolean have_openssl = rs.getString(1).equals("YES");
-        c.close();
-        if(!have_openssl) {
-            System.out.println("test 'useSSL' skipped  due to server variable have_openssl != 'YES'");
-            return;
-        }
-        c = DriverManager.getConnection("jdbc:mysql://localhost:3306?user=root&useSSL=1&trustServerCertificate=1");
+        org.junit.Assume.assumeTrue(haveSSL());
+        Connection c = DriverManager.getConnection("jdbc:mysql://localhost:3306?user=root&useSSL=1&trustServerCertificate=1");
         c.createStatement().execute("select 1");
         c.close();
 
@@ -1354,6 +1346,7 @@ public class DriverTest extends BaseTest{
 
     @Test 
     public void conj1() throws Exception {
+        requireMinimumVersion(5,0);
     	Statement st = connection.createStatement();
 		st.setQueryTimeout(1);
 		st.execute("select sleep(0.5)");
@@ -1549,7 +1542,7 @@ public class DriverTest extends BaseTest{
     
     @Test
     public void localSocket() throws  Exception {
-
+        requireMinimumVersion(5,1);
         Statement st = connection.createStatement();
        	ResultSet rs = st.executeQuery("select @@version_compile_os,@@socket");
        	if (!rs.next())
@@ -1568,6 +1561,7 @@ public class DriverTest extends BaseTest{
 
     @Test
     public void sharedMemory() throws Exception {
+        requireMinimumVersion(5,1);
         Statement st = connection.createStatement();
        	ResultSet rs = st.executeQuery("select @@version_compile_os");
        	if (!rs.next()) {

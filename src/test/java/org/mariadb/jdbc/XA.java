@@ -1,6 +1,7 @@
 package org.mariadb.jdbc;
 
 
+import org.junit.Before;
 import org.junit.Test;
 
 import javax.sql.XAConnection;
@@ -8,6 +9,7 @@ import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.UUID;
 
 import static junit.framework.Assert.*;
@@ -16,6 +18,10 @@ public class XA extends BaseTest {
 
     MySQLDataSource dataSource;
 
+    @Before
+    public void checkSupported() throws SQLException {
+        requireMinimumVersion(5,0);
+    }
     public XA()  {
         dataSource = new MySQLDataSource();
         dataSource.setUser("root");

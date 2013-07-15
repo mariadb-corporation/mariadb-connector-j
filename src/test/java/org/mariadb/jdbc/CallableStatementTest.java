@@ -1,6 +1,7 @@
     package org.mariadb.jdbc;
 
 
+    import org.junit.Before;
     import org.junit.Test;
 
 import java.sql.*;
@@ -8,7 +9,10 @@ import java.sql.*;
     import static junit.framework.Assert.*;
 
     public class CallableStatementTest extends BaseTest{
-
+        @Before
+        public  void checkSP() throws SQLException{
+          requireMinimumVersion(5,0);
+        }
 
         @Test
         public void CallSimple()throws SQLException {

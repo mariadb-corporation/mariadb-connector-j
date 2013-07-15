@@ -1,5 +1,6 @@
 package org.mariadb.jdbc;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import java.sql.*;
@@ -12,6 +13,11 @@ import static org.junit.Assert.assertTrue;
 
 public class DatabaseMetadataTest extends BaseTest{
     static { Logger.getLogger("").setLevel(Level.OFF); }
+
+    @Before
+    public void checkSupported() throws SQLException {
+        requireMinimumVersion(5,1);
+    }
 
     @Test
     public void primaryKeysTest() throws SQLException {
@@ -267,7 +273,7 @@ public class DatabaseMetadataTest extends BaseTest{
    	 		int t = rsmd.getColumnType(col);
    	 		if (type.equals("String")) {
    	 			assertTrue("invalid type  " + t + " for " + rsmd.getColumnLabel(col) + ",expected String",
-   	 					t == java.sql.Types.VARCHAR || t == java.sql.Types.NULL );
+   	 					t == java.sql.Types.VARCHAR || t == java.sql.Types.NULL || t == Types.LONGVARCHAR );
    	 		} else if (type.equals("int") || type.equals("short")) {
    	 			
    	 			assertTrue("invalid type  " + t + "( " + rsmd.getColumnTypeName(col) + " ) for " + rsmd.getColumnLabel(col) + ",expected numeric",

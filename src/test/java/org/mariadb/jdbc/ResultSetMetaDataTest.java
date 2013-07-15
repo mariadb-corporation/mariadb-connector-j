@@ -13,6 +13,7 @@ public class ResultSetMetaDataTest extends BaseTest {
     static { Logger.getLogger("").setLevel(Level.OFF); }
     @Test
     public void metaDataTest() throws SQLException {
+        requireMinimumVersion(5,0);
         Statement stmt = connection.createStatement();
         stmt.execute("drop table if exists test_rsmd");
         stmt.execute("create table test_rsmd (id_col int not null primary key auto_increment, " +
@@ -33,8 +34,8 @@ public class ResultSetMetaDataTest extends BaseTest {
         assertEquals("nullable_col",rsmd.getColumnLabel(2));
         assertEquals("something",rsmd.getColumnLabel(3));
         assertEquals("unikey_col",rsmd.getColumnName(3));
-        assertEquals(rsmd.getColumnType(4), Types.CHAR);
-        assertEquals(rsmd.getColumnType(5), Types.SMALLINT);
+        assertEquals(Types.CHAR, rsmd.getColumnType(4));
+        assertEquals(Types.SMALLINT, rsmd.getColumnType(5));
         
         DatabaseMetaData md = connection.getMetaData();
         ResultSet cols = md.getColumns(null, null, "test\\_rsmd",null);
@@ -52,7 +53,8 @@ public class ResultSetMetaDataTest extends BaseTest {
     }
     
     @Test 
-    public void conj17() throws Exception { 
+    public void conj17() throws Exception {
+        requireMinimumVersion(5,0);
         ResultSet rs = connection.createStatement().executeQuery("select count(*),1 from information_schema.tables"); 
         rs.next(); 
         assertEquals(rs.getMetaData().getColumnName(1),"count(*)"); 

@@ -7,12 +7,10 @@ import org.junit.Test;
 
 import java.sql.*;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 
-public class MultiTest {
+public class MultiTest{
     private static Connection connection;
 
     public MultiTest() throws SQLException {
@@ -118,20 +116,20 @@ public class MultiTest {
         Statement st = connection.createStatement();
         Assert.assertEquals(0, st.getMaxRows());
 
-        st.setMaxRows(3);
-        Assert.assertEquals(3, st.getMaxRows());
+        st.setMaxRows(1);
+        Assert.assertEquals(1, st.getMaxRows());
 
         /* Check 3 rows are returned if maxRows is limited to 3, in every result set in batch */
 
        /* Check first result set for at most 3 rows*/
-        ResultSet rs = st.executeQuery("select * from information_schema.tables;select * from information_schema.tables");
+        ResultSet rs = st.executeQuery("select 1 union select 2;select 1 union select 2");
         int cnt=0;
 
         while(rs.next()) {
             cnt++;
         }
         rs.close();
-        Assert.assertEquals(3, cnt);
+        Assert.assertEquals(1, cnt);
 
        /* Check second result set for at most 3 rows*/
         assertTrue(st.getMoreResults());
@@ -141,6 +139,6 @@ public class MultiTest {
             cnt++;
         }
         rs.close();
-        Assert.assertEquals(3, cnt);
+        Assert.assertEquals(1, cnt);
    }
 }

@@ -1,5 +1,6 @@
 package org.mariadb.jdbc;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import java.math.BigDecimal;
@@ -13,6 +14,10 @@ import static junit.framework.Assert.assertEquals;
 
 
 public class DatatypeTest extends BaseTest {
+    @Before
+    public void checkSupported() throws Exception {
+        requireMinimumVersion(5,0);
+    }
     static final String ddl =
         "CREATE TABLE datatypetest (" +
                       "bit1 BIT(1) default 0," +

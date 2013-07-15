@@ -29,6 +29,7 @@ public class DatatypeCompatibilityTest extends BaseTest {
 
     @Test
     public void testFixedPointTypes() throws SQLException {
+        requireMinimumVersion(5,0);
         assertType("DECIMAL(5,2)", BigDecimal.class, Types.DECIMAL, "-999.99", new BigDecimal(-99999).divide(new BigDecimal(100)));
         assertType("DECIMAL(5,2) UNSIGNED", BigDecimal.class, Types.DECIMAL, "999.99", new BigDecimal(99999).divide(new BigDecimal(100)));
         assertType("NUMERIC(5,2)", BigDecimal.class, Types.DECIMAL, "-999.99", new BigDecimal(-99999).divide(new BigDecimal(100))); // not Types.NUMERIC!
@@ -45,6 +46,7 @@ public class DatatypeCompatibilityTest extends BaseTest {
 
     @Test
     public void testBitTypes() throws SQLException {
+        requireMinimumVersion(5,0);
         assertType("BIT", Boolean.class, Types.BIT, "0", false);
         assertType("BIT(1)", Boolean.class, Types.BIT, "1", true);
         assertType("BIT(2)", byte[].class, Types.VARBINARY, "b'11'", new byte[]{3});

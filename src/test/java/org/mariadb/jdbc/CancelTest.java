@@ -1,5 +1,6 @@
 package org.mariadb.jdbc;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import java.sql.PreparedStatement;
@@ -8,6 +9,10 @@ import java.sql.SQLTransientException;
 import java.sql.Statement;
 
 public class CancelTest extends BaseTest {
+    @Before
+    public void cancelSupported() throws SQLException {
+        requireMinimumVersion(5,0);
+    }
     @Test(expected = SQLTransientException.class)
     public void cancelTest() throws SQLException{
 

@@ -41,6 +41,9 @@ public class CatalogTest extends BaseTest {
 
     @Test
     public void catalogTest5() throws SQLException {
+        requireMinimumVersion(5,1);
+
+
         String[] weirdDbNames = new String[] {"abc 123","\"", "`"};
         for(String name : weirdDbNames) {
             Statement stmt = connection.createStatement();

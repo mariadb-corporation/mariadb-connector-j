@@ -26,7 +26,7 @@ public class MySQLDriverTest extends BaseTest {
     }
     @Test
     public void testAuthconnection() throws SQLException {
-
+        requireMinimumVersion(5,0);
         Statement st = connection.createStatement();
 
         st.execute("grant all privileges on *.* to 'test'@'localhost' identified by 'test'");
@@ -301,6 +301,7 @@ public class MySQLDriverTest extends BaseTest {
     /* Prepared statement metadata before/after executing the query */
     @Test
     public void preparedStatementMetadata() throws Exception{
+        requireMinimumVersion(5,0);
         PreparedStatement ps = connection.prepareStatement("select * from information_schema.tables where 1=0");
         ResultSetMetaData m1 = ps.getMetaData();
         assertTrue(m1 != null);
@@ -321,6 +322,7 @@ public class MySQLDriverTest extends BaseTest {
     
      @Test
     public void preparedStatementMetadata2() throws Exception{
+        requireMinimumVersion(5,0);
         PreparedStatement ps = connection.prepareStatement("select * from information_schema.tables where table_type=?");
         ResultSetMetaData m1 = ps.getMetaData();
         assertTrue(m1 != null);
@@ -548,6 +550,7 @@ public class MySQLDriverTest extends BaseTest {
 
     @Test
     public void setMaxRowsTest() throws Exception {
+        requireMinimumVersion(5,0);
         Statement st = connection.createStatement();
         assertEquals(0, st.getMaxRows());
 
