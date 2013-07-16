@@ -1,4 +1,4 @@
-# Assume zip install layout. and MYSQL_INSTALL_ROOT environment variable points to the root directory of the installation
+REM Assume zip install layout. and MYSQL_INSTALL_ROOT environment variable points to the root directory of the installation
 
 IF "%MYSQL_INSTALL_ROOT%"=="" set MYSQL_INSTALL_ROOT=C:\mysql\mariadb-5.5.28a-winx64\mariadb-5.5.28a-winx64\
 
