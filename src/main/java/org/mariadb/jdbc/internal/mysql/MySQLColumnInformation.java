@@ -68,7 +68,7 @@ public class MySQLColumnInformation  {
     private byte decimals;
     private Set<ColumnFlags> flags;
 
-    public static MySQLColumnInformation create(String name, MySQLType.Type type) {
+    public static MySQLColumnInformation create(String name, MySQLType type) {
         try {
             java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
             for (int i = 0; i < 4; i++) {
@@ -99,7 +99,7 @@ public class MySQLColumnInformation  {
                     break;
             }
             baos.write(new byte[]{(byte)len, 0 ,0, 0});  /*  length */
-            baos.write(MySQLType.toServer(type.getSqlType()));
+            baos.write(MySQLType.toServer(type.getSqlType()).getType());
             baos.write(new byte[]{0,0});   /* flags */
             baos.write(0); /* decimals */
             baos.write(new byte[]{0,0});   /* filler */
@@ -140,7 +140,7 @@ public class MySQLColumnInformation  {
         reader.skipBytes(1);
         charsetNumber = reader.readShort();
         length = reader.readInt();
-        type = MySQLType.fromServer(reader.readByte());
+        type = MySQLType.fromServer(reader.readByte() & 0xff);
         flags = parseFlags(reader.readShort());
         decimals = reader.readByte();
 
@@ -150,7 +150,7 @@ public class MySQLColumnInformation  {
         if ((sqlType == Types.BLOB || sqlType == Types.VARBINARY || sqlType == Types.BINARY || sqlType == Types.LONGVARBINARY )
                 && !isBinary()) {
            /* MySQL Text datatype */
-           type = new MySQLType(MySQLType.Type.VARCHAR);
+           type = MySQLType.VARCHAR;
         }
     }
 

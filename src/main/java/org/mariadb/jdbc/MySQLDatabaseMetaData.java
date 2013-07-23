@@ -1298,11 +1298,11 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
                 "FIXED_PREC_SCALE","AUTO_INCREMENT","LOCAL_TYPE_NAME","MINIMUM_SCALE","MAXIMUM_SCALE",
                 "SQL_DATA_TYPE","SQL_DATETIME_SUB","NUM_PREC_RADIX"
                 };
-        MySQLType.Type [] columnTypes =  {
-                MySQLType.Type.VARCHAR, MySQLType.Type.INTEGER,MySQLType.Type.INTEGER,MySQLType.Type.VARCHAR, MySQLType.Type.VARCHAR, 
-                MySQLType.Type.VARCHAR, MySQLType.Type.INTEGER,MySQLType.Type.BIT,MySQLType.Type.SMALLINT,MySQLType.Type.BIT,
-                MySQLType.Type.BIT, MySQLType.Type.BIT, MySQLType.Type.VARCHAR,MySQLType.Type.SMALLINT,MySQLType.Type.SMALLINT,
-                MySQLType.Type.INTEGER, MySQLType.Type.INTEGER,MySQLType.Type.INTEGER
+        MySQLType [] columnTypes =  {
+                MySQLType.VARCHAR, MySQLType.INTEGER,MySQLType.INTEGER,MySQLType.VARCHAR, MySQLType.VARCHAR,
+                MySQLType.VARCHAR, MySQLType.INTEGER,MySQLType.BIT,MySQLType.SMALLINT,MySQLType.BIT,
+                MySQLType.BIT, MySQLType.BIT, MySQLType.VARCHAR,MySQLType.SMALLINT,MySQLType.SMALLINT,
+                MySQLType.INTEGER, MySQLType.INTEGER,MySQLType.INTEGER
                 };
         
         String[][] data= {
@@ -1715,12 +1715,12 @@ class ShowCreateTableParser {
                  "UPDATE_RULE","DELETE_RULE","FK_NAME",
                  "PK_NAME","DEFERRABILITY"
                  };
-         MySQLType.Type [] columnTypes =  {
-                 MySQLType.Type.VARCHAR, MySQLType.Type.NULL, MySQLType.Type.VARCHAR,
-                 MySQLType.Type.VARCHAR, MySQLType.Type.VARCHAR, MySQLType.Type.NULL,
-                 MySQLType.Type.VARCHAR, MySQLType.Type.VARCHAR, MySQLType.Type.SMALLINT,
-                 MySQLType.Type.SMALLINT, MySQLType.Type.SMALLINT, MySQLType.Type.VARCHAR,
-                 MySQLType.Type.NULL,MySQLType.Type.SMALLINT};
+         MySQLType [] columnTypes =  {
+                 MySQLType.VARCHAR, MySQLType.NULL, MySQLType.VARCHAR,
+                 MySQLType.VARCHAR, MySQLType.VARCHAR, MySQLType.NULL,
+                 MySQLType.VARCHAR, MySQLType.VARCHAR, MySQLType.SMALLINT,
+                 MySQLType.SMALLINT, MySQLType.SMALLINT, MySQLType.VARCHAR,
+                 MySQLType.NULL,MySQLType.SMALLINT};
 
          String[] parts = tableDef.split("\n");
 

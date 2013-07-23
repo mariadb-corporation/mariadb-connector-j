@@ -3693,7 +3693,7 @@ public class MySQLResultSet implements ResultSet {
     * that are represented as "1" or "0" strings
     * @findColumnReturnsOne - special parameter, used only in generated key result sets
     */
-    static ResultSet createResultSet(String[] columnNames, MySQLType.Type[] columnTypes, String[][] data, 
+    static ResultSet createResultSet(String[] columnNames, MySQLType[] columnTypes, String[][] data,
             MySQLProtocol protocol, boolean findColumnReturnsOne)  {
         int N = columnNames.length;
         MySQLColumnInformation[] columns = new MySQLColumnInformation[N];
@@ -3715,7 +3715,7 @@ public class MySQLResultSet implements ResultSet {
                 byte[] bytes;
                 if (rowData[i] == null) {
                     bytes = null;
-                } else if (columnTypes[i] == MySQLType.Type.BIT) {
+                } else if (columnTypes[i] == MySQLType.BIT) {
                     bytes = rowData[i].equals("0")?BOOL_FALSE:BOOL_TRUE;
                 } else  { 
                     try {
@@ -3740,7 +3740,7 @@ public class MySQLResultSet implements ResultSet {
                 null, protocol);
     }
     
-    static ResultSet createResultSet(String[] columnNames, MySQLType.Type[] columnTypes, String[][] data, 
+    static ResultSet createResultSet(String[] columnNames, MySQLType[] columnTypes, String[][] data,
             MySQLProtocol protocol)  {
         return createResultSet(columnNames, columnTypes, data, protocol,false);
     }
@@ -3762,7 +3762,7 @@ public class MySQLResultSet implements ResultSet {
              data[i] = new String[] {"" +  id};
         }
         return createResultSet(new String[]{"insert_id"}, 
-                new MySQLType.Type[] {MySQLType.Type.BIGINT},
+                new MySQLType[] {MySQLType.BIGINT},
                 data, connection.getProtocol(),true);
     }
 }

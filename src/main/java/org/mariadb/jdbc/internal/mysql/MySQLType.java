@@ -49,168 +49,162 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.mysql;
 
+import org.mariadb.jdbc.internal.common.ValueObject;
+
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.sql.Types;
 
 
-public class MySQLType  {
-    private final Type type;
+public enum MySQLType {
+    OLDDECIMAL(0,java.sql.Types.DECIMAL,BigDecimal.class.getName()),
+    TINYINT(1,java.sql.Types.SMALLINT,Integer.class.getName()),
+    SMALLINT(2,java.sql.Types.SMALLINT,Integer.class.getName()),
+    INTEGER(3, java.sql.Types.INTEGER,Integer.class.getName()),
+    FLOAT(4,java.sql.Types.REAL,Float.class.getName()),
+    DOUBLE(5,java.sql.Types.DOUBLE,Double.class.getName()),
+    NULL(6,java.sql.Types.NULL, String.class.getName()),
+    TIMESTAMP(7,java.sql.Types.TIMESTAMP,java.sql.Timestamp.class.getName()),
+    BIGINT(8,java.sql.Types.BIGINT,Long.class.getName()),
+    MEDIUMINT(9,java.sql.Types.INTEGER,Integer.class.getName()),
+    DATE(10, java.sql.Types.DATE, java.sql.Date.class.getName()),
+    TIME(11, java.sql.Types.TIME, java.sql.Time.class.getName()),
+    DATETIME(12,Types.TIMESTAMP,java.sql.Timestamp.class.getName()),
+    YEAR(13,java.sql.Types.SMALLINT,Short.class.getName()),
+    NEWDATE(14, java.sql.Types.DATE,java.sql.Date.class.getName()),
+    VARCHAR(15, java.sql.Types.VARCHAR, String.class.getName()),
+    BIT(16, java.sql.Types.BIT, "[B" ),
+    DECIMAL(246, Types.DECIMAL, BigDecimal.class.getName()),
+    ENUM(247, Types.VARCHAR, String.class.getName()),
+    SET(248,Types.VARCHAR, String.class.getName()),
+    TINYBLOB(249, Types.VARBINARY,  "[B"),
+    MEDIUMBLOB(250,java.sql.Types.VARBINARY,  "[B"),
+    LONGBLOB(251,java.sql.Types.LONGVARBINARY,  "[B"),
+    BLOB(252,java.sql.Types.LONGVARBINARY,  "[B"),
+    VARSTRING(253,java.sql.Types.VARCHAR, String.class.getName()),
+    STRING(254,java.sql.Types.VARCHAR, String.class.getName()),
+    GEOMETRY(255,Types.VARBINARY, "[B");
 
-    public MySQLType(final Type type) {
-        this.type = type;
+    private final int javaType;
+    private final int mysqlType;
+    private final String className;
+
+    static MySQLType[] typeMap;
+    static {
+      typeMap = new MySQLType[256];
+      for( MySQLType v : values())  {
+          typeMap[v.mysqlType] = v;
+      }
+    }
+
+    MySQLType( int mysqlType,int javaType, String className) {
+        this.javaType  = javaType;
+        this.mysqlType = mysqlType;
+        this.className = className;
     }
 
 
     public int getSqlType() {
-        return type.getSqlType();
+        return javaType;
     }
 
     public String getTypeName() {
-        return type.name();
+        return name();
     }
 
-    public Type getType() {
-        return type;
+    public int getType() {
+        return mysqlType;
+    }
+
+    public String getClassName() {
+        return className;
+    }
+
+    public static String getClassName(MySQLType t, int len, boolean signed, boolean binary, int flags) {
+        switch(t) {
+            case TINYINT:
+                if (len == 1 && ((flags & ValueObject.TINYINT1_IS_BIT) != 0))
+                    return Boolean.class.getName();
+                return Integer.class.getName();
+            case INTEGER:
+                return (signed)? Integer.class.getName():Long.class.getName();
+            case BIGINT:
+                return (signed)?Long.class.getName(): BigInteger.class.getName();
+            case YEAR:
+                if ((flags & ValueObject.YEAR_IS_DATE_TYPE) != 0)
+                    return java.sql.Date.class.getName();
+                return Short.class.getName();
+            case BIT:
+                 return (len == 1)?Boolean.class.getName():"[B";
+            case STRING:
+            case VARCHAR:
+            case VARSTRING:
+                 return binary?  "[B" : String.class.getName();
+        }
+        return t.getClassName();
+    }
+
+    public static String getColumnTypeName(MySQLType t, long  len, boolean signed, boolean binary)  {
+        switch(t) {
+             case SMALLINT:
+             case MEDIUMINT:
+             case INTEGER:
+             case BIGINT:
+                if(!signed) {
+                    return  t.getTypeName() + " UNSIGNED";
+                } else {
+                    return t.getTypeName();
+                }
+             case BLOB:
+                 /*
+                   map to different blob types based on datatype length
+                   see http://dev.mysql.com/doc/refman/5.0/en/storage-requirements.html
+                  */
+                 if (len  < 0)
+                     return "LONGBLOB";
+                 if(len <= 255) {
+                     return "TINYBLOB";
+                 } else if (len <= 65535) {
+                     return "BLOB";
+                 } else if (len <= 16777215) {
+                     return "MEDIUMBLOB";
+                 } else {
+                     return "LONGBLOB";
+                 }
+             case VARSTRING:
+             case VARCHAR:
+                 if (binary)
+                     return "VARBINARY";
+                 return "VARCHAR";
+             case STRING :
+                 if (binary)
+                     return "BINARY";
+                 return "CHAR";
+             default:
+                 return t.getTypeName();
+         }
+    }
+
+    public static MySQLType fromServer(int typeValue) {
+
+        MySQLType v = typeMap[typeValue];
+
+        if (v == null) {
+            /*
+              Potential fallback for types that are not implemented.
+              Should not be normally used.
+             */
+            v = BLOB;
+        }
+        return v;
     }
 
 
-
-    public enum Type {
-        OLDDECIMAL(java.sql.Types.DECIMAL), /* double, not used in newer code */
-        TINYINT(java.sql.Types.SMALLINT),
-        SMALLINT(java.sql.Types.SMALLINT),
-        INTEGER(java.sql.Types.INTEGER),
-        FLOAT(java.sql.Types.REAL),
-        DOUBLE(java.sql.Types.DOUBLE),
-        NULL(java.sql.Types.NULL),
-        TIMESTAMP(java.sql.Types.TIMESTAMP),
-        BIGINT(java.sql.Types.BIGINT),
-        MEDIUMINT(java.sql.Types.INTEGER),
-        DATETIME(Types.TIMESTAMP),
-        DATE(java.sql.Types.DATE),
-        TIME(java.sql.Types.TIME),
-        YEAR(java.sql.Types.SMALLINT),
-        BIT(java.sql.Types.BIT),
-        VARCHAR(java.sql.Types.VARCHAR),
-        DECIMAL(java.sql.Types.DECIMAL),
-        TINYBLOB(java.sql.Types.VARBINARY),
-        MEDIUMBLOB(java.sql.Types.VARBINARY),
-        LONGBLOB(java.sql.Types.LONGVARBINARY),
-        BLOB(java.sql.Types.LONGVARBINARY),
-        CLOB(Types.LONGVARCHAR),
-        CHAR(Types.CHAR);
-
-        private final int sqlType;
-
-        Type(final int sqlType) {
-            this.sqlType = sqlType;
+    public static MySQLType toServer(int javaType) {
+        for( MySQLType v : values())  {
+            if (v.javaType == javaType)
+                return v;
         }
-
-        public int getSqlType() {
-            return sqlType;
-        }
-    }
-
-    public static MySQLType fromServer(final byte typeValue) {
-        int type = (typeValue & 0xff);
-        switch (type) {
-            case 0:
-                return new MySQLType(Type.OLDDECIMAL);
-            case 1:
-                return new MySQLType(Type.TINYINT);
-            case 2:
-                return new MySQLType(Type.SMALLINT);
-            case 3:
-                return new MySQLType(Type.INTEGER);
-            case 4:
-                return new MySQLType(Type.FLOAT);
-            case 5:
-                return new MySQLType(Type.DOUBLE);
-            case 6:
-                return new MySQLType(Type.NULL);
-            case 7:
-                return new MySQLType(Type.TIMESTAMP);
-            case 8:
-                return new MySQLType(Type.BIGINT);
-            case 9:
-                return new MySQLType(Type.MEDIUMINT);
-            case 10:
-                return new MySQLType(Type.DATE);
-            case 11:
-                return new MySQLType(Type.TIME);
-            case 12:
-                return new MySQLType(Type.DATETIME);
-            case 13:
-                return new MySQLType(Type.YEAR);
-            case 14:
-                return new MySQLType(Type.DATE);
-            case 15:
-                return new MySQLType(Type.VARCHAR);
-            case 16:
-                return new MySQLType(Type.BIT);
-            case  246:
-                return new MySQLType(Type.DECIMAL);
-            case 247:
-                /* ENUM */
-                return new MySQLType(Type.VARCHAR);
-            case 248:
-                /* SET */
-                return new MySQLType(Type.VARCHAR);
-            case 249:
-                return new MySQLType(Type.TINYBLOB);
-            case 250:
-                return new MySQLType(Type.MEDIUMBLOB);
-            case 251:
-                return new MySQLType(Type.LONGBLOB);
-            case 252:
-                return new MySQLType(Type.BLOB);
-            case 253:
-                return new MySQLType(Type.VARCHAR);
-            case 254:
-                return new MySQLType(Type.CHAR);
-            case 255:
-                /* Geometry actually */
-                return new MySQLType(Type.BLOB);
-            default:
-                //throw new RuntimeException("unknown type : "+ Integer.toHexString(typeValue + 255));
-                return new MySQLType(Type.VARCHAR);
-        }
-    }
-
-    public static byte toServer(int javaType) {
-
-        switch (javaType) {
-            case Types.TINYINT:
-                return 1;
-            case Types.SMALLINT:
-                return 2;
-            case Types.INTEGER:
-                return 3;
-            case Types.FLOAT:
-                return 4;
-            case Types.DOUBLE:
-                return 5;
-            case Types.NULL:
-                return 6;
-            case Types.TIMESTAMP:
-                return 7;
-            case Types.BIGINT:
-                return 8;
-            case Types.DATE:
-                return 10;
-            case Types.TIME:
-                return 11;
-            case Types.VARCHAR:
-                return 15;
-            case Types.BIT:
-                return 16;
-            case Types.BOOLEAN:
-                return 16;
-            case Types.DECIMAL:
-                return (byte)246;
-            case Types.CHAR:
-                return (byte)254;
-            default:
-                return (byte)255;
-        }
+        return  MySQLType.BLOB;
     }
 }

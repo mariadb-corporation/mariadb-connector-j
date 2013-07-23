@@ -50,7 +50,6 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.mysql;
 
 import org.mariadb.jdbc.internal.common.AbstractValueObject;
-import org.mariadb.jdbc.internal.common.ColumnInformation;
 
 import java.text.ParseException;
 
@@ -72,7 +71,7 @@ public class MySQLValueObject extends AbstractValueObject {
         byte[] bytes = getBytes();
         if (bytes == null)
             return null;
-        if (columnInfo.getType().getType() == MySQLType.Type.BIT && columnInfo.getLength() == 1)
+        if (columnInfo.getType() == MySQLType.BIT && columnInfo.getLength() == 1)
             return (bytes[0] == 0)?"false":"true";
         
         return super.getString();
@@ -82,7 +81,7 @@ public class MySQLValueObject extends AbstractValueObject {
         if (this.getBytes() == null) {
             return null;
         }
-        switch (dataType.getType()) {
+        switch (dataType) {
             case BIT:
                 if (columnInfo.getLength() == 1) {
                     return (getBytes()[0] != 0);
@@ -143,15 +142,14 @@ public class MySQLValueObject extends AbstractValueObject {
                 return getFloat();
             case TIME:
                 return getTime();
-            case CLOB:
-                return getString();
-            case CHAR:
+            case VARSTRING:
+            case STRING:
                 if (columnInfo.isBinary())
                     return getBytes();
                 return getString();
             case OLDDECIMAL:
             	return getString();
         }
-        return null;
+        throw new  RuntimeException(dataType.toString());
     }
 }

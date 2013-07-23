@@ -135,7 +135,7 @@ public abstract class AbstractValueObject implements ValueObject {
         if (rawBytes == null) {
             return 0;
         }
-        if(dataType.getType() == MySQLType.Type.BIT) {
+        if(dataType == MySQLType.BIT) {
                 return rawBytes[0];
         }
         return Byte.valueOf(getString());
@@ -178,7 +178,7 @@ public abstract class AbstractValueObject implements ValueObject {
 
         String rawValue = getString();
         SimpleDateFormat sdf;
-        if (dataType.getType() == MySQLType.Type.YEAR) {
+        if (dataType == MySQLType.YEAR) {
            if (rawBytes.length == 2) {
               sdf = new SimpleDateFormat("yy");
            } else {

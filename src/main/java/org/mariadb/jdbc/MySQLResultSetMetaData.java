@@ -52,10 +52,9 @@ package org.mariadb.jdbc;
 import org.mariadb.jdbc.internal.SQLExceptionMapper;
 import org.mariadb.jdbc.internal.common.ValueObject;
 import org.mariadb.jdbc.internal.common.queryresults.ColumnFlags;
-import org.mariadb.jdbc.internal.mysql.*;
+import org.mariadb.jdbc.internal.mysql.MySQLColumnInformation;
+import org.mariadb.jdbc.internal.mysql.MySQLType;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Types;
@@ -254,7 +253,7 @@ public class MySQLResultSetMetaData implements ResultSetMetaData {
      */
     public int getColumnType(final int column) throws SQLException {
         MySQLColumnInformation ci = getColumnInformation(column);
-        switch(ci.getType().getType()) {
+        switch(ci.getType()) {
             case BIT:
                 if(ci.getLength() == 1)
                     return Types.BIT;
@@ -274,12 +273,13 @@ public class MySQLResultSetMetaData implements ResultSetMetaData {
                     return Types.LONGVARBINARY;
                 return Types.VARBINARY;
             case VARCHAR:
+            case VARSTRING:
                 if (ci.isBinary())
                     return Types.VARBINARY;
                 if (ci.getLength() < 0)
                     return Types.LONGVARCHAR;
                 return Types.VARCHAR;
-            case CHAR :
+            case STRING :
                 if (ci.isBinary())
                     return Types.BINARY;
                 return Types.CHAR;
@@ -299,44 +299,8 @@ public class MySQLResultSetMetaData implements ResultSetMetaData {
      */
     public String getColumnTypeName(final int column) throws SQLException {
         MySQLColumnInformation ci = getColumnInformation(column);
-        switch(ci.getType().getType()) {
-            case SMALLINT:
-            case MEDIUMINT:
-            case INTEGER:
-            case BIGINT:
-               if(!ci.isSigned()) {
-                   return  ci.getType().getTypeName() + " UNSIGNED";
-               } else {
-                   return ci.getType().getTypeName();
-               }
-            case BLOB:
-                /*
-                  map to different blob types based on datatype length
-                  see http://dev.mysql.com/doc/refman/5.0/en/storage-requirements.html
-                 */
-                if (ci.getLength() < 0)
-                    return "LONGBLOB";
-                if(ci.getLength() <= 255) {
-                    return "TINYBLOB";
-                } else if (ci.getLength() <= 65535) {
-                    return "BLOB";
-                } else if (ci.getLength() <= 16777215) {
-                    return "MEDIUMBLOB";
-                } else {
-                    return "LONGBLOB";
-                }
-            case VARCHAR:
-                if (ci.isBinary())
-                    return "VARBINARY";
-                return "VARCHAR";
-            case CHAR :
-                if (ci.isBinary())
-                    return "BINARY";
-                return "CHAR";
-                
-            default:
-                return ci.getType().getTypeName();
-        }
+        return MySQLType.getColumnTypeName(ci.getType(),ci.getLength(), ci.isSigned(), ci.isBinary());
+
     }
 
     /**
@@ -384,65 +348,14 @@ public class MySQLResultSetMetaData implements ResultSetMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      * @since 1.2
      */
-    static final String byteArrayClassName = "[B";
+
     public String getColumnClassName(int column) throws SQLException {
         MySQLColumnInformation ci = getColumnInformation(column);
-        switch(ci.getType().getType()) {
-          case OLDDECIMAL:
-            return BigDecimal.class.getName();
-          case TINYINT:
-            if (ci.getLength() == 1 && ((datatypeMappingflags & ValueObject.TINYINT1_IS_BIT) != 0))
-                return Boolean.class.getName();
-            return Integer.class.getName();
-          case SMALLINT:
-             return Integer.class.getName();
-          case INTEGER:
-             if (ci.isSigned())
-                 return Integer.class.getName();
-             return Long.class.getName();
-          case  FLOAT:
-              return Float.class.getName();
-          case DOUBLE:
-              return Double.class.getName();
-          case NULL:
-              return String.class.getName();
-          case TIMESTAMP:
-              return java.sql.Timestamp.class.getName();
-          case BIGINT:
-              return (ci.isSigned())?Long.class.getName(): BigInteger.class.getName();
-          case MEDIUMINT:
-              return Integer.class.getName();
-          case DATETIME:
-              return java.sql.Timestamp.class.getName();
-          case DATE :
-              return java.sql.Date.class.getName();
-          case TIME:
-              return java.sql.Time.class.getName();
-          case YEAR:
-              if ((datatypeMappingflags & ValueObject.YEAR_IS_DATE_TYPE) != 0)
-                return java.sql.Date.class.getName();
-              return Short.class.getName();
-          case BIT:
-              if (ci.getLength() == 1)
-                  return  Boolean.class.getName();
-              return byteArrayClassName;
-          case VARCHAR:
-              if (ci.isBinary())
-                  return byteArrayClassName;
-              return String.class.getName();
-          case DECIMAL:
-              return BigDecimal.class.getName();
-          case BLOB:
-              return byteArrayClassName;
-          case CLOB:
-              return String.class.getName();
-          case CHAR:
-              if (ci.isBinary())
-                  return byteArrayClassName;
-              return String.class.getName();
-          default:
-              return byteArrayClassName;
+        MySQLType t = ci.getType();
+        if (ci.getName().equals("varbinary0")) {
+            System.out.println("yess");
         }
+        return MySQLType.getClassName(t, (int)ci.getLength(), ci.isSigned(),ci.isBinary(),datatypeMappingflags);
     }
 
     private MySQLColumnInformation getColumnInformation(int column) throws SQLException {
