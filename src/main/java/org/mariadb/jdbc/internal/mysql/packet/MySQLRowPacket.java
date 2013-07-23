@@ -54,7 +54,7 @@ import org.mariadb.jdbc.internal.common.PacketFetcher;
 import org.mariadb.jdbc.internal.common.ValueObject;
 import org.mariadb.jdbc.internal.common.packet.RawPacket;
 import org.mariadb.jdbc.internal.common.packet.buffer.Reader;
-import org.mariadb.jdbc.internal.mysql.MySQLValueObject;
+import org.mariadb.jdbc.internal.mysql.*;
 
 import java.io.IOException;
 
@@ -62,9 +62,9 @@ import java.io.IOException;
 public class MySQLRowPacket {
     private final ValueObject[] columns;
     private final Reader reader;
-    private final ColumnInformation[] columnInformation;
+    private final MySQLColumnInformation[] columnInformation;
 
-    public MySQLRowPacket(final RawPacket rawPacket, final ColumnInformation[] columnInformation2) throws IOException {
+    public MySQLRowPacket(RawPacket rawPacket,  MySQLColumnInformation[] columnInformation2) throws IOException {
         columns = new ValueObject[columnInformation2.length];
         reader = new Reader(rawPacket);
         this.columnInformation = columnInformation2;

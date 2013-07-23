@@ -1,6 +1,6 @@
 package org.mariadb.jdbc.internal.common.queryresults;
 
-import org.mariadb.jdbc.internal.common.ColumnInformation;
+import org.mariadb.jdbc.internal.mysql.MySQLColumnInformation;
 
 import java.sql.SQLException;
 import java.util.HashMap;
@@ -10,9 +10,9 @@ import java.util.Map;
 public class ColumnNameMap {
     Map<String, Integer> map;
     Map<String, Integer> labelMap;
-    ColumnInformation[] columnInfo;
+    MySQLColumnInformation[] columnInfo;
 
-    public ColumnNameMap(ColumnInformation[] columnInformations) {
+    public ColumnNameMap(MySQLColumnInformation[] columnInformations) {
        this.columnInfo = columnInformations;
     }
 
@@ -32,7 +32,7 @@ public class ColumnNameMap {
         if (map == null) {
             map = new HashMap<String, Integer>();
             int i=0;
-            for(ColumnInformation ci : columnInfo) {
+            for(MySQLColumnInformation ci : columnInfo) {
                 String columnName = ci.getOriginalName().toLowerCase();
                 if (columnName.equals("")) {
                     // for name-less columns (there CAN be some), use their alias
@@ -58,7 +58,7 @@ public class ColumnNameMap {
         if (labelMap == null) {
             labelMap = new HashMap<String, Integer>();
             int i=0;
-            for(ColumnInformation ci : columnInfo) {
+            for(MySQLColumnInformation ci : columnInfo) {
                 String columnAlias = ci.getName().toLowerCase();
                 labelMap.put(columnAlias, i);
                 if (ci.getTable() != null) {

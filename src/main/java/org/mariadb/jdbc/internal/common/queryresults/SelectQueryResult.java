@@ -49,9 +49,9 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.common.queryresults;
 
-import org.mariadb.jdbc.internal.common.ColumnInformation;
 import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.common.ValueObject;
+import org.mariadb.jdbc.internal.mysql.MySQLColumnInformation;
 
 import java.io.IOException;
 import java.sql.SQLException;
@@ -60,10 +60,10 @@ import java.sql.SQLFeatureNotSupportedException;
 
 public abstract class SelectQueryResult extends QueryResult {
 
-    ColumnInformation[] columnInformation;
+    MySQLColumnInformation[] columnInformation;
     short warningCount;
 
-    public ColumnInformation[] getColumnInformation() {
+    public MySQLColumnInformation[] getColumnInformation() {
         return columnInformation;
     }
 

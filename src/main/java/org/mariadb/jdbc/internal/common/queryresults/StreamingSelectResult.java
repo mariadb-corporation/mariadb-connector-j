@@ -17,7 +17,7 @@ public class StreamingSelectResult extends SelectQueryResult {
     boolean beforeFirst;
 
 
-    private StreamingSelectResult(ColumnInformation[] info, MySQLProtocol protocol, PacketFetcher fetcher) throws QueryException {
+    private StreamingSelectResult(MySQLColumnInformation[] info, MySQLProtocol protocol, PacketFetcher fetcher) throws QueryException {
         this.columnInformation = info;
         this.protocol = protocol;
         this.packetFetcher = fetcher;
@@ -42,7 +42,7 @@ public class StreamingSelectResult extends SelectQueryResult {
                     "which must be closed prior to opening a new one");
         }
         long fieldCount = packet.getFieldCount();
-        ColumnInformation[] ci = new ColumnInformation[(int)fieldCount];
+        MySQLColumnInformation[] ci = new MySQLColumnInformation[(int)fieldCount];
         
         for (int i = 0; i < fieldCount; i++) {
             final RawPacket rawPacket = packetFetcher.getRawPacket();

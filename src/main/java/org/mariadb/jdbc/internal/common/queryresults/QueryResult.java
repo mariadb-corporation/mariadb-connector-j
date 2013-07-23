@@ -49,7 +49,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.common.queryresults;
 
-import org.mariadb.jdbc.internal.common.ColumnInformation;
+import org.mariadb.jdbc.internal.mysql.MySQLColumnInformation;
 
 
 public abstract class QueryResult {
@@ -67,7 +67,7 @@ public abstract class QueryResult {
 
     public abstract String getMessage();
 
-    public abstract ColumnInformation[] getColumnInformation();
+    public abstract MySQLColumnInformation[] getColumnInformation();
 
     public abstract int getRows();
 }

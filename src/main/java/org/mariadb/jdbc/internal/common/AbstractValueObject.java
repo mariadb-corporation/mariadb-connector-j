@@ -65,9 +65,9 @@ import java.util.Calendar;
 
 public abstract class AbstractValueObject implements ValueObject {
     private final byte[] rawBytes;
-    protected final DataType dataType;
+    protected final MySQLType dataType;
 
-    protected AbstractValueObject(final byte[] rawBytes, final DataType dataType) {
+    protected AbstractValueObject(final byte[] rawBytes, final MySQLType dataType) {
         this.dataType = dataType;
         this.rawBytes = rawBytes;
     }

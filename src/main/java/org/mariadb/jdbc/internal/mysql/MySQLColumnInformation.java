@@ -49,8 +49,6 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.mysql;
 
-import org.mariadb.jdbc.internal.common.ColumnInformation;
-import org.mariadb.jdbc.internal.common.DataType;
 import org.mariadb.jdbc.internal.common.packet.RawPacket;
 import org.mariadb.jdbc.internal.common.packet.buffer.Reader;
 import org.mariadb.jdbc.internal.common.queryresults.ColumnFlags;
@@ -62,11 +60,11 @@ import java.sql.Types;
 import java.util.EnumSet;
 import java.util.Set;
 
-public class MySQLColumnInformation implements ColumnInformation {
+public class MySQLColumnInformation  {
     RawPacket buffer;
     private short charsetNumber;
     private long length;
-    private DataType type;
+    private MySQLType type;
     private byte decimals;
     private Set<ColumnFlags> flags;
 
@@ -225,7 +223,7 @@ public class MySQLColumnInformation implements ColumnInformation {
         return decimals;
     }
 
-    public DataType getType() {
+    public MySQLType getType() {
         return type;
     }
     public Set<ColumnFlags> getFlags() {

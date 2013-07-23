@@ -49,9 +49,9 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.mysql.packet;
 
-import org.mariadb.jdbc.internal.common.ColumnInformation;
 import org.mariadb.jdbc.internal.common.packet.RawPacket;
 import org.mariadb.jdbc.internal.mysql.MySQLColumnInformation;
+
 import java.io.IOException;
 
 /**
@@ -78,7 +78,7 @@ n (Length Coded Binary)    default
 
     */
 
-    public static ColumnInformation columnInformationFactory(final RawPacket rawPacket) throws IOException {
+    public static MySQLColumnInformation columnInformationFactory(final RawPacket rawPacket) throws IOException {
         return new MySQLColumnInformation(rawPacket);
     }
 

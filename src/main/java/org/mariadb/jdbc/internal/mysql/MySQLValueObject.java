@@ -61,9 +61,9 @@ import java.text.ParseException;
  * <p/>
  */
 public class MySQLValueObject extends AbstractValueObject {
-    ColumnInformation columnInfo;
+    MySQLColumnInformation columnInfo;
 
-    public MySQLValueObject(byte[] rawBytes, ColumnInformation columnInfo) {
+    public MySQLValueObject(byte[] rawBytes, MySQLColumnInformation columnInfo) {
         super(rawBytes, columnInfo.getType());
         this.columnInfo = columnInfo;
     }

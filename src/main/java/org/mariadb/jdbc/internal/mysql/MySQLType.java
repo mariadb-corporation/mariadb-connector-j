@@ -49,12 +49,10 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.mysql;
 
-import org.mariadb.jdbc.internal.common.DataType;
-
 import java.sql.Types;
 
 
-public class MySQLType implements DataType {
+public class MySQLType  {
     private final Type type;
 
     public MySQLType(final Type type) {
@@ -73,6 +71,7 @@ public class MySQLType implements DataType {
     public Type getType() {
         return type;
     }
+
 
 
     public enum Type {

@@ -50,9 +50,9 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc;
 
 import org.mariadb.jdbc.internal.SQLExceptionMapper;
-import org.mariadb.jdbc.internal.common.ColumnInformation;
 import org.mariadb.jdbc.internal.common.ValueObject;
 import org.mariadb.jdbc.internal.common.queryresults.ColumnFlags;
+import org.mariadb.jdbc.internal.mysql.*;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -63,10 +63,10 @@ import java.sql.Types;
 
 public class MySQLResultSetMetaData implements ResultSetMetaData {
 
-    private ColumnInformation[] fieldPackets;
+    private MySQLColumnInformation[] fieldPackets;
     private int datatypeMappingflags;
 
-    public MySQLResultSetMetaData(ColumnInformation[] fieldPackets, int datatypeMappingFlags) {
+    public MySQLResultSetMetaData(MySQLColumnInformation[] fieldPackets, int datatypeMappingFlags) {
         this.fieldPackets = fieldPackets;
         this.datatypeMappingflags = datatypeMappingFlags;
     }
@@ -253,7 +253,7 @@ public class MySQLResultSetMetaData implements ResultSetMetaData {
      * @see java.sql.Types
      */
     public int getColumnType(final int column) throws SQLException {
-        ColumnInformation ci = getColumnInformation(column);
+        MySQLColumnInformation ci = getColumnInformation(column);
         switch(ci.getType().getType()) {
             case BIT:
                 if(ci.getLength() == 1)
@@ -298,7 +298,7 @@ public class MySQLResultSetMetaData implements ResultSetMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public String getColumnTypeName(final int column) throws SQLException {
-        ColumnInformation ci = getColumnInformation(column);
+        MySQLColumnInformation ci = getColumnInformation(column);
         switch(ci.getType().getType()) {
             case SMALLINT:
             case MEDIUMINT:
@@ -386,7 +386,7 @@ public class MySQLResultSetMetaData implements ResultSetMetaData {
      */
     static final String byteArrayClassName = "[B";
     public String getColumnClassName(int column) throws SQLException {
-        ColumnInformation ci = getColumnInformation(column);
+        MySQLColumnInformation ci = getColumnInformation(column);
         switch(ci.getType().getType()) {
           case OLDDECIMAL:
             return BigDecimal.class.getName();
@@ -445,7 +445,7 @@ public class MySQLResultSetMetaData implements ResultSetMetaData {
         }
     }
 
-    private ColumnInformation getColumnInformation(int column) throws SQLException {
+    private MySQLColumnInformation getColumnInformation(int column) throws SQLException {
         if (column >= 1 && column <= fieldPackets.length) {
             return fieldPackets[column - 1];
         }

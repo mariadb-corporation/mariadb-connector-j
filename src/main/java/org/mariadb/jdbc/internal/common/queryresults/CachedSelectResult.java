@@ -48,9 +48,9 @@ OF SUCH DAMAGE.
 */
 package org.mariadb.jdbc.internal.common.queryresults;
 
-import org.mariadb.jdbc.internal.common.ColumnInformation;
 import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.common.ValueObject;
+import org.mariadb.jdbc.internal.mysql.MySQLColumnInformation;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -63,7 +63,7 @@ public  class CachedSelectResult extends SelectQueryResult {
     protected short warningCount;
     private int rowPointer;
 
-    public CachedSelectResult(ColumnInformation[] ci, List<ValueObject[]> result, short warningCount) {
+    public CachedSelectResult(MySQLColumnInformation[] ci, List<ValueObject[]> result, short warningCount) {
         this.columnInformation = ci;
         this.resultSet = result;
         this.warningCount = warningCount;
@@ -96,7 +96,7 @@ public  class CachedSelectResult extends SelectQueryResult {
         return null;
     }
 
-    public ColumnInformation[] getColumnInformation() {
+    public MySQLColumnInformation[] getColumnInformation() {
         return columnInformation;
     }
 

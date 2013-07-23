@@ -50,7 +50,6 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc;
 
 import org.mariadb.jdbc.internal.SQLExceptionMapper;
-import org.mariadb.jdbc.internal.common.ColumnInformation;
 import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.common.ValueObject;
 import org.mariadb.jdbc.internal.common.queryresults.*;
@@ -67,12 +66,9 @@ import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.*;
+import java.sql.Date;
 import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 
 public class MySQLResultSet implements ResultSet {
@@ -95,7 +91,7 @@ public class MySQLResultSet implements ResultSet {
     }
 
     private static MySQLResultSet createEmptyResultSet() {
-        ColumnInformation[] colList = new ColumnInformation[0];
+        MySQLColumnInformation[] colList = new MySQLColumnInformation[0];
         List<ValueObject[]> voList = Collections.emptyList();
         QueryResult qr = new CachedSelectResult(colList, voList, (short) 0);
         return new MySQLResultSet(qr, null, null);
@@ -3700,7 +3696,7 @@ public class MySQLResultSet implements ResultSet {
     static ResultSet createResultSet(String[] columnNames, MySQLType.Type[] columnTypes, String[][] data, 
             MySQLProtocol protocol, boolean findColumnReturnsOne)  {
         int N = columnNames.length;
-        ColumnInformation[] columns = new ColumnInformation[N];
+        MySQLColumnInformation[] columns = new MySQLColumnInformation[N];
         
         for (int i = 0; i < N ; i++) {
             columns[i] = MySQLColumnInformation.create(columnNames[i],columnTypes[i]);
