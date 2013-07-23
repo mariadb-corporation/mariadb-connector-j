@@ -49,14 +49,12 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.mysql.packet;
 
-import org.mariadb.jdbc.internal.common.ServerStatus;
 import org.mariadb.jdbc.internal.common.Utils;
-import org.mariadb.jdbc.internal.common.packet.buffer.Reader;
 import org.mariadb.jdbc.internal.common.packet.RawPacket;
+import org.mariadb.jdbc.internal.common.packet.buffer.Reader;
 import org.mariadb.jdbc.internal.mysql.MySQLServerCapabilities;
 
 import java.io.IOException;
-import java.util.Set;
 
 
 public class MySQLGreetingReadPacket {
@@ -65,9 +63,9 @@ public class MySQLGreetingReadPacket {
     private final long serverThreadID;
     //private final byte[] seed1;
     //private final byte[] seed2;
-    private final Set<MySQLServerCapabilities> serverCapabilities;
+    private final int serverCapabilities;
     private final byte serverLanguage;
-    private final Set<ServerStatus> serverStatus;
+    private final short serverStatus;
     private final byte[] seed;
 
     /* MDEV-4088/CONJ-32 :  in 10.0, the real version string maybe prefixed with "5.5.5-", 
@@ -82,9 +80,9 @@ public class MySQLGreetingReadPacket {
         serverThreadID = reader.readInt();
         final byte[] seed1 = reader.readRawBytes(8);
         reader.skipByte();
-        serverCapabilities = MySQLServerCapabilities.getServerCapabilitiesSet(reader.readShort());
+        serverCapabilities = reader.readShort();
         serverLanguage = reader.readByte();
-        serverStatus = ServerStatus.getServerStatusSet(reader.readShort());
+        serverStatus = reader.readShort();
         reader.skipBytes(13);
         final byte[] seed2 = reader.readRawBytes(12);
         seed = Utils.copyWithLength(seed1, seed1.length + seed2.length);
@@ -95,7 +93,7 @@ public class MySQLGreetingReadPacket {
          * check for MariaDB 10.x replication hack , remove fake prefix if needed
          *  (see comments about MARIADB_RPL_HACK_PREFIX)
          */ 
-        if (serverCapabilities.contains(MySQLServerCapabilities.PLUGIN_AUTH) 
+        if ((serverCapabilities & MySQLServerCapabilities.PLUGIN_AUTH) != 0
                 && serverVersion.startsWith(MARIADB_RPL_HACK_PREFIX)) {
             serverVersion = serverVersion.substring(MARIADB_RPL_HACK_PREFIX.length());
         }
@@ -132,7 +130,7 @@ public class MySQLGreetingReadPacket {
         return seed;
     }
 
-    public Set<MySQLServerCapabilities> getServerCapabilities() {
+    public int getServerCapabilities() {
         return serverCapabilities;
     }
 
@@ -140,7 +138,7 @@ public class MySQLGreetingReadPacket {
         return serverLanguage;
     }
 
-    public Set<ServerStatus> getServerStatus() {
+    public short getServerStatus() {
         return serverStatus;
     }
 }

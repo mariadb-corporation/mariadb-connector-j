@@ -58,7 +58,6 @@ import org.mariadb.jdbc.internal.mysql.MySQLServerCapabilities;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.security.NoSuchAlgorithmException;
-import java.util.Set;
 
 /**
  * 4                            client_flags 4                            max_packet_size 1 charset_number 23 (filler)
@@ -90,7 +89,7 @@ public class MySQLClientAuthPacket implements CommandPacket {
     public MySQLClientAuthPacket(final String username,
                                  final String password,
                                  final String database,
-                                 final Set<MySQLServerCapabilities> serverCapabilities,
+                                 final int serverCapabilities,
                                  final byte[] seed, byte packetSeq) {
         this.packetSeq = packetSeq;
         writeBuffer = new WriteBuffer();
@@ -102,7 +101,7 @@ public class MySQLClientAuthPacket implements CommandPacket {
         }
 
         final byte serverLanguage = 33;
-        writeBuffer.writeInt(MySQLServerCapabilities.fromSet(serverCapabilities)).
+        writeBuffer.writeInt(serverCapabilities).
                 writeInt(1024*1024*1024).
                 writeByte(serverLanguage). //1
                 writeBytes((byte) 0, 23).    //23
@@ -111,7 +110,7 @@ public class MySQLClientAuthPacket implements CommandPacket {
                 writeByte((byte) scrambledPassword.length).
                 writeByteArray(scrambledPassword); //scrambledPassword.length
 
-        if (serverCapabilities.contains(MySQLServerCapabilities.CONNECT_WITH_DB)) {
+        if ((serverCapabilities & MySQLServerCapabilities.CONNECT_WITH_DB) != 0) {
             writeBuffer.writeString(database).writeByte((byte) 0);
         }
     }

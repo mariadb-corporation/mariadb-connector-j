@@ -163,7 +163,7 @@ public class MySQLProtocol {
     public boolean hasWarnings = false;
     public StreamingSelectResult activeResult= null;
     public int datatypeMappingFlags;
-    public Set<ServerStatus> serverStatus;
+    public short serverStatus;
     JDBCUrl jdbcUrl;
     HostAddress currentHost;
     
@@ -403,26 +403,30 @@ public class MySQLProtocol {
            this.version = greetingPacket.getServerVersion();
            parseVersion();
            byte packetSeq = 1;
-           final Set<MySQLServerCapabilities> capabilities = EnumSet.of(MySQLServerCapabilities.LONG_PASSWORD,
-                   MySQLServerCapabilities.IGNORE_SPACE,
-                   MySQLServerCapabilities.CLIENT_PROTOCOL_41,
-                   MySQLServerCapabilities.TRANSACTIONS,
-                   MySQLServerCapabilities.SECURE_CONNECTION,
-                   MySQLServerCapabilities.LOCAL_FILES,
-                   MySQLServerCapabilities.MULTI_RESULTS,
-                   MySQLServerCapabilities.FOUND_ROWS);
+           int capabilities =
+                   MySQLServerCapabilities.LONG_PASSWORD |
+                   MySQLServerCapabilities.IGNORE_SPACE |
+                   MySQLServerCapabilities.CLIENT_PROTOCOL_41|
+                   MySQLServerCapabilities.TRANSACTIONS|
+                   MySQLServerCapabilities.SECURE_CONNECTION|
+                   MySQLServerCapabilities.LOCAL_FILES|
+                   MySQLServerCapabilities.MULTI_RESULTS|
+                   MySQLServerCapabilities.FOUND_ROWS |
+                   MySQLServerCapabilities.PLUGIN_AUTH;
+
            if(info.getProperty("allowMultiQueries") != null) {
-               capabilities.add(MySQLServerCapabilities.MULTI_STATEMENTS);
+              capabilities |= MySQLServerCapabilities.MULTI_STATEMENTS;
            }
            if(info.getProperty("useCompression") != null) {
-               capabilities.add(MySQLServerCapabilities.COMPRESS);
+               capabilities |= MySQLServerCapabilities.COMPRESS;
                useCompression = true;
            }
            if(info.getProperty("interactiveClient") != null) {
-               capabilities.add(MySQLServerCapabilities.CLIENT_INTERACTIVE);
+              capabilities |= MySQLServerCapabilities.CLIENT_INTERACTIVE;
            }
-           if(info.getProperty("useSSL") != null && greetingPacket.getServerCapabilities().contains(MySQLServerCapabilities.SSL)) {
-               capabilities.add(MySQLServerCapabilities.SSL);
+           if(info.getProperty("useSSL") != null &&
+                   (greetingPacket.getServerCapabilities() & MySQLServerCapabilities.SSL) != 0 ) {
+               capabilities |= MySQLServerCapabilities.SSL;
                AbbreviatedMySQLClientAuthPacket amcap = new AbbreviatedMySQLClientAuthPacket(capabilities);
                amcap.send(writer);
 
@@ -448,7 +452,8 @@ public class MySQLProtocol {
            // If a database is given, but createDB is not defined or is false,
            // then just try to connect to the given database
            if (database != null && !createDB())
-               capabilities.add(MySQLServerCapabilities.CONNECT_WITH_DB);
+               capabilities |= MySQLServerCapabilities.CONNECT_WITH_DB;
+
 
            final MySQLClientAuthPacket cap = new MySQLClientAuthPacket(this.username,
                    this.password,
@@ -470,17 +475,19 @@ public class MySQLProtocol {
                rp = packetFetcher.getRawPacket();
            }
 
-           if (useCompression) {
-               writer = new PacketOutputStream(new CompressOutputStream(socket.getOutputStream()));
-               packetFetcher = new SyncPacketFetcher(new DecompressInputStream(socket.getInputStream()));
-           }
            checkErrorPacket(rp);
            ResultPacket resultPacket = ResultPacketFactory.createResultPacket(rp);
            OKPacket ok = (OKPacket)resultPacket;
            serverStatus = ok.getServerStatus();
+
+           if (useCompression) {
+               writer = new PacketOutputStream(new CompressOutputStream(socket.getOutputStream()));
+               packetFetcher = new SyncPacketFetcher(new DecompressInputStream(socket.getInputStream()));
+           }
+
            
            // In JDBC, connection must start in autocommit mode.
-           if (!serverStatus.contains(ServerStatus.AUTOCOMMIT)) {
+           if ((serverStatus & ServerStatus.AUTOCOMMIT) != 0) {
                executeQuery(new MySQLQuery("set autocommit=1"));
            }
 
@@ -622,7 +629,7 @@ public class MySQLProtocol {
     }
 
     public boolean getAutocommit() {
-        return serverStatus.contains(ServerStatus.AUTOCOMMIT);
+        return ((serverStatus & ServerStatus.AUTOCOMMIT) != 0);
     }
     public void reconnectToMaster() throws IOException,QueryException {
         SyncPacketFetcher saveFetcher = this.packetFetcher;
@@ -696,9 +703,7 @@ public class MySQLProtocol {
 
     public boolean inTransaction()
     {
-        if(serverStatus != null)
-            return serverStatus.contains(ServerStatus.IN_TRANSACTION);
-        return false;
+        return ((serverStatus & ServerStatus.IN_TRANSACTION) != 0);
     }
 
     private void setDatatypeMappingFlags() {
@@ -929,7 +934,7 @@ public class MySQLProtocol {
             case OK:
                 final OKPacket okpacket = (OKPacket) resultPacket;
                 serverStatus = okpacket.getServerStatus();
-                this.moreResults = serverStatus.contains(ServerStatus.MORE_RESULTS_EXISTS);
+                this.moreResults = ((serverStatus & ServerStatus.MORE_RESULTS_EXISTS) != 0);
                 this.hasWarnings = (okpacket.getWarnings() > 0);
                 final QueryResult updateResult = new UpdateResult(okpacket.getAffectedRows(),
                         okpacket.getWarnings(),

@@ -49,51 +49,16 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.common;
 
-import java.util.EnumSet;
-import java.util.Set;
-
-
-public enum ServerStatus {
-    IN_TRANSACTION((short) 1),
-    AUTOCOMMIT((short) 2),
-    MORE_RESULTS_EXISTS((short) 8),
-    QUERY_NO_GOOD_INDEX_USED((short) 16),
-    QUERY_NO_INDEX_USED((short) 32),
-    CURSOR_EXISTS((short) 64),
-    LAST_ROW_SENT((short) 128),
-    DB_DROPPED((short) 256),
-    NO_BACKSLASH_ESCAPES((short) 512),
-    QUERY_WAS_SLOW((short) 1024);
-
-
-    private final short bitmapFlag;
-
-    ServerStatus(final short i) {
-        this.bitmapFlag = i;
-    }
-
-    /**
-     * returns the bit map flag
-     *
-     * @return the bitmap flag
-     */
-    public short getBitmapFlag() {
-        return bitmapFlag;
-    }
-
-    /**
-     * creates an enum set of the bitmasked field i
-     *
-     * @param i the bitmasked field
-     * @return an enum set with the flags defined by i
-     */
-    public static Set<ServerStatus> getServerStatusSet(final short i) {
-        final Set<ServerStatus> statusSet = EnumSet.noneOf(ServerStatus.class);
-        for (final ServerStatus value : ServerStatus.values()) {
-            if ((i & value.getBitmapFlag()) == value.getBitmapFlag()) {
-                statusSet.add(value);
-            }
-        }
-        return statusSet;
-    }
+public class ServerStatus {
+    public static final short
+            IN_TRANSACTION =  1,
+            AUTOCOMMIT =  2,
+            MORE_RESULTS_EXISTS = 8,
+            QUERY_NO_GOOD_INDEX_USED = 16,
+            QUERY_NO_INDEX_USED = 32,
+            CURSOR_EXISTS = 64,
+            LAST_ROW_SENT = 128,
+            DB_DROPPED =  256,
+            NO_BACKSLASH_ESCAPES = 512,
+            QUERY_WAS_SLOW =  1024;
 }

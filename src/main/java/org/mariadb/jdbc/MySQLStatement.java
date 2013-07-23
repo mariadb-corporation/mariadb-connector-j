@@ -93,10 +93,9 @@ public class MySQLStatement implements Statement {
     private static volatile Timer timer;
     private TimerTask timerTask;
     boolean isTimedout;
-
     List<String> batchQueries;
-
     Queue<Object> cachedResultSets;
+
 
     public boolean isStreaming() {
         return fetchSize == Integer.MIN_VALUE;
@@ -296,7 +295,7 @@ public class MySQLStatement implements Statement {
      */
     protected ResultSet executeQuery(Query query) throws SQLException {
         if (execute(query)) {
-            return new MySQLResultSet(queryResult, this, protocol);
+            return getResultSet();
         }
         //throw new SQLException("executeQuery() with query '" + query +"' did not return a result set");
         return MySQLResultSet.EMPTY;

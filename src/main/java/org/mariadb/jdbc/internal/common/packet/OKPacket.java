@@ -49,10 +49,8 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.common.packet;
 
-import org.mariadb.jdbc.internal.common.ServerStatus;
 import org.mariadb.jdbc.internal.common.packet.buffer.Reader;
 
-import java.util.Set;
 import java.io.IOException;
 
 /**
@@ -63,7 +61,7 @@ public class OKPacket extends ResultPacket {
 	private final byte fieldCount;
     private final long affectedRows;
     private final long insertId;
-    private final Set<ServerStatus> serverStatus;
+    private final short serverStatus;
     private final short warnings;
     private final String message;
     private final byte packetSeqNum;
@@ -75,7 +73,7 @@ public class OKPacket extends ResultPacket {
         fieldCount = reader.readByte();
         affectedRows = reader.getLengthEncodedBinary();
         insertId = reader.getLengthEncodedBinary();
-        serverStatus = ServerStatus.getServerStatusSet(reader.readShort());
+        serverStatus = reader.readShort();
         warnings = reader.readShort();
         message = new String(reader.getLengthEncodedBytes());
     }
@@ -110,7 +108,7 @@ public class OKPacket extends ResultPacket {
         return insertId;
     }
 
-    public Set<ServerStatus> getServerStatus() {
+    public short getServerStatus() {
         return serverStatus;
     }
 

@@ -52,15 +52,13 @@ package org.mariadb.jdbc.internal.common.packet;
 import org.mariadb.jdbc.internal.common.packet.buffer.Reader;
 
 import java.io.IOException;
-import java.util.Set;
-import org.mariadb.jdbc.internal.common.ServerStatus;
 
 
 public class EOFPacket extends ResultPacket {
  
     private final byte packetSeq;
     private final short warningCount;
-    private final Set<ServerStatus> statusFlags;
+    private final short statusFlags;
 
 
     public EOFPacket(final RawPacket rawPacket) throws IOException {
@@ -68,7 +66,7 @@ public class EOFPacket extends ResultPacket {
         packetSeq = 0;
         reader.readByte();
         warningCount = reader.readShort();
-        statusFlags = ServerStatus.getServerStatusSet(reader.readShort());
+        statusFlags = reader.readShort();
     }
 
     public ResultType getResultType() {
@@ -83,7 +81,7 @@ public class EOFPacket extends ResultPacket {
         return warningCount;
     }
 
-    public Set<ServerStatus> getStatusFlags() {
+    public short getStatusFlags() {
         return statusFlags;
     }
 
