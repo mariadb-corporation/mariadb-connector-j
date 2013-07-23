@@ -57,8 +57,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.sql.Types;
-import java.util.EnumSet;
-import java.util.Set;
 
 public class MySQLColumnInformation  {
     RawPacket buffer;
@@ -66,7 +64,46 @@ public class MySQLColumnInformation  {
     private long length;
     private MySQLType type;
     private byte decimals;
-    private Set<ColumnFlags> flags;
+    private short flags;
+
+    // This array stored character length for every collation id up to collation id 256
+    // It is generated from the information schema using
+    // "select  id, maxlen from information_schema.character_sets, information_schema.collations
+    // where character_sets.character_set_name = collations.character_set_name order by id"
+    private static final int[] maxCharlen = {
+        0,2,1,1,1,1,1,1,
+        1,1,1,1,3,2,1,1,
+        1,0,1,2,1,1,1,1,
+        2,1,1,1,2,1,1,1,
+        1,3,1,2,1,1,1,1,
+        1,1,1,1,1,4,4,1,
+        1,1,1,1,1,1,4,4,
+        0,1,1,1,4,4,0,1,
+        1,1,1,1,1,1,1,1,
+        1,1,1,1,0,1,1,1,
+        1,1,1,3,2,2,2,2,
+        2,1,2,3,1,1,1,2,
+        2,3,3,1,0,4,4,4,
+        4,4,4,4,4,4,4,4,
+        4,4,4,4,4,4,4,4,
+        4,0,0,0,0,0,0,0,
+        2,2,2,2,2,2,2,2,
+        2,2,2,2,2,2,2,2,
+        2,2,2,2,0,2,0,0,
+        0,0,0,0,0,0,0,2,
+        4,4,4,4,4,4,4,4,
+        4,4,4,4,4,4,4,4,
+        4,4,4,4,0,0,0,0,
+        0,0,0,0,0,0,0,0,
+        3,3,3,3,3,3,3,3,
+        3,3,3,3,3,3,3,3,
+        3,3,3,3,0,3,4,4,
+        0,0,0,0,0,0,0,3,
+        4,4,4,4,4,4,4,4,
+        4,4,4,4,4,4,4,4,
+        4,4,4,4,0,4,0,0,
+        0,0,0,0,0,0,0,0
+    };
 
     public static MySQLColumnInformation create(String name, MySQLType type) {
         try {
@@ -141,7 +178,7 @@ public class MySQLColumnInformation  {
         charsetNumber = reader.readShort();
         length = reader.readInt();
         type = MySQLType.fromServer(reader.readByte() & 0xff);
-        flags = parseFlags(reader.readShort());
+        flags = reader.readShort();
         decimals = reader.readByte();
 
 
@@ -154,15 +191,6 @@ public class MySQLColumnInformation  {
         }
     }
 
-    private static Set<ColumnFlags> parseFlags(final short i) {
-          final Set<ColumnFlags> retFlags = EnumSet.noneOf(ColumnFlags.class);
-          for (final ColumnFlags fieldFlag : ColumnFlags.values()) {
-              if ((i & fieldFlag.flag()) == fieldFlag.flag()) {
-                  retFlags.add(fieldFlag);
-              }
-          }
-          return retFlags;
-    }
 
     private String getString(int idx) {
         try  {
@@ -211,10 +239,13 @@ public class MySQLColumnInformation  {
 
     public int getDisplaySize() {
         int t = type.getSqlType();
-        if (t == Types.VARCHAR || t == Types.CHAR) {
-            if (charsetNumber == 33) {  /*UTF8*/
-                return (int)length / 3;
-            }
+        if (t == Types.VARCHAR || t == Types.CHAR ) {
+            int maxWidth = maxCharlen[charsetNumber & 0xff];
+            if (maxWidth == 0)
+                maxWidth = 1;
+
+            return (int)length / maxWidth;
+
         }
         return (int)length;
     }
@@ -226,11 +257,11 @@ public class MySQLColumnInformation  {
     public MySQLType getType() {
         return type;
     }
-    public Set<ColumnFlags> getFlags() {
+    public short getFlags() {
         return flags;
     }
     public boolean isSigned() {
-        return !flags.contains(ColumnFlags.UNSIGNED);
+        return ((flags & ColumnFlags.UNSIGNED) == 0);
     }
 
     public boolean isBinary() {

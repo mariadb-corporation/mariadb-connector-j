@@ -88,7 +88,7 @@ public class MySQLResultSetMetaData implements ResultSetMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public boolean isAutoIncrement(final int column) throws SQLException {
-        return getColumnInformation(column).getFlags().contains(ColumnFlags.AUTO_INCREMENT);
+        return (getColumnInformation(column).getFlags() & ColumnFlags.AUTO_INCREMENT) != 0;
     }
 
     /**
@@ -99,7 +99,7 @@ public class MySQLResultSetMetaData implements ResultSetMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public boolean isCaseSensitive(final int column) throws SQLException {
-        return getColumnInformation(column).getFlags().contains(ColumnFlags.BINARY_COLLATION);
+        return (getColumnInformation(column).getFlags() & ColumnFlags.BINARY_COLLATION) != 0;
     }
 
     /**
@@ -133,10 +133,10 @@ public class MySQLResultSetMetaData implements ResultSetMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public int isNullable(final int column) throws SQLException {
-        if (getColumnInformation(column).getFlags().contains(ColumnFlags.NOT_NULL)) {
-            return ResultSetMetaData.columnNoNulls;
-        } else {
+        if ((getColumnInformation(column).getFlags() & ColumnFlags.NOT_NULL) == 0) {
             return ResultSetMetaData.columnNullable;
+        } else {
+            return ResultSetMetaData.columnNoNulls;
         }
     }
 

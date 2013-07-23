@@ -50,28 +50,19 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.common.queryresults;
 
 
-public enum ColumnFlags {
-    NOT_NULL((short) 1),
-    PRIMARY_KEY((short) 2),
-    UNIQUE_KEY((short) 4),
-    MULTIPLE_KEY((short) 8),
-    BLOB((short) 16),
-    UNSIGNED((short) 32),
-    DECIMAL((short) 64),
-    BINARY_COLLATION((short) 128),
-    ENUM((short) 256),
-    AUTO_INCREMENT((short) 512),
-    TIMESTAMP((short) 1024),
-    SET((short) 2048);
-
-    private final short flag;
-
-    ColumnFlags(final short i) {
-        this.flag = i;
-    }
-
-    public short flag() {
-        return flag;
-    }
+public class ColumnFlags {
+    public static final short
+            NOT_NULL    = 1,
+            PRIMARY_KEY = 2,
+            UNIQUE_KEY  = 4,
+            MULTIPLE_KEY= 8,
+            BLOB =       16,
+            UNSIGNED =   32,
+            DECIMAL =    64,
+            BINARY_COLLATION = 128,
+            ENUM         =256,
+            AUTO_INCREMENT =  512,
+            TIMESTAMP = 1024,
+            SET = 2048;
 }
 
