@@ -3,10 +3,9 @@ package org.mariadb.jdbc;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.sql.SQLTransientException;
-import java.sql.Statement;
+import java.sql.*;
+
+import static org.junit.Assert.assertEquals;
 
 public class CancelTest extends BaseTest {
     @Before
@@ -57,5 +56,14 @@ public class CancelTest extends BaseTest {
         stmt.setQueryTimeout(1);
         stmt.execute("select sleep(0.5)");
 
+    }
+
+    @Test
+    public void CancelIdleStatement() throws Exception {
+        Statement stmt = connection.createStatement();
+        stmt.cancel();
+        ResultSet rs = stmt.executeQuery("select 1");
+        rs.next();
+        assertEquals(rs.getInt(1),1);
     }
 }

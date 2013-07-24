@@ -93,6 +93,8 @@ public class MySQLStatement implements Statement {
     private static volatile Timer timer;
     private TimerTask timerTask;
     boolean isTimedout;
+    volatile boolean executing;
+
     List<String> batchQueries;
     Queue<Object> cachedResultSets;
 
@@ -271,6 +273,7 @@ public class MySQLStatement implements Statement {
      protected boolean execute(Query query) throws SQLException {
     	//System.out.println(query);
         synchronized (protocol) {
+            executing = true;
             QueryException exception = null;
             executeQueryProlog();
             try {
@@ -282,6 +285,7 @@ public class MySQLStatement implements Statement {
               return false;
             } finally {
                 executeQueryEpilog(exception, query);
+                executing = false;
             }
         }
     }
@@ -510,6 +514,9 @@ public class MySQLStatement implements Statement {
      */
     public void cancel() throws SQLException {
         try {
+            if (!executing) {
+                return;
+            }
             protocol.cancelCurrentQuery();
         } catch (QueryException e) {
             SQLExceptionMapper.throwException(e, connection, this);
