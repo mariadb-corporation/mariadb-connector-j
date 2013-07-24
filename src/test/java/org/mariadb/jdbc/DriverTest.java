@@ -2,7 +2,6 @@ package org.mariadb.jdbc;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.mariadb.jdbc.internal.common.packet.RawPacket;
 import org.mariadb.jdbc.internal.common.packet.buffer.WriteBuffer;
 
 import java.io.*;
@@ -10,7 +9,6 @@ import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.*;
 import java.util.Arrays;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -477,19 +475,6 @@ public class DriverTest extends BaseTest{
         assertEquals(4000,updateCount);
     }
 
-    //@Test
-    public void testBinlogDumping() throws SQLException {
-        assertEquals(true, connection.isWrapperFor(ReplicationConnection.class));
-
-        ReplicationConnection rc = connection.unwrap(ReplicationConnection.class);
-        List<RawPacket> rpList = rc.startBinlogDump(891,"mysqld-bin.000001");
-        for(RawPacket rp : rpList) {
-            for(byte b:rp.getByteBuffer().array()) {
-                System.out.printf("%x ",b);
-            }
-            System.out.printf("\n");
-        }
-    }
     
     @SuppressWarnings("deprecation")
 	@Test

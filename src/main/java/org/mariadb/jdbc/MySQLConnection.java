@@ -50,19 +50,17 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc;
 
 import org.mariadb.jdbc.internal.SQLExceptionMapper;
-import org.mariadb.jdbc.internal.common.*;
-import org.mariadb.jdbc.internal.common.packet.RawPacket;
+import org.mariadb.jdbc.internal.common.QueryException;
+import org.mariadb.jdbc.internal.common.Utils;
 import org.mariadb.jdbc.internal.mysql.MySQLProtocol;
 
 import java.sql.*;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executor;
 
 
-public final class MySQLConnection
-        implements Connection, ReplicationConnection {
+public final class MySQLConnection  implements Connection {
     /**
      * the protocol to communicate with.
      */
@@ -1277,22 +1275,6 @@ public final class MySQLConnection
      */
     public String getDatabase() {
         return protocol.getDatabase();
-    }
-
-    /**
-     * returns a list of binlog entries.
-     *
-     * @param position the position to start at
-     * @param logfile  the log file to use
-     * @return a list of rawpackets from the server
-     * @throws SQLException if there is a problem talking to the server.
-     */
-    public List<RawPacket> startBinlogDump(final int position, final String logfile) throws SQLException {
-        try {
-            return this.protocol.startBinlogDump(position, logfile);
-        } catch (BinlogDumpException e) {
-            throw SQLExceptionMapper.getSQLException("Could not dump binlog", e);
-        }
     }
 
    

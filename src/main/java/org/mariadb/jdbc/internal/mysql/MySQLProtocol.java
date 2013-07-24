@@ -982,24 +982,6 @@ public class MySQLProtocol {
     }
 
 
-    public List<RawPacket> startBinlogDump(final int startPos, final String filename) throws BinlogDumpException {
-        final MySQLBinlogDumpPacket mbdp = new MySQLBinlogDumpPacket(startPos, filename);
-        try {
-            mbdp.send(writer);
-            final List<RawPacket> rpList = new LinkedList<RawPacket>();
-            while (true) {
-                final RawPacket rp = this.packetFetcher.getRawPacket();
-                if (ReadUtil.eofIsNext(rp)) {
-                    return rpList;
-                }
-                rpList.add(rp);
-            }
-        } catch (IOException e) {
-            throw new BinlogDumpException("Could not read binlog", e);
-        }
-    }
-
-
 
     public String getServerVariable(String variable) throws QueryException {
         CachedSelectResult qr = (CachedSelectResult) executeQuery(new MySQLQuery("select @@" + variable));

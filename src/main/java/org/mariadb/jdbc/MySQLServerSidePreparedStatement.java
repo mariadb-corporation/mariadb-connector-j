@@ -14,6 +14,7 @@ import java.util.Calendar;
  *
  * @author vvaintroub
  */
+@SuppressWarnings("deprecation")
 public class MySQLServerSidePreparedStatement implements PreparedStatement{
 
     String sql;

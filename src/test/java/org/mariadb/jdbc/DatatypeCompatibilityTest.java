@@ -87,6 +87,7 @@ public class DatatypeCompatibilityTest extends BaseTest {
         }
     }
 
+    @SuppressWarnings( "deprecation" )
     @Test
     public void timeAsTimestamp() throws Exception{
        java.sql.Time aTime = new java.sql.Time(12,0,0);

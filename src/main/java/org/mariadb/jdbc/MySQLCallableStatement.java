@@ -307,6 +307,7 @@ class CallableParameterMetaData implements ParameterMetaData {
  * If it cannot be fetched (e.g privilege issue) then some functionality won't be available, for example named parameters
  * will not work.
  */
+@SuppressWarnings( "deprecation" )
 public class MySQLCallableStatement implements CallableStatement
 {
     /**
@@ -1191,6 +1192,7 @@ public class MySQLCallableStatement implements CallableStatement
         inputParameters().setAsciiStream(parameterIndex, x, length);
     }
 
+    @SuppressWarnings( "deprecation" )
     public void setUnicodeStream(int parameterIndex, InputStream x, int length) throws SQLException {
         inputParameters().setBinaryStream(parameterIndex, x, length);
     }

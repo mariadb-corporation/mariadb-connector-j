@@ -121,6 +121,7 @@ public class DateTest extends BaseTest{
 
     }
 
+    @SuppressWarnings( "deprecation" )
     @Test
     public void javaUtilDateInPreparedStatementAsDate() throws Exception {
           connection.createStatement().execute("drop table if exists dtest");
@@ -137,6 +138,7 @@ public class DateTest extends BaseTest{
           assertEquals(d.getDay(),rs.getDate(1).getDay());
     }
 
+    @SuppressWarnings( "deprecation" )
     @Test
     public void javaUtilDateInPreparedStatementAsTime() throws Exception {
           connection.createStatement().execute("drop table if exists dtest");
