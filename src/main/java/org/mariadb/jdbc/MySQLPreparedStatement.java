@@ -1100,10 +1100,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
      *                               <code>PreparedStatement</code>
      */
     public void setDate(int parameterIndex, java.sql.Date date) throws SQLException {
-        setDate(parameterIndex, (java.util.Date)date);
-    } 
-    
-    public void setDate(int parameterIndex,  java.util.Date date) throws SQLException{
+
         if(date == null) {
             setNull(parameterIndex, Types.DATE);
             return;
@@ -1364,13 +1361,26 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
             } else {
                 throw SQLExceptionMapper.getSQLException("Can only convert a byte[] to BINARY, VARBINARY or LONGVARBINARY");
             }
-        } else if (x instanceof java.util.Date) {
-            setDate(parameterIndex, (java.util.Date) x);      // works even if targetSqlType is non date-column
+
         } else if (x instanceof Time) {
             setTime(parameterIndex, (Time) x);      // it is just a string anyway
         } else if (x instanceof Timestamp) {
             setTimestamp(parameterIndex, (Timestamp) x);
-        } else if (x instanceof Boolean) {
+        } else if (x instanceof java.sql.Date) {
+            setDate(parameterIndex, (java.sql.Date) x);
+        } else if (x instanceof java.util.Date) {
+            long t =  ((java.util.Date) x).getTime();
+            if (targetSqlType == Types.DATE) {
+                setDate(parameterIndex, new java.sql.Date(t));
+            }
+            else if (targetSqlType == Types.TIME) {
+                setTime(parameterIndex, new Time(t));
+            }
+            else if (targetSqlType == Types.TIMESTAMP) {
+                setTimestamp(parameterIndex, new Timestamp(t));
+            }
+        }
+        else if (x instanceof Boolean) {
             testNumbers(targetSqlType);
             setBoolean(parameterIndex, (Boolean) x);
         } else if (x instanceof Blob) {

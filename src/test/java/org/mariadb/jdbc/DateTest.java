@@ -4,6 +4,7 @@ import org.junit.Test;
 
 import java.sql.*;
 import java.util.Calendar;
+import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -105,4 +106,50 @@ public class DateTest extends BaseTest{
         assertEquals(t.toString(), "11:11:11");
     }
 
+    @Test
+    public void javaUtilDateInPreparedStatementAsTimeStamp() throws Exception {
+        connection.createStatement().execute("drop table if exists dtest");
+        connection.createStatement().execute("create table dtest (d datetime)");
+        java.util.Date d = Calendar.getInstance(TimeZone.getDefault()).getTime();
+        PreparedStatement ps = connection.prepareStatement("insert into dtest values(?)");
+        ps.setObject(1, d, Types.TIMESTAMP);
+        ps.executeUpdate();
+        ResultSet rs = connection.createStatement().executeQuery("select * from dtest");
+        rs.next();
+        /* Check that time is correct, up to seconds precision */
+        assertEquals(d.getTime()/1000,rs.getTimestamp(1).getTime()/1000);
+
+    }
+
+    @Test
+    public void javaUtilDateInPreparedStatementAsDate() throws Exception {
+          connection.createStatement().execute("drop table if exists dtest");
+          connection.createStatement().execute("create table dtest (d date)");
+          java.util.Date d = Calendar.getInstance(TimeZone.getDefault()).getTime();
+          PreparedStatement ps = connection.prepareStatement("insert into dtest values(?)");
+          ps.setObject(1, d, Types.DATE);
+          ps.executeUpdate();
+          ResultSet rs = connection.createStatement().executeQuery("select * from dtest");
+          rs.next();
+          /* Check that time is correct, up to seconds precision */
+          assertEquals(d.getYear(),rs.getDate(1).getYear());
+          assertEquals(d.getMonth(),rs.getDate(1).getMonth());
+          assertEquals(d.getDay(),rs.getDate(1).getDay());
+    }
+
+    @Test
+    public void javaUtilDateInPreparedStatementAsTime() throws Exception {
+          connection.createStatement().execute("drop table if exists dtest");
+          connection.createStatement().execute("create table dtest (d  time)");
+          java.util.Date d = Calendar.getInstance(TimeZone.getDefault()).getTime();
+          PreparedStatement ps = connection.prepareStatement("insert into dtest values(?)");
+          ps.setObject(1, d, Types.TIME);
+          ps.executeUpdate();
+          ResultSet rs = connection.createStatement().executeQuery("select * from dtest");
+          rs.next();
+          /* Check that time is correct, up to seconds precision */
+          assertEquals(d.getHours(),rs.getTime(1).getHours());
+          assertEquals(d.getMinutes(),rs.getTime(1).getMinutes());
+          assertEquals(d.getSeconds(),rs.getTime(1).getSeconds());
+    }
 }

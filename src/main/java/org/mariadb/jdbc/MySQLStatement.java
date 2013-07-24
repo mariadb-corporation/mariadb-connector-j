@@ -258,7 +258,7 @@ public class MySQLStatement implements Statement {
             e.setMessage(e.getMessage()+ "\nQuery is:\n" + queryString);
         }
         	
-        SQLExceptionMapper.throwException(e, connection, this);
+         SQLExceptionMapper.throwException(e, connection, this);
     }
 
     /**

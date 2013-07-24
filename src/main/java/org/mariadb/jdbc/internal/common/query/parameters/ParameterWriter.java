@@ -152,13 +152,11 @@ public class ParameterWriter {
     public static void writeDate(OutputStream out, java.util.Date date, Calendar calendar) throws IOException {
        out.write(QUOTE);
        String dateString;
+       SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
        if (calendar != null) {
-           SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
            sdf.setCalendar(calendar);
-           dateString = sdf.format(date);
-       } else {
-           dateString = date.toString();
        }
+       dateString = sdf.format(date);
        out.write(dateString.getBytes());
        out.write(QUOTE);
     }
