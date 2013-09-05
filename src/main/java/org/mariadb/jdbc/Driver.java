@@ -182,4 +182,13 @@ public final class Driver implements java.sql.Driver {
 		// TODO Auto-generated method stub
 		return null;
 	}
+
+    /*
+        Provide a "cleanup" method that can be called after unloading driver, to fix Tomcat's obscure classpath handling.
+
+        See CONJ-61.
+     */
+    public static void unloadDriver() {
+        MySQLStatement.unloadDriver();
+    }
 }

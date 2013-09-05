@@ -1212,4 +1212,9 @@ public class MySQLStatement implements Statement {
 		// TODO Auto-generated method stub
 		return false;
 	}
+
+    public static void unloadDriver() {
+        if (timer != null)
+            timer.cancel();
+    }
 }
