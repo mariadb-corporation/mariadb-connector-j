@@ -9,6 +9,8 @@ import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.*;
 import java.util.Arrays;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -1586,9 +1588,10 @@ public class DriverTest extends BaseTest{
         ps.setBigDecimal(2, new BigDecimal("1"));
         ps.setString(3, "one");
         ps.setBoolean(4, true);
-        ps.setDate(5, new Date(0));
+        Calendar c = new GregorianCalendar(1972,3,22);
+        ps.setDate(5, new java.sql.Date(c.getTime().getTime()));
         ps.setDouble(6, 1.5);
-        assertEquals("sql : 'SELECT ?,?,?,?,?,?', parameters : [1,1,'one',1,'1970-01-01',1.5]",ps.toString());
+        assertEquals("sql : 'SELECT ?,?,?,?,?,?', parameters : [1,1,'one',1,'1972-04-22',1.5]",ps.toString());
         ps.close();
     }
 
