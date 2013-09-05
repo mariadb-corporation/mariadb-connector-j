@@ -622,9 +622,7 @@ public final class MySQLConnection  implements Connection {
      * @since 1.4
      */
     public void setHoldability(final int holdability) throws SQLException {
-        if (holdability != ResultSet.HOLD_CURSORS_OVER_COMMIT) {
-            throw SQLExceptionMapper.getFeatureNotSupportedException("Only holding cursors over commit is supported");
-        }
+
     }
 
     /**
@@ -756,10 +754,7 @@ public final class MySQLConnection  implements Connection {
         if (resultSetConcurrency != ResultSet.CONCUR_READ_ONLY) {
             throw SQLExceptionMapper.getFeatureNotSupportedException("Only read-only result sets allowed");
         }
-        if (resultSetHoldability != ResultSet.HOLD_CURSORS_OVER_COMMIT) {
-            throw SQLExceptionMapper.getFeatureNotSupportedException(
-                        "Cursors are always kept when sending commit (they are only client-side)");
-        }
+
         return createStatement();
     }
 
@@ -795,10 +790,6 @@ public final class MySQLConnection  implements Connection {
                                               final int resultSetHoldability) throws SQLException {
         if (resultSetConcurrency != ResultSet.CONCUR_READ_ONLY) {
             throw SQLExceptionMapper.getFeatureNotSupportedException("Only read-only result sets allowed");
-        }
-        if (resultSetHoldability != ResultSet.HOLD_CURSORS_OVER_COMMIT) {
-            throw SQLExceptionMapper.getFeatureNotSupportedException(
-                    "Cursors are always kept when sending commit (they are only client-side)");
         }
         // resultSetType is ignored since we always are scroll insensitive
         return prepareStatement(sql);
