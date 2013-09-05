@@ -119,7 +119,9 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
 
 
     private ResultSet executeQuery(String sql) throws SQLException {
-        return connection.createStatement().executeQuery(sql);
+        MySQLResultSet rs =  (MySQLResultSet)connection.createStatement().executeQuery(sql);
+        rs.setStatement(null); // bypass Hibernate statement tracking (CONJ-49)
+        return rs;
     }
     
     

@@ -3765,4 +3765,8 @@ public class MySQLResultSet implements ResultSet {
                 new MySQLType[] {MySQLType.BIGINT},
                 data, connection.getProtocol(),true);
     }
+
+    void setStatement(Statement st) {
+        this.statement = st;
+    }
 }
