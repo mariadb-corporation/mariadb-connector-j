@@ -53,7 +53,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 
-public class IntParameter implements ParameterHolder {
+public class IntParameter extends ParameterHolder {
     int value;
 
     public IntParameter(int value) {

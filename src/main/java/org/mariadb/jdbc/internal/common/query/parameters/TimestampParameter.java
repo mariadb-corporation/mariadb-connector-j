@@ -55,7 +55,7 @@ import java.sql.Timestamp;
 import java.util.Calendar;
 
 
-public class TimestampParameter implements ParameterHolder {
+public class TimestampParameter extends ParameterHolder {
     Timestamp ts;
     Calendar calendar;
     boolean fractionalSeconds;

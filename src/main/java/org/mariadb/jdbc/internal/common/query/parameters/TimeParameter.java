@@ -57,7 +57,7 @@ import java.sql.Time;
 import java.util.Calendar;
 
 
-public class TimeParameter implements ParameterHolder {
+public class TimeParameter extends ParameterHolder {
     Time time;
     Calendar cal;
     boolean fractionalSeconds;

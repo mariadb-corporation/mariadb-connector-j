@@ -54,7 +54,7 @@ import java.io.OutputStream;
 import java.io.Reader;
 
 
-public class ReaderParameter implements  ParameterHolder{
+public class ReaderParameter extends  ParameterHolder{
     Reader reader;
     long length;
     boolean noBackslashEscapes;
@@ -71,5 +71,9 @@ public class ReaderParameter implements  ParameterHolder{
             ParameterWriter.write(os, reader, noBackslashEscapes);
         else
             ParameterWriter.write(os, reader, length, noBackslashEscapes);
+    }
+
+    public String toString() {
+        return "<Reader> " + reader;
     }
 }

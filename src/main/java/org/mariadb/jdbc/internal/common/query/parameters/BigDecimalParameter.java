@@ -52,7 +52,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigDecimal;
 
-public class BigDecimalParameter implements ParameterHolder {
+public class BigDecimalParameter extends ParameterHolder {
     BigDecimal bigDecimal;
 
     public BigDecimalParameter(final BigDecimal x) {

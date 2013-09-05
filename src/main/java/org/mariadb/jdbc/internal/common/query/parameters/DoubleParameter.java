@@ -54,7 +54,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 
-public class DoubleParameter implements ParameterHolder {
+public class DoubleParameter extends ParameterHolder {
     double value;
 
     public DoubleParameter(double value) {

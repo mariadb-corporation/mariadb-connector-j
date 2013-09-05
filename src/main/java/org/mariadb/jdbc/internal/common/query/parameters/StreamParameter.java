@@ -54,7 +54,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 
-public class StreamParameter implements ParameterHolder {
+public class StreamParameter extends ParameterHolder {
     InputStream is;
     long length;
     boolean noBackslashEscapes;
@@ -78,5 +78,9 @@ public class StreamParameter implements ParameterHolder {
         } else {
             ParameterWriter.write(os, is, length, noBackslashEscapes, isText);
         }
+    }
+
+    public String toString() {
+        return "<Stream> " + is;
     }
 }

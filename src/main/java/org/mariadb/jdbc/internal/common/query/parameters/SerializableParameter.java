@@ -53,7 +53,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 
-public class SerializableParameter implements ParameterHolder {
+public class SerializableParameter extends ParameterHolder {
     Object object;
     boolean noBackSlashEscapes;
     public SerializableParameter(Object object, boolean noBackslashEscapes) throws IOException {
@@ -62,5 +62,8 @@ public class SerializableParameter implements ParameterHolder {
     }
     public void writeTo(OutputStream os) throws IOException {
         ParameterWriter.writeObject(os, object, noBackSlashEscapes);
+    }
+    public String toString() {
+        return "<Serializable> " + object;
     }
 }

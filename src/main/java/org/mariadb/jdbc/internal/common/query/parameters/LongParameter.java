@@ -53,7 +53,7 @@ package org.mariadb.jdbc.internal.common.query.parameters;
 import java.io.IOException;
 import java.io.OutputStream;
 
-public class LongParameter implements ParameterHolder {
+public class LongParameter extends ParameterHolder {
     private long value;
 
     public LongParameter(long value) {

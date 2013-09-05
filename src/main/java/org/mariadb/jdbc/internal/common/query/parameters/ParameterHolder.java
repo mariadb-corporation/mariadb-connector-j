@@ -49,15 +49,35 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.common.query.parameters;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 
 
-public interface ParameterHolder {
+public abstract class ParameterHolder {
     /**
      * Write parameter value
      * @param os the stream to write to
      * @throws IOException when something goes wrong
      */
-    void writeTo(OutputStream os) throws IOException;
+    public abstract void writeTo(OutputStream os) throws IOException;
+
+
+    // allows for nice formatting of prepared statements using PreparedStatement.toString()
+    public String toString() {
+        try {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            writeTo(baos);
+            byte[] a  = baos.toByteArray();
+            if (a.length < 1024) {
+                return new String(a ,"UTF8");
+            } else {
+                // cut overlong strings.
+                return new String(a, 0, 1024, "UTF8")+ "<cut>...'";
+            }
+        } catch (Exception e) {
+            return "";
+        }
+
+    }
 }

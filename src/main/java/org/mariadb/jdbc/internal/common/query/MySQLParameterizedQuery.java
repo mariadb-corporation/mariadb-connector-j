@@ -160,7 +160,22 @@ public class MySQLParameterizedQuery implements ParameterizedQuery {
     }
 
     public String toString() {
-        return query;
+        StringBuffer sb  = new StringBuffer ("sql : '" + query + "'");
+        if (parameters.length > 0) {
+            sb.append(", parameters : [");
+            for(int i = 0; i < parameters.length; i++) {
+              if (parameters[i] == null)  {
+                sb.append("null");
+              }  else {
+                sb.append(parameters[i].toString());
+              }
+              if (i != parameters.length -1) {
+                sb.append(",");
+              }
+            }
+            sb.append("]");
+        }
+        return sb.toString();
     }
 
 }

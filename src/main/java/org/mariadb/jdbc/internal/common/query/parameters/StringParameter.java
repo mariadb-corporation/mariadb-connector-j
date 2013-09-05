@@ -53,7 +53,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 
-public class StringParameter implements ParameterHolder {
+public class StringParameter extends ParameterHolder {
     String s;
     boolean noBackslashEscapes;
 

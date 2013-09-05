@@ -1578,4 +1578,17 @@ public class DriverTest extends BaseTest{
         rs.next();
         assertEquals(100000,rs.getString(1).length());
     }
+
+    @Test
+    public void preparedStatementToString() throws Exception {
+        PreparedStatement ps = connection.prepareStatement("SELECT ?,?,?,?,?,?");
+        ps.setInt(1,1);
+        ps.setBigDecimal(2, new BigDecimal("1"));
+        ps.setString(3, "one");
+        ps.setBoolean(4, true);
+        ps.setDate(5, new Date(0));
+        ps.setDouble(6, 1.5);
+        assertEquals("sql : 'SELECT ?,?,?,?,?,?', parameters : [1,1,'one',1,'1970-01-01',1.5]",ps.toString());
+        ps.close();
+    }
 }

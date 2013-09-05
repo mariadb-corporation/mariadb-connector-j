@@ -55,7 +55,7 @@ import java.util.Calendar;
 import java.util.Date;
 
 
-public class DateParameter implements ParameterHolder {
+public class DateParameter extends ParameterHolder {
     Date date;
     Calendar calendar;
 

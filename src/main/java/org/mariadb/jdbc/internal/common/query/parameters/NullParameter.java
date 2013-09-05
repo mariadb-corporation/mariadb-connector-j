@@ -53,7 +53,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 
-public class NullParameter implements ParameterHolder {
+public class NullParameter extends ParameterHolder {
     private static final byte[] NULL = {'N','U','L','L'};
     public NullParameter() {
     }

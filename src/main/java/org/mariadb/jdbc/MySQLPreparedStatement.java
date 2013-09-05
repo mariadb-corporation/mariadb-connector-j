@@ -1562,4 +1562,8 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
         isClosed = false;
         connection.pooledConnection.fireStatementClosed(this);
     }
+
+    public String toString() {
+        return dQuery.toString();
+    }
 }
