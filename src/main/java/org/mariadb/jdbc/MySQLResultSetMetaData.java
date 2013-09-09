@@ -352,9 +352,6 @@ public class MySQLResultSetMetaData implements ResultSetMetaData {
     public String getColumnClassName(int column) throws SQLException {
         MySQLColumnInformation ci = getColumnInformation(column);
         MySQLType t = ci.getType();
-        if (ci.getName().equals("varbinary0")) {
-            System.out.println("yess");
-        }
         return MySQLType.getClassName(t, (int)ci.getLength(), ci.isSigned(),ci.isBinary(),datatypeMappingflags);
     }
 
