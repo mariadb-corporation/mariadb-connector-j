@@ -1608,4 +1608,10 @@ public class DriverTest extends BaseTest{
        CallableStatement cs = connection.prepareCall("{CALL foo}",ResultSet.TYPE_FORWARD_ONLY,ResultSet.CONCUR_READ_ONLY,ResultSet.CLOSE_CURSORS_AT_COMMIT);
        assertEquals(cs.getResultSetHoldability(),ResultSet.HOLD_CURSORS_OVER_COMMIT);
     }
+
+    @Test
+    public void emptyBatch() throws Exception {
+        Statement st = connection.createStatement();
+        st.executeBatch();
+    }
 }

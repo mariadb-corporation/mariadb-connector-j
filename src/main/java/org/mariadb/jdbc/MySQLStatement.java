@@ -1124,6 +1124,9 @@ public class MySQLStatement implements Statement {
      * @since 1.3
      */
     public int[] executeBatch() throws SQLException {
+        if (batchQueries == null)
+            return new int[0];
+
         int[] ret = new int[batchQueries.size()];
         int i = 0;
         try {
