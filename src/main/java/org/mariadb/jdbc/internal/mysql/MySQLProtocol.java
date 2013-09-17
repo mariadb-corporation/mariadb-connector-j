@@ -411,8 +411,9 @@ public class MySQLProtocol {
                    MySQLServerCapabilities.SECURE_CONNECTION|
                    MySQLServerCapabilities.LOCAL_FILES|
                    MySQLServerCapabilities.MULTI_RESULTS|
-                   MySQLServerCapabilities.FOUND_ROWS |
-                   MySQLServerCapabilities.PLUGIN_AUTH;
+                   MySQLServerCapabilities.FOUND_ROWS;
+
+
 
            if(info.getProperty("allowMultiQueries") != null) {
               capabilities |= MySQLServerCapabilities.MULTI_STATEMENTS;
