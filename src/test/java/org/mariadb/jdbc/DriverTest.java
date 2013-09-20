@@ -326,11 +326,8 @@ public class DriverTest extends BaseTest{
 
     @Test
     public void testPreparedWithNull() throws SQLException {
-        String query = "insert into t1 (test) values (null)";
+        String query = "select ? as test";
         PreparedStatement pstmt = connection.prepareStatement(query);
-        pstmt.execute();
-        query = "select * from t1 where test is ?";
-        pstmt = connection.prepareStatement(query);
         pstmt.setNull(1,1);
         ResultSet rs = pstmt.executeQuery();
         assertEquals(true,rs.next());
