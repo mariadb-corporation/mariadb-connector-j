@@ -39,6 +39,27 @@ public class DatabaseMetadataTest extends BaseTest{
         }
         assertEquals(2,i);
     }
+
+    @Test
+    public void primaryKeyTest2() throws SQLException {
+        Statement stmt = connection.createStatement();
+        stmt.execute("drop table if exists t2");
+        stmt.execute("drop table if exists t1");
+        stmt.execute("CREATE TABLE t1 ( id1 integer, constraint pk primary key(id1))");
+        stmt.execute("CREATE TABLE t2 (id2a integer, id2b integer, constraint pk primary key(id2a, id2b), constraint fk1 foreign key(id2a) references t1(id1),  constraint fk2 foreign key(id2b) references t1(id1))");
+
+        DatabaseMetaData dbmd = connection.getMetaData();
+        ResultSet rs = dbmd.getPrimaryKeys("test",null,"t2");
+        int i=0;
+        while(rs.next()) {
+            i++;
+            assertEquals("test",rs.getString("table_cat"));
+            assertEquals(null,rs.getString("table_schem"));
+            assertEquals("t2",rs.getString("table_name"));
+            assertEquals(i,rs.getShort("key_seq"));
+        }
+        assertEquals(2,i);
+    }
     @Test
     public void datetimeTest() throws SQLException {
         Statement stmt = connection.createStatement();

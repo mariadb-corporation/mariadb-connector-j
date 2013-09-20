@@ -182,7 +182,7 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
         String sql =
                 "SELECT A.TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, A.TABLE_NAME, A.COLUMN_NAME, B.SEQ_IN_INDEX KEY_SEQ, NULL PK_NAME "
                  + " FROM INFORMATION_SCHEMA.COLUMNS A, INFORMATION_SCHEMA.STATISTICS B"
-                 + " WHERE A.COLUMN_KEY='pri'"
+                 + " WHERE A.COLUMN_KEY='pri' AND B.INDEX_NAME='PRIMARY' "
                  + " AND "
                  + catalogCond("A.TABLE_SCHEMA",catalog)
                  + " AND "
