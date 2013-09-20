@@ -52,6 +52,7 @@ package org.mariadb.jdbc.internal.mysql;
 import org.mariadb.jdbc.internal.common.AbstractValueObject;
 
 import java.text.ParseException;
+import java.util.Calendar;
 
 /**
  * Contains the raw value returned from the server
@@ -77,7 +78,7 @@ public class MySQLValueObject extends AbstractValueObject {
         return super.getString();
     }
     
-    public Object getObject(int datatypeMappingFlags) throws ParseException {
+    public Object getObject(int datatypeMappingFlags, Calendar cal) throws ParseException {
         if (this.getBytes() == null) {
             return null;
         }
@@ -107,11 +108,11 @@ public class MySQLValueObject extends AbstractValueObject {
             case DOUBLE:
                 return getDouble();
             case TIMESTAMP:
-                return getTimestamp();
+                return getTimestamp(cal);
             case DATETIME:
-                return getTimestamp();
+                return getTimestamp(cal);
             case DATE:
-                return getDate();
+                return getDate(cal);
             case VARCHAR:
                 if (columnInfo.isBinary())
                     return getBytes();
@@ -132,7 +133,7 @@ public class MySQLValueObject extends AbstractValueObject {
             
             case YEAR:
                 if ((datatypeMappingFlags & YEAR_IS_DATE_TYPE) != 0) {
-                    return getDate();
+                    return getDate(cal);
                 }
                 return getShort();
             case SMALLINT:
@@ -141,7 +142,7 @@ public class MySQLValueObject extends AbstractValueObject {
             case FLOAT:
                 return getFloat();
             case TIME:
-                return getTime();
+                return getTime(cal);
             case VARSTRING:
             case STRING:
                 if (columnInfo.isBinary())

@@ -898,7 +898,7 @@ public class MySQLStatement implements Statement {
         if (queryResult == null || queryResult.getResultSetType() != ResultSetType.SELECT) {
             return null; /* Result is an update count, or there are no more results */
         }
-        return new MySQLResultSet(queryResult,this,protocol);
+        return new MySQLResultSet(queryResult,this,protocol, connection.cal);
     }
 
     public int getUpdateCount() throws SQLException {

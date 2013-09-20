@@ -34,23 +34,17 @@ public interface ValueObject {
 
     BigInteger getBigInteger();
 
-    Date getDate() throws ParseException;
-
-    Time getTime() throws ParseException;
-
     InputStream getInputStream();
 
     InputStream getBinaryInputStream();
 
-    Object getObject(int datatypeMappingFlags) throws ParseException;
+    Object getObject(int datatypeMappingFlags, Calendar cal) throws ParseException;
 
     Date getDate(Calendar cal) throws ParseException;
 
     Time getTime(Calendar cal) throws ParseException;
 
     Timestamp getTimestamp(Calendar cal) throws ParseException;
-
-    Timestamp getTimestamp() throws ParseException;
 
     boolean getBoolean();
 

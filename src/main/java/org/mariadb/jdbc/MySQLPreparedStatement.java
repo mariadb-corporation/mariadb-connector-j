@@ -1100,22 +1100,12 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
      *                               <code>PreparedStatement</code>
      */
     public void setDate(int parameterIndex, java.sql.Date date) throws SQLException {
-
-        if(date == null) {
-            setNull(parameterIndex, Types.DATE);
-            return;
-        }
-        setParameter(parameterIndex, new DateParameter(date));
+        setDate(parameterIndex, date, connection.cal);
     }
 
 
     public void setTime(final int parameterIndex, final Time x) throws SQLException {
-        if(x == null) {
-            setNull(parameterIndex, Types.TIME);
-            return;
-        }
-
-        setParameter(parameterIndex, new TimeParameter(x, null, useFractionalSeconds));
+        setTime(parameterIndex, x, connection.cal);
     }
 
     /**
@@ -1129,13 +1119,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
      *                               <code>PreparedStatement</code>
      */
     public void setTimestamp(final int parameterIndex, final Timestamp timestamp) throws SQLException {
-        if(timestamp == null) {
-            setNull(parameterIndex, Types.TIMESTAMP);
-            return;
-        }
-
-        TimestampParameter t = new TimestampParameter(timestamp, null, useFractionalSeconds);
-        setParameter(parameterIndex, t);
+        setTimestamp(parameterIndex, timestamp, connection.cal);
     }
 
     /**

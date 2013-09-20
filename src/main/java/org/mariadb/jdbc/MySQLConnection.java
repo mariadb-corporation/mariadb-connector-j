@@ -55,8 +55,7 @@ import org.mariadb.jdbc.internal.common.Utils;
 import org.mariadb.jdbc.internal.mysql.MySQLProtocol;
 
 import java.sql.*;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.Executor;
 
 
@@ -81,6 +80,7 @@ public final class MySQLConnection  implements Connection {
     boolean noBackslashEscapes;
     boolean nullCatalogMeansCurrent = true;
     int autoIncrementIncrement;
+    Calendar cal;
 
     /**
      * Creates a new connection with a given protocol and query factory.
@@ -96,12 +96,27 @@ public final class MySQLConnection  implements Connection {
     MySQLProtocol getProtocol() {
     	return protocol;
     }
+
+    static TimeZone getTimeZone(String id) throws SQLException {
+        TimeZone tz = java.util.TimeZone.getTimeZone(id);
+
+        // Validate the timezone ID. JDK maps invalid timezones to GMT
+        if (tz.getID().equals("GMT") && !id.equals("GMT")) {
+            throw new SQLException("invalid timezone id '" + id + "'");
+        }
+        return tz;
+    }
     public static MySQLConnection newConnection(MySQLProtocol protocol) throws SQLException {
         MySQLConnection connection = new MySQLConnection(protocol);
-        
-        boolean fastConnect =  protocol.getInfo().get("fastConnect") != null ;
-        String sessionVariables = protocol.getInfo().getProperty("sessionVariables");
-        
+
+        Properties info = protocol.getInfo();
+        boolean fastConnect =  info.get("fastConnect") != null ;
+        String sessionVariables = info.getProperty("sessionVariables");
+        String timeZoneId = info.getProperty("serverTimezone");
+        if (timeZoneId != null) {
+            TimeZone tz = getTimeZone(timeZoneId);
+            connection.cal = Calendar.getInstance(tz);
+        }
         if (fastConnect && (sessionVariables == null))
             return connection;
         

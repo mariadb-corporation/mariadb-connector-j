@@ -3,12 +3,13 @@ package org.mariadb.jdbc;
 import org.junit.Test;
 
 import java.sql.*;
-import java.util.Calendar;
-import java.util.TimeZone;
+import java.sql.Date;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertTrue;
 
 public class DateTest extends BaseTest{
     static { Logger.getLogger("").setLevel(Level.OFF); }
@@ -153,5 +154,30 @@ public class DateTest extends BaseTest{
           assertEquals(d.getHours(),rs.getTime(1).getHours());
           assertEquals(d.getMinutes(),rs.getTime(1).getMinutes());
           assertEquals(d.getSeconds(),rs.getTime(1).getSeconds());
+    }
+
+    @Test
+    public void  serverTimezone() throws Exception {
+        TimeZone tz = TimeZone.getDefault();
+        TimeZone gmt = TimeZone.getTimeZone("GMT");
+        long offset = tz.getRawOffset() + tz.getDSTSavings();
+        Connection c = DriverManager.getConnection("jdbc:mysql://localhost/test?user=root&serverTimezone=GMT") ;
+        java.util.Date now = new java.util.Date();
+        PreparedStatement ps = c.prepareStatement("select now()");
+        ResultSet rs = ps.executeQuery();
+        rs.next();
+        java.sql.Timestamp ts  =  rs.getTimestamp(1);
+        long differenceToGMT = ts.getTime() - now.getTime();
+        long diff = Math.abs(differenceToGMT - offset);
+        assertTrue(diff < 1000); /* query take less than a second */
+
+        ps = c.prepareStatement("select utc_timestamp(), ?");
+        ps.setObject(1,now);
+        rs = ps.executeQuery();
+        rs.next();
+        ts  =  rs.getTimestamp(1);
+        java.sql.Timestamp ts2 =  rs.getTimestamp(2);
+        assertTrue(Math.abs(ts.getTime() - ts2.getTime()) < 1000); /* query take less than a second */
+
     }
 }

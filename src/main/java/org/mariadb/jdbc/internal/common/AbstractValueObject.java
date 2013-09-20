@@ -171,7 +171,7 @@ public abstract class AbstractValueObject implements ValueObject {
         }
         return new BigInteger(getString());
     }
-    public Date getDate() throws ParseException {
+    public Date getDate(Calendar cal) throws ParseException {
         if (rawBytes == null) {
             return null;
         }
@@ -187,12 +187,15 @@ public abstract class AbstractValueObject implements ValueObject {
         } else {
             sdf = new SimpleDateFormat("yyyy-MM-dd");
         }
+        if (cal != null) {
+            sdf.setCalendar(cal);
+        }
         java.util.Date utilDate = sdf.parse(rawValue);
         return new Date(utilDate.getTime());
     }
 
 
-    public Time getTime() throws ParseException {
+    public Time getTime(Calendar cal) throws ParseException {
         if (rawBytes == null) {
             return null;
         }
@@ -200,6 +203,9 @@ public abstract class AbstractValueObject implements ValueObject {
         SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
 
         //sdf.setLenient(false);
+        if (cal != null) {
+            sdf.setCalendar(cal);
+        }
         final java.util.Date utilTime = sdf.parse(rawValue);
         long t0 = utilTime.getTime();
         int nanos = extractNanos(rawValue);
@@ -227,14 +233,14 @@ public abstract class AbstractValueObject implements ValueObject {
         return nanos;
     }
 
-    public Timestamp getTimestamp() throws ParseException {
+    public Timestamp getTimestamp(Calendar cal) throws ParseException {
         if (rawBytes == null) {
             return null;
         }
         String rawValue = getString();
         if (rawValue.length() >= 4  &&  rawValue.charAt(4) != '-') {
            /* This is probably a time value, since year separator is missing */
-           Time t = getTime();
+           Time t = getTime(cal);
            return new Timestamp(t.getTime());
         }
 
@@ -246,6 +252,9 @@ public abstract class AbstractValueObject implements ValueObject {
             sdf = new SimpleDateFormat("yyyy-MM-dd");
         }
         sdf.setLenient(false);
+        if (cal != null) {
+            sdf.setCalendar(cal);
+        }
         final java.util.Date utilTime = sdf.parse(rawValue);
         Timestamp ts = new Timestamp(utilTime.getTime());
         if(rawValue.indexOf('.') != -1) {
@@ -268,39 +277,8 @@ public abstract class AbstractValueObject implements ValueObject {
         return new ByteArrayInputStream(rawBytes);
     }
     
-    public abstract Object getObject(int datatypeMappingFlags) throws ParseException;
+    public abstract Object getObject(int datatypeMappingFlags, Calendar cal) throws ParseException;
 
-    public Date getDate(final Calendar cal) throws ParseException {
-        if (rawBytes == null) {
-            return null;
-        }
-        final String rawValue = getString();
-        final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-        sdf.setCalendar(cal);
-        final java.util.Date utilDate = sdf.parse(rawValue);
-        return new Date(utilDate.getTime());
-    }
-
-    public Time getTime(final Calendar cal) throws ParseException{
-        if (rawBytes == null) {
-            return null;
-        }
-        String rawValue = getString();
-        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
-        sdf.setCalendar(cal);
-        return new Time(sdf.parse(rawValue).getTime());
-    }
-
-    public Timestamp getTimestamp(final Calendar cal) throws ParseException {
-        if (rawBytes == null) {
-            return null;
-        }
-        final String rawValue = getString();
-        final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        sdf.setCalendar(cal);
-        final java.util.Date utilTime = sdf.parse(rawValue);
-        return new Timestamp(utilTime.getTime());
-    }
 
     public boolean getBoolean() {
         if (rawBytes == null) {

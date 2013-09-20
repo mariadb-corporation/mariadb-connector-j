@@ -80,13 +80,15 @@ public class MySQLResultSet implements ResultSet {
     private boolean lastGetWasNull;
     private boolean warningsCleared;
     ColumnNameMap columnNameMap;
+    Calendar cal;
 
     protected MySQLResultSet() {
     }
-    public MySQLResultSet(QueryResult dqr, Statement statement, MySQLProtocol protocol) {
+    public MySQLResultSet(QueryResult dqr, Statement statement, MySQLProtocol protocol, Calendar cal) {
         this.queryResult = dqr;
         this.statement = statement;
         this.protocol = protocol;
+        this.cal = cal;
         this.columnNameMap = new ColumnNameMap(dqr.getColumnInformation());
     }
 
@@ -94,7 +96,7 @@ public class MySQLResultSet implements ResultSet {
         MySQLColumnInformation[] colList = new MySQLColumnInformation[0];
         List<ValueObject[]> voList = Collections.emptyList();
         QueryResult qr = new CachedSelectResult(colList, voList, (short) 0);
-        return new MySQLResultSet(qr, null, null);
+        return new MySQLResultSet(qr, null, null, null);
     }
 
     public boolean next() throws SQLException {
@@ -431,7 +433,7 @@ public class MySQLResultSet implements ResultSet {
      */
     public Object getObject(int columnIndex) throws SQLException {
         try {
-            return getValueObject(columnIndex).getObject(protocol.datatypeMappingFlags);
+            return getValueObject(columnIndex).getObject(protocol.datatypeMappingFlags, cal);
         } catch (ParseException e) {
             throw SQLExceptionMapper.getSQLException("Could not get object: " + e.getMessage(), "S1009", e);
         }
@@ -3463,7 +3465,7 @@ public class MySQLResultSet implements ResultSet {
      */
     public Date getDate(int columnIndex) throws SQLException {
         try {
-            return getValueObject(columnIndex).getDate();
+            return getValueObject(columnIndex).getDate(cal);
         } catch (ParseException e) {
             throw SQLExceptionMapper.getSQLException("Could not parse column as date, was: \"" +
                     getValueObject(columnIndex).getString() +
@@ -3482,7 +3484,7 @@ public class MySQLResultSet implements ResultSet {
      */
     public Time getTime(int columnIndex) throws SQLException {
         try {
-            return getValueObject(columnIndex).getTime();
+            return getValueObject(columnIndex).getTime(cal);
         } catch (ParseException e) {
             throw SQLExceptionMapper.getSQLException("Could not parse column as time, was: \"" +
                     getValueObject(columnIndex).getString() +
@@ -3501,7 +3503,7 @@ public class MySQLResultSet implements ResultSet {
      */
     public Timestamp getTimestamp(int columnIndex) throws SQLException {
         try {
-            return getValueObject(columnIndex).getTimestamp();
+            return getValueObject(columnIndex).getTimestamp(cal);
         } catch (ParseException e) {
             throw SQLExceptionMapper.getSQLException("Could not parse column as timestamp, was: \""  +
                     getValueObject(columnIndex).getString() +
@@ -3730,14 +3732,14 @@ public class MySQLResultSet implements ResultSet {
         }
         if (findColumnReturnsOne) {
             return new MySQLResultSet(new CachedSelectResult(columns , rows, (short)0),
-                    null, protocol) {
+                    null, protocol, null) {
                 public int findColumn(String name) {
                     return 1;
                 } 
             };
         }
         return new MySQLResultSet(new CachedSelectResult(columns , rows, (short)0),
-                null, protocol);
+                null, protocol, null);
     }
     
     static ResultSet createResultSet(String[] columnNames, MySQLType[] columnTypes, String[][] data,
