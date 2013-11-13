@@ -710,4 +710,19 @@ public class DatabaseMetadataTest extends BaseTest{
          assertTrue(rs.next());
          assertEquals(rs.getInt("COLUMN_SIZE"),1);
     }
+    @Test
+    public void conj72() throws Exception {
+        Connection c = DriverManager.getConnection("jdbc:mysql://localhost:3306/test?user=root&tinyInt1isBit=true");
+        try {
+            c.createStatement().execute("CREATE TABLE  IF NOT EXISTS conj72 (t tinyint(1))");
+            c.createStatement().execute("insert into conj72 values(1)");
+            ResultSet rs = c.getMetaData().getColumns(connection.getCatalog(), null, "conj72", null);
+            assertTrue(rs.next());
+            assertEquals(rs.getInt("DATA_TYPE"),Types.BIT);
+            ResultSet rs1 = c.createStatement().executeQuery("select * from conj72");
+            assertEquals(rs1.getMetaData().getColumnType(1), Types.BIT);
+        } finally {
+            c.close();
+        }
+    }
 }

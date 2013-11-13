@@ -96,7 +96,7 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
         " WHEN 'binary' THEN "      + Types.BINARY +
         " WHEN 'time' THEN "        + Types.TIME +
         " WHEN 'timestamp' THEN "   + Types.TIMESTAMP +
-        " WHEN 'tinyint' THEN "     + Types.TINYINT +
+        " WHEN 'tinyint' THEN "  + (((connection.getProtocol().datatypeMappingFlags &  MySQLValueObject.TINYINT1_IS_BIT)== 0)? Types.TINYINT : "IF(" + fullTypeColumnName + "='tinyint(1)'," + Types.BIT + "," + Types.TINYINT + ") ") +  
         " WHEN 'year' THEN "  + (((connection.getProtocol().datatypeMappingFlags &  MySQLValueObject.YEAR_IS_DATE_TYPE)== 0)? Types.SMALLINT :Types.DATE) +  
         " ELSE "                    + Types.OTHER +  
         " END ";
