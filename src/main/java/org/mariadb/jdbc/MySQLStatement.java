@@ -1085,7 +1085,9 @@ public class MySQLStatement implements Statement {
      * @since 1.2
      */
     public void clearBatch() throws SQLException {
-        batchQueries.clear();
+        if (batchQueries != null) {
+            batchQueries.clear();
+        }
     }
 
     /**

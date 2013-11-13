@@ -203,11 +203,16 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
     }
 
     public void clearBatch() {
-        batchPreparedStatements.clear();
+        if (batchPreparedStatements != null) {
+            batchPreparedStatements.clear();
+        }
     }
 
     @Override
     public int[] executeBatch() throws SQLException {
+        if (batchPreparedStatements == null) {
+            return new int[0];
+        }
         int[] ret = new int[batchPreparedStatements.size()];
         int i = 0;
         try {
