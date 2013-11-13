@@ -58,13 +58,16 @@ public class MySQLClob extends MySQLBlob implements Clob, NClob, Serializable {
             if(c < 0x80) {
                 pos += 1;
             }
-            else if((c & 0xC0) == 0xC0) {
+            else if (c < 0xC2) {
+                throw new AssertionError("invalid UTF8");
+            }
+            else if (c < 0xE0) {
                 pos += 2;
             }
-            else if ((c & 0xE0) == 0xE0) {
+            else if (c < 0xF0) {
                 pos += 3;
             }
-            else if ((c & 0xF0) == 0xF0) {
+            else if (c < 0xF8) {
                 pos += 4;
             }
             else {
@@ -115,19 +118,22 @@ public class MySQLClob extends MySQLBlob implements Clob, NClob, Serializable {
             if(c < 0x80) {
                 i += 1;
             }
-            else if((c & 0xC0) == 0xC0) {
+            else if (c < 0xC2) {
+                throw new AssertionError("invalid UTF8");
+            }
+            else if (c < 0xE0) {
                 i += 2;
             }
-            else if ((c & 0xE0) == 0xE0) {
+            else if (c < 0xF0) {
                 i += 3;
             }
-            else if ((c & 0xF0) == 0xF0) {
+            else if (c < 0xF8) {
                 i += 4;
             }
             else {
                 throw new AssertionError("invalid UTF8");
             }
-           len++;
+            len++;
         }
         return len;
     }

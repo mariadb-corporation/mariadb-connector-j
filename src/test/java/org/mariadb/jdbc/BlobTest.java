@@ -260,4 +260,18 @@ public class BlobTest extends BaseTest {
        assertEquals(2, a[1]);
        assertEquals(3, a[2]);
     }
+    @Test
+    public void conj73() throws Exception {
+       /* CONJ-73: Assertion error: UTF8 length calculation reports invalid ut8 characters */
+       java.sql.Clob c = new MySQLClob(new byte[]{(byte)0x10, (byte)0xD0, (byte)0xA0, (byte)0xe0, (byte)0xa1, (byte)0x8e});
+       ByteArrayOutputStream baos = new ByteArrayOutputStream();
+       ObjectOutputStream oos = new ObjectOutputStream(baos);
+       oos.writeObject(c);
+
+       ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(baos.toByteArray()));
+       MySQLClob c2 = (MySQLClob)ois.readObject();
+
+       assertEquals(3, c2.length());
+    }
+
 }
