@@ -149,4 +149,45 @@ public class SSLValidationTest extends BaseTest {
 		info.setProperty("serverSslCert", "classpath:ssl/wrong-server.crt");
 		testConnect(info, true);
 	}
+
+	@Test
+	public void conc71() throws SQLException {
+    try
+    {
+      Class.forName("org.mariadb.jdbc.Driver").newInstance();
+      String url = "jdbc:mysql://localhost:3306/test";
+
+      JDBCUrl myurl = JDBCUrl.parse(url);
+      Assert.assertEquals("localhost", myurl.getHostname());
+      Assert.assertEquals("test", myurl.getDatabase());
+      Assert.assertEquals(3306, myurl.getPort());
+
+      Properties info = new Properties();
+      ResultSet rs;
+      info.setProperty("user",  "root");
+      info.setProperty("password", "");
+      info.setProperty("serverSslCert", getServerCertificate());
+      info.setProperty("useSSL", "true");
+      Connection conn = DriverManager.getConnection(url, info);
+      Statement st = conn.createStatement();
+
+			// check if SSL matches what is expected
+			rs = st.executeQuery("SHOW STATUS LIKE 'Ssl_cipher'");
+			rs.next();
+			String sslCipher = rs.getString(2);
+			boolean sslActual = sslCipher != null && sslCipher.length() > 0;
+			Assert.assertEquals("SSL connection couldn't be established", true, sslActual);
+
+      rs= st.executeQuery("SELECT DATABASE() AS dbname");
+      String ret= "";
+      while (rs.next())
+      {
+        ret= rs.getString("dbname");
+      }
+      Assert.assertEquals("could not determine default database", "test", ret);
+      conn.close();
+  	} catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+	}
 }

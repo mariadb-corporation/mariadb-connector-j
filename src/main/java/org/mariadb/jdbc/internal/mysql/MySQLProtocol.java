@@ -455,7 +455,6 @@ public class MySQLProtocol {
            if (database != null && !createDB())
                capabilities |= MySQLServerCapabilities.CONNECT_WITH_DB;
 
-
            final MySQLClientAuthPacket cap = new MySQLClientAuthPacket(this.username,
                    this.password,
                    database,
@@ -486,7 +485,6 @@ public class MySQLProtocol {
                packetFetcher = new SyncPacketFetcher(new DecompressInputStream(socket.getInputStream()));
            }
 
-           
            // In JDBC, connection must start in autocommit mode.
            if ((serverStatus & ServerStatus.AUTOCOMMIT) != 0) {
                executeQuery(new MySQLQuery("set autocommit=1"));
@@ -497,8 +495,11 @@ public class MySQLProtocol {
            if (createDB()) {
                // Try to create the database if it does not exist
                executeQuery(new MySQLQuery("CREATE DATABASE IF NOT EXISTS " + this.database));
+           }
+           if (database != null && database.length() > 0)
+           {
                // and switch to this database
-               executeQuery(new MySQLQuery("USE " + this.database));
+               executeQuery(new MySQLQuery("USE " + database));
            }
 
            activeResult = null;
