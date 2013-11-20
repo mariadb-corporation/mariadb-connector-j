@@ -59,6 +59,8 @@ public class DatabaseMetadataTest extends BaseTest{
             assertEquals(i,rs.getShort("key_seq"));
         }
         assertEquals(2,i);
+        stmt.execute("drop table if exists t2");
+        stmt.execute("drop table if exists t1");
     }
     @Test
     public void datetimeTest() throws SQLException {

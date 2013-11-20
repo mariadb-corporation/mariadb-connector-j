@@ -45,7 +45,7 @@ public class DriverTest extends BaseTest{
     }
 
     private void createTablet1(Statement stmt) throws SQLException {
-        try { stmt.execute("drop table t1"); } catch (Exception e) {}
+        stmt.execute("drop table if exists t1");
         stmt.execute("create table t1 (id int not null primary key auto_increment, test varchar(20))");
     }
 
