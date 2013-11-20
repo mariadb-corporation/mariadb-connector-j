@@ -160,7 +160,7 @@ public class DateTest extends BaseTest{
     public void  serverTimezone() throws Exception {
         TimeZone tz = TimeZone.getDefault();
         TimeZone gmt = TimeZone.getTimeZone("GMT");
-        long offset = tz.getRawOffset() + tz.getDSTSavings();
+        long offset = tz.getRawOffset();
         Connection c = DriverManager.getConnection("jdbc:mysql://localhost/test?user=root&serverTimezone=GMT") ;
         java.util.Date now = new java.util.Date();
         PreparedStatement ps = c.prepareStatement("select now()");
