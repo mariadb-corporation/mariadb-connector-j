@@ -365,7 +365,7 @@ public class MySQLProtocol {
        if (!socket.isConnected()) {
             InetSocketAddress sockAddr = new InetSocketAddress(host, port);
             if (connectTimeout != null) {
-                socket.connect(sockAddr, connectTimeout * 1000);
+                socket.connect(sockAddr, connectTimeout);
             } else {
                 socket.connect(sockAddr);
             }
