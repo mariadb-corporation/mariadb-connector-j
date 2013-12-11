@@ -1409,7 +1409,7 @@ public class MySQLCallableStatement implements CallableStatement
             rsOutputParameters = null;
         }
 
-        if (callStatement == null) {
+        if (callStatement != null) {
             callStatement.close();
             callStatement = null;
         }
