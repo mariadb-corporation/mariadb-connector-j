@@ -4,7 +4,7 @@
     <artifactId>mariadb-java-client</artifactId>
     <packaging>jar</packaging>
     <name>mariadb-java-client</name>
-    <version>1.1.5</version>
+    <version>1.1.6</version>
     <description>JDBC driver for MariaDB and MySQL</description>
     <url>https://kb.askmonty.org/en/about-the-mariadb-java-client/</url>
     <properties>
