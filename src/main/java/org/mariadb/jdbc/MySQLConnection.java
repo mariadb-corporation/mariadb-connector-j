@@ -127,9 +127,9 @@ public final class MySQLConnection  implements Connection {
                     st.executeUpdate("set session " + sessionVariables);
                 }
                 if (!fastConnect) {
-                    ResultSet rs = st.executeQuery("select @@sql_mode");
+                    ResultSet rs = st.executeQuery("show variables like 'sql_mode'");
                     rs.next();
-                    String sqlMode = rs.getString(1);
+                    String sqlMode = rs.getString(2);
                     if (sqlMode.contains("NO_BACKSLASH_ESCAPES")) {
                         connection.noBackslashEscapes = true;
                     }
