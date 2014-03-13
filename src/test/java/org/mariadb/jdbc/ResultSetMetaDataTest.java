@@ -61,4 +61,25 @@ public class ResultSetMetaDataTest extends BaseTest {
         assertEquals(rs.getMetaData().getColumnName(2),"1"); 
     } 
 
+@Test 
+    public void conj84() throws Exception {
+        requireMinimumVersion(5,0);
+        Statement stmt = connection.createStatement();
+
+        stmt.execute("DROP TABLE IF EXISTS t1");
+        stmt.execute("DROP TABLE IF EXISTS t2");
+        stmt.execute("CREATE TABLE t1 (id int, name varchar(20))");
+        stmt.execute("CREATE TABLE t2 (id int, name varchar(20))");
+        stmt.execute("INSERT INTO t1 VALUES (1, 'foo')");
+        stmt.execute("INSERT INTO t2 VALUES (2, 'bar')");
+        ResultSet rs = connection.createStatement().executeQuery("select t1.*, t2.* FROM t1 join t2");
+        rs.next(); 
+        assertEquals(rs.findColumn("id"), 1);
+        assertEquals(rs.findColumn("name"), 2);
+        assertEquals(rs.findColumn("t1.id"), 1);
+        assertEquals(rs.findColumn("t1.name"), 2);
+        assertEquals(rs.findColumn("t2.id"), 3);
+        assertEquals(rs.findColumn("t2.name"), 4);
+    } 
+
 }

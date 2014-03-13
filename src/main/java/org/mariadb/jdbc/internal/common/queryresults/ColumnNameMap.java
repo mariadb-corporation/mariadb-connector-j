@@ -60,11 +60,14 @@ public class ColumnNameMap {
             int i=0;
             for(MySQLColumnInformation ci : columnInfo) {
                 String columnAlias = ci.getName().toLowerCase();
-                labelMap.put(columnAlias, i);
+                if (!labelMap.containsKey(columnAlias))
+                    labelMap.put(columnAlias, i);
+
                 if (ci.getTable() != null) {
                     String tableName = ci.getTable().toLowerCase();
                     if (!tableName.equals("")) {
-                        labelMap.put(tableName + "." + columnAlias, i);
+                        if(!labelMap.containsKey(tableName + "." + columnAlias))
+                            labelMap.put(tableName + "." + columnAlias, i);
                     }
                 }
                 i++;
