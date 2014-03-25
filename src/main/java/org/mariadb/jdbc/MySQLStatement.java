@@ -1188,7 +1188,7 @@ public class MySQLStatement implements Statement {
      * <code>unwrap</code> calls that may fail. If this method returns true then calling <code>unwrap</code> with the
      * same argument should succeed.
      *
-     * @param iface a Class defining an interface.
+     * @param interfaceOrWrapper a Class defining an interface.
      * @return true if this implements the interface or directly or indirectly wraps an object that does.
      * @throws java.sql.SQLException if an error occurs while determining whether this is a wrapper for an object with
      *                               the given interface.
