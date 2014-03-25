@@ -238,6 +238,10 @@ public abstract class AbstractValueObject implements ValueObject {
             return null;
         }
         String rawValue = getString();
+        String zeroTimestamp = "0000-00-00 00:00:00";
+        if (rawValue.equals(zeroTimestamp)) {
+        	return null;
+        }
         if (rawValue.length() >= 4  &&  rawValue.charAt(4) != '-') {
            /* This is probably a time value, since year separator is missing */
            Time t = getTime(cal);

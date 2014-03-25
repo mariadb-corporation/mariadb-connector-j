@@ -1,15 +1,24 @@
 package org.mariadb.jdbc;
 
-import org.junit.Test;
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertTrue;
 
-import java.sql.*;
+import java.sql.Connection;
 import java.sql.Date;
-import java.util.*;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.sql.Types;
+import java.util.Calendar;
+import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertTrue;
+import org.junit.Test;
 
 public class DateTest extends BaseTest{
     static { Logger.getLogger("").setLevel(Level.OFF); }
@@ -106,6 +115,23 @@ public class DateTest extends BaseTest{
         Time t = rs.getTime(1,cal);
         assertEquals(t.toString(), "11:11:11");
     }
+    
+    @Test
+    public void timestampZeroTest() throws SQLException {
+        connection.createStatement().execute("drop table if exists timestampzerotest");
+        connection.createStatement().execute("create table timestampzerotest (ts timestamp)");
+        connection.createStatement().execute("insert into timestampzerotest values ('0000-00-00 00:00:00')");
+        Statement stmt = connection.createStatement();
+        ResultSet rs = stmt.executeQuery("select * from timestampzerotest");
+        Timestamp ts = null;
+        while(rs.next()) {
+            System.out.println("--");
+            System.out.println(rs.getObject(1));
+            ts = rs.getTimestamp(1);
+        }
+        rs.close();
+        assertEquals(ts, null);
+    }
 
     @Test
     public void javaUtilDateInPreparedStatementAsTimeStamp() throws Exception {
@@ -163,6 +189,7 @@ public class DateTest extends BaseTest{
         long offset = tz.getRawOffset();
         Connection c = DriverManager.getConnection("jdbc:mysql://localhost/test?user=root&serverTimezone=GMT") ;
         java.util.Date now = new java.util.Date();
+        offset = tz.getOffset(now.getTime());
         PreparedStatement ps = c.prepareStatement("select now()");
         ResultSet rs = ps.executeQuery();
         rs.next();
