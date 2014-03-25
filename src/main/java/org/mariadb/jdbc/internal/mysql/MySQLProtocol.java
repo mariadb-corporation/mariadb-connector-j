@@ -68,6 +68,7 @@ import org.mariadb.jdbc.internal.mysql.packet.commands.*;
 
 import javax.net.SocketFactory;
 import javax.net.ssl.*;
+
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -214,6 +215,7 @@ public class MySQLProtocol {
      * How long should the driver wait, when failed over, before attempting	30
      */
     int secondsBeforeRetryMaster =  30;
+	private InputStream localInfileInputStream;
 
     private SSLSocketFactory getSSLSocketFactory(boolean trustServerCertificate)  throws QueryException
     {
@@ -894,18 +896,24 @@ public class MySQLProtocol {
 
             if (resultPacket.getResultType() == ResultPacket.ResultType.LOCALINFILE) {
                 // Server request the local file (LOCAL DATA LOCAL INFILE)
-                // We do accept general URLs, too
-
-                LocalInfilePacket localInfilePacket= (LocalInfilePacket)resultPacket;
-                log.fine("sending local file " + localInfilePacket.getFileName());
-                String localInfile = localInfilePacket.getFileName();
+            	// We do accept general URLs, too. If the localInfileStream is
+            	// set, use that.
 
                 InputStream is;
-                try {
-                    URL u = new URL(localInfile);
-                    is = u.openStream();
-                } catch (IOException ioe)   {
-                    is = new FileInputStream(localInfile);
+                if (localInfileInputStream == null) {
+                	LocalInfilePacket localInfilePacket= (LocalInfilePacket)resultPacket;
+                    log.fine("sending local file " + localInfilePacket.getFileName());
+                    String localInfile = localInfilePacket.getFileName();
+
+                    try {
+                    	URL u = new URL(localInfile);
+                    	is = u.openStream();
+                    } catch (IOException ioe)   {
+                    	is = new FileInputStream(localInfile);
+                    }
+                } else {
+                	is = localInfileInputStream;
+                	localInfileInputStream = null;
                 }
 
                 writer.sendFile(is, rawPacket.getPacketSeq()+1);
@@ -1111,5 +1119,8 @@ public class MySQLProtocol {
     	/* Patch versions are equal => versions are equal */
     	return true;
     }
+	public void setLocalInfileInputStream(InputStream inputStream) {
+		this.localInfileInputStream = inputStream;
+	}
     
 }
