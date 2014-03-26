@@ -1166,9 +1166,18 @@ public class MySQLStatement implements Statement {
      * @throws java.sql.SQLException If no object found that implements the interface
      * @since 1.6
      */
-    public <T> T unwrap(final Class<T> iface) throws SQLException {
-        return null;
-    }
+    @SuppressWarnings("unchecked")
+	public <T> T unwrap(final Class<T> iface) throws SQLException {
+    	try {
+    		if (isWrapperFor(iface)) {
+    			return (T)this;
+    			} else {
+    				throw new SQLException("The receiver is not a wrapper and does not implement the interface");
+    			}
+    		} catch (Exception e) {
+    			throw new SQLException("The receiver is not a wrapper and does not implement the interface");
+    		}
+    	}
 
     /**
      * Returns true if this either implements the interface argument or is directly or indirectly a wrapper for an
@@ -1179,14 +1188,14 @@ public class MySQLStatement implements Statement {
      * <code>unwrap</code> calls that may fail. If this method returns true then calling <code>unwrap</code> with the
      * same argument should succeed.
      *
-     * @param iface a Class defining an interface.
+     * @param interfaceOrWrapper a Class defining an interface.
      * @return true if this implements the interface or directly or indirectly wraps an object that does.
      * @throws java.sql.SQLException if an error occurs while determining whether this is a wrapper for an object with
      *                               the given interface.
      * @since 1.6
      */
-    public boolean isWrapperFor(final Class<?> iface) throws SQLException {
-        return false;
+    public boolean isWrapperFor(final Class<?> interfaceOrWrapper) throws SQLException {
+        return interfaceOrWrapper.isInstance(this);
     }
 
 
