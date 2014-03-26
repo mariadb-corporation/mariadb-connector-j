@@ -39,6 +39,7 @@ public class DatatypeTest extends BaseTest {
                       "date0 DATE default '2001-01-01'," +
                       "datetime0 DATETIME default '2001-01-01 00:00:00',"+
                       "timestamp0 TIMESTAMP default  '2001-01-01 00:00:00'," +
+                      "timestamp_zero TIMESTAMP default '0000-00-00 00:00:00'," +
                       "time0 TIME default '22:11:00'," +
                       "year2 YEAR(2) default 99," +
                       "year4 YEAR(4) default 2011," +
@@ -107,6 +108,7 @@ public class DatatypeTest extends BaseTest {
         checkClass("date0", java.sql.Date.class, "DATE", Types.DATE);
         checkClass("time0", java.sql.Time.class, "TIME", Types.TIME);
         checkClass("timestamp0", java.sql.Timestamp.class, "TIMESTAMP", Types.TIMESTAMP);
+        checkClass("timestamp_zero", java.sql.Timestamp.class, "TIMESTAMP", Types.TIMESTAMP);
         checkClass("year2",
                 yearIsDateType? java.sql.Date.class: Short.class, "YEAR",
                 yearIsDateType? Types.DATE: Types.SMALLINT );
