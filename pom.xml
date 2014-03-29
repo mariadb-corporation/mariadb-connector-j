@@ -4,7 +4,7 @@
     <artifactId>mariadb-java-client</artifactId>
     <packaging>jar</packaging>
     <name>mariadb-java-client</name>
-    <version>1.1.6</version>
+    <version>1.1.7</version>
     <description>JDBC driver for MariaDB and MySQL</description>
     <url>https://kb.askmonty.org/en/about-the-mariadb-java-client/</url>
     <properties>
@@ -30,6 +30,16 @@
           <id>wlad</id>
           <name>Vladislav Vaintroub</name>
           <email>wlad@montyprogram.com</email>
+        </developer>
+        <developer>
+          <id>massimo</id>
+          <name>Massimo Siani</name>
+          <email>massimo.siani@skysql.com</email>
+        </developer>
+        <developer>
+          <id>georg</id>
+          <name>Georg Richter</name>
+          <email>georg@skysql.com</email>
         </developer>
     </developers>
   <profiles><profile>

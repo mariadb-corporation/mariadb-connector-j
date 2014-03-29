@@ -47,7 +47,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
 
 		int id = rs.getInt(1);
 		String test = rs.getString(2);
-		Assert.assertEquals(expectedId, id+1);
+		Assert.assertEquals(expectedId, id);
 		Assert.assertEquals(expectedTest, test);
 	}
 }
