@@ -60,6 +60,7 @@ import org.mariadb.jdbc.internal.common.queryresults.ResultSetType;
 import org.mariadb.jdbc.internal.mysql.MySQLProtocol;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.sql.*;
 import java.util.*;
 
@@ -503,6 +504,17 @@ public class MySQLStatement implements Statement {
         this.queryTimeout = seconds;
     }
 
+    /**
+     * Sets the inputStream that will be used for the next execute that uses
+     * "LOAD DATA LOCAL INFILE". The name specified as local file/URL will be
+     * ignored.
+     * 
+     * @param inputStream
+     */
+    public void setLocalInfileInputStream(InputStream inputStream) {
+    	protocol.setLocalInfileInputStream(inputStream);
+    }
+    
     /**
      * Cancels this <code>Statement</code> object if both the DBMS and driver support aborting an SQL statement. This
      * method can be used by one thread to cancel a statement that is being executed by another thread.
