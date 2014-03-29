@@ -10,7 +10,7 @@ public class PacketOutputStream extends OutputStream{
     private static final int MAX_PACKET_LENGTH = 0x00ffffff;
     private static final int SEQNO_OFFSET = 3;
     private static final int HEADER_LENGTH = 4;
-    private static final int MAX_SEQNO = 0xff;
+    private static final int MAX_SEQNO = 0xffff;
 
 
     OutputStream baseStream;
