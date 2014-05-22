@@ -620,4 +620,31 @@ public class MySQLDriverTest extends BaseTest {
        rs.next();
        assertEquals("'a",rs.getString(1));
     }
+    
+    @Test
+    public void connectToDbWithDashInName() throws Exception {
+    	connection.createStatement().execute("create database `data-base`");
+    	try {
+    		Connection c = DriverManager.getConnection("jdbc:mysql://localhost/data-base?user=root");
+    		assertEquals("data-base",c.getCatalog());
+    		c.close();
+    	}
+    	finally {
+    	   connection.createStatement().execute("drop database `data-base`");
+    	}
+    }
+    
+    @Test
+    public void connectCreateDB() throws Exception {
+    	Connection c = DriverManager.getConnection("jdbc:mysql://localhost/no-such-db?user=root&createDB=true");
+    	try {
+    		assertEquals("no-such-db",c.getCatalog());
+    		c.close();
+    	}
+    	finally {
+    	   connection.createStatement().execute("drop database `no-such-db`");
+    	}
+    }
+    
+    
 }

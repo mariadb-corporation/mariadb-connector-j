@@ -52,6 +52,7 @@ package org.mariadb.jdbc.internal.mysql;
 
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.JDBCUrl;
+import org.mariadb.jdbc.MySQLConnection;
 import org.mariadb.jdbc.internal.SQLExceptionMapper;
 import org.mariadb.jdbc.internal.common.*;
 import org.mariadb.jdbc.internal.common.packet.*;
@@ -427,6 +428,11 @@ public class MySQLProtocol {
            if(info.getProperty("interactiveClient") != null) {
               capabilities |= MySQLServerCapabilities.CLIENT_INTERACTIVE;
            }
+           // If a database is given, but createDB is not defined or is false,
+           // then just try to connect to the given database
+           if (database != null && !createDB())
+               capabilities |= MySQLServerCapabilities.CONNECT_WITH_DB;
+           
            if(info.getProperty("useSSL") != null &&
                    (greetingPacket.getServerCapabilities() & MySQLServerCapabilities.SSL) != 0 ) {
                capabilities |= MySQLServerCapabilities.SSL;
@@ -452,10 +458,7 @@ public class MySQLProtocol {
                throw new QueryException("Trying to connect with ssl, but ssl not enabled in the server");
            }
 
-           // If a database is given, but createDB is not defined or is false,
-           // then just try to connect to the given database
-           if (database != null && !createDB())
-               capabilities |= MySQLServerCapabilities.CONNECT_WITH_DB;
+        
 
            final MySQLClientAuthPacket cap = new MySQLClientAuthPacket(this.username,
                    this.password,
@@ -496,12 +499,9 @@ public class MySQLProtocol {
            // then just try to create the database and to use it
            if (createDB()) {
                // Try to create the database if it does not exist
-               executeQuery(new MySQLQuery("CREATE DATABASE IF NOT EXISTS " + this.database));
-           }
-           if (database != null && database.length() > 0)
-           {
-               // and switch to this database
-               executeQuery(new MySQLQuery("USE " + database));
+               String quotedDB = MySQLConnection.quoteIdentifier(this.database);
+               executeQuery(new MySQLQuery("CREATE DATABASE IF NOT EXISTS " + quotedDB));
+               executeQuery(new MySQLQuery("USE " + quotedDB));
            }
 
            activeResult = null;

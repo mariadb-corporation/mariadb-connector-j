@@ -56,6 +56,30 @@ public class DateTest extends BaseTest{
         assertEquals(timestamp.toString(), timestamp3.toString());
 
     }
+    @Test
+    public void dateRangeTest() throws SQLException {
+        Statement stmt = connection.createStatement();
+        stmt.executeUpdate("drop table if exists date_test");
+        stmt.executeUpdate("create table date_test (id int not null primary key auto_increment, d_from datetime ,d_to datetime)");
+        Timestamp timestamp1 = Timestamp.valueOf("2009-01-17 15:41:01");
+        Timestamp timestamp2 = Timestamp.valueOf("2015-01-17 15:41:01");
+        Timestamp timestamp3 = Timestamp.valueOf("2014-01-17 15:41:01");
+        PreparedStatement ps = connection.prepareStatement("insert into date_test (id, d_from, d_to) values (1, ?,?)");
+        ps.setTimestamp(1,timestamp1);
+        ps.setTimestamp(2,timestamp2);
+        ps.executeUpdate();
+        PreparedStatement ps1= connection.prepareStatement("select d_from, d_to from date_test where d_from <= ? and d_to >= ?");
+        ps1.setTimestamp(1,timestamp3);
+        ps1.setTimestamp(2,timestamp3);
+        ResultSet rs= ps1.executeQuery();
+        assertEquals(true,rs.next());
+        Timestamp ts1= rs.getTimestamp(1); 
+        Timestamp ts2= rs.getTimestamp(2); 
+        assertEquals(ts1.toString(), timestamp1.toString());
+        assertEquals(ts2.toString(), timestamp2.toString());
+
+    }
+
     @Test(expected = SQLException.class)
     public void dateTest2() throws SQLException {
         Statement stmt = connection.createStatement();
