@@ -491,7 +491,7 @@ public class MySQLProtocol {
            }
 
            // In JDBC, connection must start in autocommit mode.
-           if ((serverStatus & ServerStatus.AUTOCOMMIT) != 0) {
+           if ((serverStatus & ServerStatus.AUTOCOMMIT) == 0) {
                executeQuery(new MySQLQuery("set autocommit=1"));
            }
 
@@ -634,6 +634,10 @@ public class MySQLProtocol {
 
     public boolean getAutocommit() {
         return ((serverStatus & ServerStatus.AUTOCOMMIT) != 0);
+    }
+
+    public boolean noBackslashEscapes() {
+        return ((serverStatus & ServerStatus.NO_BACKSLASH_ESCAPES) != 0);
     }
     public void reconnectToMaster() throws IOException,QueryException {
         SyncPacketFetcher saveFetcher = this.packetFetcher;

@@ -117,29 +117,20 @@ public final class MySQLConnection  implements Connection {
             TimeZone tz = getTimeZone(timeZoneId);
             connection.cal = Calendar.getInstance(tz);
         }
-        if (fastConnect && (sessionVariables == null))
+        connection.noBackslashEscapes = protocol.noBackslashEscapes();
+        String nullCatalogMeansCurrentString = info.getProperty("nullCatalogMeansCurrent");
+        if (nullCatalogMeansCurrentString != null && nullCatalogMeansCurrentString.equals("false")) {
+            connection.nullCatalogMeansCurrent = false;
+        }
+        if (sessionVariables == null)
             return connection;
-        
+
         Statement st = null;
         try {
-                st = connection.createStatement();        		
-                if (sessionVariables != null) {
-                    st.executeUpdate("set session " + sessionVariables);
-                }
-                if (!fastConnect) {
-                    ResultSet rs = st.executeQuery("show variables like 'sql_mode'");
-                    rs.next();
-                    String sqlMode = rs.getString(2);
-                    if (sqlMode.contains("NO_BACKSLASH_ESCAPES")) {
-                        connection.noBackslashEscapes = true;
-                    }
-                    
-                }
-                String nullCatalogMeansCurrentString = protocol.getInfo().getProperty("nullCatalogMeansCurrent");
-                if (nullCatalogMeansCurrentString != null && nullCatalogMeansCurrentString.equals("false")) {
-                    connection.nullCatalogMeansCurrent = false;
-                }
-                
+            st = connection.createStatement();
+            if (sessionVariables != null) {
+                st.executeUpdate("set session " + sessionVariables);
+            }
         } finally {
             if (st != null)
                 st.close();
