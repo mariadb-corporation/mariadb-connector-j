@@ -73,7 +73,7 @@ public class MySQLValueObject extends AbstractValueObject {
         if (bytes == null)
             return null;
         if (columnInfo.getType() == MySQLType.BIT && columnInfo.getLength() == 1)
-            return (bytes[0] == 0)?"false":"true";
+            return (bytes[0] == 0)?"0":"1";
         
         return super.getString();
     }
