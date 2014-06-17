@@ -3,6 +3,8 @@ package org.mariadb.jdbc;
 import static org.junit.Assert.*;
 import static org.hamcrest.CoreMatchers.*;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 
@@ -28,6 +30,14 @@ public class StatementTest extends BaseTest {
 			assertTrue(false);
 		}
 		mysqlStatement.close();
+	}
+	
+	@Test(expected=SQLException.class)
+	public void afterConnectionClosedTest() throws SQLException {
+		Connection conn2 = DriverManager.getConnection("jdbc:mariadb://localhost:3306/test?user=root");
+		Statement st1 = conn2.createStatement();
+		conn2.close();
+		Statement st2 = conn2.createStatement();
 	}
 
 }
