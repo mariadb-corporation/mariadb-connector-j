@@ -143,18 +143,28 @@ public class DateTest extends BaseTest{
     @Test
     public void timestampZeroTest() throws SQLException {
         connection.createStatement().execute("drop table if exists timestampzerotest");
-        connection.createStatement().execute("create table timestampzerotest (ts timestamp)");
-        connection.createStatement().execute("insert into timestampzerotest values ('0000-00-00 00:00:00')");
+        connection.createStatement().execute("create table timestampzerotest (ts timestamp, dt datetime, dd date)");
+        String timestampZero = "0000-00-00 00:00:00";
+        String dateZero = "0000-00-00";
+        connection.createStatement().execute("insert into timestampzerotest values ('"
+        		+ timestampZero + "', '" + timestampZero + "', '" + dateZero + "')");
         Statement stmt = connection.createStatement();
         ResultSet rs = stmt.executeQuery("select * from timestampzerotest");
         Timestamp ts = null;
+        Timestamp datetime = null;
+        Date date = null;
         while(rs.next()) {
-            System.out.println("--");
-            System.out.println(rs.getObject(1));
             ts = rs.getTimestamp(1);
+            assertEquals(rs.wasNull(), true);
+            datetime = rs.getTimestamp(2);
+            assertEquals(rs.wasNull(), true);
+            date = rs.getDate(3);
+            assertEquals(rs.wasNull(), true);
         }
         rs.close();
         assertEquals(ts, null);
+        assertEquals(datetime, null);
+        assertEquals(date, null);
     }
 
     @Test

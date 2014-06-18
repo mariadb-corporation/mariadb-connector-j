@@ -177,6 +177,10 @@ public abstract class AbstractValueObject implements ValueObject {
         }
 
         String rawValue = getString();
+        String zeroDate = "0000-00-00";
+        if (rawValue.equals(zeroDate)) {
+        	return null;
+        }
         SimpleDateFormat sdf;
         if (dataType == MySQLType.YEAR) {
            if (rawBytes.length == 2) {
@@ -200,6 +204,10 @@ public abstract class AbstractValueObject implements ValueObject {
             return null;
         }
         String rawValue = getString();
+        String zeroDate = "0000-00-00";
+        if (rawValue.equals(zeroDate)) {
+        	return null;
+        }
         SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
 
         //sdf.setLenient(false);
@@ -293,7 +301,13 @@ public abstract class AbstractValueObject implements ValueObject {
     }
 
     public boolean isNull() {
-        return rawBytes == null;
+        String rawValue = getString();
+        String zeroTimestamp = "0000-00-00 00:00:00";
+        String zeroDate = "0000-00-00";
+        return (rawBytes == null
+        		|| ((dataType == MySQLType.TIMESTAMP || dataType == MySQLType.DATETIME) && rawValue.equals(zeroTimestamp))
+        		|| (dataType== MySQLType.DATE && rawValue.equals(zeroDate))
+        		);
     }
 
 
