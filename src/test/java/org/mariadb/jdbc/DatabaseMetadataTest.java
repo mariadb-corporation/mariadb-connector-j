@@ -92,7 +92,6 @@ public class DatabaseMetadataTest extends BaseTest{
       assertEquals(rs.getString("FUNCTION_SCHEM"), null);
       assertEquals(rs.getString("COLUMN_NAME"), null); /* No name, since it is return value */
       assertEquals(rs.getInt("COLUMN_TYPE"), DatabaseMetaData.functionReturn);
-      System.out.println(rs.getObject("DATA_TYPE"));
       assertEquals(rs.getInt("DATA_TYPE"), java.sql.Types.CHAR);
       assertEquals(rs.getString("TYPE_NAME"), "char");
       
@@ -280,7 +279,8 @@ public class DatabaseMetadataTest extends BaseTest{
         DatabaseMetaData dbmd = connection.getMetaData();
         ResultSet rs = dbmd.getColumns(null,null,"t1",null);
         while(rs.next()){
-            System.out.println(rs.getString(3));
+            // System.out.println(rs.getString(3));
+            assertEquals("t1", rs.getString(3));
         }
     }
     
@@ -654,16 +654,16 @@ public class DatabaseMetadataTest extends BaseTest{
             checkType(columnName, type, "tiny", Types.TINYINT);
             checkType(columnName, type, "tiny_uns", Types.TINYINT);
             checkType(columnName, type, "small", Types.SMALLINT);
-            checkType(columnName, type, "small_uns", Types.INTEGER);
+            checkType(columnName, type, "small_uns", Types.SMALLINT);
             checkType(columnName, type, "medium", Types.INTEGER);
             checkType(columnName, type, "medium_uns", Types.INTEGER);
             checkType(columnName, type, "int_col", Types.INTEGER);
-            checkType(columnName, type, "int_col_uns", Types.BIGINT);
+            checkType(columnName, type, "int_col_uns", Types.INTEGER);
             checkType(columnName, type, "big", Types.BIGINT);
             checkType(columnName, type, "big_uns", Types.BIGINT);
-            checkType(columnName, type ,"decimal_col",Types.DECIMAL);
-            checkType(columnName, type, "fcol", Types.FLOAT);
-            checkType(columnName, type, "fcol_uns", Types.FLOAT);
+            checkType(columnName, type, "decimal_col",Types.DECIMAL);
+            checkType(columnName, type, "fcol", Types.REAL);
+            checkType(columnName, type, "fcol_uns", Types.REAL);
             checkType(columnName, type, "dcol", Types.DOUBLE);
             checkType(columnName, type, "dcol_uns", Types.DOUBLE);
             checkType(columnName, type, "date_col", Types.DATE);

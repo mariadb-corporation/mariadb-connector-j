@@ -83,13 +83,13 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
         " WHEN 'decimal' THEN "     + Types.DECIMAL +
         " WHEN 'double' THEN "      + Types.DOUBLE +
         " WHEN 'enum' THEN "        + Types.VARCHAR +
-        " WHEN 'float' THEN "        + Types.FLOAT+
-        " WHEN 'int' THEN IF( " + fullTypeColumnName + " like '%unsigned%', "+Types.BIGINT+","+ Types.INTEGER+ ")" + 
+        " WHEN 'float' THEN "        + Types.REAL+
+        " WHEN 'int' THEN IF( " + fullTypeColumnName + " like '%unsigned%', "+Types.INTEGER+","+ Types.INTEGER+ ")" + 
         " WHEN 'bigint' THEN "      + Types.BIGINT +
         " WHEN 'mediumint' THEN "   + Types.INTEGER +
         " WHEN 'null' THEN "        + Types.NULL +
         " WHEN 'set' THEN "         + Types.VARCHAR +
-        " WHEN 'smallint' THEN IF( " + fullTypeColumnName + " like '%unsigned%', "+Types.INTEGER+","+ Types.SMALLINT + ")" +
+        " WHEN 'smallint' THEN IF( " + fullTypeColumnName + " like '%unsigned%', "+Types.SMALLINT+","+ Types.SMALLINT + ")" +
         " WHEN 'varchar' THEN "     + Types.VARCHAR +
         " WHEN 'varbinary' THEN "   + Types.VARBINARY +
         " WHEN 'char' THEN "        + Types.CHAR +
