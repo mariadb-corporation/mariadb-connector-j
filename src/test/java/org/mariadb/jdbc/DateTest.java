@@ -14,6 +14,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.Calendar;
+import java.util.GregorianCalendar;
 import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -169,7 +170,16 @@ public class DateTest extends BaseTest{
         rs.next();
         /* Check that time is correct, up to seconds precision */
         assertEquals(d.getTime()/1000,rs.getTimestamp(1).getTime()/1000);
-
+    }
+    
+    @Test
+    public void nullTimestampTest() throws SQLException {
+        PreparedStatement ps = connection.prepareStatement("insert into dtest values(null)");
+        ps.executeUpdate();
+        ResultSet rs = connection.createStatement().executeQuery("select * from dtest where d is null");
+        rs.next();
+        Calendar cal = new GregorianCalendar();
+        assertEquals(null, rs.getTimestamp(1, cal));
     }
 
     @SuppressWarnings( "deprecation" )
