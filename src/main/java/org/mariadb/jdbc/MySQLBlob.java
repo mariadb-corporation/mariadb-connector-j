@@ -353,7 +353,7 @@ public  class MySQLBlob implements Blob, Serializable {
         if (pos < 1) {
              throw SQLExceptionMapper.getSQLException("Out of range (position should be > 0)");
         }
-        if (pos > actualSize) {
+        if (pos - 1 > actualSize) {
             throw SQLExceptionMapper.getSQLException("Out of range (position > stream size)");
         }
         if (pos + length - 1 > actualSize) {
