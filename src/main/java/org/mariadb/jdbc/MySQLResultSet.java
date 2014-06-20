@@ -3689,15 +3689,16 @@ public class MySQLResultSet implements ResultSet {
 	}
 	
 	
-    /*
+    /**
     * Create a result set from given data. Useful for creating "fake" resultsets for DatabaseMetaData,
     * (one example is  MySQLDatabaseMetaData.getTypeInfo())
-    * @param columnName  - string array of column names
+    * @param columnNames  - string array of column names
     * @param columnTypes - column types
-    * @data - each element of this array represents a complete row in the ResultSet.
+    * @param data - each element of this array represents a complete row in the ResultSet.
     * Each value is given in its string representation, as in MySQL text protocol, except boolean (BIT(1)) values
     * that are represented as "1" or "0" strings
-    * @findColumnReturnsOne - special parameter, used only in generated key result sets
+    * @param protocol
+    * @param findColumnReturnsOne - special parameter, used only in generated key result sets
     */
     static ResultSet createResultSet(String[] columnNames, MySQLType[] columnTypes, String[][] data,
             MySQLProtocol protocol, boolean findColumnReturnsOne)  {
@@ -3746,11 +3747,86 @@ public class MySQLResultSet implements ResultSet {
                 null, protocol, null);
     }
     
+    /**
+     * Create a result set from given data. Useful for creating "fake" resultsets for DatabaseMetaData,
+     * (one example is  MySQLDatabaseMetaData.getTypeInfo())
+     * @param columnNames  - string array of column names
+     * @param columnTypes - column types
+     * @param data - each element of this array represents a complete row in the ResultSet.
+     * Each value is given in its string representation, as in MySQL text protocol, except boolean (BIT(1)) values
+     * that are represented as "1" or "0" strings
+     * @param protocol
+     */
     static ResultSet createResultSet(String[] columnNames, MySQLType[] columnTypes, String[][] data,
             MySQLProtocol protocol)  {
         return createResultSet(columnNames, columnTypes, data, protocol,false);
     }
     
+    /**
+     * Create a result set from given data. Useful for creating "fake" resultsets for DatabaseMetaData,
+     * (one example is  MySQLDatabaseMetaData.getTypeInfo())
+     * @param columns a MySQLColumnInformation array that contains the name and type of each column
+     * @param data - each element of this array represents a complete row in the ResultSet.
+     * Each value is given in its string representation, as in MySQL text protocol, except boolean (BIT(1)) values
+     * that are represented as "1" or "0" strings
+     * @param protocol
+     * @param findColumnReturnsOne - special parameter, used only in generated key result sets
+     */
+     static ResultSet createResultSet(MySQLColumnInformation[] columns, String[][] data,
+             MySQLProtocol protocol, boolean findColumnReturnsOne)  {
+         int N = columns.length;
+         
+         byte[] BOOL_TRUE = {1};
+         byte[] BOOL_FALSE ={0};
+         List<ValueObject[]> rows  = new ArrayList<ValueObject[]>();
+         for(String[] rowData : data) {
+             ValueObject[] row = new ValueObject[N];
+  
+             if (rowData.length != N) {
+                 throw new RuntimeException("Number of elements in the row != number of columns :" + rowData.length + " vs " + N);
+             }
+             for(int i = 0; i < N; i++){
+                 byte[] bytes;
+                 if (rowData[i] == null) {
+                     bytes = null;
+                 } else if (columns[i].getType() == MySQLType.BIT) {
+                     bytes = rowData[i].equals("0")?BOOL_FALSE:BOOL_TRUE;
+                 } else  { 
+                     try {
+                         bytes = rowData[i].getBytes("UTF-8");
+                     } catch(Exception e) {
+                         throw new RuntimeException ("No UTF-8");
+                     }
+                 }
+                 row[i] = new MySQLValueObject(bytes,columns[i]);
+             }
+             rows.add(row);
+         }
+         if (findColumnReturnsOne) {
+             return new MySQLResultSet(new CachedSelectResult(columns , rows, (short)0),
+                     null, protocol, null) {
+                 public int findColumn(String name) {
+                     return 1;
+                 } 
+             };
+         }
+         return new MySQLResultSet(new CachedSelectResult(columns , rows, (short)0),
+                 null, protocol, null);
+     }
+     
+     /**
+      * Create a result set from given data. Useful for creating "fake" resultsets for DatabaseMetaData,
+      * (one example is  MySQLDatabaseMetaData.getTypeInfo()) 
+      * @param columns a MySQLColumnInformation array that contains the name and type of each column
+      * @param data - each element of this array represents a complete row in the ResultSet.
+      * Each value is given in its string representation, as in MySQL text protocol, except boolean (BIT(1)) values
+      * that are represented as "1" or "0" strings
+      * @param protocol
+      */
+     static ResultSet createResultSet(MySQLColumnInformation[] columns, String[][] data, MySQLProtocol protocol)  {
+         return createResultSet(columns, data, protocol, false);
+     }
+     
     static ResultSet createGeneratedKeysResultSet(long lastInsertId, int updateCount, 
             MySQLConnection connection) {
         if (updateCount <= 0) {
@@ -3774,5 +3850,49 @@ public class MySQLResultSet implements ResultSet {
 
     void setStatement(Statement st) {
         this.statement = st;
+    }
+    
+    
+    public MySQLResultSet joinResultSets(MySQLResultSet resultSet) throws SQLException {
+    	MySQLColumnInformation[] columnInfo = this.queryResult.getColumnInformation();
+    	MySQLColumnInformation[] otherColumnInfo = resultSet.queryResult.getColumnInformation();
+    	int thisColumnNumber = columnInfo.length;
+    	int resultSetColumnNumber = otherColumnInfo.length;
+    	if (thisColumnNumber != resultSetColumnNumber) {
+    		throw new SQLException("The two result sets do not have the same column number.");
+    	}
+    	for (int count=0; count<columnInfo.length; count++) {
+    		if (columnInfo[count].getType() != otherColumnInfo[count].getType()) {
+    			throw new SQLException("The two result sets differ in column types.");
+    		}
+    	}
+    	MySQLResultSet result = null;
+    	int rowNumber = this.queryResult.getRows() + resultSet.queryResult.getRows();
+    	String[][] data = new String[rowNumber][columnInfo.length];
+    	int i = 0;
+    	this.beforeFirst();
+    	while (this.next()) {
+    		for (int j=0; j<columnInfo.length; j++) {
+    			data[i][j] = this.getString(j+1);
+    		}
+    		i++;
+    	}
+    	resultSet.beforeFirst();
+    	while (resultSet.next()) {
+    		for (int j=0; j<columnInfo.length; j++) {
+    			data[i][j] = resultSet.getString(j+1);
+    		}
+    		i++;
+    	}
+    	result = (MySQLResultSet)createResultSet(columnInfo, data, protocol);
+    	return result;
+    }
+    
+    public MySQLResultSet joinResultSets(MySQLResultSet[] resultSets) throws SQLException {
+    	MySQLResultSet result = null;
+    	for (MySQLResultSet resultSet : resultSets) {
+    		result = joinResultSets(resultSet);
+    	}
+    	return result;
     }
 }

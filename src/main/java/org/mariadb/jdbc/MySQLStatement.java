@@ -98,6 +98,7 @@ public class MySQLStatement implements Statement {
 
     List<String> batchQueries;
     Queue<Object> cachedResultSets;
+    protected ResultSet batchResultSet = null;
 
 
     public boolean isStreaming() {
@@ -278,6 +279,7 @@ public class MySQLStatement implements Statement {
             QueryException exception = null;
             executeQueryProlog();
             try {
+            	batchResultSet = null;
                 queryResult = protocol.executeQuery(query, isStreaming());
                 cacheMoreResults();
                 return (queryResult.getResultSetType() == ResultSetType.SELECT);
@@ -651,6 +653,11 @@ public class MySQLStatement implements Statement {
      * @since 1.4
      */
     public ResultSet getGeneratedKeys() throws SQLException {
+    	if (batchResultSet != null) {
+    		ResultSet result = batchResultSet;
+    		batchResultSet = null;
+    		return result;
+    	}
         if (queryResult != null && queryResult.getResultSetType() == ResultSetType.MODIFY) {
             long insertId = ((ModifyQueryResult)queryResult).getInsertId();
             int updateCount = getUpdateCount();
@@ -1143,6 +1150,7 @@ public class MySQLStatement implements Statement {
 
         int[] ret = new int[batchQueries.size()];
         int i = 0;
+        MySQLResultSet rs = null;
         try {
             synchronized (this.protocol) {
                 for(; i < batchQueries.size(); i++)  {
@@ -1153,6 +1161,11 @@ public class MySQLStatement implements Statement {
                     } else {
                         ret[i] = updateCount;
                     }
+                    if (i == 0) {
+                    	rs = (MySQLResultSet)getGeneratedKeys();
+                    } else {
+                      	rs = rs.joinResultSets((MySQLResultSet)getGeneratedKeys());
+                    }
                 }
             }
         } catch (SQLException sqle) {
@@ -1160,6 +1173,7 @@ public class MySQLStatement implements Statement {
         } finally {
             clearBatch();
         }
+        batchResultSet = rs;
         return ret;
     }
 

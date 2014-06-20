@@ -48,12 +48,11 @@ OF SUCH DAMAGE.
 */
 package org.mariadb.jdbc;
 
- import org.mariadb.jdbc.internal.SQLExceptionMapper;
+import org.mariadb.jdbc.internal.SQLExceptionMapper;
 import org.mariadb.jdbc.internal.common.Utils;
 import org.mariadb.jdbc.internal.common.query.IllegalParameterException;
 import org.mariadb.jdbc.internal.common.query.MySQLParameterizedQuery;
 import org.mariadb.jdbc.internal.common.query.parameters.*;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
@@ -190,16 +189,18 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
      * @since 1.2
      */
     public void addBatch() throws SQLException {
-        if (batchPreparedStatements == null) {
-            batchPreparedStatements = new ArrayList<MySQLPreparedStatement>();
-        }
+        checkBatchFields();
         batchPreparedStatements.add(new MySQLPreparedStatement(connection,sql, dQuery, useFractionalSeconds));
     }
     public void addBatch(final String sql) throws SQLException {
-        if (batchPreparedStatements == null) {
+    	checkBatchFields();
+        batchPreparedStatements.add(new MySQLPreparedStatement(connection, sql));
+    }
+    
+    private void checkBatchFields() {
+    	if (batchPreparedStatements == null) {
             batchPreparedStatements = new ArrayList<MySQLPreparedStatement>();
         }
-        batchPreparedStatements.add(new MySQLPreparedStatement(connection, sql));
     }
 
     public void clearBatch() {
@@ -215,6 +216,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
         }
         int[] ret = new int[batchPreparedStatements.size()];
         int i = 0;
+        MySQLResultSet rs = null;
         try {
             synchronized (this.getProtocol()) {
                 for(; i < batchPreparedStatements.size(); i++)  {
@@ -226,6 +228,11 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
                     } else {
                         ret[i] = updateCount;
                     }
+                    if (i == 0) {
+                    	rs = (MySQLResultSet)ps.getGeneratedKeys();
+                    } else {
+                      	rs = rs.joinResultSets((MySQLResultSet)ps.getGeneratedKeys());
+                    }
                 }
             }
         } catch (SQLException sqle) {
@@ -233,9 +240,9 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
         } finally {
             clearBatch();
         }
+        batchResultSet = rs;
         return ret;
     }
-
 
     /**
      * Sets the designated parameter to the given <code>Reader</code> object, which is the given number of characters
