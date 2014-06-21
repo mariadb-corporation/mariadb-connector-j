@@ -654,9 +654,7 @@ public class MySQLStatement implements Statement {
      */
     public ResultSet getGeneratedKeys() throws SQLException {
     	if (batchResultSet != null) {
-    		ResultSet result = batchResultSet;
-    		batchResultSet = null;
-    		return result;
+    		return batchResultSet;
     	}
         if (queryResult != null && queryResult.getResultSetType() == ResultSetType.MODIFY) {
             long insertId = ((ModifyQueryResult)queryResult).getInsertId();
