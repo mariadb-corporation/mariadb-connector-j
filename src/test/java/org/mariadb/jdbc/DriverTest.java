@@ -340,7 +340,7 @@ public class DriverTest extends BaseTest{
     public void connectFailover() throws SQLException {
         Connection c  = DriverManager.getConnection("jdbc:mysql://localhost:3306,localhost:3307/test?user=root");
         MySQLConnection my=(MySQLConnection) c;
-        System.out.println(""+my.getPort());
+        assertEquals(3306, my.getPort());
         ResultSet rs = c.createStatement().executeQuery("select 1");
         rs.next();
         assertEquals(rs.getInt(1), 1);
@@ -1071,7 +1071,7 @@ public class DriverTest extends BaseTest{
         Connection conn = connection;
         Statement stmt = conn.createStatement();
         stmt.execute("select 1") ;
-        System.out.println(stmt.getUpdateCount());
+        assertEquals(-1,  stmt.getUpdateCount());
     }
 
     @Test
@@ -1622,4 +1622,20 @@ public class DriverTest extends BaseTest{
         }
         assertTrue(foundDb);
     }
+
+	@Test
+	public void connectionIsValid() {
+		final int maxSecondsToWait = 2;
+		boolean isValid;
+		if (connection == null) {
+			isValid = false;
+		} else {
+			try {
+				isValid = connection.isValid(maxSecondsToWait);
+			} catch (Throwable ex) {
+				isValid = false;
+			}
+		}
+		assertEquals(true, isValid);
+	}
 }
