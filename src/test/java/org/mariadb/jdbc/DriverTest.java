@@ -1624,17 +1624,13 @@ public class DriverTest extends BaseTest{
     }
 
 	@Test
-	public void connectionIsValid() {
+	public void isConnectionValid() {
 		final int maxSecondsToWait = 2;
 		boolean isValid;
-		if (connection == null) {
+		try {
+			isValid = connection.isValid(maxSecondsToWait);
+		} catch (Throwable ex) {
 			isValid = false;
-		} else {
-			try {
-				isValid = connection.isValid(maxSecondsToWait);
-			} catch (Throwable ex) {
-				isValid = false;
-			}
 		}
 		assertEquals(true, isValid);
 	}
