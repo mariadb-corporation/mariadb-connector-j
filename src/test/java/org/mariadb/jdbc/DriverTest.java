@@ -1130,8 +1130,6 @@ public class DriverTest extends BaseTest{
             if(rs.getString("table_cat").equals("test_testdrop")) foundDb = true;
         }
         assertTrue(foundDb);
-
-
     }
 
      @Test
@@ -1618,5 +1616,18 @@ public class DriverTest extends BaseTest{
     public void emptyBatch() throws Exception {
         Statement st = connection.createStatement();
         st.executeBatch();
+    }
+    
+    @Test
+    public void createDbWithSpacesTest() throws SQLException {
+    	Connection conn;
+    	conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/test with spaces?createDB=true&user=root");
+        DatabaseMetaData dbmd = conn.getMetaData();
+        ResultSet rs = dbmd.getCatalogs();
+        boolean foundDb = false;
+        while(rs.next()) {
+            if(rs.getString("table_cat").equals("test with spaces")) foundDb = true;
+        }
+        assertTrue(foundDb);
     }
 }
