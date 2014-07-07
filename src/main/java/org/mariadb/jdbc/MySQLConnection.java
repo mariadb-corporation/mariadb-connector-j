@@ -89,8 +89,9 @@ public final class MySQLConnection  implements Connection {
      */
     private MySQLConnection( MySQLProtocol protocol) {
         this.protocol = protocol;
-        clientInfoProperties = new Properties();
-
+        clientInfoProperties = protocol.getInfo();
+        clientInfoProperties.remove("user");
+        clientInfoProperties.remove("password");
     }
     
     MySQLProtocol getProtocol() {
