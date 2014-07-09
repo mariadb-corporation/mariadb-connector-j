@@ -1290,9 +1290,33 @@ public final class MySQLConnection  implements Connection {
         }
         return lowercaseTableNames;
     }
-	public void abort(Executor arg0) throws SQLException {
-      // TODO: not implemented yet
-      throw SQLExceptionMapper.getFeatureNotSupportedException("Not yet supported");
+    
+	/* (non-Javadoc)
+	 * @see java.sql.Connection#abort(java.util.concurrent.Executor)
+	 */
+	public void abort(Executor executor) throws SQLException {
+		if (this.isClosed()) {
+			return;
+		}
+		SQLPermission sqlPermission = new SQLPermission("abort");
+		SecurityManager securityManager = new SecurityManager();
+		if (securityManager != null && sqlPermission != null) {
+			securityManager.checkPermission(sqlPermission);
+		}
+		if (executor == null) {
+			throw SQLExceptionMapper.getSQLException("Cannot abort the connection: null executor passed");
+		}
+		executor.execute(new Runnable() {
+			@Override
+			public void run() {
+				try {
+					close();
+					pooledConnection = null;
+				} catch (SQLException sqle) {
+					throw new RuntimeException(sqle);
+				}
+			}
+		});
 	}
 
 	public int getNetworkTimeout() throws SQLException {

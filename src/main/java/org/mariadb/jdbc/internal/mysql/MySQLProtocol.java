@@ -780,7 +780,7 @@ public class MySQLProtocol {
      * @throws org.mariadb.jdbc.internal.common.QueryException
      *          if the socket or readers/writes cannot be closed
      */
-    public void close()  {
+    public void close() {
         try {
             /* If a streaming result set is open, close it.*/ 
             skip();
