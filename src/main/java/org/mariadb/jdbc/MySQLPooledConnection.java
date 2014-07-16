@@ -1,12 +1,14 @@
 package org.mariadb.jdbc;
 
 import javax.sql.*;
+
 import java.sql.Statement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 
 public class MySQLPooledConnection implements  PooledConnection{
@@ -140,7 +142,8 @@ public class MySQLPooledConnection implements  PooledConnection{
 
     public void fireConnectionClosed() {
         ConnectionEvent event = new ConnectionEvent(this);
-        for(ConnectionEventListener listener: connectionEventListeners)
+        CopyOnWriteArrayList<ConnectionEventListener> copyListeners = new CopyOnWriteArrayList<ConnectionEventListener>(connectionEventListeners);
+        for(ConnectionEventListener listener: copyListeners)
            listener.connectionClosed(event);
     }
 
