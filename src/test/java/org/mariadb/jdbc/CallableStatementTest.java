@@ -2,11 +2,13 @@
 
 
     import org.junit.Before;
-    import org.junit.Test;
+import org.junit.Test;
 
 import java.sql.*;
 
-    import static junit.framework.Assert.*;
+import static junit.framework.Assert.*;
+import static org.junit.Assert.assertThat;
+import static org.hamcrest.CoreMatchers.*;
 
     public class CallableStatementTest extends BaseTest{
         @Before
@@ -124,5 +126,25 @@ import java.sql.*;
             	}
             	System.out.println();
             }
+        }
+        
+        @Test
+        public void withStrangeParameter() throws SQLException {
+        	createProcedure("withStrangeParameter", "(IN a DECIMAL(10,2)) begin select a; end");
+            CallableStatement stmt = connection.prepareCall("{call withStrangeParameter(?)}");
+            double expected = 5.43;
+            stmt.setDouble("a", expected);
+            ResultSet rs = stmt.executeQuery();
+            assertTrue(rs.next());
+            double res = rs.getDouble(1);
+            assertEquals(expected, res);
+            // now fail due to three decimals
+            double tooMuch = 34.987;
+            stmt.setDouble("a", tooMuch);
+            rs = stmt.executeQuery();
+            assertTrue(rs.next());
+            assertThat(rs.getDouble(1), is(not(tooMuch)));
+            rs.close();
+            stmt.close();
         }
     }
