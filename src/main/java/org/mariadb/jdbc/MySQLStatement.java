@@ -274,6 +274,9 @@ public class MySQLStatement implements Statement {
      protected boolean execute(Query query) throws SQLException {
     	//System.out.println(query);
         synchronized (protocol) {
+        	if (protocol.activeResult != null) {
+                protocol.activeResult.close();
+            }
             executing = true;
             QueryException exception = null;
             executeQueryProlog();

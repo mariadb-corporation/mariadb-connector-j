@@ -41,6 +41,7 @@ public class StatementTest extends BaseTest {
 	public void reexecuteStatementTest() throws SQLException {
 		connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/test?user=root&allowMultiQueries=true");
 		PreparedStatement stmt = connection.prepareStatement("SELECT 1");
+		stmt.setFetchSize(Integer.MIN_VALUE);
 		ResultSet rs = stmt.executeQuery();
 		rs.next();
 		rs = stmt.executeQuery();
