@@ -98,6 +98,8 @@ public class MySQLStatement implements Statement {
 
     List<String> batchQueries;
     Queue<Object> cachedResultSets;
+    private boolean isRewriteable = true;
+    private String firstRewrite = null;
 
 
     public boolean isStreaming() {
@@ -1086,6 +1088,67 @@ public class MySQLStatement implements Statement {
             batchQueries = new ArrayList<String>();
         }
         batchQueries.add(sql);
+        isInsertRewriteable(sql);
+    }
+    
+    /**
+     * Parses the sql string to understand whether it is compatible with rewritten batches.
+     * @param sql the sql string
+     */
+    private void isInsertRewriteable(String sql) {
+    	if (!isRewriteable) {
+    		return;
+    	}
+    	int index = getInsertIncipit(sql);
+    	if (index == -1) {
+    		isRewriteable = false;
+    		return;
+    	}
+    	if (firstRewrite == null) {
+    		firstRewrite = sql.substring(0, index);
+    	}
+    	boolean isRewrite = sql.startsWith(firstRewrite);
+        if (isRewrite) {
+        	isRewriteable = isRewriteable && true;
+        }
+    }
+    
+    /**
+     * Parses the input string to understand if it is an INSERT statement.
+     * Returns the position of the round bracket after the VALUE(S) SQL keyword,
+     * or -1 if it cannot understand it is an INSERT statement.
+     * Multiple statements cannot be parsed.
+     * @param sql the input SQL statement
+     * @return the position of the round bracket after the VALUE(S) SQL keyword,
+     * or -1 if it cannot be parsed as an INSERT statement
+     */
+    protected int getInsertIncipit(String sql) {
+    	String sqlUpper = sql.toUpperCase();
+    	if (! sqlUpper.startsWith("INSERT")
+    			|| sqlUpper.indexOf(";") != -1) {
+    		return -1;
+    	}
+    	int idx = sqlUpper.indexOf(" VALUE");
+    	int index = sqlUpper.indexOf("(", idx);
+    	return index;
+    }
+    
+    /**
+     * If the batch array contains only rewriteable sql strings, returns the rewritten statement.
+     * @return the rewritten statement
+     */
+    private String rewrittenBatch() {
+    	StringBuilder result = null;
+    	if(isRewriteable) {
+    		result = new StringBuilder("");
+    		result.append(firstRewrite);
+    		for (String query : batchQueries) {
+    			result.append(query.substring(getInsertIncipit(query)));
+    			result.append(",");
+    		}
+    		result.deleteCharAt(result.length() - 1);
+    	}
+    	return (result == null ? null : result.toString());
     }
 
 
@@ -1103,6 +1166,8 @@ public class MySQLStatement implements Statement {
         if (batchQueries != null) {
             batchQueries.clear();
         }
+        firstRewrite = null;
+        isRewriteable = true;
     }
 
     /**
@@ -1147,17 +1212,22 @@ public class MySQLStatement implements Statement {
         int[] ret = new int[batchQueries.size()];
         int i = 0;
         try {
-            synchronized (this.protocol) {
-                for(; i < batchQueries.size(); i++)  {
-                    execute(batchQueries.get(i));
-                    int updateCount = getUpdateCount();
-                    if (updateCount == -1) {
-                        ret[i] = SUCCESS_NO_INFO;
-                    } else {
-                        ret[i] = updateCount;
-                    }
-                }
-            }
+        	synchronized (this.protocol) {
+        		if (getProtocol().getInfo().getProperty("rewriteBatchedStatements") != null
+        				&& "true".equalsIgnoreCase(getProtocol().getInfo().getProperty("rewriteBatchedStatements"))) {
+        			ret = executeBatchAsMultiQueries();
+        		} else {
+        			for(; i < batchQueries.size(); i++)  {
+        				execute(batchQueries.get(i));
+        				int updateCount = getUpdateCount();
+        				if (updateCount == -1) {
+        					ret[i] = SUCCESS_NO_INFO;
+        				} else {
+        					ret[i] = updateCount;
+        				}
+        			}
+        		}
+        	}
         } catch (SQLException sqle) {
             throw new BatchUpdateException(sqle.getMessage(), sqle.getSQLState(),Arrays.copyOf(ret, i), sqle);
         } finally {
@@ -1165,6 +1235,51 @@ public class MySQLStatement implements Statement {
         }
         return ret;
     }
+    
+    /**
+	 * Builds a new statement which contains the batched Statements and executes it.
+	 * @return an array of update counts containing one element for each command in the batch.
+	 *  The elements of the array are ordered according to the order in which commands were added to the batch.
+	 * @throws SQLException
+	 */
+	private int[] executeBatchAsMultiQueries() throws SQLException {
+		int i = 0;
+		StringBuilder stringBuilder = new StringBuilder();
+		String rewrite = rewrittenBatch();
+		if (rewrite != null) {
+			stringBuilder.append(rewrite);
+			i++;
+		} else {
+			for (; i < batchQueries.size(); i++) {
+				stringBuilder.append(batchQueries.get(i) + ";");
+			}
+		}
+		Statement ps = connection.createStatement();
+		ps.execute(stringBuilder.toString());
+		return getUpdateCounts(ps, i);
+	}
+	/**
+	 * Retrieves the update counts for the batched statements rewritten as
+	 * a multi query. The rewritten statement must have been executed already.
+	 * @param statement the rewritten statement
+	 * @return an array of update counts containing one element for each command in the batch.
+	 *  The elements of the array are ordered according to the order in which commands were added to the batch.
+	 * @throws SQLException
+	 */
+	protected int[] getUpdateCounts(Statement statement, int size) throws SQLException {
+		int[] result = new int[size];
+		int updateCount;
+		for (int count=0; count<size; count++) {
+			updateCount = statement.getUpdateCount();
+            if (updateCount == -1) {
+                result[count] = SUCCESS_NO_INFO;
+            } else {
+                result[count] = updateCount;
+            }
+            statement.getMoreResults();
+		}
+		return result;
+	}
 
     /**
      * Returns an object that implements the given interface to allow access to non-standard methods, or standard

@@ -418,7 +418,9 @@ public class MySQLProtocol {
 
 
 
-           if(info.getProperty("allowMultiQueries") != null) {
+           if(info.getProperty("allowMultiQueries") != null
+        		   || (info.getProperty("rewriteBatchedStatements") != null
+        		   && "true".equalsIgnoreCase(info.getProperty("rewriteBatchedStatements")))) {
               capabilities |= MySQLServerCapabilities.MULTI_STATEMENTS;
            }
            if(info.getProperty("useCompression") != null) {

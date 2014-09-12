@@ -52,6 +52,7 @@ package org.mariadb.jdbc.internal.common;
 import org.mariadb.jdbc.MySQLBlob;
 import org.mariadb.jdbc.MySQLClob;
 import org.mariadb.jdbc.internal.mysql.MySQLType;
+
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
@@ -61,6 +62,7 @@ import java.sql.*;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.TimeZone;
 
 
 public abstract class AbstractValueObject implements ValueObject {
@@ -259,7 +261,17 @@ public abstract class AbstractValueObject implements ValueObject {
         if (cal != null) {
             sdf.setCalendar(cal);
         }
-        final java.util.Date utilTime = sdf.parse(rawValue);
+        java.util.Date utilTime;
+        try {
+        	utilTime = sdf.parse(rawValue);
+        } catch (ParseException pe) {
+        	if (cal == null) {
+        		sdf.setCalendar(Calendar.getInstance(TimeZone.getTimeZone("UTC")));
+        		utilTime = sdf.parse(rawValue);
+        	} else {
+        		throw pe;
+        	}
+        }
         Timestamp ts = new Timestamp(utilTime.getTime());
         if(rawValue.indexOf('.') != -1) {
             ts.setNanos(extractNanos(rawValue));

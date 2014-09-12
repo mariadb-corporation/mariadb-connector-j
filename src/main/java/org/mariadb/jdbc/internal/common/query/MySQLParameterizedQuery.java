@@ -51,9 +51,11 @@ package org.mariadb.jdbc.internal.common.query;
 import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.common.query.parameters.ParameterHolder;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
 import java.util.List;
 
 import static org.mariadb.jdbc.internal.common.Utils.createQueryParts;
@@ -177,5 +179,24 @@ public class MySQLParameterizedQuery implements ParameterizedQuery {
         }
         return sb.toString();
     }
+    
+    /**
+     * Returns a string representing the SQL of the query.
+     * @return
+     * @throws IOException
+     * @throws QueryException
+     */
+	public String toSQL() {
+		try {
+			final ByteArrayOutputStream os = new ByteArrayOutputStream();
+			writeTo(os);
+			String sql = new String(os.toByteArray(), Charset.forName("UTF8"));
+			return sql;
+		} catch (QueryException qe) {
+			return "";
+		} catch (IOException e) {
+			return "";
+		}
+	}
 
 }
