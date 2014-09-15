@@ -653,6 +653,9 @@ public class MySQLStatement implements Statement {
     public ResultSet getGeneratedKeys() throws SQLException {
         if (queryResult != null && queryResult.getResultSetType() == ResultSetType.MODIFY) {
             long insertId = ((ModifyQueryResult)queryResult).getInsertId();
+            if (insertId == 0) {
+            	return MySQLResultSet.createEmptyGeneratedKeysResultSet(connection);
+            }
             int updateCount = getUpdateCount();
             
             return MySQLResultSet.createGeneratedKeysResultSet(insertId, updateCount, connection);
