@@ -1,6 +1,7 @@
 package org.mariadb.jdbc;
 
 import junit.framework.Assert;
+
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -10,16 +11,18 @@ import java.sql.*;
 import static org.junit.Assert.*;
 
 
-public class MultiTest{
-    private static Connection connection;
+public class MultiTest extends BaseTest {
+	private static Connection connection;
 
     public MultiTest() throws SQLException {
 
     }
 
     @BeforeClass
-    public static void before() throws SQLException {
-        connection = DriverManager.getConnection("jdbc:mysql:thin://localhost:3306/test?allowMultiQueries=true&user=root");
+    public static void beforeClassMultiTest() throws SQLException {
+    	BaseTest baseTest = new BaseTest();
+    	baseTest.setConnection("&allowMultiQueries=true");
+    	connection = baseTest.connection;
         Statement st = connection.createStatement();
         st.executeUpdate("drop table if exists t1");
         st.executeUpdate("drop table if exists t2");
@@ -30,8 +33,7 @@ public class MultiTest{
     }
 
     @AfterClass
-    public static void after() throws SQLException {
-
+    public static void afterClass() throws SQLException {
         try {
             Statement st = connection.createStatement();
             st.executeUpdate("drop table if exists t1");
@@ -43,11 +45,12 @@ public class MultiTest{
         finally {
             try  {
                 connection.close();
-            }catch (Exception e) {
+            } catch (Exception e) {
 
             }
         }
     }
+    
     @Test
     public void basicTest() throws SQLException {
         Statement statement = connection.createStatement();

@@ -3,9 +3,7 @@ package org.mariadb.jdbc;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertTrue;
 
-import java.sql.Connection;
 import java.sql.Date;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -111,12 +109,13 @@ public class DateTest extends BaseTest{
         connection.createStatement().execute("insert into yeartest values (null, null), (1901, 70), (0, 0), (2155, 69)");
         Statement stmt = connection.createStatement();
         ResultSet rs = stmt.executeQuery("select * from yeartest");
+        Date[] data1 = new Date[] {null, Date.valueOf("1901-01-01"), Date.valueOf("0000-01-01"), Date.valueOf("2155-01-01")};
+        Date[] data2 = new Date[] {null, Date.valueOf("1970-01-01"), Date.valueOf("2000-01-01"), Date.valueOf("1969-01-01")};
+        int count = 0;
         while(rs.next()) {
-            System.out.println("--");
-
-            System.out.println(rs.getObject(1));
-            System.out.println(rs.getObject(2));
-
+        	assertEquals(data1[count], rs.getObject(1));
+        	assertEquals(data2[count], rs.getObject(2));
+        	count++;
         }
     }
     @Test
@@ -126,12 +125,11 @@ public class DateTest extends BaseTest{
         connection.createStatement().execute("insert into timetest values (null), ('-838:59:59'), ('00:00:00'), ('838:59:59')");
         Statement stmt = connection.createStatement();
         ResultSet rs = stmt.executeQuery("select * from timetest");
+        Time[] data = new Time[] {null, Time.valueOf("-838:59:59"), Time.valueOf("00:00:00"), Time.valueOf("838:59:59")};
+        int count = 0;
         while(rs.next()) {
-            System.out.println("--");
-
-            System.out.println(rs.getObject(1));
-//            System.out.println(rs.getObject(2));
-
+        	assertEquals(data[count], rs.getObject(1));
+        	count++;
         }
         rs.close();
         Calendar cal = Calendar.getInstance();
@@ -150,8 +148,7 @@ public class DateTest extends BaseTest{
         ResultSet rs = stmt.executeQuery("select * from timestampzerotest");
         Timestamp ts = null;
         while(rs.next()) {
-            System.out.println("--");
-            System.out.println(rs.getObject(1));
+            assertEquals(null, rs.getObject(1));
             ts = rs.getTimestamp(1);
         }
         rs.close();
@@ -219,12 +216,12 @@ public class DateTest extends BaseTest{
     @Test
     public void  serverTimezone() throws Exception {
         TimeZone tz = TimeZone.getDefault();
-        TimeZone gmt = TimeZone.getTimeZone("GMT");
+        //TimeZone gmt = TimeZone.getTimeZone("GMT");
         long offset = tz.getRawOffset();
-        Connection c = DriverManager.getConnection("jdbc:mysql://localhost/test?user=root&serverTimezone=GMT") ;
+        setConnection("&serverTimezone=GMT") ;
         java.util.Date now = new java.util.Date();
         offset = tz.getOffset(now.getTime());
-        PreparedStatement ps = c.prepareStatement("select now()");
+        PreparedStatement ps = connection.prepareStatement("select now()");
         ResultSet rs = ps.executeQuery();
         rs.next();
         java.sql.Timestamp ts  =  rs.getTimestamp(1);
@@ -232,7 +229,7 @@ public class DateTest extends BaseTest{
         long diff = Math.abs(differenceToGMT - offset);
         assertTrue(diff < 1000); /* query take less than a second */
 
-        ps = c.prepareStatement("select utc_timestamp(), ?");
+        ps = connection.prepareStatement("select utc_timestamp(), ?");
         ps.setObject(1,now);
         rs = ps.executeQuery();
         rs.next();

@@ -3,7 +3,6 @@ package org.mariadb.jdbc;
 import static org.junit.Assert.*;
 import static org.hamcrest.CoreMatchers.*;
 
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -39,7 +38,7 @@ public class StatementTest extends BaseTest {
 	 */
 	@Test
 	public void reexecuteStatementTest() throws SQLException {
-		connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/test?user=root&allowMultiQueries=true");
+		setConnection("&allowMultiQueries=true");
 		PreparedStatement stmt = connection.prepareStatement("SELECT 1");
 		ResultSet rs = stmt.executeQuery();
 		rs.next();

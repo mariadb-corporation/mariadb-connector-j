@@ -1,7 +1,5 @@
 package org.mariadb.jdbc;
 
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.sql.*;
@@ -11,18 +9,9 @@ import java.util.logging.Level;
 import static junit.framework.Assert.assertEquals;
 
 
-public class UnicodeTest {
+public class UnicodeTest extends BaseTest {
 static { Logger.getLogger("").setLevel(Level.OFF); }
 
-    Connection connection;
-    @Before
-    public void before() throws SQLException{
-      connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/test?user=root");
-    }
-    @After
-    public void after() throws SQLException {
-      connection.close();
-    }
     @Test
     public void firstTest() throws SQLException {
         String jaString = "\u65e5\u672c\u8a9e\u6587\u5b57\u5217"; // hmm wonder what this means...

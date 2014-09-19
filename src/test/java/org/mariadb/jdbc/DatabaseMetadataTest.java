@@ -92,7 +92,6 @@ public class DatabaseMetadataTest extends BaseTest{
       assertEquals(rs.getString("FUNCTION_SCHEM"), null);
       assertEquals(rs.getString("COLUMN_NAME"), null); /* No name, since it is return value */
       assertEquals(rs.getInt("COLUMN_TYPE"), DatabaseMetaData.functionReturn);
-      System.out.println(rs.getObject("DATA_TYPE"));
       assertEquals(rs.getInt("DATA_TYPE"), java.sql.Types.CHAR);
       assertEquals(rs.getString("TYPE_NAME"), "char");
       
@@ -171,7 +170,7 @@ public class DatabaseMetadataTest extends BaseTest{
                        assertEquals(((Number)s1).intValue(), ((Number)s2).intValue());
                    } else {
                        if (s1 != null && s2 != null && !s1.equals(s2)) {
-                          System.out.println("s1= " + s1 + "," + "s2 = " + s2) ;
+                          assertTrue(false);
                        }
                        assertEquals(s1,s2);
                    }
@@ -571,18 +570,17 @@ public class DatabaseMetadataTest extends BaseTest{
     /* Verify that "nullCatalogMeansCurrent=false" works (i.e information_schema columns are returned)*/
     @Test 
     public void nullCatalogMeansCurrent2() throws Exception {
-        Connection c = DriverManager.getConnection("jdbc:mysql://localhost/test?user=root&nullCatalogMeansCurrent=false");
+        setConnection("&nullCatalogMeansCurrent=false");
         boolean haveInformationSchema = false;
         try {
-            ResultSet rs = c.getMetaData().getColumns(null, null, null, null);
+            ResultSet rs = connection.getMetaData().getColumns(null, null, null, null);
             while(rs.next()) {
                 if (rs.getString("TABLE_CAT").equalsIgnoreCase("information_schema")) {
                     haveInformationSchema = true;
                     break;
                 }
             }
-        }  finally {
-            c.close();
+        } finally {
         }
         assertTrue(haveInformationSchema);
     }
@@ -686,20 +684,19 @@ public class DatabaseMetadataTest extends BaseTest{
 
     @Test
     public void yearIsShortType() throws Exception {
-        Connection c = DriverManager.getConnection("jdbc:mysql://localhost:3306/test?user=root&yearIsDateType=false");
+        setConnection("&yearIsDateType=false");
         try {
-            c.createStatement().execute("CREATE TABLE  IF NOT EXISTS ytab (y year)");
-            c.createStatement().execute("insert into ytab values(72)");
-            ResultSet rs = c.getMetaData().getColumns(connection.getCatalog(), null, "ytab", null);
+            connection.createStatement().execute("CREATE TABLE  IF NOT EXISTS ytab (y year)");
+            connection.createStatement().execute("insert into ytab values(72)");
+            ResultSet rs = connection.getMetaData().getColumns(connection.getCatalog(), null, "ytab", null);
             assertTrue(rs.next());
             assertEquals(rs.getInt("DATA_TYPE"),Types.SMALLINT);
-            ResultSet rs1 = c.createStatement().executeQuery("select * from ytab");
+            ResultSet rs1 = connection.createStatement().executeQuery("select * from ytab");
             assertEquals(rs1.getMetaData().getColumnType(1), Types.SMALLINT);
             assertTrue(rs1.next());
             assertTrue(rs1.getObject(1) instanceof Short);
             assertEquals(rs1.getShort(1), 1972);
         } finally {
-            c.close();
         }
     }
 
@@ -714,17 +711,16 @@ public class DatabaseMetadataTest extends BaseTest{
     }
     @Test
     public void conj72() throws Exception {
-        Connection c = DriverManager.getConnection("jdbc:mysql://localhost:3306/test?user=root&tinyInt1isBit=true");
+        setConnection("&tinyInt1isBit=true");
         try {
-            c.createStatement().execute("CREATE TABLE  IF NOT EXISTS conj72 (t tinyint(1))");
-            c.createStatement().execute("insert into conj72 values(1)");
-            ResultSet rs = c.getMetaData().getColumns(connection.getCatalog(), null, "conj72", null);
+            connection.createStatement().execute("CREATE TABLE  IF NOT EXISTS conj72 (t tinyint(1))");
+            connection.createStatement().execute("insert into conj72 values(1)");
+            ResultSet rs = connection.getMetaData().getColumns(connection.getCatalog(), null, "conj72", null);
             assertTrue(rs.next());
             assertEquals(rs.getInt("DATA_TYPE"),Types.BIT);
-            ResultSet rs1 = c.createStatement().executeQuery("select * from conj72");
+            ResultSet rs1 = connection.createStatement().executeQuery("select * from conj72");
             assertEquals(rs1.getMetaData().getColumnType(1), Types.BIT);
         } finally {
-            c.close();
         }
     }
 }

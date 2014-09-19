@@ -2,8 +2,6 @@ package org.mariadb.jdbc;
 
 import static org.junit.Assert.*;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
 
@@ -17,9 +15,9 @@ public class ConnectionTest extends BaseTest {
 	 */
 	@Test
 	public void getPropertiesTest() throws SQLException {
-		String params = "user=root&useFractionalSeconds=true&allowMultiQueries=true&useCompression=false";
-		Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/test?" + params);
-		Properties properties = conn.getClientInfo();
+		String params = "&useFractionalSeconds=true&allowMultiQueries=true&useCompression=false";
+		setConnection(params);
+		Properties properties = connection.getClientInfo();
 		assertTrue(properties != null);
 		assertTrue(properties.size() > 0);
 		assertTrue(properties.getProperty("user") == null);
@@ -27,11 +25,11 @@ public class ConnectionTest extends BaseTest {
 		assertTrue(properties.getProperty("useFractionalSeconds").equalsIgnoreCase("true"));
 		assertTrue(properties.getProperty("allowMultiQueries").equalsIgnoreCase("true"));
 		assertTrue(properties.getProperty("useCompression").equalsIgnoreCase("false"));
-		assertEquals(null, conn.getClientInfo("user"));
-		assertEquals(null, conn.getClientInfo("password"));
-		assertEquals("true", conn.getClientInfo("useFractionalSeconds"));
-		assertEquals("true", conn.getClientInfo("allowMultiQueries"));
-		assertEquals("false", conn.getClientInfo("useCompression"));
+		assertEquals(null, connection.getClientInfo("user"));
+		assertEquals(null, connection.getClientInfo("password"));
+		assertEquals("true", connection.getClientInfo("useFractionalSeconds"));
+		assertEquals("true", connection.getClientInfo("allowMultiQueries"));
+		assertEquals("false", connection.getClientInfo("useCompression"));
 	}
 
 }

@@ -66,11 +66,11 @@ public class SSLValidationTest extends BaseTest {
 	}
 
 	private Connection createConnection(Properties info) throws SQLException {
-		String jdbcUrl = "jdbc:mysql://localhost/test";
+		String jdbcUrl = connURI;
 		Properties connProps = new Properties(info);
-		connProps.setProperty("user", "root");
-		connProps.setProperty("password", "");
-		return DriverManager.getConnection(jdbcUrl, connProps);
+		connProps.setProperty("user", mUsername);
+		connProps.setProperty("password", mPassword);
+		return openNewConnection(jdbcUrl, connProps);
 	}
 
 	
