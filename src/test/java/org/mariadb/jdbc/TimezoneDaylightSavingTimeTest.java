@@ -105,7 +105,6 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
         ResultSet rs = statement.executeQuery("select * from timestamptest");
 
         assertTrue(rs.next());
-        System.out.println(rs.getString("tm"));
         Timestamp timestamp = rs.getTimestamp("tm");
         String _timestampString = utcDateFormatISO8601.format(timestamp);
         assertEquals(_0015String, _timestampString);
@@ -127,7 +126,6 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
         ResultSet rs = statement.executeQuery("select * from timestamptest");
 
         assertTrue(rs.next());
-        System.out.println(rs.getString("tm"));
         Timestamp timestamp = rs.getTimestamp("tm");
         assertEquals(_0115String, utcDateFormatISO8601.format(timestamp));
     }

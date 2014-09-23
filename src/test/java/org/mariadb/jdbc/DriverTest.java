@@ -342,7 +342,7 @@ public class DriverTest extends BaseTest{
     	url += (mPassword != null && !"".equals(mPassword) ? "&password=" + mPassword : "");
         Connection c  = openNewConnection(url);
         MySQLConnection my=(MySQLConnection) c;
-        System.out.println(""+my.getPort());
+        assertTrue(my.getPort() == mPort);
         ResultSet rs = c.createStatement().executeQuery("select 1");
         rs.next();
         assertEquals(rs.getInt(1), 1);
@@ -779,7 +779,7 @@ public class DriverTest extends BaseTest{
             ps.addBatch();
         }
         ps.executeBatch();
-        System.out.println("time: "+(System.currentTimeMillis() - startTime));
+        assertTrue(System.currentTimeMillis() - startTime < 10);
         ResultSet rs = connection.createStatement().executeQuery("select * from rewritetest2");
         int i = 0;
         while(rs.next()) {
@@ -1067,7 +1067,7 @@ public class DriverTest extends BaseTest{
     public void testUpdateCount() throws SQLException {
         Statement stmt = connection.createStatement();
         stmt.execute("select 1") ;
-        System.out.println(stmt.getUpdateCount());
+        assertTrue(-1 == stmt.getUpdateCount());
     }
 
     @Test
