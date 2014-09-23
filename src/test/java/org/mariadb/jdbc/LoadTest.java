@@ -9,11 +9,12 @@ import java.sql.Statement;
 
 
 @Ignore
-public class LoadTest {
+public class LoadTest extends BaseTest {
+	
     @Test    
     public void tm() throws SQLException {
-        Connection drizConnection = DriverManager.getConnection("jdbc:mysql:thin://localhost:3306/test");
-        Connection mysqlConnection = DriverManager.getConnection("jdbc:mysql://localhost:3306/test");
+        Connection drizConnection = openNewConnection(connU);
+        setConnection();
               
         long sum = 0;
         int i;
@@ -24,7 +25,7 @@ public class LoadTest {
         System.out.println(sum/i);
         sum = 0;
         for(i = 0;i<10;i++) {
-          sum+=this.loadTest(mysqlConnection);
+          sum+=this.loadTest(connection);
             System.out.println(i);
         }
         System.out.println(sum/i);
@@ -57,8 +58,8 @@ public class LoadTest {
     }
     @Test
     public void prepareTest() throws SQLException {
-        Connection drizConnection = DriverManager.getConnection("jdbc:mysql:thin://localhost:3306/test");
-        Connection mysqlConnection = DriverManager.getConnection("jdbc:mysql://localhost:3306/test");
+        Connection drizConnection = openNewConnection(connU);
+        setConnection();
         Statement stmt = drizConnection.createStatement();
         stmt.executeUpdate("drop table if exists loadsofdata2");
         stmt.executeUpdate("create table loadsofdata2 (id int not null primary key auto_increment, data blob) engine=innodb");
@@ -82,7 +83,7 @@ public class LoadTest {
 
         startTime=System.currentTimeMillis();
         for(int i=1; i<10000; i++) {
-            PreparedStatement ps = mysqlConnection.prepareStatement("insert into loadsofdata2 (id,data) values (?,?)");
+            PreparedStatement ps = connection.prepareStatement("insert into loadsofdata2 (id,data) values (?,?)");
             ps.setInt(1,i);
             ps.setBytes(2,theBytes);
             ps.execute();
@@ -104,7 +105,7 @@ public class LoadTest {
         startTime=System.currentTimeMillis();
 
         for(int i=1; i<10000; i++) {
-            PreparedStatement ps = mysqlConnection.prepareStatement("select * from loadsofdata2 where id = ?");
+            PreparedStatement ps = connection.prepareStatement("select * from loadsofdata2 where id = ?");
             ps.setInt(1,i);
             ResultSet rs = ps.executeQuery();
             rs.next();
@@ -119,8 +120,8 @@ public class LoadTest {
 
     @Test
     public void prepareManyParamsTest() throws SQLException {
-        Connection drizConnection = DriverManager.getConnection("jdbc:mysql:thin://localhost:3306/test");
-        Connection mysqlConnection = DriverManager.getConnection("jdbc:mysql://localhost:3306/test");
+        Connection drizConnection = openNewConnection(connU);
+        setConnection();
         Statement stmt = drizConnection.createStatement();
         stmt.executeUpdate("drop table if exists loadsofdata3");
         StringBuilder sb = new StringBuilder("d0 int");
@@ -150,7 +151,7 @@ public class LoadTest {
         
         startTime=System.currentTimeMillis();
         for(int i=0; i < 10000; i++) {
-            PreparedStatement ps = mysqlConnection.prepareStatement(query);
+            PreparedStatement ps = connection.prepareStatement(query);
             ps.setInt(1, i+1);
             for(int k=2; k<502; k++) {
                 ps.setInt(k, i);
@@ -163,7 +164,7 @@ public class LoadTest {
     }
     @Test
     public void benchPrepare() throws SQLException {
-        Connection drizConnection = DriverManager.getConnection("jdbc:mysql:thin://localhost:3306/test");
+        Connection drizConnection = openNewConnection(connU);
         long startTime=System.nanoTime();
         long x = 1000000;
         for(int i=0; i<x; i++ ) {

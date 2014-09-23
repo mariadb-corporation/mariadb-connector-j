@@ -1,6 +1,5 @@
 package org.mariadb.jdbc;
 
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -9,9 +8,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 
-public class ResultSetUnsupportedMethodsTest {
+public class ResultSetUnsupportedMethodsTest extends BaseTest {
     private  ResultSet rs;
-    Connection connection;
 
     static { Logger.getLogger("").setLevel(Level.OFF); }
 
@@ -21,13 +19,8 @@ public class ResultSetUnsupportedMethodsTest {
 
     @Before
     public void before() throws SQLException{
-        connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/test?user=root");
+        super.before();
         rs = connection.createStatement().executeQuery("select 1");
-    }
-
-    @After
-    public void after() throws SQLException {
-        connection.close();
     }
 
     @Test(expected=SQLFeatureNotSupportedException.class)

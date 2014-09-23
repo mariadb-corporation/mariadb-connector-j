@@ -6,7 +6,6 @@ import org.junit.Test;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Types;
 
@@ -145,20 +144,20 @@ public class DatatypeTest extends BaseTest {
 
     @Test
     public void datatypes2() throws Exception {
-        Connection c = DriverManager.getConnection("jdbc:mysql://localhost:3306/test?user=root&tinyInt1isBit=0&yearIsDateType=0");
-        datatypes(c, false, false);
+        setConnection("&tinyInt1isBit=0&yearIsDateType=0");
+        datatypes(connection, false, false);
     }
 
     @Test
     public void datatypes3() throws Exception {
-        Connection c = DriverManager.getConnection("jdbc:mysql://localhost:3306/test?user=root&tinyInt1isBit=1&yearIsDateType=0");
-        datatypes(c, true, false);
+    	setConnection("&tinyInt1isBit=1&yearIsDateType=0");
+        datatypes(connection, true, false);
     }
 
     @Test
     public void datatypes4() throws Exception {
-        Connection c = DriverManager.getConnection("jdbc:mysql://localhost:3306/test?user=root&tinyInt1isBit=0&yearIsDateType=1");
-        datatypes(c, false, true);
+    	setConnection("&tinyInt1isBit=0&yearIsDateType=1");
+        datatypes(connection, false, true);
     }
 
 

@@ -212,15 +212,14 @@ public class DriverTest extends BaseTest{
         requireMinimumVersion(5,0);
         /* non-standard auto_increment_increment */
         int auto_increment_increment=2;
-        Connection c = DriverManager.getConnection("jdbc:mysql://localhost/test?user=root&sessionVariables=auto_increment_increment="+auto_increment_increment);
-        stmt = c.createStatement();
+        setConnection("&sessionVariables=auto_increment_increment="+auto_increment_increment);
+        stmt = connection.createStatement();
         stmt.execute("INSERT INTO t2 (test) values ('bb'),('cc')");
         rs = stmt.getGeneratedKeys();
         assertTrue(rs.next());
         assertEquals(7 ,rs.getInt(1));
         assertTrue(rs.next());
-        assertEquals(7+ auto_increment_increment ,rs.getInt(1)); 
-        c.close();
+        assertEquals(7+ auto_increment_increment ,rs.getInt(1));
     }
 
     @Test
@@ -296,7 +295,7 @@ public class DriverTest extends BaseTest{
 
     @Test
     public void testConnectNoDB() throws Exception{
-        Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306?user=root");
+    	setConnection();
         connection.close();
     }
 
@@ -338,7 +337,10 @@ public class DriverTest extends BaseTest{
 
     @Test
     public void connectFailover() throws SQLException {
-        Connection c  = DriverManager.getConnection("jdbc:mysql://localhost:3306,localhost:3307/test?user=root");
+    	String hosts = mHostname + ":" + mPort + "," + mHostname + ":" + (mPort+1);
+    	String url = "jdbc:mysql://" + hosts + "/" + mDatabase + "?user=" + mUsername;
+    	url += (mPassword != null && !"".equals(mPassword) ? "&password=" + mPassword : "");
+        Connection c  = openNewConnection(url);
         MySQLConnection my=(MySQLConnection) c;
         System.out.println(""+my.getPort());
         ResultSet rs = c.createStatement().executeQuery("select 1");
@@ -986,12 +988,11 @@ public class DriverTest extends BaseTest{
 
     @Test
     public void testBug501452() throws SQLException {
-        Connection conn = connection;
-        Statement stmt = conn.createStatement();
+        Statement stmt = connection.createStatement();
         stmt.executeUpdate("drop table if exists bug501452");
         stmt.executeUpdate("CREATE TABLE bug501452 (id int not null primary key, value varchar(20))");
         stmt.close();
-        PreparedStatement ps=conn.prepareStatement("insert into bug501452 (id,value) values (?,?)");
+        PreparedStatement ps=connection.prepareStatement("insert into bug501452 (id,value) values (?,?)");
         ps.setObject(1, 1);
         ps.setObject(2, "value for 1");
         ps.addBatch();
@@ -1010,78 +1011,72 @@ public class DriverTest extends BaseTest{
 
     @Test
     public void testAutocommit() throws SQLException {
-        Connection conn = connection;
-        assertTrue(conn.getAutoCommit());
-        conn.setAutoCommit(false);
-        assertFalse(conn.getAutoCommit());
+        assertTrue(connection.getAutoCommit());
+        connection.setAutoCommit(false);
+        assertFalse(connection.getAutoCommit());
         
         /* Check that autocommit value "false" , that driver derives from server status flags
          * remains the same when EOF, ERROR or OK packet were received.
          */
-        conn.createStatement().executeQuery("select 1");
-        assertFalse(conn.getAutoCommit());
-        conn.createStatement().execute("set @a=1");
-        assertFalse(conn.getAutoCommit());
+        connection.createStatement().executeQuery("select 1");
+        assertFalse(connection.getAutoCommit());
+        connection.createStatement().execute("set @a=1");
+        assertFalse(connection.getAutoCommit());
         try {
-            conn.createStatement().execute("insert into nosuchtable values(1)");
+            connection.createStatement().execute("insert into nosuchtable values(1)");
         } catch(Exception e) {
             
         }
-        assertFalse(conn.getAutoCommit());
-        ResultSet  rs = conn.createStatement().executeQuery("select @@autocommit");
+        assertFalse(connection.getAutoCommit());
+        ResultSet  rs = connection.createStatement().executeQuery("select @@autocommit");
         rs.next();
         assertEquals(0,rs.getInt(1)); 
         
         
-        conn.setAutoCommit(true);
+        connection.setAutoCommit(true);
         
         /* Check that autocommit value "true" , that driver derives from server status flags
          * remains the same when EOF, ERROR or OK packet were received.
          */
-        assertTrue(conn.getAutoCommit());
-        conn.createStatement().execute("set @a=1");
-        assertTrue(conn.getAutoCommit());
+        assertTrue(connection.getAutoCommit());
+        connection.createStatement().execute("set @a=1");
+        assertTrue(connection.getAutoCommit());
         try {
-            conn.createStatement().execute("insert into nosuchtable values(1)");
+            connection.createStatement().execute("insert into nosuchtable values(1)");
         } catch(Exception e) {
             
         }
-        assertTrue(conn.getAutoCommit());
-        rs = conn.createStatement().executeQuery("select @@autocommit");
+        assertTrue(connection.getAutoCommit());
+        rs = connection.createStatement().executeQuery("select @@autocommit");
         rs.next();
         assertEquals(1,rs.getInt(1)); 
         
         /* Set autocommit value using Statement.execute */ 
-        conn.createStatement().execute("set @@autocommit=0");
-        assertFalse(conn.getAutoCommit());
+        connection.createStatement().execute("set @@autocommit=0");
+        assertFalse(connection.getAutoCommit());
         
-        conn.createStatement().execute("set @@autocommit=1");
-        assertTrue(conn.getAutoCommit());
+        connection.createStatement().execute("set @@autocommit=1");
+        assertTrue(connection.getAutoCommit());
         
         /* Use session variable to set autocommit to 0 */
-        Connection conn2 = DriverManager.getConnection("jdbc:mysql://localhost:3306?user=root&sessionVariables=autocommit=0");
-        assertFalse(conn2.getAutoCommit());
-        conn2.close();
-        
-        
-        
+        setConnection("&sessionVariables=autocommit=0");
+        assertFalse(connection.getAutoCommit());
     }
+    
     @Test
     public void testUpdateCount() throws SQLException {
-        Connection conn = connection;
-        Statement stmt = conn.createStatement();
+        Statement stmt = connection.createStatement();
         stmt.execute("select 1") ;
         System.out.println(stmt.getUpdateCount());
     }
 
     @Test
     public void testSetObject() throws SQLException {
-        Connection conn = connection;
-        Statement stmt = conn.createStatement();
+        Statement stmt = connection.createStatement();
         stmt.executeUpdate("drop table if exists test_setobjectconv");
         stmt.executeUpdate("CREATE TABLE test_setobjectconv (id int not null primary key auto_increment, v1 varchar(40), v2 varchar(40))");
         stmt.close();
-        PreparedStatement ps = conn.prepareStatement("insert into test_setobjectconv values (null, ?, ?)");
+        PreparedStatement ps = connection.prepareStatement("insert into test_setobjectconv values (null, ?, ?)");
         ps.setObject(1,"2009-01-01 00:00:00", Types.TIMESTAMP);
         ps.setObject(2, "33", Types.DOUBLE);
         ps.execute();
@@ -1089,17 +1084,15 @@ public class DriverTest extends BaseTest{
 
     @Test
     public void testBit() throws SQLException {
-
-        Connection conn = connection;
-        conn.createStatement().execute("drop table if exists bittest");
-        conn.createStatement().execute("create table bittest(id int not null primary key auto_increment, b int)");
-        PreparedStatement stmt = conn.prepareStatement("insert into bittest values(null, ?)");
+        connection.createStatement().execute("drop table if exists bittest");
+        connection.createStatement().execute("create table bittest(id int not null primary key auto_increment, b int)");
+        PreparedStatement stmt = connection.prepareStatement("insert into bittest values(null, ?)");
         stmt.setBoolean(1, true);
         stmt.execute();
         stmt.setBoolean(1, false);
         stmt.execute();
 
-        ResultSet rs = conn.createStatement().executeQuery("select * from bittest");
+        ResultSet rs = connection.createStatement().executeQuery("select * from bittest");
         Assert.assertTrue(rs.next());
         Assert.assertTrue(rs.getBoolean("b"));
         Assert.assertTrue(rs.next());
@@ -1110,33 +1103,35 @@ public class DriverTest extends BaseTest{
     @Test
     public void testConnectWithDB() throws SQLException {
         requireMinimumVersion(5,0);
-        Connection conn = connection;
         try {
-            conn.createStatement().executeUpdate("drop database test_testdrop");
+            connection.createStatement().executeUpdate("drop database test_testdrop");
         } catch (Exception e) {}
-        conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/test_testdrop?createDB=true&user=root");
-        DatabaseMetaData dbmd = conn.getMetaData();
+        String oldDb = mDatabase;
+        String oldParams = mParameters;
+        setParameters("&createDB=true");
+        setDatabase("test_testdrop");
+        DatabaseMetaData dbmd = connection.getMetaData();
         ResultSet rs = dbmd.getCatalogs();
         boolean foundDb = false;
         while(rs.next()) {
             if(rs.getString("table_cat").equals("test_testdrop")) foundDb = true;
         }
         assertTrue(foundDb);
+        setDatabase(oldDb);
+        setParameters(oldParams);
     }
 
      @Test
     public void testError() throws SQLException {
         if(!checkMaxAllowedPacket("testError"))
             return;
-        Connection conn = connection;
         try {
             char arr[] = new char[16*1024*1024-1];
             Arrays.fill(arr,'a');
-            ResultSet rs = conn.createStatement().executeQuery("select '" + new String(arr) + "'");
+            ResultSet rs = connection.createStatement().executeQuery("select '" + new String(arr) + "'");
             rs.next();
             System.out.println(rs.getString(1).length());
         } finally {
-            conn.close();
         }
     }
 
@@ -1174,7 +1169,7 @@ public class DriverTest extends BaseTest{
         try {
             st.execute("drop table if exists testBlob2");
             st.execute("create table testBlob2(a blob)");
-            Connection newConnection = DriverManager.getConnection("jdbc:mysql://localhost:3306/test?user=root");
+            Connection newConnection = openNewConnection();
             try {
                 PreparedStatement preparedStatement =
                         newConnection.prepareStatement("insert into testBlob2(a) values(?)");
@@ -1208,7 +1203,7 @@ public class DriverTest extends BaseTest{
         try {
             st.execute("drop table if exists testString2");
             st.execute("create table testString2(a varchar(10))");
-            Connection newConnection = DriverManager.getConnection("jdbc:mysql://localhost:3306/test?user=root");
+            Connection newConnection = openNewConnection();
             try {
                 PreparedStatement preparedStatement =
                         newConnection.prepareStatement("insert into testString2(a) values(?)");
@@ -1249,7 +1244,7 @@ public class DriverTest extends BaseTest{
             st.execute("drop table if exists testBlob2");
             st.execute("create table testBlob2(a blob)");
 
-            Connection newConnection = DriverManager.getConnection("jdbc:mysql://localhost:3306/test?user=root");
+            Connection newConnection = openNewConnection();
             try {
                 PreparedStatement preparedStatement =
                         newConnection.prepareStatement("insert into testBlob2(a) values(?)");
@@ -1283,19 +1278,19 @@ public class DriverTest extends BaseTest{
 
     @Test
     public void autoreconnect() throws Exception {
-       Connection c = DriverManager.getConnection("jdbc:mysql://localhost:3306?user=root&autoReconnect=true");
-       ResultSet rs= c.createStatement().executeQuery("select connection_id()");
+    	setConnection("&autoReconnect=true");
+       ResultSet rs= connection.createStatement().executeQuery("select connection_id()");
        rs.next();
        long connectionId = rs.getLong(1);
        rs.close();
 
-       c.createStatement().execute("set wait_timeout=1");
+       connection.createStatement().execute("set wait_timeout=1");
        Thread.sleep(3000);
 
        boolean success = false;
        for (int i=0; i < 2; i++) {
            try {
-               rs = c.createStatement().executeQuery("select 1");
+               rs = connection.createStatement().executeQuery("select 1");
                rs.close();
                success = true;
                break;
@@ -1304,7 +1299,7 @@ public class DriverTest extends BaseTest{
            }
        }
        assertTrue(success);
-       rs = c.createStatement().executeQuery("select connection_id()");
+       rs = connection.createStatement().executeQuery("select connection_id()");
        rs.next();
        long connectionId2 = rs.getLong(1);
        assertNotSame(connectionId, connectionId2);
@@ -1313,17 +1308,15 @@ public class DriverTest extends BaseTest{
     @Test
     public void useSSL()  throws Exception {
         org.junit.Assume.assumeTrue(haveSSL());
-        Connection c = DriverManager.getConnection("jdbc:mysql://localhost:3306?user=root&useSSL=1&trustServerCertificate=1");
-        c.createStatement().execute("select 1");
-        c.close();
+        setConnection("&useSSL=1&trustServerCertificate=1");
+        connection.createStatement().execute("select 1");
 
     }
 
     @Test
     // Bug in URL parser
     public void mdev3916() throws Exception {
-       Connection c = DriverManager.getConnection("jdbc:mysql://localhost:3306/test?user=root&password=");
-       c.close();
+       setConnection("&password=");
     }
 
     @Test 
@@ -1365,15 +1358,13 @@ public class DriverTest extends BaseTest{
     /* Check that query contains SQL statement, if dumpQueryOnException is true */
     @Test
     public void dumpQueryOnException() throws Exception {
-        Connection c = DriverManager.getConnection("jdbc:mysql://localhost:3306?user=root&dumpQueriesOnException=true");
+    	setConnection("&dumpQueriesOnException=true");
         String selectFromNonExistingTable = "select * from banana";
         try {
-            Statement st = c.createStatement();
+            Statement st = connection.createStatement();
             st.execute(selectFromNonExistingTable);
         } catch (SQLException sqle) {
            assertTrue(sqle.getMessage().contains("Query is:\n" + selectFromNonExistingTable));
-        } finally {
-            c.close();
         }
     }
     
@@ -1405,11 +1396,10 @@ public class DriverTest extends BaseTest{
         assertEquals(null, st.getResultSet());
         
         /* Test batch  */
-        Connection c = null;
         try {
             /* Create connection that allows batching queries */
-            c = DriverManager.getConnection("jdbc:mysql://localhost:3306?user=root&allowMultiQueries=true");
-            st = c.createStatement();
+        	setConnection("&allowMultiQueries=true");
+            st = connection.createStatement();
             
             /* 3. Batch with two SELECTs */
             
@@ -1449,17 +1439,13 @@ public class DriverTest extends BaseTest{
             assertEquals(-1,st.getUpdateCount());
             assertEquals(null, st.getResultSet());
         } finally {
-            if (c != null)
-                c.close();
         }
     }
     
     @Test
     public void conj25() throws Exception {
-        String dsn = "jdbc:mysql://localhost:3306/test?user=root";
         Statement stmt;
-        Connection conn = DriverManager.getConnection(dsn);
-        stmt = conn.createStatement();
+        stmt = connection.createStatement();
         stmt.execute("DROP TABLE IF EXISTS t1");
         stmt.execute("CREATE TABLE t1 (a VARCHAR(1024))");
         String st = "INSERT INTO t1 VALUES (REPEAT('a',1024))";
@@ -1468,8 +1454,7 @@ public class DriverTest extends BaseTest{
         }
         stmt.setFetchSize(Integer.MIN_VALUE);
         stmt.execute(st);
-        stmt.executeQuery("SELECT * FROM t1 a, t1 b");
-        conn.close();  
+        stmt.executeQuery("SELECT * FROM t1 a, t1 b"); 
 
     }
     
@@ -1490,13 +1475,11 @@ public class DriverTest extends BaseTest{
             System.out.println("skipping named pipe test");
             return;
         }
-        String url = "jdbc:mysql://localhost/test?user=root&pipe="  + namedPipeName;
-        Connection conn = DriverManager.getConnection(url);
-        Statement stmt = conn.createStatement();
+        setConnection("&pipe=" + namedPipeName);
+        Statement stmt = connection.createStatement();
         ResultSet rs = stmt.executeQuery("SELECT 1");
         assertTrue(rs.next());
         rs.close();
-        conn.close();
     }
 
     @Test
@@ -1535,10 +1518,9 @@ public class DriverTest extends BaseTest{
                return;
 
     	String path = rs.getString(2);
-     	Connection c = DriverManager.getConnection("jdbc:mysql://localhost/test?user=root&localSocket=" + path);
-     	rs = c.createStatement().executeQuery("select 1");
+    	setConnection("&localSocket=" + path);
+     	rs = connection.createStatement().executeQuery("select 1");
      	rs.next();
-     	c.close();
     }
 
     @Test
@@ -1565,13 +1547,13 @@ public class DriverTest extends BaseTest{
         }
 
     	String shmBaseName = rs.getString(2);
-     	Connection c = DriverManager.getConnection("jdbc:mysql://localhost//test?user=root&sharedMemory=" + shmBaseName);
-     	rs = c.createStatement().executeQuery("select repeat('a',100000)");
+    	setConnection("&sharedMemory=" + shmBaseName);
+     	rs = connection.createStatement().executeQuery("select repeat('a',100000)");
      	rs.next();
         assertEquals(100000,rs.getString(1).length());
         char [] arr = new char [100000];
         Arrays.fill(arr,'a');
-        rs = c.createStatement().executeQuery("select '" + new String(arr)+ "'");
+        rs = connection.createStatement().executeQuery("select '" + new String(arr)+ "'");
         rs.next();
         assertEquals(100000,rs.getString(1).length());
     }
@@ -1612,14 +1594,16 @@ public class DriverTest extends BaseTest{
     
     @Test
     public void createDbWithSpacesTest() throws SQLException {
-    	Connection conn;
-    	conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/test with spaces?createDB=true&user=root");
-        DatabaseMetaData dbmd = conn.getMetaData();
+    	String oldDb = mDatabase;
+    	setDatabase("test with spaces");
+    	setConnection("&createDB=true");
+        DatabaseMetaData dbmd = connection.getMetaData();
         ResultSet rs = dbmd.getCatalogs();
         boolean foundDb = false;
         while(rs.next()) {
             if(rs.getString("table_cat").equals("test with spaces")) foundDb = true;
         }
         assertTrue(foundDb);
+        setDatabase(oldDb);
     }
 }
