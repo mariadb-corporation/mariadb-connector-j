@@ -229,7 +229,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
                 }
             }
         } catch (SQLException sqle) {
-            throw new BatchUpdateException(sqle.getMessage(), sqle.getSQLState(), Arrays.copyOf(ret, i), sqle);
+            throw new BatchUpdateException(sqle.getMessage(), sqle.getSQLState(), sqle.getErrorCode(), Arrays.copyOf(ret, i), sqle);
         } finally {
             clearBatch();
         }
