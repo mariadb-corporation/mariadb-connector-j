@@ -324,12 +324,14 @@ public class Utils {
         if(escaped.charAt(0) != '{' || escaped.charAt(escaped.length()-1) != '}')
             throw new SQLException("unexpected escaped string");
         int endIndex = escaped.length()-1;
+        String escapedLower = escaped.toLowerCase();
         if (escaped.startsWith("{fn ")) {
             String resolvedParams = replaceFunctionParameter(escaped.substring(4,endIndex));
             return nativeSQL(resolvedParams, noBackslashEscapes);
         }
-        else if(escaped.startsWith("{oj ")) {
+        else if(escapedLower.startsWith("{oj ")) {
             // Outer join
+        	// the server supports "oj" in any case, even "oJ"
             return nativeSQL(escaped.substring(4, endIndex), noBackslashEscapes);
         }
         else if(escaped.startsWith("{d "))  {
