@@ -3,6 +3,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+import org.mariadb.jdbc.internal.mysql.MySQLProtocol;
+
 
 
 public class PacketOutputStream extends OutputStream{
@@ -10,7 +12,6 @@ public class PacketOutputStream extends OutputStream{
     private static final int MAX_PACKET_LENGTH = 0x00ffffff;
     private static final int SEQNO_OFFSET = 3;
     private static final int HEADER_LENGTH = 4;
-    private static final int MAX_SEQNO = 0xffff;
 
 
     OutputStream baseStream;
@@ -18,6 +19,7 @@ public class PacketOutputStream extends OutputStream{
     int position;
     int seqNo;
     boolean compress;
+    int maxAllowedPacket = 0;
 
     public PacketOutputStream(OutputStream baseStream) {
        this.baseStream = baseStream;
@@ -56,7 +58,9 @@ public class PacketOutputStream extends OutputStream{
 
     /* Used by LOAD DATA INFILE. End of data is indicated by packet of length 0. */
     public void sendFile(InputStream is, int seq) throws IOException{
-        byte[] buffer = new byte[8192];
+    	int bufferSize = this.maxAllowedPacket > 0 ? Math.min(this.maxAllowedPacket, MAX_PACKET_LENGTH) : 1024;
+    	bufferSize -= HEADER_LENGTH;
+        byte[] buffer = new byte[bufferSize];
         int len;
         while((len = is.read(buffer)) > 0) {
           startPacket(seq++);
@@ -79,9 +83,6 @@ public class PacketOutputStream extends OutputStream{
     public void write(byte[] bytes, int off, int len) throws IOException{
       if (seqNo == -1) {
            throw new AssertionError("Use PacketOutputStream.startPacket() before write()");
-      }
-      if (seqNo == MAX_SEQNO) {
-          throw new IOException("MySQL protocol limit reached, you cannot send more than 4GB of data");
       }
 
       for (;;) {
@@ -139,5 +140,9 @@ public class PacketOutputStream extends OutputStream{
     public void close() throws IOException {
         baseStream.close();
         byteBuffer = null;
+    }
+    
+    public void setMaxAllowedPacket(int maxAllowedPacket) {
+    	this.maxAllowedPacket = maxAllowedPacket;
     }
 }
