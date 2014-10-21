@@ -359,6 +359,11 @@ public class DriverTest extends BaseTest{
         ps.setString(1, "ccc");
         ps.addBatch();
         int [] a = ps.executeBatch();
+        ResultSet rs1 = ps.getGeneratedKeys();
+        for (int count=1; count<=3; count++) {
+        	assertTrue(rs1.next());
+        	assertTrue(String.valueOf(count).equalsIgnoreCase(rs1.getString(1)));
+        }
         for(int c : a ) assertEquals(1,c);
         ps.setString(1, "aaa");
         ps.addBatch();
@@ -366,9 +371,12 @@ public class DriverTest extends BaseTest{
         ps.addBatch();
         ps.setString(1, "ccc");
         ps.addBatch();
-         a = ps.executeBatch();
+        a = ps.executeBatch();
         for(int c : a ) assertEquals(1,c);
         ResultSet rs = connection.createStatement().executeQuery("select * from test_batch");
+        ps.executeQuery("SELECT 1");
+        rs1 = ps.getGeneratedKeys();
+        assertEquals(MySQLResultSet.EMPTY, rs1);
         assertEquals(true,rs.next());
         assertEquals("aaa",rs.getString(2));
         assertEquals(true,rs.next());

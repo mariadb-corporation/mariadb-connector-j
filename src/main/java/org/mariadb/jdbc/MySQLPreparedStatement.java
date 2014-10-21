@@ -48,12 +48,11 @@ OF SUCH DAMAGE.
 */
 package org.mariadb.jdbc;
 
- import org.mariadb.jdbc.internal.SQLExceptionMapper;
+import org.mariadb.jdbc.internal.SQLExceptionMapper;
 import org.mariadb.jdbc.internal.common.Utils;
 import org.mariadb.jdbc.internal.common.query.IllegalParameterException;
 import org.mariadb.jdbc.internal.common.query.MySQLParameterizedQuery;
 import org.mariadb.jdbc.internal.common.query.parameters.*;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
@@ -192,18 +191,20 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
      * @since 1.2
      */
     public void addBatch() throws SQLException {
-        if (batchPreparedStatements == null) {
-            batchPreparedStatements = new ArrayList<MySQLPreparedStatement>();
-        }
+        checkBatchFields();
         batchPreparedStatements.add(new MySQLPreparedStatement(connection,sql, dQuery, useFractionalSeconds));
         isInsertRewriteable(sql);
     }
     public void addBatch(final String sql) throws SQLException {
-        if (batchPreparedStatements == null) {
-            batchPreparedStatements = new ArrayList<MySQLPreparedStatement>();
-        }
+    	checkBatchFields();
         batchPreparedStatements.add(new MySQLPreparedStatement(connection, sql));
         isInsertRewriteable(sql);
+    }
+    
+    private void checkBatchFields() {
+    	if (batchPreparedStatements == null) {
+            batchPreparedStatements = new ArrayList<MySQLPreparedStatement>();
+        }
     }
 
     public void clearBatch() {
@@ -262,29 +263,36 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
         }
         int[] ret = new int[batchPreparedStatements.size()];
         int i = 0;
+        MySQLResultSet rs = null;
         try {
-			synchronized (this.getProtocol()) {
-				if (getProtocol().getInfo().getProperty("rewriteBatchedStatements") != null
-						&& "true".equalsIgnoreCase(getProtocol().getInfo().getProperty("rewriteBatchedStatements"))) {
-					ret = executeBatchAsMultiQueries();
-				} else {
-					for (; i < batchPreparedStatements.size(); i++) {
-						PreparedStatement ps = batchPreparedStatements.get(i);
-						ps.execute();
-						int updateCount = ps.getUpdateCount();
-						if (updateCount == -1) {
-							ret[i] = SUCCESS_NO_INFO;
-						} else {
-							ret[i] = updateCount;
-						}
-					}
-				}
-			}
+        	synchronized (this.getProtocol()) {
+        		if (getProtocol().getInfo().getProperty("rewriteBatchedStatements") != null
+        				&& "true".equalsIgnoreCase(getProtocol().getInfo().getProperty("rewriteBatchedStatements"))) {
+        			ret = executeBatchAsMultiQueries();
+        		} else {
+        			for (; i < batchPreparedStatements.size(); i++) {
+        				PreparedStatement ps = batchPreparedStatements.get(i);
+        				ps.execute();
+        				int updateCount = ps.getUpdateCount();
+        				if (updateCount == -1) {
+        					ret[i] = SUCCESS_NO_INFO;
+        				} else {
+        					ret[i] = updateCount;
+        				}
+        				if (i == 0) {
+        					rs = (MySQLResultSet)ps.getGeneratedKeys();
+        				} else {
+        					rs = rs.joinResultSets((MySQLResultSet)ps.getGeneratedKeys());
+        				}
+        			}
+        		}
+        	}
         } catch (SQLException sqle) {
-            throw new BatchUpdateException(sqle.getMessage(), sqle.getSQLState(), sqle.getErrorCode(), Arrays.copyOf(ret, i), sqle);
+        	throw new BatchUpdateException(sqle.getMessage(), sqle.getSQLState(), sqle.getErrorCode(), Arrays.copyOf(ret, i), sqle);
         } finally {
-            clearBatch();
+        	clearBatch();
         }
+        batchResultSet = rs;
         return ret;
     }
     
@@ -310,7 +318,6 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
 		ps.execute(stringBuilder.toString());
 		return getUpdateCounts(ps, i);
 	}
-
 
     /**
      * Sets the designated parameter to the given <code>Reader</code> object, which is the given number of characters

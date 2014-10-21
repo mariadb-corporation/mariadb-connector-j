@@ -100,6 +100,7 @@ public class MySQLStatement implements Statement {
     Queue<Object> cachedResultSets;
     private boolean isRewriteable = true;
     private String firstRewrite = null;
+    protected ResultSet batchResultSet = null;
 
 
     public boolean isStreaming() {
@@ -283,6 +284,7 @@ public class MySQLStatement implements Statement {
             QueryException exception = null;
             executeQueryProlog();
             try {
+            	batchResultSet = null;
                 queryResult = protocol.executeQuery(query, isStreaming());
                 cacheMoreResults();
                 return (queryResult.getResultSetType() == ResultSetType.SELECT);
@@ -656,6 +658,9 @@ public class MySQLStatement implements Statement {
      * @since 1.4
      */
     public ResultSet getGeneratedKeys() throws SQLException {
+    	if (batchResultSet != null) {
+    		return batchResultSet;
+    	}
         if (queryResult != null && queryResult.getResultSetType() == ResultSetType.MODIFY) {
             long insertId = ((ModifyQueryResult)queryResult).getInsertId();
             int updateCount = getUpdateCount();
@@ -1211,6 +1216,7 @@ public class MySQLStatement implements Statement {
 
         int[] ret = new int[batchQueries.size()];
         int i = 0;
+        MySQLResultSet rs = null;
         try {
         	synchronized (this.protocol) {
         		if (getProtocol().getInfo().getProperty("rewriteBatchedStatements") != null
@@ -1225,14 +1231,20 @@ public class MySQLStatement implements Statement {
         				} else {
         					ret[i] = updateCount;
         				}
+        				if (i == 0) {
+        					rs = (MySQLResultSet)getGeneratedKeys();
+        				} else {
+        					rs = rs.joinResultSets((MySQLResultSet)getGeneratedKeys());
+        				}
         			}
         		}
         	}
         } catch (SQLException sqle) {
-            throw new BatchUpdateException(sqle.getMessage(), sqle.getSQLState(), sqle.getErrorCode(), Arrays.copyOf(ret, i), sqle);
+        	throw new BatchUpdateException(sqle.getMessage(), sqle.getSQLState(), sqle.getErrorCode(), Arrays.copyOf(ret, i), sqle);
         } finally {
-            clearBatch();
+        	clearBatch();
         }
+        batchResultSet = rs;
         return ret;
     }
     
