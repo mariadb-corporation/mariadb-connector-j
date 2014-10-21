@@ -7,6 +7,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.io.ByteArrayInputStream;
 import java.io.UnsupportedEncodingException;
+import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 
@@ -49,6 +51,14 @@ public class StatementTest extends BaseTest {
 		rs = stmt.executeQuery();
 		stmt.close();
 		connection.close();
+	}
+
+	@Test(expected=SQLException.class)
+	public void afterConnectionClosedTest() throws SQLException {
+		Connection conn2 = DriverManager.getConnection("jdbc:mariadb://localhost:3306/test?user=root");
+		Statement st1 = conn2.createStatement();
+		conn2.close();
+		Statement st2 = conn2.createStatement();
 	}
 	
 	

@@ -159,6 +159,9 @@ public final class MySQLConnection  implements Connection {
      * @throws SQLException if we cannot create the statement.
      */
     public Statement createStatement() throws SQLException {
+    	if (getProtocol().isClosed()) {
+    		throw new SQLException("Cannot create a statement: closed connection");
+    	}
         return new MySQLStatement(this);
     }
 
