@@ -249,6 +249,10 @@ public class MySQLProtocol {
                          final String password,
                          Properties info)
             throws QueryException {
+    	String fractionalSeconds = info.getProperty("useFractionalSeconds", "true");
+    	if ("true".equalsIgnoreCase(fractionalSeconds)) {
+    		info.setProperty("useFractionalSeconds", "true");
+    	}
         this.info = info;
         this.jdbcUrl = url;
         this.database = (jdbcUrl.getDatabase() == null ? "" : jdbcUrl.getDatabase());
