@@ -93,6 +93,7 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XA
      */
     public void setDatabaseName(String dbName) {
 	    this.database = dbName;
+	    resetUrl();
     }
 
     /**
@@ -161,6 +162,7 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XA
      */
     public void setPort(int p) {
 	    this.port = p;
+	    resetUrl();
     }
 
     /**
@@ -201,6 +203,7 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XA
      */
     public void setServerName(String serverName) {
 	    this.hostname = serverName;
+	    resetUrl();
     }
 
     public void setProperties(String properties) {
@@ -276,6 +279,10 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XA
         if (database != null)
             urlString = urlString + "/" + database;
         url  = JDBCUrl.parse(urlString);
+    }
+    
+    private void resetUrl() {
+    	this.url = null;
     }
     /**
      * <p>Attempts to establish a connection with the data source that this <code>DataSource</code> object represents.
