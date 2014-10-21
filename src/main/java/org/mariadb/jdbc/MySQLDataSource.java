@@ -312,7 +312,8 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XA
     public Connection getConnection(final String username, final String password) throws SQLException {
         createUrl();
         try {
-            return MySQLConnection.newConnection(new MySQLProtocol(url, username, password, new Properties()));
+        	Properties props = info == null ? new Properties() : info;
+            return MySQLConnection.newConnection(new MySQLProtocol(url, username, password, props));
         } catch (QueryException e) {
             SQLExceptionMapper.throwException(e, null, null);
             return null;
