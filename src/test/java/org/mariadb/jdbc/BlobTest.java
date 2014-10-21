@@ -273,5 +273,77 @@ public class BlobTest extends BaseTest {
 
        assertEquals(3, c2.length());
     }
+    
+    @Test
+    public void conj77() throws Exception {
+    	final Statement sta1 = connection.createStatement();
+    	try {
+    		sta1.execute( "DROP TABLE IF EXISTS conj77_test" );
+    		sta1.execute( "CREATE TABLE conj77_test ( Name VARCHAR(100) NOT NULL,Archive LONGBLOB, PRIMARY KEY (Name)) Engine=InnoDB DEFAULT CHARSET utf8" );
+
+    		final PreparedStatement pre = connection.prepareStatement( "INSERT INTO conj77_test (Name,Archive) VALUES (?,?)" );
+    		try {
+    			pre.setString( 1,"Empty String" );
+    			pre.setBytes( 2,"".getBytes() );
+    			pre.addBatch();
+
+    			pre.setString( 1,"Data Hello" );
+    			pre.setBytes( 2,"hello".getBytes() );
+    			pre.addBatch();
+
+    			pre.setString( 1,"Empty Data null" );
+    			pre.setBytes( 2,null );
+    			pre.addBatch();
+
+    			pre.executeBatch();
+    		}
+    		finally {
+    			if( pre != null )
+    				pre.close();
+    		}
+    	}
+    	finally {
+    		if( sta1 != null )
+    			sta1.close();
+    	}
+    	final Statement sta2 = connection.createStatement();
+    	try {
+    		final ResultSet set = sta2.executeQuery( "Select name,archive as text FROM conj77_test" );
+    		try {
+    			while( set.next() ) {
+    				final Blob blob = set.getBlob( "text" );
+    				if( blob != null ) {
+    					final ByteArrayOutputStream bout = new ByteArrayOutputStream( (int)blob.length() );
+    					try {
+    						final InputStream bin = blob.getBinaryStream();
+    						try {
+    							final byte[] buffer = new byte[ 1024 * 4 ];
+
+    							for( int read = bin.read( buffer );read != -1;read = bin.read( buffer ) )
+    								bout.write( buffer,0,read );
+    						}
+    						finally {
+    							if( bin != null )
+    								bin.close();
+    						}
+    					}
+    					finally {
+    						if( bout != null )
+    							bout.close();
+    					}
+    				}
+    			}
+    		}
+    		finally {
+    			if( set != null )
+    				set.close();
+    		}
+    	}
+    	finally {
+    		if( sta2 != null )
+    			sta2.close();
+    	}
+    }
+
 
 }
