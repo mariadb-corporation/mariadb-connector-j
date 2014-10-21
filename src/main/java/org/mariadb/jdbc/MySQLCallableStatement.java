@@ -44,10 +44,10 @@ class CallableParameterMetaData implements ParameterMetaData {
     boolean isFunction;
     boolean noAccessToMetadata;
     static Pattern PARAMETER_PATTERN =
-            Pattern.compile("\\s*(IN\\s+|OUT\\s+|INOUT\\s+)?([\\w\\d]+)\\s+(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d]+\\))?\\s*",
+            Pattern.compile("\\s*(IN\\s+|OUT\\s+|INOUT\\s+)?([\\w\\d]+)\\s+(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*",
                     Pattern.CASE_INSENSITIVE);
     static Pattern RETURN_PATTERN =
-            Pattern.compile("\\s*(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d]+\\))?\\s*", Pattern.CASE_INSENSITIVE);
+            Pattern.compile("\\s*(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*", Pattern.CASE_INSENSITIVE);
 
     public CallableParameterMetaData(CallParameter[] params, MySQLConnection con, String name, boolean isFunction) {
         this.params = params;
@@ -104,7 +104,6 @@ class CallableParameterMetaData implements ParameterMetaData {
         if (t.equals("SET")) return Types.VARCHAR;
         if (t.equals("GEOMETRY")) return Types.LONGVARBINARY;
         if (t.equals("VARBINARY")) return Types.VARBINARY;
-        if (t.equals("BIT")) return Types.BIT;
 
         return Types.OTHER;
     }
@@ -179,7 +178,8 @@ class CallableParameterMetaData implements ParameterMetaData {
 
         }
 
-        StringTokenizer tokenizer = new StringTokenizer(paramList,",", false);
+        String splitter = ",";
+        StringTokenizer tokenizer = new StringTokenizer(paramList, splitter, false);
         int paramIndex = isFunction?2:1;
 
         while(tokenizer.hasMoreTokens()){
@@ -187,6 +187,12 @@ class CallableParameterMetaData implements ParameterMetaData {
                 throw new SQLException("Invalid placeholder count in CallableStatement");
             }
             String paramDef = tokenizer.nextToken();
+            Pattern pattern = Pattern.compile(".*\\([^)]*");
+            Matcher matcher = pattern.matcher(paramDef);
+            while (matcher.matches()) {
+            	paramDef += splitter + tokenizer.nextToken();
+            	matcher = pattern.matcher(paramDef);
+            }
 
             Matcher m = PARAMETER_PATTERN.matcher(paramDef);
             if (!m.matches())
@@ -221,6 +227,9 @@ class CallableParameterMetaData implements ParameterMetaData {
             p.isSigned = isSigned;
             if (scale != null) {
                 scale = scale.replace("(","").replace(")","").replace(" ","");
+                if (scale.contains(",")) {
+                	scale = scale.substring(0, scale.indexOf(","));
+                }
                 p.scale = Integer.valueOf(scale).intValue();
             }
             paramIndex++;
@@ -307,7 +316,6 @@ class CallableParameterMetaData implements ParameterMetaData {
  * If it cannot be fetched (e.g privilege issue) then some functionality won't be available, for example named parameters
  * will not work.
  */
-@SuppressWarnings( "deprecation" )
 public class MySQLCallableStatement implements CallableStatement
 {
     /**
@@ -1192,7 +1200,6 @@ public class MySQLCallableStatement implements CallableStatement
         inputParameters().setAsciiStream(parameterIndex, x, length);
     }
 
-    @SuppressWarnings( "deprecation" )
     public void setUnicodeStream(int parameterIndex, InputStream x, int length) throws SQLException {
         inputParameters().setBinaryStream(parameterIndex, x, length);
     }
