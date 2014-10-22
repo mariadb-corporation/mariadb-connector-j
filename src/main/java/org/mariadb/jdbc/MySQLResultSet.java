@@ -3827,6 +3827,13 @@ public class MySQLResultSet implements ResultSet {
          return createResultSet(columns, data, protocol, false);
      }
      
+    static ResultSet createEmptyGeneratedKeysResultSet(MySQLConnection connection) {
+    	String[][] data = new String[0][];
+    	return createResultSet(new String[]{"insert_id"}, 
+                new MySQLType[] {MySQLType.BIGINT},
+                data, connection.getProtocol(),true);
+    }
+    
     static ResultSet createGeneratedKeysResultSet(long lastInsertId, int updateCount, 
             MySQLConnection connection) {
         if (updateCount <= 0) {
