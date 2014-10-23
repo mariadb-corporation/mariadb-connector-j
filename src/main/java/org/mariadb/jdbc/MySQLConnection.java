@@ -123,8 +123,8 @@ public final class MySQLConnection  implements Connection {
         if (nullCatalogMeansCurrentString != null && nullCatalogMeansCurrentString.equals("false")) {
             connection.nullCatalogMeansCurrent = false;
         }
-        if (sessionVariables == null)
-            return connection;
+//        if (sessionVariables == null)
+//            return connection;
 
         Statement st = null;
         try {
@@ -132,6 +132,9 @@ public final class MySQLConnection  implements Connection {
             if (sessionVariables != null) {
                 st.executeUpdate("set session " + sessionVariables);
             }
+            ResultSet rs = st.executeQuery("show variables like 'max_allowed_packet'");
+            rs.next();
+            protocol.setMaxAllowedPacket(Integer.parseInt(rs.getString(2)));
         } finally {
             if (st != null)
                 st.close();

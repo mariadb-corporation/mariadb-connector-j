@@ -177,6 +177,8 @@ public class MySQLProtocol {
     long failTimestamp;
     int reconnectCount;
     int queriesSinceFailover;
+    
+    private int maxAllowedPacket;
 
     /* =========================== HA  parameters ========================================= */
     /**
@@ -515,6 +517,7 @@ public class MySQLProtocol {
            hasWarnings = false;
            connected = true;
            hostFailed = false; // Prevent reconnects
+           writer.setMaxAllowedPacket(this.maxAllowedPacket);
        } catch (IOException e) {
            throw new QueryException("Could not connect to " + host + ":" +
                    port + ": " + e.getMessage(),
@@ -1131,6 +1134,13 @@ public class MySQLProtocol {
     }
 	public void setLocalInfileInputStream(InputStream inputStream) {
 		this.localInfileInputStream = inputStream;
+	}
+	
+	public int getMaxAllowedPacket() {
+		return this.maxAllowedPacket;
+	}
+	public void setMaxAllowedPacket(int maxAllowedPacket) {
+		this.maxAllowedPacket = maxAllowedPacket;
 	}
     
 }
