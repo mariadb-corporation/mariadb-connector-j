@@ -90,6 +90,7 @@ public class MySQLClientAuthPacket implements CommandPacket {
                                  final String password,
                                  final String database,
                                  final int serverCapabilities,
+                                 final byte serverLanguage,
                                  final byte[] seed, byte packetSeq) {
         this.packetSeq = packetSeq;
         writeBuffer = new WriteBuffer();
@@ -100,7 +101,6 @@ public class MySQLClientAuthPacket implements CommandPacket {
             throw new RuntimeException("Could not use SHA-1, failing", e);
         }
 
-        final byte serverLanguage = 33;
         writeBuffer.writeInt(serverCapabilities).
                 writeInt(1024*1024*1024).
                 writeByte(serverLanguage). //1

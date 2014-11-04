@@ -90,8 +90,6 @@ public final class MySQLConnection  implements Connection {
     private MySQLConnection( MySQLProtocol protocol) {
         this.protocol = protocol;
         clientInfoProperties = protocol.getInfo();
-        //clientInfoProperties.remove("user");
-        //clientInfoProperties.remove("password");
     }
     
     MySQLProtocol getProtocol() {
@@ -123,15 +121,14 @@ public final class MySQLConnection  implements Connection {
         if (nullCatalogMeansCurrentString != null && nullCatalogMeansCurrentString.equals("false")) {
             connection.nullCatalogMeansCurrent = false;
         }
-        if (sessionVariables == null)
-            return connection;
-
-        Statement st = null;
-        try {
-            st = connection.createStatement();
-            if (sessionVariables != null) {
-                st.executeUpdate("set session " + sessionVariables);
-            }
+		if (sessionVariables == null) {
+			return connection;
+		}
+		
+		Statement st = null;
+		try {
+			st = connection.createStatement();
+			st.executeUpdate("set session " + sessionVariables);
         } finally {
             if (st != null)
                 st.close();

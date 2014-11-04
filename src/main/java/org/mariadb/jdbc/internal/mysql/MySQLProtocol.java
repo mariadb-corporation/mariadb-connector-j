@@ -177,6 +177,7 @@ public class MySQLProtocol {
     long failTimestamp;
     int reconnectCount;
     int queriesSinceFailover;
+    private byte serverLanguage;
 
     /* =========================== HA  parameters ========================================= */
     /**
@@ -404,6 +405,7 @@ public class MySQLProtocol {
            }
            final MySQLGreetingReadPacket greetingPacket = new MySQLGreetingReadPacket(packet);
            this.serverThreadId = greetingPacket.getServerThreadID();
+           this.serverLanguage = greetingPacket.getServerLanguage();
            boolean useCompression = false;
 
            log.finest("Got greeting packet");
@@ -464,12 +466,12 @@ public class MySQLProtocol {
                throw new QueryException("Trying to connect with ssl, but ssl not enabled in the server");
            }
 
-        
 
            final MySQLClientAuthPacket cap = new MySQLClientAuthPacket(this.username,
                    this.password,
                    database,
                    capabilities,
+                   decideLanguage(),
                    greetingPacket.getSeed(),
                    packetSeq);
            cap.send(writer);
@@ -523,6 +525,20 @@ public class MySQLProtocol {
                    e);
        }
 
+    }
+    
+    private boolean isServerLanguageUTF8MB4(byte serverLanguage) {
+    	Byte[] utf8mb4Languages = {
+    			(byte)45,(byte)46,(byte)224,(byte)225,(byte)226,(byte)227,(byte)228,
+    			(byte)229,(byte)230,(byte)231,(byte)232,(byte)233,(byte)234,(byte)235,
+    			(byte)236,(byte)237,(byte)238,(byte)239,(byte)240,(byte)241,(byte)242,
+    			(byte)243,(byte)245
+    	};
+    	return Arrays.asList(utf8mb4Languages).contains(serverLanguage);
+    }
+    private byte decideLanguage() {
+    	byte result = (byte) (isServerLanguageUTF8MB4(this.serverLanguage) ? this.serverLanguage : 33);
+    	return result;
     }
 
     void checkErrorPacket(RawPacket rp) throws QueryException{
