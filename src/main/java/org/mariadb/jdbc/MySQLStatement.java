@@ -216,7 +216,8 @@ public class MySQLStatement implements Statement {
         QueryResult saveResult = queryResult;
         for(;;) {
             try {
-                if (getMoreResults(false)) {
+            	if (protocol.hasMoreResults()) {
+            		getMoreResults(false);
                    cachedResultSets.add(queryResult);
                 } else {
                     break;

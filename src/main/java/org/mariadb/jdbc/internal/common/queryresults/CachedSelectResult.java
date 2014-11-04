@@ -142,6 +142,9 @@ public  class CachedSelectResult extends SelectQueryResult {
        return getRowPointer() == -1 ;
     }
     public boolean isAfterLast() {
+    	if (resultSet.size() == 0) {
+    		return false;
+    	}
        return rowPointer >= resultSet.size();
     }
 }
