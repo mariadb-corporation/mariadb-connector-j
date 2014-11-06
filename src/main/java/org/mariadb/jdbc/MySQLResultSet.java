@@ -560,6 +560,9 @@ public class MySQLResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean isBeforeFirst() throws SQLException {
+    	if (isClosed()) {
+    		throw new SQLException("The isBeforeFirst() method cannot be used on a closed ResultSet");
+    	}
         return (queryResult.getResultSetType() == ResultSetType.SELECT  
                 && ((SelectQueryResult) queryResult).isBeforeFirst());
     }
@@ -578,6 +581,9 @@ public class MySQLResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean isAfterLast() throws SQLException {
+    	if (isClosed()) {
+    		throw new SQLException("The isAfterLast() method cannot be used on a closed ResultSet");
+    	}
         return queryResult.getResultSetType() == ResultSetType.SELECT
                 && ((SelectQueryResult) queryResult).isAfterLast();
     }
@@ -595,6 +601,12 @@ public class MySQLResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean isFirst() throws SQLException {
+    	if (isClosed()) {
+    		throw new SQLException("The isFirst() method cannot be used on a closed ResultSet");
+    	}
+    	if (queryResult.getRows() == 0) {
+    		return false;
+    	}
         return queryResult.getResultSetType() != ResultSetType.MODIFY
                 && ((SelectQueryResult) queryResult).getRowPointer() == 0;
     }
@@ -614,6 +626,12 @@ public class MySQLResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean isLast() throws SQLException {
+    	if (isClosed()) {
+    		throw new SQLException("The isLast() method cannot be used on a closed ResultSet");
+    	}
+    	if (queryResult.getRows() == 0) {
+    		return false;
+    	}
         if (queryResult.getResultSetType() == ResultSetType.SELECT)
         {
             if (queryResult instanceof CachedSelectResult) {
@@ -668,6 +686,9 @@ public class MySQLResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean first() throws SQLException {
+    	if (isClosed()) {
+    		throw new SQLException("Invalid operation on a closed result set");
+    	}
         if (queryResult.getResultSetType() == ResultSetType.SELECT) {
             if (!(queryResult instanceof CachedSelectResult)) {
               throw new SQLException("Invalid operation for result set type TYPE_FORWARD_ONLY");
@@ -693,6 +714,9 @@ public class MySQLResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean last() throws SQLException {
+    	if (isClosed()) {
+    		throw new SQLException("Invalid operation on a closed result set");
+    	}
         if (queryResult.getResultSetType() == ResultSetType.SELECT && queryResult.getRows() > 0) {
             ((SelectQueryResult) queryResult).moveRowPointerTo(queryResult.getRows() - 1);
             return true;
