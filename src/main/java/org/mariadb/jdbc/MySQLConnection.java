@@ -1023,11 +1023,16 @@ public final class MySQLConnection  implements Connection {
      *        <p/>
      */
     public boolean isValid(final int timeout) throws SQLException {
+    	if (timeout < 0) {
+    		throw new SQLException("the value supplied for timeout is negative");
+    	}
+    	if (isClosed()) {
+    		return false;
+    	}
         try {
             return protocol.ping();
         } catch (QueryException e) {
-            SQLExceptionMapper.throwException(e, this, null);
-            return false;
+        	return false;
         }
     }
 
