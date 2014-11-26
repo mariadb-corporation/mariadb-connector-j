@@ -53,6 +53,7 @@ import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 
 
 public class Utils {
@@ -500,5 +501,32 @@ public class Utils {
         if (inEscapeSeq > 0)
             throw new SQLException("Invalid escape sequence , missing closing '}' character in '" + sqlBuffer);
         return sqlBuffer.toString();
+    }
+    
+    /**
+     * Adds the parsed parameter to the properties object.
+     * 
+     * @param parameter a key=value pair
+     * @param info the properties object
+     */
+    public static void setUrlParameter(String parameter, Properties info) {
+    	int pos = parameter.indexOf('=');
+        if (pos == -1)  {
+            throw new IllegalArgumentException("Invalid connection URL, expected key=value pairs, found " + parameter);
+        }
+        info.setProperty(parameter.substring(0, pos), parameter.substring(pos + 1));
+    }
+    
+    /**
+     * Parses the parameters string and sets the corresponding properties in the properties object.
+     * 
+     * @param urlParameters the parameters string
+     * @param info the properties object
+     */
+    public static void setUrlParameters(String urlParameters, Properties info) {
+    	String [] parameters = urlParameters.split("&");
+    	for(String parameter : parameters) {
+    		setUrlParameter(parameter, info);
+    	}
     }
 }

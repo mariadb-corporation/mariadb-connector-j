@@ -1,19 +1,19 @@
 package org.mariadb.jdbc;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
-
-import javax.sql.DataSource;
 
 import org.junit.Test;
 
-public class DataSourceTest {
+public class DataSourceTest extends BaseTest {
     @Test
     public void testDataSource() throws SQLException {
-        DataSource ds = new MySQLDataSource("localhost",3306,"test");
-        Connection connection = ds.getConnection("root", null);
+    	MySQLDataSource ds = new MySQLDataSource(mHostname, mPort, mDatabase);
+    	Connection connection = ds.getConnection(mUsername, mPassword);
         try {
             assertEquals(connection.isValid(0),true);
         } finally  {
@@ -22,8 +22,8 @@ public class DataSourceTest {
     }
     @Test
     public void testDataSource2() throws SQLException {
-        DataSource ds = new MySQLDataSource("localhost",3306,"test");
-        Connection connection = ds.getConnection("root","");
+    	MySQLDataSource ds = new MySQLDataSource(mHostname, mPort, mDatabase);
+    	Connection connection = ds.getConnection(mUsername, mPassword);
         try {
             assertEquals(connection.isValid(0),true);
         }finally {
@@ -37,11 +37,11 @@ public class DataSourceTest {
      */
     @Test
     public void setDatabaseNameTest() throws SQLException {
-    	MySQLDataSource ds = new MySQLDataSource("localhost", 3306, "test");
-    	Connection connection = ds.getConnection("root", "");
+    	MySQLDataSource ds = new MySQLDataSource(mHostname, mPort, mDatabase);
+    	Connection connection = ds.getConnection(mUsername, mPassword);
     	connection.createStatement().execute("CREATE DATABASE IF NOT EXISTS test2");
     	ds.setDatabaseName("test2");
-    	connection = ds.getConnection("root", "");
+    	connection = ds.getConnection(mUsername, mPassword);
     	assertEquals("test2", ds.getDatabaseName());
     	assertEquals(ds.getDatabaseName(), connection.getCatalog());
     	connection.createStatement().execute("DROP DATABASE IF EXISTS test2");
@@ -54,10 +54,10 @@ public class DataSourceTest {
      */
     @Test
     public void setServerNameTest() throws SQLException {
-    	MySQLDataSource ds = new MySQLDataSource("localhost", 3306, "test");
-    	Connection connection = ds.getConnection("root", "");
+    	MySQLDataSource ds = new MySQLDataSource(mHostname, mPort, mDatabase);
+    	Connection connection = ds.getConnection(mUsername, mPassword);
     	ds.setServerName("127.0.0.1");
-    	connection = ds.getConnection("root", "");
+    	connection = ds.getConnection(mUsername, mPassword);
     	connection.close();
     }
     
@@ -67,10 +67,31 @@ public class DataSourceTest {
      */
     @Test(expected=SQLException.class) // unless port 3307 can be used
     public void setPortTest() throws SQLException {
-    	MySQLDataSource ds = new MySQLDataSource("localhost", 3306, "test");
-    	Connection connection = ds.getConnection("root", "");
+    	MySQLDataSource ds = new MySQLDataSource(mHostname, mPort, mDatabase);
+    	Connection connection = ds.getConnection(mUsername, mPassword);
     	ds.setPort(3307);
-    	connection = ds.getConnection("root", "");
+    	connection = ds.getConnection(mUsername, mPassword);
+    	connection.close();
+    }
+    
+    /**
+     * CONJ-123:
+     * Session variables lost and exception if set via MySQLDataSource.setProperties/setURL
+     * @throws SQLException 
+     */
+    @Test
+    public void setPropertiesTest() throws SQLException {
+    	MySQLDataSource ds = new MySQLDataSource(mHostname, mPort, mDatabase);
+    	ds.setProperties("sessionVariables=sql_mode='PIPES_AS_CONCAT'");
+    	Connection connection = ds.getConnection(mUsername, mPassword);
+    	ResultSet rs = connection.createStatement().executeQuery("SELECT @@sql_mode");
+    	assertTrue(rs.next());
+    	assertEquals("PIPES_AS_CONCAT", rs.getString(1));
+    	ds.setUrl(connURI + "&sessionVariables=sql_mode='ALLOW_INVALID_DATES'");
+    	connection = ds.getConnection(mUsername, mPassword);
+    	rs = connection.createStatement().executeQuery("SELECT @@sql_mode");
+    	assertTrue(rs.next());
+    	assertEquals("ALLOW_INVALID_DATES", rs.getString(1));
     	connection.close();
     }
 }

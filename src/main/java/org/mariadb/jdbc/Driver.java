@@ -51,6 +51,7 @@ package org.mariadb.jdbc;
 
 import org.mariadb.jdbc.internal.SQLExceptionMapper;
 import org.mariadb.jdbc.internal.common.QueryException;
+import org.mariadb.jdbc.internal.common.Utils;
 import org.mariadb.jdbc.internal.mysql.MySQLProtocol;
 
 import java.sql.Connection;
@@ -117,14 +118,7 @@ public final class Driver implements java.sql.Driver {
     }
 
     private void setURLParameters(String urlParameters, Properties info) {
-        String [] parameters = urlParameters.split("&");
-        for(String param : parameters) {
-            int pos = param.indexOf('=');
-            if (pos == -1)  {
-                throw new IllegalArgumentException("Invalid connection URL, expected key=value pairs, found " + param);
-            }
-            info.setProperty(param.substring(0, pos), param.substring(pos + 1));
-        }
+        Utils.setUrlParameters(urlParameters, info);
     }
 
     /**
