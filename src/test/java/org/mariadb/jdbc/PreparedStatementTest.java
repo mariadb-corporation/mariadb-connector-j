@@ -1,10 +1,11 @@
 package org.mariadb.jdbc;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.ByteArrayInputStream;
 import java.io.UnsupportedEncodingException;
+import java.math.BigInteger;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -16,21 +17,8 @@ import org.junit.Test;
 
 public class PreparedStatementTest extends BaseTest {
 	private Statement statement;
-	private final static int ER_BAD_FIELD_ERROR       = 1054;
-    private final String     ER_BAD_FIELD_ERROR_STATE = "42S22";
-    private final static int ER_NON_INSERTABLE_TABLE       = 1471;
-    private final String     ER_NON_INSERTABLE_TABLE_STATE = "HY000";
-    private final static int ER_NO_SUCH_TABLE       = 1146;
+	private final static int ER_NO_SUCH_TABLE       = 1146;
     private final String     ER_NO_SUCH_TABLE_STATE = "42S02";
-    private final static int ER_NONUPDATEABLE_COLUMN       = 1348;
-    private final String     ER_NONUPDATEABLE_COLUMN_STATE = "HY000";
-    private final static int ER_PARSE_ERROR       = 1064;
-    private final String     ER_PARSE_ERROR_STATE = "42000";
-    private final static int ER_NO_PARTITION_FOR_GIVEN_VALUE       = 1526;
-    private final String     ER_NO_PARTITION_FOR_GIVEN_VALUE_STATE = "HY000";
-    private final static int ER_LOAD_DATA_INVALID_COLUMN       = 1611;
-    private final String     ER_LOAD_DATA_INVALID_COLUMN_STATE = "HY000";
-    
     @Before
     public void setUp() throws SQLException {
     	statement = connection.createStatement();
@@ -67,4 +55,27 @@ public class PreparedStatementTest extends BaseTest {
             assertEquals(ER_NO_SUCH_TABLE_STATE, sqlException.getSQLState());
         }
     }
+    
+    /**
+     * CONJ-124: BigInteger not supported when setObject is used on PreparedStatements.
+     * @throws SQLException
+     */
+    @Test
+	public void testBigInt() throws SQLException {
+    	Statement st = connection.createStatement();
+    	st.execute("DROP TABLE IF EXISTS `testBigintTable`");
+    	st.execute("CREATE TABLE `testBigintTable` (`id` bigint(20) unsigned NOT NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8;");
+    	st.execute("INSERT INTO `testBigintTable` (`id`) VALUES (0)");
+		PreparedStatement stmt = connection.prepareStatement("UPDATE `testBigintTable` SET `id` = ?");
+		BigInteger bigT = BigInteger.valueOf(System.currentTimeMillis());
+		stmt.setObject(1, bigT);
+		stmt.executeUpdate();
+		stmt = connection.prepareStatement("SELECT `id` FROM `testBigintTable` WHERE `id` = ?");
+		stmt.setObject(1, bigT);
+		ResultSet rs = stmt.executeQuery();
+		assertTrue(rs.next());
+		assertEquals(0, rs.getBigDecimal(1).toBigInteger().compareTo(bigT));
+		st.execute("DROP TABLE IF EXISTS `testBigintTable`");
+	}
+
 }
