@@ -52,9 +52,11 @@ package org.mariadb.jdbc;
 
 import org.mariadb.jdbc.internal.SQLExceptionMapper;
 import org.mariadb.jdbc.internal.common.QueryException;
+import org.mariadb.jdbc.internal.common.Utils;
 import org.mariadb.jdbc.internal.mysql.MySQLProtocol;
 
 import javax.sql.*;
+
 import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -207,11 +209,7 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XA
     }
 
     public void setProperties(String properties) {
-	String [] parameters = properties.split("&");
-	for(String param : parameters) {
-		String [] keyVal = param.split("=");
-		this.info.setProperty(keyVal[0], keyVal[1]);
-	}
+    	Utils.setUrlParameters(properties, this.info);
     }
 
     /**
@@ -221,7 +219,7 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XA
      *            the connection string
      */
     public void setURL(String url) {
-	setUrl(url);
+    	setUrl(url);
     }
 
     /**
