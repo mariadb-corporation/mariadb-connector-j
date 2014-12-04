@@ -255,6 +255,9 @@ public class MySQLProtocol {
     	if ("true".equalsIgnoreCase(fractionalSeconds)) {
     		info.setProperty("useFractionalSeconds", "true");
     	}
+    	if ("true".equalsIgnoreCase(info.getProperty("pinGlobalTxToPhysicalConnection", "false"))) {
+    		info.setProperty("pinGlobalTxToPhysicalConnection", "true");
+    	}
         this.info = info;
         this.jdbcUrl = url;
         this.database = (jdbcUrl.getDatabase() == null ? "" : jdbcUrl.getDatabase());
@@ -1156,6 +1159,10 @@ public class MySQLProtocol {
 	}
 	public void setMaxAllowedPacket(int maxAllowedPacket) {
 		this.maxAllowedPacket = maxAllowedPacket;
+	}
+	
+	public String getPinGlobalTxToPhysicalConnection() {
+		return this.info.getProperty("pinGlobalTxToPhysicalConnection", "false");
 	}
     
 }

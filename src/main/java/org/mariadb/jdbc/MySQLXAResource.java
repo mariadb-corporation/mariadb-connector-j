@@ -145,6 +145,9 @@ public class MySQLXAResource implements XAResource {
     public void start(Xid xid, int flags) throws XAException {
         if (flags != TMJOIN && flags != TMRESUME && flags != TMNOFLAGS)
             throw new XAException(XAException.XAER_INVAL);
+        if (flags == TMJOIN && "true".equalsIgnoreCase(connection.getPinGlobalTxToPhysicalConnection())) {
+        	flags = TMRESUME;
+        }
         execute("XA START " + xidToString(xid) + " "+flagsToString(flags));
     }
 

@@ -1,18 +1,22 @@
 package org.mariadb.jdbc;
 
 
-import org.junit.Before;
-import org.junit.Test;
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertFalse;
+import static junit.framework.Assert.assertTrue;
 
-import javax.sql.XAConnection;
-import javax.transaction.xa.XAResource;
-import javax.transaction.xa.Xid;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.UUID;
 
-import static junit.framework.Assert.*;
+import javax.sql.XAConnection;
+import javax.transaction.xa.XAException;
+import javax.transaction.xa.XAResource;
+import javax.transaction.xa.Xid;
+
+import org.junit.Before;
+import org.junit.Test;
 
 public class XA extends BaseTest {
 
@@ -24,8 +28,8 @@ public class XA extends BaseTest {
     }
     public XA()  {
         dataSource = new MySQLDataSource();
-        dataSource.setUser("root");
-        dataSource.setDatabaseName("test");
+        dataSource.setUser(mUsername);
+        dataSource.setDatabaseName(mDatabase);
     }
     Xid newXid() {
         return new MySQLXid(1, UUID.randomUUID().toString().getBytes(),UUID.randomUUID().toString().getBytes());
@@ -151,6 +155,62 @@ public class XA extends BaseTest {
             xaConnection.close();
         }
     }
+    
+    @Test
+    public void resumeAndJoinTest() throws Exception {
+        Connection conn1 = null;
+        MySQLDataSource ds = new MySQLDataSource();
+        ds.setUrl(connU);
+        ds.setDatabaseName(mDatabase);
+        ds.setUser(mUsername);
+        ds.setPassword(mPassword);
+        ds.setPort(mPort);
+        XAConnection xaConn1 = null;
+        Xid xid = newXid();
+        try {
+            xaConn1 = ds.getXAConnection();
+            XAResource xaRes1 = xaConn1.getXAResource();
+            conn1 = xaConn1.getConnection();
+            xaRes1.start(xid, XAResource.TMNOFLAGS);
+            conn1.createStatement().executeQuery("SELECT 1");
+            xaRes1.end(xid, XAResource.TMSUCCESS);
+            xaRes1.start(xid, XAResource.TMRESUME);
+            conn1.createStatement().executeQuery("SELECT 1");
+            xaRes1.end(xid, XAResource.TMSUCCESS);
+            xaRes1.commit(xid, true);
+            xaConn1.close();
 
+            xaConn1 = ds.getXAConnection();
+            xaRes1 = xaConn1.getXAResource();
+            conn1 = xaConn1.getConnection();
+            xaRes1.start(xid, XAResource.TMNOFLAGS);
+            conn1.createStatement().executeQuery("SELECT 1");
+            xaRes1.end(xid, XAResource.TMSUCCESS);
+            try {
+            	xaRes1.start(xid, XAResource.TMJOIN);
+            	assertTrue(false); // without pinGlobalTxToPhysicalConnection=true
+            } catch (XAException xaex) {
+                if (xaConn1 != null) {
+                    xaConn1.close();
+                }
+            }
+            
+            ds.setProperties("pinGlobalTxToPhysicalConnection=true");
+            xaConn1 = ds.getXAConnection();
+            xaRes1 = xaConn1.getXAResource();
+            conn1 = xaConn1.getConnection();
+            xaRes1.start(xid, XAResource.TMNOFLAGS);
+            conn1.createStatement().executeQuery("SELECT 1");
+            xaRes1.end(xid, XAResource.TMSUCCESS);
+            xaRes1.start(xid, XAResource.TMJOIN);
+            conn1.createStatement().executeQuery("SELECT 1");
+            xaRes1.end(xid, XAResource.TMSUCCESS);
+            xaRes1.commit(xid, true);
+        } finally {
+            if (xaConn1 != null) {
+                xaConn1.close();
+            }
+        }
+    }
 
 }
