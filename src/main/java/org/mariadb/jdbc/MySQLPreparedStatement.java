@@ -53,10 +53,12 @@ import org.mariadb.jdbc.internal.common.Utils;
 import org.mariadb.jdbc.internal.common.query.IllegalParameterException;
 import org.mariadb.jdbc.internal.common.query.MySQLParameterizedQuery;
 import org.mariadb.jdbc.internal.common.query.parameters.*;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.net.URL;
 import java.sql.*;
 import java.util.ArrayList;
@@ -1456,9 +1458,10 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
             setBoolean(parameterIndex, (Boolean) x);
         } else if (x instanceof Blob) {
             setBlob(parameterIndex, (Blob) x);
+        } else if (x instanceof BigInteger) {
+        	setBigDecimal(parameterIndex, new BigDecimal((BigInteger) x));
         } else {
-            throw SQLExceptionMapper.getSQLException("Could not set parameter in setObject, could not convert: " + x.getClass()+" to "+ targetSqlType);
-
+        	throw SQLExceptionMapper.getSQLException("Could not set parameter in setObject, could not convert: " + x.getClass()+" to "+ targetSqlType);
         }
 
     }
@@ -1542,6 +1545,8 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
             setCharacterStream(parameterIndex, (Reader) x);
         } else if (x instanceof BigDecimal) {
             setBigDecimal(parameterIndex, (BigDecimal)x);
+        } else if (x instanceof BigInteger) {
+        	setBigDecimal(parameterIndex, new BigDecimal((BigInteger)x));
         }
         else if (x instanceof Clob) {
             setClob(parameterIndex, (Clob)x);
