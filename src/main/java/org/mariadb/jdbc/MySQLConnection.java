@@ -54,6 +54,7 @@ import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.common.Utils;
 import org.mariadb.jdbc.internal.mysql.MySQLProtocol;
 
+import java.net.SocketException;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.Executor;
@@ -1300,7 +1301,7 @@ public final class MySQLConnection  implements Connection {
 		if (this.isClosed()) {
 			return;
 		}
-		SQLPermission sqlPermission = new SQLPermission("abort");
+		SQLPermission sqlPermission = new SQLPermission("callAbort");
 		SecurityManager securityManager = new SecurityManager();
 		if (securityManager != null && sqlPermission != null) {
 			securityManager.checkPermission(sqlPermission);
@@ -1322,9 +1323,11 @@ public final class MySQLConnection  implements Connection {
 	}
 
 	public int getNetworkTimeout() throws SQLException {
-      // We don't support this yet, so we return the default value 0, which means
-      // no timeout is set. 
-      return 0;
+		try {
+			return this.protocol.getTimeout();
+		} catch (SocketException se) {
+			throw SQLExceptionMapper.getSQLException("Cannot retrieve the network timeout", se);
+		}
 	}
 
 	public String getSchema() throws SQLException {
@@ -1332,9 +1335,39 @@ public final class MySQLConnection  implements Connection {
 		  return null;
 	}
 
-	public void setNetworkTimeout(Executor arg0, int arg1) throws SQLException {
-		  // TODO: not implemented yet
-      throw SQLExceptionMapper.getFeatureNotSupportedException("Not yet supported");
+	/* (non-Javadoc)
+	 * @see java.sql.Connection#setNetworkTimeout(java.util.concurrent.Executor, int)
+	 */
+	public void setNetworkTimeout(Executor executor, final int milliseconds) throws SQLException {
+		if (this.isClosed()) {
+			throw SQLExceptionMapper.getSQLException("Connection.setNetworkTimeout cannot be called on a closed connection");
+		}
+		if (milliseconds < 0) {
+			throw SQLExceptionMapper.getSQLException("Connection.setNetworkTimeout cannot be called with a negative timeout");
+		}
+		SQLPermission sqlPermission = new SQLPermission("setNetworkTimeout");
+		SecurityManager securityManager = new SecurityManager();
+		if (securityManager != null && sqlPermission != null) {
+			securityManager.checkPermission(sqlPermission);
+		}
+		if (executor == null) {
+			throw SQLExceptionMapper.getSQLException("Cannot set the connection timeout: null executor passed");
+		}
+//		executor.execute(new Runnable() {
+//			@Override
+//			public void run() {
+//				try {
+//					protocol.setTimeout(milliseconds);
+//				} catch (SocketException se) {
+//					throw new RuntimeException(SQLExceptionMapper.getSQLException("Cannot set the network timeout", se));
+//				}
+//			}
+//		});
+		try {
+			protocol.setTimeout(milliseconds);
+		} catch (SocketException se) {
+			throw SQLExceptionMapper.getSQLException("Cannot set the network timeout", se);
+		}
 	}
 
 	public void setSchema(String arg0) throws SQLException {

@@ -43,13 +43,13 @@ public class ConnectionTest extends BaseTest {
 	@Test
 	public void abortTest() throws SQLException {
 		Statement stmt = connection.createStatement();
-		SQLPermission sqlPermission = new SQLPermission("abort");
+		SQLPermission sqlPermission = new SQLPermission("callAbort");
 		SecurityManager securityManager = new SecurityManager();
 		if (securityManager != null && sqlPermission != null) {
 			try {
 			securityManager.checkPermission(sqlPermission);
 			} catch (SecurityException se) {
-				System.out.println("test 'aborttest' skipped  due to missing policy");
+				System.out.println("test 'abortTest' skipped  due to missing policy");
 				return;
 			}
 		}
@@ -68,6 +68,49 @@ public class ConnectionTest extends BaseTest {
 			assertTrue(true);
 		} finally {
 			stmt.close();
+		}
+	}
+	
+	
+	/**
+	 * CONJ-121: implemented Connection.getNetworkTimeout and Connection.setNetworkTimeout
+	 * @throws SQLException
+	 */
+	@Test
+	public void networkTimeoutTest() throws SQLException {
+		int timeout = 1000;
+		SQLPermission sqlPermission = new SQLPermission("setNetworkTimeout");
+		SecurityManager securityManager = new SecurityManager();
+		if (securityManager != null && sqlPermission != null) {
+			try {
+			securityManager.checkPermission(sqlPermission);
+			} catch (SecurityException se) {
+				System.out.println("test 'setNetworkTimeout' skipped  due to missing policy");
+				return;
+			}
+		}
+		Executor executor = new Executor() {
+			@Override
+			public void execute(Runnable command) {
+				command.run();
+			}
+		};
+		try {
+			connection.setNetworkTimeout(executor, timeout);
+		} catch (SQLException sqlex) {
+			assertTrue(false);
+		}
+		try {
+			int networkTimeout = connection.getNetworkTimeout();
+			assertEquals(timeout, networkTimeout);
+		} catch (SQLException sqlex) {
+			assertTrue(false);
+		}
+		try {
+			connection.createStatement().execute("select sleep(2)");
+			fail("Network timeout is " + timeout/1000 + "sec, but slept for 2sec");
+		} catch (SQLException sqlex) {
+			assertTrue(connection.isClosed());
 		}
 	}
 
