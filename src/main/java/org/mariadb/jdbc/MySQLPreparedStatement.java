@@ -1385,6 +1385,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
                     break;
                 case Types.CHAR:
                 case Types.VARCHAR:
+                case Types.LONGVARCHAR:
                 case Types.TIMESTAMP: 
                 case Types.TIME:
                     setString(parameterIndex, s);
