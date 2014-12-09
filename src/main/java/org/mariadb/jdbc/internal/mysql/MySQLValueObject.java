@@ -150,7 +150,17 @@ public class MySQLValueObject extends AbstractValueObject {
                 return getString();
             case OLDDECIMAL:
             	return getString();
+            case GEOMETRY:
+            	return getBytes();
+            case ENUM:
+            	break;
+            case NEWDATE:
+            	break;
+            case SET:
+            	break;
+            default:
+            	break;
         }
-        throw new  RuntimeException(dataType.toString());
+        throw new RuntimeException(dataType.toString());
     }
 }
