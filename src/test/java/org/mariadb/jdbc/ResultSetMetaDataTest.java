@@ -47,9 +47,9 @@ public class ResultSetMetaDataTest extends BaseTest {
         cols.next(); /*char_col */
         assertEquals("char_col",cols.getString("COLUMN_NAME"));
         assertEquals(Types.CHAR, cols.getInt("DATA_TYPE"));
-        cols.next(); /*us */
+        cols.next(); /*us */ // CONJ-96: SMALLINT UNSIGNED gives Types.SMALLINT
         assertEquals("us",cols.getString("COLUMN_NAME"));
-        assertEquals(Types.INTEGER, cols.getInt("DATA_TYPE"));  
+        assertEquals(Types.SMALLINT, cols.getInt("DATA_TYPE"));  
     }
     
     @Test 
