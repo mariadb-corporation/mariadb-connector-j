@@ -54,7 +54,7 @@
             <executable>bzr</executable>
             <arguments>
             <argument>export</argument>
-            <argument>${pom.name}-${pom.version}.tar.gz</argument>
+            <argument>${project.name}-${project.version}.tar.gz</argument>
             </arguments>
          </configuration>
   </plugin></plugins></build>
@@ -65,6 +65,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.2</version>
                 <configuration>
                     <source>1.6</source>
                     <target>1.6</target>
@@ -73,12 +74,13 @@
             <plugin>
                <groupId>org.apache.maven.plugins</groupId>
                <artifactId>maven-jar-plugin</artifactId>
+               <version>2.5</version>
                <configuration>
                  <archive>
                    <!-- manifestFile entry seems to be required to do any tweaking -->
                    <manifestFile>src/main/resources/META-INF/MANIFEST.MF</manifestFile>
                    <manifestEntries>
-                     <Bundle-Version>${pom.version}.0</Bundle-Version>
+                     <Bundle-Version>${project.version}.0</Bundle-Version>
                      <Bundle-ManifestVersion>2</Bundle-ManifestVersion>
                      <Bundle-Name>MariaDB JDBC Client</Bundle-Name>
                      <Bundle-SymbolicName>org.mariadb.jdbc</Bundle-SymbolicName>
@@ -111,6 +113,7 @@
 	    <plugin>
               <groupId>com.atlassian.maven.plugins</groupId>
               <artifactId>maven-clover2-plugin</artifactId>
+              <version>4.0.2</version>
 	      <configuration>
                 <licenseLocation>/etc/clover.license</licenseLocation>
               </configuration>
@@ -118,6 +121,7 @@
 	    <plugin>
 	      <groupId>org.apache.maven.plugins</groupId>
 	      <artifactId>maven-source-plugin</artifactId>
+	      <version>2.4</version>
 	      <executions>
 		<execution>
 		  <goals>
@@ -129,6 +133,7 @@
         <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-javadoc-plugin</artifactId>
+            <version>2.10.1</version>
             <executions>
        		    <execution>
                  <id>attach-javadocs</id>
