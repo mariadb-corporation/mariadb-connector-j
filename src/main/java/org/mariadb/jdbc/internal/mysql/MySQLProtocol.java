@@ -957,6 +957,12 @@ public class MySQLProtocol {
                 rawPacket = packetFetcher.getRawPacket();
                 resultPacket = ResultPacketFactory.createResultPacket(rawPacket);
             }
+        } catch (SocketTimeoutException ste) {
+        	this.close();
+        	throw new QueryException("Could not read resultset: " + ste.getMessage(),
+                    -1,
+                    SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
+                    ste);
         }
         catch (IOException e) {
             throw new QueryException("Could not read resultset: " + e.getMessage(),

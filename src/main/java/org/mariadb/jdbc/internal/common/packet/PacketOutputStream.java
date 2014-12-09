@@ -3,8 +3,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-import org.mariadb.jdbc.internal.mysql.MySQLProtocol;
-
 
 
 public class PacketOutputStream extends OutputStream{
