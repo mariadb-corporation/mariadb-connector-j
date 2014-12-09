@@ -1282,6 +1282,10 @@ public final class MySQLConnection  implements Connection {
     public String getDatabase() {
         return protocol.getDatabase();
     }
+    
+    public String getPinGlobalTxToPhysicalConnection() {
+    	return protocol.getPinGlobalTxToPhysicalConnection();
+    }
 
    
     public void setHostFailed() {
