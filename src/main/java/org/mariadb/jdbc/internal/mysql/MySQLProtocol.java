@@ -73,12 +73,15 @@ import javax.net.ssl.*;
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.security.KeyStore;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.sql.SQLException;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -245,12 +248,13 @@ public class MySQLProtocol {
      * @param info
      * @throws org.mariadb.jdbc.internal.common.QueryException
      *          if there is a problem reading / sending the packets
+     * @throws SQLException 
      */
     public MySQLProtocol(JDBCUrl url,
                          final String username,
                          final String password,
                          Properties info)
-            throws QueryException {
+            throws QueryException, SQLException {
     	String fractionalSeconds = info.getProperty("useFractionalSeconds", "true");
     	if ("true".equalsIgnoreCase(fractionalSeconds)) {
     		info.setProperty("useFractionalSeconds", "true");
@@ -292,8 +296,9 @@ public class MySQLProtocol {
      *
      * @throws QueryException  : handshake error, e.g wrong user or password
      * @throws IOException : connection error (host/port not available)
+     * @throws SQLException 
      */
-    void connect(String host, int port) throws QueryException, IOException{
+    void connect(String host, int port) throws QueryException, IOException, SQLException{
         SocketFactory socketFactory = null;
         String socketFactoryName = info.getProperty("socketFactory");
         if (socketFactoryName != null) {
@@ -663,7 +668,7 @@ public class MySQLProtocol {
     public boolean noBackslashEscapes() {
         return ((serverStatus & ServerStatus.NO_BACKSLASH_ESCAPES) != 0);
     }
-    public void reconnectToMaster() throws IOException,QueryException {
+    public void reconnectToMaster() throws IOException,QueryException, SQLException {
         SyncPacketFetcher saveFetcher = this.packetFetcher;
         PacketOutputStream saveWriter = this.writer;
         Socket saveSocket = this.socket;
@@ -686,7 +691,7 @@ public class MySQLProtocol {
             }
         }
     }
-    public void connect() throws QueryException {
+    public void connect() throws QueryException, SQLException {
         if (!isClosed()) {
             close();
         }
@@ -910,7 +915,7 @@ public class MySQLProtocol {
         }
     }
 
-    public QueryResult executeQuery(Query dQuery)  throws QueryException{
+    public QueryResult executeQuery(Query dQuery)  throws QueryException, SQLException {
        return executeQuery(dQuery, false);
     }
 
@@ -999,7 +1004,7 @@ public class MySQLProtocol {
         }
     }
 
-    public QueryResult executeQuery(final Query dQuery, boolean streaming) throws QueryException
+    public QueryResult executeQuery(final Query dQuery, boolean streaming) throws QueryException, SQLException
     {
         dQuery.validate();
         log.log(Level.FINEST, "Executing streamed query: {0}", dQuery);
@@ -1016,12 +1021,21 @@ public class MySQLProtocol {
         }
         if (!isMasterConnection())
             queriesSinceFailover++;
-        return getResult(dQuery, streaming);
+        try {
+        	return getResult(dQuery, streaming);
+        } catch (QueryException qex) {
+        	if (qex.getCause() instanceof SocketTimeoutException) {
+        		close();
+        		throw SQLExceptionMapper.getSQLException("Connection timed out");
+        	} else {
+        		throw qex;
+        	}
+        }
     }
 
 
 
-    public String getServerVariable(String variable) throws QueryException {
+    public String getServerVariable(String variable) throws QueryException, SQLException {
         CachedSelectResult qr = (CachedSelectResult) executeQuery(new MySQLQuery("select @@" + variable));
         try {
             if (!qr.next()) {
@@ -1048,8 +1062,9 @@ public class MySQLProtocol {
      * thread safe
      *
      * @throws QueryException
+     * @throws SQLException 
      */
-    public  void cancelCurrentQuery() throws QueryException, IOException {
+    public  void cancelCurrentQuery() throws QueryException, IOException, SQLException {
         MySQLProtocol copiedProtocol = new MySQLProtocol(jdbcUrl, username, password, info);
         copiedProtocol.executeQuery(new MySQLQuery("KILL QUERY " + serverThreadId));
         copiedProtocol.close();
@@ -1094,7 +1109,7 @@ public class MySQLProtocol {
         return (activeResult != null);
     }
 
-    public void setMaxRows(int max) throws QueryException{
+    public void setMaxRows(int max) throws QueryException, SQLException{
         if (maxRows != max) {
             if (max == 0) {
                 executeQuery(new MySQLQuery("set @@SQL_SELECT_LIMIT=DEFAULT"));
@@ -1156,6 +1171,23 @@ public class MySQLProtocol {
 	}
 	public void setMaxAllowedPacket(int maxAllowedPacket) {
 		this.maxAllowedPacket = maxAllowedPacket;
+	}
+	
+	/**
+	 * Sets the connection timeout.
+	 * @param timeout     the timeout, in milliseconds
+	 * @throws SocketException
+	 */
+	public void setTimeout(int timeout) throws SocketException {
+		this.socket.setSoTimeout(timeout);
+	}
+	/**
+	 * Returns the connection timeout in milliseconds.
+	 * @return
+	 * @throws SocketException
+	 */
+	public int getTimeout() throws SocketException {
+		return this.socket.getSoTimeout();
 	}
     
 }
