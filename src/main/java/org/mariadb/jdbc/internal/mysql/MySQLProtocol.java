@@ -73,6 +73,7 @@ import javax.net.ssl.*;
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.security.KeyStore;
@@ -751,8 +752,8 @@ public class MySQLProtocol {
     {
         ClosePacket closePacket = new ClosePacket();
         try {
-            closePacket.send(packetOutputStream);
             try {
+            	closePacket.send(packetOutputStream);
                 socket.shutdownOutput();
                 socket.setSoTimeout(3);
                 InputStream is = socket.getInputStream();
@@ -925,6 +926,12 @@ public class MySQLProtocol {
                 rawPacket = packetFetcher.getRawPacket();
                 resultPacket = ResultPacketFactory.createResultPacket(rawPacket);
             }
+        } catch (SocketTimeoutException ste) {
+        	this.close();
+        	throw new QueryException("Could not read resultset: " + ste.getMessage(),
+                    -1,
+                    SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
+                    ste);
         }
         catch (IOException e) {
             throw new QueryException("Could not read resultset: " + e.getMessage(),
