@@ -1127,6 +1127,7 @@ public class DriverTest extends BaseTest{
         assertTrue(foundDb);
         setDatabase(oldDb);
         setParameters(oldParams);
+        connection.createStatement().executeUpdate("drop database test_testdrop");
     }
 
      @Test
@@ -1603,8 +1604,8 @@ public class DriverTest extends BaseTest{
     @Test
     public void createDbWithSpacesTest() throws SQLException {
     	String oldDb = mDatabase;
+    	setParameters("&createDB=true");
     	setDatabase("test with spaces");
-    	setConnection("&createDB=true");
         DatabaseMetaData dbmd = connection.getMetaData();
         ResultSet rs = dbmd.getCatalogs();
         boolean foundDb = false;
@@ -1613,5 +1614,6 @@ public class DriverTest extends BaseTest{
         }
         assertTrue(foundDb);
         setDatabase(oldDb);
+        connection.createStatement().execute("drop database `test with spaces`");
     }
 }

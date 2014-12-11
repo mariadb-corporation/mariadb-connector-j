@@ -22,6 +22,7 @@ public class CatalogTest extends BaseTest {
         stmt.executeUpdate("create database cattest1");
         connection.setCatalog("cattest1");
         assertEquals("cattest1", connection.getCatalog());
+        stmt.executeUpdate("drop database if exists cattest1");
     }
     
     @Test(expected = SQLException.class)
