@@ -1603,8 +1603,8 @@ public class DriverTest extends BaseTest{
     @Test
     public void createDbWithSpacesTest() throws SQLException {
     	String oldDb = mDatabase;
+    	setParameters("&createDB=true");
     	setDatabase("test with spaces");
-    	setConnection("&createDB=true");
         DatabaseMetaData dbmd = connection.getMetaData();
         ResultSet rs = dbmd.getCatalogs();
         boolean foundDb = false;

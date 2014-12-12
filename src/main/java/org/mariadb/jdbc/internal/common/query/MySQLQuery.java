@@ -115,5 +115,10 @@ public class MySQLQuery implements Query {
         return query;
     }
 
+	@Override
+	public int getPacketLength() {
+		return length();
+	}
+
 
 }

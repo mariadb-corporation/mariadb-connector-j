@@ -199,4 +199,27 @@ public class MySQLParameterizedQuery implements ParameterizedQuery {
 		}
 	}
 
+	private String toSQL2() throws UnsupportedEncodingException {
+        if(queryPartsArray.length == 0) {
+            return "";
+        }
+        String result;
+        result = new String(queryPartsArray[0], "UTF-8");
+        for(int i = 1; i<queryPartsArray.length; i++) {
+            result += parameters[i-1];
+            if(queryPartsArray[i].length != 0)
+                result += new String(queryPartsArray[i], "UTF-8");
+        }
+		return result;
+    }
+	
+	@Override
+	public int getPacketLength() {
+		try {
+			return toSQL2().getBytes("UTF-8").length;
+		} catch (UnsupportedEncodingException e) {
+			return -1;
+		}
+	}
+
 }

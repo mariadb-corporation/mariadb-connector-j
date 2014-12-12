@@ -1006,6 +1006,16 @@ public class MySQLProtocol {
         this.moreResults = false;
         final StreamedQueryPacket packet = new StreamedQueryPacket(dQuery);
 
+        int packetLength = packet.getPacketLength();
+    	if (this.maxAllowedPacket > 0 && packetLength > 0 && packetLength > this.maxAllowedPacket) {
+    		throw new QueryException("Packet for query is too large ("
+    				+ packetLength
+    				+ " > "
+    				+ this.maxAllowedPacket
+    				+ "). You can change this value on the server by setting the max_allowed_packet' variable.",
+    				-1, SQLExceptionMapper.SQLStates.UNDEFINED_SQLSTATE.getSqlState());
+    	}
+        
         try {
             packet.send(writer);
         } catch (IOException e) {

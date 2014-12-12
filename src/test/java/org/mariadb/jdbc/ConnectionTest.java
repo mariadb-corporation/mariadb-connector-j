@@ -2,6 +2,8 @@ package org.mariadb.jdbc;
 
 import static org.junit.Assert.*;
 
+import java.io.UnsupportedEncodingException;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLPermission;
 import java.sql.Statement;
@@ -49,7 +51,7 @@ public class ConnectionTest extends BaseTest {
 			try {
 			securityManager.checkPermission(sqlPermission);
 			} catch (SecurityException se) {
-				System.out.println("test 'aborttest' skipped  due to missing policy");
+				System.out.println("test 'abortTest' skipped  due to missing policy");
 				return;
 			}
 		}
@@ -68,6 +70,45 @@ public class ConnectionTest extends BaseTest {
 			assertTrue(true);
 		} finally {
 			stmt.close();
+		}
+	}
+	
+	/**
+	 * CONJ-116: Make SQLException prettier when too large packet is sent to the server
+	 * @throws SQLException
+	 * @throws UnsupportedEncodingException 
+	 */
+	@Test
+	public void maxAllowedPackedExceptionIsPrettyTest() throws SQLException, UnsupportedEncodingException {
+		int maxAllowedPacket = 1024 * 1024;
+		Statement statement = connection.createStatement();
+		ResultSet rs = statement.executeQuery("SHOW VARIABLES LIKE 'max_allowed_packet'");
+		if (rs.next()) {
+			maxAllowedPacket = rs.getInt(2);
+		}
+		rs.close();
+		statement.execute("DROP TABLE IF EXISTS dummy");
+		statement.execute("CREATE TABLE dummy (a BLOB)");
+		//Create a SQL packet bigger than maxAllowedPacket
+		StringBuilder sb = new StringBuilder();
+		String rowData = "('this is a dummy row values')";
+		int rowsToWrite = (maxAllowedPacket / rowData.getBytes("UTF-8").length) + 1;
+		for (int row = 1;  row <= rowsToWrite; row++) {
+			if (row >= 2) {
+				sb.append(", ");
+			}
+			sb.append(rowData);
+		}
+		String sql = "INSERT INTO dummy VALUES " + sb.toString();
+		try {
+			statement.executeUpdate(sql);
+			fail("The previous statement should throw an SQLException");
+		} catch (SQLException e) {
+			assertTrue(e.getMessage().contains("max_allowed_packet"));
+		} catch (Exception e) {
+			fail("The previous statement should throw an SQLException not a general Exception");
+		} finally {
+			statement.execute("DROP TABLE dummy");
 		}
 	}
 
