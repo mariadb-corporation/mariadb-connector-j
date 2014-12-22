@@ -247,10 +247,16 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XA
 		this.hostname = tmpStr;
 	}
 	tmpStr = url.getUsername();
+	if (tmpStr.equals("")) {
+		tmpStr = this.info.getProperty("user", "");
+	}
 	if (!tmpStr.equals("")) {
 		this.username = tmpStr;
 	}
 	tmpStr = url.getPassword();
+	if (tmpStr.equals("")) {
+		tmpStr = this.info.getProperty("password", "");
+	}
 	if (!tmpStr.equals("")) {
 		this.password = tmpStr;
 	}

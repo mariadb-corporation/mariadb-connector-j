@@ -88,7 +88,7 @@ public class DataSourceTest extends BaseTest {
     	assertTrue(rs.next());
     	assertEquals("PIPES_AS_CONCAT", rs.getString(1));
     	ds.setUrl(connURI + "&sessionVariables=sql_mode='ALLOW_INVALID_DATES'");
-    	connection = ds.getConnection(mUsername, mPassword);
+    	connection = ds.getConnection();
     	rs = connection.createStatement().executeQuery("SELECT @@sql_mode");
     	assertTrue(rs.next());
     	assertEquals("ALLOW_INVALID_DATES", rs.getString(1));
