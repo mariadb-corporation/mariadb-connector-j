@@ -60,4 +60,5 @@ public interface Query {
     String getQuery();
     QueryType getQueryType();
     void validate() throws QueryException;
+    int getPacketLength();
 }

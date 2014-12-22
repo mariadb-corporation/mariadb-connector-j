@@ -66,7 +66,6 @@ public class StreamedQueryPacket implements CommandPacket
     public StreamedQueryPacket(final Query query)
     {
         this.query = query;
-
     }
 
     public int send(final OutputStream ostream) throws IOException,
@@ -78,5 +77,9 @@ public class StreamedQueryPacket implements CommandPacket
         query.writeTo(pos);
         pos.finishPacket();
         return 0;
+    }
+    
+    public int getPacketLength() {
+    	return query.getPacketLength();
     }
 }
