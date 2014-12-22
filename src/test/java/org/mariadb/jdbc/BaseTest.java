@@ -15,31 +15,31 @@ public class BaseTest {
     protected Connection connection;
     protected static String connU;
     protected static String connURI;
-    protected static String mHostname;
-    protected static int mPort;
-    protected static String mDatabase;
-    protected static String mUsername;
-    protected static String mPassword;
-    protected static String mParameters;
+    protected static String hostname;
+    protected static int port;
+    protected static String database;
+    protected static String username;
+    protected static String password;
+    protected static String parameters;
     protected static final String mDefUrl = "jdbc:mysql://localhost:3306/test?user=root";
     
     @BeforeClass
     public static void beforeClassBaseTest() {
     	String url = System.getProperty("dbUrl", mDefUrl);
     	JDBCUrl jdbcUrl = JDBCUrl.parse(url);
-    	mHostname = jdbcUrl.getHostname();
-    	mPort = jdbcUrl.getPort();
-    	mDatabase = jdbcUrl.getDatabase();
-    	mUsername = jdbcUrl.getUsername();
-    	mPassword = jdbcUrl.getPassword();
-    	if (mDatabase != null && "".equals(mUsername)) {
-    		String[] tokens = mDatabase.contains("?") ? mDatabase.split("\\?") : null;
+    	hostname = jdbcUrl.getHostname();
+    	port = jdbcUrl.getPort();
+    	database = jdbcUrl.getDatabase();
+    	username = jdbcUrl.getUsername();
+    	password = jdbcUrl.getPassword();
+    	if (database != null && "".equals(username)) {
+    		String[] tokens = database.contains("?") ? database.split("\\?") : null;
     		if (tokens != null) {
-    			mDatabase = tokens[0];
+    			database = tokens[0];
     			String[] paramTokens = tokens[1].split("&");
-    			mUsername = paramTokens[0].startsWith("user=") ? paramTokens[0].substring(5) : null;
+    			username = paramTokens[0].startsWith("user=") ? paramTokens[0].substring(5) : null;
     			if (paramTokens.length > 1) {
-    				mPassword = paramTokens[0].startsWith("password=") ? paramTokens[1].substring(9) : null;
+    				password = paramTokens[0].startsWith("password=") ? paramTokens[1].substring(9) : null;
     			}
     		}
     	}
@@ -47,10 +47,10 @@ public class BaseTest {
     }
     
     private static void setURI() {
-    	connU = "jdbc:mysql://" + mHostname + ":" + mPort + "/" + mDatabase;
-    	connURI = connU + "?user=" + mUsername
-    			+ (mPassword != null && !"".equals(mPassword) ? "&password=" + mPassword : "")
-    			+ (mParameters != null ? mParameters : "");
+    	connU = "jdbc:mysql://" + hostname + ":" + port + "/" + database;
+    	connURI = connU + "?user=" + username
+    			+ (password != null && !"".equals(password) ? "&password=" + password : "")
+    			+ (parameters != null ? parameters : "");
     }
     
     @Before
@@ -66,32 +66,32 @@ public class BaseTest {
     }
     
     protected void setHostname(String hostname) throws SQLException {
-    	mHostname = hostname;
+    	BaseTest.hostname = hostname;
     	setURI();
     	setConnection();
     }
     protected void setPort(int port) throws SQLException {
-    	mPort = port;
+    	BaseTest.port = port;
     	setURI();
     	setConnection();
     }
     protected void setDatabase(String database) throws SQLException {
-    	mDatabase = database;
+    	BaseTest.database = database;
     	setURI();
     	setConnection();
     }
     protected void setUsername(String username) throws SQLException {
-    	mUsername = username;
+    	BaseTest.username = username;
     	setURI();
     	setConnection();
     }
     protected void setPassword(String password) throws SQLException {
-    	mPassword = password;
+    	BaseTest.password = password;
     	setURI();
     	setConnection();
     }
     protected void setParameters(String parameters) throws SQLException {
-    	mParameters = parameters;
+    	BaseTest.parameters = parameters;
     	setURI();
     	setConnection();
     }

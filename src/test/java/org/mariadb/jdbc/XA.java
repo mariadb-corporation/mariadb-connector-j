@@ -28,8 +28,8 @@ public class XA extends BaseTest {
     }
     public XA()  {
         dataSource = new MySQLDataSource();
-        dataSource.setUser(mUsername);
-        dataSource.setDatabaseName(mDatabase);
+        dataSource.setUser(username);
+        dataSource.setDatabaseName(database);
     }
     Xid newXid() {
         return new MySQLXid(1, UUID.randomUUID().toString().getBytes(),UUID.randomUUID().toString().getBytes());
@@ -161,10 +161,10 @@ public class XA extends BaseTest {
         Connection conn1 = null;
         MySQLDataSource ds = new MySQLDataSource();
         ds.setUrl(connU);
-        ds.setDatabaseName(mDatabase);
-        ds.setUser(mUsername);
-        ds.setPassword(mPassword);
-        ds.setPort(mPort);
+        ds.setDatabaseName(database);
+        ds.setUser(username);
+        ds.setPassword(password);
+        ds.setPort(port);
         XAConnection xaConn1 = null;
         Xid xid = newXid();
         try {

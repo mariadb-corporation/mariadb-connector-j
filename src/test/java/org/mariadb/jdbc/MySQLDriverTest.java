@@ -261,7 +261,7 @@ public class MySQLDriverTest extends BaseTest {
 
     @Test
     public void smallQueryWriteCompress() throws SQLException {
-    	String oldParams = mParameters;
+    	String oldParams = parameters;
     	setParameters("&useCompression=true");
         String sql=  "select 1";
         ResultSet rs = connection.createStatement().executeQuery(sql);
@@ -618,7 +618,7 @@ public class MySQLDriverTest extends BaseTest {
     
     @Test
     public void connectToDbWithDashInName() throws Exception {
-    	String oldDb = mDatabase;
+    	String oldDb = database;
     	connection.createStatement().execute("create database `data-base`");
     	try {
     		setDatabase("data-base");
@@ -632,8 +632,8 @@ public class MySQLDriverTest extends BaseTest {
     
     @Test
     public void connectCreateDB() throws Exception {
-    	String oldParams = mParameters;
-    	String oldDb = mDatabase;
+    	String oldParams = parameters;
+    	String oldDb = database;
     	setParameters("&createDB=true");
     	setDatabase("no-such-db");
     	try {

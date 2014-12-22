@@ -29,12 +29,12 @@ public class ConnectionTest extends BaseTest {
 		Properties properties = connection.getClientInfo();
 		assertTrue(properties != null);
 		assertTrue(properties.size() > 0);
-		assertTrue(properties.getProperty("user").equalsIgnoreCase(mUsername));
-		// assertTrue(properties.getProperty("password").equalsIgnoreCase(mPassword));
+		assertTrue(properties.getProperty("user").equalsIgnoreCase(username));
+		// assertTrue(properties.getProperty("password").equalsIgnoreCase(password));
 		assertTrue(properties.getProperty("useFractionalSeconds").equalsIgnoreCase("true"));
 		assertTrue(properties.getProperty("allowMultiQueries").equalsIgnoreCase("true"));
 		assertTrue(properties.getProperty("useCompression").equalsIgnoreCase("false"));
-		assertEquals(mUsername, connection.getClientInfo("user"));
+		assertEquals(username, connection.getClientInfo("user"));
 		// assertEquals(null, connection.getClientInfo("password"));
 		assertEquals("true", connection.getClientInfo("useFractionalSeconds"));
 		assertEquals("true", connection.getClientInfo("allowMultiQueries"));

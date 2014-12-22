@@ -12,8 +12,8 @@ import org.junit.Test;
 public class DataSourceTest extends BaseTest {
     @Test
     public void testDataSource() throws SQLException {
-    	MySQLDataSource ds = new MySQLDataSource(mHostname, mPort, mDatabase);
-    	Connection connection = ds.getConnection(mUsername, mPassword);
+    	MySQLDataSource ds = new MySQLDataSource(hostname, port, database);
+    	Connection connection = ds.getConnection(username, password);
         try {
             assertEquals(connection.isValid(0),true);
         } finally  {
@@ -22,8 +22,8 @@ public class DataSourceTest extends BaseTest {
     }
     @Test
     public void testDataSource2() throws SQLException {
-    	MySQLDataSource ds = new MySQLDataSource(mHostname, mPort, mDatabase);
-    	Connection connection = ds.getConnection(mUsername, mPassword);
+    	MySQLDataSource ds = new MySQLDataSource(hostname, port, database);
+    	Connection connection = ds.getConnection(username, password);
         try {
             assertEquals(connection.isValid(0),true);
         }finally {
@@ -37,11 +37,11 @@ public class DataSourceTest extends BaseTest {
      */
     @Test
     public void setDatabaseNameTest() throws SQLException {
-    	MySQLDataSource ds = new MySQLDataSource(mHostname, mPort, mDatabase);
-    	Connection connection = ds.getConnection(mUsername, mPassword);
+    	MySQLDataSource ds = new MySQLDataSource(hostname, port, database);
+    	Connection connection = ds.getConnection(username, password);
     	connection.createStatement().execute("CREATE DATABASE IF NOT EXISTS test2");
     	ds.setDatabaseName("test2");
-    	connection = ds.getConnection(mUsername, mPassword);
+    	connection = ds.getConnection(username, password);
     	assertEquals("test2", ds.getDatabaseName());
     	assertEquals(ds.getDatabaseName(), connection.getCatalog());
     	connection.createStatement().execute("DROP DATABASE IF EXISTS test2");
@@ -54,10 +54,10 @@ public class DataSourceTest extends BaseTest {
      */
     @Test
     public void setServerNameTest() throws SQLException {
-    	MySQLDataSource ds = new MySQLDataSource(mHostname, mPort, mDatabase);
-    	Connection connection = ds.getConnection(mUsername, mPassword);
+    	MySQLDataSource ds = new MySQLDataSource(hostname, port, database);
+    	Connection connection = ds.getConnection(username, password);
     	ds.setServerName("127.0.0.1");
-    	connection = ds.getConnection(mUsername, mPassword);
+    	connection = ds.getConnection(username, password);
     	connection.close();
     }
     
@@ -67,10 +67,10 @@ public class DataSourceTest extends BaseTest {
      */
     @Test(expected=SQLException.class) // unless port 3307 can be used
     public void setPortTest() throws SQLException {
-    	MySQLDataSource ds = new MySQLDataSource(mHostname, mPort, mDatabase);
-    	Connection connection = ds.getConnection(mUsername, mPassword);
+    	MySQLDataSource ds = new MySQLDataSource(hostname, port, database);
+    	Connection connection = ds.getConnection(username, password);
     	ds.setPort(3307);
-    	connection = ds.getConnection(mUsername, mPassword);
+    	connection = ds.getConnection(username, password);
     	connection.close();
     }
     
@@ -81,9 +81,9 @@ public class DataSourceTest extends BaseTest {
      */
     @Test
     public void setPropertiesTest() throws SQLException {
-    	MySQLDataSource ds = new MySQLDataSource(mHostname, mPort, mDatabase);
+    	MySQLDataSource ds = new MySQLDataSource(hostname, port, database);
     	ds.setProperties("sessionVariables=sql_mode='PIPES_AS_CONCAT'");
-    	Connection connection = ds.getConnection(mUsername, mPassword);
+    	Connection connection = ds.getConnection(username, password);
     	ResultSet rs = connection.createStatement().executeQuery("SELECT @@sql_mode");
     	assertTrue(rs.next());
     	assertEquals("PIPES_AS_CONCAT", rs.getString(1));

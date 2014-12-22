@@ -140,6 +140,8 @@ public enum MySQLType {
             case VARCHAR:
             case VARSTRING:
                  return binary?  "[B" : String.class.getName();
+            default:
+            	break;
         }
         return t.getClassName();
     }

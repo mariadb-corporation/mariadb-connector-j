@@ -57,8 +57,11 @@ public class StatementTest extends BaseTest {
 	public void afterConnectionClosedTest() throws SQLException {
 		Connection conn2 = DriverManager.getConnection("jdbc:mariadb://localhost:3306/test?user=root");
 		Statement st1 = conn2.createStatement();
+		st1.close();
 		conn2.close();
 		Statement st2 = conn2.createStatement();
+		assertTrue(false);
+		st2.close();
 	}
 	
 	

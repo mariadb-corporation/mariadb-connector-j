@@ -337,12 +337,12 @@ public class DriverTest extends BaseTest{
 
     @Test
     public void connectFailover() throws SQLException {
-    	String hosts = mHostname + ":" + mPort + "," + mHostname + ":" + (mPort+1);
-    	String url = "jdbc:mysql://" + hosts + "/" + mDatabase + "?user=" + mUsername;
-    	url += (mPassword != null && !"".equals(mPassword) ? "&password=" + mPassword : "");
+    	String hosts = hostname + ":" + port + "," + hostname + ":" + (port+1);
+    	String url = "jdbc:mysql://" + hosts + "/" + database + "?user=" + username;
+    	url += (password != null && !"".equals(password) ? "&password=" + password : "");
         Connection c  = openNewConnection(url);
         MySQLConnection my=(MySQLConnection) c;
-        assertTrue(my.getPort() == mPort);
+        assertTrue(my.getPort() == port);
         ResultSet rs = c.createStatement().executeQuery("select 1");
         rs.next();
         assertEquals(rs.getInt(1), 1);
@@ -1114,8 +1114,8 @@ public class DriverTest extends BaseTest{
         try {
             connection.createStatement().executeUpdate("drop database test_testdrop");
         } catch (Exception e) {}
-        String oldDb = mDatabase;
-        String oldParams = mParameters;
+        String oldDb = database;
+        String oldParams = parameters;
         setParameters("&createDB=true");
         setDatabase("test_testdrop");
         DatabaseMetaData dbmd = connection.getMetaData();
@@ -1603,7 +1603,7 @@ public class DriverTest extends BaseTest{
     
     @Test
     public void createDbWithSpacesTest() throws SQLException {
-    	String oldDb = mDatabase;
+    	String oldDb = database;
     	setParameters("&createDB=true");
     	setDatabase("test with spaces");
         DatabaseMetaData dbmd = connection.getMetaData();

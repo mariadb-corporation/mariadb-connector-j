@@ -20,8 +20,8 @@ public class ConnectionPoolTest extends BaseTest {
         org.apache.commons.dbcp.BasicDataSource dataSource;
         dataSource = new org.apache.commons.dbcp.BasicDataSource();
         dataSource.setUrl(connU);
-        dataSource.setUsername(mUsername);
-        dataSource.setPassword(mPassword);
+        dataSource.setUsername(username);
+        dataSource.setPassword(password);
         dataSource.setMaxActive(2);
         
         Connection connection = dataSource.getConnection();
@@ -40,8 +40,8 @@ public class ConnectionPoolTest extends BaseTest {
         java.sql.Driver driver = new org.mariadb.jdbc.Driver();
 
         Properties props = new Properties();
-        props.put("user", mUsername);
-        props.put("password", mPassword);
+        props.put("user", username);
+        props.put("password", password);
         
         //A connection pool typically has a connection factor that stored everything needed to
         //create a Connection. Here I create a factory that stores URL, username and password.
