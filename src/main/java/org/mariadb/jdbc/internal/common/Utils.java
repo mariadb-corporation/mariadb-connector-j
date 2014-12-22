@@ -68,7 +68,8 @@ public class Utils {
         SlashStarComment, /* inside slash-star comment */
         Escape, /* found backslash */
         Parameter, /* parameter placeholder found */
-        EOLComment /* # comment, or // comment, or -- comment */
+        EOLComment, /* # comment, or // comment, or -- comment */
+        Backtick /* found backtick */
     };
 
 
@@ -149,6 +150,13 @@ public class Utils {
                       if (state == LexState.Normal)
                           isParam = true;
                       break;
+                  case '`':
+                	  if (state == LexState.Backtick) {
+                		  state = LexState.Normal;
+                	  } else if (state == LexState.Normal) {
+                		  state = LexState.Backtick;
+                	  }
+                	  break;
               }
               lastChar = c;
               if (isParam)  {

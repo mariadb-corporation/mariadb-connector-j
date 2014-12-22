@@ -77,5 +77,34 @@ public class PreparedStatementTest extends BaseTest {
 		assertEquals(0, rs.getBigDecimal(1).toBigInteger().compareTo(bigT));
 		st.execute("DROP TABLE IF EXISTS `testBigintTable`");
 	}
+    
+    @Test
+    public void testPreparedStatementsWithQuotes() throws SQLException {
+        connection.createStatement().execute("DROP TABLE IF EXISTS backTicksPreparedStatements");
+        connection.createStatement().execute(
+                        "CREATE TABLE IF NOT EXISTS `backTicksPreparedStatements` ("
+                        + "`id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,"
+                        + "`SLIndex#orBV#` text,"
+                        + "`isM&M'sTasty?` bit(1) DEFAULT NULL,"
+                        + "`Seems:LikeParam?` bit(1) DEFAULT NULL,"
+                        + "`Webinar10-TM/ProjComp` text"
+                        + ") ENGINE=InnoDB DEFAULT CHARSET=utf8");
+
+        String query = "INSERT INTO backTicksPreparedStatements (`SLIndex#orBV#`,`Seems:LikeParam?`,`Webinar10-TM/ProjComp`,`isM&M'sTasty?`)"
+        		+ " VALUES (?,?,?,?)";
+        PreparedStatement ps = connection.prepareStatement(query);
+        ps.setString(1, "slIndex");
+        ps.setBoolean(2, false);
+        ps.setString(3, "webinar10");
+        ps.setBoolean(4, true);
+        ps.execute();
+        ResultSet rs = connection.createStatement().executeQuery("SELECT `SLIndex#orBV#`,`Seems:LikeParam?`,`Webinar10-TM/ProjComp`,`isM&M'sTasty?` FROM backTicksPreparedStatements");
+        assertTrue(rs.next());
+        assertEquals("slIndex", rs.getString(1));
+        assertEquals(false, rs.getBoolean(2));
+        assertEquals("webinar10", rs.getString(3));
+        assertEquals(true, rs.getBoolean(4));
+        connection.createStatement().execute("DROP TABLE IF EXISTS backTicksPreparedStatements");
+    }
 
 }
