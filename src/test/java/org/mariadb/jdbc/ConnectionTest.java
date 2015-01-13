@@ -156,11 +156,16 @@ public class ConnectionTest extends BaseTest {
 		StringBuilder sb = new StringBuilder();
 		String rowData = "('this is a dummy row values')";
 		int rowsToWrite = (maxAllowedPacket / rowData.getBytes("UTF-8").length) + 1;
-		for (int row = 1;  row <= rowsToWrite; row++) {
-			if (row >= 2) {
-				sb.append(", ");
+                try {
+			for (int row = 1;  row <= rowsToWrite; row++) {
+				if (row >= 2) {
+					sb.append(", ");
+				}
+				sb.append(rowData);
 			}
-			sb.append(rowData);
+		} catch (OutOfMemoryError e) {
+			System.out.println("skip test 'maxAllowedPackedExceptionIsPrettyTest' - not enough memory");
+			return;
 		}
 		String sql = "INSERT INTO dummy VALUES " + sb.toString();
 		try {
