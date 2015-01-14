@@ -56,9 +56,9 @@ import java.util.Calendar;
 
 /**
  * Contains the raw value returned from the server
- * <p/>
+ *
  * Is immutable
- * <p/>
+ * 
  */
 public class MySQLValueObject extends AbstractValueObject {
     MySQLColumnInformation columnInfo;

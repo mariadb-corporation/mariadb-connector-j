@@ -189,7 +189,7 @@ public class Utils {
      
     /**
      * encrypts a password
-     * <p/>
+     * 
      * protocol for authentication is like this: 1. mysql server sends a random array of bytes (the seed) 2. client
      * makes a sha1 digest of the password 3. client hashes the output of 2 4. client digests the seed 5. client updates
      * the digest with the output from 3 6. an xor of the output of 5 and 2 is sent to server 7. server does the same

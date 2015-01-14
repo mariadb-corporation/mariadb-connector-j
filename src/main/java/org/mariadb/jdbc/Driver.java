@@ -79,7 +79,7 @@ public final class Driver implements java.sql.Driver {
 
     /**
      * Connect to the given connection string.
-     * <p/>
+     * 
      * the properties are currently ignored
      *
      * @param url  the url to connect to

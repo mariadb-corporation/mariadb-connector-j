@@ -206,9 +206,9 @@ public final class MySQLConnection  implements Connection {
 
     /**
      * returns true if statements on this connection are auto commited.
-     *
+     * 
      * @return true if auto commit is on.
-     * @throws SQLException
+     * @throws SQLException if there is an error
      */
     public boolean getAutoCommit() throws SQLException {
         return protocol.getAutocommit();
@@ -314,7 +314,7 @@ public final class MySQLConnection  implements Connection {
     /**
      * Sets the given catalog name in order to select a subspace of this <code>Connection</code> object's database in
      * which to work.
-     * <p/>
+     * 
      * If the driver does not support catalogs, it will silently ignore this request.
      * 
      * MySQL treats catalogs and databases as equivalent
@@ -340,9 +340,9 @@ public final class MySQLConnection  implements Connection {
 
     /**
      * Retrieves this <code>Connection</code> object's current catalog name.
-     * <p/>
+     * 
      * catalogs are not supported in drizzle
-     * <p/>
+     * 
      * TODO: Explain the wrapper interface to be able to change database
      *
      * @return the current catalog name or <code>null</code> if there is none
@@ -367,7 +367,7 @@ public final class MySQLConnection  implements Connection {
     /**
      * Attempts to change the transaction isolation level for this <code>Connection</code> object to the one given. The
      * constants defined in the interface <code>Connection</code> are the possible transaction isolation levels.
-     * <p/>
+     * 
      * <B>Note:</B> If this method is called during a transaction, the result is implementation-defined.
      *
      * @param level one of the following <code>Connection</code> constants: <code>Connection.TRANSACTION_READ_UNCOMMITTED</code>,
@@ -443,15 +443,15 @@ public final class MySQLConnection  implements Connection {
 
     /**
      * Not yet implemented: Protocol needs to store any warnings related to connections
-     * <p/>
-     * <p/>
+     * 
+     * 
      * Retrieves the first warning reported by calls on this <code>Connection</code> object.  If there is more than one
      * warning, subsequent warnings will be chained to the first one and can be retrieved by calling the method
      * <code>SQLWarning.getNextWarning</code> on the warning that was retrieved previously.
-     * <p/>
+     * 
      * This method may not be called on a closed connection; doing so will cause an <code>SQLException</code> to be
      * thrown.
-     * <p/>
+     * 
      * <P><B>Note:</B> Subsequent warnings will be chained to this SQLWarning.
      *
      * @return the first <code>SQLWarning</code> object or <code>null</code> if there are none
@@ -654,8 +654,8 @@ public final class MySQLConnection  implements Connection {
     /**
      * Creates an unnamed savepoint in the current transaction and returns the new <code>Savepoint</code> object that
      * represents it.
-     * <p/>
-     * <p> if setSavepoint is invoked outside of an active transaction, a transaction will be started at this newly
+     * 
+     * if setSavepoint is invoked outside of an active transaction, a transaction will be started at this newly
      * created savepoint.
      *
      * @return the new <code>Savepoint</code> object
@@ -674,8 +674,8 @@ public final class MySQLConnection  implements Connection {
     /**
      * Creates a savepoint with the given name in the current transaction and returns the new <code>Savepoint</code>
      * object that represents it.
-     * <p/>
-     * <p> if setSavepoint is invoked outside of an active transaction, a transaction will be started at this newly
+     * 
+     * if setSavepoint is invoked outside of an active transaction, a transaction will be started at this newly
      * created savepoint.
      *
      * @param name a <code>String</code> containing the name of the savepoint
@@ -698,7 +698,7 @@ public final class MySQLConnection  implements Connection {
 
     /**
      * Undoes all changes made after the given <code>Savepoint</code> object was set.
-     * <p/>
+     * 
      * This method should be used only when auto-commit has been disabled.
      *
      * @param savepoint the <code>Savepoint</code> object to roll back to
@@ -771,7 +771,7 @@ public final class MySQLConnection  implements Connection {
     /**
      * Creates a <code>PreparedStatement</code> object that will generate <code>ResultSet</code> objects with the given
      * type, concurrency, and holdability.
-     * <p/>
+     * 
      * This method is the same as the <code>prepareStatement</code> method above, but it allows the default result set
      * type, concurrency, and holdability to be overridden.
      *
@@ -841,13 +841,13 @@ public final class MySQLConnection  implements Connection {
      * The given constant tells the driver whether it should make auto-generated keys available for retrieval.  This
      * parameter is ignored if the SQL statement is not an <code>INSERT</code> statement, or an SQL statement able to
      * return auto-generated keys (the list of such statements is vendor-specific).
-     * <p/>
+     * 
      * <B>Note:</B> This method is optimized for handling parametric SQL statements that benefit from precompilation. If
      * the driver supports precompilation, the method <code>prepareStatement</code> will send the statement to the
      * database for precompilation. Some drivers may not support precompilation. In this case, the statement may not be
      * sent to the database until the <code>PreparedStatement</code> object is executed.  This has no direct effect on
      * users; however, it does affect which methods throw certain SQLExceptions.
-     * <p/>
+     * 
      * Result sets created using the returned <code>PreparedStatement</code> object will by default be type
      * <code>TYPE_FORWARD_ONLY</code> and have a concurrency level of <code>CONCUR_READ_ONLY</code>. The holdability of
      * the created result sets can be determined by calling {@link #getHoldability}.
@@ -875,16 +875,16 @@ public final class MySQLConnection  implements Connection {
      * auto-generated keys that should be made available.  The driver will ignore the array if the SQL statement is not
      * an <code>INSERT</code> statement, or an SQL statement able to return auto-generated keys (the list of such
      * statements is vendor-specific).
-     * <p/>
+     * 
      * An SQL statement with or without IN parameters can be pre-compiled and stored in a <code>PreparedStatement</code>
      * object. This object can then be used to efficiently execute this statement multiple times.
-     * <p/>
+     * 
      * <B>Note:</B> This method is optimized for handling parametric SQL statements that benefit from precompilation. If
      * the driver supports precompilation, the method <code>prepareStatement</code> will send the statement to the
      * database for precompilation. Some drivers may not support precompilation. In this case, the statement may not be
      * sent to the database until the <code>PreparedStatement</code> object is executed.  This has no direct effect on
      * users; however, it does affect which methods throw certain SQLExceptions.
-     * <p/>
+     * 
      * Result sets created using the returned <code>PreparedStatement</code> object will by default be type
      * <code>TYPE_FORWARD_ONLY</code> and have a concurrency level of <code>CONCUR_READ_ONLY</code>. The holdability of
      * the created result sets can be determined by calling {@link #getHoldability}.
@@ -909,16 +909,16 @@ public final class MySQLConnection  implements Connection {
      * auto-generated keys that should be returned. The driver will ignore the array if the SQL statement is not an
      * <code>INSERT</code> statement, or an SQL statement able to return auto-generated keys (the list of such
      * statements is vendor-specific).
-     * <p/>
+     * 
      * An SQL statement with or without IN parameters can be pre-compiled and stored in a <code>PreparedStatement</code>
      * object. This object can then be used to efficiently execute this statement multiple times.
-     * <p/>
+     * 
      * <B>Note:</B> This method is optimized for handling parametric SQL statements that benefit from precompilation. If
      * the driver supports precompilation, the method <code>prepareStatement</code> will send the statement to the
      * database for precompilation. Some drivers may not support precompilation. In this case, the statement may not be
      * sent to the database until the <code>PreparedStatement</code> object is executed.  This has no direct effect on
      * users; however, it does affect which methods throw certain SQLExceptions.
-     * <p/>
+     * 
      * Result sets created using the returned <code>PreparedStatement</code> object will by default be type
      * <code>TYPE_FORWARD_ONLY</code> and have a concurrency level of <code>CONCUR_READ_ONLY</code>. The holdability of
      * the created result sets can be determined by calling {@link #getHoldability}.
@@ -1009,19 +1009,19 @@ public final class MySQLConnection  implements Connection {
      * Returns true if the connection has not been closed and is still valid. The driver shall submit a query on the
      * connection or use some other mechanism that positively verifies the connection is still valid when this method is
      * called.
-     * <p/>
+     * 
      * The query submitted by the driver to validate the connection shall be executed in the context of the current
      * transaction.
      *
      * @param timeout -             The time in seconds to wait for the database operation used to validate the
      *                connection to complete.  If the timeout period expires before the operation completes, this method
      *                returns false.  A value of 0 indicates a timeout is not applied to the database operation.
-     *                <p/>
+     *                
      * @return true if the connection is valid, false otherwise
      * @throws java.sql.SQLException if the value supplied for <code>timeout</code> is less then 0
      * @see java.sql.DatabaseMetaData#getClientInfoProperties
      * @since 1.6
-     *        <p/>
+     *        
      */
     public boolean isValid(final int timeout) throws SQLException {
     	if (timeout < 0) {
@@ -1039,41 +1039,41 @@ public final class MySQLConnection  implements Connection {
 
     /**
      * Sets the value of the client info property specified by name to the value specified by value.
-     * <p/>
+     * 
      * Applications may use the <code>DatabaseMetaData.getClientInfoProperties</code> method to determine the client
      * info properties supported by the driver and the maximum length that may be specified for each property.
-     * <p/>
+     * 
      * The driver stores the value specified in a suitable location in the database.  For example in a special register,
      * session parameter, or system table column.  For efficiency the driver may defer setting the value in the database
      * until the next time a statement is executed or prepared.  Other than storing the client information in the
      * appropriate place in the database, these methods shall not alter the behavior of the connection in anyway.  The
      * values supplied to these methods are used for accounting, diagnostics and debugging purposes only.
-     * <p/>
+     * 
      * The driver shall generate a warning if the client info name specified is not recognized by the driver.
-     * <p/>
+     * 
      * If the value specified to this method is greater than the maximum length for the property the driver may either
      * truncate the value and generate a warning or generate a <code>SQLClientInfoException</code>.  If the driver
      * generates a <code>SQLClientInfoException</code>, the value specified was not set on the connection.
-     * <p/>
+     * 
      * The following are standard client info properties.  Drivers are not required to support these properties however
      * if the driver supports a client info property that can be described by one of the standard properties, the
      * standard property name should be used.
-     * <p/>
+     * 
      * <ul> <li>ApplicationName  -       The name of the application currently utilizing the connection</li>
      * <li>ClientUser               -       The name of the user that the application using the connection is performing
      * work for.  This may not be the same as the user name that was used in establishing the connection.</li>
      * <li>ClientHostname   -       The hostname of the computer the application using the connection is running
      * on.</li> </ul>
-     * <p/>
+     * 
      *
      * @param name  The name of the client info property to set
      * @param value The value to set the client info property to.  If the value is null, the current value of the
      *              specified property is cleared.
-     *              <p/>
+     *              
      * @throws java.sql.SQLClientInfoException
      *          if the database server returns an error while setting the client info value on the database server or
      *          this method is called on a closed connection
-     *          <p/>
+     *          
      * @since 1.6
      */
     public void setClientInfo(final String name, final String value) throws java.sql.SQLClientInfoException {
@@ -1087,23 +1087,23 @@ public final class MySQLConnection  implements Connection {
      * currently set on the connection is not present in the properties list, that property is cleared.  Specifying an
      * empty properties list will clear all of the properties on the connection.  See <code>setClientInfo (String,
      * String)</code> for more information.
-     * <p/>
+     * 
      * If an error occurs in setting any of the client info properties, a <code>SQLClientInfoException</code> is thrown.
      * The <code>SQLClientInfoException</code> contains information indicating which client info properties were not
      * set. The state of the client information is unknown because some databases do not allow multiple client info
      * properties to be set atomically.  For those databases, one or more properties may have been set before the error
      * occurred.
-     * <p/>
+     * 
      *
      * @param properties the list of client info properties to set
-     *                   <p/>
+     *                   
      * @throws java.sql.SQLClientInfoException
      *          if the database server returns an error while setting the clientInfo values on the database server or
      *          this method is called on a closed connection
-     *          <p/>
+     *          
      * @see java.sql.Connection#setClientInfo(String, String) setClientInfo(String, String)
      * @since 1.6
-     *        <p/>
+     *        
      */
     public void setClientInfo(final Properties properties) throws java.sql.SQLClientInfoException {
         // TODO: actually use these!
@@ -1116,21 +1116,21 @@ public final class MySQLConnection  implements Connection {
      * Returns the value of the client info property specified by name.  This method may return null if the specified
      * client info property has not been set and does not have a default value.  This method will also return null if
      * the specified client info property name is not supported by the driver.
-     * <p/>
+     * 
      * Applications may use the <code>DatabaseMetaData.getClientInfoProperties</code> method to determine the client
      * info properties supported by the driver.
-     * <p/>
+     * 
      *
      * @param name The name of the client info property to retrieve
-     *             <p/>
+     *             
      * @return The value of the client info property specified
-     *         <p/>
+     *         
      * @throws java.sql.SQLException if the database server returns an error when fetching the client info value from
      *                               the database or this method is called on a closed connection
-     *                               <p/>
+     *                               
      * @see java.sql.DatabaseMetaData#getClientInfoProperties
      * @since 1.6
-     *        <p/>
+     *        
      */
     public String getClientInfo(final String name) throws SQLException {
         return clientInfoProperties.getProperty(name);
@@ -1139,14 +1139,14 @@ public final class MySQLConnection  implements Connection {
     /**
      * Returns a list containing the name and current value of each client info property supported by the driver.  The
      * value of a client info property may be null if the property has not been set and does not have a default value.
-     * <p/>
+     * 
      *
      * @return A <code>Properties</code> object that contains the name and current value of each of the client info
      *         properties supported by the driver.
-     *         <p/>
+     *         
      * @throws java.sql.SQLException if the database server returns an error when fetching the client info values from
      *                               the database or this method is called on a closed connection
-     *                               <p/>
+     *                               
      * @since 1.6
      */
     public Properties getClientInfo() throws SQLException {
@@ -1155,11 +1155,11 @@ public final class MySQLConnection  implements Connection {
 
     /**
      * Factory method for creating Array objects.
-     * <p/>
+     * 
      * <b>Note: </b>When <code>createArrayOf</code> is used to create an array object that maps to a primitive data
      * type, then it is implementation-defined whether the <code>Array</code> object is an array of that primitive data
      * type or an array of <code>Object</code>.
-     * <p/>
+     * 
      * <b>Note: </b>The JDBC driver is responsible for mapping the elements <code>Object</code> array to the default
      * JDBC SQL type defined in java.sql.Types for the given class of <code>Object</code>. The default mapping is
      * specified in Appendix B of the JDBC specification.  If the resulting JDBC type is not the appropriate type for
@@ -1203,7 +1203,7 @@ public final class MySQLConnection  implements Connection {
     /**
      * Returns an object that implements the given interface to allow access to non-standard methods, or standard
      * methods not exposed by the proxy.
-     * <p/>
+     * 
      * If the receiver implements the interface then the result is the receiver or a proxy for the receiver. If the
      * receiver is a wrapper and the wrapped object implements the interface then the result is the wrapped object or a
      * proxy for the wrapped object. Otherwise return the the result of calling <code>unwrap</code> recursively on the

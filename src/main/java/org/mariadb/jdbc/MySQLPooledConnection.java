@@ -48,7 +48,7 @@ public class MySQLPooledConnection implements  PooledConnection{
      * Closes the physical connection that this <code>PooledConnection</code>
      * object represents.  An application never calls this method directly;
      * it is called by the connection pool module, or manager.
-     * <p/>
+     * <br>
      * See the {@link javax.sql.PooledConnection interface description} for more
      * information.
      *
@@ -97,11 +97,11 @@ public class MySQLPooledConnection implements  PooledConnection{
      * wish to be notified when  <code>PreparedStatement</code>s created by the
      * connection are closed or are detected to be invalid may use this method
      * to register a <code>StatementEventListener</code> with this <code>PooledConnection</code> object.
-     * <p/>
+     * <br>
      *
      * @param listener an component which implements the <code>StatementEventListener</code>
      *                 interface that is to be registered with this <code>PooledConnection</code> object
-     *                 <p/>
+     *                 <br>
      * @since 1.6
      */
     public void addStatementEventListener(StatementEventListener listener) {
@@ -112,12 +112,12 @@ public class MySQLPooledConnection implements  PooledConnection{
      * Removes the specified <code>StatementEventListener</code> from the list of
      * components that will be notified when the driver detects that a
      * <code>PreparedStatement</code> has been closed or is invalid.
-     * <p/>
+     * <br>
      *
      * @param listener the component which implements the
      *                 <code>StatementEventListener</code> interface that was previously
      *                 registered with this <code>PooledConnection</code> object
-     *                 <p/>
+     *                 <br>
      * @since 1.6
      */
     public void removeStatementEventListener(StatementEventListener listener) {

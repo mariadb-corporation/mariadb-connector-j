@@ -183,8 +183,6 @@ public class MySQLParameterizedQuery implements ParameterizedQuery {
     /**
      * Returns a string representing the SQL of the query.
      * @return
-     * @throws IOException
-     * @throws QueryException
      */
 	public String toSQL() {
 		try {

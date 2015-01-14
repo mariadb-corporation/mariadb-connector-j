@@ -809,8 +809,6 @@ public class MySQLProtocol {
     /**
      * Closes socket and stream readers/writers
      * Attempts graceful shutdown.
-     * @throws org.mariadb.jdbc.internal.common.QueryException
-     *          if the socket or readers/writes cannot be closed
      */
     public void close() {
         try {
@@ -1077,7 +1075,7 @@ public class MySQLProtocol {
 
     /**
      * cancels the current query - clones the current protocol and executes a query using the new connection
-     * <p/>
+     * 
      * thread safe
      *
      * @throws QueryException
