@@ -17,13 +17,13 @@
         </license>
     </licenses>
    <scm>
-       <connection>scm:bazaar:http://bazaar.launchpad.net/+branch/mariadb-java-client</connection>
-       <url>http://bazaar.launchpad.net/+branch/mariadb-java-client</url>
-       <developerConnection>scm:bazaar:sftp://bazaar.launchpad.net/+branch/mariadb-java-client</developerConnection>
+       <connection>scm:git:git://github.com/MariaDB/mariadb-connector-j.git</connection>
+       <url>https://github.com/MariaDB/mariadb-connector-j</url>
+       <developerConnection>scm:git:git@github.com:MariaDB/mariadb-connector-j.git</developerConnection>
    </scm>
     <issueManagement>
-      <system>Launchpad</system>
-      <url>http://bugs.launchpad.net/mariadb-java-client/</url>
+      <system>JIRA</system>
+      <url>https://mariadb.atlassian.net/browse/CONJ</url>
     </issueManagement>
     <developers>
         <developer>
@@ -46,15 +46,18 @@
   <id>package-source</id>
   <activation><property><name>package-source</name></property></activation>
   <build><plugins><plugin>
-
          <groupId>org.codehaus.mojo</groupId>
          <artifactId>exec-maven-plugin</artifactId>
          <version>1.2</version>
          <configuration>
-            <executable>bzr</executable>
+            <executable>git</executable>
             <arguments>
-            <argument>export</argument>
+            <argument>archive</argument>
+            <argument>--format</argument>
+            <argument>tar.gz</argument>
+            <argument>--output</argument>
             <argument>${project.name}-${project.version}.tar.gz</argument>
+            <argument>master</argument>
             </arguments>
          </configuration>
   </plugin></plugins></build>
