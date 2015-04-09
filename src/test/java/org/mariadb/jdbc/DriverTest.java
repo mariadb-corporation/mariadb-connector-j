@@ -1133,8 +1133,9 @@ public class DriverTest extends BaseTest{
 
      @Test
     public void testError() throws SQLException {
-        if(!checkMaxAllowedPacket("testError"))
-            return;
+        // check that max_allowed_packet is big enough for the test
+    	Assume.assumeTrue(checkMaxAllowedPacket("testError"));
+            
         try {
             char arr[] = new char[16*1024*1024-1];
             Arrays.fill(arr,'a');
@@ -1317,7 +1318,7 @@ public class DriverTest extends BaseTest{
 
     @Test
     public void useSSL()  throws Exception {
-        org.junit.Assume.assumeTrue(haveSSL());
+        Assume.assumeTrue(haveSSL());
         setConnection("&useSSL=1&trustServerCertificate=1");
         connection.createStatement().execute("select 1");
 
@@ -1485,14 +1486,16 @@ public class DriverTest extends BaseTest{
             if(rs.getBoolean(1)) {
                 namedPipeName = rs.getString(2);
             } else {
-                System.out.println("skipping named pipe test");
-                return;
+                System.out.println("test 'namedpipe' skipped");
             }
         }  catch(SQLException e) {
             //named pipe not found,
-            System.out.println("skipping named pipe test");
-            return;
+            System.out.println("test 'namedpipe' skipped");
         }
+        
+        //skip test if no namedPipeName was obtained because then we do not use a socket connection
+        Assume.assumeTrue(namedPipeName != null);
+        
         setConnection("&pipe=" + namedPipeName);
         Statement stmt = connection.createStatement();
         ResultSet rs = stmt.executeQuery("SELECT 1");
