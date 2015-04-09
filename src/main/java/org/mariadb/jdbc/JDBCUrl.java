@@ -68,7 +68,7 @@ public class JDBCUrl {
     /*
     Parse ConnectorJ compatible urls
     jdbc:mysql://host:port/database
-
+	Example: jdbc:mysql://localhost:3306/test?user=root&password=passwd
      */
     private static JDBCUrl parseConnectorJUrl(String url) {
         if (!url.startsWith("jdbc:mysql://")) {
@@ -76,43 +76,38 @@ public class JDBCUrl {
         }
         
         url = url.substring(13);
+        
         String hostname;
         String database;
-        String user;
-        String password;
+        String user = "";
+        String password = "";
         String[] tokens = url.split("/");
-        hostname=tokens[0];
-        database=(tokens.length > 1)?tokens[1]:null;
+        
+        hostname = tokens[0];
+        database = (tokens.length > 1) ? tokens[1] : null;
+        
         if (database == null) {
         	return new JDBCUrl("", "",  database, HostAddress.parse(hostname));
         }
-        int start = tokens[1].indexOf("user=");
-        int end = tokens[1].indexOf("&", start);
-        if (start == -1) {
-        	user = "";
-        } else {
-        	if (end == -1) {
-        		user = tokens[1].substring(start + 5);
-        	} else {
-        		user = tokens[1].substring(start + 5, end);
+        
+        //check if there are parameters
+        if (database.indexOf('?') > -1)
+        {
+        	String[] halfs = database.split("\\?");
+        	
+        	database = halfs[0];
+        	
+        	String[] credentials = halfs[1].split("&");
+        	
+        	for (int i = 0; i < credentials.length; i++)
+        	{
+        		if (credentials[i].indexOf("user=") > -1)
+        			user = credentials[i].split("=")[1];
+        		else if (credentials[i].indexOf("password=") > -1)
+        			password = credentials[i].split("=")[1];
         	}
-        	database = database.replaceFirst("user=" + user, "");
         }
-        start = tokens[1].indexOf("password=");
-        end = tokens[1].indexOf("&", start);
-        if (start == -1) {
-        	password = "";
-        } else {
-        	if (end == -1) {
-        		password = tokens[1].substring(start + 9);
-        	} else {
-        		password = tokens[1].substring(start + 9, end);
-        	}
-        	database = database.replaceFirst("password=" + password, "");
-        }
-        if (database.lastIndexOf("?") == database.length()-1) {
-        	database = database.substring(0, database.length()-1);
-        }
+        
         return new JDBCUrl(user, password,  database, HostAddress.parse(hostname));
     }
 

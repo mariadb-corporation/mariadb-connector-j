@@ -1325,7 +1325,7 @@ public class DriverTest extends BaseTest{
     @Test
     // Bug in URL parser
     public void mdev3916() throws Exception {
-       setConnection("&password=");
+    	setConnection("&password=");
     }
 
     @Test 
