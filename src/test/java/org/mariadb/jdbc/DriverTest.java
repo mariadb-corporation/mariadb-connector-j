@@ -1,6 +1,7 @@
 package org.mariadb.jdbc;
 
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Test;
 import org.mariadb.jdbc.internal.common.packet.buffer.WriteBuffer;
 
@@ -1325,7 +1326,15 @@ public class DriverTest extends BaseTest{
     @Test
     // Bug in URL parser
     public void mdev3916() throws Exception {
-    	setConnection("&password=");
+    	try {
+    		setConnection("&password=");
+    	}
+    	catch (SQLException ex)
+    	{
+    		//SQLException is ok because we might get for example an access denied exception
+    		if (!(ex.getMessage().indexOf("Could not connect: Access denied") > -1))
+    			throw ex;
+    	}
     }
 
     @Test 
