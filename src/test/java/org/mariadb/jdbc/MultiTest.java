@@ -150,7 +150,9 @@ public class MultiTest extends BaseTest {
     */
    @Test
    public void rewriteBatchedStatementsInsertTest() throws SQLException  {
-	   connection = DriverManager.getConnection("jdbc:mysql:thin://localhost:3306/test?rewriteBatchedStatements=true&user=root");
+	   // set the rewrite batch statements parameter
+	   setConnection("&rewriteBatchedStatements=true");
+	   
        int cycles = 3000;
        PreparedStatement preparedStatement = prepareStatementBatch(cycles);
        int[] updateCounts = preparedStatement.executeBatch();
