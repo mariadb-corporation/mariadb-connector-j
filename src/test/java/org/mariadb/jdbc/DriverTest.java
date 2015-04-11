@@ -472,7 +472,7 @@ public class DriverTest extends BaseTest{
 
     @Test
     public void bigUpdateCountTest() throws SQLException {
-        Statement stmt = connection.createStatement();
+    	Statement stmt = connection.createStatement();
         stmt.execute("drop table if exists test_big_update");
         stmt.execute("create table test_big_update (id int primary key not null, updateme int)");
         for(int i=0;i<4000;i++) {
@@ -779,7 +779,6 @@ public class DriverTest extends BaseTest{
         connection.createStatement().execute(
                 "create table rewritetest2 (id int not null primary key, a varchar(10), b int) engine=innodb");
 
-        long startTime = System.currentTimeMillis();
         PreparedStatement ps = connection.prepareStatement("insert into rewritetest2 values (?,?,?) on duplicate key update a=values(a)");
         for(int i = 0;i<2;i++) {
             ps.setInt(1,0);
@@ -788,7 +787,7 @@ public class DriverTest extends BaseTest{
             ps.addBatch();
         }
         ps.executeBatch();
-        assertTrue(System.currentTimeMillis() - startTime < 10);
+
         ResultSet rs = connection.createStatement().executeQuery("select * from rewritetest2");
         int i = 0;
         while(rs.next()) {
@@ -1171,6 +1170,10 @@ public class DriverTest extends BaseTest{
     @Test
     public void NoBackslashEscapes() throws SQLException {
         requireMinimumVersion(5,0);
+        
+        // super privilege is needed for this test
+        Assume.assumeTrue(hasSuperPrivilege("NoBackslashEscapes"));
+        
         Statement st = connection.createStatement();
         ResultSet rs = st.executeQuery("select @@global.sql_mode");
         rs.next();
@@ -1205,6 +1208,10 @@ public class DriverTest extends BaseTest{
     @Test
     public void NoBackslashEscapes2() throws SQLException {
         requireMinimumVersion(5,0);
+        
+        // super privilege is needed for this test
+        Assume.assumeTrue(hasSuperPrivilege("NoBackslashEscapes2"));
+        
         Statement st = connection.createStatement();
         ResultSet rs = st.executeQuery("select @@global.sql_mode");
         rs.next();
@@ -1245,6 +1252,10 @@ public class DriverTest extends BaseTest{
     // Test if driver works with sql_mode= ANSI_QUOTES
     @Test
     public void AnsiQuotes() throws SQLException {
+    	
+    	// super privilege is needed for this test
+        Assume.assumeTrue(hasSuperPrivilege("AnsiQuotes"));
+    	
         Statement st = connection.createStatement();
         ResultSet rs = st.executeQuery("select @@global.sql_mode");
         rs.next();
@@ -1396,7 +1407,7 @@ public class DriverTest extends BaseTest{
         Statement st = connection.createStatement();
         
         /* 1. Test update statement */
-        st.execute("use test");
+        st.execute("use " + database);
         assertEquals(0,st.getUpdateCount());
 
         /* No more results */
@@ -1441,7 +1452,7 @@ public class DriverTest extends BaseTest{
             
             /* 4. Batch with a SELECT and non-SELECT */
             
-            st.execute("select 1; use test");
+            st.execute("select 1; use " + database);
             /* First result (select)*/
             assertEquals(-1,st.getUpdateCount());
             assertTrue(st.getResultSet() != null);
@@ -1529,6 +1540,9 @@ public class DriverTest extends BaseTest{
     @Test
     public void localSocket() throws  Exception {
         requireMinimumVersion(5,1);
+        
+        Assume.assumeTrue(isLocalConnection("localSocket"));
+        
         Statement st = connection.createStatement();
        	ResultSet rs = st.executeQuery("select @@version_compile_os,@@socket");
        	if (!rs.next())

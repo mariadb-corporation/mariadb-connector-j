@@ -6,6 +6,8 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.sql.*;
 import java.util.Map;
 import java.util.Properties;
@@ -148,6 +150,51 @@ public class BaseTest {
           return false;
         }
         return true;
+    }
+    
+    //does the user have super privileges or not?
+    boolean hasSuperPrivilege(String testName) throws SQLException
+    {
+        boolean superPrivilege = false;
+        Statement st = connection.createStatement();
+
+        // first test for specific user and host combination
+        ResultSet rs = st.executeQuery("SELECT Super_Priv FROM mysql.user WHERE user = '" + username + "' AND host = '" + hostname + "'");
+        if (rs.next())
+            superPrivilege = (rs.getString(1) == "Y" ? true : false);
+        else
+            {
+                // then check for user on whatever (%) host
+                rs = st.executeQuery("SELECT Super_Priv FROM mysql.user WHERE user = '" + username + "' AND host = '%'");
+                if (rs.next())
+                    superPrivilege = (rs.getString(1) == "Y" ? true : false);
+            }
+
+        rs.close();
+
+        if (!superPrivilege)
+            System.out.println("test '" + testName + "' skipped because user '" + username + "' doesn't have SUPER privileges");
+
+        return superPrivilege;
+    }
+    
+    //is the connection local?
+    boolean isLocalConnection(String testName)
+    {
+    	boolean isLocal = false;
+    	
+    	try {
+			if (InetAddress.getByName(hostname).isAnyLocalAddress() || InetAddress.getByName(hostname).isLoopbackAddress())
+				isLocal = true;
+		} catch (UnknownHostException e) {
+			// for some reason it wasn't possible to parse the hostname
+			// do nothing
+		}
+    	
+    	if (isLocal == false)
+    		System.out.println("test '" + testName + "' skipped because connection is not local");
+    	
+    	return isLocal;
     }
 
     boolean haveSSL(){
