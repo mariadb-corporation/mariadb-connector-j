@@ -29,11 +29,15 @@ public class BaseTest {
     public static void beforeClassBaseTest() {
     	String url = System.getProperty("dbUrl", mDefUrl);
     	JDBCUrl jdbcUrl = JDBCUrl.parse(url);
+    	
     	hostname = jdbcUrl.getHostname();
     	port = jdbcUrl.getPort();
     	database = jdbcUrl.getDatabase();
     	username = jdbcUrl.getUsername();
     	password = jdbcUrl.getPassword();
+    	
+    	logInfo("Properties parsed from JDBC URL - hostname: " + hostname + ", port: " + port + ", database: " + database + ", username: " + username + ", password: " + password);
+    	
     	if (database != null && "".equals(username)) {
     		String[] tokens = database.contains("?") ? database.split("\\?") : null;
     		if (tokens != null) {
@@ -109,7 +113,7 @@ public class BaseTest {
     	openConnection(connU, info);
     }
     protected void setConnection(Properties info) throws SQLException {
-    	openConnection(connU, info);
+    	openConnection(connURI, info);
     }
     protected void setConnection(String parameters) throws SQLException {
     	openConnection(connURI + parameters, null);
@@ -215,5 +219,11 @@ public class BaseTest {
         org.junit.Assume.assumeTrue(dbMajor > major ||
                 (dbMajor == major && dbMinor >= minor));
 
+    }
+    
+    // common function for logging information 
+    static void logInfo(String message)
+    {
+    	System.out.println(message);
     }
 }

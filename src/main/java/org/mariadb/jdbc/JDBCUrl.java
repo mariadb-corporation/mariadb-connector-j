@@ -93,11 +93,9 @@ public class JDBCUrl {
         //check if there are parameters
         if (database.indexOf('?') > -1)
         {
-        	String[] halfs = database.split("\\?");
+        	String[] credentials = database.substring(database.indexOf('?'), database.length()).split("&");
         	
-        	database = halfs[0];
-        	
-        	String[] credentials = halfs[1].split("&");
+        	database = database.substring(0, database.indexOf('?'));
         	
         	for (int i = 0; i < credentials.length; i++)
         	{

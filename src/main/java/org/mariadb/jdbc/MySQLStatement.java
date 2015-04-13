@@ -1134,13 +1134,28 @@ public class MySQLStatement implements Statement {
      */
     protected int getInsertIncipit(String sql) {
     	String sqlUpper = sql.toUpperCase();
-    	if (! sqlUpper.startsWith("INSERT")
-    			|| sqlUpper.indexOf(";") != -1) {
+    	
+    	if (! sqlUpper.startsWith("INSERT"))
     		return -1;
-    	}
+    	
     	int idx = sqlUpper.indexOf(" VALUE");
-    	int index = sqlUpper.indexOf("(", idx);
-    	return index;
+    	int startBracket = sqlUpper.indexOf("(", idx);
+    	int endBracket = sqlUpper.indexOf(")", startBracket);
+    	
+    	// Check for semicolons. Allow them inside the VALUES() brackets, otherwise return -1
+    	// there can be multiple, so let's loop through them
+    	
+    	int semicolonPos = sqlUpper.indexOf(';');
+    	
+    	while (semicolonPos > -1)
+    	{
+    		if (semicolonPos < startBracket || semicolonPos > endBracket)
+    			return -1;
+    		
+    		semicolonPos = sqlUpper.indexOf(';', semicolonPos + 1);
+    	}
+    	
+    	return startBracket;
     }
     
     /**
