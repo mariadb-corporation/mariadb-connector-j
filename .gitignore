@@ -4,3 +4,5 @@
 
 # Keep empty directories:
 # Keep empty directories: >> .gitignore/.git*
+/bin/
+/target/

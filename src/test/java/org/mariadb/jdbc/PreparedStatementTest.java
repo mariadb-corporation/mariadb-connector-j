@@ -30,7 +30,8 @@ public class PreparedStatementTest extends BaseTest {
 	 */
 	@Test
 	public void reexecuteStatementTest() throws SQLException {
-		connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/test?user=root&allowMultiQueries=true");
+		// set the allowMultiQueries parameter
+		setConnection("&allowMultiQueries=true");
 		PreparedStatement stmt = connection.prepareStatement("SELECT 1");
 		stmt.setFetchSize(Integer.MIN_VALUE);
 		ResultSet rs = stmt.executeQuery();
