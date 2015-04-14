@@ -60,7 +60,7 @@ import java.util.*;
 import java.util.concurrent.Executor;
 
 
-public final class MySQLConnection  implements Connection {
+public final class MySQLConnection implements Connection {
     /**
      * the protocol to communicate with.
      */
@@ -88,7 +88,7 @@ public final class MySQLConnection  implements Connection {
      *
      * @param protocol     the protocol to use.
      */
-    private MySQLConnection( MySQLProtocol protocol) {
+    private MySQLConnection(MySQLProtocol protocol) {
         this.protocol = protocol;
         clientInfoProperties = protocol.getInfo();
     }

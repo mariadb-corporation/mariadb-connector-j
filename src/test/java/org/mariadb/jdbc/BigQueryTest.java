@@ -1,6 +1,7 @@
 package org.mariadb.jdbc;
 
 
+import org.junit.Assume;
 import org.junit.Test;
 
 import java.sql.PreparedStatement;
@@ -16,8 +17,7 @@ public class BigQueryTest extends BaseTest{
     @Test
     public void sendBigQuery2() throws SQLException {
 
-        if(!checkMaxAllowedPacket("sendBigQuery2"))
-            return;
+        Assume.assumeTrue(checkMaxAllowedPacket("sendBigQuery2"));
 
         Statement stmt = connection.createStatement();
         stmt.execute("drop table  if exists bigblob");
@@ -46,8 +46,7 @@ public class BigQueryTest extends BaseTest{
     @Test
     public void sendBigPreparedQuery() throws SQLException {
 
-        if(!checkMaxAllowedPacket("sendBigPreparedQuery"))
-            return;
+    	Assume.assumeTrue(checkMaxAllowedPacket("sendBigPreparedQuery"));
 
         Statement stmt = connection.createStatement();
         stmt.execute("drop table  if exists bigblob2");

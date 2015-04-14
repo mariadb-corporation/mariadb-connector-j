@@ -1,9 +1,11 @@
 package org.mariadb.jdbc;
 
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Test;
 
 import javax.sql.rowset.CachedRowSet;
+
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -216,9 +218,8 @@ public class MySQLDriverTest extends BaseTest {
     @Test
     // Test query with length around max  packet length. Requires max_allowed_packet to be >16M
     public void largeQueryWrite() throws SQLException {
-        if (!checkMaxAllowedPacket("largeQueryWrite")) {
-            return;
-        }
+        Assume.assumeTrue(checkMaxAllowedPacket("largeQueryWrite"));
+        
         char[] str= new char[16*1024*1024];
         Arrays.fill(str, 'a');
         String prefix= "select length('";
@@ -239,8 +240,7 @@ public class MySQLDriverTest extends BaseTest {
 
     @Test
     public void largePreparedQueryWrite() throws SQLException {
-        if (!checkMaxAllowedPacket("largePreparedQueryWrite"))
-            return;
+        Assume.assumeTrue(checkMaxAllowedPacket("largePreparedQueryWrite"));
 
         char[] str= new char[16*1024*1024];
         Arrays.fill(str, 'a');
@@ -272,8 +272,8 @@ public class MySQLDriverTest extends BaseTest {
     }
     @Test
     public void largePreparedQueryWriteCompress() throws SQLException {
-        if(!checkMaxAllowedPacket("largePreparedQueryCompress"))
-            return;
+        Assume.assumeTrue(checkMaxAllowedPacket("largePreparedQueryCompress"));
+        
         setConnection("&useCompression=true");
         try {
             char[] str= new char[16*1024*1024];

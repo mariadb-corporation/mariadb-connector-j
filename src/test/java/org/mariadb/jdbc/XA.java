@@ -27,9 +27,12 @@ public class XA extends BaseTest {
         requireMinimumVersion(5,0);
     }
     public XA()  {
-        dataSource = new MySQLDataSource();
-        dataSource.setUser(username);
+    	dataSource = new MySQLDataSource();
+        dataSource.setServerName(hostname);
+        dataSource.setPortNumber(port);
         dataSource.setDatabaseName(database);
+        dataSource.setUser(username);
+        dataSource.setPassword(password);
     }
     Xid newXid() {
         return new MySQLXid(1, UUID.randomUUID().toString().getBytes(),UUID.randomUUID().toString().getBytes());
@@ -44,12 +47,7 @@ public class XA extends BaseTest {
      * @throws Exception
      */
     void test2PC(boolean doCommit) throws Exception{
-
-
-        MySQLDataSource dataSource = new MySQLDataSource();
-        dataSource.setUser("root");
-        dataSource.setDatabaseName("test");
-
+    	
         connection.createStatement().execute("DROP TABLE IF EXISTS xatable");
         connection.createStatement().execute("CREATE TABLE xatable (i int) ENGINE=InnoDB");
 
