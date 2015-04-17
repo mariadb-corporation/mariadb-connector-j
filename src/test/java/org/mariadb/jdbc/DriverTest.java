@@ -1347,7 +1347,6 @@ public class DriverTest extends BaseTest{
     		if (!(ex.getMessage().indexOf("Could not connect: Access denied") > -1))
     			throw ex;
     	}
-       setConnection("&password=");
     }
 
     @Test 

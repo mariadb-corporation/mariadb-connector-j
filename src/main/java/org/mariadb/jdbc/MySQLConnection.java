@@ -60,7 +60,7 @@ import java.util.*;
 import java.util.concurrent.Executor;
 
 
-public final class MySQLConnection  implements Connection {
+public final class MySQLConnection implements Connection {
     /**
      * the protocol to communicate with.
      */
@@ -88,7 +88,7 @@ public final class MySQLConnection  implements Connection {
      *
      * @param protocol     the protocol to use.
      */
-    private MySQLConnection( MySQLProtocol protocol) {
+    private MySQLConnection(MySQLProtocol protocol) {
         this.protocol = protocol;
         clientInfoProperties = protocol.getInfo();
     }
@@ -106,7 +106,8 @@ public final class MySQLConnection  implements Connection {
         }
         return tz;
     }
-    public static MySQLConnection newConnection(MySQLProtocol protocol) throws SQLException {
+    
+	public static MySQLConnection newConnection(MySQLProtocol protocol) throws SQLException {
         MySQLConnection connection = new MySQLConnection(protocol);
 
         Properties info = protocol.getInfo();
@@ -138,7 +139,6 @@ public final class MySQLConnection  implements Connection {
         }
         return connection;
     }
-
 
     int getAutoIncrementIncrement() {
         if(autoIncrementIncrement == 0) {

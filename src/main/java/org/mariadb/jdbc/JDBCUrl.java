@@ -50,120 +50,115 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc;
 
 public class JDBCUrl {
-	private String username;
-	private String password;
-	private String database;
-	private HostAddress addresses[];
+<<<<<<< HEAD
+    private String username;
+    private String password;
+    private String database;
+    private HostAddress addresses[];
 
-	private JDBCUrl(String username, String password, String database,
-			HostAddress addresses[]) {
-		this.username = username;
-		this.password = password;
-		this.database = database;
-		this.addresses = addresses;
-	}
 
-	/*
-	 * 
-	 * Parse ConnectorJ compatible urls
-	 * 
-	 * jdbc:mysql://host:port/database
-	 * 
-	 * Example: jdbc:mysql://localhost:3306/test?user=root&password=passwd
-	 */
+    private JDBCUrl( String username, String password, String database, HostAddress addresses[]) {
+        this.username = username;
+        this.password = password;
+        this.database = database;
+        this.addresses = addresses;
+    }
 
-	private static JDBCUrl parseConnectorJUrl(String url) {
-		if (!url.startsWith("jdbc:mysql://")) {
-			return null;
-		}
+    /*
+    Parse ConnectorJ compatible urls
+    jdbc:mysql://host:port/database
+	Example: jdbc:mysql://localhost:3306/test?user=root&password=passwd
+     */
+    private static JDBCUrl parseConnectorJUrl(String url) {
+        if (!url.startsWith("jdbc:mysql://")) {
+            return null;
+        }
+        
+        url = url.substring(13);
+        
+        String hostname;
+        String database;
+        String user = "";
+        String password = "";
+        String[] tokens = url.split("/");
+        
+        hostname = tokens[0];
+        database = (tokens.length > 1) ? tokens[1] : null;
+        
+        if (database == null) {
+        	return new JDBCUrl("", "",  database, HostAddress.parse(hostname));
+        }
+        
+        //check if there are parameters
+        if (database.indexOf('?') > -1)
+        {
+        	String[] credentials = database.substring(database.indexOf('?') + 1, database.length()).split("&");
+        	
+        	database = database.substring(0, database.indexOf('?'));
+        	
+        	for (int i = 0; i < credentials.length; i++)
+        	{
+        		if (credentials[i].startsWith("user="))
+        			user=credentials[i].substring(5);
+        		else if (credentials[i].startsWith("password="))
+        			password = credentials[i].substring(9);
+        	}
+        }
+        
+        return new JDBCUrl(user, password,  database, HostAddress.parse(hostname));
+    }
 
-		url = url.substring(13);
+    static boolean acceptsURL(String url) {
+    	return (url != null) &&
+    			(url.startsWith("jdbc:mariadb://") || url.startsWith("jdbc:mysql://")) &&
+    			!(url.startsWith("jdbc:mysql://address="));
+    	
+    }
+    
 
-		String hostname;
-		String database;
-		String user = "";
-		String password = "";
-		String[] tokens = url.split("/");
+    public static JDBCUrl parse(final String url) {
+        if(url.startsWith("jdbc:mysql://")) {
+            return parseConnectorJUrl(url);
+        }
+        String[] arr = new String[] {"jdbc:mysql:thin://","jdbc:mariadb://"};
+        for (String prefix : arr) {
+        	if (url.startsWith(prefix)) {
+        		return parseConnectorJUrl("jdbc:mysql://" + url.substring(prefix.length()));
+        	}
+        }
+        return null;
+    }
+    public String getUsername() {
+        return username;
+    }
 
-		hostname = tokens[0];
-		database = (tokens.length > 1) ? tokens[1] : null;
+    public String getPassword() {
+        return password;
+    }
 
-		if (database == null) {
-			return new JDBCUrl("", "", database, HostAddress.parse(hostname));
-		}
+    public String getHostname() {
+        return addresses[0].host;
+    }
 
-		// check if there are parameters
-		if (database.indexOf('?') > -1)
-		{
-			String[] credentials = database.substring(database.indexOf('?'), database.length()).split("&");
+    public int getPort() {
+        return addresses[0].port;
+    }
 
-			database = database.substring(0, database.indexOf('?'));
-			
-			for (int i = 0; i < credentials.length; i++)
-			{
-				if (credentials[i].indexOf("user=") > -1)
-					user = credentials[i].split("=")[1];
-				else if (credentials[i].indexOf("password=") > -1)
-					password = credentials[i].split("=")[1];
-			}
-		}
+    public String getDatabase() {
+        return database;
+    }
 
-		return new JDBCUrl(user, password, database, HostAddress.parse(hostname));
-	}
 
-	static boolean acceptsURL(String url) {
-		return (url != null)
-				&& (url.startsWith("jdbc:mariadb://") || url
-						.startsWith("jdbc:mysql://"))
-				&& !(url.startsWith("jdbc:mysql://address="));
+    public HostAddress[] getHostAddresses() {
+	return this.addresses;
+    }
 
-	}
-
-	public static JDBCUrl parse(final String url) {
-		if (url.startsWith("jdbc:mysql://")) {
-			return parseConnectorJUrl(url);
-		}
-		String[] arr = new String[] { "jdbc:mysql:thin://", "jdbc:mariadb://" };
-		for (String prefix : arr) {
-			if (url.startsWith(prefix)) {
-				return parseConnectorJUrl("jdbc:mysql://"
-						+ url.substring(prefix.length()));
-			}
-		}
-		return null;
-	}
-
-	public String getUsername() {
-		return username;
-	}
-
-	public String getPassword() {
-		return password;
-	}
-
-	public String getHostname() {
-		return addresses[0].host;
-	}
-
-	public int getPort() {
-		return addresses[0].port;
-	}
-
-	public String getDatabase() {
-		return database;
-	}
-
-	public HostAddress[] getHostAddresses() {
-		return this.addresses;
-	}
-
-	public String toString() {
-		String s = "jdbc:mysql://";
-		if (addresses != null)
-			s += HostAddress.toString(addresses);
-		if (database != null)
-			s += "/" + database;
-		return s;
-	}
-
+    public String toString() {
+        String s = "jdbc:mysql://";
+        if (addresses != null)
+            s += HostAddress.toString(addresses);
+        if (database != null)
+            s += "/" + database;
+       return s;
+    }
 }
