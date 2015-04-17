@@ -50,7 +50,6 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc;
 
 public class JDBCUrl {
-<<<<<<< HEAD
     private String username;
     private String password;
     private String database;
