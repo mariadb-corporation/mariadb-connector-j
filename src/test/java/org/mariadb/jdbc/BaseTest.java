@@ -6,6 +6,8 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.sql.*;
 import java.util.Map;
 import java.util.Properties;
@@ -27,11 +29,15 @@ public class BaseTest {
     public static void beforeClassBaseTest() {
     	String url = System.getProperty("dbUrl", mDefUrl);
     	JDBCUrl jdbcUrl = JDBCUrl.parse(url);
+    	
     	hostname = jdbcUrl.getHostname();
     	port = jdbcUrl.getPort();
     	database = jdbcUrl.getDatabase();
     	username = jdbcUrl.getUsername();
     	password = jdbcUrl.getPassword();
+    	
+    	logInfo("Properties parsed from JDBC URL - hostname: " + hostname + ", port: " + port + ", database: " + database + ", username: " + username + ", password: " + password);
+    	
     	if (database != null && "".equals(username)) {
     		String[] tokens = database.contains("?") ? database.split("\\?") : null;
     		if (tokens != null) {
@@ -107,7 +113,7 @@ public class BaseTest {
     	openConnection(connU, info);
     }
     protected void setConnection(Properties info) throws SQLException {
-    	openConnection(connU, info);
+    	openConnection(connURI, info);
     }
     protected void setConnection(String parameters) throws SQLException {
     	openConnection(connURI + parameters, null);
@@ -149,6 +155,51 @@ public class BaseTest {
         }
         return true;
     }
+    
+    //does the user have super privileges or not?
+    boolean hasSuperPrivilege(String testName) throws SQLException
+    {
+        boolean superPrivilege = false;
+        Statement st = connection.createStatement();
+
+        // first test for specific user and host combination
+        ResultSet rs = st.executeQuery("SELECT Super_Priv FROM mysql.user WHERE user = '" + username + "' AND host = '" + hostname + "'");
+        if (rs.next())
+            superPrivilege = (rs.getString(1) == "Y" ? true : false);
+        else
+            {
+                // then check for user on whatever (%) host
+                rs = st.executeQuery("SELECT Super_Priv FROM mysql.user WHERE user = '" + username + "' AND host = '%'");
+                if (rs.next())
+                    superPrivilege = (rs.getString(1) == "Y" ? true : false);
+            }
+
+        rs.close();
+
+        if (!superPrivilege)
+            System.out.println("test '" + testName + "' skipped because user '" + username + "' doesn't have SUPER privileges");
+
+        return superPrivilege;
+    }
+    
+    //is the connection local?
+    boolean isLocalConnection(String testName)
+    {
+    	boolean isLocal = false;
+    	
+    	try {
+			if (InetAddress.getByName(hostname).isAnyLocalAddress() || InetAddress.getByName(hostname).isLoopbackAddress())
+				isLocal = true;
+		} catch (UnknownHostException e) {
+			// for some reason it wasn't possible to parse the hostname
+			// do nothing
+		}
+    	
+    	if (isLocal == false)
+    		System.out.println("test '" + testName + "' skipped because connection is not local");
+    	
+    	return isLocal;
+    }
 
     boolean haveSSL(){
             try {
@@ -168,5 +219,11 @@ public class BaseTest {
         org.junit.Assume.assumeTrue(dbMajor > major ||
                 (dbMajor == major && dbMinor >= minor));
 
+    }
+    
+    // common function for logging information 
+    static void logInfo(String message)
+    {
+    	System.out.println(message);
     }
 }
