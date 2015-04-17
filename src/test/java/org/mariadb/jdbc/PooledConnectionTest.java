@@ -42,11 +42,11 @@ class MyEventListener implements ConnectionEventListener,StatementEventListener
     }
 }
 
-public class PooledConnectionTest  {
+public class PooledConnectionTest extends BaseTest  {
    @Test
    public void testPooledConnectionClosed() throws Exception  {
-       ConnectionPoolDataSource ds = new MySQLDataSource("localhost", 3306, "test");
-       PooledConnection pc = ds.getPooledConnection("root","");
+       ConnectionPoolDataSource ds = new MySQLDataSource(hostname, port, database);
+       PooledConnection pc = ds.getPooledConnection(username, password);
        Connection c= pc.getConnection();
        MyEventListener listener = new MyEventListener();
        pc.addConnectionEventListener(listener);
@@ -68,8 +68,8 @@ public class PooledConnectionTest  {
 
    @Test
    public void testPooledConnectionException() throws Exception {
-       ConnectionPoolDataSource ds = new MySQLDataSource("localhost", 3306, "test");
-       PooledConnection pc = ds.getPooledConnection("root","");
+	   ConnectionPoolDataSource ds = new MySQLDataSource(hostname, port, database);
+       PooledConnection pc = ds.getPooledConnection(username, password);
        MyEventListener listener = new MyEventListener();
        pc.addConnectionEventListener(listener);
        MySQLConnection c = (MySQLConnection)pc.getConnection();
@@ -100,8 +100,8 @@ public class PooledConnectionTest  {
 
     public void testPooledConnectionStatementError() throws Exception
     {
-       ConnectionPoolDataSource ds = new MySQLDataSource("localhost", 3306, "test");
-       PooledConnection pc = ds.getPooledConnection("root","");
+       ConnectionPoolDataSource ds = new MySQLDataSource(hostname, port, database);
+       PooledConnection pc = ds.getPooledConnection(username, password);
        MyEventListener listener = new MyEventListener();
        pc.addStatementEventListener(listener);
        MySQLConnection c = (MySQLConnection)pc.getConnection();
