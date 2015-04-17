@@ -108,8 +108,7 @@ public class JDBCUrl {
 			}
 		}
 
-		return new JDBCUrl(user, password, database,
-				HostAddress.parse(hostname));
+		return new JDBCUrl(user, password, database, HostAddress.parse(hostname));
 	}
 
 	static boolean acceptsURL(String url) {

@@ -5,7 +5,9 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.sql.*;
+import java.util.Properties;
 
+import junit.framework.Assert;
 import static org.junit.Assert.*;
 
 
@@ -24,10 +26,13 @@ public class MultiTest extends BaseTest {
         Statement st = connection.createStatement();
         st.executeUpdate("drop table if exists t1");
         st.executeUpdate("drop table if exists t2");
-        st.executeUpdate("create table t2(id int, test varchar(100))");
+        st.executeUpdate("drop table if exists t3");
         st.executeUpdate("create table t1(id int, test varchar(100))");
+        st.executeUpdate("create table t2(id int, test varchar(100))");
+        st.executeUpdate("create table t3(message text)");
         st.execute("insert into t1 values(1,'a'),(2,'a')");
         st.execute("insert into t2 values(1,'a'),(2,'a')");
+        st.execute("insert into t3 values('hello')");
     }
 
     @AfterClass
@@ -36,7 +41,7 @@ public class MultiTest extends BaseTest {
             Statement st = connection.createStatement();
             st.executeUpdate("drop table if exists t1");
             st.executeUpdate("drop table if exists t2");
-
+            st.executeUpdate("drop table if exists t3");
         } catch (Exception e) {
             // eat
         }
@@ -150,7 +155,11 @@ public class MultiTest extends BaseTest {
     */
    @Test
    public void rewriteBatchedStatementsInsertTest() throws SQLException  {
-	   connection = DriverManager.getConnection("jdbc:mysql:thin://localhost:3306/test?rewriteBatchedStatements=true&user=root");
+	   // set the rewrite batch statements parameter
+	   Properties props = new Properties();
+	   props.setProperty("rewriteBatchedStatements", "true");
+	   connection.setClientInfo(props);
+	   
        int cycles = 3000;
        PreparedStatement preparedStatement = prepareStatementBatch(cycles);
        int[] updateCounts = preparedStatement.executeBatch();
@@ -174,6 +183,54 @@ public class MultiTest extends BaseTest {
        assertEquals(cycles, totalUpdates);
    }
    
+   /**
+    * CONJ-142: Using a semicolon in a string with "rewriteBatchedStatements=true" fails
+    * @throws SQLException
+    */
+   @Test
+   public void rewriteBatchedStatementsSemicolon() throws SQLException  {
+	   // set the rewrite batch statements parameter
+	   Properties props = new Properties();
+	   props.setProperty("rewriteBatchedStatements", "true");
+	   setConnection(props);
+       
+	   connection.createStatement().execute("TRUNCATE t3");
+   
+       PreparedStatement sqlInsert = connection.prepareStatement("INSERT INTO t3 (message) VALUES (?)");
+       sqlInsert.setString(1, "aa");
+       sqlInsert.addBatch();
+       sqlInsert.setString(1, "b;b");
+       sqlInsert.addBatch();
+       sqlInsert.setString(1, ";ccccccc");
+       sqlInsert.addBatch();
+       sqlInsert.setString(1, "ddddddddddddddd;");
+       sqlInsert.addBatch();
+       sqlInsert.setString(1, ";eeeeeee;;eeeeeeeeee;eeeeeeeeee;");
+       sqlInsert.addBatch();
+       int[] updateCounts = sqlInsert.executeBatch();
+       
+       // rewrite should be ok, so the above should be executed in 1 command updating 5 rows
+       Assert.assertEquals(1, updateCounts.length);
+       Assert.assertEquals(5, updateCounts[0]);
+       
+       connection.commit();
+       
+       // Test for multiple statements which isn't allowed. rewrite shouldn't work
+       sqlInsert = connection.prepareStatement("INSERT INTO t3 (message) VALUES (?); INSERT INTO t3 (message) VALUES ('multiple')");
+       sqlInsert.setString(1, "aa");
+       sqlInsert.addBatch();
+       sqlInsert.setString(1, "b;b");
+       sqlInsert.addBatch();
+       updateCounts = sqlInsert.executeBatch();
+
+       // rewrite should NOT be possible. Therefore there should be 2 commands updating 1 row each.
+       Assert.assertEquals(2, updateCounts.length);
+       Assert.assertEquals(1, updateCounts[0]);
+       Assert.assertEquals(1, updateCounts[1]);
+       
+       connection.commit();
+   }
+   
    private PreparedStatement prepareStatementBatch(int size) throws SQLException {
 	   PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO t1 VALUES (?, ?)");
        for (int i = 0; i < size; i++) {
@@ -190,6 +247,11 @@ public class MultiTest extends BaseTest {
     */
    @Test
    public void rewriteBatchedStatementsUpdateTest() throws SQLException  {
+	   // set the rewrite batch statements parameter
+	   Properties props = new Properties();
+	   props.setProperty("rewriteBatchedStatements", "true");
+	   connection.setClientInfo(props);
+	   
 	   connection.createStatement().execute("TRUNCATE t1");
        int cycles = 1000;
 	   prepareStatementBatch(cycles).executeBatch();  // populate the table
