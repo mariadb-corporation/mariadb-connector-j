@@ -64,10 +64,12 @@ public class MySQLResultSetMetaData implements ResultSetMetaData {
 
     private MySQLColumnInformation[] fieldPackets;
     private int datatypeMappingflags;
+    private boolean returnTableAlias;
 
-    public MySQLResultSetMetaData(MySQLColumnInformation[] fieldPackets, int datatypeMappingFlags) {
+    public MySQLResultSetMetaData(MySQLColumnInformation[] fieldPackets, int datatypeMappingFlags, boolean returnTableAlias) {
         this.fieldPackets = fieldPackets;
         this.datatypeMappingflags = datatypeMappingFlags;
+        this.returnTableAlias = returnTableAlias;
     }
 
     /**
@@ -235,7 +237,10 @@ public class MySQLResultSetMetaData implements ResultSetMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public String getTableName(final int column) throws SQLException {
-    	return getColumnInformation(column).getTable();
+    	if (returnTableAlias == true)
+    		return getColumnInformation(column).getTable();
+    	else
+    		return getColumnInformation(column).getOriginalTable();
     }
 
 

@@ -406,7 +406,13 @@ public class MySQLResultSet implements ResultSet {
      * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed result set
      */
     public ResultSetMetaData getMetaData() throws SQLException {
-        return new MySQLResultSetMetaData(queryResult.getColumnInformation(), protocol.datatypeMappingFlags);
+    	boolean returnTableAlias = false;
+    	
+    	if (protocol.getInfo().getProperty("useOldAliasMetadataBehavior") != null
+				&& "true".equalsIgnoreCase(protocol.getInfo().getProperty("useOldAliasMetadataBehavior")))
+    		returnTableAlias = true;
+    	
+        return new MySQLResultSetMetaData(queryResult.getColumnInformation(), protocol.datatypeMappingFlags, returnTableAlias);
     }
 
     /**

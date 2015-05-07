@@ -106,7 +106,8 @@ public final class MySQLConnection implements Connection {
         }
         return tz;
     }
-    public static MySQLConnection newConnection(MySQLProtocol protocol) throws SQLException {
+    
+	public static MySQLConnection newConnection(MySQLProtocol protocol) throws SQLException {
         MySQLConnection connection = new MySQLConnection(protocol);
 
         Properties info = protocol.getInfo();
@@ -138,7 +139,6 @@ public final class MySQLConnection implements Connection {
         }
         return connection;
     }
-
 
     int getAutoIncrementIncrement() {
         if(autoIncrementIncrement == 0) {

@@ -45,11 +45,9 @@ PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY
 WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
 OF SUCH DAMAGE.
-*/
+ */
 
 package org.mariadb.jdbc;
-
-
 
 public class JDBCUrl {
     private String username;
@@ -93,16 +91,16 @@ public class JDBCUrl {
         //check if there are parameters
         if (database.indexOf('?') > -1)
         {
-        	String[] credentials = database.substring(database.indexOf('?'), database.length()).split("&");
+        	String[] credentials = database.substring(database.indexOf('?') + 1, database.length()).split("&");
         	
         	database = database.substring(0, database.indexOf('?'));
         	
         	for (int i = 0; i < credentials.length; i++)
         	{
-        		if (credentials[i].indexOf("user=") > -1)
-        			user = credentials[i].split("=")[1];
-        		else if (credentials[i].indexOf("password=") > -1)
-        			password = credentials[i].split("=")[1];
+        		if (credentials[i].startsWith("user="))
+        			user=credentials[i].substring(5);
+        		else if (credentials[i].startsWith("password="))
+        			password = credentials[i].substring(9);
         	}
         }
         
@@ -162,5 +160,4 @@ public class JDBCUrl {
             s += "/" + database;
        return s;
     }
-
 }
