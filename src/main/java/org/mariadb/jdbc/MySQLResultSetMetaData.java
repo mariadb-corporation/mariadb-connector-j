@@ -235,7 +235,7 @@ public class MySQLResultSetMetaData implements ResultSetMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public String getTableName(final int column) throws SQLException {
-        return getColumnInformation(column).getTable();
+    	return getColumnInformation(column).getTable();
     }
 
 
