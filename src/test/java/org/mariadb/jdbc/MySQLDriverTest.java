@@ -1,5 +1,6 @@
 package org.mariadb.jdbc;
 
+import org.junit.BeforeClass;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Test;
@@ -22,16 +23,24 @@ import static org.junit.Assert.assertFalse;
 
 
 public class MySQLDriverTest extends BaseTest {
-    
+    protected static final String defHost = "localhost";
+    protected static String connectFromHost;
+
     public MySQLDriverTest() throws SQLException {
         super();
     }
+
+    @BeforeClass
+    public static void beforeClassMySQLDriverTest() {
+        connectFromHost = System.getProperty("testConnectFromHost", defHost);
+    }
+
     @Test
     public void testAuthconnection() throws SQLException {
         requireMinimumVersion(5,0);
         Statement st = connection.createStatement();
 
-        st.execute("grant all privileges on *.* to 'test'@'localhost' identified by 'test'");
+        st.execute("grant all privileges on *.* to 'test'@'" + connectFromHost + "' identified by 'test'");
         Connection conn = null;
         Statement stmt = null;
         ResultSet rs = null;
@@ -46,7 +55,7 @@ public class MySQLDriverTest extends BaseTest {
                 stmt.close();
             if (conn != null)
                 conn.close();
-            st.execute("drop user 'test'@'localhost'");
+            st.execute("drop user 'test'@'" + connectFromHost + "'");
             st.executeUpdate("drop table if exists test_authconnection");
             st.close();
         }
@@ -58,7 +67,7 @@ public class MySQLDriverTest extends BaseTest {
         props.setProperty("user","test");
         props.setProperty("password","test");
         Statement st = connection.createStatement();
-        st.execute("grant all privileges on *.* to 'test'@'localhost' identified by 'test'");
+        st.execute("grant all privileges on *.* to 'test'@'" + connectFromHost + "' identified by 'test'");
         Connection conn = openNewConnection(connU, props);
         conn.close();
     }

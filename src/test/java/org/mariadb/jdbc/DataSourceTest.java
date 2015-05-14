@@ -1,5 +1,6 @@
 package org.mariadb.jdbc;
 
+import org.junit.BeforeClass;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -10,6 +11,14 @@ import java.sql.SQLException;
 import org.junit.Test;
 
 public class DataSourceTest extends BaseTest {
+    protected static final String defConnectToIP = "127.0.0.1";
+    protected static String connectToIP;
+
+    @BeforeClass
+    public static void beforeClassDataSourceTest() {
+        connectToIP = System.getProperty("testConnectToIP", defConnectToIP);
+    }
+
     @Test
     public void testDataSource() throws SQLException {
     	MySQLDataSource ds = new MySQLDataSource(hostname, port, database);
@@ -56,7 +65,7 @@ public class DataSourceTest extends BaseTest {
     public void setServerNameTest() throws SQLException {
     	MySQLDataSource ds = new MySQLDataSource(hostname, port, database);
     	Connection connection = ds.getConnection(username, password);
-    	ds.setServerName("127.0.0.1");
+    	ds.setServerName(connectToIP);
     	connection = ds.getConnection(username, password);
     	connection.close();
     }
