@@ -53,6 +53,7 @@ import org.mariadb.jdbc.internal.SQLExceptionMapper;
 import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.common.Utils;
 import org.mariadb.jdbc.internal.mysql.MySQLProtocol;
+import org.mariadb.jdbc.internal.mysql.Protocol;
 
 import java.net.SocketException;
 import java.sql.*;
@@ -64,7 +65,7 @@ public final class MySQLConnection implements Connection {
     /**
      * the protocol to communicate with.
      */
-    private final MySQLProtocol protocol;
+    private final Protocol protocol;
     /**
      * save point count - to generate good names for the savepoints.
      */
@@ -88,12 +89,12 @@ public final class MySQLConnection implements Connection {
      *
      * @param protocol     the protocol to use.
      */
-    private MySQLConnection(MySQLProtocol protocol) {
+    private MySQLConnection(Protocol protocol) {
         this.protocol = protocol;
         clientInfoProperties = protocol.getInfo();
     }
     
-    MySQLProtocol getProtocol() {
+    Protocol getProtocol() {
     	return protocol;
     }
 
@@ -107,7 +108,7 @@ public final class MySQLConnection implements Connection {
         return tz;
     }
     
-	public static MySQLConnection newConnection(MySQLProtocol protocol) throws SQLException {
+	public static MySQLConnection newConnection(Protocol protocol) throws SQLException {
         MySQLConnection connection = new MySQLConnection(protocol);
 
         Properties info = protocol.getInfo();
@@ -298,7 +299,7 @@ public final class MySQLConnection implements Connection {
      *                               connection
      */
     public boolean isReadOnly() throws SQLException {
-        return false;
+        return !protocol.checkIfMaster();
     }
 
     public static String quoteIdentifier(String s) {
@@ -459,7 +460,7 @@ public final class MySQLConnection implements Connection {
      * @see java.sql.SQLWarning
      */
     public SQLWarning getWarnings() throws SQLException {
-        if (warningsCleared || isClosed() || !protocol.hasWarnings) {
+        if (warningsCleared || isClosed() || !protocol.hasWarnings()) {
             return null;
         }
         Statement st = null;
@@ -1285,11 +1286,6 @@ public final class MySQLConnection implements Connection {
     
     public String getPinGlobalTxToPhysicalConnection() {
     	return protocol.getPinGlobalTxToPhysicalConnection();
-    }
-
-   
-    public void setHostFailed() {
-        protocol.setHostFailed();
     }
 
     volatile int lowercaseTableNames = -1;

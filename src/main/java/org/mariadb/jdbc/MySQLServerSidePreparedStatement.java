@@ -4,6 +4,7 @@ import org.mariadb.jdbc.internal.SQLExceptionMapper;
 import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.mysql.MySQLColumnInformation;
 import org.mariadb.jdbc.internal.mysql.MySQLProtocol;
+import org.mariadb.jdbc.internal.mysql.Protocol;
 
 import java.io.InputStream;
 import java.io.Reader;
@@ -27,7 +28,7 @@ public class MySQLServerSidePreparedStatement implements PreparedStatement {
 
 	private void prepare(String sql) throws SQLException {
 		try {
-			MySQLProtocol protocol = connection.getProtocol();
+			Protocol protocol = connection.getProtocol();
 			MySQLProtocol.PrepareResult result;
 			synchronized (protocol) {
 				if (protocol.hasUnreadData()) {
@@ -44,7 +45,7 @@ public class MySQLServerSidePreparedStatement implements PreparedStatement {
 				returnTableAlias = true;
 
 			metadata = new MySQLResultSetMetaData(result.columns,
-					protocol.datatypeMappingFlags, returnTableAlias);
+					protocol.getDatatypeMappingFlags(), returnTableAlias);
 			parameterInfo = result.parameters;
 			statementId = result.statementId;
 		} catch (QueryException e) {
