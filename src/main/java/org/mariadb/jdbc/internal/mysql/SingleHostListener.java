@@ -93,27 +93,6 @@ public class SingleHostListener implements FailoverListener {
     }
 
 
-    public HandleErrorResult handleFailover(Method method, Object[] args) throws Throwable {
-        HandleErrorResult handleErrorResult = new HandleErrorResult();
-        if (shouldReconnect()) {
-            //if not first attempt to connect, wait for initialTimeout
-            if (proxy.currentConnectionAttempts > 0) {
-                try {
-                    Thread.sleep((long) proxy.initialTimeout * 1000);
-                } catch (InterruptedException IE) {
-                    // ignore
-                }
-            }
-
-            //trying to reconnect transparently
-            reconnectSingleHost();
-            handleErrorResult.resultObject = method.invoke(proxy.currentProtocol, args);
-            handleErrorResult.mustThrowError = false;
-            return handleErrorResult;
-        }
-        return handleErrorResult;
-    }
-
     public void switchReadOnlyConnection(Boolean readonly) {}
     public void postClose()  throws SQLException { }
 

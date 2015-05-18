@@ -36,6 +36,26 @@ public class AuroraFailoverTest {
     }
 
     @Test
+    public void simulateFailingFirstHost()  throws SQLException{
+        Statement stmt = connection.createStatement();
+        ResultSet rs = stmt.executeQuery("show global variables like 'innodb_read_only'");
+        rs.next();
+        log.info("READ ONLY : " + rs.getString(2));
+        Assert.assertTrue("OFF".equals(rs.getString(2)));
+
+        //simulate master crash
+        try {
+            stmt.execute("ALTER SYSTEM CRASH");
+        } catch ( Exception e) { }
+
+        //verification that secondary take place
+        rs = stmt.executeQuery("show global variables like 'innodb_read_only'");
+        rs.next();
+        log.info("READ ONLY : " + rs.getString(2));
+        Assert.assertTrue("ON".equals(rs.getString(2)));
+    }
+
+    @Test
     public void simulateChangeToReadonlyHost()  throws SQLException{
         Statement stmt = connection.createStatement();
         ResultSet rs = stmt.executeQuery("show global variables like 'innodb_read_only'");

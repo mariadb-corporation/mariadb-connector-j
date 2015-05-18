@@ -108,8 +108,8 @@ public class MultiNodesProtocol extends MySQLProtocol {
         //Master is considered the firstOne
         HostAddress host = jdbcUrl.getHostAddresses()[0];
         try {
-            connect(currentHost.host, currentHost.port);
             currentHost = host;
+            connect(currentHost.host, currentHost.port);
             listener.foundActiveMaster(this);
         } catch (IOException e) {
             throw new QueryException("Could not connect to " + host + " : " + e.getMessage(),  -1,  SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), e);

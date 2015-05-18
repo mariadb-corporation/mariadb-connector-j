@@ -44,24 +44,15 @@ public class FailoverTest {
 	}
 	
 	@Test
-	public void simulateFailingFirstHost()  throws SQLException{
-		Statement stmt = connection.createStatement();
-		ResultSet rs = stmt.executeQuery("show global variables like 'innodb_read_only'");
-		rs.next();
-		log.info("READ ONLY : " + rs.getString(2));
-		Assert.assertTrue("OFF".equals(rs.getString(2)));
-
-		//simulate master crash
-		try {
-			stmt.execute("ALTER SYSTEM CRASH");
-		} catch ( Exception e) { }
-
-		//verification that secondary take place
-		rs = stmt.executeQuery("show global variables like 'innodb_read_only'");
-		rs.next();
-		log.info("READ ONLY : " + rs.getString(2));
-		Assert.assertTrue("ON".equals(rs.getString(2)));
+	public void simulateChangeToReadonlyHost()  throws SQLException{
+		connection.createStatement();
+		Assert.assertFalse(connection.isReadOnly());
+		connection.setReadOnly(true);
+		Assert.assertTrue(connection.isReadOnly());
+		connection.setReadOnly(false);
+		Assert.assertTrue(connection.isReadOnly());
 	}
+
 
 	@Test
 	public void simulateTwoFirstHostsDown() {

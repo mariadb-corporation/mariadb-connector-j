@@ -53,6 +53,7 @@ import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.common.query.Query;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -64,6 +65,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
+/**
+ * this class handle the operation when multiple hosts.
+ */
 public class MultiHostListener implements FailoverListener {
     private final static Logger log = Logger.getLogger(MultiHostListener.class.getName());
 
@@ -95,7 +99,6 @@ public class MultiHostListener implements FailoverListener {
         proxy.masterHostFailTimestamp = System.currentTimeMillis();
         proxy.secondaryHostFailTimestamp = System.currentTimeMillis();
         //TODO for perf : initial masterPrococol load and replace by connected one -> can be better
-
         launchSearchLoopConnection();
     }
 
@@ -112,6 +115,12 @@ public class MultiHostListener implements FailoverListener {
         }
     }
 
+    /**
+     * verify the different case when the connector must reconnect to host.
+     * the autoreconnect parameter for multihost is only used after an error to try to reconnect and relaunched the operation silently.
+     * So he doesn't appear here.
+     * @return true if should reconnect.
+     */
     private boolean shouldReconnect() {
         if (proxy.currentProtocol.inTransaction()) return false;
         if (proxy.currentConnectionAttempts > proxy.retriesAllDown) return false;
@@ -130,6 +139,10 @@ public class MultiHostListener implements FailoverListener {
         return false;
     }
 
+    /**
+     * Asynchronous Loop to replace failed connections with valid ones.
+     *
+     */
     public void launchAsyncSearchLoopConnection() {
         final MultiHostListener hostListener = MultiHostListener.this;
         Executors.newSingleThreadExecutor().execute(new Runnable() {
@@ -141,6 +154,11 @@ public class MultiHostListener implements FailoverListener {
         });
     }
 
+    /**
+     * Loop to replace failed connections with valid ones.
+     * @throws QueryException
+     * @throws SQLException
+     */
     public void launchSearchLoopConnection() throws QueryException, SQLException {
         MultiNodesProtocol newProtocol = new MultiNodesProtocol(this.masterProtocol.jdbcUrl,
                 this.masterProtocol.getUsername(),
@@ -187,6 +205,10 @@ public class MultiHostListener implements FailoverListener {
     }
 
 
+    /**
+     * method called when a new Master connection is found after a fallback
+     * @param newMasterProtocol the new active connection
+     */
     public synchronized void foundActiveMaster(MultiNodesProtocol newMasterProtocol) {
         log.fine("found active master connection");
         this.masterProtocol = newMasterProtocol;
@@ -205,6 +227,10 @@ public class MultiHostListener implements FailoverListener {
     }
 
 
+    /**
+     * method called when a new secondary connection is found after a fallback
+     * @param newSecondaryProtocol the new active connection
+     */
     public synchronized void foundActiveSecondary(MultiNodesProtocol newSecondaryProtocol) {
         log.fine("found active secondary connection");
         this.secondaryProtocol = newSecondaryProtocol;
@@ -221,10 +247,16 @@ public class MultiHostListener implements FailoverListener {
         proxy.resetSecondaryFailoverData();
     }
 
+    /**
+     * switch to a read-only(secondary) or read and write connection(master)
+     * @param mustBeReadOnly the
+     * @throws QueryException
+     * @throws SQLException
+     */
     @Override
-    public void switchReadOnlyConnection(Boolean mustBeRealOnly) throws QueryException, SQLException {
-        log.finest("switching to mustBeRealOnly = " + mustBeRealOnly + " mode");
-        proxy.currentReadOnlyAsked.set(mustBeRealOnly);
+    public void switchReadOnlyConnection(Boolean mustBeReadOnly) throws QueryException, SQLException {
+        log.finest("switching to mustBeRealOnly = " + mustBeReadOnly + " mode");
+        proxy.currentReadOnlyAsked.set(mustBeReadOnly);
         if (proxy.currentReadOnlyAsked.get()) {
             if (proxy.currentProtocol.isMasterConnection()) {
                 //must change to replica connection
@@ -263,6 +295,13 @@ public class MultiHostListener implements FailoverListener {
         }
     }
 
+    /**
+     * when switching between 2 connections, report existing connection parameter to the new used connection
+     * @param from used connection
+     * @param to will-be-current connection
+     * @throws QueryException
+     * @throws SQLException
+     */
     private void syncConnection(Protocol from, Protocol to) throws QueryException, SQLException {
         to.setMaxAllowedPacket(from.getMaxAllowedPacket());
         to.setMaxRows(from.getMaxRows());
@@ -274,6 +313,13 @@ public class MultiHostListener implements FailoverListener {
 
     }
 
+    /**
+     * to handle the newly detected failover on the master connection
+     * @param method
+     * @param args
+     * @return an object to indicate if the previous Exception must be thrown, or the object resulting if a failover worked
+     * @throws Throwable
+     */
     public synchronized HandleErrorResult primaryFail(Method method, Object[] args) throws Throwable {
         log.warning("SQL Primary node [" + this.masterProtocol.currentHost + "] connection fail");
         HandleErrorResult handleErrorResult = new HandleErrorResult();
@@ -281,9 +327,9 @@ public class MultiHostListener implements FailoverListener {
             try {
                 launchSearchLoopConnection();
                 //connection established !
-                handleErrorResult.resultObject = method.invoke(proxy.currentProtocol, args);
-                handleErrorResult.mustThrowError = false;
-                return handleErrorResult;
+
+                //now that we are reconnect, relaunched result if the result was not crashing the node
+                return relaunchOperation(method, args);
             } catch (Exception e) {
                 if (isLooping.compareAndSet(false, true)) {
                     exec.scheduleAtFixedRate(new failLoop(this), 250, 250, TimeUnit.MILLISECONDS);
@@ -303,34 +349,62 @@ public class MultiHostListener implements FailoverListener {
         return handleErrorResult;
     }
 
-
+    /**
+     * to handle the newly detected failover on the secondary connection
+     * @param method
+     * @param args
+     * @return an object to indicate if the previous Exception must be thrown, or the object resulting if a failover worked
+     * @throws Throwable
+     */
     public synchronized HandleErrorResult secondaryFail(Method method, Object[] args) throws Throwable {
-        HandleErrorResult handleErrorResult = new HandleErrorResult();
-
         //in multiHost, switch temporary to Master
         log.finest("switching to master connection");
         syncConnection(this.secondaryProtocol, this.masterProtocol);
         proxy.currentProtocol = this.masterProtocol;
-
-        //now that we are on master, relaunched result if the result was not crashing the master
-        if (!"executeQuery".equals(method.getName()) && !"ALTER SYSTEM CRASH".equalsIgnoreCase(((Query)args[0]).getQuery())) {
-            handleErrorResult.resultObject = method.invoke(proxy.currentProtocol, args);
-            handleErrorResult.mustThrowError = false;
-        }
 
         //launch reconnection loop
         if (isLooping.compareAndSet(false, true)) {
             exec.scheduleAtFixedRate(new failLoop(this), 0, 250, TimeUnit.MILLISECONDS);
         }
 
+        //now that we are on master, relaunched result if the result was not crashing the master
+        return relaunchOperation(method, args);
+    }
+
+    /**
+     * After a failover that has bean done, relaunche the operation that was in progress.
+     * In case of special operation that crash serveur, doesn't relaunched it;
+     * @param method the methode accessed
+     * @param args the parameters
+     * @return An object that indicate the result or that the exception as to be thrown
+     * @throws IllegalAccessException
+     * @throws InvocationTargetException
+     */
+    private HandleErrorResult relaunchOperation(Method method, Object[] args) throws IllegalAccessException, InvocationTargetException{
+        HandleErrorResult handleErrorResult = new HandleErrorResult();
+        if ("executeQuery".equals(method.getName())) {
+            String query = ((Query)args[0]).getQuery().toUpperCase();
+            if (!query.equals("ALTER SYSTEM CRASH")
+                    && query.startsWith("KILL")) {
+                handleErrorResult.resultObject = method.invoke(proxy.currentProtocol, args);
+                handleErrorResult.mustThrowError = false;
+            }
+        } else {
+            handleErrorResult.resultObject = method.invoke(proxy.currentProtocol, args);
+            handleErrorResult.mustThrowError = false;
+        }
         return handleErrorResult;
     }
+
 
     protected void stopFailover() {
         exec.shutdown();
         isLooping.set(false);
     }
 
+    /**
+     * private class to permit a timer reconnection loop
+     */
     private class failLoop implements Runnable {
         MultiHostListener listener;
         public failLoop(MultiHostListener listener) {

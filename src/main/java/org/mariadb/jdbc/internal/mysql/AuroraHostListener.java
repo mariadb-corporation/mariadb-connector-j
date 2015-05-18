@@ -80,6 +80,14 @@ public class AuroraHostListener extends MultiHostListener {
         launchSearchLoopConnection();
     }
 
+    /**
+     * search a valid connection for failed one.
+     * A Node can be a master or a replica depending on the cluster state.
+     * so search for each host until found all the failed connection.
+     * By default, search for the host not down, and recheck the down one after if not found valid connections.
+     * @throws QueryException
+     * @throws SQLException
+     */
     public void launchSearchLoopConnection() throws QueryException, SQLException {
         proxy.currentConnectionAttempts++;
         proxy.lastRetry = System.currentTimeMillis();

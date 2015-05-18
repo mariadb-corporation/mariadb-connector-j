@@ -70,6 +70,11 @@ public class AuroraMultiNodesProtocol extends MultiNodesProtocol {
         super(url, username, password, info);
     }
 
+    /**
+     * Aurora
+     * @return
+     * @throws SQLException
+     */
     public boolean checkIfMaster() throws SQLException {
         try {
 
