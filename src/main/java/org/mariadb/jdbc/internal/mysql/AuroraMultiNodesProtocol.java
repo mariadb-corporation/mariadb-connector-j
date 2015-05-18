@@ -71,7 +71,7 @@ public class AuroraMultiNodesProtocol extends MultiNodesProtocol {
     }
 
     /**
-     * Aurora
+     * Aurora best way to check if a node is a master : is not in read-only mode
      * @return
      * @throws SQLException
      */
@@ -94,19 +94,31 @@ public class AuroraMultiNodesProtocol extends MultiNodesProtocol {
         }
     }
 
-
+    /**
+     * loop until found the failed connection.
+     * search order :
+     * - in the host without the failed ones
+     * - the failed host if not found
+     * @param listener
+     * @param addrs
+     * @param failAddress
+     * @param searchForMaster
+     * @param searchForSecondary
+     * @throws QueryException
+     */
     public void loop(AuroraHostListener listener, List<HostAddress> addrs, List<HostAddress> failAddress, boolean searchForMaster, boolean searchForSecondary) throws QueryException {
-
+        List<HostAddress> verifiedAddrs = new ArrayList<HostAddress>();
         for(HostAddress host : addrs) {
             try {
                 currentHost = host;
+                verifiedAddrs.add(host);
                 connect(currentHost.host, currentHost.port);
                 if (searchForMaster && isMasterConnection()) {
                     searchForMaster = false;
                     listener.foundActiveMaster(this);
                     if (!searchForSecondary) return;
                     else {
-                        loopInternal(listener, addrs, failAddress,  currentHost, searchForMaster, searchForSecondary);
+                        loopInternal(listener, addrs, failAddress,  verifiedAddrs, searchForMaster, searchForSecondary);
                         return;
                     }
                 }
@@ -115,7 +127,7 @@ public class AuroraMultiNodesProtocol extends MultiNodesProtocol {
                     listener.foundActiveSecondary(this);
                     if (!searchForMaster) return;
                     else {
-                        loopInternal(listener, addrs, failAddress, currentHost, searchForMaster, searchForSecondary);
+                        loopInternal(listener, addrs, failAddress, verifiedAddrs, searchForMaster, searchForSecondary);
                         return;
                     }
                 }
@@ -141,14 +153,23 @@ public class AuroraMultiNodesProtocol extends MultiNodesProtocol {
         }
     }
 
-
-    private void loopInternal(AuroraHostListener listener, List<HostAddress> addrs, List<HostAddress> failAddress, HostAddress hostToRemove, boolean searchForMaster, boolean searchForSecondary)  throws QueryException {
+    /**
+     * second loop when the 2 connections have fallen, to search for the remaining fallen connection
+     * @param listener
+     * @param addrs the list of remaining Host not verified
+     * @param failAddress the list of the failed host
+     * @param hostsToRemove the list of the host already verified
+     * @param searchForMaster boolean to indicate if searching master
+     * @param searchForSecondary boolean to indicate if search for a replicate
+     * @throws QueryException
+     */
+    private void loopInternal(AuroraHostListener listener, List<HostAddress> addrs, List<HostAddress> failAddress, List<HostAddress> hostsToRemove, boolean searchForMaster, boolean searchForSecondary)  throws QueryException {
         AuroraMultiNodesProtocol newProtocol = new AuroraMultiNodesProtocol(this.jdbcUrl,
                 this.getUsername(),
                 this.getPassword(),
                 this.getInfo());
         List<HostAddress> remainingAddrs = new ArrayList<HostAddress>(addrs);
-        if (hostToRemove != null) remainingAddrs.remove(hostToRemove);
+        if (hostsToRemove != null) remainingAddrs.removeAll(hostsToRemove);
         newProtocol.loop(listener, remainingAddrs, failAddress, searchForMaster, searchForSecondary);
     }
 }
