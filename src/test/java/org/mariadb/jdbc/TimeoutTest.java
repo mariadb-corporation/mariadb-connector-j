@@ -8,6 +8,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Random;
 
 import org.junit.Test;
 
@@ -15,6 +16,7 @@ public class TimeoutTest extends BaseTest {
 
 	/**
 	 * CONJ-79
+	 * 
 	 * @throws SQLException
 	 */
 	@Test
@@ -63,18 +65,87 @@ public class TimeoutTest extends BaseTest {
 
 	/**
 	 * CONJ-79
+	 * 
 	 * @throws SQLException
 	 */
 	@Test
 	public void socketTimeoutTest() throws SQLException {
 		setConnection("&connectTimeout=5&socketTimeout=5");
-		PreparedStatement ps = connection.prepareStatement("SELECT sleep(1)");
-		try {
-			ps.executeQuery();
-		} catch (Exception e) {
-		} finally {
-			assertTrue(connection.isClosed());
-		}
+		PreparedStatement ps = connection.prepareStatement("SELECT 1");
+		ResultSet rs = ps.executeQuery();
+		rs.next();
+		logInfo(rs.getString(1));
+
+		ps = connection.prepareStatement("SELECT sleep(1)");
+
+		rs = ps.executeQuery();
+
+		ps = connection.prepareStatement("SELECT 2");
+
+		rs = ps.executeQuery();
+		rs.next();
+		logInfo(rs.getString(1));
+
+		assertTrue(connection.isClosed());
 	}
 
+	@Test
+	public void waitTimeoutStatementTest() throws SQLException, InterruptedException {
+		Statement statement = connection.createStatement();
+		statement.execute("set session wait_timeout=1");
+		Thread.sleep(3000); // Wait for the server to kill the connection
+		
+		logInfo(connection.toString());
+		
+		statement.execute("SELECT 1");
+		
+		statement.close();
+		connection.close();
+		connection = null;
+	}
+	
+	@Test
+	public void waitTimeoutResultSetTest() throws SQLException, InterruptedException {
+		Statement stmt = connection.createStatement();
+		ResultSet rs = stmt.executeQuery("SELECT 1");
+		
+		rs.next();
+		logInfo(rs.getString(1));
+
+		//stmt = connection.createStatement();
+		stmt.execute("set session wait_timeout=1");
+		Thread.sleep(3000); // Wait for the server to kill the connection
+
+		rs = stmt.executeQuery("SELECT 2");
+
+		rs.next();
+		logInfo(rs.getString(1));
+
+		assertTrue(connection.isClosed());
+	}
+	
+	// CONJ-68
+	@Test
+	public void lastPacketFailedTest() throws SQLException
+	{
+		Statement stmt = connection.createStatement();
+		stmt.execute("DROP TABLE IF EXISTS `pages_txt`");
+		stmt.execute("CREATE TABLE `pages_txt` (`id` INT(10) UNSIGNED NOT NULL, `title` TEXT NOT NULL, `txt` MEDIUMTEXT NOT NULL, PRIMARY KEY (`id`)) COLLATE='utf8_general_ci' ENGINE=MyISAM;");
+	
+		//create arbitary long strings
+		String chars = "0123456789abcdefghijklmnopqrstuvwxyzåäöABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖ,;.:-_*¨^+?!<>#€%&/()=";
+		StringBuffer outputBuffer = null;
+		Random r = null;
+		
+		for(int i = 1; i < 2000001; i++)
+        {
+			r = new Random();
+			outputBuffer = new StringBuffer(i);
+			
+			for (int j = 0; j < i; j++){
+				outputBuffer.append(chars.charAt(r.nextInt(chars.length())));
+			}
+			stmt.execute("insert into pages_txt values (" + i + ", '" + outputBuffer.toString() + "' , 'txt')");
+        }
+	}
 }
