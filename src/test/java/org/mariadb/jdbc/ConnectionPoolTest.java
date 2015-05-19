@@ -231,7 +231,6 @@ public class ConnectionPoolTest extends BaseTest {
 					// TODO Auto-generated catch block
 					System.out.println(e.getSQLState());
 				}
-    			System.out.println("thread: " + Thread.currentThread().getId());
             }
         }
     }

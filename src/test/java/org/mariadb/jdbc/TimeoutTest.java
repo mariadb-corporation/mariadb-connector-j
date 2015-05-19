@@ -10,6 +10,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Random;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class TimeoutTest extends BaseTest {
@@ -125,6 +126,8 @@ public class TimeoutTest extends BaseTest {
 	}
 	
 	// CONJ-68
+	// TODO: this test is not able to repeat the bug. Ignore until then.
+	@Ignore
 	@Test
 	public void lastPacketFailedTest() throws SQLException
 	{
@@ -132,12 +135,12 @@ public class TimeoutTest extends BaseTest {
 		stmt.execute("DROP TABLE IF EXISTS `pages_txt`");
 		stmt.execute("CREATE TABLE `pages_txt` (`id` INT(10) UNSIGNED NOT NULL, `title` TEXT NOT NULL, `txt` MEDIUMTEXT NOT NULL, PRIMARY KEY (`id`)) COLLATE='utf8_general_ci' ENGINE=MyISAM;");
 	
-		//create arbitary long strings
+		//create arbitrary long strings
 		String chars = "0123456789abcdefghijklmnopqrstuvwxyzåäöABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖ,;.:-_*¨^+?!<>#€%&/()=";
 		StringBuffer outputBuffer = null;
 		Random r = null;
 		
-		for(int i = 1; i < 2000001; i++)
+		for(int i = 1; i < 2001; i++)
         {
 			r = new Random();
 			outputBuffer = new StringBuffer(i);
