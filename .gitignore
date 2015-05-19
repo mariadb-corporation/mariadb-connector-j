@@ -4,10 +4,7 @@
 
 # Keep empty directories:
 # Keep empty directories: >> .gitignore/.git*
-<<<<<<< HEAD
-=======
 /bin/
->>>>>>> rasmus-test-case-fixes
 /target/
 
 .idea
