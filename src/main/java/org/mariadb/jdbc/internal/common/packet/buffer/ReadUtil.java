@@ -81,7 +81,7 @@ public final class ReadUtil {
         while(remaining > 0) {
             int count =  stream.read(b, off, remaining);
             if (count <= 0) {
-                throw new EOFException("unexpected end of stream, read "+ (len - remaining) + "bytes from "+ len);
+                throw new EOFException("unexpected end of stream, read "+ (len - remaining) + " bytes from "+ len);
             }
             remaining -= count;
             off += count;

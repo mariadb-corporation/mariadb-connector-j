@@ -22,13 +22,11 @@ public class PacketOutputStream extends OutputStream{
     public PacketOutputStream(OutputStream baseStream) {
        this.baseStream = baseStream;
        byteBuffer = new byte[1024];
-       seqNo = -1;
+       this.seqNo = -1;
     }
 
-
-
     public void setCompress(boolean value) {
-        if (seqNo != -1)
+        if (this.seqNo != -1)
             throw new AssertionError("setCompress on already started packet is illegal");
         compress = value;
     }
@@ -69,17 +67,17 @@ public class PacketOutputStream extends OutputStream{
     }
 
     public void finishPacket() throws IOException{
-        if (seqNo == -1) {
+        if (this.seqNo == -1) {
             throw new AssertionError("Packet not started");
         }
         internalFlush();
         baseStream.flush();
-        seqNo = -1;
+        this.seqNo = -1;
     }
 
     @Override
     public void write(byte[] bytes, int off, int len) throws IOException{
-      if (seqNo == -1) {
+      if (this.seqNo == -1) {
            throw new AssertionError("Use PacketOutputStream.startPacket() before write()");
       }
 
@@ -112,15 +110,15 @@ public class PacketOutputStream extends OutputStream{
         throw new AssertionError("Do not call flush() on PacketOutputStream. use finishPacket() instead.");
     }
 
-    private  void internalFlush() throws IOException {
+    private void internalFlush() throws IOException {
         int dataLen = position - HEADER_LENGTH;
         byteBuffer[0] = (byte)(dataLen & 0xff);
         byteBuffer[1] = (byte)((dataLen >> 8) & 0xff);
         byteBuffer[2] = (byte)((dataLen >> 16) & 0xff);
-        byteBuffer[SEQNO_OFFSET] = (byte)seqNo;
+        byteBuffer[SEQNO_OFFSET] = (byte)this.seqNo;
         baseStream.write(byteBuffer, 0, position);
         position = HEADER_LENGTH;
-        seqNo++;
+        this.seqNo++;
     }
 
     @Override
