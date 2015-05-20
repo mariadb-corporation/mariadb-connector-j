@@ -52,9 +52,8 @@ package org.mariadb.jdbc;
 import org.mariadb.jdbc.internal.SQLExceptionMapper;
 import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.common.Utils;
-import org.mariadb.jdbc.internal.mysql.*;
+import org.mariadb.jdbc.internal.mysql.MySQLProtocol;
 
-import java.lang.reflect.Proxy;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.DriverPropertyInfo;
@@ -88,7 +87,7 @@ public final class Driver implements java.sql.Driver {
      * @return a connection
      * @throws SQLException if it is not possible to connect
      */
-    public Connection connect(final String url, final Properties props) throws SQLException {
+    public Connection connect(final String url, final Properties info) throws SQLException {
         // TODO: handle the properties!
         // TODO: define what props we support!
 
@@ -97,7 +96,7 @@ public final class Driver implements java.sql.Driver {
         if(idx > 0) {
             baseUrl = url.substring(0,idx);
             String urlParams = url.substring(idx+1);
-            setURLParameters(urlParams, props);
+            setURLParameters(urlParams, info);
         }
 
         log.finest("Connecting to: " + url);
@@ -106,18 +105,12 @@ public final class Driver implements java.sql.Driver {
             if(jdbcUrl == null) {
                 return null;
             }
-            String username = props.getProperty("user",jdbcUrl.getUsername());
-            String password = props.getProperty("password",jdbcUrl.getPassword());
+            String userName = info.getProperty("user",jdbcUrl.getUsername());
+            String password = info.getProperty("password",jdbcUrl.getPassword());
 
-            if (jdbcUrl.getHostAddresses() == null) {
-                log.info("MariaDB connector : missing Host address");
-                return null;
-            } else {
-                Protocol proxyfiedProtocol = ConnectorUtils.retrieveProxy(jdbcUrl, username, password, props);
-                proxyfiedProtocol.initializeConnection();
-                return MySQLConnection.newConnection(proxyfiedProtocol);
-            }
+            MySQLProtocol protocol = new MySQLProtocol(jdbcUrl, userName,  password,  info);
 
+            return MySQLConnection.newConnection(protocol);
         } catch (QueryException e) {
             SQLExceptionMapper.throwException(e, null, null);
             return null;

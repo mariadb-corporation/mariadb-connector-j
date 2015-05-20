@@ -49,22 +49,18 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
-import java.util.Properties;
-
 public class JDBCUrl {
     private String username;
     private String password;
     private String database;
-    private Properties properties;
     private HostAddress addresses[];
 
 
-    private JDBCUrl( String username, String password, String database, HostAddress addresses[], Properties properties) {
+    private JDBCUrl( String username, String password, String database, HostAddress addresses[]) {
         this.username = username;
         this.password = password;
         this.database = database;
         this.addresses = addresses;
-        this.properties = properties;
     }
 
     /*
@@ -87,22 +83,20 @@ public class JDBCUrl {
         
         hostname = tokens[0];
         database = (tokens.length > 1) ? tokens[1] : null;
-        Properties properties = new Properties();
-
+        
         if (database == null) {
-        	return new JDBCUrl("", "",  database, HostAddress.parse(hostname), properties);
+        	return new JDBCUrl("", "",  database, HostAddress.parse(hostname));
         }
         
         //check if there are parameters
-        if (database.indexOf('?') > -1) {
-
+        if (database.indexOf('?') > -1)
+        {
         	String[] credentials = database.substring(database.indexOf('?') + 1, database.length()).split("&");
         	
         	database = database.substring(0, database.indexOf('?'));
         	
-        	for (int i = 0; i < credentials.length; i++){
-                String[] parameter = credentials[i].split("=");
-                properties.put(parameter[0], (parameter.length>1)?parameter[1]:"");
+        	for (int i = 0; i < credentials.length; i++)
+        	{
         		if (credentials[i].startsWith("user="))
         			user=credentials[i].substring(5);
         		else if (credentials[i].startsWith("password="))
@@ -110,7 +104,7 @@ public class JDBCUrl {
         	}
         }
         
-        return new JDBCUrl(user, password,  database, HostAddress.parse(hostname), properties);
+        return new JDBCUrl(user, password,  database, HostAddress.parse(hostname));
     }
 
     static boolean acceptsURL(String url) {
@@ -133,7 +127,6 @@ public class JDBCUrl {
         }
         return null;
     }
-
     public String getUsername() {
         return username;
     }
@@ -154,12 +147,9 @@ public class JDBCUrl {
         return database;
     }
 
-    public HostAddress[] getHostAddresses() {
-	    return this.addresses;
-    }
 
-    public Properties getProperties() {
-        return properties;
+    public HostAddress[] getHostAddresses() {
+	return this.addresses;
     }
 
     public String toString() {

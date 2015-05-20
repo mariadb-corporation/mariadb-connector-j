@@ -150,19 +150,19 @@ class MyX509TrustManager implements X509TrustManager {
     }
 }
 
-public class MySQLProtocol implements Protocol {
-    protected final static Logger log = Logger.getLogger(MySQLProtocol.class.getName());
+public class MySQLProtocol {
+    private final static Logger log = Logger.getLogger(MySQLProtocol.class.getName());
     private boolean connected = false;
-    protected Socket socket;
-    protected PacketOutputStream writer;
+    private Socket socket;
+    private PacketOutputStream writer;
     private  String version;
     private boolean readOnly = false;
     private String database;
     private final String username;
     private final String password;
     private int maxRows;  /* max rows returned by a statement */
-    protected SyncPacketFetcher packetFetcher;
-    protected final Properties info;
+    private SyncPacketFetcher packetFetcher;
+    private final Properties info;
     private  long serverThreadId;
     public boolean moreResults = false;
     public boolean hasWarnings = false;
@@ -176,11 +176,51 @@ public class MySQLProtocol implements Protocol {
     private int minorVersion;
     private int patchVersion;
 
+    boolean hostFailed;
+    long failTimestamp;
+    int reconnectCount;
+    int queriesSinceFailover;
     private int maxAllowedPacket;
     private byte serverLanguage;
 
     /* =========================== HA  parameters ========================================= */
+    /**
+     * 	Should the driver try to re-establish stale and/or dead connections?
+     * 	NOTE: exceptions will still be thrown, yet the next retry will repair the connection
+     */
+    private boolean autoReconnect = false;
 
+    /**
+     * Maximum number of reconnects to attempt if autoReconnect is true, default is 3
+     */
+    private int maxReconnects=3;
+
+    /**
+     * When using loadbalancing, the number of times the driver should cycle through available hosts, attempting to connect.
+     * Between cycles, the driver will pause for 250ms if no servers are available.	120
+     */
+    int retriesAllDown = 120;
+    /**
+     * If autoReconnect is enabled, the initial time to wait between re-connect attempts (in seconds, defaults to 2)
+     */
+    int initialTimeout = 2;
+    /**
+     * When autoReconnect is enabled, and failoverReadonly is false, should we pick hosts to connect to on a round-robin
+     * basis?
+     */
+
+    boolean roundRobinLoadBalance  = false;
+    /**
+     * 	Number of queries to issue before falling back to master when failed over (when using multi-host failover).
+     * 	Whichever condition is met first, 'queriesBeforeRetryMaster' or 'secondsBeforeRetryMaster' will cause an
+     * 	attempt to be made to reconnect to the master. Defaults to 50
+     */
+    int queriesBeforeRetryMaster =  50;
+
+    /**
+     * How long should the driver wait, when failed over, before attempting	30
+     */
+    int secondsBeforeRetryMaster =  30;
 	private InputStream localInfileInputStream;
 
     private SSLSocketFactory getSSLSocketFactory(boolean trustServerCertificate)  throws QueryException
@@ -210,11 +250,11 @@ public class MySQLProtocol implements Protocol {
      *          if there is a problem reading / sending the packets
      * @throws SQLException 
      */
-
     public MySQLProtocol(JDBCUrl url,
                          final String username,
                          final String password,
-                         Properties info) {
+                         Properties info)
+            throws QueryException, SQLException {
     	String fractionalSeconds = info.getProperty("useFractionalSeconds", "true");
     	if ("true".equalsIgnoreCase(fractionalSeconds)) {
     		info.setProperty("useFractionalSeconds", "true");
@@ -236,8 +276,24 @@ public class MySQLProtocol implements Protocol {
         	log.setLevel(Level.OFF);
 
         setDatatypeMappingFlags();
+        parseHAOptions();
+        connect();
     }
 
+    private void parseHAOptions() {
+        String s = info.getProperty("autoReconnect");
+        if (s != null && s.equals("true"))
+            autoReconnect = true;
+        s = info.getProperty("maxReconnects");
+        if (s != null)
+            maxReconnects = Integer.parseInt(s);
+        s = info.getProperty("queriesBeforeRetryMaster");
+        if (s != null)
+            queriesBeforeRetryMaster = Integer.parseInt(s);
+        s = info.getProperty("secondsBeforeRetryMaster");
+        if (s != null)
+            secondsBeforeRetryMaster = Integer.parseInt(s);
+    }
     /**
      * Connect the client and perform handshake
      *
@@ -458,19 +514,18 @@ public class MySQLProtocol implements Protocol {
 
            // At this point, the driver is connected to the database, if createDB is true,
            // then just try to create the database and to use it
-           if (checkIfMaster()) {
-               if (createDB()) {
-                   // Try to create the database if it does not exist
-                   String quotedDB = MySQLConnection.quoteIdentifier(this.database);
-                   executeQuery(new MySQLQuery("CREATE DATABASE IF NOT EXISTS " + quotedDB));
-                   executeQuery(new MySQLQuery("USE " + quotedDB));
-               }
+           if (createDB()) {
+               // Try to create the database if it does not exist
+               String quotedDB = MySQLConnection.quoteIdentifier(this.database);
+               executeQuery(new MySQLQuery("CREATE DATABASE IF NOT EXISTS " + quotedDB));
+               executeQuery(new MySQLQuery("USE " + quotedDB));
            }
 
            activeResult = null;
            moreResults = false;
            hasWarnings = false;
            connected = true;
+           hostFailed = false; // Prevent reconnects
            writer.setMaxAllowedPacket(this.maxAllowedPacket);
        } catch (IOException e) {
            throw new QueryException("Could not connect to " + host + ":" +
@@ -481,11 +536,7 @@ public class MySQLProtocol implements Protocol {
        }
 
     }
-
-    public boolean checkIfMaster() throws SQLException  {
-        return true;
-    }
-
+    
     private boolean isServerLanguageUTF8MB4(byte serverLanguage) {
     	Byte[] utf8mb4Languages = {
     			(byte)45,(byte)46,(byte)224,(byte)225,(byte)226,(byte)227,(byte)228,
@@ -546,7 +597,6 @@ public class MySQLProtocol implements Protocol {
         }
     }
 
-    @Override
     public  PrepareResult prepare(String sql) throws QueryException {
         try {
             writer.startPacket(0);
@@ -592,8 +642,7 @@ public class MySQLProtocol implements Protocol {
         }
     }
     
-    @Override
-    public synchronized void closePreparedStatement(int statementId) throws QueryException {
+    public synchronized void closePreparedStatement(int statementId) throws QueryException{
         try {
             writer.startPacket(0);
             writer.write(0x19); /*COM_STMT_CLOSE*/
@@ -605,40 +654,95 @@ public class MySQLProtocol implements Protocol {
                     e);
         }
     }
-    public JDBCUrl getJdbcUrl() {
-        return jdbcUrl;
+    public void setHostFailed() {
+        hostFailed = true;
+        failTimestamp = System.currentTimeMillis();
     }
 
-    @Override
+
+    public boolean shouldReconnect() {
+        return (!inTransaction() && hostFailed && autoReconnect && reconnectCount < maxReconnects);
+    }
+
     public boolean getAutocommit() {
         return ((serverStatus & ServerStatus.AUTOCOMMIT) != 0);
     }
-    public boolean isHighAvailability() { return false; }
-    public boolean isMasterConnection() { return true; }
 
-    @Override
     public boolean noBackslashEscapes() {
         return ((serverStatus & ServerStatus.NO_BACKSLASH_ESCAPES) != 0);
     }
-
-    @Override
+    public void reconnectToMaster() throws IOException,QueryException, SQLException {
+        SyncPacketFetcher saveFetcher = this.packetFetcher;
+        PacketOutputStream saveWriter = this.writer;
+        Socket saveSocket = this.socket;
+        HostAddress[] addrs = jdbcUrl.getHostAddresses();
+        boolean success = false;
+        try {
+           connect(addrs[0].host, addrs[0].port);
+           try {
+            close(saveFetcher, saveWriter, saveSocket);
+           } catch (Exception e) {
+           }
+           success = true;
+        } finally {
+            if (!success) {
+                failTimestamp = System.currentTimeMillis();
+                queriesSinceFailover = 0;
+                this.packetFetcher = saveFetcher;
+                this.writer = saveWriter;
+                this.socket = saveSocket;
+            }
+        }
+    }
     public void connect() throws QueryException, SQLException {
         if (!isClosed()) {
             close();
         }
 
-        currentHost = this.jdbcUrl.getHostAddresses()[0];
-        try {
-            connect(currentHost.host, currentHost.port);
-            return;
-        } catch (IOException e) {
-                throw new QueryException("Could not connect to " + HostAddress.toString(this.jdbcUrl.getHostAddresses()) +
-                        " : " + e.getMessage(), -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), e);
+        HostAddress[] addrs = jdbcUrl.getHostAddresses();
+
+        // There could be several addresses given in the URL spec, try all of them, and throw exception if all hosts
+        // fail.
+        for(int i = 0; i < addrs.length; i++) {
+            currentHost = addrs[i];
+            try {
+                connect(currentHost.host, currentHost.port);
+                return;
+            } catch (IOException e) {
+                if (i == addrs.length - 1) {
+                    throw new QueryException("Could not connect to " + HostAddress.toString(addrs) +
+                      " : " + e.getMessage(),  -1,  SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), e);
+                }
+            }
         }
     }
+    public boolean isMasterConnection() {
+        return currentHost == jdbcUrl.getHostAddresses()[0];
+    }
 
-    @Override
-    public boolean inTransaction() {
+    /**
+     * Check if fail back to master connection is desired,
+     * @return
+     */
+    public boolean shouldTryFailback() {
+        if (isMasterConnection())
+            return false;
+
+        if (inTransaction())
+            return false;
+        if (reconnectCount >= maxReconnects)
+            return false;
+
+        long now = System.currentTimeMillis();
+        if ((now - failTimestamp)/1000 > secondsBeforeRetryMaster)
+            return true;
+        if (queriesSinceFailover > queriesBeforeRetryMaster)
+            return true;
+        return false;
+    }
+
+    public boolean inTransaction()
+    {
         return ((serverStatus & ServerStatus.IN_TRANSACTION) != 0);
     }
 
@@ -655,7 +759,6 @@ public class MySQLProtocol implements Protocol {
         }
     }
 
-    @Override
     public Properties getInfo() {
         return info;
     }
@@ -670,13 +773,14 @@ public class MySQLProtocol implements Protocol {
 
     }
 
-    @Override
     public boolean  hasMoreResults() {
         return moreResults;
     }
 
 
-    protected static void close(PacketFetcher fetcher, PacketOutputStream packetOutputStream, Socket socket) throws QueryException {
+    private static void close(PacketFetcher fetcher, PacketOutputStream packetOutputStream, Socket socket)
+            throws QueryException
+    {
         ClosePacket closePacket = new ClosePacket();
         try {
             try {
@@ -706,7 +810,6 @@ public class MySQLProtocol implements Protocol {
      * Closes socket and stream readers/writers
      * Attempts graceful shutdown.
      */
-    @Override
     public void close() {
         try {
             /* If a streaming result set is open, close it.*/ 
@@ -715,11 +818,13 @@ public class MySQLProtocol implements Protocol {
             /* eat exception */
         }
         try {
-           close(packetFetcher, writer, socket);
-        } catch (Exception e) {
+           close(packetFetcher,writer, socket);
+        }
+        catch (Exception e) {
             // socket is closed, so it is ok to ignore exception
             log.info("got exception " + e + " while closing connection");
-        } finally {
+        }
+        finally {
             this.connected = false;
         }
     }
@@ -727,7 +832,6 @@ public class MySQLProtocol implements Protocol {
     /**
      * @return true if the connection is closed
      */
-    @Override
     public boolean isClosed() {
         return !this.connected;
     }
@@ -748,7 +852,6 @@ public class MySQLProtocol implements Protocol {
         return CachedSelectResult.createCachedSelectResult(streamingResult);
     }
 
-    @Override
     public void selectDB(final String database) throws QueryException {
         log.finest("Selecting db " + database);
         final SelectDBPacket packet = new SelectDBPacket(database);
@@ -765,56 +868,39 @@ public class MySQLProtocol implements Protocol {
         this.database = database;
     }
 
-    @Override
     public String getServerVersion() {
         return version;
     }
 
-    public void initializeConnection() {
-
-    };
-
-    @Override
     public void setReadonly(final boolean readOnly) {
         this.readOnly = readOnly;
     }
 
-    @Override
     public boolean getReadonly() {
         return readOnly;
     }
 
 
-    @Override
-    public HostAddress getHostAddress() {
-        return currentHost;
-    }
-    @Override
     public String getHost() {
         return currentHost.host;
     }
 
-    @Override
     public int getPort() {
         return currentHost.port;
     }
 
-    @Override
     public String getDatabase() {
         return database;
     }
 
-    @Override
     public String getUsername() {
         return username;
     }
 
-    @Override
     public String getPassword() {
         return password;
     }
 
-    @Override
     public boolean ping() throws QueryException {
         final MySQLPingPacket pingPacket = new MySQLPingPacket();
         try {
@@ -830,13 +916,11 @@ public class MySQLProtocol implements Protocol {
         }
     }
 
-    @Override
     public QueryResult executeQuery(Query dQuery)  throws QueryException, SQLException {
        return executeQuery(dQuery, false);
     }
 
 
-    @Override
     public QueryResult getResult(Query dQuery, boolean streaming) throws QueryException{
              RawPacket rawPacket;
         ResultPacket resultPacket;
@@ -927,7 +1011,6 @@ public class MySQLProtocol implements Protocol {
         }
     }
 
-    @Override
     public QueryResult executeQuery(final Query dQuery, boolean streaming) throws QueryException, SQLException
     {
         dQuery.validate();
@@ -953,7 +1036,8 @@ public class MySQLProtocol implements Protocol {
                     SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
                     e);
         }
-
+        if (!isMasterConnection())
+            queriesSinceFailover++;
         try {
         	return getResult(dQuery, streaming);
         } catch (QueryException qex) {
@@ -968,7 +1052,6 @@ public class MySQLProtocol implements Protocol {
 
 
 
-    @Override
     public String getServerVariable(String variable) throws QueryException, SQLException {
         CachedSelectResult qr = (CachedSelectResult) executeQuery(new MySQLQuery("select @@" + variable));
         try {
@@ -998,15 +1081,12 @@ public class MySQLProtocol implements Protocol {
      * @throws QueryException
      * @throws SQLException 
      */
-    @Override
     public  void cancelCurrentQuery() throws QueryException, IOException, SQLException {
         MySQLProtocol copiedProtocol = new MySQLProtocol(jdbcUrl, username, password, info);
-        copiedProtocol.connect();
         copiedProtocol.executeQuery(new MySQLQuery("KILL QUERY " + serverThreadId));
         copiedProtocol.close();
     }
 
-    @Override
     public boolean createDB() {
     	String alias = info.getProperty("createDatabaseIfNotExist");
         return info != null
@@ -1016,7 +1096,6 @@ public class MySQLProtocol implements Protocol {
 
 
 
-    @Override
     public QueryResult getMoreResults(boolean streaming) throws QueryException {
         if(!moreResults)
             return null;
@@ -1043,12 +1122,10 @@ public class MySQLProtocol implements Protocol {
     }
 
 
-    @Override
     public boolean hasUnreadData() {
         return (activeResult != null);
     }
 
-    @Override
     public void setMaxRows(int max) throws QueryException, SQLException{
         if (maxRows != max) {
             if (max == 0) {
@@ -1058,9 +1135,6 @@ public class MySQLProtocol implements Protocol {
             }
             maxRows = max;
         }
-    }
-    public int getMaxRows() {
-        return maxRows;
     }
     
     void parseVersion() {
@@ -1073,17 +1147,14 @@ public class MySQLProtocol implements Protocol {
     		patchVersion = Integer.parseInt(a[2]);
     }
     
-    @Override
     public int getMajorServerVersion() {
     	return majorVersion;
     		
     }
-    @Override
     public int getMinorServerVersion() {
     	return minorVersion;
     }
     
-    @Override
     public boolean versionGreaterOrEqual(int major, int minor, int patch) {
     	if (this.majorVersion > major)
     		return true;
@@ -1108,17 +1179,14 @@ public class MySQLProtocol implements Protocol {
     	/* Patch versions are equal => versions are equal */
     	return true;
     }
-	@Override
-    public void setLocalInfileInputStream(InputStream inputStream) {
+	public void setLocalInfileInputStream(InputStream inputStream) {
 		this.localInfileInputStream = inputStream;
 	}
 	
-	@Override
-    public int getMaxAllowedPacket() {
+	public int getMaxAllowedPacket() {
 		return this.maxAllowedPacket;
 	}
-	@Override
-    public void setMaxAllowedPacket(int maxAllowedPacket) {
+	public void setMaxAllowedPacket(int maxAllowedPacket) {
 		this.maxAllowedPacket = maxAllowedPacket;
 	}
 	
@@ -1127,8 +1195,7 @@ public class MySQLProtocol implements Protocol {
 	 * @param timeout     the timeout, in milliseconds
 	 * @throws SocketException
 	 */
-	@Override
-    public void setTimeout(int timeout) throws SocketException {
+	public void setTimeout(int timeout) throws SocketException {
 		this.socket.setSoTimeout(timeout);
 	}
 	/**
@@ -1136,27 +1203,12 @@ public class MySQLProtocol implements Protocol {
 	 * @return
 	 * @throws SocketException
 	 */
-	@Override
-    public int getTimeout() throws SocketException {
+	public int getTimeout() throws SocketException {
 		return this.socket.getSoTimeout();
 	}
 
-	@Override
-    public String getPinGlobalTxToPhysicalConnection() {
+	public String getPinGlobalTxToPhysicalConnection() {
 		return this.info.getProperty("pinGlobalTxToPhysicalConnection", "false");
 	}
-
-
-    public boolean hasWarnings() {
-        return hasWarnings;
-    }
-
-
-    public int getDatatypeMappingFlags() {
-        return datatypeMappingFlags;
-    }
-
-    public StreamingSelectResult getActiveResult() {
-        return activeResult;
-    }
+    
 }

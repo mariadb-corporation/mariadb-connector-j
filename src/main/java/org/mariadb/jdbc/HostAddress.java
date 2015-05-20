@@ -1,7 +1,5 @@
 package org.mariadb.jdbc;
 
-import java.util.List;
-
 public class HostAddress {
     public String host;
     public int port;
@@ -14,8 +12,7 @@ public class HostAddress {
      * @return   parsed endpoints
      */
     public static HostAddress[] parse(String spec) {
-        if (spec == null) return null;
-        String[] tokens = spec.trim().split(",");
+        String[] tokens = spec.split(",");
         HostAddress[] arr = new HostAddress[tokens.length];
 
         for (int i=0; i < tokens.length; i++) {
@@ -56,19 +53,6 @@ public class HostAddress {
           }
           return result;
     }
-
-    public static String toString(List<HostAddress> addrs) {
-        String s="";
-        for(int i=0; i < addrs.size(); i++) {
-            boolean isIPv6 = addrs.get(i).host != null && addrs.get(i).host.contains(":");
-            String host = (isIPv6)?("[" + addrs.get(i).host + "]"):addrs.get(i).host;
-            s += host + ":" + addrs.get(i).port;
-            if (i < addrs.size() -1)
-                s += ",";
-        }
-        return s;
-    }
-
     public static String toString(HostAddress[] addrs) {
         String s="";
         for(int i=0; i < addrs.length; i++) {
@@ -79,30 +63,6 @@ public class HostAddress {
                 s += ",";
         }
         return s;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof HostAddress)) return false;
-
-        HostAddress that = (HostAddress) o;
-
-        if (port != that.port) return false;
-        return !(host != null ? !host.equals(that.host) : that.host != null);
-
-    }
-
-    @Override
-    public int hashCode() {
-        int result = host != null ? host.hashCode() : 0;
-        result = 31 * result + port;
-        return result;
-    }
-
-    @Override
-    public String toString() {
-        return "HostAddress{" + host + ":" + port + "}";
     }
 }
 

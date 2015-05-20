@@ -53,7 +53,10 @@ import org.mariadb.jdbc.internal.SQLExceptionMapper;
 import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.common.ValueObject;
 import org.mariadb.jdbc.internal.common.queryresults.*;
-import org.mariadb.jdbc.internal.mysql.*;
+import org.mariadb.jdbc.internal.mysql.MySQLColumnInformation;
+import org.mariadb.jdbc.internal.mysql.MySQLProtocol;
+import org.mariadb.jdbc.internal.mysql.MySQLType;
+import org.mariadb.jdbc.internal.mysql.MySQLValueObject;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -73,7 +76,7 @@ public class MySQLResultSet implements ResultSet {
     public static final MySQLResultSet EMPTY = createEmptyResultSet();
     private QueryResult queryResult;
     private Statement statement;
-    private Protocol protocol;
+    private MySQLProtocol protocol;
     private boolean lastGetWasNull;
     private boolean warningsCleared;
     ColumnNameMap columnNameMap;
@@ -81,7 +84,7 @@ public class MySQLResultSet implements ResultSet {
 
     protected MySQLResultSet() {
     }
-    public MySQLResultSet(QueryResult dqr, Statement statement, Protocol protocol, Calendar cal) {
+    public MySQLResultSet(QueryResult dqr, Statement statement, MySQLProtocol protocol, Calendar cal) {
         this.queryResult = dqr;
         this.statement = statement;
         this.protocol = protocol;
@@ -409,7 +412,7 @@ public class MySQLResultSet implements ResultSet {
 				&& "true".equalsIgnoreCase(protocol.getInfo().getProperty("useOldAliasMetadataBehavior")))
     		returnTableAlias = true;
     	
-        return new MySQLResultSetMetaData(queryResult.getColumnInformation(), protocol.getDatatypeMappingFlags(), returnTableAlias);
+        return new MySQLResultSetMetaData(queryResult.getColumnInformation(), protocol.datatypeMappingFlags, returnTableAlias);
     }
 
     /**
@@ -444,7 +447,7 @@ public class MySQLResultSet implements ResultSet {
      */
     public Object getObject(int columnIndex) throws SQLException {
         try {
-            return getValueObject(columnIndex).getObject(protocol.getDatatypeMappingFlags(), cal);
+            return getValueObject(columnIndex).getObject(protocol.datatypeMappingFlags, cal);
         } catch (ParseException e) {
             throw SQLExceptionMapper.getSQLException("Could not get object: " + e.getMessage(), "S1009", e);
         }
@@ -3750,7 +3753,7 @@ public class MySQLResultSet implements ResultSet {
     * @param findColumnReturnsOne - special parameter, used only in generated key result sets
     */
     static ResultSet createResultSet(String[] columnNames, MySQLType[] columnTypes, String[][] data,
-            Protocol protocol, boolean findColumnReturnsOne)  {
+            MySQLProtocol protocol, boolean findColumnReturnsOne)  {
         int N = columnNames.length;
         MySQLColumnInformation[] columns = new MySQLColumnInformation[N];
         
@@ -3807,7 +3810,7 @@ public class MySQLResultSet implements ResultSet {
      * @param protocol
      */
     static ResultSet createResultSet(String[] columnNames, MySQLType[] columnTypes, String[][] data,
-            Protocol protocol)  {
+            MySQLProtocol protocol)  {
         return createResultSet(columnNames, columnTypes, data, protocol,false);
     }
     
@@ -3822,7 +3825,7 @@ public class MySQLResultSet implements ResultSet {
      * @param findColumnReturnsOne - special parameter, used only in generated key result sets
      */
      static ResultSet createResultSet(MySQLColumnInformation[] columns, String[][] data,
-             Protocol protocol, boolean findColumnReturnsOne)  {
+             MySQLProtocol protocol, boolean findColumnReturnsOne)  {
          int N = columns.length;
          
          byte[] BOOL_TRUE = {1};
@@ -3872,7 +3875,7 @@ public class MySQLResultSet implements ResultSet {
       * that are represented as "1" or "0" strings
       * @param protocol
       */
-     static ResultSet createResultSet(MySQLColumnInformation[] columns, String[][] data, Protocol protocol)  {
+     static ResultSet createResultSet(MySQLColumnInformation[] columns, String[][] data, MySQLProtocol protocol)  {
          return createResultSet(columns, data, protocol, false);
      }
      

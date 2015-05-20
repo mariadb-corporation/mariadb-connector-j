@@ -58,7 +58,6 @@ import org.mariadb.jdbc.internal.common.queryresults.ModifyQueryResult;
 import org.mariadb.jdbc.internal.common.queryresults.QueryResult;
 import org.mariadb.jdbc.internal.common.queryresults.ResultSetType;
 import org.mariadb.jdbc.internal.mysql.MySQLProtocol;
-import org.mariadb.jdbc.internal.mysql.Protocol;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -70,7 +69,7 @@ public class MySQLStatement implements Statement {
     /**
      * the protocol used to talk to the server.
      */
-    private final Protocol protocol;
+    private final MySQLProtocol protocol;
     /**
      * the  Connection object.
      */
@@ -126,7 +125,7 @@ public class MySQLStatement implements Statement {
      *
      * @return the protocol used.
      */
-    public Protocol getProtocol() {
+    public MySQLProtocol getProtocol() {
         return protocol;
     }
 
@@ -159,20 +158,37 @@ public class MySQLStatement implements Statement {
          getTimer().schedule(timerTask, queryTimeout*1000);
     }
     
+    // Part of query prolog - check if connection is broken and reconnect
+    private void checkReconnect() throws SQLException {
+        if (protocol.shouldReconnect()) {
+             try {
+                 protocol.connect();
+             } catch (QueryException qe) {
+                 SQLExceptionMapper.throwException(qe, connection, this);
+             }
+         }  else if (protocol.shouldTryFailback()) {
+             try {
+                 protocol.reconnectToMaster();
+             } catch (Exception e) {
+                 // Do nothing
+             }
+         }
+    }
+    
     void executeQueryProlog() throws SQLException{
         if (isClosed()) {
             throw new SQLException("execute() is called on closed statement");
         }
-
+        checkReconnect();
         if (protocol.isClosed()){
-            throw new SQLException("execute() is called on closed connection");
+            throw new SQLException("execute() is called on closed connection");     
         }
         if (protocol.hasUnreadData()) {
             throw new  SQLException("There is an open result set on the current connection, "+
                     "which must be closed prior to executing a query");
         }
         if (protocol.hasMoreResults()) {
-            // Skip remaining result sets. CallableStatement might return many of them  -
+            // Skip remaining result sets. CallableStatement might return many of them  - 
         	// not only the "select" result sets, but also the "update" results
             while(getMoreResults(true)) {
             }
@@ -181,13 +197,13 @@ public class MySQLStatement implements Statement {
         cachedResultSets.clear();
         MySQLConnection conn = (MySQLConnection)getConnection();
         conn.reenableWarnings();
-
+        
         try {
             protocol.setMaxRows(maxRows);
         } catch(QueryException qe) {
             SQLExceptionMapper.throwException(qe, connection, this);
         }
-
+        
         if (queryTimeout != 0) {
 	    	setTimerTask();
         }
@@ -260,9 +276,10 @@ public class MySQLStatement implements Statement {
      * @throws SQLException
      */
      protected boolean execute(Query query) throws SQLException {
+    	//System.out.println(query);
         synchronized (protocol) {
-        	if (protocol.getActiveResult() != null) {
-                protocol.getActiveResult().close();
+        	if (protocol.activeResult != null) {
+                protocol.activeResult.close();
             }
             executing = true;
             QueryException exception = null;

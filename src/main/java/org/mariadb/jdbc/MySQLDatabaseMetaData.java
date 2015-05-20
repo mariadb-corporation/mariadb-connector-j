@@ -96,8 +96,8 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
         " WHEN 'binary' THEN "      + Types.BINARY +
         " WHEN 'time' THEN "        + Types.TIME +
         " WHEN 'timestamp' THEN "   + Types.TIMESTAMP +
-        " WHEN 'tinyint' THEN "  + (((connection.getProtocol().getDatatypeMappingFlags() &  MySQLValueObject.TINYINT1_IS_BIT)== 0)? Types.TINYINT : "IF(" + fullTypeColumnName + "='tinyint(1)'," + Types.BIT + "," + Types.TINYINT + ") ") +
-        " WHEN 'year' THEN "  + (((connection.getProtocol().getDatatypeMappingFlags() &  MySQLValueObject.YEAR_IS_DATE_TYPE)== 0)? Types.SMALLINT :Types.DATE) +
+        " WHEN 'tinyint' THEN "  + (((connection.getProtocol().datatypeMappingFlags &  MySQLValueObject.TINYINT1_IS_BIT)== 0)? Types.TINYINT : "IF(" + fullTypeColumnName + "='tinyint(1)'," + Types.BIT + "," + Types.TINYINT + ") ") +  
+        " WHEN 'year' THEN "  + (((connection.getProtocol().datatypeMappingFlags &  MySQLValueObject.YEAR_IS_DATE_TYPE)== 0)? Types.SMALLINT :Types.DATE) +  
         " ELSE "                    + Types.OTHER +  
         " END ";
     }
@@ -1729,6 +1729,7 @@ class ShowCreateTableParser {
          List<String[]> data = new ArrayList<String[]>();
 
          for (String p:parts) {
+              //System.out.println("--" + p);
               p = p.trim();
               if (!p.startsWith("CONSTRAINT") && !p.contains("FOREIGN KEY"))
                   continue;
