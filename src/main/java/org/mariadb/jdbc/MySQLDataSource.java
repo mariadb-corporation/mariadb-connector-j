@@ -53,11 +53,12 @@ package org.mariadb.jdbc;
 import org.mariadb.jdbc.internal.SQLExceptionMapper;
 import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.common.Utils;
-import org.mariadb.jdbc.internal.mysql.MySQLProtocol;
+import org.mariadb.jdbc.internal.mysql.*;
 
 import javax.sql.*;
 
 import java.io.PrintWriter;
+import java.lang.reflect.Proxy;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
@@ -297,7 +298,13 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XA
     public Connection getConnection() throws SQLException {
         createUrl();
         try {
-            return MySQLConnection.newConnection(new MySQLProtocol(url, username, password, info));
+            Protocol proxyfiedProtocol = (Protocol) Proxy.newProxyInstance(
+                        MySQLProtocol.class.getClassLoader(),
+                        new Class[]{Protocol.class},
+                        new FailoverProxy(new MySQLProtocol(url, username, password, info), new SingleHostListener())
+                );
+            proxyfiedProtocol.initializeConnection();
+            return MySQLConnection.newConnection(proxyfiedProtocol);
         } catch (QueryException e) {
             SQLExceptionMapper.throwException(e, null, null);
             return null;
@@ -317,7 +324,9 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XA
         createUrl();
         try {
         	Properties props = info == null ? new Properties() : info;
-            return MySQLConnection.newConnection(new MySQLProtocol(url, username, password, props));
+            Protocol proxyfiedProtocol = ConnectorUtils.retrieveProxy(url, username, password, props);
+            proxyfiedProtocol.initializeConnection();
+            return MySQLConnection.newConnection(proxyfiedProtocol);
         } catch (QueryException e) {
             SQLExceptionMapper.throwException(e, null, null);
             return null;

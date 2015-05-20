@@ -198,7 +198,7 @@ public class MySQLColumnInformation  {
             buffer.getByteBuffer().mark();
             Reader reader = new Reader(buffer);
             for(int i = 0; i < idx ; i++) {
-               reader.skipLengthEncodedBytes();
+            	reader.skipLengthEncodedBytes();
             }
             return new String(reader.getLengthEncodedBytes(),"UTF-8");
         }  catch (Exception e) {
