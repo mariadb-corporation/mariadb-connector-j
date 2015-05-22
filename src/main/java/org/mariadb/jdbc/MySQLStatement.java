@@ -1267,52 +1267,65 @@ public class MySQLStatement implements Statement {
         batchResultSet = rs;
         return ret;
     }
-    
     /**
-	 * Builds a new statement which contains the batched Statements and executes it.
-	 * @return an array of update counts containing one element for each command in the batch.
-	 *  The elements of the array are ordered according to the order in which commands were added to the batch.
-	 * @throws SQLException
-	 */
-	private int[] executeBatchAsMultiQueries() throws SQLException {
-		int i = 0;
-		StringBuilder stringBuilder = new StringBuilder();
-		String rewrite = rewrittenBatch();
-		if (rewrite != null) {
-			stringBuilder.append(rewrite);
-			i++;
-		} else {
-			for (; i < batchQueries.size(); i++) {
-				stringBuilder.append(batchQueries.get(i) + ";");
-			}
-		}
-		Statement ps = connection.createStatement();
-		ps.execute(stringBuilder.toString());
-		return getUpdateCounts(ps, i);
-	}
-	/**
-	 * Retrieves the update counts for the batched statements rewritten as
-	 * a multi query. The rewritten statement must have been executed already.
-	 * @param statement the rewritten statement
-	 * @return an array of update counts containing one element for each command in the batch.
-	 *  The elements of the array are ordered according to the order in which commands were added to the batch.
-         * @param  size
-	 * @throws SQLException
-	 */
-	protected int[] getUpdateCounts(Statement statement, int size) throws SQLException {
-		int[] result = new int[size];
-		int updateCount;
-		for (int count=0; count<size; count++) {
-			updateCount = statement.getUpdateCount();
+     * Builds a new statement which contains the batched Statements and executes it.
+     *
+     * @return an array of update counts containing one element for each command in the batch. The elements of
+     *         the array are ordered according to the order in which commands were added to the batch.
+     * @throws SQLException
+     */
+    private int[] executeBatchAsMultiQueries() throws SQLException {
+        int i = 0;
+        StringBuilder stringBuilder = new StringBuilder();
+        String rewrite = rewrittenBatch();
+        boolean rewrittenBatch = rewrite != null;
+        if (rewrittenBatch) {
+            stringBuilder.append(rewrite);
+            i = batchQueries.size();
+        } else {
+            for (; i < batchQueries.size(); i++) {
+                stringBuilder.append(batchQueries.get(i) + ";");
+            }
+        }
+        Statement ps = connection.createStatement();
+        ps.execute(stringBuilder.toString());
+        return rewrittenBatch ? getUpdateCountsForReWrittenBatch(ps, i) : getUpdateCounts(ps, i);
+    }
+
+    /**
+     * Retrieves the update counts for the batched statements rewritten as a multi query. The rewritten
+     * statement must have been executed already.
+     *
+     * @param statement
+     *            the rewritten statement
+     * @return an array of update counts containing one element for each command in the batch. The elements of
+     *         the array are ordered according to the order in which commands were added to the batch.
+     * @param size
+     * @throws SQLException
+     */
+    protected int[] getUpdateCounts(Statement statement, int size) throws SQLException {
+        int[] result = new int[size];
+        int updateCount;
+        for (int count = 0; count < size; count++) {
+            updateCount = statement.getUpdateCount();
             if (updateCount == -1) {
                 result[count] = SUCCESS_NO_INFO;
             } else {
                 result[count] = updateCount;
             }
             statement.getMoreResults();
-		}
-		return result;
-	}
+        }
+        return result;
+    }
+
+    protected int[] getUpdateCountsForReWrittenBatch(Statement statement, int size) throws SQLException {
+        int[] result = new int[size];
+        int resultVal = statement.getUpdateCount() == size ? 1 : SUCCESS_NO_INFO;
+        for (int count = 0; count < size; count++) {
+            result[count] = resultVal;
+        }
+        return result;
+    }
 
     /**
      * Returns an object that implements the given interface to allow access to non-standard methods, or standard

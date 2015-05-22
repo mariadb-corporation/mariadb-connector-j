@@ -297,30 +297,31 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
         batchResultSet = rs;
         return ret;
     }
-    
-	/**
-	 * Builds a new statement which contains the batched Statements and executes it.
-	 * @return an array of update counts containing one element for each command in the batch.
-	 *  The elements of the array are ordered according to the order in which commands were added to the batch.
-	 * @throws SQLException
-	 */
-	private int[] executeBatchAsMultiQueries() throws SQLException {
-		StringBuilder stringBuilder = new StringBuilder();
-		int i = 0;
-		String rewrite = rewrittenBatch();
-		if (rewrite != null) {
-			stringBuilder.append(rewrite);
-			i++;
-		} else {
-			for (; i < batchPreparedStatements.size(); i++) {
-				stringBuilder.append(batchPreparedStatements.get(i).dQuery.toSQL() + ";");
-			}
-		}
-		Statement ps = connection.createStatement();
-		ps.execute(stringBuilder.toString());
-		return getUpdateCounts(ps, i);
-	}
 
+    /**
+     * Builds a new statement which contains the batched Statements and executes it.
+     *
+     * @return an array of update counts containing one element for each command in the batch. The elements of
+     *         the array are ordered according to the order in which commands were added to the batch.
+     * @throws SQLException
+     */
+    private int[] executeBatchAsMultiQueries() throws SQLException {
+        StringBuilder stringBuilder = new StringBuilder();
+        int i = 0;
+        String rewrite = rewrittenBatch();
+        boolean rewrittenBatch = rewrite != null;
+        if (rewrittenBatch) {
+            stringBuilder.append(rewrite);
+            i = batchPreparedStatements.size();
+        } else {
+            for (; i < batchPreparedStatements.size(); i++) {
+                stringBuilder.append(batchPreparedStatements.get(i).dQuery.toSQL() + ";");
+            }
+        }
+        Statement ps = connection.createStatement();
+        ps.execute(stringBuilder.toString());
+        return rewrittenBatch ? getUpdateCountsForReWrittenBatch(ps, i) : getUpdateCounts(ps, i);
+    }
     /**
      * Sets the designated parameter to the given <code>Reader</code> object, which is the given number of characters
      * long. When a very large UNICODE value is input to a <code>LONGVARCHAR</code> parameter, it may be more practical
