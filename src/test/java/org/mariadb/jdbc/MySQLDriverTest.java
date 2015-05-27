@@ -228,14 +228,15 @@ public class MySQLDriverTest extends BaseTest {
     // Test query with length around max  packet length. Requires max_allowed_packet to be >16M
     public void largeQueryWrite() throws SQLException {
         Assume.assumeTrue(checkMaxAllowedPacket("largeQueryWrite"));
-        
-        char[] str= new char[16*1024*1024];
-        Arrays.fill(str, 'a');
+
         String prefix= "select length('";
         String suffix= "') as len";
+        int strlength = 16*1024*1024-prefix.length()-suffix.length()-2;
+        char[] str= new char[strlength];
+        Arrays.fill(str, 'a');
 
-        for (int i=16*1024*1024 - prefix.length()  -suffix.length() -5 ;
-             i < 16*1024*1024 - prefix.length()  -suffix.length();
+        for (int i=strlength - 5 ;
+             i < strlength;
              i++) {
             String query = prefix;
             String val = new String(str,0, i);
@@ -251,13 +252,14 @@ public class MySQLDriverTest extends BaseTest {
     public void largePreparedQueryWrite() throws SQLException {
         Assume.assumeTrue(checkMaxAllowedPacket("largePreparedQueryWrite"));
 
-        char[] str= new char[16*1024*1024];
-        Arrays.fill(str, 'a');
         String sql=  "select length(?) as len";
+        int sqllength = 16*1024*1024-sql.length()-3;
+        char[] str= new char[sqllength];
+        Arrays.fill(str, 'a');
 
         PreparedStatement ps = connection.prepareStatement(sql);
-        for (int i=16*1024*1024 - sql.length() -5;
-             i < 16*1024*1024 - sql.length();
+        for (int i=sqllength -5;
+             i < sqllength;
              i++) {
             String val = new String(str,0, i);
             ps.setString(1,val);
@@ -285,13 +287,15 @@ public class MySQLDriverTest extends BaseTest {
         
         setConnection("&useCompression=true");
         try {
-            char[] str= new char[16*1024*1024];
-            Arrays.fill(str, 'a');
             String sql=  "select ?";
+            int sqllength = 16*1024*1024-sql.length()-2;
+
+            char[] str= new char[sqllength];
+            Arrays.fill(str, 'a');
 
             PreparedStatement ps = connection.prepareStatement(sql);
-            for (int i=16*1024*1024 - sql.length() -5;
-                 i < 16*1024*1024 - sql.length();
+            for (int i=sqllength -5;
+                 i < sqllength;
                  i++) {
                 String val = new String(str,0, i);
                 ps.setString(1,val);
