@@ -1140,7 +1140,7 @@ public class DriverTest extends BaseTest{
             Arrays.fill(arr,'a');
             ResultSet rs = connection.createStatement().executeQuery("select '" + new String(arr) + "'");
             rs.next();
-            System.out.println(rs.getString(1).length());
+            log.finest(String.valueOf(rs.getString(1).length()));
         } finally {
         }
     }
@@ -1497,11 +1497,11 @@ public class DriverTest extends BaseTest{
             if(rs.getBoolean(1)) {
                 namedPipeName = rs.getString(2);
             } else {
-                System.out.println("test 'namedpipe' skipped");
+                log.info("test 'namedpipe' skipped");
             }
         }  catch(SQLException e) {
             //named pipe not found,
-            System.out.println("test 'namedpipe' skipped");
+            log.info("test 'namedpipe' skipped");
         }
         
         //skip test if no namedPipeName was obtained because then we do not use a socket connection

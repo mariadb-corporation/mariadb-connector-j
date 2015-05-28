@@ -17,7 +17,7 @@ public class BigQueryTest extends BaseTest{
     @Test
     public void sendBigQuery2() throws SQLException {
 
-        Assume.assumeTrue(checkMaxAllowedPacket("sendBigQuery2"));
+        Assume.assumeTrue(checkMaxAllowedPacketMore40m("sendBigQuery2"));
 
         Statement stmt = connection.createStatement();
         stmt.execute("drop table  if exists bigblob");
@@ -43,10 +43,11 @@ public class BigQueryTest extends BaseTest{
             assertEquals(arr[i], newBytes[i]);
         }
     }
+
     @Test
     public void sendBigPreparedQuery() throws SQLException {
 
-    	Assume.assumeTrue(checkMaxAllowedPacket("sendBigPreparedQuery"));
+    	Assume.assumeTrue(checkMaxAllowedPacketMore40m("sendBigPreparedQuery"));
 
         Statement stmt = connection.createStatement();
         stmt.execute("drop table  if exists bigblob2");

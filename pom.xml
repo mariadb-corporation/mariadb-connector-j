@@ -1,68 +1,79 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.mariadb.jdbc</groupId>
     <artifactId>mariadb-java-client</artifactId>
     <packaging>jar</packaging>
     <name>mariadb-java-client</name>
-    <version>1.1.8</version>
+    <version>1.1.9</version>
     <description>JDBC driver for MariaDB and MySQL</description>
     <url>https://kb.askmonty.org/en/about-the-mariadb-java-client/</url>
     <properties>
-      <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-      <jna.version>3.3.0</jna.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <jna.version>3.3.0</jna.version>
     </properties>
     <licenses>
         <license>
             <name>LGPL-2.1</name>
         </license>
     </licenses>
-   <scm>
-       <connection>scm:git:git://github.com/MariaDB/mariadb-connector-j.git</connection>
-       <url>https://github.com/MariaDB/mariadb-connector-j</url>
-       <developerConnection>scm:git:git@github.com:MariaDB/mariadb-connector-j.git</developerConnection>
-   </scm>
+    <scm>
+        <connection>scm:git:git://github.com/MariaDB/mariadb-connector-j.git</connection>
+        <url>https://github.com/MariaDB/mariadb-connector-j</url>
+        <developerConnection>scm:git:git@github.com:MariaDB/mariadb-connector-j.git</developerConnection>
+    </scm>
     <issueManagement>
-      <system>JIRA</system>
-      <url>https://mariadb.atlassian.net/browse/CONJ</url>
+        <system>JIRA</system>
+        <url>https://mariadb.atlassian.net/browse/CONJ</url>
     </issueManagement>
     <developers>
         <developer>
-          <id>wlad</id>
-          <name>Vladislav Vaintroub</name>
-          <email>wlad@montyprogram.com</email>
+            <id>wlad</id>
+            <name>Vladislav Vaintroub</name>
+            <email>wlad@montyprogram.com</email>
         </developer>
         <developer>
-          <id>massimo</id>
-          <name>Massimo Siani</name>
-          <email>massimo.siani@skysql.com</email>
+            <id>massimo</id>
+            <name>Massimo Siani</name>
+            <email>massimo.siani@skysql.com</email>
         </developer>
         <developer>
-          <id>georg</id>
-          <name>Georg Richter</name>
-          <email>georg@skysql.com</email>
+            <id>georg</id>
+            <name>Georg Richter</name>
+            <email>georg@skysql.com</email>
         </developer>
     </developers>
-  <profiles><profile>
-  <id>package-source</id>
-  <activation><property><name>package-source</name></property></activation>
-  <build><plugins><plugin>
-         <groupId>org.codehaus.mojo</groupId>
-         <artifactId>exec-maven-plugin</artifactId>
-         <version>1.2</version>
-         <configuration>
-            <executable>git</executable>
-            <arguments>
-            <argument>archive</argument>
-            <argument>--format</argument>
-            <argument>tar.gz</argument>
-            <argument>--output</argument>
-            <argument>${project.name}-${project.version}.tar.gz</argument>
-            <argument>master</argument>
-            </arguments>
-         </configuration>
-  </plugin></plugins></build>
-   </profile></profiles>
-   
+    <profiles>
+        <profile>
+            <id>package-source</id>
+            <activation>
+                <property>
+                    <name>package-source</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>1.2</version>
+                        <configuration>
+                            <executable>git</executable>
+                            <arguments>
+                                <argument>archive</argument>
+                                <argument>--format</argument>
+                                <argument>tar.gz</argument>
+                                <argument>--output</argument>
+                                <argument>${project.name}-${project.version}.tar.gz</argument>
+                                <argument>master</argument>
+                            </arguments>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
     <build>
         <plugins>
             <plugin>
@@ -75,30 +86,32 @@
                 </configuration>
             </plugin>
             <plugin>
-               <groupId>org.apache.maven.plugins</groupId>
-               <artifactId>maven-jar-plugin</artifactId>
-               <version>2.5</version>
-               <configuration>
-                 <archive>
-                   <!-- manifestFile entry seems to be required to do any tweaking -->
-                   <manifestFile>src/main/resources/META-INF/MANIFEST.MF</manifestFile>
-                   <manifestEntries>
-                     <Bundle-Version>${project.version}.0</Bundle-Version>
-                     <Bundle-ManifestVersion>2</Bundle-ManifestVersion>
-                     <Bundle-Name>MariaDB JDBC Client</Bundle-Name>
-                     <Bundle-SymbolicName>org.mariadb.jdbc</Bundle-SymbolicName>
-                     <Export-Package>org.mariadb.jdbc </Export-Package>
-                     <Import-Package>javax.net;resolution:=optional,javax.net.ssl;resolution:=optional,javax.sql;resolution:=optional,javax.transaction.xa;resolution:=optional</Import-Package>
-                   </manifestEntries>
-                 </archive>
-               </configuration>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>2.5</version>
+                <configuration>
+                    <archive>
+                        <!-- manifestFile entry seems to be required to do any tweaking -->
+                        <manifestFile>src/main/resources/META-INF/MANIFEST.MF</manifestFile>
+                        <manifestEntries>
+                            <Bundle-Version>${project.version}.0</Bundle-Version>
+                            <Bundle-ManifestVersion>2</Bundle-ManifestVersion>
+                            <Bundle-Name>MariaDB JDBC Client</Bundle-Name>
+                            <Bundle-SymbolicName>org.mariadb.jdbc</Bundle-SymbolicName>
+                            <Export-Package>org.mariadb.jdbc</Export-Package>
+                            <Import-Package>
+                                javax.net;resolution:=optional,javax.net.ssl;resolution:=optional,javax.sql;resolution:=optional,javax.transaction.xa;resolution:=optional
+                            </Import-Package>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>2.12.4</version>
                 <configuration>
-                  <argLine>-Xmx1g</argLine>
+                    <argLine>-Xmx1g</argLine>
                 </configuration>
             </plugin>
             <!--
@@ -116,42 +129,42 @@
                   </executions>
             </plugin>
             -->
-	    <plugin>
-              <groupId>com.atlassian.maven.plugins</groupId>
-              <artifactId>maven-clover2-plugin</artifactId>
-              <version>4.0.2</version>
-	      <configuration>
-                <licenseLocation>/etc/clover.license</licenseLocation>
-              </configuration>
+            <plugin>
+                <groupId>com.atlassian.maven.plugins</groupId>
+                <artifactId>maven-clover2-plugin</artifactId>
+                <version>4.0.2</version>
+                <configuration>
+                    <licenseLocation>/etc/clover.license</licenseLocation>
+                </configuration>
             </plugin>
-	    <plugin>
-	      <groupId>org.apache.maven.plugins</groupId>
-	      <artifactId>maven-source-plugin</artifactId>
-	      <version>2.4</version>
-	      <executions>
-		<execution>
-		  <goals>
-		    <goal>jar</goal>
-		  </goals>
-		</execution>
-	      </executions>
-	    </plugin>
-        <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-javadoc-plugin</artifactId>
-            <version>2.10.1</version>
-            <executions>
-       		    <execution>
-                 <id>attach-javadocs</id>
-                 <goals>
-                   <goal>jar</goal>
-                 </goals>
-       		    </execution>
-            </executions>
-        </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>2.4</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>2.10.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
-  
+
     <dependencies>
         <dependency>
             <groupId>junit</groupId>
@@ -160,74 +173,74 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-        	<groupId>net.java.dev.jna</groupId>
-        	<artifactId>jna</artifactId>
-        	<version>${jna.version}</version>
-    	</dependency>
-    	<dependency>
-        	<groupId>net.java.dev.jna</groupId>
-        	<artifactId>jna</artifactId>
-        	<version>${jna.version}</version>
-        	<classifier>platform</classifier>
-    	</dependency>
-    	<dependency>
-    		<groupId>commons-dbcp</groupId>
-    		<artifactId>commons-dbcp</artifactId>
-    		<version>1.4</version>
-    	</dependency>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna</artifactId>
+            <version>${jna.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna</artifactId>
+            <version>${jna.version}</version>
+            <classifier>platform</classifier>
+        </dependency>
+        <dependency>
+            <groupId>commons-dbcp</groupId>
+            <artifactId>commons-dbcp</artifactId>
+            <version>1.4</version>
+        </dependency>
     </dependencies>
     <reporting>
         <plugins>
-	  <plugin>
-	    <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-clover-plugin</artifactId>
-			<version>2.4</version>
-            <configuration> 
-	      <licenseLocation>/etc/clover.license</licenseLocation>
-            </configuration>
-	  </plugin>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-checkstyle-plugin</artifactId>
-			<version>2.4</version>
-	    <configuration>
-	      <configLocation>mariadb-jdbc-checks.xml</configLocation>
-            </configuration>
-          </plugin>
             <plugin>
-              <groupId>org.apache.maven.plugins</groupId>
-              <artifactId>maven-javadoc-plugin</artifactId>
-			  <version>2.1.0</version>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-clover-plugin</artifactId>
+                <version>2.4</version>
+                <configuration>
+                    <licenseLocation>/etc/clover.license</licenseLocation>
+                </configuration>
             </plugin>
             <plugin>
-              <groupId>org.apache.maven.plugins</groupId>
-              <artifactId>maven-pmd-plugin</artifactId>
-			  <version>3.2</version>
-              <configuration>
-                <sourceEncoding>utf-8</sourceEncoding>
-                <minimumTokens>100</minimumTokens>
-                <targetJdk>1.6</targetJdk>
-              </configuration>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <version>2.4</version>
+                <configuration>
+                    <configLocation>mariadb-jdbc-checks.xml</configLocation>
+                </configuration>
             </plugin>
             <plugin>
-              <groupId>org.apache.maven.plugins</groupId>
-              <artifactId>maven-surefire-report-plugin</artifactId>
-			  <version>2.18</version>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>2.1.0</version>
             </plugin>
-	    <plugin>
-	      <groupId>org.codehaus.mojo</groupId>
-	      <artifactId>findbugs-maven-plugin</artifactId>
-	      <version>2.1</version>
-	      <configuration>
-		<xmlOutput>true</xmlOutput>
-	      </configuration>
-	    </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-pmd-plugin</artifactId>
+                <version>3.2</version>
+                <configuration>
+                    <sourceEncoding>utf-8</sourceEncoding>
+                    <minimumTokens>100</minimumTokens>
+                    <targetJdk>1.6</targetJdk>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-report-plugin</artifactId>
+                <version>2.18</version>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>findbugs-maven-plugin</artifactId>
+                <version>2.1</version>
+                <configuration>
+                    <xmlOutput>true</xmlOutput>
+                </configuration>
+            </plugin>
 
         </plugins>
     </reporting>
     <parent>
-      <groupId>org.sonatype.oss</groupId>
-      <artifactId>oss-parent</artifactId>
-      <version>6</version>
+        <groupId>org.sonatype.oss</groupId>
+        <artifactId>oss-parent</artifactId>
+        <version>6</version>
     </parent>
 </project>

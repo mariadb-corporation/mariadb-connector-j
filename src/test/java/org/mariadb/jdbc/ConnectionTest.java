@@ -42,7 +42,7 @@ public class ConnectionTest extends BaseTest {
 	}
 
 	/**
-	 * CONJ-75
+	 * CONJ-75 (corrected with CONJ-156)
 	 * Needs permission java.sql.SQLPermission "abort" or will be skipped
 	 * 
 	 * @throws SQLException
@@ -51,12 +51,13 @@ public class ConnectionTest extends BaseTest {
 	public void abortTest() throws SQLException {
 		Statement stmt = connection.createStatement();
 		SQLPermission sqlPermission = new SQLPermission("callAbort");
-		SecurityManager securityManager = new SecurityManager();
+
+		SecurityManager securityManager = System.getSecurityManager();
 		if (securityManager != null && sqlPermission != null) {
 			try {
 				securityManager.checkPermission(sqlPermission);
 			} catch (SecurityException se) {
-				System.out.println("test 'abortTest' skipped  due to missing policy");
+				log.info("test 'abortTest' skipped  due to missing policy");
 				return;
 			}
 		}
@@ -77,7 +78,7 @@ public class ConnectionTest extends BaseTest {
 			stmt.close();
 		}
 	}
-	
+
 	/**
 	 * CONJ-121: implemented Connection.getNetworkTimeout and Connection.setNetworkTimeout
 	 * @throws SQLException
@@ -86,12 +87,12 @@ public class ConnectionTest extends BaseTest {
 	public void networkTimeoutTest() throws SQLException {
 		int timeout = 1000;
 		SQLPermission sqlPermission = new SQLPermission("setNetworkTimeout");
-		SecurityManager securityManager = new SecurityManager();
+		SecurityManager securityManager = System.getSecurityManager();
 		if (securityManager != null && sqlPermission != null) {
 			try {
 			securityManager.checkPermission(sqlPermission);
 			} catch (SecurityException se) {
-				System.out.println("test 'setNetworkTimeout' skipped  due to missing policy");
+				log.warning("test 'setNetworkTimeout' skipped  due to missing policy");
 				return;
 			}
 		}
@@ -164,7 +165,7 @@ public class ConnectionTest extends BaseTest {
 				sb.append(rowData);
 			}
 		} catch (OutOfMemoryError e) {
-			System.out.println("skip test 'maxAllowedPackedExceptionIsPrettyTest' - not enough memory");
+			log.warning("skip test 'maxAllowedPackedExceptionIsPrettyTest' - not enough memory");
 			return;
 		}
 		String sql = "INSERT INTO dummy VALUES " + sb.toString();

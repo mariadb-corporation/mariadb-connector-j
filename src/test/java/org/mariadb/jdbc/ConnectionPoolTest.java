@@ -70,13 +70,12 @@ public class ConnectionPoolTest extends BaseTest {
         
         try {
     		Connection conn = dataSource.getConnection();
-    		System.out.println("autocommit: " + conn.getAutoCommit());
+            log.fine("autocommit: " + conn.getAutoCommit());
         	Statement stmt = conn.createStatement();
         	stmt.executeUpdate("drop table if exists t3");
     		stmt.executeUpdate("create table t3(message text)");
         	conn.close();
     	} catch (SQLException e1) {
-			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
         
@@ -228,9 +227,8 @@ public class ConnectionPoolTest extends BaseTest {
     				stmt.execute("insert into t3 values('hello" + Thread.currentThread().getId() + "-" + i + "')"); 
 					conn.close();
 				} catch (SQLException e) {
-					// TODO Auto-generated catch block
-					System.out.println(e.getSQLState());
-				}
+                    log.fine(e.getSQLState());
+                }
             }
         }
     }

@@ -117,14 +117,14 @@ import static org.hamcrest.CoreMatchers.*;
             ResultSetMetaData md = rs.getMetaData();
             
         	for(int i = 1; i <= md.getColumnCount();i++) {
-        		System.out.println(md.getColumnLabel(i));
+        		log.fine(md.getColumnLabel(i));
         	}
             while(rs.next()) {
 
             	for(int i = 1; i <= rs.getMetaData().getColumnCount();i++) {
-            		System.out.print(rs.getObject(i)+ " ");
+                    log.fine(rs.getObject(i)+ " ");
             	}
-            	System.out.println();
+
             }
         }
         

@@ -6,14 +6,24 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.sql.*;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
+import java.util.logging.*;
+import java.util.logging.Formatter;
 
+/**
+ *  Base util class.
+ *  For testing
+ *  mvn test -DdbUrl=jdbc:mysql://localhost:3306/test?user=root -DlogLevel=FINEST
+ */
 @Ignore
 public class BaseTest {
+
+    protected static Logger log = Logger.getLogger("org.maria.jdbc");
     protected Connection connection;
     protected static String connU;
     protected static String connURI;
@@ -29,14 +39,25 @@ public class BaseTest {
     public static void beforeClassBaseTest() {
     	String url = System.getProperty("dbUrl", mDefUrl);
     	JDBCUrl jdbcUrl = JDBCUrl.parse(url);
-    	
+
+        String logLevel = System.getProperty("logLevel");
+        if (logLevel != null) {
+            if (log.getHandlers().length == 0) {
+                ConsoleHandler consoleHandler = new ConsoleHandler();
+                consoleHandler.setFormatter(new CustomFormatter());
+                consoleHandler.setLevel(Level.parse(logLevel));
+                log.addHandler(consoleHandler);
+                log.setLevel(Level.ALL);
+            }
+        }
+
     	hostname = jdbcUrl.getHostname();
     	port = jdbcUrl.getPort();
     	database = jdbcUrl.getDatabase();
     	username = jdbcUrl.getUsername();
     	password = jdbcUrl.getPassword();
     	
-    	logInfo("Properties parsed from JDBC URL - hostname: " + hostname + ", port: " + port + ", database: " + database + ", username: " + username + ", password: " + password);
+    	log.fine("Properties parsed from JDBC URL - hostname: " + hostname + ", port: " + port + ", database: " + database + ", username: " + username + ", password: " + password);
     	
     	if (database != null && "".equals(username)) {
     		String[] tokens = database.contains("?") ? database.split("\\?") : null;
@@ -142,20 +163,51 @@ public class BaseTest {
     	return DriverManager.getConnection(url, info);
     }
 
-    boolean checkMaxAllowedPacket(String testName) throws SQLException
-    {
+    boolean checkMaxAllowedPacket(String testName) throws SQLException {
         Statement st = connection.createStatement();
         ResultSet rs = st.executeQuery("select @@max_allowed_packet");
         rs.next();
         int max_allowed_packet = rs.getInt(1);
-        if(max_allowed_packet < 0xffffff)
-        {
-          System.out.println("test '" + testName + "' skipped  due to server variable max_allowed_packet < 16M");
-          return false;
+
+        rs = st.executeQuery("select @@innodb_log_file_size");
+        rs.next();
+        int innodb_log_file_size = rs.getInt(1);
+
+        if(max_allowed_packet < 16*1024*1024) {
+            log.info("test '" + testName + "' skipped  due to server variable max_allowed_packet < 16M");
+            return false;
+        }
+        if(innodb_log_file_size < 16*1024*1024) {
+            log.info("test '" + testName + "' skipped  due to server variable innodb_log_file_size < 16M");
+            return false;
         }
         return true;
     }
-    
+
+    boolean checkMaxAllowedPacketMore40m(String testName) throws SQLException {
+        Statement st = connection.createStatement();
+        ResultSet rs = st.executeQuery("select @@max_allowed_packet");
+        rs.next();
+        int max_allowed_packet = rs.getInt(1);
+
+        rs = st.executeQuery("select @@innodb_log_file_size");
+        rs.next();
+        int innodb_log_file_size = rs.getInt(1);
+
+
+        if(max_allowed_packet < 40*1024*1024) {
+            log.info("test '" + testName + "' skipped  due to server variable max_allowed_packet < 40M");
+            return false;
+        }
+        if(innodb_log_file_size < 160*1024*1024) {
+            log.info("test '" + testName + "' skipped  due to server variable innodb_log_file_size < 160M");
+            return false;
+        }
+
+        return true;
+    }
+
+
     //does the user have super privileges or not?
     boolean hasSuperPrivilege(String testName) throws SQLException
     {
@@ -164,20 +216,20 @@ public class BaseTest {
 
         // first test for specific user and host combination
         ResultSet rs = st.executeQuery("SELECT Super_Priv FROM mysql.user WHERE user = '" + username + "' AND host = '" + hostname + "'");
-        if (rs.next())
-            superPrivilege = (rs.getString(1) == "Y" ? true : false);
-        else
+        if (rs.next()) {
+            superPrivilege = (rs.getString(1).equals("Y") ? true : false);
+        } else
             {
                 // then check for user on whatever (%) host
                 rs = st.executeQuery("SELECT Super_Priv FROM mysql.user WHERE user = '" + username + "' AND host = '%'");
                 if (rs.next())
-                    superPrivilege = (rs.getString(1) == "Y" ? true : false);
+                    superPrivilege = (rs.getString(1).equals("Y") ? true : false);
             }
 
         rs.close();
 
         if (!superPrivilege)
-            System.out.println("test '" + testName + "' skipped because user '" + username + "' doesn't have SUPER privileges");
+            log.info("test '" + testName + "' skipped because user '" + username + "' doesn't have SUPER privileges");
 
         return superPrivilege;
     }
@@ -196,7 +248,7 @@ public class BaseTest {
 		}
     	
     	if (isLocal == false)
-    		System.out.println("test '" + testName + "' skipped because connection is not local");
+            log.info("test '" + testName + "' skipped because connection is not local");
     	
     	return isLocal;
     }
@@ -224,6 +276,40 @@ public class BaseTest {
     // common function for logging information 
     static void logInfo(String message)
     {
-    	System.out.println(message);
+        log.info(message);
+    }
+}
+
+class CustomFormatter  extends Formatter {
+    private static final String format = "[%1$tT] %4$s: %2$s - %5$s %6$s%n";
+    private final java.util.Date dat = new java.util.Date();
+    public synchronized String format(LogRecord record) {
+        dat.setTime(record.getMillis());
+        String source;
+        if (record.getSourceClassName() != null) {
+            source = record.getSourceClassName();
+            if (record.getSourceMethodName() != null) {
+                source += " " + record.getSourceMethodName();
+            }
+        } else {
+            source = record.getLoggerName();
+        }
+        String message = formatMessage(record);
+        String throwable = "";
+        if (record.getThrown() != null) {
+            StringWriter sw = new StringWriter();
+            PrintWriter pw = new PrintWriter(sw);
+            pw.println();
+            record.getThrown().printStackTrace(pw);
+            pw.close();
+            throwable = sw.toString();
+        }
+        return String.format(format,
+                dat,
+                source,
+                record.getLoggerName(),
+                record.getLevel().getName(),
+                message,
+                throwable);
     }
 }
