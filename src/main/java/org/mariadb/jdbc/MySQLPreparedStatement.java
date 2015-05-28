@@ -308,9 +308,10 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
 		StringBuilder stringBuilder = new StringBuilder();
 		int i = 0;
 		String rewrite = rewrittenBatch();
-		if (rewrite != null) {
+        boolean rewrittenBatch = rewrite != null;
+		if (rewrittenBatch) {
 			stringBuilder.append(rewrite);
-			i++;
+            i = batchPreparedStatements.size();
 		} else {
 			for (; i < batchPreparedStatements.size(); i++) {
 				stringBuilder.append(batchPreparedStatements.get(i).dQuery.toSQL() + ";");
@@ -318,7 +319,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
 		}
 		Statement ps = connection.createStatement();
 		ps.execute(stringBuilder.toString());
-		return getUpdateCounts(ps, i);
+        return rewrittenBatch ? getUpdateCountsForReWrittenBatch(ps, i) : getUpdateCounts(ps, i);
 	}
 
     /**

@@ -1278,9 +1278,10 @@ public class MySQLStatement implements Statement {
 		int i = 0;
 		StringBuilder stringBuilder = new StringBuilder();
 		String rewrite = rewrittenBatch();
-		if (rewrite != null) {
+        boolean rewrittenBatch = rewrite != null;
+		if (rewrittenBatch) {
 			stringBuilder.append(rewrite);
-			i++;
+            i = batchQueries.size();
 		} else {
 			for (; i < batchQueries.size(); i++) {
 				stringBuilder.append(batchQueries.get(i) + ";");
@@ -1288,9 +1289,11 @@ public class MySQLStatement implements Statement {
 		}
 		Statement ps = connection.createStatement();
 		ps.execute(stringBuilder.toString());
-		return getUpdateCounts(ps, i);
+        return rewrittenBatch ? getUpdateCountsForReWrittenBatch(ps, i) : getUpdateCounts(ps, i);
 	}
-	/**
+
+
+    /**
 	 * Retrieves the update counts for the batched statements rewritten as
 	 * a multi query. The rewritten statement must have been executed already.
 	 * @param statement the rewritten statement
@@ -1313,6 +1316,15 @@ public class MySQLStatement implements Statement {
 		}
 		return result;
 	}
+
+    protected int[] getUpdateCountsForReWrittenBatch(Statement statement, int size) throws SQLException {
+        int[] result = new int[size];
+        int resultVal = statement.getUpdateCount() == size ? 1 : SUCCESS_NO_INFO;
+        for (int count = 0; count < size; count++) {
+            result[count] = resultVal;
+        }
+        return result;
+    }
 
     /**
      * Returns an object that implements the given interface to allow access to non-standard methods, or standard

@@ -650,6 +650,11 @@ public class MySQLCallableStatement implements CallableStatement
         return outputParameters().getDouble(parameterIndex);
     }
 
+    /**
+     * @deprecated use <code>getBigDecimal(int parameterIndex)</code>
+     *             or <code>getBigDecimal(String parameterName)</code>
+    */
+    @Deprecated
     public BigDecimal getBigDecimal(int parameterIndex, int scale) throws SQLException {
         return outputParameters().getBigDecimal(parameterIndex);
     }
@@ -1200,6 +1205,10 @@ public class MySQLCallableStatement implements CallableStatement
         inputParameters().setAsciiStream(parameterIndex, x, length);
     }
 
+    /**
+     * @deprecated Use {@code setCharacterStream}
+     */
+    @Deprecated
     public void setUnicodeStream(int parameterIndex, InputStream x, int length) throws SQLException {
         inputParameters().setBinaryStream(parameterIndex, x, length);
     }

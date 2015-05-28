@@ -1311,7 +1311,7 @@ public final class MySQLConnection implements Connection {
 			return;
 		}
 		SQLPermission sqlPermission = new SQLPermission("callAbort");
-		SecurityManager securityManager = new SecurityManager();
+		SecurityManager securityManager = System.getSecurityManager();
 		if (securityManager != null && sqlPermission != null) {
 			securityManager.checkPermission(sqlPermission);
 		}
@@ -1355,7 +1355,7 @@ public final class MySQLConnection implements Connection {
 			throw SQLExceptionMapper.getSQLException("Connection.setNetworkTimeout cannot be called with a negative timeout");
 		}
 		SQLPermission sqlPermission = new SQLPermission("setNetworkTimeout");
-		SecurityManager securityManager = new SecurityManager();
+		SecurityManager securityManager = System.getSecurityManager();
 		if (securityManager != null && sqlPermission != null) {
 			securityManager.checkPermission(sqlPermission);
 		}
