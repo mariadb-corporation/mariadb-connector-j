@@ -1136,7 +1136,8 @@ public class DriverTest extends BaseTest{
     	Assume.assumeTrue(checkMaxAllowedPacket("testError"));
             
         try {
-            char arr[] = new char[16*1024*1024-1];
+            // Remove 11: -1 so we do not reach 16M and -10 because of the "select ''" size.
+            char arr[] = new char[16*1024*1024-11];
             Arrays.fill(arr,'a');
             ResultSet rs = connection.createStatement().executeQuery("select '" + new String(arr) + "'");
             rs.next();
