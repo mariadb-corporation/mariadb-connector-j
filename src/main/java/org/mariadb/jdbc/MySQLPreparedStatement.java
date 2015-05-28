@@ -250,7 +250,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
     		result.append(firstRewrite);
     		for (MySQLPreparedStatement mySQLPS : batchPreparedStatements) {
     			String query = mySQLPS.dQuery.toSQL();
-    			result.append(query.substring(getInsertIncipit(query)));
+    			result.append(query.substring(firstRewrite.length()));
     			result.append(",");
     		}
     		result.deleteCharAt(result.length() - 1);
