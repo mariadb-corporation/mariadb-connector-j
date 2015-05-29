@@ -50,12 +50,9 @@ package org.mariadb.jdbc.internal.common.query;
 
 import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.common.query.parameters.ParameterHolder;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
-import java.nio.charset.Charset;
 import java.util.List;
 
 import static org.mariadb.jdbc.internal.common.Utils.createQueryParts;
@@ -121,17 +118,18 @@ public class MySQLParameterizedQuery implements ParameterizedQuery {
     }
 
 
-    public void writeTo(final OutputStream os) throws IOException, QueryException {
-
+    public byte[] sqlByteArray() throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
         if(queryPartsArray.length == 0) {
             throw new AssertionError("Invalid query, queryParts was empty");
         }
-        os.write(queryPartsArray[0]);
+        baos.write(queryPartsArray[0]);
         for(int i = 1; i<queryPartsArray.length; i++) {
-            parameters[i-1].writeTo(os);
+            parameters[i-1].writeTo(baos);
             if(queryPartsArray[i].length != 0)
-                os.write(queryPartsArray[i]);
+                baos.write(queryPartsArray[i]);
         }
+        return baos.toByteArray();
     }
 
 
@@ -186,38 +184,12 @@ public class MySQLParameterizedQuery implements ParameterizedQuery {
      */
 	public String toSQL() {
 		try {
-			final ByteArrayOutputStream os = new ByteArrayOutputStream();
-			writeTo(os);
-			String sql = new String(os.toByteArray(), Charset.forName("UTF8"));
-			return sql;
-		} catch (QueryException qe) {
-			return "";
+            return new String(sqlByteArray());
 		} catch (IOException e) {
 			return "";
 		}
 	}
 
-	private String toSQL2() throws UnsupportedEncodingException {
-        if(queryPartsArray.length == 0) {
-            return "";
-        }
-        String result;
-        result = new String(queryPartsArray[0], "UTF-8");
-        for(int i = 1; i<queryPartsArray.length; i++) {
-            result += parameters[i-1];
-            if(queryPartsArray[i].length != 0)
-                result += new String(queryPartsArray[i], "UTF-8");
-        }
-		return result;
-    }
-	
-	@Override
-	public int getPacketLength() {
-		try {
-			return toSQL2().getBytes("UTF-8").length;
-		} catch (UnsupportedEncodingException e) {
-			return -1;
-		}
-	}
+
 
 }
