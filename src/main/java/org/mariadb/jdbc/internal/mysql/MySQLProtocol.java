@@ -526,7 +526,6 @@ public class MySQLProtocol {
            hasWarnings = false;
            connected = true;
            hostFailed = false; // Prevent reconnects
-           writer.setMaxAllowedPacket(this.maxAllowedPacket);
        } catch (IOException e) {
            throw new QueryException("Could not connect to " + host + ":" +
                    port + ": " + e.getMessage(),
@@ -1016,7 +1015,7 @@ public class MySQLProtocol {
         dQuery.validate();
         log.log(Level.FINEST, "Executing streamed query: {0}", dQuery);
         this.moreResults = false;
-        final StreamedQueryPacket packet = new StreamedQueryPacket(dQuery, this.maxAllowedPacket);
+        final StreamedQueryPacket packet = new StreamedQueryPacket(dQuery);
 
         try {
             packet.send(writer);
@@ -1173,11 +1172,9 @@ public class MySQLProtocol {
 		this.localInfileInputStream = inputStream;
 	}
 	
-	public int getMaxAllowedPacket() {
-		return this.maxAllowedPacket;
-	}
+
 	public void setMaxAllowedPacket(int maxAllowedPacket) {
-		this.maxAllowedPacket = maxAllowedPacket;
+		writer.setMaxAllowedPacket(maxAllowedPacket);
 	}
 	
 	/**

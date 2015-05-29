@@ -62,27 +62,16 @@ import java.io.OutputStream;
 public class StreamedQueryPacket implements CommandPacket {
 
     private final Query         query;
-    private final int maxAllowedPacket;
 
-    public StreamedQueryPacket(final Query query, int maxAllowedPacket) {
+    public StreamedQueryPacket(final Query query) {
         this.query = query;
-        this.maxAllowedPacket = maxAllowedPacket;
     }
 
     public int send(final OutputStream ostream) throws IOException, QueryException {
-        byte[] queryStream = query.sqlByteArray();
-        if (maxAllowedPacket > 0 && queryStream.length > maxAllowedPacket) {
-            throw new QueryException("Packet for query is too large ("
-                    + queryStream.length
-                    + " > "
-                    + maxAllowedPacket
-                    + "). You can change this value on the server by setting the max_allowed_packet' variable.",
-                    -1, SQLExceptionMapper.SQLStates.UNDEFINED_SQLSTATE.getSqlState());
-        }
         PacketOutputStream pos = (PacketOutputStream)ostream;
         pos.startPacket(0);
         pos.write(0x03);
-        ostream.write(queryStream, 0, queryStream.length);
+        query.writeTo(ostream);
         pos.finishPacket();
         return 0;
     }

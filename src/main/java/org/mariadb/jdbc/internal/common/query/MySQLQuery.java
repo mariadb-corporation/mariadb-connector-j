@@ -82,8 +82,8 @@ public class MySQLQuery implements Query {
         return queryToSend.length;
     }
 
-    public byte[] sqlByteArray()  {
-        return queryToSend;
+    public void writeTo(final OutputStream os) throws IOException {
+        os.write(queryToSend, 0, queryToSend.length);
     }
 
     public String getQuery() {

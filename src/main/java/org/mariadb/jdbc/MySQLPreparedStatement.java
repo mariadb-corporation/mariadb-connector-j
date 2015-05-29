@@ -76,8 +76,6 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
     private boolean useFractionalSeconds;
     boolean parametersCleared;
     List<MySQLPreparedStatement> batchPreparedStatements;
-    private boolean isRewriteable = true;
-    private String firstRewrite = null;
 
 
     public MySQLPreparedStatement(MySQLConnection connection,
@@ -195,12 +193,11 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
     public void addBatch() throws SQLException {
         checkBatchFields();
         batchPreparedStatements.add(new MySQLPreparedStatement(connection,sql, dQuery, useFractionalSeconds));
-        isInsertRewriteable(sql);
+
     }
     public void addBatch(final String sql) throws SQLException {
     	checkBatchFields();
         batchPreparedStatements.add(new MySQLPreparedStatement(connection, sql));
-        isInsertRewriteable(sql);
     }
     
     private void checkBatchFields() {
@@ -213,50 +210,8 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
         if (batchPreparedStatements != null) {
             batchPreparedStatements.clear();
         }
-        firstRewrite = null;
-        isRewriteable = true;
     }
     
-    /**
-     * Parses the sql string to understand whether it is compatible with rewritten batches.
-     * @param sql the sql string
-     */
-    private void isInsertRewriteable(String sql) {
-    	if (!isRewriteable) {
-    		return;
-    	}
-    	int index = getInsertIncipit(sql);
-    	if (index == -1) {
-    		isRewriteable = false;
-    		return;
-    	}
-    	if (firstRewrite == null) {
-    		firstRewrite = sql.substring(0, index);
-    	}
-    	boolean isRewrite = sql.startsWith(firstRewrite);
-        if (isRewrite) {
-        	isRewriteable = isRewriteable && true;
-        }
-    }
-    
-    /**
-     * If the batch array contains only rewriteable sql strings, returns the rewritten statement.
-     * @return the rewritten statement
-     */
-    private String rewrittenBatch() {
-    	StringBuilder result = null;
-    	if(isRewriteable) {
-    		result = new StringBuilder("");
-    		result.append(firstRewrite);
-    		for (MySQLPreparedStatement mySQLPS : batchPreparedStatements) {
-    			String query = mySQLPS.dQuery.toSQL();
-    			result.append(query.substring(firstRewrite.length()));
-    			result.append(",");
-    		}
-    		result.deleteCharAt(result.length() - 1);
-    	}
-    	return (result == null ? null : result.toString());
-    }
 
     @Override
     public int[] executeBatch() throws SQLException {
@@ -267,28 +222,23 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
         int i = 0;
         MySQLResultSet rs = null;
         try {
-        	synchronized (this.getProtocol()) {
-        		if (getProtocol().getInfo().getProperty("rewriteBatchedStatements") != null
-        				&& "true".equalsIgnoreCase(getProtocol().getInfo().getProperty("rewriteBatchedStatements"))) {
-        			ret = executeBatchAsMultiQueries();
-        		} else {
-        			for (; i < batchPreparedStatements.size(); i++) {
-        				PreparedStatement ps = batchPreparedStatements.get(i);
-        				ps.execute();
-        				int updateCount = ps.getUpdateCount();
-        				if (updateCount == -1) {
-        					ret[i] = SUCCESS_NO_INFO;
-        				} else {
-        					ret[i] = updateCount;
-        				}
-        				if (i == 0) {
-        					rs = (MySQLResultSet)ps.getGeneratedKeys();
-        				} else {
-        					rs = rs.joinResultSets((MySQLResultSet)ps.getGeneratedKeys());
-        				}
-        			}
-        		}
-        	}
+            synchronized (this.getProtocol()) {
+                for (; i < batchPreparedStatements.size(); i++) {
+                    PreparedStatement ps = batchPreparedStatements.get(i);
+                    ps.execute();
+                    int updateCount = ps.getUpdateCount();
+                    if (updateCount == -1) {
+                        ret[i] = SUCCESS_NO_INFO;
+                    } else {
+                        ret[i] = updateCount;
+                    }
+                    if (i == 0) {
+                        rs = (MySQLResultSet)ps.getGeneratedKeys();
+                    } else {
+                        rs = rs.joinResultSets((MySQLResultSet)ps.getGeneratedKeys());
+                    }
+                }
+            }
         } catch (SQLException sqle) {
         	throw new BatchUpdateException(sqle.getMessage(), sqle.getSQLState(), sqle.getErrorCode(), Arrays.copyOf(ret, i), sqle);
         } finally {
@@ -298,29 +248,6 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
         return ret;
     }
     
-	/**
-	 * Builds a new statement which contains the batched Statements and executes it.
-	 * @return an array of update counts containing one element for each command in the batch.
-	 *  The elements of the array are ordered according to the order in which commands were added to the batch.
-	 * @throws SQLException
-	 */
-	private int[] executeBatchAsMultiQueries() throws SQLException {
-		StringBuilder stringBuilder = new StringBuilder();
-		int i = 0;
-		String rewrite = rewrittenBatch();
-        boolean rewrittenBatch = rewrite != null;
-		if (rewrittenBatch) {
-			stringBuilder.append(rewrite);
-            i = batchPreparedStatements.size();
-		} else {
-			for (; i < batchPreparedStatements.size(); i++) {
-				stringBuilder.append(batchPreparedStatements.get(i).dQuery.toSQL() + ";");
-			}
-		}
-		Statement ps = connection.createStatement();
-		ps.execute(stringBuilder.toString());
-        return rewrittenBatch ? getUpdateCountsForReWrittenBatch(ps, i) : getUpdateCounts(ps, i);
-	}
 
     /**
      * Sets the designated parameter to the given <code>Reader</code> object, which is the given number of characters

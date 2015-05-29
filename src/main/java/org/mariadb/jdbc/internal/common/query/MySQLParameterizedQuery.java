@@ -50,9 +50,12 @@ package org.mariadb.jdbc.internal.common.query;
 
 import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.common.query.parameters.ParameterHolder;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
 import java.util.List;
 
 import static org.mariadb.jdbc.internal.common.Utils.createQueryParts;
@@ -118,18 +121,17 @@ public class MySQLParameterizedQuery implements ParameterizedQuery {
     }
 
 
-    public byte[] sqlByteArray() throws IOException {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    public void writeTo(final OutputStream os) throws IOException, QueryException {
+
         if(queryPartsArray.length == 0) {
             throw new AssertionError("Invalid query, queryParts was empty");
         }
-        baos.write(queryPartsArray[0]);
+        os.write(queryPartsArray[0]);
         for(int i = 1; i<queryPartsArray.length; i++) {
-            parameters[i-1].writeTo(baos);
+            parameters[i-1].writeTo(os);
             if(queryPartsArray[i].length != 0)
-                baos.write(queryPartsArray[i]);
+                os.write(queryPartsArray[i]);
         }
-        return baos.toByteArray();
     }
 
 
@@ -164,32 +166,17 @@ public class MySQLParameterizedQuery implements ParameterizedQuery {
         if (parameters.length > 0) {
             sb.append(", parameters : [");
             for(int i = 0; i < parameters.length; i++) {
-              if (parameters[i] == null)  {
-                sb.append("null");
-              }  else {
-                sb.append(parameters[i].toString());
-              }
-              if (i != parameters.length -1) {
-                sb.append(",");
-              }
+                if (parameters[i] == null)  {
+                    sb.append("null");
+                }  else {
+                    sb.append(parameters[i].toString());
+                }
+                if (i != parameters.length -1) {
+                    sb.append(",");
+                }
             }
             sb.append("]");
         }
         return sb.toString();
     }
-    
-    /**
-     * Returns a string representing the SQL of the query.
-     * @return
-     */
-	public String toSQL() {
-		try {
-            return new String(sqlByteArray());
-		} catch (IOException e) {
-			return "";
-		}
-	}
-
-
-
 }

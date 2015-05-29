@@ -17,7 +17,9 @@ public class PacketOutputStream extends OutputStream{
     int position;
     int seqNo;
     boolean compress;
-    int maxAllowedPacket = 0;
+    int maxAllowedPacket;
+    int bytesWritten;
+    boolean checkPacketLength;
 
     public PacketOutputStream(OutputStream baseStream) {
        this.baseStream = baseStream;
@@ -31,14 +33,19 @@ public class PacketOutputStream extends OutputStream{
         compress = value;
     }
 
-    public void startPacket(int seqNo) throws IOException {
+    public void startPacket(int seqNo, boolean checkPacketLength) throws IOException {
         if (this.seqNo != -1) {
            throw new IOException("Last packet not finished");
         }
         this.seqNo = seqNo;
         position = HEADER_LENGTH;
+        bytesWritten = 0;
+        this.checkPacketLength = checkPacketLength;
     }
 
+    public void startPacket(int seqNo) throws IOException {
+        startPacket(seqNo, true);
+    }
     public int getSeqNo() {
         return seqNo;
     }
@@ -59,7 +66,7 @@ public class PacketOutputStream extends OutputStream{
         byte[] buffer = new byte[bufferSize];
         int len;
         while((len = is.read(buffer)) > 0) {
-          startPacket(seq++);
+          startPacket(seq++, false);
           write(buffer, 0, len);
           finishPacket();
         }
@@ -116,6 +123,11 @@ public class PacketOutputStream extends OutputStream{
         byteBuffer[1] = (byte)((dataLen >> 8) & 0xff);
         byteBuffer[2] = (byte)((dataLen >> 16) & 0xff);
         byteBuffer[SEQNO_OFFSET] = (byte)this.seqNo;
+        bytesWritten += dataLen;
+        if (maxAllowedPacket > 0 && bytesWritten > maxAllowedPacket && checkPacketLength) {
+            baseStream.close();
+            throw new IOException("max_allowed_packet exceeded. wrote " + bytesWritten + ", max_allowed_packet = " +maxAllowedPacket);
+        }
         baseStream.write(byteBuffer, 0, position);
         position = HEADER_LENGTH;
         this.seqNo++;
