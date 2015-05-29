@@ -50,15 +50,11 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.common.query;
 
 import org.mariadb.jdbc.internal.common.QueryException;
-
 import java.io.IOException;
-import java.io.OutputStream;
-
 
 public interface Query {
-    void writeTo(OutputStream os) throws IOException, QueryException;
+    byte[] sqlByteArray() throws IOException;
     String getQuery();
     QueryType getQueryType();
     void validate() throws QueryException;
-    int getPacketLength();
 }

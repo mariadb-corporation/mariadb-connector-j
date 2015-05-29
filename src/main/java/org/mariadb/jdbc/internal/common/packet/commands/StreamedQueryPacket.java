@@ -49,6 +49,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.common.packet.commands;
 
+import org.mariadb.jdbc.internal.SQLExceptionMapper;
 import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.common.packet.CommandPacket;
 import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
@@ -58,28 +59,32 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 
-public class StreamedQueryPacket implements CommandPacket
-{
+public class StreamedQueryPacket implements CommandPacket {
 
     private final Query         query;
+    private final int maxAllowedPacket;
 
-    public StreamedQueryPacket(final Query query)
-    {
+    public StreamedQueryPacket(final Query query, int maxAllowedPacket) {
         this.query = query;
+        this.maxAllowedPacket = maxAllowedPacket;
     }
 
-    public int send(final OutputStream ostream) throws IOException,
-            QueryException
-    {
+    public int send(final OutputStream ostream) throws IOException, QueryException {
+        byte[] queryStream = query.sqlByteArray();
+        if (maxAllowedPacket > 0 && queryStream.length > maxAllowedPacket) {
+            throw new QueryException("Packet for query is too large ("
+                    + queryStream.length
+                    + " > "
+                    + maxAllowedPacket
+                    + "). You can change this value on the server by setting the max_allowed_packet' variable.",
+                    -1, SQLExceptionMapper.SQLStates.UNDEFINED_SQLSTATE.getSqlState());
+        }
         PacketOutputStream pos = (PacketOutputStream)ostream;
         pos.startPacket(0);
         pos.write(0x03);
-        query.writeTo(pos);
+        ostream.write(queryStream, 0, queryStream.length);
         pos.finishPacket();
         return 0;
     }
-    
-    public int getPacketLength() {
-    	return query.getPacketLength();
-    }
+
 }

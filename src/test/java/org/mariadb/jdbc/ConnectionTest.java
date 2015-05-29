@@ -2,13 +2,12 @@ package org.mariadb.jdbc;
 
 import static org.junit.Assert.*;
 
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.lang.reflect.Field;
-import java.sql.Connection;
+import java.sql.*;
 import java.io.UnsupportedEncodingException;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.SQLPermission;
-import java.sql.Statement;
+import java.util.Arrays;
 import java.util.Properties;
 import java.util.concurrent.Executor;
 
@@ -176,10 +175,27 @@ public class ConnectionTest extends BaseTest {
 			assertTrue(e.getMessage().contains("max_allowed_packet"));
 		} catch (Exception e) {
 			fail("The previous statement should throw an SQLException not a general Exception");
+		}
+
+		//added in CONJ-151 to check the 2 differents type of query
+		PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO dummy VALUES (?)");
+		byte [] arr = new byte[maxAllowedPacket + 1000];
+		Arrays.fill(arr, (byte) 'a');
+		preparedStatement.setBytes(1,arr);
+		preparedStatement.addBatch();
+		try {
+			preparedStatement.executeBatch();
+			fail("The previous statement should throw an SQLException");
+		} catch (SQLException e) {
+			assertTrue(e.getMessage().contains("max_allowed_packet"));
+		} catch (Exception e) {
+			fail("The previous statement should throw an SQLException not a general Exception");
 		} finally {
 			statement.execute("DROP TABLE dummy");
 		}
+
 	}
+
 
 	@Test
 	public void isValid_testWorkingConnection() throws SQLException {

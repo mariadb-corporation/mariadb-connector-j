@@ -49,9 +49,6 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.common.query;
 import  org.mariadb.jdbc.internal.common.QueryException;
-
-
-
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
@@ -85,8 +82,8 @@ public class MySQLQuery implements Query {
         return queryToSend.length;
     }
 
-    public void writeTo(final OutputStream os) throws IOException {
-        os.write(queryToSend, 0, queryToSend.length);
+    public byte[] sqlByteArray()  {
+        return queryToSend;
     }
 
     public String getQuery() {
@@ -114,11 +111,6 @@ public class MySQLQuery implements Query {
     public String toString() {
         return query;
     }
-
-	@Override
-	public int getPacketLength() {
-		return length();
-	}
 
 
 }
