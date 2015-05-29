@@ -328,6 +328,44 @@ public class MultiTest extends BaseTest {
         }
     }
 
+    /**
+     * CONJ-152: rewriteBatchedStatements and multiple executeBatch check
+     * @throws SQLException
+     */
+    @Test
+    public void testMultipleExecuteBatch() throws SQLException {
+        // set the rewrite batch statements parameter
+        Properties props = new Properties();
+        props.setProperty("rewriteBatchedStatements", "true");
+        Connection tmpConnection = openNewConnection(connURI, props);
+        try {
+            tmpConnection.setClientInfo(props);
+            verifyUpdateCount(tmpConnection, 0);
+            tmpConnection.createStatement().execute("TRUNCATE t1");
+            tmpConnection.createStatement().execute("insert into t1 values(1,'a'),(2,'a')");
+
+            PreparedStatement preparedStatement = tmpConnection.prepareStatement("UPDATE t1 SET test = ? WHERE id = ?");
+            preparedStatement.setString(1, "executebatch");
+            preparedStatement.setInt(2, 1);
+            preparedStatement.addBatch();
+            preparedStatement.setString(1, "executebatch2");
+            preparedStatement.setInt(2, 3);
+            preparedStatement.addBatch();
+
+            preparedStatement.executeBatch();
+            int[] updateCounts = preparedStatement.executeBatch();
+            assertEquals(0, updateCounts.length);
+
+            preparedStatement.setString(1, "executebatch3");
+            preparedStatement.setInt(2, 1);
+            preparedStatement.addBatch();
+            updateCounts = preparedStatement.executeBatch();
+            assertEquals(1, updateCounts.length);
+        } finally {
+            tmpConnection.close();
+        }
+    }
+
     @Test
     public void rewriteBatchedStatementsInsertWithDuplicateRecordsTest() throws SQLException {
         Properties props = new Properties();

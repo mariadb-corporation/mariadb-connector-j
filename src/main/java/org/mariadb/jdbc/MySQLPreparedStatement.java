@@ -260,7 +260,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
 
     @Override
     public int[] executeBatch() throws SQLException {
-        if (batchPreparedStatements == null) {
+        if (batchPreparedStatements == null || batchPreparedStatements.isEmpty()) {
             return new int[0];
         }
         int[] ret = new int[batchPreparedStatements.size()];
