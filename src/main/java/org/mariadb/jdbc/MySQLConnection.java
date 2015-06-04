@@ -124,19 +124,6 @@ public final class MySQLConnection implements Connection {
             connection.nullCatalogMeansCurrent = false;
         }
 
-        Statement st = null;
-        try {
-            st = connection.createStatement();
-            if (sessionVariables != null) {
-                st.executeUpdate("set session " + sessionVariables);
-            }
-            ResultSet rs = st.executeQuery("show variables like 'max_allowed_packet'");
-            rs.next();
-            protocol.setMaxAllowedPacket(Integer.parseInt(rs.getString(2)));
-        } finally {
-            if (st != null)
-                st.close();
-        }
         return connection;
     }
 

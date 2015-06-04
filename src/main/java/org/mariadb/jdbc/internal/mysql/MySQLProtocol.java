@@ -81,7 +81,9 @@ import java.security.KeyStore;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -180,7 +182,6 @@ public class MySQLProtocol {
     long failTimestamp;
     int reconnectCount;
     int queriesSinceFailover;
-    private int maxAllowedPacket;
     private byte serverLanguage;
 
     /* =========================== HA  parameters ========================================= */
@@ -510,6 +511,19 @@ public class MySQLProtocol {
            // In JDBC, connection must start in autocommit mode.
            if ((serverStatus & ServerStatus.AUTOCOMMIT) == 0) {
                executeQuery(new MySQLQuery("set autocommit=1"));
+           }
+           SelectQueryResult qr = null;
+           try {
+               qr = (SelectQueryResult) executeQuery(new MySQLQuery("show variables like 'max_allowed_packet'"));
+               qr.next();
+               setMaxAllowedPacket(qr.getValueObject(1).getInt());
+           } finally {
+               if (qr != null)qr.close();
+           }
+
+           String sessionVariables = info.getProperty("sessionVariables");
+           if (sessionVariables != null) {
+               executeQuery(new MySQLQuery("set session " + sessionVariables));
            }
 
            // At this point, the driver is connected to the database, if createDB is true,
@@ -920,7 +934,7 @@ public class MySQLProtocol {
     }
 
 
-    public QueryResult getResult(Query dQuery, boolean streaming) throws QueryException{
+    public QueryResult getResult(List<Query> dQueries, boolean streaming) throws QueryException{
              RawPacket rawPacket;
         ResultPacket resultPacket;
         try {
@@ -973,8 +987,8 @@ public class MySQLProtocol {
                 this.moreResults = false;
                 this.hasWarnings = false;
                 ErrorPacket ep = (ErrorPacket) resultPacket;
-                if (dQuery != null) {
-                    log.warning("Could not execute query " + dQuery + ": " + ((ErrorPacket) resultPacket).getMessage());
+                if (dQueries != null && dQueries.size() == 1) {
+                    log.warning("Could not execute query " + dQueries.get(0) + ": " + ((ErrorPacket) resultPacket).getMessage());
                 } else {
                     log.warning("Got error from server: " + ((ErrorPacket) resultPacket).getMessage());
                 }
@@ -1010,35 +1024,39 @@ public class MySQLProtocol {
         }
     }
 
-    public QueryResult executeQuery(final Query dQuery, boolean streaming) throws QueryException, SQLException
-    {
-        dQuery.validate();
-        log.log(Level.FINEST, "Executing streamed query: {0}", dQuery);
+    public QueryResult executeQuery(final Query query, boolean streaming) throws QueryException, SQLException {
+        List<Query> queries = new ArrayList<Query>();
+        queries.add(query);
+        return executeQuery(queries, streaming, false, 0);
+    }
+
+    public QueryResult executeQuery(final List<Query> dQueries, boolean streaming, boolean isRewritable, int rewriteOffset) throws QueryException, SQLException {
+        for (Query query : dQueries) query.validate();
+
         this.moreResults = false;
-        final StreamedQueryPacket packet = new StreamedQueryPacket(dQuery);
+        final StreamedQueryPacket packet = new StreamedQueryPacket(dQueries, isRewritable, rewriteOffset);
 
         try {
             packet.send(writer);
+        } catch (MaxAllowedPacketException e) {
+            if (e.isMustReconnect()) connect();
+            throw new QueryException("Could not send query: " + e.getMessage(), -1, SQLExceptionMapper.SQLStates.INTERRUPTED_EXCEPTION.getSqlState(), e);
         } catch (IOException e) {
-            throw new QueryException("Could not send query: " + e.getMessage(),
-                    -1,
-                    SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
-                    e);
+            throw new QueryException("Could not send query: " + e.getMessage(), -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), e);
         }
         if (!isMasterConnection())
             queriesSinceFailover++;
         try {
-        	return getResult(dQuery, streaming);
+            return getResult(dQueries, streaming);
         } catch (QueryException qex) {
-        	if (qex.getCause() instanceof SocketTimeoutException) {
-        		close();
-        		throw SQLExceptionMapper.getSQLException("Connection timed out");
-        	} else {
-        		throw qex;
-        	}
+            if (qex.getCause() instanceof SocketTimeoutException) {
+                close();
+                throw SQLExceptionMapper.getSQLException("Connection timed out");
+            } else {
+                throw qex;
+            }
         }
     }
-
 
 
     public String getServerVariable(String variable) throws QueryException, SQLException {

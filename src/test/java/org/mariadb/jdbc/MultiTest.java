@@ -4,8 +4,11 @@ import org.junit.*;
 
 import java.sql.*;
 import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import junit.framework.Assert;
+import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
 
 import static org.junit.Assert.*;
 
@@ -14,7 +17,6 @@ public class MultiTest extends BaseTest {
 	private static Connection connection;
 
     public MultiTest() throws SQLException {
-
     }
 
     @BeforeClass
@@ -434,6 +436,7 @@ public class MultiTest extends BaseTest {
             sqlUpdate.addBatch();
 
             int[] updateCounts = sqlUpdate.executeBatch();
+            log.finest("updateCounts : "+updateCounts.length);
             Assert.assertEquals(3, updateCounts.length);
             Assert.assertEquals(1, updateCounts[0]);
             Assert.assertEquals(0, updateCounts[1]);

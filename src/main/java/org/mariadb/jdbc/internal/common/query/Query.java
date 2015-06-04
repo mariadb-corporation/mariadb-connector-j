@@ -56,6 +56,7 @@ import java.io.OutputStream;
 public interface Query {
     String getQuery();
     void writeTo(OutputStream os) throws IOException, QueryException;
+    void writeToRewritablePart(OutputStream os, int rewriteOffset) throws IOException, QueryException;
     QueryType getQueryType();
     void validate() throws QueryException;
 }

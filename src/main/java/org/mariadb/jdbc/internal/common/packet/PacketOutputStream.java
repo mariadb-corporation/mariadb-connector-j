@@ -1,11 +1,16 @@
 package org.mariadb.jdbc.internal.common.packet;
+import org.mariadb.jdbc.internal.common.packet.commands.StreamedQueryPacket;
+import org.mariadb.jdbc.internal.common.query.MySQLQuery;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 
-
-public class PacketOutputStream extends OutputStream{
+public class PacketOutputStream extends OutputStream {
+    private final static Logger log = Logger.getLogger("org.maria.jdbc");
 
     private static final int MAX_PACKET_LENGTH = 0x00ffffff;
     private static final int SEQNO_OFFSET = 3;
@@ -100,7 +105,6 @@ public class PacketOutputStream extends OutputStream{
             System.arraycopy(byteBuffer, 0, tmp, 0, position);
             byteBuffer = tmp;
         }
-
         System.arraycopy(bytes, off, byteBuffer, position,  bytesToWrite);
         position += bytesToWrite;
         off += bytesToWrite;
@@ -123,12 +127,18 @@ public class PacketOutputStream extends OutputStream{
         byteBuffer[1] = (byte)((dataLen >> 8) & 0xff);
         byteBuffer[2] = (byte)((dataLen >> 16) & 0xff);
         byteBuffer[SEQNO_OFFSET] = (byte)this.seqNo;
-        bytesWritten += dataLen;
+        bytesWritten += dataLen + HEADER_LENGTH;
         if (maxAllowedPacket > 0 && bytesWritten > maxAllowedPacket && checkPacketLength) {
-            baseStream.close();
-            throw new IOException("max_allowed_packet exceeded. wrote " + bytesWritten + ", max_allowed_packet = " +maxAllowedPacket);
+            this.seqNo=-1;
+            throw new MaxAllowedPacketException("max_allowed_packet exceeded. wrote " + bytesWritten + ", max_allowed_packet = " +maxAllowedPacket, this.seqNo != 0);
         }
         baseStream.write(byteBuffer, 0, position);
+        if (log.isLoggable(Level.FINEST)) {
+            byte[] tmp = new byte[Math.min(1000, position)];
+            System.arraycopy(byteBuffer, 0, tmp, 0, Math.min(1000, position));
+            log.finest(new String(tmp));
+        }
+
         position = HEADER_LENGTH;
         this.seqNo++;
     }

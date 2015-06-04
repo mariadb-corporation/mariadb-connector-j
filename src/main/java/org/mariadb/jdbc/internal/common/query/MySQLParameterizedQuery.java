@@ -122,7 +122,6 @@ public class MySQLParameterizedQuery implements ParameterizedQuery {
 
 
     public void writeTo(final OutputStream os) throws IOException, QueryException {
-
         if(queryPartsArray.length == 0) {
             throw new AssertionError("Invalid query, queryParts was empty");
         }
@@ -135,6 +134,17 @@ public class MySQLParameterizedQuery implements ParameterizedQuery {
     }
 
 
+    public void writeToRewritablePart(final OutputStream os, int rewriteOffset) throws IOException, QueryException {
+        if(queryPartsArray.length == 0) {
+            throw new AssertionError("Invalid query, queryParts was empty");
+        }
+        os.write(",(".getBytes());
+        for(int i = 1; i<queryPartsArray.length; i++) {
+            parameters[i-1].writeTo(os);
+            if(queryPartsArray[i].length != 0)
+                os.write(queryPartsArray[i]);
+        }
+    }
 
     private boolean containsNull(ParameterHolder[] parameters) {
         for(ParameterHolder ph : parameters) {
@@ -179,4 +189,9 @@ public class MySQLParameterizedQuery implements ParameterizedQuery {
         }
         return sb.toString();
     }
+
+
+
+
+
 }

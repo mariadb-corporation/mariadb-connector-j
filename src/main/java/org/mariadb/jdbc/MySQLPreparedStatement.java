@@ -50,8 +50,7 @@ package org.mariadb.jdbc;
 
 import org.mariadb.jdbc.internal.SQLExceptionMapper;
 import org.mariadb.jdbc.internal.common.Utils;
-import org.mariadb.jdbc.internal.common.query.IllegalParameterException;
-import org.mariadb.jdbc.internal.common.query.MySQLParameterizedQuery;
+import org.mariadb.jdbc.internal.common.query.*;
 import org.mariadb.jdbc.internal.common.query.parameters.*;
 
 import java.io.IOException;
@@ -75,7 +74,6 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
     private String sql;
     private boolean useFractionalSeconds;
     boolean parametersCleared;
-    List<MySQLPreparedStatement> batchPreparedStatements;
 
 
     public MySQLPreparedStatement(MySQLConnection connection,
@@ -90,13 +88,6 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
         dQuery = new MySQLParameterizedQuery(Utils.nativeSQL(sql, connection.noBackslashEscapes),
                 connection.noBackslashEscapes);
         parametersCleared = true;
-    }
-
-    private MySQLPreparedStatement (MySQLConnection connection, String sql, MySQLParameterizedQuery dQuery, boolean useFractionalSeconds ) {
-        super(connection);
-        this.dQuery = dQuery.cloneQuery();
-        this.sql = sql;
-        this.useFractionalSeconds = useFractionalSeconds;
     }
 
     /**
@@ -192,64 +183,30 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
      */
     public void addBatch() throws SQLException {
         checkBatchFields();
-        batchPreparedStatements.add(new MySQLPreparedStatement(connection,sql, dQuery, useFractionalSeconds));
-
+        batchQueries.add(dQuery.cloneQuery());
+        isInsertRewriteable(dQuery.getQuery());
     }
     public void addBatch(final String sql) throws SQLException {
     	checkBatchFields();
-        batchPreparedStatements.add(new MySQLPreparedStatement(connection, sql));
+        isInsertRewriteable(sql);
+        batchQueries.add(new MySQLQuery(sql));
     }
     
     private void checkBatchFields() {
-    	if (batchPreparedStatements == null) {
-            batchPreparedStatements = new ArrayList<MySQLPreparedStatement>();
+    	if (batchQueries == null) {
+            batchQueries = new ArrayList<Query>();
         }
     }
 
     public void clearBatch() {
-        if (batchPreparedStatements != null) {
-            batchPreparedStatements.clear();
+        if (batchQueries != null) {
+            batchQueries.clear();
         }
+        firstRewrite = null;
+        isRewriteable = true;
     }
-    
 
-    @Override
-    public int[] executeBatch() throws SQLException {
-        if (batchPreparedStatements == null || batchPreparedStatements.isEmpty()) {
-            return new int[0];
-        }
-        int[] ret = new int[batchPreparedStatements.size()];
-        int i = 0;
-        MySQLResultSet rs = null;
-        try {
-            synchronized (this.getProtocol()) {
-                for (; i < batchPreparedStatements.size(); i++) {
-                    PreparedStatement ps = batchPreparedStatements.get(i);
-                    ps.execute();
-                    int updateCount = ps.getUpdateCount();
-                    if (updateCount == -1) {
-                        ret[i] = SUCCESS_NO_INFO;
-                    } else {
-                        ret[i] = updateCount;
-                    }
-                    if (i == 0) {
-                        rs = (MySQLResultSet)ps.getGeneratedKeys();
-                    } else {
-                        rs = rs.joinResultSets((MySQLResultSet)ps.getGeneratedKeys());
-                    }
-                }
-            }
-        } catch (SQLException sqle) {
-        	throw new BatchUpdateException(sqle.getMessage(), sqle.getSQLState(), sqle.getErrorCode(), Arrays.copyOf(ret, i), sqle);
-        } finally {
-        	clearBatch();
-        }
-        batchResultSet = rs;
-        return ret;
-    }
-    
-
-    /**
+  /**
      * Sets the designated parameter to the given <code>Reader</code> object, which is the given number of characters
      * long. When a very large UNICODE value is input to a <code>LONGVARCHAR</code> parameter, it may be more practical
      * to send it via a <code>java.io.Reader</code> object. The data will be read from the stream as needed until

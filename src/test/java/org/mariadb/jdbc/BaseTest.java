@@ -47,7 +47,7 @@ public class BaseTest {
                 consoleHandler.setFormatter(new CustomFormatter());
                 consoleHandler.setLevel(Level.parse(logLevel));
                 log.addHandler(consoleHandler);
-                log.setLevel(Level.ALL);
+                log.setLevel(Level.FINE);
             }
         }
 

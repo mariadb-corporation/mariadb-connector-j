@@ -96,10 +96,10 @@ public class MySQLStatement implements Statement {
     boolean isTimedout;
     volatile boolean executing;
 
-    List<String> batchQueries;
+    List<Query> batchQueries;
     Queue<Object> cachedResultSets;
-    private boolean isRewriteable = true;
-    private String firstRewrite = null;
+    protected boolean isRewriteable = true;
+    protected String firstRewrite = null;
     protected ResultSet batchResultSet = null;
 
 
@@ -294,6 +294,45 @@ public class MySQLStatement implements Statement {
               return false;
             } finally {
                 executeQueryEpilog(exception, query);
+                executing = false;
+            }
+        }
+    }
+
+    /**
+     * Execute statements. if many queries, those queries will be rewritten
+     * if isRewritable = false, the query will be agreggated :
+     *      INSERT INTO jdbc (`name`) VALUES ('Line 1: Lorem ipsum ...')
+     *      INSERT INTO jdbc (`name`) VALUES ('Line 2: Lorem ipsum ...')
+     * will be agreggate as
+     *      INSERT INTO jdbc (`name`) VALUES ('Line 1: Lorem ipsum ...');INSERT INTO jdbc (`name`) VALUES ('Line 2: Lorem ipsum ...')
+     * and if isRewritable, agreggated as
+     *      INSERT INTO jdbc (`name`) VALUES ('Line 1: Lorem ipsum ...'),('Line 2: Lorem ipsum ...')
+     * @param queries list of queries
+     * @param isRewritable are the queries of the same type to be agreggated
+     * @param rewriteOffset offset of the parameter if query are similar
+     * @return true if there was a result set, false otherwise.
+     * @throws SQLException
+     */
+    protected boolean execute(List<Query> queries, boolean isRewritable, int rewriteOffset) throws SQLException {
+        //System.out.println(query);
+        synchronized (protocol) {
+            if (protocol.activeResult != null) {
+                protocol.activeResult.close();
+            }
+            executing = true;
+            QueryException exception = null;
+            executeQueryProlog();
+            try {
+                batchResultSet = null;
+                queryResult = protocol.executeQuery(queries, isStreaming(), isRewritable, rewriteOffset);
+                cacheMoreResults();
+                return (queryResult.getResultSetType() == ResultSetType.SELECT);
+            } catch (QueryException e) {
+                exception = e;
+                return false;
+            } finally {
+                executeQueryEpilog(exception, queries.get(0));
                 executing = false;
             }
         }
@@ -1095,17 +1134,17 @@ public class MySQLStatement implements Statement {
      */
     public void addBatch(final String sql) throws SQLException {
         if (batchQueries == null) {
-            batchQueries = new ArrayList<String>();
+            batchQueries = new ArrayList<Query>();
         }
-        batchQueries.add(sql);
         isInsertRewriteable(sql);
+        batchQueries.add(new MySQLQuery(sql));
     }
     
     /**
      * Parses the sql string to understand whether it is compatible with rewritten batches.
      * @param sql the sql string
      */
-    private void isInsertRewriteable(String sql) {
+    protected void isInsertRewriteable(String sql) {
     	if (!isRewriteable) {
     		return;
     	}
@@ -1157,24 +1196,7 @@ public class MySQLStatement implements Statement {
     	
     	return startBracket;
     }
-    
-    /**
-     * If the batch array contains only rewriteable sql strings, returns the rewritten statement.
-     * @return the rewritten statement
-     */
-    private String rewrittenBatch() {
-    	StringBuilder result = null;
-    	if(isRewriteable) {
-    		result = new StringBuilder("");
-    		result.append(firstRewrite);
-    		for (String query : batchQueries) {
-    			result.append(query.substring(getInsertIncipit(query)));
-    			result.append(",");
-    		}
-    		result.deleteCharAt(result.length() - 1);
-    	}
-    	return (result == null ? null : result.toString());
-    }
+
 
 
     /**
@@ -1231,18 +1253,23 @@ public class MySQLStatement implements Statement {
      * @since 1.3
      */
     public int[] executeBatch() throws SQLException {
-        if (batchQueries == null)
-            return new int[0];
+        if (batchQueries == null || batchQueries.size() == 0) return new int[0];
 
         int[] ret = new int[batchQueries.size()];
         int i = 0;
         MySQLResultSet rs = null;
+
+        boolean allowMultiQueries = "true".equals(getProtocol().getInfo().getProperty("allowMultiQueries"));
+        boolean rewriteBatchedStatements = "true".equals(getProtocol().getInfo().getProperty("rewriteBatchedStatements"));
+        if (rewriteBatchedStatements) allowMultiQueries=true;
         try {
         	synchronized (this.protocol) {
-        		if (getProtocol().getInfo().getProperty("rewriteBatchedStatements") != null
-        				&& "true".equalsIgnoreCase(getProtocol().getInfo().getProperty("rewriteBatchedStatements"))) {
-        			ret = executeBatchAsMultiQueries();
-        		} else {
+                if (allowMultiQueries) {
+                    int size = batchQueries.size();
+                    MySQLStatement ps = (MySQLStatement) connection.createStatement();
+                    ps.execute(batchQueries, isRewriteable && rewriteBatchedStatements, (isRewriteable && rewriteBatchedStatements)?firstRewrite.length():0);
+                    return isRewriteable?getUpdateCountsForReWrittenBatch(ps, size):getUpdateCounts(ps, size);
+                } else {
         			for(; i < batchQueries.size(); i++)  {
         				execute(batchQueries.get(i));
         				int updateCount = getUpdateCount();
@@ -1267,31 +1294,6 @@ public class MySQLStatement implements Statement {
         batchResultSet = rs;
         return ret;
     }
-    
-    /**
-	 * Builds a new statement which contains the batched Statements and executes it.
-	 * @return an array of update counts containing one element for each command in the batch.
-	 *  The elements of the array are ordered according to the order in which commands were added to the batch.
-	 * @throws SQLException
-	 */
-	private int[] executeBatchAsMultiQueries() throws SQLException {
-		int i = 0;
-		StringBuilder stringBuilder = new StringBuilder();
-		String rewrite = rewrittenBatch();
-        boolean rewrittenBatch = rewrite != null;
-		if (rewrittenBatch) {
-			stringBuilder.append(rewrite);
-            i = batchQueries.size();
-		} else {
-			for (; i < batchQueries.size(); i++) {
-				stringBuilder.append(batchQueries.get(i) + ";");
-			}
-		}
-		Statement ps = connection.createStatement();
-		ps.execute(stringBuilder.toString());
-        return rewrittenBatch ? getUpdateCountsForReWrittenBatch(ps, i) : getUpdateCounts(ps, i);
-	}
-
 
     /**
 	 * Retrieves the update counts for the batched statements rewritten as

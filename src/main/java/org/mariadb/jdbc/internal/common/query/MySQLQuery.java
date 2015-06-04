@@ -58,32 +58,28 @@ import java.io.UnsupportedEncodingException;
 public class MySQLQuery implements Query {
 
     private final String query;
-    private final byte[] queryToSend;
 
     public MySQLQuery(final String query) {
         this.query = query;
-        try {
-            queryToSend = query.getBytes("UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException("Unsupported encoding: " + e.getMessage(), e);
-        }
-    }
-
-    public MySQLQuery(final byte[] query) {
-        queryToSend = query;
-        try {
-            this.query = new String(query, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException("Unsupported encoding: " + e.getMessage(), e);
-        }
-    }
-
-    public int length() {
-        return queryToSend.length;
     }
 
     public void writeTo(final OutputStream os) throws IOException {
-        os.write(queryToSend, 0, queryToSend.length);
+        try {
+            byte[] queryToSend =  query.getBytes("UTF-8");
+            os.write(queryToSend, 0, queryToSend.length);
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException("Unsupported encoding: " + e.getMessage(), e);
+        }
+    }
+
+    public void writeToRewritablePart(final OutputStream os, int rewriteOffset) throws IOException, QueryException {
+        try {
+            byte[] queryToSend = query.substring(rewriteOffset).getBytes("UTF-8");
+            os.write(',');
+            os.write(queryToSend, 0, queryToSend.length);
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException("Unsupported encoding: " + e.getMessage(), e);
+        }
     }
 
     public String getQuery() {
@@ -99,9 +95,15 @@ public class MySQLQuery implements Query {
         return otherObj instanceof MySQLQuery && (((MySQLQuery) otherObj).query).equals(query);
     }
 
-    public void writeTo(OutputStream ostream, int offset, int packLength) throws IOException
-    {
-        ostream.write(queryToSend, offset, packLength);
+    public void writeTo(OutputStream ostream, int offset, int packLength) throws IOException {
+        try {
+            byte[] queryToSend =  query.getBytes("UTF-8");
+            ostream.write(queryToSend, offset, packLength);
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException("Unsupported encoding: " + e.getMessage(), e);
+        }
+
+
     }
 
     public void validate() throws QueryException{

@@ -49,7 +49,6 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.common.packet.commands;
 
-import org.mariadb.jdbc.internal.SQLExceptionMapper;
 import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.common.packet.CommandPacket;
 import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
@@ -57,22 +56,44 @@ import org.mariadb.jdbc.internal.common.query.Query;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 
 public class StreamedQueryPacket implements CommandPacket {
 
-    private final Query         query;
+    private List<Query> queries;
+    private boolean isRewritable;
+    private int rewriteOffset;
 
-    public StreamedQueryPacket(final Query query) {
-        this.query = query;
+    public StreamedQueryPacket(final List<Query> queries, boolean isRewritable, int rewriteOffset) {
+        this.queries = queries;
+        this.isRewritable = isRewritable;
+        this.rewriteOffset = rewriteOffset;
     }
 
     public int send(final OutputStream ostream) throws IOException, QueryException {
-        PacketOutputStream pos = (PacketOutputStream)ostream;
-        pos.startPacket(0);
-        pos.write(0x03);
-        query.writeTo(ostream);
-        pos.finishPacket();
+        if (queries.size() == 1) {
+            PacketOutputStream pos = (PacketOutputStream)ostream;
+            pos.startPacket(0);
+            pos.write(0x03);
+            queries.get(0).writeTo(ostream);
+            pos.finishPacket();
+        } else {
+            PacketOutputStream pos = (PacketOutputStream)ostream;
+            pos.startPacket(0);
+            pos.write(0x03);
+            queries.get(0).writeTo(ostream);
+            for (int i=1;i<queries.size();i++) {
+                if (isRewritable) {
+                    queries.get(i).writeToRewritablePart(ostream, rewriteOffset);
+                } else {
+                    pos.write(';');
+                    queries.get(i).writeTo(ostream);
+                }
+            }
+            pos.finishPacket();
+        }
         return 0;
     }
 
