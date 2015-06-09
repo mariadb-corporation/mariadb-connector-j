@@ -48,7 +48,7 @@ public class ConnectionPoolTest extends BaseTest {
     public void testTimeoutsInPool() throws SQLException, InterruptedException {
         org.apache.commons.dbcp.BasicDataSource dataSource;
         dataSource = new org.apache.commons.dbcp.BasicDataSource();
-        dataSource.setUrl("jdbc:mysql://" + hostname + ":3306/test?useCursorFetch=true&useTimezone=true&useLegacyDatetimeCode=false&serverTimezone=UTC");
+        dataSource.setUrl("jdbc:mysql://" + hostname + ":"+port+"/test?useCursorFetch=true&useTimezone=true&useLegacyDatetimeCode=false&serverTimezone=UTC");
         dataSource.setUsername(username);
         dataSource.setPassword(password);
         // dataSource.setMaxActive(10);
