@@ -48,6 +48,10 @@ OF SUCH DAMAGE.
 */
 package org.mariadb.jdbc.internal.common;
 
+import org.mariadb.jdbc.JDBCUrl;
+import org.mariadb.jdbc.internal.mysql.*;
+
+import java.lang.reflect.Proxy;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
@@ -536,5 +540,37 @@ public class Utils {
     	for(String parameter : parameters) {
     		setUrlParameter(parameter, info);
     	}
+    }
+
+    public static Protocol retrieveProxy(JDBCUrl jdbcUrl,
+                                         final String username,
+                                         final String password,
+                                         Properties info) {
+        Protocol proxyfiedProtocol;
+        if (jdbcUrl.getHostAddresses().length == 1) {
+            proxyfiedProtocol = (Protocol) Proxy.newProxyInstance(
+                    MySQLProtocol.class.getClassLoader(),
+                    new Class[]{Protocol.class},
+                    new FailoverProxy(new MySQLProtocol(jdbcUrl, username, password, info), new SingleHostListener()));
+        } else {
+            String favor = info.getProperty("favor");
+            if ("aurora".equals(favor)) {
+                proxyfiedProtocol = (Protocol) Proxy.newProxyInstance(
+                        AuroraMultiNodesProtocol.class.getClassLoader(),
+                        new Class[] {Protocol.class},
+                        new FailoverProxy(new AuroraMultiNodesProtocol(jdbcUrl, username,  password,  info), new AuroraHostListener()));
+            } else if ("master-slave".equals(favor)) {
+                proxyfiedProtocol = (Protocol) Proxy.newProxyInstance(
+                        MultiNodesProtocol.class.getClassLoader(),
+                        new Class[] {Protocol.class},
+                        new FailoverProxy(new MultiNodesProtocol(jdbcUrl, username,  password,  info), new MultiHostListener()));
+            } else {
+                proxyfiedProtocol = (Protocol) Proxy.newProxyInstance(
+                        MySQLProtocol.class.getClassLoader(),
+                        new Class[]{Protocol.class},
+                        new FailoverProxy(new MySQLProtocol(jdbcUrl, username, password, info), new SingleHostListener()));
+            }
+        }
+        return proxyfiedProtocol;
     }
 }

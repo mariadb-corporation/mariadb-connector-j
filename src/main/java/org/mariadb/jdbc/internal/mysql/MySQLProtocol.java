@@ -152,19 +152,19 @@ class MyX509TrustManager implements X509TrustManager {
     }
 }
 
-public class MySQLProtocol {
-    private final static Logger log = Logger.getLogger(MySQLProtocol.class.getName());
+public class MySQLProtocol implements Protocol {
+    protected final static Logger log = Logger.getLogger(MySQLProtocol.class.getName());
     private boolean connected = false;
-    private Socket socket;
-    private PacketOutputStream writer;
+    protected Socket socket;
+    protected PacketOutputStream writer;
     private  String version;
     private boolean readOnly = false;
     private String database;
     private final String username;
     private final String password;
     private int maxRows;  /* max rows returned by a statement */
-    private SyncPacketFetcher packetFetcher;
-    private final Properties info;
+    protected SyncPacketFetcher packetFetcher;
+    protected final Properties info;
     private  long serverThreadId;
     public boolean moreResults = false;
     public boolean hasWarnings = false;
@@ -173,61 +173,21 @@ public class MySQLProtocol {
     public short serverStatus;
     JDBCUrl jdbcUrl;
     HostAddress currentHost;
-    
+    protected FailoverProxy proxy;
     private int majorVersion;
     private int minorVersion;
     private int patchVersion;
-
-    boolean hostFailed;
-    long failTimestamp;
-    int reconnectCount;
-    int queriesSinceFailover;
+    private int maxAllowedPacket;
     private byte serverLanguage;
 
     /* =========================== HA  parameters ========================================= */
-    /**
-     * 	Should the driver try to re-establish stale and/or dead connections?
-     * 	NOTE: exceptions will still be thrown, yet the next retry will repair the connection
-     */
-    private boolean autoReconnect = false;
 
-    /**
-     * Maximum number of reconnects to attempt if autoReconnect is true, default is 3
-     */
-    private int maxReconnects=3;
-
-    /**
-     * When using loadbalancing, the number of times the driver should cycle through available hosts, attempting to connect.
-     * Between cycles, the driver will pause for 250ms if no servers are available.	120
-     */
-    int retriesAllDown = 120;
-    /**
-     * If autoReconnect is enabled, the initial time to wait between re-connect attempts (in seconds, defaults to 2)
-     */
-    int initialTimeout = 2;
-    /**
-     * When autoReconnect is enabled, and failoverReadonly is false, should we pick hosts to connect to on a round-robin
-     * basis?
-     */
-
-    boolean roundRobinLoadBalance  = false;
-    /**
-     * 	Number of queries to issue before falling back to master when failed over (when using multi-host failover).
-     * 	Whichever condition is met first, 'queriesBeforeRetryMaster' or 'secondsBeforeRetryMaster' will cause an
-     * 	attempt to be made to reconnect to the master. Defaults to 50
-     */
-    int queriesBeforeRetryMaster =  50;
-
-    /**
-     * How long should the driver wait, when failed over, before attempting	30
-     */
-    int secondsBeforeRetryMaster =  30;
-	private InputStream localInfileInputStream;
+    private InputStream localInfileInputStream;
 
     private SSLSocketFactory getSSLSocketFactory(boolean trustServerCertificate)  throws QueryException
     {
         if (info.getProperty("trustServerCertificate") == null
-            && info.getProperty("serverSslCert") == null) {
+                && info.getProperty("serverSslCert") == null) {
             return (SSLSocketFactory)SSLSocketFactory.getDefault();
         }
 
@@ -235,7 +195,7 @@ public class MySQLProtocol {
             SSLContext sslContext = SSLContext.getInstance("TLS");
             X509TrustManager[] m = {new MyX509TrustManager(info)};
             sslContext.init(null, m ,null);
-        return sslContext.getSocketFactory();
+            return sslContext.getSocketFactory();
         } catch (Exception e) {
             throw new QueryException(e.getMessage(),0, "HY000", e);
         }
@@ -249,58 +209,42 @@ public class MySQLProtocol {
      * @param info
      * @throws org.mariadb.jdbc.internal.common.QueryException
      *          if there is a problem reading / sending the packets
-     * @throws SQLException 
+     * @throws SQLException
      */
+
     public MySQLProtocol(JDBCUrl url,
                          final String username,
                          final String password,
-                         Properties info)
-            throws QueryException, SQLException {
-    	String fractionalSeconds = info.getProperty("useFractionalSeconds", "true");
-    	if ("true".equalsIgnoreCase(fractionalSeconds)) {
-    		info.setProperty("useFractionalSeconds", "true");
-    	}
-    	if ("true".equalsIgnoreCase(info.getProperty("pinGlobalTxToPhysicalConnection", "false"))) {
-    		info.setProperty("pinGlobalTxToPhysicalConnection", "true");
-    	}
+                         Properties info) {
+        String fractionalSeconds = info.getProperty("useFractionalSeconds", "true");
+        if ("true".equalsIgnoreCase(fractionalSeconds)) {
+            info.setProperty("useFractionalSeconds", "true");
+        }
+        if ("true".equalsIgnoreCase(info.getProperty("pinGlobalTxToPhysicalConnection", "false"))) {
+            info.setProperty("pinGlobalTxToPhysicalConnection", "true");
+        }
         this.info = info;
         this.jdbcUrl = url;
         this.database = (jdbcUrl.getDatabase() == null ? "" : jdbcUrl.getDatabase());
         this.username = (username == null ? "" : username);
         this.password = (password == null ? "" : password);
-        
+
 
         String logLevel = info.getProperty("MySQLProtocolLogLevel");
         if (logLevel != null)
-        	log.setLevel(Level.parse(logLevel));
+            log.setLevel(Level.parse(logLevel));
         else
-        	log.setLevel(Level.OFF);
+            log.setLevel(Level.OFF);
 
         setDatatypeMappingFlags();
-        parseHAOptions();
-        connect();
     }
 
-    private void parseHAOptions() {
-        String s = info.getProperty("autoReconnect");
-        if (s != null && s.equals("true"))
-            autoReconnect = true;
-        s = info.getProperty("maxReconnects");
-        if (s != null)
-            maxReconnects = Integer.parseInt(s);
-        s = info.getProperty("queriesBeforeRetryMaster");
-        if (s != null)
-            queriesBeforeRetryMaster = Integer.parseInt(s);
-        s = info.getProperty("secondsBeforeRetryMaster");
-        if (s != null)
-            secondsBeforeRetryMaster = Integer.parseInt(s);
-    }
     /**
      * Connect the client and perform handshake
      *
      * @throws QueryException  : handshake error, e.g wrong user or password
      * @throws IOException : connection error (host/port not available)
-     * @throws SQLException 
+     * @throws SQLException
      */
     void connect(String host, int port) throws QueryException, IOException, SQLException{
         SocketFactory socketFactory = null;
@@ -320,18 +264,18 @@ public class MySQLProtocol {
         String connectTimeoutString = info.getProperty("connectTimeout");
         Integer connectTimeout = null;
         if (connectTimeoutString != null) {
-           try {
-               connectTimeout = Integer.valueOf(connectTimeoutString);
-           } catch (Exception e) {
-               connectTimeout = null;
-           }
+            try {
+                connectTimeout = Integer.valueOf(connectTimeoutString);
+            } catch (Exception e) {
+                connectTimeout = null;
+            }
         }
         // Create socket with timeout if required
         if (info.getProperty("pipe") != null) {
             socket = new org.mariadb.jdbc.internal.mysql.NamedPipeSocket(host, info.getProperty("pipe"));
         } else if(info.getProperty("localSocket") != null){
             try {
-        	    socket = new org.mariadb.jdbc.internal.mysql.UnixDomainSocket(info.getProperty("localSocket"));
+                socket = new org.mariadb.jdbc.internal.mysql.UnixDomainSocket(info.getProperty("localSocket"));
             } catch( RuntimeException re) {
                 //  could be e.g library loading error
                 throw new IOException(re.getMessage(),re.getCause());
@@ -340,8 +284,8 @@ public class MySQLProtocol {
             try {
                 socket = new SharedMemorySocket(info.getProperty("sharedMemory"));
             } catch( RuntimeException re) {
-               //  could be e.g library loading error
-               throw new IOException(re.getMessage(),re.getCause());
+                //  could be e.g library loading error
+                throw new IOException(re.getMessage(),re.getCause());
             }
         } else {
             socket = socketFactory.createSocket();
@@ -351,7 +295,7 @@ public class MySQLProtocol {
             String value = info.getProperty("tcpNoDelay", "false");
             if (value.equalsIgnoreCase("true"))
                 socket.setTcpNoDelay(true);
-            
+
             value = info.getProperty("tcpKeepAlive", "false");
             if (value.equalsIgnoreCase("true"))
                 socket.setKeepAlive(true);
@@ -363,155 +307,155 @@ public class MySQLProtocol {
             value = info.getProperty("tcpSndBuf");
             if (value != null)
                 socket.setSendBufferSize(Integer.parseInt(value));
-            
+
             value = info.getProperty("tcpAbortiveClose","false");
             if (value.equalsIgnoreCase("true"))
                 socket.setSoLinger(true, 0);
-                
-       } catch (Exception e) {
+
+        } catch (Exception e) {
             log.finest("Failed to set socket option: " + e.getLocalizedMessage());
-       }
+        }
 
-       // Bind the socket to a particular interface if the connection property
-       // localSocketAddress has been defined.
-       String localHost = info.getProperty("localSocketAddress");
-       if (localHost != null) {
-           InetSocketAddress localAddress = new InetSocketAddress(localHost, 0);
-           socket.bind(localAddress);
-       }
+        // Bind the socket to a particular interface if the connection property
+        // localSocketAddress has been defined.
+        String localHost = info.getProperty("localSocketAddress");
+        if (localHost != null) {
+            InetSocketAddress localAddress = new InetSocketAddress(localHost, 0);
+            socket.bind(localAddress);
+        }
 
-       if (!socket.isConnected()) {
+        if (!socket.isConnected()) {
             InetSocketAddress sockAddr = new InetSocketAddress(host, port);
             if (connectTimeout != null) {
                 socket.connect(sockAddr, connectTimeout);
             } else {
                 socket.connect(sockAddr);
             }
-       }
+        }
 
-       // Extract socketTimeout URL parameter
-       String socketTimeoutString = info.getProperty("socketTimeout");
-       Integer socketTimeout = null;
-       if (socketTimeoutString != null) {
-           try {
-               socketTimeout = Integer.valueOf(socketTimeoutString);
-           } catch (Exception e) {
-               socketTimeout = null;
-           }
-       }
-       if (socketTimeout != null)
-           socket.setSoTimeout(socketTimeout);
+        // Extract socketTimeout URL parameter
+        String socketTimeoutString = info.getProperty("socketTimeout");
+        Integer socketTimeout = null;
+        if (socketTimeoutString != null) {
+            try {
+                socketTimeout = Integer.valueOf(socketTimeoutString);
+            } catch (Exception e) {
+                socketTimeout = null;
+            }
+        }
+        if (socketTimeout != null)
+            socket.setSoTimeout(socketTimeout);
 
-       try {
-           InputStream reader;
-           reader = new BufferedInputStream(socket.getInputStream(), 32768);
-           packetFetcher = new SyncPacketFetcher(reader);
-           writer = new PacketOutputStream(socket.getOutputStream());
-           RawPacket packet =  packetFetcher.getRawPacket();
-           if (ReadUtil.isErrorPacket(packet)) {
-               reader.close();
-               ErrorPacket errorPacket = (ErrorPacket)ResultPacketFactory.createResultPacket(packet);
-               throw new QueryException(errorPacket.getMessage());
-           }
-           final MySQLGreetingReadPacket greetingPacket = new MySQLGreetingReadPacket(packet);
-           this.serverThreadId = greetingPacket.getServerThreadID();
-           this.serverLanguage = greetingPacket.getServerLanguage();
-           boolean useCompression = false;
+        try {
+            InputStream reader;
+            reader = new BufferedInputStream(socket.getInputStream(), 32768);
+            packetFetcher = new SyncPacketFetcher(reader);
+            writer = new PacketOutputStream(socket.getOutputStream());
+            RawPacket packet =  packetFetcher.getRawPacket();
+            if (ReadUtil.isErrorPacket(packet)) {
+                reader.close();
+                ErrorPacket errorPacket = (ErrorPacket)ResultPacketFactory.createResultPacket(packet);
+                throw new QueryException(errorPacket.getMessage());
+            }
+            final MySQLGreetingReadPacket greetingPacket = new MySQLGreetingReadPacket(packet);
+            this.serverThreadId = greetingPacket.getServerThreadID();
+            this.serverLanguage = greetingPacket.getServerLanguage();
+            boolean useCompression = false;
 
-           log.finest("Got greeting packet");
-           this.version = greetingPacket.getServerVersion();
-           parseVersion();
-           byte packetSeq = 1;
-           int capabilities =
-                   MySQLServerCapabilities.LONG_PASSWORD |
-                   MySQLServerCapabilities.IGNORE_SPACE |
-                   MySQLServerCapabilities.CLIENT_PROTOCOL_41|
-                   MySQLServerCapabilities.TRANSACTIONS|
-                   MySQLServerCapabilities.SECURE_CONNECTION|
-                   MySQLServerCapabilities.LOCAL_FILES|
-                   MySQLServerCapabilities.MULTI_RESULTS|
-                   MySQLServerCapabilities.FOUND_ROWS;
-
-
-
-           if(info.getProperty("allowMultiQueries") != null
-        		   || (info.getProperty("rewriteBatchedStatements") != null
-        		   && "true".equalsIgnoreCase(info.getProperty("rewriteBatchedStatements")))) {
-              capabilities |= MySQLServerCapabilities.MULTI_STATEMENTS;
-           }
-           if(info.getProperty("useCompression") != null) {
-               capabilities |= MySQLServerCapabilities.COMPRESS;
-               useCompression = true;
-           }
-           if(info.getProperty("interactiveClient") != null) {
-              capabilities |= MySQLServerCapabilities.CLIENT_INTERACTIVE;
-           }
-           // If a database is given, but createDB is not defined or is false,
-           // then just try to connect to the given database
-           if (database != null && !createDB())
-               capabilities |= MySQLServerCapabilities.CONNECT_WITH_DB;
-           
-           if(info.getProperty("useSSL") != null &&
-                   (greetingPacket.getServerCapabilities() & MySQLServerCapabilities.SSL) != 0 ) {
-               capabilities |= MySQLServerCapabilities.SSL;
-               AbbreviatedMySQLClientAuthPacket amcap = new AbbreviatedMySQLClientAuthPacket(capabilities);
-               amcap.send(writer);
-
-               boolean trustServerCertificate  =  info.getProperty("trustServerCertificate") != null;
-
-               SSLSocketFactory f = getSSLSocketFactory(trustServerCertificate);
-               SSLSocket sslSocket = (SSLSocket)f.createSocket(socket,
-                       socket.getInetAddress().getHostAddress(),  socket.getPort(),  false);
-
-               sslSocket.setEnabledProtocols(new String [] {"TLSv1"});
-               sslSocket.setUseClientMode(true);
-               sslSocket.startHandshake();
-               socket = sslSocket;
-               writer = new PacketOutputStream(socket.getOutputStream());
-               reader = new BufferedInputStream(socket.getInputStream(), 32768);
-               packetFetcher = new SyncPacketFetcher(reader);
-
-               packetSeq++;
-           } else if(info.getProperty("useSSL") != null){
-               throw new QueryException("Trying to connect with ssl, but ssl not enabled in the server");
-           }
+            log.finest("Got greeting packet");
+            this.version = greetingPacket.getServerVersion();
+            parseVersion();
+            byte packetSeq = 1;
+            int capabilities =
+                    MySQLServerCapabilities.LONG_PASSWORD |
+                            MySQLServerCapabilities.IGNORE_SPACE |
+                            MySQLServerCapabilities.CLIENT_PROTOCOL_41|
+                            MySQLServerCapabilities.TRANSACTIONS|
+                            MySQLServerCapabilities.SECURE_CONNECTION|
+                            MySQLServerCapabilities.LOCAL_FILES|
+                            MySQLServerCapabilities.MULTI_RESULTS|
+                            MySQLServerCapabilities.FOUND_ROWS;
 
 
-           final MySQLClientAuthPacket cap = new MySQLClientAuthPacket(this.username,
-                   this.password,
-                   database,
-                   capabilities,
-                   decideLanguage(),
-                   greetingPacket.getSeed(),
-                   packetSeq);
-           cap.send(writer);
-           log.finest("Sending auth packet");
 
-           RawPacket rp = packetFetcher.getRawPacket();
+            if(info.getProperty("allowMultiQueries") != null
+                    || (info.getProperty("rewriteBatchedStatements") != null
+                    && "true".equalsIgnoreCase(info.getProperty("rewriteBatchedStatements")))) {
+                capabilities |= MySQLServerCapabilities.MULTI_STATEMENTS;
+            }
+            if(info.getProperty("useCompression") != null) {
+                capabilities |= MySQLServerCapabilities.COMPRESS;
+                useCompression = true;
+            }
+            if(info.getProperty("interactiveClient") != null) {
+                capabilities |= MySQLServerCapabilities.CLIENT_INTERACTIVE;
+            }
+            // If a database is given, but createDB is not defined or is false,
+            // then just try to connect to the given database
+            if (database != null && !createDB())
+                capabilities |= MySQLServerCapabilities.CONNECT_WITH_DB;
 
-           if ((rp.getByteBuffer().get(0) & 0xFF) == 0xFE) {   // Server asking for old format password
-               final MySQLClientOldPasswordAuthPacket oldPassPacket = new MySQLClientOldPasswordAuthPacket(
-                       this.password, Utils.copyWithLength(greetingPacket.getSeed(),
-                       8), rp.getPacketSeq() + 1);
-               oldPassPacket.send(writer);
+            if(info.getProperty("useSSL") != null &&
+                    (greetingPacket.getServerCapabilities() & MySQLServerCapabilities.SSL) != 0 ) {
+                capabilities |= MySQLServerCapabilities.SSL;
+                AbbreviatedMySQLClientAuthPacket amcap = new AbbreviatedMySQLClientAuthPacket(capabilities);
+                amcap.send(writer);
 
-               rp = packetFetcher.getRawPacket();
-           }
+                boolean trustServerCertificate  =  info.getProperty("trustServerCertificate") != null;
 
-           checkErrorPacket(rp);
-           ResultPacket resultPacket = ResultPacketFactory.createResultPacket(rp);
-           OKPacket ok = (OKPacket)resultPacket;
-           serverStatus = ok.getServerStatus();
+                SSLSocketFactory f = getSSLSocketFactory(trustServerCertificate);
+                SSLSocket sslSocket = (SSLSocket)f.createSocket(socket,
+                        socket.getInetAddress().getHostAddress(),  socket.getPort(),  false);
 
-           if (useCompression) {
-               writer = new PacketOutputStream(new CompressOutputStream(socket.getOutputStream()));
-               packetFetcher = new SyncPacketFetcher(new DecompressInputStream(socket.getInputStream()));
-           }
+                sslSocket.setEnabledProtocols(new String [] {"TLSv1"});
+                sslSocket.setUseClientMode(true);
+                sslSocket.startHandshake();
+                socket = sslSocket;
+                writer = new PacketOutputStream(socket.getOutputStream());
+                reader = new BufferedInputStream(socket.getInputStream(), 32768);
+                packetFetcher = new SyncPacketFetcher(reader);
 
-           // In JDBC, connection must start in autocommit mode.
-           if ((serverStatus & ServerStatus.AUTOCOMMIT) == 0) {
-               executeQuery(new MySQLQuery("set autocommit=1"));
-           }
+                packetSeq++;
+            } else if(info.getProperty("useSSL") != null){
+                throw new QueryException("Trying to connect with ssl, but ssl not enabled in the server");
+            }
+
+
+            final MySQLClientAuthPacket cap = new MySQLClientAuthPacket(this.username,
+                    this.password,
+                    database,
+                    capabilities,
+                    decideLanguage(),
+                    greetingPacket.getSeed(),
+                    packetSeq);
+            cap.send(writer);
+            log.finest("Sending auth packet");
+
+            RawPacket rp = packetFetcher.getRawPacket();
+
+            if ((rp.getByteBuffer().get(0) & 0xFF) == 0xFE) {   // Server asking for old format password
+                final MySQLClientOldPasswordAuthPacket oldPassPacket = new MySQLClientOldPasswordAuthPacket(
+                        this.password, Utils.copyWithLength(greetingPacket.getSeed(),
+                        8), rp.getPacketSeq() + 1);
+                oldPassPacket.send(writer);
+
+                rp = packetFetcher.getRawPacket();
+            }
+
+            checkErrorPacket(rp);
+            ResultPacket resultPacket = ResultPacketFactory.createResultPacket(rp);
+            OKPacket ok = (OKPacket)resultPacket;
+            serverStatus = ok.getServerStatus();
+
+            if (useCompression) {
+                writer = new PacketOutputStream(new CompressOutputStream(socket.getOutputStream()));
+                packetFetcher = new SyncPacketFetcher(new DecompressInputStream(socket.getInputStream()));
+            }
+
+            // In JDBC, connection must start in autocommit mode.
+            if ((serverStatus & ServerStatus.AUTOCOMMIT) == 0) {
+                executeQuery(new MySQLQuery("set autocommit=1"));
+            }
            SelectQueryResult qr = null;
            try {
                qr = (SelectQueryResult) executeQuery(new MySQLQuery("show variables like 'max_allowed_packet'"));
@@ -526,42 +470,47 @@ public class MySQLProtocol {
                executeQuery(new MySQLQuery("set session " + sessionVariables));
            }
 
-           // At this point, the driver is connected to the database, if createDB is true,
-           // then just try to create the database and to use it
-           if (createDB()) {
-               // Try to create the database if it does not exist
-               String quotedDB = MySQLConnection.quoteIdentifier(this.database);
-               executeQuery(new MySQLQuery("CREATE DATABASE IF NOT EXISTS " + quotedDB));
-               executeQuery(new MySQLQuery("USE " + quotedDB));
-           }
+            // At this point, the driver is connected to the database, if createDB is true,
+            // then just try to create the database and to use it
+            if (checkIfMaster()) {
+                if (createDB()) {
+                    // Try to create the database if it does not exist
+                    String quotedDB = MySQLConnection.quoteIdentifier(this.database);
+                    executeQuery(new MySQLQuery("CREATE DATABASE IF NOT EXISTS " + quotedDB));
+                    executeQuery(new MySQLQuery("USE " + quotedDB));
+                }
+            }
 
-           activeResult = null;
-           moreResults = false;
-           hasWarnings = false;
-           connected = true;
-           hostFailed = false; // Prevent reconnects
-       } catch (IOException e) {
-           throw new QueryException("Could not connect to " + host + ":" +
-                   port + ": " + e.getMessage(),
-                   -1,
-                   SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
-                   e);
-       }
+            activeResult = null;
+            moreResults = false;
+            hasWarnings = false;
+            connected = true;
+        } catch (IOException e) {
+            throw new QueryException("Could not connect to " + host + ":" +
+                    port + ": " + e.getMessage(),
+                    -1,
+                    SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
+                    e);
+        }
 
     }
-    
+
+    public boolean checkIfMaster() throws SQLException  {
+        return true;
+    }
+
     private boolean isServerLanguageUTF8MB4(byte serverLanguage) {
-    	Byte[] utf8mb4Languages = {
-    			(byte)45,(byte)46,(byte)224,(byte)225,(byte)226,(byte)227,(byte)228,
-    			(byte)229,(byte)230,(byte)231,(byte)232,(byte)233,(byte)234,(byte)235,
-    			(byte)236,(byte)237,(byte)238,(byte)239,(byte)240,(byte)241,(byte)242,
-    			(byte)243,(byte)245
-    	};
-    	return Arrays.asList(utf8mb4Languages).contains(serverLanguage);
+        Byte[] utf8mb4Languages = {
+                (byte)45,(byte)46,(byte)224,(byte)225,(byte)226,(byte)227,(byte)228,
+                (byte)229,(byte)230,(byte)231,(byte)232,(byte)233,(byte)234,(byte)235,
+                (byte)236,(byte)237,(byte)238,(byte)239,(byte)240,(byte)241,(byte)242,
+                (byte)243,(byte)245
+        };
+        return Arrays.asList(utf8mb4Languages).contains(serverLanguage);
     }
     private byte decideLanguage() {
-    	byte result = (byte) (isServerLanguageUTF8MB4(this.serverLanguage) ? this.serverLanguage : 33);
-    	return result;
+        byte result = (byte) (isServerLanguageUTF8MB4(this.serverLanguage) ? this.serverLanguage : 33);
+        return result;
     }
 
     void checkErrorPacket(RawPacket rp) throws QueryException{
@@ -571,34 +520,34 @@ public class MySQLProtocol {
             throw new QueryException("Could not connect: " + message);
         }
     }
-    
-    
+
+
     void readEOFPacket() throws QueryException, IOException {
         RawPacket rp = packetFetcher.getRawPacket();
         checkErrorPacket(rp);
         ResultPacket resultPacket = ResultPacketFactory.createResultPacket(rp);
         if (resultPacket.getResultType() != ResultPacket.ResultType.EOF) {
-            throw new QueryException("Unexpected packet type " + resultPacket.getResultType()  + 
+            throw new QueryException("Unexpected packet type " + resultPacket.getResultType()  +
                     "insted of EOF");
         }
         EOFPacket eof = (EOFPacket)resultPacket;
         this.hasWarnings = eof.getWarningCount() > 0;
         this.serverStatus = eof.getStatusFlags();
     }
-    
+
     void readOKPacket()  throws QueryException, IOException  {
         RawPacket rp = packetFetcher.getRawPacket();
         checkErrorPacket(rp);
         ResultPacket resultPacket = ResultPacketFactory.createResultPacket(rp);
         if (resultPacket.getResultType() != ResultPacket.ResultType.OK) {
-            throw new QueryException("Unexpected packet type " + resultPacket.getResultType()  + 
+            throw new QueryException("Unexpected packet type " + resultPacket.getResultType()  +
                     "insted of OK");
         }
         OKPacket ok = (OKPacket)resultPacket;
         this.hasWarnings = ok.getWarnings() > 0;
         this.serverStatus = ok.getServerStatus();
     }
-    
+
     public class PrepareResult {
         public int statementId;
         public MySQLColumnInformation[] columns;
@@ -610,13 +559,14 @@ public class MySQLProtocol {
         }
     }
 
+    @Override
     public  PrepareResult prepare(String sql) throws QueryException {
         try {
             writer.startPacket(0);
             writer.write(0x16);
             writer.write(sql.getBytes("UTF8"));
             writer.finishPacket();
-            
+
             RawPacket rp  = packetFetcher.getRawPacket();
             checkErrorPacket(rp);
             byte b = rp.getByteBuffer().get(0);
@@ -643,7 +593,7 @@ public class MySQLProtocol {
                     }
                     readEOFPacket();
                 }
-                
+
                 return new PrepareResult(statementId,columns,params);
             } else {
                 throw new QueryException("Unexpected packet returned by server, first byte " + b);
@@ -651,15 +601,16 @@ public class MySQLProtocol {
         } catch (IOException e) {
             throw new QueryException(e.getMessage(), -1,
                     SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
-                   e);
+                    e);
         }
     }
-    
-    public synchronized void closePreparedStatement(int statementId) throws QueryException{
+
+    @Override
+    public synchronized void closePreparedStatement(int statementId) throws QueryException {
         try {
             writer.startPacket(0);
             writer.write(0x19); /*COM_STMT_CLOSE*/
-            writer.write(statementId); 
+            writer.write(statementId);
             writer.finishPacket();
         } catch(IOException e) {
             throw new QueryException(e.getMessage(), -1,
@@ -667,95 +618,40 @@ public class MySQLProtocol {
                     e);
         }
     }
-    public void setHostFailed() {
-        hostFailed = true;
-        failTimestamp = System.currentTimeMillis();
+    public JDBCUrl getJdbcUrl() {
+        return jdbcUrl;
     }
 
-
-    public boolean shouldReconnect() {
-        return (!inTransaction() && hostFailed && autoReconnect && reconnectCount < maxReconnects);
-    }
-
+    @Override
     public boolean getAutocommit() {
         return ((serverStatus & ServerStatus.AUTOCOMMIT) != 0);
     }
+    public boolean isHighAvailability() { return false; }
+    public boolean isMasterConnection() { return true; }
 
+    @Override
     public boolean noBackslashEscapes() {
         return ((serverStatus & ServerStatus.NO_BACKSLASH_ESCAPES) != 0);
     }
-    public void reconnectToMaster() throws IOException,QueryException, SQLException {
-        SyncPacketFetcher saveFetcher = this.packetFetcher;
-        PacketOutputStream saveWriter = this.writer;
-        Socket saveSocket = this.socket;
-        HostAddress[] addrs = jdbcUrl.getHostAddresses();
-        boolean success = false;
-        try {
-           connect(addrs[0].host, addrs[0].port);
-           try {
-            close(saveFetcher, saveWriter, saveSocket);
-           } catch (Exception e) {
-           }
-           success = true;
-        } finally {
-            if (!success) {
-                failTimestamp = System.currentTimeMillis();
-                queriesSinceFailover = 0;
-                this.packetFetcher = saveFetcher;
-                this.writer = saveWriter;
-                this.socket = saveSocket;
-            }
-        }
-    }
+
+    @Override
     public void connect() throws QueryException, SQLException {
         if (!isClosed()) {
             close();
         }
 
-        HostAddress[] addrs = jdbcUrl.getHostAddresses();
-
-        // There could be several addresses given in the URL spec, try all of them, and throw exception if all hosts
-        // fail.
-        for(int i = 0; i < addrs.length; i++) {
-            currentHost = addrs[i];
-            try {
-                connect(currentHost.host, currentHost.port);
-                return;
-            } catch (IOException e) {
-                if (i == addrs.length - 1) {
-                    throw new QueryException("Could not connect to " + HostAddress.toString(addrs) +
-                      " : " + e.getMessage(),  -1,  SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), e);
-                }
-            }
+        currentHost = this.jdbcUrl.getHostAddresses()[0];
+        try {
+            connect(currentHost.host, currentHost.port);
+            return;
+        } catch (IOException e) {
+            throw new QueryException("Could not connect to " + HostAddress.toString(this.jdbcUrl.getHostAddresses()) +
+                    " : " + e.getMessage(), -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), e);
         }
     }
-    public boolean isMasterConnection() {
-        return currentHost == jdbcUrl.getHostAddresses()[0];
-    }
 
-    /**
-     * Check if fail back to master connection is desired,
-     * @return
-     */
-    public boolean shouldTryFailback() {
-        if (isMasterConnection())
-            return false;
-
-        if (inTransaction())
-            return false;
-        if (reconnectCount >= maxReconnects)
-            return false;
-
-        long now = System.currentTimeMillis();
-        if ((now - failTimestamp)/1000 > secondsBeforeRetryMaster)
-            return true;
-        if (queriesSinceFailover > queriesBeforeRetryMaster)
-            return true;
-        return false;
-    }
-
-    public boolean inTransaction()
-    {
+    @Override
+    public boolean inTransaction() {
         return ((serverStatus & ServerStatus.IN_TRANSACTION) != 0);
     }
 
@@ -772,32 +668,32 @@ public class MySQLProtocol {
         }
     }
 
+    @Override
     public Properties getInfo() {
         return info;
     }
     void skip() throws IOException, QueryException{
-         if (activeResult != null) {
-             activeResult.close();
-         }
+        if (activeResult != null) {
+            activeResult.close();
+        }
 
-         while (moreResults) {
+        while (moreResults) {
             getMoreResults(true);
-         }
+        }
 
     }
 
+    @Override
     public boolean  hasMoreResults() {
         return moreResults;
     }
 
 
-    private static void close(PacketFetcher fetcher, PacketOutputStream packetOutputStream, Socket socket)
-            throws QueryException
-    {
+    protected static void close(PacketFetcher fetcher, PacketOutputStream packetOutputStream, Socket socket) throws QueryException {
         ClosePacket closePacket = new ClosePacket();
         try {
             try {
-            	closePacket.send(packetOutputStream);
+                closePacket.send(packetOutputStream);
                 socket.shutdownOutput();
                 socket.setSoTimeout(3);
                 InputStream is = socket.getInputStream();
@@ -807,10 +703,10 @@ public class MySQLProtocol {
             packetOutputStream.close();
             fetcher.close();
         } catch (IOException e) {
-                 throw new QueryException("Could not close connection: " + e.getMessage(),
-                         -1,
-                         SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
-                         e);
+            throw new QueryException("Could not close connection: " + e.getMessage(),
+                    -1,
+                    SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
+                    e);
         } finally {
             try {
                 socket.close();
@@ -823,21 +719,20 @@ public class MySQLProtocol {
      * Closes socket and stream readers/writers
      * Attempts graceful shutdown.
      */
+    @Override
     public void close() {
         try {
-            /* If a streaming result set is open, close it.*/ 
+            /* If a streaming result set is open, close it.*/
             skip();
         } catch (Exception e) {
             /* eat exception */
         }
         try {
-           close(packetFetcher,writer, socket);
-        }
-        catch (Exception e) {
+            close(packetFetcher, writer, socket);
+        } catch (Exception e) {
             // socket is closed, so it is ok to ignore exception
             log.info("got exception " + e + " while closing connection");
-        }
-        finally {
+        } finally {
             this.connected = false;
         }
     }
@@ -845,6 +740,7 @@ public class MySQLProtocol {
     /**
      * @return true if the connection is closed
      */
+    @Override
     public boolean isClosed() {
         return !this.connected;
     }
@@ -865,6 +761,7 @@ public class MySQLProtocol {
         return CachedSelectResult.createCachedSelectResult(streamingResult);
     }
 
+    @Override
     public void selectDB(final String database) throws QueryException {
         log.finest("Selecting db " + database);
         final SelectDBPacket packet = new SelectDBPacket(database);
@@ -881,39 +778,65 @@ public class MySQLProtocol {
         this.database = database;
     }
 
+    @Override
     public String getServerVersion() {
         return version;
     }
 
+    public void initializeConnection() {
+
+    };
+
+    @Override
     public void setReadonly(final boolean readOnly) {
         this.readOnly = readOnly;
     }
 
+    @Override
     public boolean getReadonly() {
         return readOnly;
     }
 
 
+    @Override
+    public HostAddress getHostAddress() {
+        return currentHost;
+    }
+    public void setHostAddress(HostAddress host) {
+        this.currentHost = host;
+    }
+    @Override
     public String getHost() {
         return currentHost.host;
     }
+    public void setProxy(FailoverProxy proxy) {
+        this.proxy = proxy;
+    }
+    public FailoverProxy getProxy() {
+        return proxy;
+    }
 
+    @Override
     public int getPort() {
         return currentHost.port;
     }
 
+    @Override
     public String getDatabase() {
         return database;
     }
 
+    @Override
     public String getUsername() {
         return username;
     }
 
+    @Override
     public String getPassword() {
         return password;
     }
 
+    @Override
     public boolean ping() throws QueryException {
         final MySQLPingPacket pingPacket = new MySQLPingPacket();
         try {
@@ -929,13 +852,14 @@ public class MySQLProtocol {
         }
     }
 
+    @Override
     public QueryResult executeQuery(Query dQuery)  throws QueryException, SQLException {
-       return executeQuery(dQuery, false);
+        return executeQuery(dQuery, false);
     }
 
-
+    @Override
     public QueryResult getResult(List<Query> dQueries, boolean streaming) throws QueryException{
-             RawPacket rawPacket;
+        RawPacket rawPacket;
         ResultPacket resultPacket;
         try {
             rawPacket = packetFetcher.getRawPacket();
@@ -943,24 +867,24 @@ public class MySQLProtocol {
 
             if (resultPacket.getResultType() == ResultPacket.ResultType.LOCALINFILE) {
                 // Server request the local file (LOCAL DATA LOCAL INFILE)
-            	// We do accept general URLs, too. If the localInfileStream is
-            	// set, use that.
+                // We do accept general URLs, too. If the localInfileStream is
+                // set, use that.
 
                 InputStream is;
                 if (localInfileInputStream == null) {
-                	LocalInfilePacket localInfilePacket= (LocalInfilePacket)resultPacket;
+                    LocalInfilePacket localInfilePacket= (LocalInfilePacket)resultPacket;
                     log.fine("sending local file " + localInfilePacket.getFileName());
                     String localInfile = localInfilePacket.getFileName();
 
                     try {
-                    	URL u = new URL(localInfile);
-                    	is = u.openStream();
+                        URL u = new URL(localInfile);
+                        is = u.openStream();
                     } catch (IOException ioe)   {
-                    	is = new FileInputStream(localInfile);
+                        is = new FileInputStream(localInfile);
                     }
                 } else {
-                	is = localInfileInputStream;
-                	localInfileInputStream = null;
+                    is = localInfileInputStream;
+                    localInfileInputStream = null;
                 }
 
                 writer.sendFile(is, rawPacket.getPacketSeq()+1);
@@ -969,8 +893,8 @@ public class MySQLProtocol {
                 resultPacket = ResultPacketFactory.createResultPacket(rawPacket);
             }
         } catch (SocketTimeoutException ste) {
-        	this.close();
-        	throw new QueryException("Could not read resultset: " + ste.getMessage(),
+            this.close();
+            throw new QueryException("Could not read resultset: " + ste.getMessage(),
                     -1,
                     SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
                     ste);
@@ -1024,6 +948,7 @@ public class MySQLProtocol {
         }
     }
 
+    @Override
     public QueryResult executeQuery(final Query query, boolean streaming) throws QueryException, SQLException {
         List<Query> queries = new ArrayList<Query>();
         queries.add(query);
@@ -1044,8 +969,7 @@ public class MySQLProtocol {
         } catch (IOException e) {
             throw new QueryException("Could not send query: " + e.getMessage(), -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), e);
         }
-        if (!isMasterConnection())
-            queriesSinceFailover++;
+
         try {
             return getResult(dQueries, streaming);
         } catch (QueryException qex) {
@@ -1059,6 +983,8 @@ public class MySQLProtocol {
     }
 
 
+
+    @Override
     public String getServerVariable(String variable) throws QueryException, SQLException {
         CachedSelectResult qr = (CachedSelectResult) executeQuery(new MySQLQuery("select @@" + variable));
         try {
@@ -1082,27 +1008,31 @@ public class MySQLProtocol {
 
     /**
      * cancels the current query - clones the current protocol and executes a query using the new connection
-     * 
+     *
      * thread safe
      *
      * @throws QueryException
-     * @throws SQLException 
+     * @throws SQLException
      */
+    @Override
     public  void cancelCurrentQuery() throws QueryException, IOException, SQLException {
         MySQLProtocol copiedProtocol = new MySQLProtocol(jdbcUrl, username, password, info);
+        copiedProtocol.connect();
         copiedProtocol.executeQuery(new MySQLQuery("KILL QUERY " + serverThreadId));
         copiedProtocol.close();
     }
 
+    @Override
     public boolean createDB() {
-    	String alias = info.getProperty("createDatabaseIfNotExist");
+        String alias = info.getProperty("createDatabaseIfNotExist");
         return info != null
                 && (info.getProperty("createDB", "").equalsIgnoreCase("true")
-                		|| (alias != null && alias.equalsIgnoreCase("true")));
+                || (alias != null && alias.equalsIgnoreCase("true")));
     }
 
 
 
+    @Override
     public QueryResult getMoreResults(boolean streaming) throws QueryException {
         if(!moreResults)
             return null;
@@ -1129,10 +1059,12 @@ public class MySQLProtocol {
     }
 
 
+    @Override
     public boolean hasUnreadData() {
         return (activeResult != null);
     }
 
+    @Override
     public void setMaxRows(int max) throws QueryException, SQLException{
         if (maxRows != max) {
             if (max == 0) {
@@ -1143,77 +1075,106 @@ public class MySQLProtocol {
             maxRows = max;
         }
     }
-    
+    public int getMaxRows() {
+        return maxRows;
+    }
+
     void parseVersion() {
-    	String[] a = version.split("[^0-9]");
-    	if (a.length > 0)
-    		majorVersion = Integer.parseInt(a[0]);
-    	if (a.length > 1)
-    		minorVersion = Integer.parseInt(a[1]);
-    	if (a.length > 2)
-    		patchVersion = Integer.parseInt(a[2]);
+        String[] a = version.split("[^0-9]");
+        if (a.length > 0)
+            majorVersion = Integer.parseInt(a[0]);
+        if (a.length > 1)
+            minorVersion = Integer.parseInt(a[1]);
+        if (a.length > 2)
+            patchVersion = Integer.parseInt(a[2]);
     }
-    
+
+    @Override
     public int getMajorServerVersion() {
-    	return majorVersion;
-    		
+        return majorVersion;
+
     }
+    @Override
     public int getMinorServerVersion() {
-    	return minorVersion;
+        return minorVersion;
     }
-    
+
+    @Override
     public boolean versionGreaterOrEqual(int major, int minor, int patch) {
-    	if (this.majorVersion > major)
-    		return true;
-    	if (this.majorVersion < major)
-    		return false;
+        if (this.majorVersion > major)
+            return true;
+        if (this.majorVersion < major)
+            return false;
     	/*
     	 * Major versions are equal, compare minor versions
     	 */
-    	if (this.minorVersion > minor)
-    		return true;
-    	if (this.minorVersion < minor)
-    		return false;
-    	
+        if (this.minorVersion > minor)
+            return true;
+        if (this.minorVersion < minor)
+            return false;
+
     	/*
     	 * Minor versions are equal, compare patch version
     	 */
-    	if (this.patchVersion > patch)
-    		return true;
-    	if (this.patchVersion < patch)
-    		return false;
-    	
+        if (this.patchVersion > patch)
+            return true;
+        if (this.patchVersion < patch)
+            return false;
+
     	/* Patch versions are equal => versions are equal */
-    	return true;
+        return true;
     }
-	public void setLocalInfileInputStream(InputStream inputStream) {
-		this.localInfileInputStream = inputStream;
-	}
-	
+    @Override
+    public void setLocalInfileInputStream(InputStream inputStream) {
+        this.localInfileInputStream = inputStream;
+    }
+
+    public int getMaxAllowedPacket() {
+        return this.maxAllowedPacket;
+    }
 
 	public void setMaxAllowedPacket(int maxAllowedPacket) {
+        this.maxAllowedPacket = maxAllowedPacket;
 		writer.setMaxAllowedPacket(maxAllowedPacket);
 	}
-	
+
 	/**
 	 * Sets the connection timeout.
 	 * @param timeout     the timeout, in milliseconds
 	 * @throws SocketException
 	 */
-	public void setTimeout(int timeout) throws SocketException {
-		this.socket.setSoTimeout(timeout);
-	}
-	/**
-	 * Returns the connection timeout in milliseconds.
-	 * @return
-	 * @throws SocketException
-	 */
-	public int getTimeout() throws SocketException {
-		return this.socket.getSoTimeout();
-	}
+    @Override
+    public void setTimeout(int timeout) throws SocketException {
+        this.socket.setSoTimeout(timeout);
+    }
+    /**
+     * Returns the connection timeout in milliseconds.
+     * @return
+     * @throws SocketException
+     */
+    @Override
+    public int getTimeout() throws SocketException {
+        return this.socket.getSoTimeout();
+    }
 
-	public String getPinGlobalTxToPhysicalConnection() {
-		return this.info.getProperty("pinGlobalTxToPhysicalConnection", "false");
-	}
-    
+    @Override
+    public String getPinGlobalTxToPhysicalConnection() {
+        return this.info.getProperty("pinGlobalTxToPhysicalConnection", "false");
+    }
+
+
+    public boolean hasWarnings() {
+        return hasWarnings;
+    }
+    public boolean isConnected() { return connected; }
+    public long getServerThreadId(){
+        return serverThreadId;
+    }
+    public int getDatatypeMappingFlags() {
+        return datatypeMappingFlags;
+    }
+
+    public StreamingSelectResult getActiveResult() {
+        return activeResult;
+    }
 }

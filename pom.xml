@@ -5,7 +5,7 @@
     <artifactId>mariadb-java-client</artifactId>
     <packaging>jar</packaging>
     <name>mariadb-java-client</name>
-    <version>1.1.9</version>
+    <version>1.1.8</version>
     <description>JDBC driver for MariaDB and MySQL</description>
     <url>https://kb.askmonty.org/en/about-the-mariadb-java-client/</url>
     <properties>
@@ -45,6 +45,48 @@
     </developers>
     <profiles>
         <profile>
+            <id>test</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <version>2.12.4</version>
+                        <configuration>
+                            <argLine>-Xmx1g</argLine>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>multihost</id>
+            <activation>
+                <property>
+                    <name>test-multi-host</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <version>2.12.4</version>
+                        <configuration>
+                            <argLine>-Xmx1g</argLine>
+                            <includes>
+                                <include>org/mariadb/jdbc/**</include>
+                                <include>org/mariadb/jdbc/multihost/**</include>
+                            </includes>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
             <id>package-source</id>
             <activation>
                 <property>
@@ -56,7 +98,7 @@
                     <plugin>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>exec-maven-plugin</artifactId>
-                        <version>1.2</version>
+                        <version>1.2.1</version>
                         <configuration>
                             <executable>git</executable>
                             <arguments>
@@ -104,14 +146,6 @@
                             </Import-Package>
                         </manifestEntries>
                     </archive>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.12.4</version>
-                <configuration>
-                    <argLine>-Xmx1g</argLine>
                 </configuration>
             </plugin>
             <!--

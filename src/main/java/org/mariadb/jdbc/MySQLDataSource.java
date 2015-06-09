@@ -54,6 +54,7 @@ import org.mariadb.jdbc.internal.SQLExceptionMapper;
 import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.common.Utils;
 import org.mariadb.jdbc.internal.mysql.MySQLProtocol;
+import org.mariadb.jdbc.internal.mysql.Protocol;
 
 import javax.sql.*;
 
@@ -297,7 +298,9 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XA
     public Connection getConnection() throws SQLException {
         createUrl();
         try {
-            return MySQLConnection.newConnection(new MySQLProtocol(url, username, password, info));
+            Protocol proxyfiedProtocol = Utils.retrieveProxy(url, username, password, info);
+            proxyfiedProtocol.initializeConnection();
+            return MySQLConnection.newConnection(proxyfiedProtocol);
         } catch (QueryException e) {
             SQLExceptionMapper.throwException(e, null, null);
             return null;
@@ -317,7 +320,9 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XA
         createUrl();
         try {
         	Properties props = info == null ? new Properties() : info;
-            return MySQLConnection.newConnection(new MySQLProtocol(url, username, password, props));
+            Protocol proxyfiedProtocol = Utils.retrieveProxy(url, username, password, props);
+            proxyfiedProtocol.initializeConnection();
+            return MySQLConnection.newConnection(proxyfiedProtocol);
         } catch (QueryException e) {
             SQLExceptionMapper.throwException(e, null, null);
             return null;

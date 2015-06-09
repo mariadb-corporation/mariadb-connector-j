@@ -52,8 +52,9 @@ package org.mariadb.jdbc;
 import org.mariadb.jdbc.internal.SQLExceptionMapper;
 import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.common.Utils;
-import org.mariadb.jdbc.internal.mysql.MySQLProtocol;
+import org.mariadb.jdbc.internal.mysql.*;
 
+import java.lang.reflect.Proxy;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.DriverPropertyInfo;
@@ -79,24 +80,21 @@ public final class Driver implements java.sql.Driver {
 
     /**
      * Connect to the given connection string.
-     * 
+     *
      * the properties are currently ignored
      *
      * @param url  the url to connect to
-     * @param info the properties of the connection - ignored at the moment
+     * @param props the properties of the connection
      * @return a connection
      * @throws SQLException if it is not possible to connect
      */
-    public Connection connect(final String url, final Properties info) throws SQLException {
-        // TODO: handle the properties!
-        // TODO: define what props we support!
-
+    public Connection connect(final String url, final Properties props) throws SQLException {
         String baseUrl = url;
-        int idx = url.lastIndexOf("?");        
+        int idx = url.lastIndexOf("?");
         if(idx > 0) {
             baseUrl = url.substring(0,idx);
             String urlParams = url.substring(idx+1);
-            setURLParameters(urlParams, info);
+            setURLParameters(urlParams, props);
         }
 
         log.finest("Connecting to: " + url);
@@ -105,12 +103,18 @@ public final class Driver implements java.sql.Driver {
             if(jdbcUrl == null) {
                 return null;
             }
-            String userName = info.getProperty("user",jdbcUrl.getUsername());
-            String password = info.getProperty("password",jdbcUrl.getPassword());
+            String username = props.getProperty("user",jdbcUrl.getUsername());
+            String password = props.getProperty("password",jdbcUrl.getPassword());
 
-            MySQLProtocol protocol = new MySQLProtocol(jdbcUrl, userName,  password,  info);
+            if (jdbcUrl.getHostAddresses() == null) {
+                log.info("MariaDB connector : missing Host address");
+                return null;
+            } else {
+                Protocol proxyfiedProtocol = Utils.retrieveProxy(jdbcUrl, username, password, props);
+                proxyfiedProtocol.initializeConnection();
+                return MySQLConnection.newConnection(proxyfiedProtocol);
+            }
 
-            return MySQLConnection.newConnection(protocol);
         } catch (QueryException e) {
             SQLExceptionMapper.throwException(e, null, null);
             return null;
@@ -172,10 +176,10 @@ public final class Driver implements java.sql.Driver {
         return false;
     }
 
-	public Logger getParentLogger() throws SQLFeatureNotSupportedException {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    public Logger getParentLogger() throws SQLFeatureNotSupportedException {
+        // TODO Auto-generated method stub
+        return null;
+    }
 
     /*
         Provide a "cleanup" method that can be called after unloading driver, to fix Tomcat's obscure classpath handling.
