@@ -139,36 +139,20 @@ public class ConnectionTest extends BaseTest {
 		}
 	}
 
-	/**
-	 * CONJ-116: Make SQLException prettier when too large packet is sent to the server
-	 * @throws SQLException
-	 * @throws UnsupportedEncodingException 
-	 */
-	@Test
-	public void maxAllowedPackedExceptionIsPrettyTest() throws Throwable, SQLException, UnsupportedEncodingException {
-		//test without reconnection if packet to long
-		Connection tmpConnection = getChangedAllowedPacketConnection(8 * 1024 * 1024);
-		try {
-			checkMaxAllowedPacket(tmpConnection, 8 * 1024 * 1024);
-		} finally {
-			tmpConnection.close();
-		}
-
-		Connection tmpConnection2 = getChangedAllowedPacketConnection(32 * 1024 * 1024);
-		try {
-			checkMaxAllowedPacket(tmpConnection2, 32 * 1024 * 1024);
-		} finally {
-			tmpConnection2.close();
-		}
-	}
-
-	private void checkMaxAllowedPacket(Connection tmpConnection, int maxAllowedPacket ) throws Throwable, SQLException, UnsupportedEncodingException {
-		Statement statement = tmpConnection.createStatement();
+    /**
+     * CONJ-116: Make SQLException prettier when too large packet is sent to the server
+     * @throws SQLException
+     * @throws UnsupportedEncodingException
+     */
+    @Test
+	public void checkMaxAllowedPacket() throws Throwable, SQLException, UnsupportedEncodingException {
+		Statement statement = connection.createStatement();
 		statement.execute("DROP TABLE IF EXISTS dummy");
 		statement.execute("CREATE TABLE dummy (a BLOB)");
 		ResultSet rs = statement.executeQuery("show variables like 'max_allowed_packet'");
 		rs.next();
-		log.fine("max_allowed_packet DB" + rs.getString(2) + " / " + maxAllowedPacket);
+        int maxAllowedPacket = rs.getInt(2);
+		log.fine("max_allowed_packet DB" + maxAllowedPacket);
 
 		/**Create a SQL packet bigger than maxAllowedPacket**/
 		StringBuilder sb = new StringBuilder();
@@ -192,12 +176,10 @@ public class ConnectionTest extends BaseTest {
 			fail("The previous statement should throw an SQLException not a general Exception");
 		}
 
-		resetProtocolMaxAllowedPacket(tmpConnection, maxAllowedPacket); //reset maxPacket because if connection reconnect, the maxAllowedPacket is reset to default value
 		statement.execute("select count(*) from dummy"); //check that the connection is still working
 
-
 		/**added in CONJ-151 to check the 2 differents type of query implementation**/
-		PreparedStatement preparedStatement = tmpConnection.prepareStatement("INSERT INTO dummy VALUES (?)");
+		PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO dummy VALUES (?)");
 		try {
 			byte [] arr = new byte[maxAllowedPacket + 1000];
 			Arrays.fill(arr, (byte) 'a');
@@ -281,31 +263,6 @@ public class ConnectionTest extends BaseTest {
 		serverThreadIdField.setAccessible(true);
 		long threadId = serverThreadIdField.getLong(protocol);
 		return threadId;
-	}
-
-	private Connection getChangedAllowedPacketConnection(int maxAllowedPacket) throws Throwable {
-		Statement statement = null;
-		try {
-			statement = connection.createStatement();
-			ResultSet rs = statement.executeQuery("show variables like 'max_allowed_packet'");
-			rs.next();
-			int currentAllowedPacket = rs.getInt(2);
-
-			statement.execute("SET GLOBAL max_allowed_packet=" + maxAllowedPacket);
-			Connection tmpConnection = openNewConnection(connURI, new Properties());
-			resetProtocolMaxAllowedPacket(tmpConnection, maxAllowedPacket);
-			statement.execute("SET GLOBAL max_allowed_packet=" + currentAllowedPacket);
-			return tmpConnection;
-		} finally {
-			statement.close();
-		}
-	}
-	private void resetProtocolMaxAllowedPacket(Connection conn, int maxAllowedPacket) throws Throwable {
-		Method getProtocolMethod = MySQLConnection.class.getDeclaredMethod("getProtocol", new Class[0]);
-		getProtocolMethod.setAccessible(true);
-		MySQLProtocol protocol = (MySQLProtocol) getProtocolMethod.invoke(conn);
-		protocol.setMaxAllowedPacket(maxAllowedPacket);
-
 	}
 
 }
