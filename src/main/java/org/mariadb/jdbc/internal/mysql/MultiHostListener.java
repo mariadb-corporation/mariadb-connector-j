@@ -96,7 +96,7 @@ public class MultiHostListener implements FailoverListener {
 
     public void initializeConnection() throws QueryException, SQLException {
         this.masterProtocol = (MultiNodesProtocol)this.proxy.currentProtocol;
-        if (proxy.validConnectionTimeout != 0) scheduledPing = exec.schedule(new PingLoop(this), proxy.validConnectionTimeout, TimeUnit.SECONDS);
+        if (proxy.validConnectionTimeout != 0) scheduledPing = exec.scheduleWithFixedDelay(new PingLoop(this), proxy.validConnectionTimeout, proxy.validConnectionTimeout, TimeUnit.SECONDS);
         try {
             launchSearchLoopConnection(true, true);
         } catch (QueryException e) {
@@ -112,6 +112,8 @@ public class MultiHostListener implements FailoverListener {
 
 
     public void postClose()  throws SQLException {
+        if (scheduledPing != null) scheduledPing.cancel(true);
+        if (scheduledFailover != null) scheduledFailover.cancel(true);
         if (!this.masterProtocol.isClosed()) this.masterProtocol.close();
         if (!this.secondaryProtocol.isClosed()) this.secondaryProtocol.close();
     }
@@ -349,6 +351,7 @@ public class MultiHostListener implements FailoverListener {
     protected void syncConnection(Protocol from, Protocol to) throws QueryException, SQLException {
         to.setMaxAllowedPacket(from.getMaxAllowedPacket());
         to.setMaxRows(from.getMaxRows());
+        to.setInternalMaxRows(from.getMaxRows());
         try {
             if (from.getDatabase() != null && !"".equals(from.getDatabase())) {
                     to.selectDB(from.getDatabase());
@@ -532,43 +535,38 @@ public class MultiHostListener implements FailoverListener {
     /**
      * private class to chech of currents connections are still ok.
      */
-    private class PingLoop implements Runnable {
+    protected class PingLoop implements Runnable {
         MultiHostListener listener;
         public PingLoop(MultiHostListener listener) {
             this.listener = listener;
         }
 
         public void run() {
+            log.finest("PingLoop run");
+            boolean masterFail = false;
             try {
-                log.finest("PingLoop run");
-                boolean masterFail = false;
-                try {
-                    if (masterProtocol.ping()) {
-                        try {
-                            if (!masterProtocol.checkIfMaster()) {
-                                //the connection that was master isn't now
-                                masterFail = true;
-                            }
-                        } catch (SQLException e) {
-                            //do nothing
-                        }
-                    }
-                } catch (QueryException e) {
-                    masterFail = true;
-                }
-
-                if (masterFail) {
-                    if (proxy.masterHostFailTimestamp == 0) proxy.masterHostFailTimestamp = System.currentTimeMillis();
-                    proxy.currentConnectionAttempts = 0;
+                if (masterProtocol.ping()) {
                     try {
-                        listener.primaryFail(null, null);
-                    } catch (Throwable t) {
+                        if (!masterProtocol.checkIfMaster()) {
+                            //the connection that was master isn't now
+                            masterFail = true;
+                        }
+                    } catch (SQLException e) {
                         //do nothing
                     }
                 }
-            } finally {
-                // Reschedule
-                exec.schedule(this, proxy.validConnectionTimeout, TimeUnit.SECONDS);
+            } catch (QueryException e) {
+                masterFail = true;
+            }
+
+            if (masterFail) {
+                if (proxy.masterHostFailTimestamp == 0) proxy.masterHostFailTimestamp = System.currentTimeMillis();
+                proxy.currentConnectionAttempts = 0;
+                try {
+                    listener.primaryFail(null, null);
+                } catch (Throwable t) {
+                    //do nothing
+                }
             }
         }
     }

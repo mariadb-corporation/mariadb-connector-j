@@ -4,15 +4,17 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.MySQLConnection;
+import org.mariadb.jdbc.internal.common.QueryException;
 
 import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.concurrent.Executors;
 
 public class MultiHostFailover extends BaseMultiHostTest {
-
+/*
     @Test
     public void testMultiHostWriteOnMaster() throws SQLException {
         Connection connection = null;
@@ -334,6 +336,48 @@ public class MultiHostFailover extends BaseMultiHostTest {
             connection.close();
             Thread.sleep(2000); //wait to not have problem with next test
         }
+    }*/
 
+    @Test
+    public void testSynchronizedReadOnly() throws SQLException, InterruptedException {
+        Connection connection = null;
+        try {
+            connection = getNewConnection();
+            Statement stmt = connection.createStatement();
+            stmt.execute("drop table  if exists multinodeSync");
+            stmt.execute("create table multinodeSync (amount int not null) ENGINE = InnoDB");
+            stmt.execute("INSERT INTO multinodeSync (amount) values (0)");
+            Executors.newSingleThreadScheduledExecutor().execute(new ChangeAmount(connection, 10000));
+            Executors.newSingleThreadScheduledExecutor().execute(new ChangeAmount(connection, 10000));
+            Thread.sleep(2000);
+            ResultSet rs = stmt.executeQuery("SELECT amount FROM multinodeSync");
+            rs.next();
+            log.fine(" total result :" + rs.getInt(1));
+            Assert.assertTrue(20000 == rs.getInt(1));
+        } finally {
+            connection.close();
+        }
     }
+
+    protected class ChangeAmount implements Runnable {
+        Connection connection;
+        int changeAmount;
+        public ChangeAmount(Connection connection, int changeAmount) {
+            this.connection = connection;
+            this.changeAmount = changeAmount;
+        }
+
+        public void run() {
+            try {
+                Statement st = connection.createStatement();
+                for (int i = 0; i < changeAmount; i++) {
+                    st.execute("UPDATE  multinodeSync set amount = amount + 1");
+
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
 }

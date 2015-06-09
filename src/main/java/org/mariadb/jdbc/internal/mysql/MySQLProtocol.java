@@ -1075,6 +1075,12 @@ public class MySQLProtocol implements Protocol {
             maxRows = max;
         }
     }
+    public void setInternalMaxRows(int max) {
+        if (maxRows != max) {
+            maxRows = max;
+        }
+    }
+
     public int getMaxRows() {
         return maxRows;
     }

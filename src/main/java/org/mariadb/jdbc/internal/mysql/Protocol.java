@@ -85,6 +85,7 @@ public interface Protocol {
     StreamingSelectResult getActiveResult();
 
     void setMaxRows(int max) throws QueryException, SQLException;
+    void setInternalMaxRows(int max);
     int getMaxRows();
 
     int getMajorServerVersion();

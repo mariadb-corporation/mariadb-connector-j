@@ -73,6 +73,7 @@ public class StreamedQueryPacket implements CommandPacket {
     }
 
     public int send(final OutputStream ostream) throws IOException, QueryException {
+
         if (queries.size() == 1) {
             PacketOutputStream pos = (PacketOutputStream)ostream;
             pos.startPacket(0);
