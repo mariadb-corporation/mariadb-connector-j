@@ -287,7 +287,11 @@ public final class MySQLConnection implements Connection {
      *                               connection
      */
     public boolean isReadOnly() throws SQLException {
-        return !protocol.checkIfMaster();
+        try {
+            return !protocol.checkIfMaster();
+        } catch (QueryException q) {
+            throw new SQLException(q);
+        }
     }
 
     public static String quoteIdentifier(String s) {
@@ -369,31 +373,11 @@ public final class MySQLConnection implements Connection {
      * @see #getTransactionIsolation
      */
     public void setTransactionIsolation(final int level) throws SQLException {
-        String query = "SET SESSION TRANSACTION ISOLATION LEVEL";
-        switch (level) {
-            case Connection.TRANSACTION_READ_UNCOMMITTED:
-                query += " READ UNCOMMITTED";
-                break;
-            case Connection.TRANSACTION_READ_COMMITTED:
-                query += " READ COMMITTED";
-                break;
-            case Connection.TRANSACTION_REPEATABLE_READ:
-                query += " REPEATABLE READ";
-                break;
-            case Connection.TRANSACTION_SERIALIZABLE:
-                query += " SERIALIZABLE";
-                break;
-            default:
-                throw SQLExceptionMapper.getSQLException("Unsupported transaction isolation level");
-        }
-
-        Statement st = createStatement();
         try {
-            st.execute(query);
-        } finally {
-            st.close();
+            protocol.setTransactionIsolation(level);
+        } catch (QueryException e) {
+            SQLExceptionMapper.throwException(e, this, null);
         }
-
     }
 
     /**

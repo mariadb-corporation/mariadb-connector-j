@@ -49,33 +49,28 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.mysql;
 
-import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.internal.SQLExceptionMapper;
 import org.mariadb.jdbc.internal.common.QueryException;
 
-import java.io.IOException;
 import java.lang.reflect.Method;
 import java.sql.SQLException;
 
 
-public class SingleHostListener implements FailoverListener {
-
-    private FailoverProxy proxy;
+public class SingleHostListener extends BaseFailoverListener implements FailoverListener {
 
     public SingleHostListener() { }
 
-    public void setProxy(FailoverProxy proxy) {
-        this.proxy = proxy;
-    }
-
-    public void initializeConnection() throws QueryException, SQLException {
-        this.proxy.currentProtocol.connect();
+    public void initializeConnection(Protocol protocol) throws QueryException, SQLException {
+        this.currentProtocol = protocol;
+        parseHAOptions(this.currentProtocol);
+        this.currentProtocol.connect();
     }
 
     public void preExecute() throws SQLException {
-        if (!proxy.currentProtocol.inTransaction() && shouldReconnect()) {
+        if (isMasterHostFail())queriesSinceFailover++;
+        if (!currentProtocol.inTransaction() && shouldReconnect()) {
             try {
-                reconnectSingleHost();
+                reconnectFailedConnection();
             } catch (QueryException qe) {
                 SQLExceptionMapper.throwException(qe, null, null);
             }
@@ -83,37 +78,39 @@ public class SingleHostListener implements FailoverListener {
     }
 
 
-    private boolean shouldReconnect() {
-        return (proxy.masterHostFailTimestamp != 0 && proxy.autoReconnect && proxy.currentConnectionAttempts < proxy.maxReconnects);
+    public boolean shouldReconnect() {
+        return (isMasterHostFail() && autoReconnect && currentConnectionAttempts < maxReconnects);
     }
 
-    protected void reconnectSingleHost() throws QueryException, SQLException {
-        proxy.currentConnectionAttempts++;
-        proxy.currentProtocol.connect();
+    public void reconnectFailedConnection() throws QueryException, SQLException {
+        currentConnectionAttempts++;
+        currentProtocol.connect();
 
         //if no error, reset failover variables
-        proxy.resetMasterFailoverData();
+        resetMasterFailoverData();
     }
 
 
     public void switchReadOnlyConnection(Boolean readonly) {}
-    public void postClose()  throws SQLException { }
+    public void postClose()  throws SQLException {
+        stopFailover();
+    }
 
     public synchronized HandleErrorResult primaryFail(Method method, Object[] args) throws Throwable {
         HandleErrorResult handleErrorResult = new HandleErrorResult();
         if (shouldReconnect()) {
 
             //if not first attempt to connect, wait for initialTimeout
-            if (proxy.currentConnectionAttempts > 0) {
+            if (currentConnectionAttempts > 0) {
                 try {
-                    Thread.sleep(proxy.initialTimeout * 1000);
+                    Thread.sleep(initialTimeout * 1000);
                 } catch (InterruptedException e) { }
             }
 
             //trying to reconnect transparently
-            reconnectSingleHost();
-            if (!proxy.currentProtocol.inTransaction()) {
-                handleErrorResult.resultObject = method.invoke(proxy.currentProtocol, args);
+            reconnectFailedConnection();
+            if (!currentProtocol.inTransaction()) {
+                handleErrorResult.resultObject = method.invoke(currentProtocol, args);
                 handleErrorResult.mustThrowError = false;
             }
             return handleErrorResult;

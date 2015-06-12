@@ -49,17 +49,14 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.mysql;
 
-import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.common.query.MySQLQuery;
 import org.mariadb.jdbc.internal.common.query.Query;
 
-import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.SQLException;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -69,63 +66,66 @@ import java.util.logging.Logger;
 /**
  * this class handle the operation when multiple hosts.
  */
-public class MultiHostListener implements FailoverListener {
+public class MultiHostListener extends BaseFailoverListener implements FailoverListener{
     private final static Logger log = Logger.getLogger(MultiHostListener.class.getName());
 
-    protected FailoverProxy proxy;
     protected MultiNodesProtocol masterProtocol;
     protected MultiNodesProtocol secondaryProtocol;
-    ScheduledExecutorService exec = Executors.newSingleThreadScheduledExecutor();
-    protected AtomicBoolean isLooping = new AtomicBoolean();
-    protected AtomicBoolean isLoopingMaster = new AtomicBoolean();
-    protected AtomicBoolean isLoopingSecondary = new AtomicBoolean();
     protected long lastQueryTime = 0;
     protected ScheduledFuture scheduledPing = null;
-    protected ScheduledFuture scheduledFailover = null;
-
 
     public MultiHostListener() {
         masterProtocol = null;
         secondaryProtocol = null;
     }
 
-    public void setProxy(FailoverProxy proxy) {
-        this.proxy = proxy;
-    }
+    public void initializeConnection(Protocol protocol) throws QueryException, SQLException {
+        this.masterProtocol = (MultiNodesProtocol)protocol;
+        this.currentProtocol = this.masterProtocol;
+        parseHAOptions(protocol);
+        //if (validConnectionTimeout != 0) scheduledPing = Executors.newSingleThreadScheduledExecutor().scheduleWithFixedDelay(new PingLoop(this), 1, 1, TimeUnit.SECONDS);
 
-
-    public void initializeConnection() throws QueryException, SQLException {
-        this.masterProtocol = (MultiNodesProtocol)this.proxy.currentProtocol;
-        if (proxy.validConnectionTimeout != 0) scheduledPing = exec.scheduleWithFixedDelay(new PingLoop(this), proxy.validConnectionTimeout, proxy.validConnectionTimeout, TimeUnit.SECONDS);
+        if (validConnectionTimeout != 0) scheduledPing = Executors.newSingleThreadScheduledExecutor().scheduleWithFixedDelay(new PingLoop(this), validConnectionTimeout, validConnectionTimeout, TimeUnit.SECONDS);
         try {
-            launchSearchLoopConnection(true, true);
+            reconnectFailedConnection(true, true, true);
         } catch (QueryException e) {
-            if (!this.masterProtocol.isConnected())proxy.masterHostFailTimestamp = System.currentTimeMillis();
-            if (!this.secondaryProtocol.isConnected())proxy.secondaryHostFailTimestamp = System.currentTimeMillis();
+            checkInitialConnection();
             throw e;
         } catch (SQLException e) {
-            if (!this.masterProtocol.isConnected())proxy.masterHostFailTimestamp = System.currentTimeMillis();
-            if (!this.secondaryProtocol.isConnected())proxy.secondaryHostFailTimestamp = System.currentTimeMillis();
+            checkInitialConnection();
             throw e;
         }
     }
 
+    protected void checkInitialConnection() {
+        if (this.masterProtocol != null && !this.masterProtocol.isConnected()) {
+            log.warning("masterHostFail must not BE here !!!!!!!!!!!!!!!! ");
+            setMasterHostFail();
+        }
+        if (this.secondaryProtocol != null && !this.secondaryProtocol.isConnected()) {
+            log.warning("secondaryHostFail must not BE here !!!!!!!!!!!!!!!! ");
+            setSecondaryHostFail();
+        }
+        launchFailLoopIfNotlaunched(false);
+    }
 
     public void postClose()  throws SQLException {
         if (scheduledPing != null) scheduledPing.cancel(true);
-        if (scheduledFailover != null) scheduledFailover.cancel(true);
+        stopFailover();
         if (!this.masterProtocol.isClosed()) this.masterProtocol.close();
         if (!this.secondaryProtocol.isClosed()) this.secondaryProtocol.close();
     }
 
     @Override
     public void preExecute() throws SQLException {
+        if (isMasterHostFail())queriesSinceFailover++;
+
         if (shouldReconnect()) {
             launchAsyncSearchLoopConnection();
-        } else if (proxy.validConnectionTimeout != 0) {
+        } else if (validConnectionTimeout != 0) {
             lastQueryTime = System.currentTimeMillis();
             scheduledPing.cancel(true);
-            scheduledPing = exec.schedule(new PingLoop(this), proxy.validConnectionTimeout, TimeUnit.SECONDS);
+            scheduledPing = Executors.newSingleThreadScheduledExecutor().schedule(new PingLoop(this), validConnectionTimeout, TimeUnit.SECONDS);
         }
     }
 
@@ -137,19 +137,19 @@ public class MultiHostListener implements FailoverListener {
      * So he doesn't appear here.
      * @return true if should reconnect.
      */
-    private boolean shouldReconnect() {
-        if (proxy.masterHostFailTimestamp !=0 || proxy.secondaryHostFailTimestamp !=0) {
-            if (proxy.currentProtocol.inTransaction()) return false;
-            if (proxy.currentConnectionAttempts > proxy.retriesAllDown) return false;
+    public boolean shouldReconnect() {
+        if (isMasterHostFail() || isSecondaryHostFail()) {
+            if (currentProtocol.inTransaction()) return false;
+            if (currentConnectionAttempts > retriesAllDown) return false;
             long now = System.currentTimeMillis();
 
-            if (proxy.masterHostFailTimestamp != 0) {
-                if (proxy.queriesSinceFailover >= proxy.queriesBeforeRetryMaster) return true;
-                if ((now - proxy.masterHostFailTimestamp) >= proxy.secondsBeforeRetryMaster * 1000) return true;
+            if (isMasterHostFail()) {
+                if (queriesSinceFailover >= queriesBeforeRetryMaster) return true;
+                if ((now - getMasterHostFailTimestamp()) >= secondsBeforeRetryMaster * 1000) return true;
             }
 
-            if (proxy.secondaryHostFailTimestamp != 0) {
-                if ((now - proxy.secondaryHostFailTimestamp) >= proxy.secondsBeforeRetryMaster * 1000) return true;
+            if (isSecondaryHostFail()) {
+                if ((now - getSecondaryHostFailTimestamp()) >= secondsBeforeRetryMaster * 1000) return true;
             }
         }
         return false;
@@ -164,7 +164,7 @@ public class MultiHostListener implements FailoverListener {
         Executors.newSingleThreadExecutor().execute(new Runnable() {
             public void run() {
             try {
-                hostListener.launchSearchLoopConnection();
+                hostListener.reconnectFailedConnection();
             } catch (Exception e) { }
             }
         });
@@ -175,24 +175,20 @@ public class MultiHostListener implements FailoverListener {
      * @throws QueryException
      * @throws SQLException
      */
-    public void launchSearchLoopConnection() throws QueryException, SQLException {
-        proxy.currentConnectionAttempts++;
-        proxy.lastRetry = System.currentTimeMillis();
+    public void reconnectFailedConnection() throws QueryException, SQLException {
+        currentConnectionAttempts++;
+        lastRetry = System.currentTimeMillis();
 
-        if (proxy.currentConnectionAttempts >= proxy.retriesAllDown) {
-            throw new QueryException("Too many reconnection attempts ("+proxy.retriesAllDown+")");
+        if (currentConnectionAttempts >= retriesAllDown) {
+            throw new QueryException("Too many reconnection attempts ("+retriesAllDown+")");
         }
-
-        boolean searchForMaster = (proxy.masterHostFailTimestamp > 0);
-        boolean searchForSecondary = (proxy.secondaryHostFailTimestamp > 0);
-        launchSearchLoopConnection(searchForMaster, searchForSecondary);
+        reconnectFailedConnection(isMasterHostFail(), isSecondaryHostFail(), false);
     }
 
-    private void launchSearchLoopConnection(boolean searchForMaster, boolean searchForSecondary) throws QueryException, SQLException {
-        log.fine("launchSearchLoopConnection searchForMaster:"+searchForMaster+ " loop:"+isLoopingMaster.get()+ "  secondary:"+searchForSecondary+" loop:"+isLoopingSecondary.get());
+    public synchronized void reconnectFailedConnection(boolean searchForMaster, boolean searchForSecondary, boolean initialConnection) throws QueryException, SQLException {
         QueryException queryException = null;
         SQLException sqlException = null;
-        if (searchForMaster && isLoopingMaster.compareAndSet(false, true)) {
+        if (searchForMaster && (isMasterHostFail() || initialConnection)) {
             try {
                 MultiNodesProtocol newProtocol = new MultiNodesProtocol(this.masterProtocol.jdbcUrl,
                         this.masterProtocol.getUsername(),
@@ -201,17 +197,12 @@ public class MultiHostListener implements FailoverListener {
                 newProtocol.setProxy(proxy);
                 newProtocol.connectMaster(this);
             } catch (QueryException e1) {
-                log.finest("launchSearchLoopConnection : master not found");
+                log.finest("reconnectFailedConnection : master not found");
                 queryException = e1;
-            } catch (SQLException e1) {
-                log.finest("launchSearchLoopConnection : master not found");
-                sqlException = e1;
-            } finally {
-                isLoopingMaster.set(false);
             }
         }
 
-        if (searchForSecondary && isLoopingSecondary.compareAndSet(false, true)) {
+        if (searchForSecondary && (isSecondaryHostFail()|| initialConnection)) {
             try {
                 MultiNodesProtocol newProtocol = new MultiNodesProtocol(this.masterProtocol.jdbcUrl,
                         this.masterProtocol.getUsername(),
@@ -222,10 +213,6 @@ public class MultiHostListener implements FailoverListener {
             } catch (QueryException e1) {
                 log.finest("launchSearchLoopConnection : secondary not found");
                 if (queryException == null) queryException = e1;
-            } catch (SQLException e1) {
-                if (sqlException == null) sqlException = e1;
-            } finally {
-                isLoopingSecondary.set(false);
             }
         }
         if (sqlException != null )  throw sqlException;
@@ -237,26 +224,27 @@ public class MultiHostListener implements FailoverListener {
      * @param newMasterProtocol the new active connection
      */
     public synchronized void foundActiveMaster(MultiNodesProtocol newMasterProtocol) {
-        log.fine("found active master connection ");
-        log.finest("proxy.currentReadOnlyAsked.get() : "+proxy.currentReadOnlyAsked.get());
+        log.fine("found active master connection "+newMasterProtocol.getHostAddress());
+        log.finest("currentReadOnlyAsked.get() : " + currentReadOnlyAsked.get());
         this.masterProtocol = newMasterProtocol;
-        if (!proxy.currentReadOnlyAsked.get()) {
+        if (!currentReadOnlyAsked.get()) {
             //actually on a secondary read-only because master was unknown.
             //So select master as currentConnection
             try {
-                syncConnection(proxy.currentProtocol, this.masterProtocol);
+                syncConnection(currentProtocol, this.masterProtocol);
             } catch (Exception e) {
                 log.fine("Some error append during connection parameter synchronisation : " + e.getMessage());
             }
             log.finest("switching current connection to master connection");
-            proxy.currentProtocol = this.masterProtocol;
+            currentProtocol = this.masterProtocol;
         }
         if (log.isLoggable(Level.INFO)) {
-            if (proxy.masterHostFailTimestamp > 0) {
-                log.info("new primary node [" + newMasterProtocol.currentHost.toString() + "] connection established after " + (System.currentTimeMillis() - proxy.masterHostFailTimestamp));
+            if (isMasterHostFail()) {
+                log.info("new primary node [" + newMasterProtocol.currentHost.toString() + "] connection established after " + (System.currentTimeMillis() - getMasterHostFailTimestamp()));
             } else log.info("new primary node [" + newMasterProtocol.currentHost.toString() + "] connection established");
         }
-        proxy.resetMasterFailoverData();
+        resetMasterFailoverData();
+
     }
 
 
@@ -269,23 +257,23 @@ public class MultiHostListener implements FailoverListener {
         this.secondaryProtocol = newSecondaryProtocol;
 
         //if asked to be on read only connection, switching to this new connection
-        if (proxy.currentReadOnlyAsked.get() || (!proxy.currentReadOnlyAsked.get() && proxy.masterHostFailTimestamp > 0)) {
+        if (currentReadOnlyAsked.get() || (!currentReadOnlyAsked.get() && isMasterHostFail())) {
             try {
-                syncConnection(proxy.currentProtocol, this.secondaryProtocol);
+                syncConnection(currentProtocol, this.secondaryProtocol);
             } catch (Exception e) {
                 log.fine("Some error append during connection parameter synchronisation : " + e.getMessage());
             }
             log.finest("switching current connection to secondary connection");
-            proxy.currentProtocol = this.secondaryProtocol;
+            currentProtocol = this.secondaryProtocol;
         }
 
         if (log.isLoggable(Level.INFO)) {
-            if (proxy.secondaryHostFailTimestamp > 0) {
-                log.info("new active secondary node [" + newSecondaryProtocol.currentHost.toString() + "] connection established after " + (System.currentTimeMillis() - proxy.secondaryHostFailTimestamp));
+            if (isSecondaryHostFail()) {
+                log.info("new active secondary node [" + newSecondaryProtocol.currentHost.toString() + "] connection established after " + (System.currentTimeMillis() - getSecondaryHostFailTimestamp()));
             } else log.info("new active secondary node [" + newSecondaryProtocol.currentHost.toString() + "] connection established");
 
         }
-        proxy.resetSecondaryFailoverData();
+        resetSecondaryFailoverData();
     }
 
     /**
@@ -296,48 +284,46 @@ public class MultiHostListener implements FailoverListener {
      */
     @Override
     public void switchReadOnlyConnection(Boolean mustBeReadOnly) throws QueryException, SQLException {
-        log.finest("switching to mustBeRealOnly = " + mustBeReadOnly + " mode");
+        log.finest("switching to mustBeReadOnly = " + mustBeReadOnly + " mode");
 
-        if (mustBeReadOnly != proxy.currentReadOnlyAsked.get() && proxy.currentProtocol.inTransaction()) {
+        if (mustBeReadOnly != currentReadOnlyAsked.get() && currentProtocol.inTransaction()) {
             throw new QueryException("Trying to set to read-only mode during a transaction");
         }
-
-        proxy.currentReadOnlyAsked.set(mustBeReadOnly);
-        if (proxy.currentReadOnlyAsked.get()) {
-            if (proxy.currentProtocol.isMasterConnection()) {
-                //must change to replica connection
-                if (proxy.secondaryHostFailTimestamp == 0) {
-                    synchronized (this) {
-                        log.finest("switching to secondary connection");
-                        syncConnection(this.masterProtocol, this.secondaryProtocol);
-                        proxy.currentProtocol = this.secondaryProtocol;
+        if (currentReadOnlyAsked.compareAndSet(!mustBeReadOnly, mustBeReadOnly)) {
+            if (currentReadOnlyAsked.get()) {
+                if (currentProtocol.isMasterConnection()) {
+                    //must change to replica connection
+                    if (!isSecondaryHostFail()) {
+                        synchronized (this) {
+                            log.finest("switching to secondary connection");
+                            syncConnection(this.masterProtocol, this.secondaryProtocol);
+                            currentProtocol = this.secondaryProtocol;
+                        }
+                    }
+                }
+            } else {
+                if (!currentProtocol.isMasterConnection()) {
+                    //must change to master connection
+                    if (!isMasterHostFail()) {
+                        synchronized (this) {
+                            log.finest("switching to master connection");
+                            syncConnection(this.secondaryProtocol, this.masterProtocol);
+                            currentProtocol = this.masterProtocol;
+                        }
+                    } else {
+                        if (autoReconnect) {
+                            try {
+                                reconnectFailedConnection();
+                                //connection established, no need to send Exception !
+                                return;
+                            } catch (Exception e) { }
+                        }
+                        launchFailLoopIfNotlaunched(false);
+                        throw new QueryException("No primary host is actually connected");
                     }
                 }
             }
-        } else {
-            if (!proxy.currentProtocol.isMasterConnection()) {
-                //must change to master connection
-                if (proxy.masterHostFailTimestamp == 0) {
-                    synchronized (this) {
-                        log.finest("switching to master connection");
-                        syncConnection(this.secondaryProtocol, this.masterProtocol);
-                        proxy.currentProtocol = this.masterProtocol;
-                    }
-                } else {
-                    if (proxy.autoReconnect) {
-                        try {
-                            launchSearchLoopConnection();
-                            //connection established, no need to send Exception !
-                            return;
-                        } catch (Exception e) { }
-                    }
-
-                    if (isLooping.compareAndSet(false, true)) {
-                        scheduledFailover = exec.scheduleWithFixedDelay(new FailLoop(this), 250, 250, TimeUnit.MILLISECONDS);
-                    }
-                    throw new QueryException("No primary host is actually connected");
-                }
-            }
+            
         }
     }
 
@@ -352,6 +338,9 @@ public class MultiHostListener implements FailoverListener {
         to.setMaxAllowedPacket(from.getMaxAllowedPacket());
         to.setMaxRows(from.getMaxRows());
         to.setInternalMaxRows(from.getMaxRows());
+        if (from.getTransactionIsolationLevel() != 0) {
+            to.setTransactionIsolation(from.getTransactionIsolationLevel());
+        }
         try {
             if (from.getDatabase() != null && !"".equals(from.getDatabase())) {
                     to.selectDB(from.getDatabase());
@@ -376,15 +365,15 @@ public class MultiHostListener implements FailoverListener {
 
         //try to reconnect automatically only time before looping
         try {
-            if(this.masterProtocol.ping()) {
+            if(this.masterProtocol != null && this.masterProtocol.ping()) {
                 log.finest("SQL Primary node [" + this.masterProtocol.currentHost.toString() + "] connection re-established");
                 return relaunchOperation(method, args);
             }
         } catch (Exception e) { }
 
-        if (proxy.autoReconnect && !this.masterProtocol.inTransaction()) {
+        if (autoReconnect && !this.masterProtocol.inTransaction()) {
             try {
-                launchSearchLoopConnection();
+                reconnectFailedConnection();
                 log.finest("SQL Primary node [" + this.masterProtocol.currentHost.toString() + "] connection re-established");
 
                 //now that we are reconnect, relaunched result if the result was not crashing the node
@@ -392,21 +381,28 @@ public class MultiHostListener implements FailoverListener {
             } catch (Exception e) { }
         }
 
-        //in multiHost, switch to secondary if active
-        if (proxy.secondaryHostFailTimestamp == 0) {
+        //in multiHost, switch to secondary if active, even if in a current transaction -> will throw an exception
+        if (!isSecondaryHostFail()) {
             try {
-                if(this.secondaryProtocol.ping()) {
+                if(this.secondaryProtocol != null && this.secondaryProtocol.ping()) {
                     log.finest("switching to secondary connection");
                     syncConnection(this.masterProtocol, this.secondaryProtocol);
-                    proxy.currentProtocol = this.secondaryProtocol;
-                    launchReConnectingTimerLoop(true);
-                    return relaunchOperation(method, args);
-                }
-            } catch (Exception e) { }
-        }
+                    currentProtocol = this.secondaryProtocol;
+                    launchFailLoopIfNotlaunched(true);
+                    try {
+                        return relaunchOperation(method, args);
+                    } catch (Exception e) {
+                        //if a problem since ping, just launched the first exception
+                    }
+                } else log.finest("ping failed on secondary");
+            } catch (Exception e) {
+                setMasterHostFail();
+                log.log(Level.FINEST, "ping on secondary failed",e);
+            }
+        } else log.finest("secondary is already down");
 
         log.finest("no secondary failover active");
-        launchReConnectingTimerLoop(true);
+        launchFailLoopIfNotlaunched(true);
         return new HandleErrorResult();
     }
 
@@ -419,51 +415,40 @@ public class MultiHostListener implements FailoverListener {
      */
     public synchronized HandleErrorResult secondaryFail(Method method, Object[] args) throws Throwable {
 
-        if (proxy.masterHostFailTimestamp == 0) {
-
+        if (!isMasterHostFail()) {
             try {
-                this.masterProtocol.ping(); //check that master is on before switching to him
-                log.finest("switching to master connection");
-                syncConnection(this.secondaryProtocol, this.masterProtocol);
-                proxy.currentProtocol = this.masterProtocol;
+                if (this.masterProtocol !=null) {
+                    this.masterProtocol.ping(); //check that master is on before switching to him
+                    log.finest("switching to master connection");
+                    syncConnection(this.secondaryProtocol, this.masterProtocol);
+                    currentProtocol = this.masterProtocol;
 
-                launchReConnectingTimerLoop(true); //launch reconnection loop
-                return relaunchOperation(method, args); //now that we are on master, relaunched result if the result was not crashing the master
-
+                    launchFailLoopIfNotlaunched(true); //launch reconnection loop
+                    return relaunchOperation(method, args); //now that we are on master, relaunched result if the result was not crashing the master
+                }
             } catch (Exception e) {
-                if (proxy.masterHostFailTimestamp == 0) proxy.masterHostFailTimestamp = System.currentTimeMillis();
+                setMasterHostFail();
             }
         }
 
-        if (proxy.autoReconnect) {
+        if (autoReconnect) {
             try {
-                launchSearchLoopConnection();
+                reconnectFailedConnection();
                 log.finest("SQL Primary node [" + this.masterProtocol.currentHost.toString() + "] connection re-established");
                 return relaunchOperation(method, args); //now that we are reconnect, relaunched result if the result was not crashing the node
             } catch (Exception ee) {
                 //in case master is down and another slave has been found
-                if (proxy.secondaryHostFailTimestamp == 0) {
+                if (!isSecondaryHostFail()) {
                     return relaunchOperation(method, args);
                 }
-                launchReConnectingTimerLoop(false);
+                launchFailLoopIfNotlaunched(false);
                 return new HandleErrorResult();
             }
         }
-        launchReConnectingTimerLoop(true);
+        launchFailLoopIfNotlaunched(true);
         return new HandleErrorResult();
     }
 
-
-    /**
-     * launch the scheduler loop every 250 milliseconds, to reconnect a failed connection.
-     * Will verify if there is an existing scheduler
-     * @param now now will launch the loop immediatly, 250ms after if false
-     */
-    protected void launchReConnectingTimerLoop(boolean now) {
-        if (isLooping.compareAndSet(false, true)) {
-            scheduledFailover = exec.scheduleWithFixedDelay(new FailLoop(this), now?0:250, 250, TimeUnit.MILLISECONDS);
-        }
-    }
 
     /**
      * After a failover that has bean done, relaunche the operation that was in progress.
@@ -481,11 +466,11 @@ public class MultiHostListener implements FailoverListener {
                 String query = ((Query)args[0]).getQuery().toUpperCase();
                 if (!query.equals("ALTER SYSTEM CRASH")
                         && !query.startsWith("KILL")) {
-                    handleErrorResult.resultObject = method.invoke(proxy.currentProtocol, args);
+                    handleErrorResult.resultObject = method.invoke(currentProtocol, args);
                     handleErrorResult.mustThrowError = false;
                 }
             } else {
-                handleErrorResult.resultObject = method.invoke(proxy.currentProtocol, args);
+                handleErrorResult.resultObject = method.invoke(currentProtocol, args);
                 handleErrorResult.mustThrowError = false;
             }
         }
@@ -493,44 +478,7 @@ public class MultiHostListener implements FailoverListener {
     }
 
 
-    protected void stopFailover() {
-        scheduledFailover.cancel(false);
-        isLooping.set(false);
-    }
 
-    /**
-     * private class to permit a timer reconnection loop
-     */
-    protected class FailLoop implements Runnable {
-        MultiHostListener listener;
-        public FailLoop(MultiHostListener listener) {
-            log.finest("launched search loop");
-            this.listener = listener;
-        }
-
-        public void run() {
-            log.finest("FailLoop run master:"+(proxy.masterHostFailTimestamp != 0)+" slave:"+(proxy.secondaryHostFailTimestamp != 0));
-            if (proxy.masterHostFailTimestamp != 0 || proxy.secondaryHostFailTimestamp != 0) {
-                if (listener.shouldReconnect()) {
-                    log.finest("--2 run master:"+(proxy.masterHostFailTimestamp != 0)+" slave:"+(proxy.secondaryHostFailTimestamp != 0));
-                    try {
-                        log.finest("--3 run master:"+(proxy.masterHostFailTimestamp != 0)+" slave:"+(proxy.secondaryHostFailTimestamp != 0));
-                        listener.launchSearchLoopConnection();
-                        log.finest("--4 run master:"+(proxy.masterHostFailTimestamp != 0)+" slave:"+(proxy.secondaryHostFailTimestamp != 0));
-                        //reconnection done !
-                        listener.stopFailover();
-                    } catch (Exception e) {
-                        log.finest("FailLoop search connection failed");
-                        //do nothing
-                    }
-                } else {
-                    if (proxy.currentConnectionAttempts > proxy.retriesAllDown) listener.stopFailover();
-                }
-            } else {
-                listener.stopFailover();
-            }
-        }
-    }
 
     /**
      * private class to chech of currents connections are still ok.
@@ -542,32 +490,31 @@ public class MultiHostListener implements FailoverListener {
         }
 
         public void run() {
-            log.finest("PingLoop run");
-            boolean masterFail = false;
-            try {
-                if (masterProtocol.ping()) {
-                    try {
+            //if (lastQueryTime + validConnectionTimeout < System.currentTimeMillis()) {
+                log.finest("PingLoop run");
+                boolean masterFail = false;
+                try {
+                    if (masterProtocol.ping()) {
                         if (!masterProtocol.checkIfMaster()) {
                             //the connection that was master isn't now
                             masterFail = true;
                         }
-                    } catch (SQLException e) {
-                        //do nothing
+                    }
+                } catch (QueryException e) {
+                    masterFail = true;
+                }
+
+                if (masterFail) {
+                    if (setMasterHostFail()) {
+                        currentConnectionAttempts = 0;
+                        try {
+                            listener.primaryFail(null, null);
+                        } catch (Throwable t) {
+                            //do nothing
+                        }
                     }
                 }
-            } catch (QueryException e) {
-                masterFail = true;
-            }
-
-            if (masterFail) {
-                if (proxy.masterHostFailTimestamp == 0) proxy.masterHostFailTimestamp = System.currentTimeMillis();
-                proxy.currentConnectionAttempts = 0;
-                try {
-                    listener.primaryFail(null, null);
-                } catch (Throwable t) {
-                    //do nothing
-                }
-            }
+            //}
         }
     }
 }

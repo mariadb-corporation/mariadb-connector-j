@@ -60,31 +60,34 @@ import java.lang.reflect.Method;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
-public class AuroraHostListener extends MultiHostListener {
-    private final static Logger log = Logger.getLogger(AuroraHostListener.class.getName());
+public class AuroraListener extends MultiHostListener {
+    private final static Logger log = Logger.getLogger(AuroraListener.class.getName());
 
-    public AuroraHostListener() {
+    public AuroraListener() {
         masterProtocol = null;
         secondaryProtocol = null;
     }
 
-    public void initializeConnection() throws QueryException, SQLException {
-        this.masterProtocol = (MultiNodesProtocol) this.proxy.currentProtocol;
-        if (proxy.validConnectionTimeout != 0)
-            scheduledPing = exec.scheduleWithFixedDelay(new PingLoop(this), proxy.validConnectionTimeout, proxy.validConnectionTimeout, TimeUnit.SECONDS);
+    @Override
+    public void initializeConnection(Protocol protocol) throws QueryException, SQLException {
+        this.masterProtocol = (MultiNodesProtocol)protocol;
+        this.currentProtocol = this.masterProtocol;
+        parseHAOptions(protocol);
+        if (validConnectionTimeout != 0)
+            scheduledPing = Executors.newSingleThreadScheduledExecutor().scheduleWithFixedDelay(new PingLoop(this), validConnectionTimeout, validConnectionTimeout, TimeUnit.SECONDS);
         try {
-            launchSearchLoopConnection(true, true);
+            reconnectFailedConnection(true, true, true);
         } catch (QueryException e) {
-            if (!this.masterProtocol.isConnected()) proxy.masterHostFailTimestamp = System.currentTimeMillis();
-            if (!this.secondaryProtocol.isConnected()) proxy.secondaryHostFailTimestamp = System.currentTimeMillis();
+            checkInitialConnection();
             throw e;
         } catch (SQLException e) {
-            if (!this.masterProtocol.isConnected()) proxy.masterHostFailTimestamp = System.currentTimeMillis();
-            if (!this.secondaryProtocol.isConnected()) proxy.secondaryHostFailTimestamp = System.currentTimeMillis();
+            checkInitialConnection();
             throw e;
         }
     }
@@ -98,34 +101,36 @@ public class AuroraHostListener extends MultiHostListener {
      * @throws QueryException
      * @throws SQLException
      */
-    private void launchSearchLoopConnection(boolean searchForMaster, boolean searchForSecondary) throws QueryException, SQLException {
-
+    @Override
+    public synchronized void reconnectFailedConnection(boolean searchForMaster, boolean searchForSecondary, boolean initialConnection) throws QueryException, SQLException {
+        log.info("reconnectFailedConnection : searchForMaster="+searchForMaster+" searchForSecondary="+searchForSecondary);
         AuroraMultiNodesProtocol newProtocol = new AuroraMultiNodesProtocol(this.masterProtocol.jdbcUrl,
                 this.masterProtocol.getUsername(),
                 this.masterProtocol.getPassword(),
                 this.masterProtocol.getInfo());
         newProtocol.setProxy(proxy);
-        List<HostAddress> loopAddress = Arrays.asList(this.masterProtocol.jdbcUrl.getHostAddresses().clone());
-        List<HostAddress> failAddress = new ArrayList<HostAddress>();
+        List<HostAddress> loopAddress = new LinkedList(Arrays.asList(this.masterProtocol.jdbcUrl.getHostAddresses()));
+        List<HostAddress> failAddress = new LinkedList<HostAddress>();
 
-        if (proxy.masterHostFailTimestamp != 0) {
-            loopAddress.remove(masterProtocol.currentHost);
+        if (masterProtocol!=null && masterProtocol.getHostAddress() != null)loopAddress.remove(masterProtocol.currentHost);
+        if (isMasterHostFail()) {
             failAddress.add(masterProtocol.currentHost);
         }
 
-        if (proxy.secondaryHostFailTimestamp != 0) {
-            loopAddress.remove(secondaryProtocol.currentHost);
+        if (secondaryProtocol!=null && secondaryProtocol.getHostAddress() != null)loopAddress.remove(secondaryProtocol.currentHost);
+        if (isSecondaryHostFail()) {
             failAddress.add(secondaryProtocol.currentHost);
-        } else searchByStartName(loopAddress);
+        } else searchByStartName(secondaryProtocol, loopAddress);
 
-        if ((searchForMaster || searchForSecondary) && isLooping.compareAndSet(false, true)) {
-            newProtocol.loop(this, loopAddress, failAddress, searchForMaster, searchForSecondary);
+        if (((searchForMaster && isMasterHostFail())|| (searchForSecondary && isSecondaryHostFail())) || initialConnection) {
+            newProtocol.loop(this, loopAddress, failAddress, new Boolean[]{searchForMaster, searchForSecondary});
         }
     }
 
+    @Override
     public synchronized HandleErrorResult secondaryFail(Method method, Object[] args) throws Throwable {
 
-        if (proxy.masterHostFailTimestamp == 0) {
+        if (!isMasterHostFail()) {
             try {
                 this.masterProtocol.ping(); //check that master is on before switching to him
 
@@ -134,35 +139,35 @@ public class AuroraHostListener extends MultiHostListener {
                     log.finest("switching to new secondary connection");
                     syncConnection(this.secondaryProtocol, this.masterProtocol);
                     this.secondaryProtocol = this.masterProtocol;
-                    proxy.masterHostFailTimestamp = System.currentTimeMillis();
-                    proxy.currentProtocol = this.masterProtocol;
+                    setMasterHostFail();
+                    currentProtocol = this.masterProtocol;
                 } else {
                     log.finest("switching to master connection");
                     syncConnection(this.secondaryProtocol, this.masterProtocol);
-                    proxy.currentProtocol = this.masterProtocol;
+                    currentProtocol = this.masterProtocol;
                 }
-                launchReConnectingTimerLoop(true); //launch reconnection loop to find the new master
+                launchFailLoopIfNotlaunched(true); //launch reconnection loop to find the new master
                 return relaunchOperation(method, args); //now that we are on master, relaunched result if the result was not crashing the master
             } catch (Exception e) {
-                if (proxy.masterHostFailTimestamp == 0) proxy.masterHostFailTimestamp = System.currentTimeMillis();
+                setMasterHostFail();
             }
         }
 
-        if (proxy.autoReconnect) {
+        if (autoReconnect) {
             try {
-                launchSearchLoopConnection();
+                reconnectFailedConnection();
                 log.finest("SQL Primary node [" + this.masterProtocol.currentHost.toString() + "] connection re-established");
                 return relaunchOperation(method, args); //now that we are reconnect, relaunched result if the result was not crashing the node
             } catch (Exception ee) {
                 //in case master is down and another slave has been found
-                if (proxy.secondaryHostFailTimestamp == 0) {
+                if (!isSecondaryHostFail()) {
                     return relaunchOperation(method, args);
                 }
-                launchReConnectingTimerLoop(false);
+                launchFailLoopIfNotlaunched(false);
                 return new HandleErrorResult();
             }
         }
-        launchReConnectingTimerLoop(true);
+        launchFailLoopIfNotlaunched(true);
         return new HandleErrorResult();
     }
 
@@ -172,13 +177,14 @@ public class AuroraHostListener extends MultiHostListener {
      *
      * @param loopAddress
      */
-    private void searchByStartName(List<HostAddress> loopAddress) {
+    protected void searchByStartName(Protocol secondaryProtocol, List<HostAddress> loopAddress) {
         try {
             QueryResult queryResult = secondaryProtocol.executeQuery(new MySQLQuery("select server_id from information_schema.replica_host_status where session_id = 'MASTER_SESSION_ID'"));
             if (queryResult.getResultSetType() == ResultSetType.SELECT && ((SelectQueryResult) queryResult).next()) {
                 String masterHostName = ((SelectQueryResult) queryResult).getValueObject(0).getString();
                 for (int i = 0; i < loopAddress.size(); i++) {
                     if (loopAddress.get(i).host.startsWith(masterHostName)) {
+                        log.fine("master probably "+loopAddress.get(i));
                         if (i == 0) return;
                         else {
                             HostAddress probableMaster = loopAddress.get(i);
@@ -192,8 +198,6 @@ public class AuroraHostListener extends MultiHostListener {
         } catch (Exception ioe) {
             //do nothing
         }
-
-
     }
 
 }

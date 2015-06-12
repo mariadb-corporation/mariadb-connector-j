@@ -545,7 +545,7 @@ public class Utils {
     public static Protocol retrieveProxy(JDBCUrl jdbcUrl,
                                          final String username,
                                          final String password,
-                                         Properties info) {
+                                         Properties info) throws QueryException, SQLException {
         Protocol proxyfiedProtocol;
         if (jdbcUrl.getHostAddresses().length == 1) {
             proxyfiedProtocol = (Protocol) Proxy.newProxyInstance(
@@ -558,7 +558,7 @@ public class Utils {
                 proxyfiedProtocol = (Protocol) Proxy.newProxyInstance(
                         AuroraMultiNodesProtocol.class.getClassLoader(),
                         new Class[] {Protocol.class},
-                        new FailoverProxy(new AuroraMultiNodesProtocol(jdbcUrl, username,  password,  info), new AuroraHostListener()));
+                        new FailoverProxy(new AuroraMultiNodesProtocol(jdbcUrl, username,  password,  info), new AuroraListener()));
             } else if ("master-slave".equals(favor)) {
                 proxyfiedProtocol = (Protocol) Proxy.newProxyInstance(
                         MultiNodesProtocol.class.getClassLoader(),

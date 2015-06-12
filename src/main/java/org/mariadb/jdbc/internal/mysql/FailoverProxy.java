@@ -54,6 +54,11 @@ import org.mariadb.jdbc.internal.common.QueryException;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.sql.SQLException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
@@ -61,95 +66,18 @@ public class FailoverProxy implements InvocationHandler {
     private final static Logger log = Logger.getLogger(FailoverProxy.class.getName());
 
 
-    /* =========================== Failover  parameters ========================================= */
-    /**
-     * Driver must recreateConnection after a failover
-     */
-    protected boolean autoReconnect = false;
-
-    /**
-     * If autoReconnect is enabled, the initial time to wait between re-connect attempts (in seconds, defaults to 2)
-     */
-    protected int initialTimeout = 2;
-
-    /**
-     * Maximum number of reconnects to attempt if autoReconnect is true, default is 3
-     */
-    protected int maxReconnects=3;
 
 
-    /**
-     * 	Number of seconds to issue before falling back to master when failed over (when using multi-host failover).
-     * 	Whichever condition is met first, 'queriesBeforeRetryMaster' or 'secondsBeforeRetryMaster' will cause an
-     * 	attempt to be made to reconnect to the master. Defaults to 50
-     */
-    protected int secondsBeforeRetryMaster = 50;
-
-    /**
-     * 	Number of queries to issue before falling back to master when failed over (when using multi-host failover).
-     * 	Whichever condition is met first, 'queriesBeforeRetryMaster' or 'secondsBeforeRetryMaster' will cause an
-     * 	attempt to be made to reconnect to the master. Defaults to 30
-     */
-    protected int queriesBeforeRetryMaster = 30;
-
-     /**
-     * When using loadbalancing, the number of times the driver should cycle through available hosts, attempting to connect.
-     * Between cycles, the driver will pause for 250ms if no servers are available.
-     */
-    protected int retriesAllDown = 120;
-
-
-    /**
-     * When in multiple hosts, after this time in second without used, verification that the connections havn't been lost.
-     * When 0, no verification will be done. Defaults to 120
-     */
-    protected int validConnectionTimeout = 120;
-    protected long lastRetry = 0;
-
-    protected int queriesSinceFailover=0;
-    protected long secondaryHostFailTimestamp = 0;
-
-
-    /* =========================== Failover variables ========================================= */
-    protected long masterHostFailTimestamp = 0;
-    protected int currentConnectionAttempts = 0;
-
-    protected AtomicBoolean currentReadOnlyAsked=new AtomicBoolean();
-    protected Protocol currentProtocol;
 
     public FailoverListener listener;
 
-    public FailoverProxy(Protocol protocol, FailoverListener listener) {
-        this.currentProtocol = protocol;
-        this.currentProtocol.setProxy(this);
+    public FailoverProxy(Protocol protocol, FailoverListener listener) throws QueryException, SQLException{
+        protocol.setProxy(this);
         this.listener = listener;
         this.listener.setProxy(this);
-        parseHAOptions();
+        this.listener.initializeConnection(protocol);
     }
 
-    /**
-     * parse High availability options.
-     *
-     */
-    protected void parseHAOptions() {
-        String s = currentProtocol.getInfo().getProperty("autoReconnect");
-        if (s != null && s.equals("true")) autoReconnect = true;
-
-        s = currentProtocol.getInfo().getProperty("maxReconnects");
-        if (s != null) maxReconnects = Integer.parseInt(s);
-
-        s = currentProtocol.getInfo().getProperty("queriesBeforeRetryMaster");
-        if (s != null) queriesBeforeRetryMaster = Integer.parseInt(s);
-
-        s = currentProtocol.getInfo().getProperty("secondsBeforeRetryMaster");
-        if (s != null) secondsBeforeRetryMaster = Integer.parseInt(s);
-
-        s = currentProtocol.getInfo().getProperty("retriesAllDown");
-        if (s != null) retriesAllDown = Integer.parseInt(s);
-
-        s = currentProtocol.getInfo().getProperty("validConnectionTimeout");
-        if (s != null) validConnectionTimeout = Integer.parseInt(s);
-    }
 
 
     /**
@@ -164,30 +92,26 @@ public class FailoverProxy implements InvocationHandler {
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         String methodName = method.getName();
         boolean isQuery=false;
-        if ("initializeConnection".equals(methodName)) {
-            this.listener.initializeConnection();
-        }
 
         if ("executeQuery".equals(methodName)) {
             isQuery=true;
-            if (masterHostFailTimestamp!=0)queriesSinceFailover++;
             this.listener.preExecute();
-        }
-        if ("setReadonly".equals(methodName)) {
-            this.listener.switchReadOnlyConnection((Boolean) args[0]);
         }
 
         try {
-             Object returnObj = method.invoke(currentProtocol, args);
+             Object returnObj = listener.invoke(method, args);
             if ("close".equals(methodName)) {
                 this.listener.postClose();
+            }
+            if ("setReadonly".equals(methodName)) {
+                this.listener.switchReadOnlyConnection((Boolean) args[0]);
             }
             return returnObj;
         } catch (InvocationTargetException e) {
             if (e.getTargetException() != null) {
                 if (e.getTargetException() instanceof QueryException) {
                     if (hasToHandleFailover((QueryException) e.getTargetException())) {
-                        HandleErrorResult handleErrorResult = handleFailover(method, args, isQuery);
+                        HandleErrorResult handleErrorResult = listener.handleFailover(method, args, isQuery);
                         if (handleErrorResult.mustThrowError) throw e.getTargetException();
                         return handleErrorResult.resultObject;
                     }
@@ -195,28 +119,6 @@ public class FailoverProxy implements InvocationHandler {
                 throw e.getTargetException();
             }
             throw e;
-        }
-    }
-
-    private HandleErrorResult handleFailover(Method method, Object[] args, boolean isQuery) throws Throwable {
-        log.fine("handleFailover");
-        if (currentProtocol.isMasterConnection()) {
-            //trying to connect of first error
-            if (masterHostFailTimestamp == 0) {
-                masterHostFailTimestamp = System.currentTimeMillis();
-                currentConnectionAttempts = 0;
-                if (isQuery)queriesSinceFailover++;
-                return listener.primaryFail(method, args);
-            }
-            //if not first error, just launched error
-            return new HandleErrorResult();
-        } else {
-            if (secondaryHostFailTimestamp == 0) {
-                secondaryHostFailTimestamp = System.currentTimeMillis();
-                currentConnectionAttempts = 0;
-                return listener.secondaryFail(method, args);
-            }
-            return new HandleErrorResult();
         }
     }
 
@@ -242,20 +144,5 @@ public class FailoverProxy implements InvocationHandler {
         return false;
     }
 
-    protected void resetMasterFailoverData()  {
-        currentConnectionAttempts = 0;
-        masterHostFailTimestamp = 0;
-        lastRetry = 0;
-        queriesSinceFailover = 0;
-    }
 
-    protected void resetSecondaryFailoverData() {
-        currentConnectionAttempts = 0;
-        secondaryHostFailTimestamp = 0;
-        lastRetry = 0;
-    }
-
-    public Protocol getCurrentProtocol() {
-        return currentProtocol;
-    }
 }

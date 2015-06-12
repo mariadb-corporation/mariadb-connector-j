@@ -61,6 +61,7 @@ import java.util.Properties;
 public class MultiNodesProtocol extends MySQLProtocol {
 
     boolean masterConnection = false;
+    boolean mustBeMasterConnection = false;
 
     public MultiNodesProtocol(JDBCUrl url,
                          final String username,
@@ -70,7 +71,7 @@ public class MultiNodesProtocol extends MySQLProtocol {
     }
 
     @Override
-    public void connect() throws QueryException, SQLException {
+    public void connect() throws QueryException {
         if (!isClosed()) {
             close();
         }
@@ -94,26 +95,29 @@ public class MultiNodesProtocol extends MySQLProtocol {
 
 
 
-    public void connectMaster(MultiHostListener listener) throws QueryException, SQLException  {
+    public void connectMaster(MultiHostListener listener) throws QueryException  {
         //Master is considered the firstOne
         HostAddress host = jdbcUrl.getHostAddresses()[0];
         try {
             currentHost = host;
-            log.finest("trying to connect master "+currentHost.host+":"+currentHost.port);
+            log.fine("trying to connect master " + currentHost);
             connect(currentHost.host, currentHost.port);
             listener.foundActiveMaster(this);
+            setMustBeMasterConnection(true);
         } catch (IOException e) {
-            throw new QueryException("Could not connect to " + host + " : " + e.getMessage(),  -1,  SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), e);
+            throw new QueryException("Could not connect to " + host + " : " + e.getMessage(), -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), e);
         }
     }
 
-    public void connectSecondary(MultiHostListener listener) throws QueryException, SQLException {
+    public void connectSecondary(MultiHostListener listener) throws QueryException {
         //first Host is master, so not taken
         for(int i = 1; i < jdbcUrl.getHostAddresses().length; i++) {
             try {
                 currentHost = jdbcUrl.getHostAddresses()[i];
+                log.fine("trying to connect slave "+currentHost);
                 connect(currentHost.host, currentHost.port);
                 listener.foundActiveSecondary(this);
+                setMustBeMasterConnection(false);
                 return;
             } catch (IOException e) {
                 if (i == jdbcUrl.getHostAddresses().length - 1) {
@@ -125,7 +129,7 @@ public class MultiNodesProtocol extends MySQLProtocol {
     }
 
 
-    public boolean checkIfMaster() throws SQLException {
+    public boolean checkIfMaster() throws QueryException {
         masterConnection = currentHost == jdbcUrl.getHostAddresses()[0];
         return masterConnection;
     }
@@ -144,5 +148,12 @@ public class MultiNodesProtocol extends MySQLProtocol {
                     || (alias != null && alias.equalsIgnoreCase("true")));
         }
         return false;
+    }
+
+    public boolean mustBeMasterConnection() {
+        return mustBeMasterConnection;
+    }
+    public void setMustBeMasterConnection(boolean mustBeMasterConnection) {
+        this.mustBeMasterConnection = mustBeMasterConnection;
     }
 }

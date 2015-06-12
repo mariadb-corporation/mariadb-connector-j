@@ -81,6 +81,7 @@ import java.security.KeyStore;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -179,7 +180,7 @@ public class MySQLProtocol implements Protocol {
     private int patchVersion;
     private int maxAllowedPacket;
     private byte serverLanguage;
-
+    private int transactionIsolationLevel=0;
     /* =========================== HA  parameters ========================================= */
 
     private InputStream localInfileInputStream;
@@ -207,9 +208,6 @@ public class MySQLProtocol implements Protocol {
      * @param username the username
      * @param password the password
      * @param info
-     * @throws org.mariadb.jdbc.internal.common.QueryException
-     *          if there is a problem reading / sending the packets
-     * @throws SQLException
      */
 
     public MySQLProtocol(JDBCUrl url,
@@ -246,7 +244,7 @@ public class MySQLProtocol implements Protocol {
      * @throws IOException : connection error (host/port not available)
      * @throws SQLException
      */
-    void connect(String host, int port) throws QueryException, IOException, SQLException{
+    void connect(String host, int port) throws QueryException, IOException{
         SocketFactory socketFactory = null;
         String socketFactoryName = info.getProperty("socketFactory");
         if (socketFactoryName != null) {
@@ -495,7 +493,7 @@ public class MySQLProtocol implements Protocol {
 
     }
 
-    public boolean checkIfMaster() throws SQLException  {
+    public boolean checkIfMaster() throws QueryException  {
         return true;
     }
 
@@ -628,6 +626,7 @@ public class MySQLProtocol implements Protocol {
     }
     public boolean isHighAvailability() { return false; }
     public boolean isMasterConnection() { return true; }
+    public boolean mustBeMasterConnection() { return true; }
 
     @Override
     public boolean noBackslashEscapes() {
@@ -635,7 +634,7 @@ public class MySQLProtocol implements Protocol {
     }
 
     @Override
-    public void connect() throws QueryException, SQLException {
+    public void connect() throws QueryException {
         if (!isClosed()) {
             close();
         }
@@ -783,10 +782,6 @@ public class MySQLProtocol implements Protocol {
         return version;
     }
 
-    public void initializeConnection() {
-
-    };
-
     @Override
     public void setReadonly(final boolean readOnly) {
         this.readOnly = readOnly;
@@ -853,7 +848,7 @@ public class MySQLProtocol implements Protocol {
     }
 
     @Override
-    public QueryResult executeQuery(Query dQuery)  throws QueryException, SQLException {
+    public QueryResult executeQuery(Query dQuery)  throws QueryException {
         return executeQuery(dQuery, false);
     }
 
@@ -949,13 +944,13 @@ public class MySQLProtocol implements Protocol {
     }
 
     @Override
-    public QueryResult executeQuery(final Query query, boolean streaming) throws QueryException, SQLException {
+    public QueryResult executeQuery(final Query query, boolean streaming) throws QueryException {
         List<Query> queries = new ArrayList<Query>();
         queries.add(query);
         return executeQuery(queries, streaming, false, 0);
     }
 
-    public QueryResult executeQuery(final List<Query> dQueries, boolean streaming, boolean isRewritable, int rewriteOffset) throws QueryException, SQLException {
+    public QueryResult executeQuery(final List<Query> dQueries, boolean streaming, boolean isRewritable, int rewriteOffset) throws QueryException {
         for (Query query : dQueries) query.validate();
 
         this.moreResults = false;
@@ -975,7 +970,7 @@ public class MySQLProtocol implements Protocol {
         } catch (QueryException qex) {
             if (qex.getCause() instanceof SocketTimeoutException) {
                 close();
-                throw SQLExceptionMapper.getSQLException("Connection timed out");
+                throw new QueryException("Connection timed out", -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), qex);
             } else {
                 throw qex;
             }
@@ -985,7 +980,7 @@ public class MySQLProtocol implements Protocol {
 
 
     @Override
-    public String getServerVariable(String variable) throws QueryException, SQLException {
+    public String getServerVariable(String variable) throws QueryException {
         CachedSelectResult qr = (CachedSelectResult) executeQuery(new MySQLQuery("select @@" + variable));
         try {
             if (!qr.next()) {
@@ -1012,10 +1007,10 @@ public class MySQLProtocol implements Protocol {
      * thread safe
      *
      * @throws QueryException
-     * @throws SQLException
+     * @throws IOException
      */
     @Override
-    public  void cancelCurrentQuery() throws QueryException, IOException, SQLException {
+    public  void cancelCurrentQuery() throws QueryException, IOException {
         MySQLProtocol copiedProtocol = new MySQLProtocol(jdbcUrl, username, password, info);
         copiedProtocol.connect();
         copiedProtocol.executeQuery(new MySQLQuery("KILL QUERY " + serverThreadId));
@@ -1065,7 +1060,7 @@ public class MySQLProtocol implements Protocol {
     }
 
     @Override
-    public void setMaxRows(int max) throws QueryException, SQLException{
+    public void setMaxRows(int max) throws QueryException {
         if (maxRows != max) {
             if (max == 0) {
                 executeQuery(new MySQLQuery("set @@SQL_SELECT_LIMIT=DEFAULT"));
@@ -1168,6 +1163,31 @@ public class MySQLProtocol implements Protocol {
         return this.info.getProperty("pinGlobalTxToPhysicalConnection", "false");
     }
 
+
+    public void setTransactionIsolation(final int level) throws QueryException {
+        String query = "SET SESSION TRANSACTION ISOLATION LEVEL";
+        switch (level) {
+            case Connection.TRANSACTION_READ_UNCOMMITTED:
+                query += " READ UNCOMMITTED";
+                break;
+            case Connection.TRANSACTION_READ_COMMITTED:
+                query += " READ COMMITTED";
+                break;
+            case Connection.TRANSACTION_REPEATABLE_READ:
+                query += " REPEATABLE READ";
+                break;
+            case Connection.TRANSACTION_SERIALIZABLE:
+                query += " SERIALIZABLE";
+                break;
+            default:
+                throw new QueryException("Unsupported transaction isolation level");
+        }
+        executeQuery(new MySQLQuery(query));
+        transactionIsolationLevel = level;
+    }
+    public int getTransactionIsolationLevel() {
+        return transactionIsolationLevel;
+    }
 
     public boolean hasWarnings() {
         return hasWarnings;

@@ -58,10 +58,15 @@ import java.sql.SQLException;
 
 public interface FailoverListener {
     void setProxy(FailoverProxy proxy);
-    void initializeConnection() throws QueryException, SQLException;
+    void initializeConnection(Protocol protocol) throws QueryException, SQLException;
     void preExecute() throws SQLException;
     void postClose() throws SQLException;
+    boolean shouldReconnect();
+    void reconnectFailedConnection() throws QueryException, SQLException;
     void switchReadOnlyConnection(Boolean readonly) throws QueryException, SQLException ;
     HandleErrorResult primaryFail(Method method, Object[] args) throws Throwable;
     HandleErrorResult secondaryFail(Method method, Object[] args) throws Throwable;
+    void additionnalQuerySinceFailover();
+    Object invoke(Method method, Object[] args) throws Throwable;
+    HandleErrorResult handleFailover(Method method, Object[] args, boolean isQuery) throws Throwable;
 }

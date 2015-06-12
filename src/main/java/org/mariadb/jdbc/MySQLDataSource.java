@@ -299,7 +299,6 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XA
         createUrl();
         try {
             Protocol proxyfiedProtocol = Utils.retrieveProxy(url, username, password, info);
-            proxyfiedProtocol.initializeConnection();
             return MySQLConnection.newConnection(proxyfiedProtocol);
         } catch (QueryException e) {
             SQLExceptionMapper.throwException(e, null, null);
@@ -321,7 +320,6 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XA
         try {
         	Properties props = info == null ? new Properties() : info;
             Protocol proxyfiedProtocol = Utils.retrieveProxy(url, username, password, props);
-            proxyfiedProtocol.initializeConnection();
             return MySQLConnection.newConnection(proxyfiedProtocol);
         } catch (QueryException e) {
             SQLExceptionMapper.throwException(e, null, null);

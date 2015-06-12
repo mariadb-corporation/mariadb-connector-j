@@ -111,7 +111,6 @@ public final class Driver implements java.sql.Driver {
                 return null;
             } else {
                 Protocol proxyfiedProtocol = Utils.retrieveProxy(jdbcUrl, username, password, props);
-                proxyfiedProtocol.initializeConnection();
                 return MySQLConnection.newConnection(proxyfiedProtocol);
             }
 

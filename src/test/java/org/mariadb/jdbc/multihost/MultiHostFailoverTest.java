@@ -1,23 +1,27 @@
 package org.mariadb.jdbc.multihost;
 
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Test;
-import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.MySQLConnection;
+import org.junit.experimental.theories.suppliers.TestedOn;
 import org.mariadb.jdbc.internal.common.QueryException;
 
-import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
-public class MultiHostFailover extends BaseMultiHostTest {
-/*
+public class MultiHostFailoverTest extends BaseMultiHostTest {
+
     @Test
     public void testMultiHostWriteOnMaster() throws SQLException {
+        Assume.assumeTrue(multihostUrlOk);
         Connection connection = null;
+        log.fine("testMultiHostWriteOnMaster begin");
         try {
             connection = getNewConnection();
             Statement stmt = connection.createStatement();
@@ -25,32 +29,40 @@ public class MultiHostFailover extends BaseMultiHostTest {
             stmt.execute("create table multinode (id int not null primary key auto_increment, test VARCHAR(10))");
             log.fine("testMultiHostWriteOnMaster OK");
         } finally {
-            connection.close();
+            log.fine("testMultiHostWriteOnMaster done");
+            if (connection != null) connection.close();
         }
     }
 
-    @Test(expected = SQLException.class)
+    @Test
     public void testMultiHostWriteOnSlave() throws SQLException {
+        Assume.assumeTrue(multihostUrlOk);
         Connection connection = null;
+        log.fine("testMultiHostWriteOnSlave begin");
         try {
             connection = getNewConnection();
+            //if super user, has write to write on slaves
+            Assume.assumeTrue(!hasSuperPrivilege(connection, "testMultiHostWriteOnSlave"));
             connection.setReadOnly(true);
             Statement stmt = connection.createStatement();
             Assert.assertTrue(connection.isReadOnly());
             stmt.execute("drop table  if exists multinodeFail");
-            stmt.execute("create table multinodeFail (id int not null primary key auto_increment, test VARCHAR(10))");
-
-            log.severe("ERROR - > must not be able to write on slave --> check if you database is start with --read-only");
-            Assert.assertTrue(false);
+            try {
+                stmt.execute("create table multinodeFail (id int not null primary key auto_increment, test VARCHAR(10))");
+                log.severe("ERROR - > must not be able to write on slave --> check if you database is start with --read-only");
+                Assert.fail();
+            } catch (SQLException e) { }
         } finally {
             log.fine("testMultiHostWriteOnMaster done");
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
     @Test
     public void testMultiHostReadOnSlave() throws SQLException {
+        Assume.assumeTrue(multihostUrlOk);
         Connection connection = null;
+        log.fine("testMultiHostReadOnSlave begin");
         try {
             connection = getNewConnection();
             Statement stmt = connection.createStatement();
@@ -62,13 +74,15 @@ public class MultiHostFailover extends BaseMultiHostTest {
             Assert.assertTrue(rs.next());
         } finally {
             log.fine("testMultiHostReadOnSlave done");
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
     @Test
     public void failoverSlaveToMaster() throws SQLException {
+        Assume.assumeTrue(multihostUrlOk);
         Connection connection = null;
+        log.fine("failoverSlaveToMaster begin");
         try {
             connection = getNewConnection();
             connection.setReadOnly(true);
@@ -87,18 +101,20 @@ public class MultiHostFailover extends BaseMultiHostTest {
             Assert.assertFalse(connection.isReadOnly());
         } finally {
             log.fine("failoverSlaveToMaster done");
-            connection.close();
             try {
                 Thread.sleep(2000); //wait to not have problem with next test
             } catch (InterruptedException e) {
             }
+            if (connection != null) connection.close();
         }
     }
 
 
     @Test(expected = SQLException.class)
     public void failoverSlaveAndMasterWithoutAutoConnect() throws SQLException {
+        Assume.assumeTrue(multihostUrlOk);
         Connection connection = null;
+        log.fine("failoverSlaveAndMasterWithoutAutoConnect begin");
         try {
             connection = getNewConnection();
             Statement st = connection.createStatement();
@@ -110,17 +126,20 @@ public class MultiHostFailover extends BaseMultiHostTest {
             ResultSet rs = st.executeQuery("SELECT CONNECTION_ID()");
             rs.next();
         } finally {
-            connection.close();
+            log.fine("failoverSlaveAndMasterWithoutAutoConnect done");
             try {
                 Thread.sleep(2000); //wait to not have problem with next test
             } catch (InterruptedException e) {
             }
+            if (connection != null) connection.close();
         }
     }
 
     @Test
     public void failoverSlaveAndMasterWithAutoConnect() throws Throwable {
+        Assume.assumeTrue(multihostUrlOk);
         Connection connection = null;
+        log.fine("failoverSlaveAndMasterWithAutoConnect begin");
         try {
             connection = getNewConnection("&autoReconnect=true");
             Statement st = connection.createStatement();
@@ -148,16 +167,19 @@ public class MultiHostFailover extends BaseMultiHostTest {
             Assert.assertTrue(currentSlaveId != firstSlaveId);
             Assert.assertTrue(currentSlaveId != masterServerId);
         } finally {
-            connection.close();
+            log.fine("failoverSlaveAndMasterWithAutoConnect done");
             try {
                 Thread.sleep(3000); //wait to not have problem with next test
             } catch (InterruptedException e) {
             }
+            if (connection != null) connection.close();
         }
     }
     @Test
     public void failoverMasterWithAutoConnect() throws SQLException, InterruptedException{
+        Assume.assumeTrue(multihostUrlOk);
         Connection connection = null;
+        log.fine("failoverMasterWithAutoConnect begin");
         try {
             connection = getNewConnection("&autoReconnect=true");
             Statement st = connection.createStatement();
@@ -174,17 +196,20 @@ public class MultiHostFailover extends BaseMultiHostTest {
             Assert.assertTrue(currentServerId == masterServerId);
             Assert.assertFalse(connection.isReadOnly());
         } finally {
-            connection.close();
+            log.fine("failoverMasterWithAutoConnect done");
             try {
                 Thread.sleep(2000); //wait to not have problem with next test
             } catch (InterruptedException e) {
             }
+            if (connection != null) connection.close();
         }
     }
 
     @Test
     public void checkReconnectionToMasterAfterTimeout() throws SQLException, NoSuchFieldException, InterruptedException {
+        Assume.assumeTrue(multihostUrlOk);
         Connection connection = null;
+        log.fine("checkReconnectionToMasterAfterTimeout begin");
         try {
             connection = getNewConnection("&secondsBeforeRetryMaster=1");
             Statement st = connection.createStatement();
@@ -208,13 +233,16 @@ public class MultiHostFailover extends BaseMultiHostTest {
             Assert.assertTrue(currentServerId == masterServerId);
             Assert.assertFalse(connection.isReadOnly());
         } finally {
-            connection.close();
+            log.fine("checkReconnectionToMasterAfterTimeout done");
+            if (connection != null) connection.close();
         }
     }
 
     @Test
     public void checkReconnectionToMasterAfterQueryNumber() throws SQLException, NoSuchFieldException, InterruptedException {
+        Assume.assumeTrue(multihostUrlOk);
         Connection connection = null;
+        log.fine("checkReconnectionToMasterAfterQueryNumber begin");
         try {
             connection = getNewConnection("&autoReconnect=true&secondsBeforeRetryMaster=30&queriesBeforeRetryMaster=10");
             Statement st = connection.createStatement();
@@ -237,32 +265,42 @@ public class MultiHostFailover extends BaseMultiHostTest {
             int currentServerId = rs.getInt(2);
             Assert.assertTrue(currentServerId == masterServerId);
         } finally {
-            connection.close();
+            log.fine("checkReconnectionToMasterAfterQueryNumber done");
+            if (connection != null) connection.close();
         }
     }
 
-    @Test(expected = SQLException.class)
+    @Test
     public void writeToSlaveAfterFailover() throws SQLException, InterruptedException{
+        Assume.assumeTrue(multihostUrlOk);
         Connection connection = null;
+        log.fine("writeToSlaveAfterFailover begin");
         try {
             connection = getNewConnection();
+            //if super user can write on slave
+            Assume.assumeTrue(!hasSuperPrivilege(connection, "writeToSlaveAfterFailover"));
             Statement st = connection.createStatement();
             st.execute("drop table  if exists multinode2");
             st.execute("create table multinode2 (id int not null primary key , amount int not null) ENGINE = InnoDB");
             st.execute("insert into multinode2 (id, amount) VALUE (1 , 100)");
             tcpProxies[0].restart(2000);
-
-            st.execute("insert into multinode2 (id, amount) VALUE (1 , 100)");
-            Assert.assertTrue(false);
+            try {
+                st.execute("insert into multinode2 (id, amount) VALUE (2 , 100)");
+                Assert.fail();
+            } catch (SQLException e) { }
         } finally {
-            connection.close();
+            log.fine("writeToSlaveAfterFailover done");
             Thread.sleep(2000);
+            if (connection != null) connection.close();
         }
 
     }
+
     @Test
     public void checkReconnectionAfterInactivity() throws Throwable {
+        Assume.assumeTrue(multihostUrlOk);
         Connection connection = null;
+        log.fine("checkReconnectionAfterInactivity begin");
         try {
             connection = getNewConnection("&validConnectionTimeout=1&secondsBeforeRetryMaster=4");
             Statement st = connection.createStatement();
@@ -291,13 +329,16 @@ public class MultiHostFailover extends BaseMultiHostTest {
             log.fine("checkReconnectionAfterInactivity done");
 
         } finally {
-            connection.close();
+            log.fine("checkReconnectionAfterInactivity done");
+            if (connection != null) connection.close();
         }
     }
 
     @Test(expected = SQLException.class)
     public void checkNoSwitchConnectionDuringTransaction() throws Throwable {
+        Assume.assumeTrue(multihostUrlOk);
         Connection connection = null;
+        log.fine("checkNoSwitchConnectionDuringTransaction begin");
         try {
             connection = getNewConnection("&autoReconnect=true");
             Statement st = connection.createStatement();
@@ -308,15 +349,20 @@ public class MultiHostFailover extends BaseMultiHostTest {
             st.execute("insert into multinodeTransaction (id, amount) VALUE (1 , 100)");
             connection.setReadOnly(true);
         } finally {
-            connection.close();
+            log.fine("checkNoSwitchConnectionDuringTransaction done");
+            if (connection != null) connection.close();
         }
     }
 
-    @Test(expected = SQLException.class)
+    @Test
     public void failoverMasterWithAutoConnectAndTransaction() throws Throwable {
+        Assume.assumeTrue(multihostUrlOk);
         Connection connection = null;
+        log.fine("failoverMasterWithAutoConnectAndTransaction begin");
         try {
             connection = getNewConnection("&autoReconnect=true");
+            //if super user, will write to slave
+            Assume.assumeTrue(!hasSuperPrivilege(connection, "failoverMasterWithAutoConnectAndTransaction"));
             Statement st = connection.createStatement();
 
             st.execute("drop table  if exists multinodeTransaction");
@@ -329,33 +375,49 @@ public class MultiHostFailover extends BaseMultiHostTest {
             st.execute("insert into multinodeTransaction (id, amount) VALUE (3 , 10)");
 
             tcpProxies[0].restart(500);
-            //with autoreconnect but in transaction, query must throw an error
-            st.execute("insert into multinodeTransaction (id, amount) VALUE (3 , 10)");
-
+            try {
+                //with autoreconnect but in transaction, query must throw an error
+                st.execute("insert into multinodeTransaction (id, amount) VALUE (4 , 10)");
+                Assert.fail();
+            } catch (SQLException e) { }
         } finally {
-            connection.close();
+            log.fine("failoverMasterWithAutoConnectAndTransaction done");
             Thread.sleep(2000); //wait to not have problem with next test
+            if (connection != null) {
+                try { connection.setAutoCommit(true); } catch (SQLException e) {}
+                connection.close();
+            }
         }
-    }*/
+    }
 
     @Test
     public void testSynchronizedReadOnly() throws SQLException, InterruptedException {
+        Assume.assumeTrue(multihostUrlOk);
         Connection connection = null;
+        log.fine("testSynchronizedReadOnly begin");
         try {
             connection = getNewConnection();
             Statement stmt = connection.createStatement();
-            stmt.execute("drop table  if exists multinodeSync");
-            stmt.execute("create table multinodeSync (amount int not null) ENGINE = InnoDB");
-            stmt.execute("INSERT INTO multinodeSync (amount) values (0)");
-            Executors.newSingleThreadScheduledExecutor().execute(new ChangeAmount(connection, 10000));
-            Executors.newSingleThreadScheduledExecutor().execute(new ChangeAmount(connection, 10000));
-            Thread.sleep(2000);
-            ResultSet rs = stmt.executeQuery("SELECT amount FROM multinodeSync");
+            stmt.execute("drop table  if exists multisync");
+            stmt.execute("create table multisync (id int not null primary key , amount int not null) ENGINE = InnoDB");
+            stmt.execute("INSERT INTO multisync (id, amount) values (1, 0)");
+            long currentTime = System.currentTimeMillis();
+            ExecutorService exec= Executors.newFixedThreadPool(2);
+            exec.execute(new ChangeAmount(connection, 100));
+            exec.execute(new ChangeAmount(connection, 100));
+            //wait for thread endings
+            exec.shutdown();
+            try {
+                exec.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+            } catch (InterruptedException e) { }
+            log.info("total time : "+ (System.currentTimeMillis() - currentTime));
+            ResultSet rs = stmt.executeQuery("SELECT amount FROM multisync");
             rs.next();
             log.fine(" total result :" + rs.getInt(1));
-            Assert.assertTrue(20000 == rs.getInt(1));
+            Assert.assertTrue(200 == rs.getInt(1));
         } finally {
-            connection.close();
+            log.fine("testSynchronizedReadOnly done");
+            if (connection != null) connection.close();
         }
     }
 
@@ -370,9 +432,58 @@ public class MultiHostFailover extends BaseMultiHostTest {
         public void run() {
             try {
                 Statement st = connection.createStatement();
-                for (int i = 0; i < changeAmount; i++) {
-                    st.execute("UPDATE  multinodeSync set amount = amount + 1");
+                for (int i = 1; i <= changeAmount; i++) {
+                    st.execute("UPDATE  multisync set amount = amount + 1");
+                    if (i%200==0)log.fine("update : "+i);
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
 
+    @Test
+    public void testSyncReadOnly() throws SQLException, InterruptedException {
+        Assume.assumeTrue(multihostUrlOk);
+        Connection connection = null;
+        log.fine("testSyncReadOnly begin");
+        try {
+            connection = getNewConnection();
+            Assert.assertFalse(connection.isReadOnly());
+
+            long currentTime = System.currentTimeMillis();
+            ExecutorService exec= Executors.newFixedThreadPool(2);
+            exec.execute(new ChangeReadOnly(connection, 100));
+            exec.execute(new ChangeReadOnly(connection, 100));
+            //wait for thread endings
+            exec.shutdown();
+            try {
+                exec.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+            } catch (InterruptedException e) { }
+            log.info("total time : "+ (System.currentTimeMillis() - currentTime));
+        } finally {
+            log.fine("testSyncReadOnly done");
+            if (connection != null) connection.close();
+        }
+    }
+
+    protected class ChangeReadOnly implements Runnable {
+        Connection connection;
+        int changeAmount;
+
+        public ChangeReadOnly(Connection connection, int changeAmount) {
+            this.connection = connection;
+            this.changeAmount = changeAmount;
+        }
+
+        public void run() {
+            try {
+                for (int i = 1; i <= changeAmount; i++) {
+                    connection.setReadOnly(!connection.isReadOnly());
+                    if (i%20==0) {
+                        log.fine("setReadOnly change :"+i);
+                        Assert.assertFalse(connection.isReadOnly());
+                    }
                 }
             } catch (SQLException e) {
                 e.printStackTrace();

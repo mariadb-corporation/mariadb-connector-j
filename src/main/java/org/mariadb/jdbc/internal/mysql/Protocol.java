@@ -26,8 +26,7 @@ public interface Protocol {
 
     boolean noBackslashEscapes();
 
-    void connect() throws QueryException, SQLException;
-    void initializeConnection() throws QueryException, SQLException;
+    void connect() throws QueryException;
     JDBCUrl getJdbcUrl();
     boolean inTransaction();
     void setProxy(FailoverProxy proxy);
@@ -50,6 +49,7 @@ public interface Protocol {
     boolean isConnected();
     boolean getReadonly();
     boolean isMasterConnection();
+    boolean mustBeMasterConnection();
     boolean isHighAvailability();
     HostAddress getHostAddress();
     String getHost();
@@ -64,27 +64,27 @@ public interface Protocol {
 
     boolean ping() throws QueryException;
 
-    QueryResult executeQuery(Query dQuery)  throws QueryException, SQLException;
-    QueryResult executeQuery(final List<Query> dQueries, boolean streaming, boolean isRewritable, int rewriteOffset) throws QueryException, SQLException;
+    QueryResult executeQuery(Query dQuery)  throws QueryException;
+    QueryResult executeQuery(final List<Query> dQueries, boolean streaming, boolean isRewritable, int rewriteOffset) throws QueryException;
     QueryResult getResult(List<Query> dQuery, boolean streaming) throws QueryException;
 
-    QueryResult executeQuery(Query dQuery, boolean streaming) throws QueryException, SQLException;
+    QueryResult executeQuery(Query dQuery, boolean streaming) throws QueryException;
 
-    String getServerVariable(String variable) throws QueryException, SQLException;
+    String getServerVariable(String variable) throws QueryException;
 
-    void cancelCurrentQuery() throws QueryException, IOException, SQLException;
+    void cancelCurrentQuery() throws QueryException, IOException;
 
     boolean createDB();
 
     QueryResult getMoreResults(boolean streaming) throws QueryException;
 
     boolean hasUnreadData();
-    boolean checkIfMaster() throws SQLException ;
+    boolean checkIfMaster() throws QueryException ;
     boolean hasWarnings();
     int getDatatypeMappingFlags();
     StreamingSelectResult getActiveResult();
 
-    void setMaxRows(int max) throws QueryException, SQLException;
+    void setMaxRows(int max) throws QueryException;
     void setInternalMaxRows(int max);
     int getMaxRows();
 
@@ -106,5 +106,6 @@ public interface Protocol {
 
     String getPinGlobalTxToPhysicalConnection();
     long getServerThreadId();
-
+    void setTransactionIsolation(int level) throws QueryException;
+    int getTransactionIsolationLevel();
 }
