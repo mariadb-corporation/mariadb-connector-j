@@ -190,10 +190,7 @@ public class MultiHostListener extends BaseFailoverListener implements FailoverL
         SQLException sqlException = null;
         if (searchForMaster && (isMasterHostFail() || initialConnection)) {
             try {
-                MultiNodesProtocol newProtocol = new MultiNodesProtocol(this.masterProtocol.jdbcUrl,
-                        this.masterProtocol.getUsername(),
-                        this.masterProtocol.getPassword(),
-                        this.masterProtocol.getInfo());
+                MultiNodesProtocol newProtocol = new MultiNodesProtocol(this.masterProtocol.jdbcUrl);
                 newProtocol.setProxy(proxy);
                 newProtocol.connectMaster(this);
             } catch (QueryException e1) {
@@ -204,10 +201,7 @@ public class MultiHostListener extends BaseFailoverListener implements FailoverL
 
         if (searchForSecondary && (isSecondaryHostFail()|| initialConnection)) {
             try {
-                MultiNodesProtocol newProtocol = new MultiNodesProtocol(this.masterProtocol.jdbcUrl,
-                        this.masterProtocol.getUsername(),
-                        this.masterProtocol.getPassword(),
-                        this.masterProtocol.getInfo());
+                MultiNodesProtocol newProtocol = new MultiNodesProtocol(this.masterProtocol.jdbcUrl);
                 newProtocol.setProxy(proxy);
                 newProtocol.connectSecondary(this);
             } catch (QueryException e1) {

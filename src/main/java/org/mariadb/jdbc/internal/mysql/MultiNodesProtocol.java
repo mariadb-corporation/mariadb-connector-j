@@ -63,11 +63,8 @@ public class MultiNodesProtocol extends MySQLProtocol {
     boolean masterConnection = false;
     boolean mustBeMasterConnection = false;
 
-    public MultiNodesProtocol(JDBCUrl url,
-                         final String username,
-                         final String password,
-                         Properties info) {
-        super(url, username, password, info);
+    public MultiNodesProtocol(JDBCUrl url) {
+        super(url);
     }
 
     @Override
@@ -142,9 +139,9 @@ public class MultiNodesProtocol extends MySQLProtocol {
     @Override
     public boolean createDB() {
         if (masterConnection) {
-            String alias = info.getProperty("createDatabaseIfNotExist");
-            return info != null
-                    && (info.getProperty("createDB", "").equalsIgnoreCase("true")
+            String alias = jdbcUrl.getProperties().getProperty("createDatabaseIfNotExist");
+            return jdbcUrl.getProperties() != null
+                    && (jdbcUrl.getProperties().getProperty("createDB", "").equalsIgnoreCase("true")
                     || (alias != null && alias.equalsIgnoreCase("true")));
         }
         return false;

@@ -165,14 +165,13 @@ public class MySQLProtocol implements Protocol {
     private final String password;
     private int maxRows;  /* max rows returned by a statement */
     protected SyncPacketFetcher packetFetcher;
-    protected final Properties info;
     private  long serverThreadId;
     public boolean moreResults = false;
     public boolean hasWarnings = false;
     public StreamingSelectResult activeResult= null;
     public int datatypeMappingFlags;
     public short serverStatus;
-    JDBCUrl jdbcUrl;
+    protected JDBCUrl jdbcUrl;
     HostAddress currentHost;
     protected FailoverProxy proxy;
     private int majorVersion;
@@ -187,14 +186,14 @@ public class MySQLProtocol implements Protocol {
 
     private SSLSocketFactory getSSLSocketFactory(boolean trustServerCertificate)  throws QueryException
     {
-        if (info.getProperty("trustServerCertificate") == null
-                && info.getProperty("serverSslCert") == null) {
+        if (jdbcUrl.getProperties().getProperty("trustServerCertificate") == null
+                && jdbcUrl.getProperties().getProperty("serverSslCert") == null) {
             return (SSLSocketFactory)SSLSocketFactory.getDefault();
         }
 
         try {
             SSLContext sslContext = SSLContext.getInstance("TLS");
-            X509TrustManager[] m = {new MyX509TrustManager(info)};
+            X509TrustManager[] m = {new MyX509TrustManager(jdbcUrl.getProperties())};
             sslContext.init(null, m ,null);
             return sslContext.getSocketFactory();
         } catch (Exception e) {
@@ -204,31 +203,25 @@ public class MySQLProtocol implements Protocol {
     }
     /**
      * Get a protocol instance
-     * @param url connection URL
-     * @param username the username
-     * @param password the password
-     * @param info
+     * @param jdbcUrl connection URL infos
      */
 
-    public MySQLProtocol(JDBCUrl url,
-                         final String username,
-                         final String password,
-                         Properties info) {
-        String fractionalSeconds = info.getProperty("useFractionalSeconds", "true");
+    public MySQLProtocol(JDBCUrl jdbcUrl) {
+        String fractionalSeconds = jdbcUrl.getProperties().getProperty("useFractionalSeconds", "true");
         if ("true".equalsIgnoreCase(fractionalSeconds)) {
-            info.setProperty("useFractionalSeconds", "true");
+            jdbcUrl.getProperties().setProperty("useFractionalSeconds", "true");
         }
-        if ("true".equalsIgnoreCase(info.getProperty("pinGlobalTxToPhysicalConnection", "false"))) {
-            info.setProperty("pinGlobalTxToPhysicalConnection", "true");
+        if ("true".equalsIgnoreCase(jdbcUrl.getProperties().getProperty("pinGlobalTxToPhysicalConnection", "false"))) {
+            jdbcUrl.getProperties().setProperty("pinGlobalTxToPhysicalConnection", "true");
         }
-        this.info = info;
-        this.jdbcUrl = url;
+        
+        this.jdbcUrl = jdbcUrl;
         this.database = (jdbcUrl.getDatabase() == null ? "" : jdbcUrl.getDatabase());
-        this.username = (username == null ? "" : username);
-        this.password = (password == null ? "" : password);
+        this.username = (jdbcUrl.getUsername() == null ? "" : jdbcUrl.getUsername());
+        this.password = (jdbcUrl.getPassword() == null ? "" : jdbcUrl.getPassword());
 
 
-        String logLevel = info.getProperty("MySQLProtocolLogLevel");
+        String logLevel = jdbcUrl.getProperties().getProperty("MySQLProtocolLogLevel");
         if (logLevel != null)
             log.setLevel(Level.parse(logLevel));
         else
@@ -246,7 +239,7 @@ public class MySQLProtocol implements Protocol {
      */
     void connect(String host, int port) throws QueryException, IOException{
         SocketFactory socketFactory = null;
-        String socketFactoryName = info.getProperty("socketFactory");
+        String socketFactoryName = jdbcUrl.getProperties().getProperty("socketFactory");
         if (socketFactoryName != null) {
             try {
                 socketFactory = (SocketFactory) (Class.forName(socketFactoryName).newInstance());
@@ -259,7 +252,7 @@ public class MySQLProtocol implements Protocol {
         }
 
         // Extract connectTimeout URL parameter
-        String connectTimeoutString = info.getProperty("connectTimeout");
+        String connectTimeoutString = jdbcUrl.getProperties().getProperty("connectTimeout");
         Integer connectTimeout = null;
         if (connectTimeoutString != null) {
             try {
@@ -269,18 +262,18 @@ public class MySQLProtocol implements Protocol {
             }
         }
         // Create socket with timeout if required
-        if (info.getProperty("pipe") != null) {
-            socket = new org.mariadb.jdbc.internal.mysql.NamedPipeSocket(host, info.getProperty("pipe"));
-        } else if(info.getProperty("localSocket") != null){
+        if (jdbcUrl.getProperties().getProperty("pipe") != null) {
+            socket = new org.mariadb.jdbc.internal.mysql.NamedPipeSocket(host, jdbcUrl.getProperties().getProperty("pipe"));
+        } else if(jdbcUrl.getProperties().getProperty("localSocket") != null){
             try {
-                socket = new org.mariadb.jdbc.internal.mysql.UnixDomainSocket(info.getProperty("localSocket"));
+                socket = new org.mariadb.jdbc.internal.mysql.UnixDomainSocket(jdbcUrl.getProperties().getProperty("localSocket"));
             } catch( RuntimeException re) {
                 //  could be e.g library loading error
                 throw new IOException(re.getMessage(),re.getCause());
             }
-        } else if(info.getProperty("sharedMemory")!= null) {
+        } else if(jdbcUrl.getProperties().getProperty("sharedMemory") != null) {
             try {
-                socket = new SharedMemorySocket(info.getProperty("sharedMemory"));
+                socket = new SharedMemorySocket(jdbcUrl.getProperties().getProperty("sharedMemory"));
             } catch( RuntimeException re) {
                 //  could be e.g library loading error
                 throw new IOException(re.getMessage(),re.getCause());
@@ -290,23 +283,23 @@ public class MySQLProtocol implements Protocol {
         }
 
         try {
-            String value = info.getProperty("tcpNoDelay", "false");
+            String value = jdbcUrl.getProperties().getProperty("tcpNoDelay", "false");
             if (value.equalsIgnoreCase("true"))
                 socket.setTcpNoDelay(true);
 
-            value = info.getProperty("tcpKeepAlive", "false");
+            value = jdbcUrl.getProperties().getProperty("tcpKeepAlive", "false");
             if (value.equalsIgnoreCase("true"))
                 socket.setKeepAlive(true);
 
-            value = info.getProperty("tcpRcvBuf");
+            value = jdbcUrl.getProperties().getProperty("tcpRcvBuf");
             if (value != null)
                 socket.setReceiveBufferSize(Integer.parseInt(value));
 
-            value = info.getProperty("tcpSndBuf");
+            value = jdbcUrl.getProperties().getProperty("tcpSndBuf");
             if (value != null)
                 socket.setSendBufferSize(Integer.parseInt(value));
 
-            value = info.getProperty("tcpAbortiveClose","false");
+            value = jdbcUrl.getProperties().getProperty("tcpAbortiveClose", "false");
             if (value.equalsIgnoreCase("true"))
                 socket.setSoLinger(true, 0);
 
@@ -316,7 +309,7 @@ public class MySQLProtocol implements Protocol {
 
         // Bind the socket to a particular interface if the connection property
         // localSocketAddress has been defined.
-        String localHost = info.getProperty("localSocketAddress");
+        String localHost = jdbcUrl.getProperties().getProperty("localSocketAddress");
         if (localHost != null) {
             InetSocketAddress localAddress = new InetSocketAddress(localHost, 0);
             socket.bind(localAddress);
@@ -332,7 +325,7 @@ public class MySQLProtocol implements Protocol {
         }
 
         // Extract socketTimeout URL parameter
-        String socketTimeoutString = info.getProperty("socketTimeout");
+        String socketTimeoutString = jdbcUrl.getProperties().getProperty("socketTimeout");
         Integer socketTimeout = null;
         if (socketTimeoutString != null) {
             try {
@@ -376,16 +369,16 @@ public class MySQLProtocol implements Protocol {
 
 
 
-            if(info.getProperty("allowMultiQueries") != null
-                    || (info.getProperty("rewriteBatchedStatements") != null
-                    && "true".equalsIgnoreCase(info.getProperty("rewriteBatchedStatements")))) {
+            if(jdbcUrl.getProperties().getProperty("allowMultiQueries") != null
+                    || (jdbcUrl.getProperties().getProperty("rewriteBatchedStatements") != null
+                    && "true".equalsIgnoreCase(jdbcUrl.getProperties().getProperty("rewriteBatchedStatements")))) {
                 capabilities |= MySQLServerCapabilities.MULTI_STATEMENTS;
             }
-            if(info.getProperty("useCompression") != null) {
+            if(jdbcUrl.getProperties().getProperty("useCompression") != null) {
                 capabilities |= MySQLServerCapabilities.COMPRESS;
                 useCompression = true;
             }
-            if(info.getProperty("interactiveClient") != null) {
+            if(jdbcUrl.getProperties().getProperty("interactiveClient") != null) {
                 capabilities |= MySQLServerCapabilities.CLIENT_INTERACTIVE;
             }
             // If a database is given, but createDB is not defined or is false,
@@ -393,13 +386,13 @@ public class MySQLProtocol implements Protocol {
             if (database != null && !createDB())
                 capabilities |= MySQLServerCapabilities.CONNECT_WITH_DB;
 
-            if(info.getProperty("useSSL") != null &&
+            if(jdbcUrl.getProperties().getProperty("useSSL") != null &&
                     (greetingPacket.getServerCapabilities() & MySQLServerCapabilities.SSL) != 0 ) {
                 capabilities |= MySQLServerCapabilities.SSL;
                 AbbreviatedMySQLClientAuthPacket amcap = new AbbreviatedMySQLClientAuthPacket(capabilities);
                 amcap.send(writer);
 
-                boolean trustServerCertificate  =  info.getProperty("trustServerCertificate") != null;
+                boolean trustServerCertificate  =  jdbcUrl.getProperties().getProperty("trustServerCertificate") != null;
 
                 SSLSocketFactory f = getSSLSocketFactory(trustServerCertificate);
                 SSLSocket sslSocket = (SSLSocket)f.createSocket(socket,
@@ -414,7 +407,7 @@ public class MySQLProtocol implements Protocol {
                 packetFetcher = new SyncPacketFetcher(reader);
 
                 packetSeq++;
-            } else if(info.getProperty("useSSL") != null){
+            } else if(jdbcUrl.getProperties().getProperty("useSSL") != null){
                 throw new QueryException("Trying to connect with ssl, but ssl not enabled in the server");
             }
 
@@ -463,7 +456,7 @@ public class MySQLProtocol implements Protocol {
                if (qr != null)qr.close();
            }
 
-           String sessionVariables = info.getProperty("sessionVariables");
+           String sessionVariables = jdbcUrl.getProperties().getProperty("sessionVariables");
            if (sessionVariables != null) {
                executeQuery(new MySQLQuery("set session " + sessionVariables));
            }
@@ -656,8 +649,8 @@ public class MySQLProtocol implements Protocol {
 
     private void setDatatypeMappingFlags() {
         datatypeMappingFlags = 0;
-        String tinyInt1isBit = info.getProperty("tinyInt1isBit");
-        String yearIsDateType = info.getProperty("yearIsDateType");
+        String tinyInt1isBit = jdbcUrl.getProperties().getProperty("tinyInt1isBit");
+        String yearIsDateType = jdbcUrl.getProperties().getProperty("yearIsDateType");
 
         if (tinyInt1isBit == null || tinyInt1isBit.equals("1") || tinyInt1isBit.equals("true")) {
             datatypeMappingFlags |= MySQLValueObject.TINYINT1_IS_BIT;
@@ -669,7 +662,7 @@ public class MySQLProtocol implements Protocol {
 
     @Override
     public Properties getInfo() {
-        return info;
+        return jdbcUrl.getProperties();
     }
     void skip() throws IOException, QueryException{
         if (activeResult != null) {
@@ -1011,7 +1004,7 @@ public class MySQLProtocol implements Protocol {
      */
     @Override
     public  void cancelCurrentQuery() throws QueryException, IOException {
-        MySQLProtocol copiedProtocol = new MySQLProtocol(jdbcUrl, username, password, info);
+        MySQLProtocol copiedProtocol = new MySQLProtocol(jdbcUrl);
         copiedProtocol.connect();
         copiedProtocol.executeQuery(new MySQLQuery("KILL QUERY " + serverThreadId));
         copiedProtocol.close();
@@ -1019,9 +1012,9 @@ public class MySQLProtocol implements Protocol {
 
     @Override
     public boolean createDB() {
-        String alias = info.getProperty("createDatabaseIfNotExist");
-        return info != null
-                && (info.getProperty("createDB", "").equalsIgnoreCase("true")
+        String alias = jdbcUrl.getProperties().getProperty("createDatabaseIfNotExist");
+        return jdbcUrl.getProperties() != null
+                && (jdbcUrl.getProperties().getProperty("createDB", "").equalsIgnoreCase("true")
                 || (alias != null && alias.equalsIgnoreCase("true")));
     }
 
@@ -1160,7 +1153,7 @@ public class MySQLProtocol implements Protocol {
 
     @Override
     public String getPinGlobalTxToPhysicalConnection() {
-        return this.info.getProperty("pinGlobalTxToPhysicalConnection", "false");
+        return this.jdbcUrl.getProperties().getProperty("pinGlobalTxToPhysicalConnection", "false");
     }
 
 

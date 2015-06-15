@@ -104,10 +104,7 @@ public class AuroraListener extends MultiHostListener {
     @Override
     public synchronized void reconnectFailedConnection(boolean searchForMaster, boolean searchForSecondary, boolean initialConnection) throws QueryException, SQLException {
         log.info("reconnectFailedConnection : searchForMaster="+searchForMaster+" searchForSecondary="+searchForSecondary);
-        AuroraMultiNodesProtocol newProtocol = new AuroraMultiNodesProtocol(this.masterProtocol.jdbcUrl,
-                this.masterProtocol.getUsername(),
-                this.masterProtocol.getPassword(),
-                this.masterProtocol.getInfo());
+        AuroraMultiNodesProtocol newProtocol = new AuroraMultiNodesProtocol(this.masterProtocol.jdbcUrl);
         newProtocol.setProxy(proxy);
         List<HostAddress> loopAddress = new LinkedList(Arrays.asList(this.masterProtocol.jdbcUrl.getHostAddresses()));
         List<HostAddress> failAddress = new LinkedList<HostAddress>();

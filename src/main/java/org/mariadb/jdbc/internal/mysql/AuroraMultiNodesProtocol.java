@@ -68,11 +68,9 @@ import java.util.logging.Logger;
 
 public class AuroraMultiNodesProtocol extends MultiNodesProtocol {
     protected final static Logger log = Logger.getLogger(AuroraMultiNodesProtocol.class.getName());
-    public AuroraMultiNodesProtocol(JDBCUrl url,
-                              final String username,
-                              final String password,
-                              Properties info) {
-        super(url, username, password, info);
+
+    public AuroraMultiNodesProtocol(JDBCUrl url) {
+        super(url);
     }
 
     /**
@@ -157,10 +155,7 @@ public class AuroraMultiNodesProtocol extends MultiNodesProtocol {
     }
 
     private AuroraMultiNodesProtocol getNewProtocol() {
-        AuroraMultiNodesProtocol newProtocol = new AuroraMultiNodesProtocol(this.jdbcUrl,
-                this.getUsername(),
-                this.getPassword(),
-                this.getInfo());
+        AuroraMultiNodesProtocol newProtocol = new AuroraMultiNodesProtocol(this.jdbcUrl);
         newProtocol.setProxy(proxy);
         return newProtocol;
     }

@@ -84,33 +84,19 @@ public final class Driver implements java.sql.Driver {
      * the properties are currently ignored
      *
      * @param url  the url to connect to
-     * @param props the properties of the connection
      * @return a connection
      * @throws SQLException if it is not possible to connect
      */
     public Connection connect(final String url, final Properties props) throws SQLException {
-        String baseUrl = url;
-        int idx = url.lastIndexOf("?");
-        if(idx > 0) {
-            baseUrl = url.substring(0,idx);
-            String urlParams = url.substring(idx+1);
-            setURLParameters(urlParams, props);
-        }
 
         log.finest("Connecting to: " + url);
         try {
-            final JDBCUrl jdbcUrl = JDBCUrl.parse(baseUrl);
-            if(jdbcUrl == null) {
-                return null;
-            }
-            String username = props.getProperty("user",jdbcUrl.getUsername());
-            String password = props.getProperty("password",jdbcUrl.getPassword());
-
+            final JDBCUrl jdbcUrl = JDBCUrl.parse(url, props);
             if (jdbcUrl.getHostAddresses() == null) {
                 log.info("MariaDB connector : missing Host address");
                 return null;
             } else {
-                Protocol proxyfiedProtocol = Utils.retrieveProxy(jdbcUrl, username, password, props);
+                Protocol proxyfiedProtocol = Utils.retrieveProxy(jdbcUrl);
                 return MySQLConnection.newConnection(proxyfiedProtocol);
             }
 
@@ -118,10 +104,6 @@ public final class Driver implements java.sql.Driver {
             SQLExceptionMapper.throwException(e, null, null);
             return null;
         }
-    }
-
-    private void setURLParameters(String urlParameters, Properties info) {
-        Utils.setUrlParameters(urlParameters, info);
     }
 
     /**
