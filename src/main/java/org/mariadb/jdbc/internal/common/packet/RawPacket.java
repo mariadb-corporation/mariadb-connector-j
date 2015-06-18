@@ -1,4 +1,4 @@
- /*
+/*
 MariaDB Client for Java
 
 Copyright (c) 2012 Monty Program Ab.

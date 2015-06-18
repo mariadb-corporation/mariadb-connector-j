@@ -70,16 +70,16 @@ public class ResultPacketFactory {
         byte b = rawPacket.getByteBuffer().get(0);
         switch (b) {
 
-            case ERROR:
-                return new ErrorPacket(rawPacket);
-            case OK:
-                return new OKPacket(rawPacket);
-            case EOF:
-                return new EOFPacket(rawPacket);
-            case LOCALINFILE:
-                return new LocalInfilePacket(rawPacket);
-            default:
-                return new ResultSetPacket(rawPacket);
+        case ERROR:
+            return new ErrorPacket(rawPacket);
+        case OK:
+            return new OKPacket(rawPacket);
+        case EOF:
+            return new EOFPacket(rawPacket);
+        case LOCALINFILE:
+            return new LocalInfilePacket(rawPacket);
+        default:
+            return new ResultSetPacket(rawPacket);
         }
     }
 

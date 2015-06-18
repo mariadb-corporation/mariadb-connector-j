@@ -68,11 +68,11 @@ public class MySQLGreetingReadPacket {
     private final short serverStatus;
     private final byte[] seed;
 
-    /* MDEV-4088/CONJ-32 :  in 10.0, the real version string maybe prefixed with "5.5.5-", 
-     * to workaround bugs in Oracle MySQL replication 
+    /* MDEV-4088/CONJ-32 :  in 10.0, the real version string maybe prefixed with "5.5.5-",
+     * to workaround bugs in Oracle MySQL replication
      */
     static final String MARIADB_RPL_HACK_PREFIX = "5.5.5-";
-            
+
     public MySQLGreetingReadPacket(final RawPacket rawPacket) throws IOException {
         final Reader reader = new Reader(rawPacket);
         protocolVersion = reader.readByte();
@@ -88,11 +88,11 @@ public class MySQLGreetingReadPacket {
         seed = Utils.copyWithLength(seed1, seed1.length + seed2.length);
         System.arraycopy(seed2, 0, seed, seed1.length, seed2.length);
         reader.readByte(); // seems the seed is null terminated
-        
-        /* 
+
+        /*
          * check for MariaDB 10.x replication hack , remove fake prefix if needed
          *  (see comments about MARIADB_RPL_HACK_PREFIX)
-         */ 
+         */
         if ((serverCapabilities & MySQLServerCapabilities.PLUGIN_AUTH) != 0
                 && serverVersion.startsWith(MARIADB_RPL_HACK_PREFIX)) {
             serverVersion = serverVersion.substring(MARIADB_RPL_HACK_PREFIX.length());
@@ -102,12 +102,12 @@ public class MySQLGreetingReadPacket {
     @Override
     public String toString() {
         return protocolVersion + ":" +
-                serverVersion + ":" +
-                serverThreadID + ":" +
-                new String(seed) + ":" +
-                serverCapabilities + ":" +
-                serverLanguage + ":" +
-                serverStatus;
+               serverVersion + ":" +
+               serverThreadID + ":" +
+               new String(seed) + ":" +
+               serverCapabilities + ":" +
+               serverLanguage + ":" +
+               serverStatus;
     }
 
 

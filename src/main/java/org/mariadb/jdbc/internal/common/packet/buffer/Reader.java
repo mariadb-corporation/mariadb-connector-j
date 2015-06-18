@@ -139,13 +139,13 @@ public class Reader {
     public Reader skipLengthEncodedBytes() {
         long encLength = getLengthEncodedBinary();
         if (encLength == -1) {
-               return null;
+            return null;
         }
         skipBytes((int)encLength);
         return this;
     }
-    
-    public int read24bitword(){
+
+    public int read24bitword() {
         final byte[] tmpArr = new byte[3];
         for (int i = 0; i < 3; i++) {
             tmpArr[i] = byteBuffer.get();
@@ -185,7 +185,7 @@ public class Reader {
             return null;
         }
         final byte[] tmpBuf = new byte[(int) encLength];
-        byteBuffer.get(tmpBuf); 
+        byteBuffer.get(tmpBuf);
         try {
             return new String(tmpBuf, "UTF-8");
         } catch (UnsupportedEncodingException uee) {
@@ -231,7 +231,7 @@ public class Reader {
         byteBuffer = newBuffer;
     }
 
-    public long getSilentLengthEncodedBinary(){
+    public long getSilentLengthEncodedBinary() {
         if (byteBuffer.remaining() == 0)
             return 0;
         int pos1 = byteBuffer.position();

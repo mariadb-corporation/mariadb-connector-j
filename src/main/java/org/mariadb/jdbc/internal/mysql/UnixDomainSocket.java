@@ -31,7 +31,7 @@ public class UnixDomainSocket extends Socket {
         }
 
         protected java.util.List getFieldOrder() {
-               return Arrays.asList(new String[]{"sun_family", "sun_path"});
+            return Arrays.asList(new String[] {"sun_family", "sun_path"});
         }
 
     }
@@ -48,7 +48,7 @@ public class UnixDomainSocket extends Socket {
             System.loadLibrary("nsl");
             System.loadLibrary("socket");
         }
-        if (!Platform.isWindows() && !Platform.isWindowsCE()){
+        if (!Platform.isWindows() && !Platform.isWindowsCE()) {
             Native.register("c");
         }
     }
@@ -65,7 +65,7 @@ public class UnixDomainSocket extends Socket {
                 int size = recv(fd, b, len, 0);
                 return size;
             } catch (LastErrorException lee) {
-               throw new IOException("native read() failed : " + formatError(lee));
+                throw new IOException("native read() failed : " + formatError(lee));
             }
         }
         @Override
@@ -85,7 +85,7 @@ public class UnixDomainSocket extends Socket {
 
     class UnixSocketOutputStream extends OutputStream {
         @Override
-        public void write(byte[]b, int off, int len) throws IOException{
+        public void write(byte[]b, int off, int len) throws IOException {
             try  {
                 int size = send(fd,  b, len ,0);
                 if (size != len) {
@@ -95,15 +95,15 @@ public class UnixDomainSocket extends Socket {
             catch (LastErrorException lee) {
                 throw new IOException("native write() failed : " + formatError(lee));
             }
-          }
-          @Override
-          public void write(int b) throws IOException {
-              write(new byte[]{(byte)b});
-          }
-          @Override
-          public void write(byte[] b) throws IOException {
-              write(b, 0, b.length);
-          }
+        }
+        @Override
+        public void write(int b) throws IOException {
+            write(new byte[] {(byte)b});
+        }
+        @Override
+        public void write(byte[] b) throws IOException {
+            write(b, 0, b.length);
+        }
     }
 
     static String formatError(LastErrorException lee) {
@@ -116,7 +116,7 @@ public class UnixDomainSocket extends Socket {
 
 
     public UnixDomainSocket(String path) throws IOException {
-        if (Platform.isWindows() ||Platform.isWindowsCE()){
+        if (Platform.isWindows() ||Platform.isWindowsCE()) {
             throw new IOException("Unix domain sockets are not supported on Windows");
         }
         this.path = path;
@@ -167,7 +167,7 @@ public class UnixDomainSocket extends Socket {
     }
     public void setReceiveBufferSize(int size) {
     }
-    public void setSendBufferSize(int size) {   
+    public void setSendBufferSize(int size) {
     }
     public void setSoLinger(boolean b, int i) {
     }

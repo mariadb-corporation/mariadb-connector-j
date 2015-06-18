@@ -13,7 +13,7 @@ import java.util.Arrays;
 import static org.junit.Assert.assertEquals;
 
 
-public class BigQueryTest extends BaseTest{
+public class BigQueryTest extends BaseTest {
     @Test
     public void sendBigQuery2() throws SQLException {
 
@@ -31,7 +31,7 @@ public class BigQueryTest extends BaseTest{
 
         Statement s= connection.createStatement();
         StringBuilder query = new StringBuilder("INSERT INTO bigblob VALUES (null, '").
-                append(arr).append("')");
+        append(arr).append("')");
 
         s.executeUpdate(query.toString());
 
@@ -47,7 +47,7 @@ public class BigQueryTest extends BaseTest{
     @Test
     public void sendBigPreparedQuery() throws SQLException {
 
-    	Assume.assumeTrue(checkMaxAllowedPacketMore40m("sendBigPreparedQuery"));
+        Assume.assumeTrue(checkMaxAllowedPacketMore40m("sendBigPreparedQuery"));
 
         Statement stmt = connection.createStatement();
         stmt.execute("drop table  if exists bigblob2");

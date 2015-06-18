@@ -19,15 +19,15 @@ public class CompressOutputStream extends OutputStream {
     }
 
     @Override
-    public void write(byte[] bytes, int off, int len) throws IOException{
+    public void write(byte[] bytes, int off, int len) throws IOException {
         if (len > MAX_PACKET_LENGTH) {
             for(;;) {
-               int bytesToWrite= Math.min(len, MAX_PACKET_LENGTH);
-               write(bytes, off, bytesToWrite);
-               off += bytesToWrite;
-               len -= bytesToWrite;
-               if(len == 0)
-                   return;
+                int bytesToWrite= Math.min(len, MAX_PACKET_LENGTH);
+                write(bytes, off, bytesToWrite);
+                off += bytesToWrite;
+                len -= bytesToWrite;
+                if(len == 0)
+                    return;
             }
         }
 
@@ -35,19 +35,19 @@ public class CompressOutputStream extends OutputStream {
         int uncompressedLength = 0;
 
         if (bytes.length > MIN_COMPRESSION_SIZE) {
-              ByteArrayOutputStream baos = new ByteArrayOutputStream();
-              DeflaterOutputStream deflater = new DeflaterOutputStream(baos);
-              deflater.write(bytes, off, len);
-              deflater.finish();
-              deflater.close();
-              byte[] compressedBytes = baos.toByteArray();
-              baos.close();
-              if (compressedBytes.length < (int)(MIN_COMPRESSION_RATIO *len)) {
-                 compressedLength = compressedBytes.length;
-                 uncompressedLength = len;
-                 bytes = compressedBytes;
-                 off = 0;
-              }
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            DeflaterOutputStream deflater = new DeflaterOutputStream(baos);
+            deflater.write(bytes, off, len);
+            deflater.finish();
+            deflater.close();
+            byte[] compressedBytes = baos.toByteArray();
+            baos.close();
+            if (compressedBytes.length < (int)(MIN_COMPRESSION_RATIO *len)) {
+                compressedLength = compressedBytes.length;
+                uncompressedLength = len;
+                bytes = compressedBytes;
+                off = 0;
+            }
         }
 
         header[0] = (byte)(compressedLength & 0xff);
@@ -63,9 +63,9 @@ public class CompressOutputStream extends OutputStream {
 
     }
     @Override
-    public void write(byte[] bytes) throws IOException{
+    public void write(byte[] bytes) throws IOException {
         if (bytes.length < 3)
-          throw new AssertionError("Invalid call, at least 3 byte writes are required");
+            throw new AssertionError("Invalid call, at least 3 byte writes are required");
         write(bytes, 0, bytes.length);
 
     }

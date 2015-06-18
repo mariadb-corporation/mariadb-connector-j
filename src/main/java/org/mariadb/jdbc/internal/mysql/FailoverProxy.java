@@ -71,7 +71,7 @@ public class FailoverProxy implements InvocationHandler {
 
     public FailoverListener listener;
 
-    public FailoverProxy(Protocol protocol, FailoverListener listener) throws QueryException, SQLException{
+    public FailoverProxy(Protocol protocol, FailoverListener listener) throws QueryException, SQLException {
         protocol.setProxy(this);
         this.listener = listener;
         this.listener.setProxy(this);
@@ -99,7 +99,7 @@ public class FailoverProxy implements InvocationHandler {
         }
 
         try {
-             Object returnObj = listener.invoke(method, args);
+            Object returnObj = listener.invoke(method, args);
             if ("close".equals(methodName)) {
                 this.listener.postClose();
             }
@@ -137,7 +137,7 @@ public class FailoverProxy implements InvocationHandler {
      * @param e the Exception
      * @return true if there has been a connection error that must be handled by failover
      */
-    public boolean hasToHandleFailover(QueryException e){
+    public boolean hasToHandleFailover(QueryException e) {
         if (e.getSqlState() != null && e.getSqlState().startsWith("08") || "70100".equals(e.getSqlState())) {
             return true;
         }

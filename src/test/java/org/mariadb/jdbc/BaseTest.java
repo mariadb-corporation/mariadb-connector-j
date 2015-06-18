@@ -34,11 +34,11 @@ public class BaseTest {
     protected static String password;
     protected static String parameters;
     protected static final String mDefUrl = "jdbc:mysql://localhost:3306/test?user=root";
-    
+
     @BeforeClass
     public static void beforeClassBaseTest() {
-    	String url = System.getProperty("dbUrl", mDefUrl);
-    	JDBCUrl jdbcUrl = JDBCUrl.parse(url);
+        String url = System.getProperty("dbUrl", mDefUrl);
+        JDBCUrl jdbcUrl = JDBCUrl.parse(url);
 
         String logLevel = System.getProperty("logLevel");
         if (logLevel != null) {
@@ -51,116 +51,116 @@ public class BaseTest {
             }
         }
 
-    	hostname = jdbcUrl.getHostname();
-    	port = jdbcUrl.getPort();
-    	database = jdbcUrl.getDatabase();
-    	username = jdbcUrl.getUsername();
-    	password = jdbcUrl.getPassword();
-    	
-    	log.fine("Properties parsed from JDBC URL - hostname: " + hostname + ", port: " + port + ", database: " + database + ", username: " + username + ", password: " + password);
-    	
-    	if (database != null && "".equals(username)) {
-    		String[] tokens = database.contains("?") ? database.split("\\?") : null;
-    		if (tokens != null) {
-    			database = tokens[0];
-    			String[] paramTokens = tokens[1].split("&");
-    			username = paramTokens[0].startsWith("user=") ? paramTokens[0].substring(5) : null;
-    			if (paramTokens.length > 1) {
-    				password = paramTokens[0].startsWith("password=") ? paramTokens[1].substring(9) : null;
-    			}
-    		}
-    	}
-    	setURI();
+        hostname = jdbcUrl.getHostname();
+        port = jdbcUrl.getPort();
+        database = jdbcUrl.getDatabase();
+        username = jdbcUrl.getUsername();
+        password = jdbcUrl.getPassword();
+
+        log.fine("Properties parsed from JDBC URL - hostname: " + hostname + ", port: " + port + ", database: " + database + ", username: " + username + ", password: " + password);
+
+        if (database != null && "".equals(username)) {
+            String[] tokens = database.contains("?") ? database.split("\\?") : null;
+            if (tokens != null) {
+                database = tokens[0];
+                String[] paramTokens = tokens[1].split("&");
+                username = paramTokens[0].startsWith("user=") ? paramTokens[0].substring(5) : null;
+                if (paramTokens.length > 1) {
+                    password = paramTokens[0].startsWith("password=") ? paramTokens[1].substring(9) : null;
+                }
+            }
+        }
+        setURI();
     }
-    
+
     private static void setURI() {
-    	connU = "jdbc:mysql://" + hostname + ":" + port + "/" + database;
-    	connURI = connU + "?user=" + username
-    			+ (password != null && !"".equals(password) ? "&password=" + password : "")
-    			+ (parameters != null ? parameters : "");
+        connU = "jdbc:mysql://" + hostname + ":" + port + "/" + database;
+        connURI = connU + "?user=" + username
+                  + (password != null && !"".equals(password) ? "&password=" + password : "")
+                  + (parameters != null ? parameters : "");
     }
-    
+
     @Before
-    public void before() throws SQLException{
+    public void before() throws SQLException {
         setConnection();
     }
     @After
     public void after() throws SQLException {
         try {
-        	connection.close();
+            connection.close();
         } catch(Exception e) {
         }
     }
-    
+
     protected void setHostname(String hostname) throws SQLException {
-    	BaseTest.hostname = hostname;
-    	setURI();
-    	setConnection();
+        BaseTest.hostname = hostname;
+        setURI();
+        setConnection();
     }
     protected void setPort(int port) throws SQLException {
-    	BaseTest.port = port;
-    	setURI();
-    	setConnection();
+        BaseTest.port = port;
+        setURI();
+        setConnection();
     }
     protected void setDatabase(String database) throws SQLException {
-    	BaseTest.database = database;
-    	setURI();
-    	setConnection();
+        BaseTest.database = database;
+        setURI();
+        setConnection();
     }
     protected void setUsername(String username) throws SQLException {
-    	BaseTest.username = username;
-    	setURI();
-    	setConnection();
+        BaseTest.username = username;
+        setURI();
+        setConnection();
     }
     protected void setPassword(String password) throws SQLException {
-    	BaseTest.password = password;
-    	setURI();
-    	setConnection();
+        BaseTest.password = password;
+        setURI();
+        setConnection();
     }
     protected void setParameters(String parameters) throws SQLException {
-    	BaseTest.parameters = parameters;
-    	setURI();
-    	setConnection();
+        BaseTest.parameters = parameters;
+        setURI();
+        setConnection();
     }
-    
+
     protected void setConnection() throws SQLException {
-    	openConnection(connURI, null);
-    }   
+        openConnection(connURI, null);
+    }
     protected void setConnection(Map<String, String> props) throws SQLException {
-    	Properties info = new Properties();
-    	for (String key : props.keySet()) {
-    		info.setProperty(key, props.get(key));
-    	}
-    	openConnection(connU, info);
+        Properties info = new Properties();
+        for (String key : props.keySet()) {
+            info.setProperty(key, props.get(key));
+        }
+        openConnection(connU, info);
     }
     protected void setConnection(Properties info) throws SQLException {
-    	openConnection(connURI, info);
+        openConnection(connURI, info);
     }
     protected void setConnection(String parameters) throws SQLException {
-    	openConnection(connURI + parameters, null);
+        openConnection(connURI + parameters, null);
     }
-    
+
     private void openConnection(String URI, Properties info) throws SQLException {
-    	try {
-    		connection.close();
-    	} catch (Exception ex) {
-    	}
-    	if (info == null) {
-    		connection = DriverManager.getConnection(URI);
-    	} else {
-    		connection = DriverManager.getConnection(URI, info);
-    	}
+        try {
+            connection.close();
+        } catch (Exception ex) {
+        }
+        if (info == null) {
+            connection = DriverManager.getConnection(URI);
+        } else {
+            connection = DriverManager.getConnection(URI, info);
+        }
     }
-    
+
     protected Connection openNewConnection() throws SQLException {
-    	Properties info = connection.getClientInfo();
-    	return openNewConnection(connURI, info);
+        Properties info = connection.getClientInfo();
+        return openNewConnection(connURI, info);
     }
     protected Connection openNewConnection(String url) throws SQLException {
-    	return DriverManager.getConnection(url);
+        return DriverManager.getConnection(url);
     }
     protected Connection openNewConnection(String url, Properties info) throws SQLException {
-    	return DriverManager.getConnection(url, info);
+        return DriverManager.getConnection(url, info);
     }
 
     boolean checkMaxAllowedPacket(String testName) throws SQLException {
@@ -219,12 +219,12 @@ public class BaseTest {
         if (rs.next()) {
             superPrivilege = (rs.getString(1).equals("Y") ? true : false);
         } else
-            {
-                // then check for user on whatever (%) host
-                rs = st.executeQuery("SELECT Super_Priv FROM mysql.user WHERE user = '" + username + "' AND host = '%'");
-                if (rs.next())
-                    superPrivilege = (rs.getString(1).equals("Y") ? true : false);
-            }
+        {
+            // then check for user on whatever (%) host
+            rs = st.executeQuery("SELECT Super_Priv FROM mysql.user WHERE user = '" + username + "' AND host = '%'");
+            if (rs.next())
+                superPrivilege = (rs.getString(1).equals("Y") ? true : false);
+        }
 
         rs.close();
 
@@ -233,47 +233,47 @@ public class BaseTest {
 
         return superPrivilege;
     }
-    
+
     //is the connection local?
     boolean isLocalConnection(String testName)
     {
-    	boolean isLocal = false;
-    	
-    	try {
-			if (InetAddress.getByName(hostname).isAnyLocalAddress() || InetAddress.getByName(hostname).isLoopbackAddress())
-				isLocal = true;
-		} catch (UnknownHostException e) {
-			// for some reason it wasn't possible to parse the hostname
-			// do nothing
-		}
-    	
-    	if (isLocal == false)
+        boolean isLocal = false;
+
+        try {
+            if (InetAddress.getByName(hostname).isAnyLocalAddress() || InetAddress.getByName(hostname).isLoopbackAddress())
+                isLocal = true;
+        } catch (UnknownHostException e) {
+            // for some reason it wasn't possible to parse the hostname
+            // do nothing
+        }
+
+        if (isLocal == false)
             log.info("test '" + testName + "' skipped because connection is not local");
-    	
-    	return isLocal;
+
+        return isLocal;
     }
 
-    boolean haveSSL(){
-            try {
-                ResultSet rs = connection.createStatement().executeQuery("select @@have_ssl");
-                rs.next();
-                String value = rs.getString(1);
-                return value.equals("YES");
-            } catch (Exception e)  {
-                return false; /* maybe 4.x ? */
-            }
+    boolean haveSSL() {
+        try {
+            ResultSet rs = connection.createStatement().executeQuery("select @@have_ssl");
+            rs.next();
+            String value = rs.getString(1);
+            return value.equals("YES");
+        } catch (Exception e)  {
+            return false; /* maybe 4.x ? */
         }
+    }
 
     void requireMinimumVersion(int major, int minor) throws SQLException {
         DatabaseMetaData md = connection.getMetaData();
         int dbMajor = md.getDatabaseMajorVersion();
         int dbMinor = md.getDatabaseMinorVersion();
         org.junit.Assume.assumeTrue(dbMajor > major ||
-                (dbMajor == major && dbMinor >= minor));
+                                    (dbMajor == major && dbMinor >= minor));
 
     }
-    
-    // common function for logging information 
+
+    // common function for logging information
     static void logInfo(String message)
     {
         log.info(message);
@@ -305,11 +305,11 @@ class CustomFormatter  extends Formatter {
             throwable = sw.toString();
         }
         return String.format(format,
-                dat,
-                source,
-                record.getLoggerName(),
-                record.getLevel().getName(),
-                message,
-                throwable);
+                             dat,
+                             source,
+                             record.getLoggerName(),
+                             record.getLevel().getName(),
+                             message,
+                             throwable);
     }
 }

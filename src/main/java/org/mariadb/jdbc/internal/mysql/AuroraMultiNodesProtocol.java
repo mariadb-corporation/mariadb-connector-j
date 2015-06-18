@@ -92,7 +92,7 @@ public class AuroraMultiNodesProtocol extends MultiNodesProtocol {
 
         } catch(IOException ioe) {
             throw new QueryException("could not check the 'innodb_read_only' variable status on " + this.getHostAddress() +
-                    " : " + ioe.getMessage(),  -1,  SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), ioe);
+                                     " : " + ioe.getMessage(),  -1,  SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), ioe);
         }
     }
 

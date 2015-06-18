@@ -15,37 +15,37 @@ public class GeneratedKeysTest extends BaseTest {
 
     private Statement statement;
     private PreparedStatement preparedStatement;
-    
+
     @Before
     public void setUp() throws SQLException {
         statement = connection.createStatement();
         statement.execute("DROP TABLE IF EXISTS gen_key_test");
         statement.execute("CREATE TABLE gen_key_test (id INTEGER NOT NULL AUTO_INCREMENT, name VARCHAR(100), PRIMARY KEY (id))");
     }
-    
+
     @Test
     public void testSimpleGeneratedKeys() throws SQLException {
         statement.executeUpdate("INSERT INTO gen_key_test (id, name) VALUES (null, 'Dave')", Statement.RETURN_GENERATED_KEYS);
-        
+
         ResultSet resultSet = statement.getGeneratedKeys();
         assertTrue(resultSet.next());
         assertEquals(1, resultSet.getInt(1));
     }
-    
+
     @Test
     public void testSimpleGeneratedKeysWithPreparedStatement() throws SQLException {
         preparedStatement = connection.prepareStatement(
-            "INSERT INTO gen_key_test (id, name) VALUES (null, ?)",
-            Statement.RETURN_GENERATED_KEYS);
-        
+                                "INSERT INTO gen_key_test (id, name) VALUES (null, ?)",
+                                Statement.RETURN_GENERATED_KEYS);
+
         preparedStatement.setString(1,  "Dave");
         preparedStatement.execute();
-        
+
         ResultSet resultSet = preparedStatement.getGeneratedKeys();
         assertTrue(resultSet.next());
         assertEquals(1, resultSet.getInt(1));
     }
-    
+
     @Test
     public void testGeneratedKeysInsertOnDuplicateUpdate() throws SQLException {
         statement.execute("INSERT INTO gen_key_test (id, name) VALUES (null, 'Dave')");

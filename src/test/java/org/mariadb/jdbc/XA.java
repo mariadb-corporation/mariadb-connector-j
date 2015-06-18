@@ -27,7 +27,7 @@ public class XA extends BaseTest {
         requireMinimumVersion(5,0);
     }
     public XA()  {
-    	dataSource = new MySQLDataSource();
+        dataSource = new MySQLDataSource();
         dataSource.setServerName(hostname);
         dataSource.setPortNumber(port);
         dataSource.setDatabaseName(database);
@@ -46,8 +46,8 @@ public class XA extends BaseTest {
      * @param doCommit
      * @throws Exception
      */
-    void test2PC(boolean doCommit) throws Exception{
-    	
+    void test2PC(boolean doCommit) throws Exception {
+
         connection.createStatement().execute("DROP TABLE IF EXISTS xatable");
         connection.createStatement().execute("CREATE TABLE xatable (i int) ENGINE=InnoDB");
 
@@ -153,7 +153,7 @@ public class XA extends BaseTest {
             xaConnection.close();
         }
     }
-    
+
     @Test
     public void resumeAndJoinTest() throws Exception {
         Connection conn1 = null;
@@ -185,14 +185,14 @@ public class XA extends BaseTest {
             conn1.createStatement().executeQuery("SELECT 1");
             xaRes1.end(xid, XAResource.TMSUCCESS);
             try {
-            	xaRes1.start(xid, XAResource.TMJOIN);
-            	assertTrue(false); // without pinGlobalTxToPhysicalConnection=true
+                xaRes1.start(xid, XAResource.TMJOIN);
+                assertTrue(false); // without pinGlobalTxToPhysicalConnection=true
             } catch (XAException xaex) {
                 if (xaConn1 != null) {
                     xaConn1.close();
                 }
             }
-            
+
             ds.setProperties("pinGlobalTxToPhysicalConnection=true");
             xaConn1 = ds.getXAConnection();
             xaRes1 = xaConn1.getXAResource();

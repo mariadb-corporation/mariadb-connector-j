@@ -116,30 +116,30 @@ public class MySQLColumnInformation  {
                 baos.write(name.getBytes());
             }
             baos.write(0xc);
-            baos.write(new byte[]{33,0});  /* charset  = UTF8 */
+            baos.write(new byte[] {33,0}); /* charset  = UTF8 */
             int  len = 1;
 
             /* Sensible predefined length - since we're dealing with I_S here, most char fields are 64 char long */
             switch(type.getSqlType()) {
-                case Types.VARCHAR:
-                case Types.CHAR:
-                    len = 64*3; /* 3 bytes per UTF8 char */
-                    break;
-                case Types.SMALLINT:
-                    len = 5;
-                    break;
-                case Types.NULL:
-                    len = 0;
-                    break;
-                default:
-                    len = 1;
-                    break;
+            case Types.VARCHAR:
+            case Types.CHAR:
+                len = 64*3; /* 3 bytes per UTF8 char */
+                break;
+            case Types.SMALLINT:
+                len = 5;
+                break;
+            case Types.NULL:
+                len = 0;
+                break;
+            default:
+                len = 1;
+                break;
             }
-            baos.write(new byte[]{(byte)len, 0 ,0, 0});  /*  length */
+            baos.write(new byte[] {(byte)len, 0 ,0, 0}); /*  length */
             baos.write(MySQLType.toServer(type.getSqlType()).getType());
-            baos.write(new byte[]{0,0});   /* flags */
+            baos.write(new byte[] {0,0});  /* flags */
             baos.write(0); /* decimals */
-            baos.write(new byte[]{0,0});   /* filler */
+            baos.write(new byte[] {0,0});  /* filler */
             return new MySQLColumnInformation(new RawPacket(ByteBuffer.wrap(baos.toByteArray()).order(ByteOrder.LITTLE_ENDIAN),0));
         }  catch (IOException ioe) {
             throw new RuntimeException("unexpected condition",ioe);
@@ -186,8 +186,8 @@ public class MySQLColumnInformation  {
 
         if ((sqlType == Types.BLOB || sqlType == Types.VARBINARY || sqlType == Types.BINARY || sqlType == Types.LONGVARBINARY )
                 && !isBinary()) {
-           /* MySQL Text datatype */
-           type = MySQLType.VARCHAR;
+            /* MySQL Text datatype */
+            type = MySQLType.VARCHAR;
         }
     }
 
@@ -198,7 +198,7 @@ public class MySQLColumnInformation  {
             buffer.getByteBuffer().mark();
             Reader reader = new Reader(buffer);
             for(int i = 0; i < idx ; i++) {
-               reader.skipLengthEncodedBytes();
+                reader.skipLengthEncodedBytes();
             }
             return new String(reader.getLengthEncodedBytes(),"UTF-8");
         }  catch (Exception e) {
@@ -265,7 +265,7 @@ public class MySQLColumnInformation  {
     }
 
     public boolean isBinary() {
-       return (getCharsetNumber() == 63);
+        return (getCharsetNumber() == 63);
     }
 
 }

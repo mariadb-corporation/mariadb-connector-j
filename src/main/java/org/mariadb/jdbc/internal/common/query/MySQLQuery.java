@@ -106,7 +106,7 @@ public class MySQLQuery implements Query {
 
     }
 
-    public void validate() throws QueryException{
+    public void validate() throws QueryException {
 
     }
 

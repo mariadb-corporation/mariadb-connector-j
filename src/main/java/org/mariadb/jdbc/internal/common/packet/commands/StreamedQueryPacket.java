@@ -85,7 +85,7 @@ public class StreamedQueryPacket implements CommandPacket {
             pos.startPacket(0);
             pos.write(0x03);
             queries.get(0).writeTo(ostream);
-            for (int i=1;i<queries.size();i++) {
+            for (int i=1; i<queries.size(); i++) {
                 if (isRewritable) {
                     queries.get(i).writeToRewritablePart(ostream, rewriteOffset);
                 } else {

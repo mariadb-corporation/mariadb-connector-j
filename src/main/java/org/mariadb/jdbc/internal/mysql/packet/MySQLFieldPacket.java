@@ -59,22 +59,22 @@ import java.io.IOException;
  */
 public class MySQLFieldPacket {
     /*
-Bytes                      Name
------                      ----
-n (Length Coded String)    catalog
-n (Length Coded String)    db
-n (Length Coded String)    table
-n (Length Coded String)    org_table
-n (Length Coded String)    name
-n (Length Coded String)    org_name
-1                          (filler)
-2                          charsetnr
-4                          length
-1                          type
-2                          flags
-1                          decimals
-2                          (filler), always 0x00
-n (Length Coded Binary)    default
+    Bytes                      Name
+    -----                      ----
+    n (Length Coded String)    catalog
+    n (Length Coded String)    db
+    n (Length Coded String)    table
+    n (Length Coded String)    org_table
+    n (Length Coded String)    name
+    n (Length Coded String)    org_name
+    1                          (filler)
+    2                          charsetnr
+    4                          length
+    1                          type
+    2                          flags
+    1                          decimals
+    2                          (filler), always 0x00
+    n (Length Coded Binary)    default
 
     */
 

@@ -176,7 +176,7 @@ public class MultiHostFailoverTest extends BaseMultiHostTest {
         }
     }
     @Test
-    public void failoverMasterWithAutoConnect() throws SQLException, InterruptedException{
+    public void failoverMasterWithAutoConnect() throws SQLException, InterruptedException {
         Assume.assumeTrue(multihostUrlOk);
         Connection connection = null;
         log.fine("failoverMasterWithAutoConnect begin");
@@ -271,7 +271,7 @@ public class MultiHostFailoverTest extends BaseMultiHostTest {
     }
 
     @Test
-    public void writeToSlaveAfterFailover() throws SQLException, InterruptedException{
+    public void writeToSlaveAfterFailover() throws SQLException, InterruptedException {
         Assume.assumeTrue(multihostUrlOk);
         Connection connection = null;
         log.fine("writeToSlaveAfterFailover begin");
@@ -384,7 +384,10 @@ public class MultiHostFailoverTest extends BaseMultiHostTest {
             log.fine("failoverMasterWithAutoConnectAndTransaction done");
             Thread.sleep(2000); //wait to not have problem with next test
             if (connection != null) {
-                try { connection.setAutoCommit(true); } catch (SQLException e) {}
+                try {
+                    connection.setAutoCommit(true);
+                }
+                catch (SQLException e) {}
                 connection.close();
             }
         }

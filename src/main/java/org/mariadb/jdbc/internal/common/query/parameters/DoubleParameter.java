@@ -58,7 +58,7 @@ public class DoubleParameter extends ParameterHolder {
     double value;
 
     public DoubleParameter(double value) {
-       this.value = value;
+        this.value = value;
     }
 
     public void writeTo(final OutputStream os) throws IOException {

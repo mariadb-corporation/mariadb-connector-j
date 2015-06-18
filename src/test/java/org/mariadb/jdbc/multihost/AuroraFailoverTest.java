@@ -31,7 +31,9 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
                 Thread.sleep(1000);
                 try {
                     waitToSwitch = !connection.isReadOnly();
-                }catch (SQLException e) {e.printStackTrace();}
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
             }
             log.fine("failover automatically done after "+((System.currentTimeMillis() - beginTest)));
             boolean waitTobackMaster = true;
@@ -39,7 +41,9 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
                 Thread.sleep(1000);
                 try {
                     waitTobackMaster = connection.isReadOnly();
-                }catch (SQLException e) {e.printStackTrace();}
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
             }
             log.fine("return on master automatically done after "+((System.currentTimeMillis() - beginTest)));
 

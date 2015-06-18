@@ -72,7 +72,7 @@ public class JDBCUrl {
     /*
     Parse ConnectorJ compatible urls
     jdbc:mysql://host:port/database
-	Example: jdbc:mysql://localhost:3306/test?user=root&password=passwd
+    Example: jdbc:mysql://localhost:3306/test?user=root&password=passwd
      */
     private static JDBCUrl parseConnectorJUrl(String url, Properties properties) {
         if (!url.startsWith("jdbc:mysql://")) {
@@ -101,7 +101,7 @@ public class JDBCUrl {
 
     static boolean acceptsURL(String url) {
         return (url != null) &&
-                (url.startsWith("jdbc:mariadb://") || url.startsWith("jdbc:mysql://"));
+               (url.startsWith("jdbc:mariadb://") || url.startsWith("jdbc:mysql://"));
 
     }
 
@@ -115,7 +115,7 @@ public class JDBCUrl {
             if (url.startsWith("jdbc:mysql://")) {
                 return parseConnectorJUrl(url, prop);
             }
-            String[] arr = new String[]{"jdbc:mysql:thin://", "jdbc:mariadb://"};
+            String[] arr = new String[] {"jdbc:mysql:thin://", "jdbc:mariadb://"};
             for (String prefix : arr) {
                 if (url.startsWith(prefix)) {
                     return parseConnectorJUrl("jdbc:mysql://" + url.substring(prefix.length()), prop);

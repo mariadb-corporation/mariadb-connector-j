@@ -27,9 +27,9 @@ public class PacketOutputStream extends OutputStream {
     boolean checkPacketLength;
 
     public PacketOutputStream(OutputStream baseStream) {
-       this.baseStream = baseStream;
-       byteBuffer = new byte[1024];
-       this.seqNo = -1;
+        this.baseStream = baseStream;
+        byteBuffer = new byte[1024];
+        this.seqNo = -1;
     }
 
     public void setCompress(boolean value) {
@@ -40,7 +40,7 @@ public class PacketOutputStream extends OutputStream {
 
     public void startPacket(int seqNo, boolean checkPacketLength) throws IOException {
         if (this.seqNo != -1) {
-           throw new IOException("Last packet not finished");
+            throw new IOException("Last packet not finished");
         }
         this.seqNo = seqNo;
         position = HEADER_LENGTH;
@@ -65,20 +65,20 @@ public class PacketOutputStream extends OutputStream {
     }
 
     /* Used by LOAD DATA INFILE. End of data is indicated by packet of length 0. */
-    public void sendFile(InputStream is, int seq) throws IOException{
-    	int bufferSize = this.maxAllowedPacket > 0 ? Math.min(this.maxAllowedPacket, MAX_PACKET_LENGTH) : 1024;
-    	bufferSize -= HEADER_LENGTH;
+    public void sendFile(InputStream is, int seq) throws IOException {
+        int bufferSize = this.maxAllowedPacket > 0 ? Math.min(this.maxAllowedPacket, MAX_PACKET_LENGTH) : 1024;
+        bufferSize -= HEADER_LENGTH;
         byte[] buffer = new byte[bufferSize];
         int len;
         while((len = is.read(buffer)) > 0) {
-          startPacket(seq++, false);
-          write(buffer, 0, len);
-          finishPacket();
+            startPacket(seq++, false);
+            write(buffer, 0, len);
+            finishPacket();
         }
         writeEmptyPacket(seq);
     }
 
-    public void finishPacket() throws IOException{
+    public void finishPacket() throws IOException {
         if (this.seqNo == -1) {
             throw new AssertionError("Packet not started");
         }
@@ -88,31 +88,31 @@ public class PacketOutputStream extends OutputStream {
     }
 
     @Override
-    public void write(byte[] bytes, int off, int len) throws IOException{
-      if (this.seqNo == -1) {
-           throw new AssertionError("Use PacketOutputStream.startPacket() before write()");
-      }
-
-      for (;;) {
-        if (len == 0)
-            break;
-
-        int bytesToWrite= Math.min(len, MAX_PACKET_LENGTH + HEADER_LENGTH - position);
-
-        // Grow buffer if required
-        if (byteBuffer.length - position < bytesToWrite) {
-            byte[] tmp = new byte[Math.min(MAX_PACKET_LENGTH + HEADER_LENGTH, 2*(byteBuffer.length + bytesToWrite))];
-            System.arraycopy(byteBuffer, 0, tmp, 0, position);
-            byteBuffer = tmp;
+    public void write(byte[] bytes, int off, int len) throws IOException {
+        if (this.seqNo == -1) {
+            throw new AssertionError("Use PacketOutputStream.startPacket() before write()");
         }
-        System.arraycopy(bytes, off, byteBuffer, position,  bytesToWrite);
-        position += bytesToWrite;
-        off += bytesToWrite;
-        len -= bytesToWrite;
-        if (position == MAX_PACKET_LENGTH + HEADER_LENGTH) {
-           internalFlush();
+
+        for (;;) {
+            if (len == 0)
+                break;
+
+            int bytesToWrite= Math.min(len, MAX_PACKET_LENGTH + HEADER_LENGTH - position);
+
+            // Grow buffer if required
+            if (byteBuffer.length - position < bytesToWrite) {
+                byte[] tmp = new byte[Math.min(MAX_PACKET_LENGTH + HEADER_LENGTH, 2*(byteBuffer.length + bytesToWrite))];
+                System.arraycopy(byteBuffer, 0, tmp, 0, position);
+                byteBuffer = tmp;
+            }
+            System.arraycopy(bytes, off, byteBuffer, position,  bytesToWrite);
+            position += bytesToWrite;
+            off += bytesToWrite;
+            len -= bytesToWrite;
+            if (position == MAX_PACKET_LENGTH + HEADER_LENGTH) {
+                internalFlush();
+            }
         }
-      }
     }
 
 
@@ -144,13 +144,13 @@ public class PacketOutputStream extends OutputStream {
     }
 
     @Override
-    public void write(byte[] bytes) throws IOException{
+    public void write(byte[] bytes) throws IOException {
         write(bytes, 0, bytes.length);
     }
 
     @Override
     public void write(int b) throws IOException {
-        byte[] a={(byte)b};
+        byte[] a= {(byte)b};
         write(a);
     }
 
@@ -159,8 +159,8 @@ public class PacketOutputStream extends OutputStream {
         baseStream.close();
         byteBuffer = null;
     }
-    
+
     public void setMaxAllowedPacket(int maxAllowedPacket) {
-    	this.maxAllowedPacket = maxAllowedPacket;
+        this.maxAllowedPacket = maxAllowedPacket;
     }
 }

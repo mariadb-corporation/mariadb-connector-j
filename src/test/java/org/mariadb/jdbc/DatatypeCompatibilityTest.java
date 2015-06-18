@@ -49,12 +49,12 @@ public class DatatypeCompatibilityTest extends BaseTest {
         requireMinimumVersion(5,0);
         assertType("BIT", Boolean.class, Types.BIT, "0", false);
         assertType("BIT(1)", Boolean.class, Types.BIT, "1", true);
-        assertType("BIT(2)", byte[].class, Types.VARBINARY, "b'11'", new byte[]{3});
-        assertType("BIT(8)", byte[].class, Types.VARBINARY, "b'11111111'", new byte[]{-1});
-        assertType("BIT(16)", byte[].class, Types.VARBINARY, "b'1111111111111111'", new byte[]{-1, -1});
-        assertType("BIT(24)", byte[].class, Types.VARBINARY, "b'111111111111111111111111'", new byte[]{-1, -1, -1});
-        assertType("BIT(32)", byte[].class, Types.VARBINARY, "b'11111111111111111111111111111111'", new byte[]{-1, -1, -1, -1});
-        assertType("BIT(64)", byte[].class, Types.VARBINARY, "b'1111111111111111111111111111111111111111111111111111111111111111'", new byte[]{-1, -1, -1, -1, -1, -1, -1, -1});
+        assertType("BIT(2)", byte[].class, Types.VARBINARY, "b'11'", new byte[] {3});
+        assertType("BIT(8)", byte[].class, Types.VARBINARY, "b'11111111'", new byte[] {-1});
+        assertType("BIT(16)", byte[].class, Types.VARBINARY, "b'1111111111111111'", new byte[] {-1, -1});
+        assertType("BIT(24)", byte[].class, Types.VARBINARY, "b'111111111111111111111111'", new byte[] {-1, -1, -1});
+        assertType("BIT(32)", byte[].class, Types.VARBINARY, "b'11111111111111111111111111111111'", new byte[] {-1, -1, -1, -1});
+        assertType("BIT(64)", byte[].class, Types.VARBINARY, "b'1111111111111111111111111111111111111111111111111111111111111111'", new byte[] {-1, -1, -1, -1, -1, -1, -1, -1});
     }
 
     private void assertType(String columnType, Class expectedClass, int expectedJdbcType, String strValue, Object expectedObjectValue) throws SQLException {
@@ -89,16 +89,16 @@ public class DatatypeCompatibilityTest extends BaseTest {
 
     @SuppressWarnings( "deprecation" )
     @Test
-    public void timeAsTimestamp() throws Exception{
-       java.sql.Time aTime = new java.sql.Time(12,0,0);
-       PreparedStatement ps =  connection.prepareStatement("SELECT ?");
-       ps.setTime(1,aTime);
-       ResultSet rs = ps.executeQuery();
-       rs.next() ;
-       Timestamp ts = rs.getTimestamp(1);
-       Time time = rs.getTime(1);
-       assertEquals(aTime,ts);
-       assertEquals(aTime,time);
+    public void timeAsTimestamp() throws Exception {
+        java.sql.Time aTime = new java.sql.Time(12,0,0);
+        PreparedStatement ps =  connection.prepareStatement("SELECT ?");
+        ps.setTime(1,aTime);
+        ResultSet rs = ps.executeQuery();
+        rs.next() ;
+        Timestamp ts = rs.getTimestamp(1);
+        Time time = rs.getTime(1);
+        assertEquals(aTime,ts);
+        assertEquals(aTime,time);
     }
 
 }

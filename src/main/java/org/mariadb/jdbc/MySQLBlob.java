@@ -58,8 +58,8 @@ import java.sql.SQLException;
 
 
 public  class MySQLBlob implements Blob, Serializable {
-	private static final long serialVersionUID = 8557003556592493381L;
-	/**
+    private static final long serialVersionUID = 8557003556592493381L;
+    /**
      * the actual blob content.
      */
     protected byte[] blobContent;
@@ -69,7 +69,7 @@ public  class MySQLBlob implements Blob, Serializable {
     protected int actualSize;
 
     private void writeObject(java.io.ObjectOutputStream out)
-         throws IOException {
+    throws IOException {
         out.writeInt(actualSize);
         if(actualSize > 0) {
             out.write(blobContent, 0, actualSize);
@@ -77,7 +77,7 @@ public  class MySQLBlob implements Blob, Serializable {
     }
 
     private void readObject(java.io.ObjectInputStream in)
-         throws IOException, ClassNotFoundException {
+    throws IOException, ClassNotFoundException {
         actualSize = in.readInt();
         blobContent = new byte[actualSize];
         if (actualSize > 0) {
@@ -99,7 +99,7 @@ public  class MySQLBlob implements Blob, Serializable {
      */
     public MySQLBlob(byte[] bytes) {
         if (bytes == null)
-           throw new AssertionError("byte array is null");
+            throw new AssertionError("byte array is null");
         this.blobContent = bytes;
         this.actualSize = bytes.length;
     }
@@ -204,7 +204,7 @@ public  class MySQLBlob implements Blob, Serializable {
      * the existing bytes in the <code>Blob</code> object starting at the position <code>pos</code>.  If the end of the
      * <code>Blob</code> value is reached while writing the array of bytes, then the length of the <code>Blob</code>
      * value will be increased to accomodate the extra bytes.
-     * 
+     *
      * <b>Note:</b> If the value specified for <code>pos</code> is greater then the length+1 of the <code>BLOB</code>
      * value then the behavior is undefined. Some JDBC drivers may throw a <code>SQLException</code> while other drivers
      * may support this operation.
@@ -244,7 +244,7 @@ public  class MySQLBlob implements Blob, Serializable {
      * The array of bytes will overwrite the existing bytes in the <code>Blob</code> object starting at the position
      * <code>pos</code>.  If the end of the <code>Blob</code> value is reached while writing the array of bytes, then
      * the length of the <code>Blob</code> value will be increased to accomodate the extra bytes.
-     * 
+     *
      * <b>Note:</b> If the value specified for <code>pos</code> is greater then the length+1 of the <code>BLOB</code>
      * value then the behavior is undefined. Some JDBC drivers may throw a <code>SQLException</code> while other drivers
      * may support this operation.
@@ -286,7 +286,7 @@ public  class MySQLBlob implements Blob, Serializable {
      * existing bytes in the <code>Blob</code> object starting at the position <code>pos</code>.  If the end of the
      * <code>Blob</code> value is reached while writing to the stream, then the length of the <code>Blob</code> value
      * will be increased to accomodate the extra bytes.
-     * 
+     *
      * <b>Note:</b> If the value specified for <code>pos</code> is greater then the length+1 of the <code>BLOB</code>
      * value then the behavior is undefined. Some JDBC drivers may throw a <code>SQLException</code> while other drivers
      * may support this operation.
@@ -308,7 +308,7 @@ public  class MySQLBlob implements Blob, Serializable {
     /**
      * Truncates the <code>BLOB</code> value that this <code>Blob</code> object represents to be <code>len</code> bytes
      * in length.
-     * 
+     *
      * <b>Note:</b> If the value specified for <code>pos</code> is greater then the length+1 of the <code>BLOB</code>
      * value then the behavior is undefined. Some JDBC drivers may throw a <code>SQLException</code> while other drivers
      * may support this operation.
@@ -326,11 +326,11 @@ public  class MySQLBlob implements Blob, Serializable {
     /**
      * This method frees the <code>Blob</code> object and releases the resources that it holds. The object is invalid
      * once the <code>free</code> method is called.
-     * 
+     *
      * After <code>free</code> has been called, any attempt to invoke a method other than <code>free</code> will result
      * in a <code>SQLException</code> being thrown.  If <code>free</code> is called multiple times, the subsequent calls
      * to <code>free</code> are treated as a no-op.
-     * 
+     *
      */
     public void free() {
         this.blobContent = null;
@@ -351,7 +351,7 @@ public  class MySQLBlob implements Blob, Serializable {
      */
     public InputStream getBinaryStream(final long pos, final long length) throws SQLException {
         if (pos < 1) {
-             throw SQLExceptionMapper.getSQLException("Out of range (position should be > 0)");
+            throw SQLExceptionMapper.getSQLException("Out of range (position should be > 0)");
         }
         if (pos - 1 > actualSize) {
             throw SQLExceptionMapper.getSQLException("Out of range (position > stream size)");
@@ -367,7 +367,7 @@ public  class MySQLBlob implements Blob, Serializable {
 /**
  * Output stream for the blob
  */
-class BlobOutputStream  extends OutputStream{
+class BlobOutputStream  extends OutputStream {
 
     int pos;
     MySQLBlob blob;
@@ -379,31 +379,31 @@ class BlobOutputStream  extends OutputStream{
     @Override
     public void write(int b) throws IOException {
 
-       if(this.pos >= blob.blobContent.length){
-           byte[] tmp = new byte[2*blob.blobContent.length + 1];
-           System.arraycopy(blob.blobContent,0, tmp, 0, blob.blobContent.length);
-           blob.blobContent = tmp;
-       }
-       blob.blobContent[pos] = (byte)b;
-       pos++;
-       if (pos > blob.actualSize) {
-           blob.actualSize = pos;
-       }
+        if(this.pos >= blob.blobContent.length) {
+            byte[] tmp = new byte[2*blob.blobContent.length + 1];
+            System.arraycopy(blob.blobContent,0, tmp, 0, blob.blobContent.length);
+            blob.blobContent = tmp;
+        }
+        blob.blobContent[pos] = (byte)b;
+        pos++;
+        if (pos > blob.actualSize) {
+            blob.actualSize = pos;
+        }
     }
 
     @Override
     public void write(byte [] buf, int off, int len) {
-       if (pos + len  >= blob.blobContent.length) {
-           int newLen = Math.max(2*(pos + len + 1),1024);
-           byte[] tmp = new byte[newLen];
-           System.arraycopy(blob.blobContent,0, tmp, 0, blob.blobContent.length);
-           blob.blobContent = tmp;
-       }
-       System.arraycopy(buf, off, blob.blobContent, pos, len);
-       pos+= len;
-       if (pos > blob.actualSize) {
-           blob.actualSize = pos;
-       }
+        if (pos + len  >= blob.blobContent.length) {
+            int newLen = Math.max(2*(pos + len + 1),1024);
+            byte[] tmp = new byte[newLen];
+            System.arraycopy(blob.blobContent,0, tmp, 0, blob.blobContent.length);
+            blob.blobContent = tmp;
+        }
+        System.arraycopy(buf, off, blob.blobContent, pos, len);
+        pos+= len;
+        if (pos > blob.actualSize) {
+            blob.actualSize = pos;
+        }
     }
 
     @Override

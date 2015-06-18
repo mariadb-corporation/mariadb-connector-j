@@ -71,7 +71,7 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XA
     private JDBCUrl jdbcUrl;
 
     public MySQLDataSource(String hostname, int port, String database) {
-        jdbcUrl = new JDBCUrl(database, new HostAddress[]{new HostAddress(hostname, port)}, new Properties());
+        jdbcUrl = new JDBCUrl(database, new HostAddress[] {new HostAddress(hostname, port)}, new Properties());
     }
 
     public MySQLDataSource(String url) {
@@ -79,7 +79,7 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XA
     }
 
     public MySQLDataSource() {
-        jdbcUrl = new JDBCUrl("", new HostAddress[]{new HostAddress("localhost", 3306)}, new Properties());
+        jdbcUrl = new JDBCUrl("", new HostAddress[] {new HostAddress("localhost", 3306)}, new Properties());
     }
 
     /**

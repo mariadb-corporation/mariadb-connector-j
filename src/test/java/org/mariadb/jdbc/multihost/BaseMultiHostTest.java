@@ -74,11 +74,11 @@ public class BaseMultiHostTest {
         username = tmpJdbcUrl.getUsername();
         hostname = tmpJdbcUrl.getHostAddresses()[0].host;
         String sockethosts = "";
-        for (int i=0;i<tmpJdbcUrl.getHostAddresses().length;i++) {
+        for (int i=0; i<tmpJdbcUrl.getHostAddresses().length; i++) {
             log.info("creating socket "+tmpJdbcUrl.getHostAddresses()[i].host+":"+tmpJdbcUrl.getHostAddresses()[i].port+" -> localhost:"+beginSocketPort);
             tcpProxies[i] = new TcpProxy(tmpJdbcUrl.getHostAddresses()[i].host,
-                    tmpJdbcUrl.getHostAddresses()[i].port,
-                    beginSocketPort);
+                                         tmpJdbcUrl.getHostAddresses()[i].port,
+                                         beginSocketPort);
             sockethosts+=",localhost:"+beginSocketPort;
             beginSocketPort++;
         }
@@ -121,7 +121,7 @@ public class BaseMultiHostTest {
         }
     }
     //does the user have super privileges or not?
-    public boolean hasSuperPrivilege(Connection connection, String testName) throws SQLException{
+    public boolean hasSuperPrivilege(Connection connection, String testName) throws SQLException {
         boolean superPrivilege = false;
         Statement st = connection.createStatement();
 
@@ -170,11 +170,11 @@ class CustomFormatter  extends Formatter {
             throwable = sw.toString();
         }
         return String.format(format,
-                dat,
-                source,
-                record.getLoggerName(),
-                record.getLevel().getName(),
-                message,
-                throwable);
+                             dat,
+                             source,
+                             record.getLoggerName(),
+                             record.getLevel().getName(),
+                             message,
+                             throwable);
     }
 }

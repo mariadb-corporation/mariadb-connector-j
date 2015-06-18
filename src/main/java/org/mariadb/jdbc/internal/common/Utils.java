@@ -63,7 +63,7 @@ import java.util.Properties;
 public class Utils {
 
 
-    
+
 
     enum LexState
     {
@@ -77,123 +77,123 @@ public class Utils {
     };
 
 
-     public static List<String> createQueryParts(String queryString, boolean noBackslashEscapes)
-     {
-          List<String> list = new ArrayList<String>();
-          LexState state = LexState.Normal;
-          char lastChar= '\0';
+    public static List<String> createQueryParts(String queryString, boolean noBackslashEscapes)
+    {
+        List<String> list = new ArrayList<String>();
+        LexState state = LexState.Normal;
+        char lastChar= '\0';
 
-          StringBuffer sb = new StringBuffer();
+        StringBuffer sb = new StringBuffer();
 
-          boolean singleQuotes = false;
-          boolean isParam = false;
+        boolean singleQuotes = false;
+        boolean isParam = false;
 
-          char[] query = queryString.toCharArray();
+        char[] query = queryString.toCharArray();
 
-          for (int i = 0; i < query.length; i++)  {
-              if (state == LexState.Escape) {
-                  sb.append(query[i]);
-                  state = LexState.String;
-                  continue;
-              }
+        for (int i = 0; i < query.length; i++)  {
+            if (state == LexState.Escape) {
+                sb.append(query[i]);
+                state = LexState.String;
+                continue;
+            }
 
-              char c = query[i];
-              switch (c)  {
-                  case '*':
-                      if (state == LexState.Normal && lastChar == '/')
-                          state = LexState.SlashStarComment;
-                      break;
-                  case '/':
-                      if (state == LexState.SlashStarComment && lastChar == '*')
-                          state = LexState.Normal;
-                      else if (state == LexState.Normal && lastChar == '/')
-                          state = LexState.EOLComment;
-                      break;
+            char c = query[i];
+            switch (c)  {
+            case '*':
+                if (state == LexState.Normal && lastChar == '/')
+                    state = LexState.SlashStarComment;
+                break;
+            case '/':
+                if (state == LexState.SlashStarComment && lastChar == '*')
+                    state = LexState.Normal;
+                else if (state == LexState.Normal && lastChar == '/')
+                    state = LexState.EOLComment;
+                break;
 
-                  case '#':
-                      if (state == LexState.Normal)
-                          state = LexState.EOLComment;
-                      break;
+            case '#':
+                if (state == LexState.Normal)
+                    state = LexState.EOLComment;
+                break;
 
-                  case '-':
-                      if (state == LexState.Normal && lastChar == '-')
-                          state = LexState.EOLComment;
-                      break;
+            case '-':
+                if (state == LexState.Normal && lastChar == '-')
+                    state = LexState.EOLComment;
+                break;
 
-                  case '\n':
-                      if (state == LexState.EOLComment)
-                          state = LexState.Normal;
-                      break;
+            case '\n':
+                if (state == LexState.EOLComment)
+                    state = LexState.Normal;
+                break;
 
-                  case '"':
-                      if (state == LexState.Normal) {
-                          state = LexState.String;
-                          singleQuotes = false;
-                      }
-                      else if (state == LexState.String && !singleQuotes)
-                          state = LexState.Normal;
-                      break;
+            case '"':
+                if (state == LexState.Normal) {
+                    state = LexState.String;
+                    singleQuotes = false;
+                }
+                else if (state == LexState.String && !singleQuotes)
+                    state = LexState.Normal;
+                break;
 
-                  case '\'':
-                      if (state == LexState.Normal) {
-                          state = LexState.String;
-                          singleQuotes = true;
-                      }
-                      else if (state == LexState.String && singleQuotes)
-                          state = LexState.Normal;
-                      break;
+            case '\'':
+                if (state == LexState.Normal) {
+                    state = LexState.String;
+                    singleQuotes = true;
+                }
+                else if (state == LexState.String && singleQuotes)
+                    state = LexState.Normal;
+                break;
 
-                  case '\\':
-                      if (noBackslashEscapes)
-                          break;
-                      if (state == LexState.String)
-                          state = LexState.Escape;
-                      break;
+            case '\\':
+                if (noBackslashEscapes)
+                    break;
+                if (state == LexState.String)
+                    state = LexState.Escape;
+                break;
 
-                  case '?':
-                      if (state == LexState.Normal)
-                          isParam = true;
-                      break;
-                  case '`':
-                	  if (state == LexState.Backtick) {
-                		  state = LexState.Normal;
-                	  } else if (state == LexState.Normal) {
-                		  state = LexState.Backtick;
-                	  }
-                	  break;
-              }
-              lastChar = c;
-              if (isParam)  {
-                  list.add(sb.toString());
-                  sb.setLength(0);
-                  isParam = false;
-              }
-              else  {
-                  sb.append(c);
-              }
+            case '?':
+                if (state == LexState.Normal)
+                    isParam = true;
+                break;
+            case '`':
+                if (state == LexState.Backtick) {
+                    state = LexState.Normal;
+                } else if (state == LexState.Normal) {
+                    state = LexState.Backtick;
+                }
+                break;
+            }
+            lastChar = c;
+            if (isParam)  {
+                list.add(sb.toString());
+                sb.setLength(0);
+                isParam = false;
+            }
+            else  {
+                sb.append(c);
+            }
 
-          }
-          list.add(sb.toString());
-          return list;
-     }
+        }
+        list.add(sb.toString());
+        return list;
+    }
 
 
     public static String escapeString(String s, boolean noBackslashEscapes) {
-    	if (s.indexOf("'") == -1) {
-    		if (noBackslashEscapes)
-    			return s;
-    		if (s.indexOf("\\") == -1)
-    			return s;
-    	}
-    	String escaped = s.replace("'", "''");
-    	if(noBackslashEscapes)
-    		return escaped;
-    	return escaped.replace("\\","\\\\");
+        if (s.indexOf("'") == -1) {
+            if (noBackslashEscapes)
+                return s;
+            if (s.indexOf("\\") == -1)
+                return s;
+        }
+        String escaped = s.replace("'", "''");
+        if(noBackslashEscapes)
+            return escaped;
+        return escaped.replace("\\","\\\\");
     }
-     
+
     /**
      * encrypts a password
-     * 
+     *
      * protocol for authentication is like this: 1. mysql server sends a random array of bytes (the seed) 2. client
      * makes a sha1 digest of the password 3. client hashes the output of 2 4. client digests the seed 5. client updates
      * the digest with the output from 3 6. an xor of the output of 5 and 2 is sent to server 7. server does the same
@@ -321,19 +321,19 @@ public class Utils {
 
             for (i = lastCommaIndex + 1; i < input.length; i++) {
                 if (!Character.isWhitespace(input[i]))
-                  break;
+                    break;
             }
             if (i>= input.length - 4)
                 return new String(input);
-             paramPrefix = new String(input, i, 4);
+            paramPrefix = new String(input, i, 4);
             if (paramPrefix.equals("SQL_"))
                 return new String(input, 0, i) + new String(input, i+4 , input.length - (i+4));
 
         }
         return new String(input);
-     }
+    }
 
-    private static String resolveEscapes(String escaped, boolean noBackslashEscapes) throws SQLException{
+    private static String resolveEscapes(String escaped, boolean noBackslashEscapes) throws SQLException {
         if(escaped.charAt(0) != '{' || escaped.charAt(escaped.length()-1) != '}')
             throw new SQLException("unexpected escaped string");
         int endIndex = escaped.length()-1;
@@ -344,7 +344,7 @@ public class Utils {
         }
         else if(escapedLower.startsWith("{oj ")) {
             // Outer join
-        	// the server supports "oj" in any case, even "oJ"
+            // the server supports "oj" in any case, even "oJ"
             return nativeSQL(escaped.substring(4, endIndex), noBackslashEscapes);
         }
         else if(escaped.startsWith("{d "))  {
@@ -360,7 +360,7 @@ public class Utils {
             return escaped.substring(4, endIndex);
         }
         else if(escaped.startsWith("{d'"))  {
-            // date literal, no space 
+            // date literal, no space
             return escaped.substring(2, endIndex);
         }
         else if(escaped.startsWith("{t'")) {
@@ -380,14 +380,14 @@ public class Utils {
             return  escaped.substring(1, endIndex);
         }
         else if (escaped.startsWith("{?")) {
-           // likely ?=call(...)
-           return nativeSQL(escaped.substring(1, endIndex), noBackslashEscapes);
+            // likely ?=call(...)
+            return nativeSQL(escaped.substring(1, endIndex), noBackslashEscapes);
         } else if (escaped.startsWith("{ ")) {
             // Spaces before keyword, this is not JDBC compliant, however some it works in some drivers,
             // so we support it, too
             for(int i = 2; i < escaped.length(); i++) {
                 if (!Character.isWhitespace(escaped.charAt(i))) {
-                   return resolveEscapes("{" + escaped.substring(i), noBackslashEscapes);
+                    return resolveEscapes("{" + escaped.substring(i), noBackslashEscapes);
                 }
             }
         }
@@ -395,7 +395,7 @@ public class Utils {
     }
 
 
-    public static String nativeSQL(String sql, boolean noBackslashEscapes) throws SQLException{
+    public static String nativeSQL(String sql, boolean noBackslashEscapes) throws SQLException {
         if (sql.indexOf('{') == -1)
             return sql;
 
@@ -418,88 +418,88 @@ public class Utils {
             }
 
             switch(c) {
-                case '\'':
-                case '"':
-                    if (!inComment) {
-                        if(inQuote) {
-                            if (quoteChar == c) {
-                                inQuote = false;
-                            }
-                        } else {
-                            inQuote = true;
-                            quoteChar = c;
+            case '\'':
+            case '"':
+                if (!inComment) {
+                    if(inQuote) {
+                        if (quoteChar == c) {
+                            inQuote = false;
+                        }
+                    } else {
+                        inQuote = true;
+                        quoteChar = c;
+                    }
+                }
+                break;
+
+            case '*':
+                if (!inQuote && !inComment) {
+                    if(lastChar == '/') {
+                        inComment = true;
+                        isSlashSlashComment = false;
+                    }
+                }
+                break;
+            case '/':
+            case '-':
+                if (!inQuote) {
+                    if (inComment) {
+                        if (lastChar == '*' && !isSlashSlashComment) {
+                            inComment = false;
+                        }
+                        else if (lastChar == c && isSlashSlashComment) {
+                            inComment = false;
                         }
                     }
-                    break;
-
-                case '*':
-                    if (!inQuote && !inComment) {
-                        if(lastChar == '/') {
+                    else {
+                        if(lastChar == c) {
+                            inComment = true;
+                            isSlashSlashComment = true;
+                        }
+                        else if (lastChar == '*') {
                             inComment = true;
                             isSlashSlashComment = false;
                         }
                     }
-                    break;
-                case '/':
-                case '-':
-                    if (!inQuote) {
-                        if (inComment) {
-                            if (lastChar == '*' && !isSlashSlashComment) {
-                                inComment = false;
-                            }
-                            else if (lastChar == c && isSlashSlashComment) {
-                                inComment = false;
-                            }
-                        }
-                        else {
-                            if(lastChar == c) {
-                                inComment = true;
-                                isSlashSlashComment = true;
-                            }
-                            else if (lastChar == '*') {
-                                inComment = true;
-                                isSlashSlashComment = false;
-                            }
-                        }
-                    }
-                    break;
-                case 'S':
-                    // skip SQL_xxx and SQL_TSI_xxx in functions
-                    // This would convert e.g SQL_INTEGER => INTEGER, SQL_TSI_HOUR=>HOUR
+                }
+                break;
+            case 'S':
+                // skip SQL_xxx and SQL_TSI_xxx in functions
+                // This would convert e.g SQL_INTEGER => INTEGER, SQL_TSI_HOUR=>HOUR
 
-                    if (!inQuote && !inComment && inEscapeSeq > 0) {
-                       if (i + 4 < a.length && a[i+1] == 'Q' && a[i+2] == 'L' && a[i+3] == 'L' && a[i+4] == '_') {
-                           if(i+8 < a.length && a[i+5] == 'T' && a[i+6] == 'S' && a[i+7] == 'I' && a[i+8] == '_') {
-                               i += 8;
-                               continue;
-                           }
-                           i += 4;
-                           continue;
-                       }
-                    }
-                    break;
-                case '\n':
-                    if (inComment && isSlashSlashComment) {
-                        // slash-slash and dash-dash comments ends with the end of line
-                        inComment = false;
-                    }
-                    break;
-                case '{':
-                    if (!inQuote && ! inComment) {
-                        inEscapeSeq++;
-                    }
-                    break;
-
-                case '}':
-                    if (!inQuote && ! inComment) {
-                        inEscapeSeq--;
-                        if (inEscapeSeq == 0) {
-                            escapeSequenceBuf.append(c);
-                            sqlBuffer.append(resolveEscapes(escapeSequenceBuf.toString(), noBackslashEscapes));
-                            escapeSequenceBuf.setLength(0);
+                if (!inQuote && !inComment && inEscapeSeq > 0) {
+                    if (i + 4 < a.length && a[i+1] == 'Q' && a[i+2] == 'L' && a[i+3] == 'L' && a[i+4] == '_') {
+                        if(i+8 < a.length && a[i+5] == 'T' && a[i+6] == 'S' && a[i+7] == 'I' && a[i+8] == '_') {
+                            i += 8;
                             continue;
                         }
+                        i += 4;
+                        continue;
                     }
+                }
+                break;
+            case '\n':
+                if (inComment && isSlashSlashComment) {
+                    // slash-slash and dash-dash comments ends with the end of line
+                    inComment = false;
+                }
+                break;
+            case '{':
+                if (!inQuote && ! inComment) {
+                    inEscapeSeq++;
+                }
+                break;
+
+            case '}':
+                if (!inQuote && ! inComment) {
+                    inEscapeSeq--;
+                    if (inEscapeSeq == 0) {
+                        escapeSequenceBuf.append(c);
+                        sqlBuffer.append(resolveEscapes(escapeSequenceBuf.toString(), noBackslashEscapes));
+                        escapeSequenceBuf.setLength(0);
+                        continue;
+                    }
+                }
 
 
             }
@@ -514,33 +514,33 @@ public class Utils {
             throw new SQLException("Invalid escape sequence , missing closing '}' character in '" + sqlBuffer);
         return sqlBuffer.toString();
     }
-    
+
 
 
     public static Protocol retrieveProxy(JDBCUrl jdbcUrl) throws QueryException, SQLException {
         Protocol proxyfiedProtocol;
         if (jdbcUrl.getHostAddresses().length == 1) {
             proxyfiedProtocol = (Protocol) Proxy.newProxyInstance(
-                    MySQLProtocol.class.getClassLoader(),
-                    new Class[]{Protocol.class},
-                    new FailoverProxy(new MySQLProtocol(jdbcUrl), new SingleHostListener()));
+                                    MySQLProtocol.class.getClassLoader(),
+                                    new Class[] {Protocol.class},
+                                    new FailoverProxy(new MySQLProtocol(jdbcUrl), new SingleHostListener()));
         } else {
             String favor = jdbcUrl.getProperties().getProperty("favor");
             if ("aurora".equals(favor)) {
                 proxyfiedProtocol = (Protocol) Proxy.newProxyInstance(
-                        AuroraMultiNodesProtocol.class.getClassLoader(),
-                        new Class[] {Protocol.class},
-                        new FailoverProxy(new AuroraMultiNodesProtocol(jdbcUrl), new AuroraListener()));
+                                        AuroraMultiNodesProtocol.class.getClassLoader(),
+                                        new Class[] {Protocol.class},
+                                        new FailoverProxy(new AuroraMultiNodesProtocol(jdbcUrl), new AuroraListener()));
             } else if ("master-slave".equals(favor)) {
                 proxyfiedProtocol = (Protocol) Proxy.newProxyInstance(
-                        MultiNodesProtocol.class.getClassLoader(),
-                        new Class[] {Protocol.class},
-                        new FailoverProxy(new MultiNodesProtocol(jdbcUrl), new MultiHostListener()));
+                                        MultiNodesProtocol.class.getClassLoader(),
+                                        new Class[] {Protocol.class},
+                                        new FailoverProxy(new MultiNodesProtocol(jdbcUrl), new MultiHostListener()));
             } else {
                 proxyfiedProtocol = (Protocol) Proxy.newProxyInstance(
-                        MySQLProtocol.class.getClassLoader(),
-                        new Class[]{Protocol.class},
-                        new FailoverProxy(new MySQLProtocol(jdbcUrl), new SingleHostListener()));
+                                        MySQLProtocol.class.getClassLoader(),
+                                        new Class[] {Protocol.class},
+                                        new FailoverProxy(new MySQLProtocol(jdbcUrl), new SingleHostListener()));
             }
         }
         return proxyfiedProtocol;

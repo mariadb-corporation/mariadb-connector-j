@@ -158,17 +158,17 @@ public class MySQLStatement implements Statement {
         getTimer().schedule(timerTask, queryTimeout*1000);
     }
 
-    void executeQueryProlog() throws SQLException{
+    void executeQueryProlog() throws SQLException {
         if (isClosed()) {
             throw new SQLException("execute() is called on closed statement");
         }
 
-        if (protocol.isClosed()){
+        if (protocol.isClosed()) {
             throw new SQLException("execute() is called on closed connection");
         }
         if (protocol.hasUnreadData()) {
             throw new  SQLException("There is an open result set on the current connection, "+
-                    "which must be closed prior to executing a query");
+                                    "which must be closed prior to executing a query");
         }
         if (protocol.hasMoreResults()) {
             // Skip remaining result sets. CallableStatement might return many of them  -
@@ -218,7 +218,7 @@ public class MySQLStatement implements Statement {
     /*
      Reset timeout after query, re-throw  SQL  exception
     */
-    private void executeQueryEpilog(QueryException e, Query query) throws SQLException{
+    private void executeQueryEpilog(QueryException e, Query query) throws SQLException {
 
         if (timerTask != null) {
             timerTask.cancel();
@@ -232,12 +232,12 @@ public class MySQLStatement implements Statement {
 
         if (e == null)
             return;
-        
-        /* Include query into exception message, if dumpQueriesOnException is true, 
-         * or on SQL syntax error (MySQL error code 1064). 
-         * 
-         * If SQL query is too long, truncate it to reasonable (for exception messages) 
-         * length. 
+
+        /* Include query into exception message, if dumpQueriesOnException is true,
+         * or on SQL syntax error (MySQL error code 1064).
+         *
+         * If SQL query is too long, truncate it to reasonable (for exception messages)
+         * length.
          */
         if (protocol.getInfo().getProperty("dumpQueriesOnException", "false").equalsIgnoreCase("true")
                 || e.getErrorCode() == 1064 ) {
@@ -320,13 +320,13 @@ public class MySQLStatement implements Statement {
         }
     }
 
-     /**
-     * executes a select query.
-     *
-     * @param query the query to send to the server
-     * @return a result set
-     * @throws SQLException if something went wrong
-     */
+    /**
+    * executes a select query.
+    *
+    * @param query the query to send to the server
+    * @return a result set
+    * @throws SQLException if something went wrong
+    */
     protected ResultSet executeQuery(Query query) throws SQLException {
         if (execute(query)) {
             return getResultSet();
@@ -361,7 +361,7 @@ public class MySQLStatement implements Statement {
      *
      * @param queryString the query
      * @return true if there was a result set, false otherwise.
-     * @throws SQLException if the query could not be sent to server 
+     * @throws SQLException if the query could not be sent to server
      */
     public boolean execute(String queryString) throws SQLException {
         return execute(stringToQuery(queryString));
@@ -1245,7 +1245,7 @@ public class MySQLStatement implements Statement {
         boolean rewriteBatchedStatements = "true".equals(getProtocol().getInfo().getProperty("rewriteBatchedStatements"));
         if (rewriteBatchedStatements) allowMultiQueries=true;
         try {
-        	synchronized (this.protocol) {
+            synchronized (this.protocol) {
                 if (allowMultiQueries) {
                     int size = batchQueries.size();
                     MySQLStatement ps = (MySQLStatement) connection.createStatement();
@@ -1278,28 +1278,28 @@ public class MySQLStatement implements Statement {
     }
 
     /**
-	 * Retrieves the update counts for the batched statements rewritten as
-	 * a multi query. The rewritten statement must have been executed already.
-	 * @param statement the rewritten statement
-	 * @return an array of update counts containing one element for each command in the batch.
-	 *  The elements of the array are ordered according to the order in which commands were added to the batch.
+     * Retrieves the update counts for the batched statements rewritten as
+     * a multi query. The rewritten statement must have been executed already.
+     * @param statement the rewritten statement
+     * @return an array of update counts containing one element for each command in the batch.
+     *  The elements of the array are ordered according to the order in which commands were added to the batch.
      * @param  size
-	 * @throws SQLException
-	 */
-	protected int[] getUpdateCounts(Statement statement, int size) throws SQLException {
-		int[] result = new int[size];
-		int updateCount;
-		for (int count=0; count<size; count++) {
-			updateCount = statement.getUpdateCount();
+     * @throws SQLException
+     */
+    protected int[] getUpdateCounts(Statement statement, int size) throws SQLException {
+        int[] result = new int[size];
+        int updateCount;
+        for (int count=0; count<size; count++) {
+            updateCount = statement.getUpdateCount();
             if (updateCount == -1) {
                 result[count] = SUCCESS_NO_INFO;
             } else {
                 result[count] = updateCount;
             }
             statement.getMoreResults();
-		}
-		return result;
-	}
+        }
+        return result;
+    }
 
     protected int[] getUpdateCountsForReWrittenBatch(Statement statement, int size) throws SQLException {
         int[] result = new int[size];

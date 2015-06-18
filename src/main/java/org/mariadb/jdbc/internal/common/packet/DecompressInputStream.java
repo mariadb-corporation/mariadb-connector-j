@@ -10,7 +10,7 @@ import java.security.InvalidParameterException;
 import java.util.zip.Inflater;
 import java.util.zip.DataFormatException;
 
-public class DecompressInputStream extends InputStream{
+public class DecompressInputStream extends InputStream {
     InputStream baseStream;
     int remainingBytes;
     byte header[];
@@ -47,8 +47,8 @@ public class DecompressInputStream extends InputStream{
     }
 
     @Override
-    public int read(byte[] bytes) throws  IOException{
-       return read(bytes, 0, bytes.length);
+    public int read(byte[] bytes) throws  IOException {
+        return read(bytes, 0, bytes.length);
     }
 
     @Override
@@ -65,34 +65,34 @@ public class DecompressInputStream extends InputStream{
      * @throws IOException
      */
     private  void nextPacket() throws IOException {
-            ReadUtil.readFully(baseStream, header);
-            int compressedLength = (header[0] & 0xff) + ((header[1] & 0xff) << 8) + ((header[2] & 0xff) << 16);
-            int decompressedLength = (header[4] & 0xff) + ((header[5] & 0xff) << 8) + ((header[6] & 0xff) << 16);
-            if (decompressedLength != 0) {
-                doDecompress = true;
-                remainingBytes += decompressedLength;
-                byte[] compressedBuffer = new byte[compressedLength];
-                byte[] decompressedBuffer = new byte[decompressedLength];
-                ReadUtil.readFully(baseStream, compressedBuffer);
-                Inflater inflater = new Inflater();
-                inflater.setInput(compressedBuffer);
-                try {
-                   int n = inflater.inflate(decompressedBuffer);
-                   if (n != decompressedLength)
-                       throw new IOException("Invalid packet length after decompression "+n + ",expected "
-                               + decompressedLength);
-                }
-                catch(DataFormatException dfe) {
-                    throw new IOException(dfe);
-                }
-                inflater.end();
-                decompressedByteStream = new ByteArrayInputStream(decompressedBuffer);
-
-            }  else {
-                doDecompress = false;
-                remainingBytes += compressedLength;
-                decompressedByteStream = null;
+        ReadUtil.readFully(baseStream, header);
+        int compressedLength = (header[0] & 0xff) + ((header[1] & 0xff) << 8) + ((header[2] & 0xff) << 16);
+        int decompressedLength = (header[4] & 0xff) + ((header[5] & 0xff) << 8) + ((header[6] & 0xff) << 16);
+        if (decompressedLength != 0) {
+            doDecompress = true;
+            remainingBytes += decompressedLength;
+            byte[] compressedBuffer = new byte[compressedLength];
+            byte[] decompressedBuffer = new byte[decompressedLength];
+            ReadUtil.readFully(baseStream, compressedBuffer);
+            Inflater inflater = new Inflater();
+            inflater.setInput(compressedBuffer);
+            try {
+                int n = inflater.inflate(decompressedBuffer);
+                if (n != decompressedLength)
+                    throw new IOException("Invalid packet length after decompression "+n + ",expected "
+                                          + decompressedLength);
             }
+            catch(DataFormatException dfe) {
+                throw new IOException(dfe);
+            }
+            inflater.end();
+            decompressedByteStream = new ByteArrayInputStream(decompressedBuffer);
+
+        }  else {
+            doDecompress = false;
+            remainingBytes += compressedLength;
+            decompressedByteStream = null;
+        }
     }
 
 }

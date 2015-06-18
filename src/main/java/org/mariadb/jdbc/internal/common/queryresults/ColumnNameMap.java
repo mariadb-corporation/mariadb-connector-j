@@ -13,22 +13,22 @@ public class ColumnNameMap {
     MySQLColumnInformation[] columnInfo;
 
     public ColumnNameMap(MySQLColumnInformation[] columnInformations) {
-       this.columnInfo = columnInformations;
+        this.columnInfo = columnInformations;
     }
 
     public int getIndex(String name) throws SQLException {
         if (columnInfo == null) {
-           throw new SQLException("No such column :" + name);
+            throw new SQLException("No such column :" + name);
         }
         // The specs in JDBC 4.0 specify that ResultSet.findColumn and
-        // ResultSet.getXXX(String name) should use column alias (AS in the query). If label is not found, we use 
+        // ResultSet.getXXX(String name) should use column alias (AS in the query). If label is not found, we use
         // original table name.
-    	Integer res = getLabelIndex(name);
+        Integer res = getLabelIndex(name);
 
-    	
-    	if (res != null) {
-    		return res;
-    	}
+
+        if (res != null) {
+            return res;
+        }
         if (map == null) {
             map = new HashMap<String, Integer>();
             int i=0;
@@ -47,7 +47,7 @@ public class ColumnNameMap {
             }
         }
         res = map.get(name.toLowerCase());
-       
+
         if (res == null) {
             throw new SQLException("No such column :" + name);
         }

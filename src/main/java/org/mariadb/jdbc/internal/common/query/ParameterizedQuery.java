@@ -76,7 +76,7 @@ public interface ParameterizedQuery extends Query {
      * @throws IllegalParameterException if, for example, the position is out of bounds
      */
     void setParameter(int position, ParameterHolder parameter)
-            throws IllegalParameterException;
+    throws IllegalParameterException;
 
     ParameterHolder[] getParameters();
 

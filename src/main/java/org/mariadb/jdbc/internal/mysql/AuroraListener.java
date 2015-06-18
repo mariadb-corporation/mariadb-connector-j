@@ -120,7 +120,7 @@ public class AuroraListener extends MultiHostListener {
         } else searchByStartName(secondaryProtocol, loopAddress);
 
         if (((searchForMaster && isMasterHostFail())|| (searchForSecondary && isSecondaryHostFail())) || initialConnection) {
-            newProtocol.loop(this, loopAddress, failAddress, new Boolean[]{searchForMaster, searchForSecondary});
+            newProtocol.loop(this, loopAddress, failAddress, new Boolean[] {searchForMaster, searchForSecondary});
         }
     }
 

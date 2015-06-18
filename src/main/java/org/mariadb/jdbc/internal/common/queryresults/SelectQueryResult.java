@@ -79,12 +79,12 @@ public abstract class SelectQueryResult extends QueryResult {
         return ResultSetType.SELECT;
     }
 
-     /**
-     * moves the row pointer to position i
-     *
-     * @param i the position
-     */
-    public  void moveRowPointerTo(int i) throws SQLException{
+    /**
+    * moves the row pointer to position i
+    *
+    * @param i the position
+    */
+    public  void moveRowPointerTo(int i) throws SQLException {
         throw new SQLFeatureNotSupportedException("scrolling result set not supported");
     }
 
@@ -93,7 +93,7 @@ public abstract class SelectQueryResult extends QueryResult {
      *
      * @return the current row number
      */
-    public int getRowPointer() throws SQLException{
+    public int getRowPointer() throws SQLException {
         throw new SQLFeatureNotSupportedException("scrolling result set not supported");
     }
 

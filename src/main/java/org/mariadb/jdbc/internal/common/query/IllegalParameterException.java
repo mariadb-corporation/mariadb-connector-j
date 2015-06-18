@@ -51,9 +51,9 @@ package org.mariadb.jdbc.internal.common.query;
 
 
 public class IllegalParameterException extends Exception {
-	private static final long serialVersionUID = 3047340829808954503L;
+    private static final long serialVersionUID = 3047340829808954503L;
 
-	public IllegalParameterException(final String s) {
+    public IllegalParameterException(final String s) {
         super(s);
     }
 }

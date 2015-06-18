@@ -21,8 +21,8 @@ public class MySQLXid implements Xid {
         if (o instanceof Xid) {
             Xid other = (Xid) o;
             return formatId == other.getFormatId()
-                    && Arrays.equals(globalTransactionId, other.getGlobalTransactionId())
-                    && Arrays.equals(branchQualifier, other.getBranchQualifier());
+                   && Arrays.equals(globalTransactionId, other.getGlobalTransactionId())
+                   && Arrays.equals(branchQualifier, other.getBranchQualifier());
 
         }
         return false;

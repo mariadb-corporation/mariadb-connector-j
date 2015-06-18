@@ -61,7 +61,7 @@ public class ErrorPacket extends ResultPacket {
     private final String message;
 
 
-    public ErrorPacket(final RawPacket rawPacket){
+    public ErrorPacket(final RawPacket rawPacket) {
         final Reader reader = new Reader(rawPacket);
         reader.readByte();
         this.errorNumber = reader.readShort();

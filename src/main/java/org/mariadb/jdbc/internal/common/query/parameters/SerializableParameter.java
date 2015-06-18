@@ -57,7 +57,7 @@ public class SerializableParameter extends ParameterHolder {
     Object object;
     boolean noBackSlashEscapes;
     public SerializableParameter(Object object, boolean noBackslashEscapes) throws IOException {
-       this.object = object;
+        this.object = object;
         this.noBackSlashEscapes = noBackslashEscapes;
     }
     public void writeTo(OutputStream os) throws IOException {

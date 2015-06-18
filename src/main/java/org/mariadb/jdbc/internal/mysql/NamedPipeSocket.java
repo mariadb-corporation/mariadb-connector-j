@@ -10,16 +10,16 @@ import java.net.SocketAddress;
 public class NamedPipeSocket extends Socket {
     String host;
     String name;
-    
+
     RandomAccessFile file;
     InputStream is;
     OutputStream os;
-    
+
     public NamedPipeSocket(String host, String name) {
         this.host = host;
         this.name = name;
     }
-    
+
     @Override
     public void  close() throws IOException {
         if (file != null) {
@@ -27,7 +27,7 @@ public class NamedPipeSocket extends Socket {
             file = null;
         }
     }
-    
+
     @Override
     public void   connect(SocketAddress endpoint) throws IOException {
         connect(endpoint, 0);
@@ -40,10 +40,10 @@ public class NamedPipeSocket extends Socket {
             filename = "\\\\" +  host + "\\pipe\\" + name;
         }
         file = new RandomAccessFile(filename, "rw");
-        
+
         is = new InputStream() {
             @Override
-            public 
+            public
             int read(byte[] b, int off, int len) throws IOException {
                 return file.read(b, off, len);
             }
@@ -56,16 +56,16 @@ public class NamedPipeSocket extends Socket {
                 return file.read(b);
             }
         };
-        
+
         os = new OutputStream() {
             @Override
-            public void write(byte[]b, int off, int len) throws IOException{
-                 file.write(b, off, len);
+            public void write(byte[]b, int off, int len) throws IOException {
+                file.write(b, off, len);
             }
             @Override
             public void write(int b) throws IOException {
-                file.write(b);         
-            } 
+                file.write(b);
+            }
             @Override
             public void write(byte[] b) throws IOException {
                 file.write(b);
@@ -84,7 +84,7 @@ public class NamedPipeSocket extends Socket {
     }
     public void setReceiveBufferSize(int size) {
     }
-    public void setSendBufferSize(int size) {   
+    public void setSendBufferSize(int size) {
     }
     public void setSoLinger(boolean b, int i) {
     }

@@ -58,7 +58,7 @@ import java.io.IOException;
  */
 public class OKPacket extends ResultPacket {
     @SuppressWarnings("unused")
-	private final byte fieldCount;
+    private final byte fieldCount;
     private final long affectedRows;
     private final long insertId;
     private final short serverStatus;
@@ -89,15 +89,15 @@ public class OKPacket extends ResultPacket {
     @Override
     public String toString() {
         return "affectedRows = " +
-                affectedRows +
-                "&insertId = " +
-                insertId +
-                "&serverStatus=" +
-                serverStatus +
-                "&warnings=" +
-                warnings +
-                "&message=" +
-                message;
+               affectedRows +
+               "&insertId = " +
+               insertId +
+               "&serverStatus=" +
+               serverStatus +
+               "&warnings=" +
+               warnings +
+               "&message=" +
+               message;
     }
 
     public long getAffectedRows() {
