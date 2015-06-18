@@ -56,7 +56,7 @@ public class HostAddress {
     static HostAddress parseSimpleHostAddress(String s) {
         HostAddress result = new HostAddress();
         if (s.startsWith("[")) {
-    		/* IPv6 addresses in URLs are enclosed in square brackets */
+            /* IPv6 addresses in URLs are enclosed in square brackets */
             int ind = s.indexOf(']');
             result.host = s.substring(1,ind);
             if (ind != (s.length() -1) && s.charAt(ind + 1) == ':') {
@@ -65,12 +65,12 @@ public class HostAddress {
         }
 
         else if (s.contains(":")) {
-        	  /* Parse host:port */
+            /* Parse host:port */
             String[] hostPort = s.split(":");
             result.host = hostPort[0];
             result.port = Integer.parseInt(hostPort[1]);
         } else {
-        	  /* Just host name is given */
+            /* Just host name is given */
             result.host = s;
         }
         return result;
@@ -78,7 +78,7 @@ public class HostAddress {
     static HostAddress parseParameterHostAddress(String s) {
         HostAddress result = new HostAddress();
         String[] array = s.split("(?=\\()|(?<=\\))");
-        for (int i=1;i< array.length;i++) {
+        for (int i=1; i< array.length; i++) {
             String[] token = array[i].replace("(","").replace(")","").trim().split("=");
             if (token.length != 2) throw new IllegalArgumentException("Invalid connection URL, expected key=value pairs, found " + array[i]);
             String key = token[0].toLowerCase();

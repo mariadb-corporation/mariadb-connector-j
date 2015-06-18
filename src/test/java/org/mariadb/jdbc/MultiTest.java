@@ -14,7 +14,7 @@ import static org.junit.Assert.*;
 
 
 public class MultiTest extends BaseTest {
-	private static Connection connection;
+    private static Connection connection;
 
     public MultiTest() throws SQLException {
     }
@@ -51,7 +51,7 @@ public class MultiTest extends BaseTest {
             st.executeUpdate("drop table if exists t2");
             st.executeUpdate("drop table if exists t3");
             st.executeUpdate("drop table if exists reWriteDuplicateTestTable");
-         } catch (Exception e) {
+        } catch (Exception e) {
             // eat
         } finally {
             try  {
@@ -144,7 +144,7 @@ public class MultiTest extends BaseTest {
 
         /* Check 3 rows are returned if maxRows is limited to 3, in every result set in batch */
 
-       /* Check first result set for at most 3 rows*/
+        /* Check first result set for at most 3 rows*/
         ResultSet rs = st.executeQuery("select 1 union select 2;select 1 union select 2");
         int cnt = 0;
 
@@ -154,7 +154,7 @@ public class MultiTest extends BaseTest {
         rs.close();
         assertEquals(1, cnt);
 
-       /* Check second result set for at most 3 rows*/
+        /* Check second result set for at most 3 rows*/
         assertTrue(st.getMoreResults());
         rs = st.getResultSet();
         cnt = 0;

@@ -16,26 +16,26 @@ public class MySQLXAResource implements XAResource {
         int XAErrorCode;
 
         switch(sqle.getErrorCode()) {
-            case 1397:
-                XAErrorCode = XAException.XAER_NOTA;
-                break;
-            case 1398:
-                XAErrorCode = XAException.XAER_INVAL;
-                break;
-            case 1399:
-                XAErrorCode = XAException.XAER_RMFAIL;
-                break;
-            case 1400:
-                XAErrorCode = XAException.XAER_OUTSIDE;
-                break;
-            case 1401:
-                XAErrorCode = XAException.XAER_RMERR;
-                break;
-            case 1402:
-                XAErrorCode = XAException.XA_RBROLLBACK;
-                break;
-            default:
-                XAErrorCode = 0;
+        case 1397:
+            XAErrorCode = XAException.XAER_NOTA;
+            break;
+        case 1398:
+            XAErrorCode = XAException.XAER_INVAL;
+            break;
+        case 1399:
+            XAErrorCode = XAException.XAER_RMFAIL;
+            break;
+        case 1400:
+            XAErrorCode = XAException.XAER_OUTSIDE;
+            break;
+        case 1401:
+            XAErrorCode = XAException.XAER_RMERR;
+            break;
+        case 1402:
+            XAErrorCode = XAException.XA_RBROLLBACK;
+            break;
+        default:
+            XAErrorCode = 0;
         }
         if (XAErrorCode != 0)
             return new XAException(XAErrorCode);
@@ -47,7 +47,7 @@ public class MySQLXAResource implements XAResource {
         //System.out.println(command);
         try {
             connection.createStatement().execute(command);
-        }catch (SQLException sqle) {
+        } catch (SQLException sqle) {
             throw mapXAException(sqle);
         }
     }
@@ -60,10 +60,10 @@ public class MySQLXAResource implements XAResource {
     static String xidToString(Xid xid) {
         StringBuffer sb = new StringBuffer(2*Xid.MAXBQUALSIZE+2*Xid.MAXGTRIDSIZE+16);
         sb.append("0x")
-           .append(MySQLProtocol.hexdump(xid.getGlobalTransactionId(),0))
-           .append(",0x")
-           .append(MySQLProtocol.hexdump(xid.getBranchQualifier(),0))
-           .append(",").append(xid.getFormatId());
+        .append(MySQLProtocol.hexdump(xid.getGlobalTransactionId(),0))
+        .append(",0x")
+        .append(MySQLProtocol.hexdump(xid.getBranchQualifier(),0))
+        .append(",").append(xid.getFormatId());
         return sb.toString();
     }
     public void commit(Xid xid, boolean onePhase) throws XAException {
@@ -81,7 +81,7 @@ public class MySQLXAResource implements XAResource {
     }
 
     public void forget(Xid xid) throws XAException {
-       // Not implemented by the server
+        // Not implemented by the server
     }
 
     public int getTransactionTimeout() throws XAException {
@@ -129,13 +129,13 @@ public class MySQLXAResource implements XAResource {
             Xid[] xids = new Xid[xidList.size()];
             xidList.toArray(xids);
             return xids;
-        }catch (SQLException sqle) {
-           throw mapXAException(sqle);
+        } catch (SQLException sqle) {
+            throw mapXAException(sqle);
         }
     }
 
     public void rollback(Xid xid) throws XAException {
-       execute("XA ROLLBACK " + xidToString(xid));
+        execute("XA ROLLBACK " + xidToString(xid));
     }
 
     public boolean setTransactionTimeout(int timeout) throws XAException {
@@ -146,23 +146,23 @@ public class MySQLXAResource implements XAResource {
         if (flags != TMJOIN && flags != TMRESUME && flags != TMNOFLAGS)
             throw new XAException(XAException.XAER_INVAL);
         if (flags == TMJOIN && "true".equalsIgnoreCase(connection.getPinGlobalTxToPhysicalConnection())) {
-        	flags = TMRESUME;
+            flags = TMRESUME;
         }
         execute("XA START " + xidToString(xid) + " "+flagsToString(flags));
     }
 
     static String flagsToString(int flags) {
-       switch(flags) {
-           case TMJOIN:
-               return "JOIN";
-           case TMONEPHASE:
-               return "ONE PHASE";
-           case TMRESUME:
-               return "RESUME";
-           case TMSUSPEND:
-               return "SUSPEND";
-           default:
-               return "";
-       }
+        switch(flags) {
+        case TMJOIN:
+            return "JOIN";
+        case TMONEPHASE:
+            return "ONE PHASE";
+        case TMRESUME:
+            return "RESUME";
+        case TMSUSPEND:
+            return "SUSPEND";
+        default:
+            return "";
+        }
     }
 }

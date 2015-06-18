@@ -13,7 +13,7 @@ public class CancelTest extends BaseTest {
         requireMinimumVersion(5,0);
     }
     @Test(expected = SQLTransientException.class)
-    public void cancelTest() throws SQLException{
+    public void cancelTest() throws SQLException {
 
         Statement stmt = connection.createStatement();
         new CancelThread(stmt).start();
@@ -44,14 +44,14 @@ public class CancelTest extends BaseTest {
 
 
     @Test (expected = java.sql.SQLTimeoutException.class)
-    public void timeoutSleep() throws Exception{
-           PreparedStatement stmt = connection.prepareStatement("select sleep(100)");
-           stmt.setQueryTimeout(1);
-           stmt.execute();
-     }
+    public void timeoutSleep() throws Exception {
+        PreparedStatement stmt = connection.prepareStatement("select sleep(100)");
+        stmt.setQueryTimeout(1);
+        stmt.execute();
+    }
 
     @Test
-    public void NoTimeoutSleep() throws Exception{
+    public void NoTimeoutSleep() throws Exception {
         Statement stmt = connection.createStatement();
         stmt.setQueryTimeout(1);
         stmt.execute("select sleep(0.5)");

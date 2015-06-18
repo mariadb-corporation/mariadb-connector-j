@@ -7,15 +7,15 @@ import java.sql.NClob;
 import java.sql.SQLException;
 
 public class MySQLClob extends MySQLBlob implements Clob, NClob, Serializable {
-	private static final long serialVersionUID = -2006825230517923067L;
+    private static final long serialVersionUID = -2006825230517923067L;
 
-	public String toString() {
-      try {
-        return new String(blobContent, "UTF-8");
-      }
-      catch(Exception e) {
-          throw new AssertionError(e);
-      }
+    public String toString() {
+        try {
+            return new String(blobContent, "UTF-8");
+        }
+        catch(Exception e) {
+            throw new AssertionError(e);
+        }
     }
 
     public MySQLClob(byte[] bytes) {
@@ -92,7 +92,7 @@ public class MySQLClob extends MySQLBlob implements Clob, NClob, Serializable {
     }
 
     public OutputStream setAsciiStream(long pos) throws SQLException {
-       return setBinaryStream(UTF8position((int)pos-1)+1);
+        return setBinaryStream(UTF8position((int)pos-1)+1);
     }
 
     public Writer setCharacterStream(long pos) throws SQLException {
@@ -103,8 +103,8 @@ public class MySQLClob extends MySQLBlob implements Clob, NClob, Serializable {
 
 
     public Reader getCharacterStream(long pos, long length) throws SQLException {
-       String sub = toString().substring((int)pos -1, (int)pos -1 + (int)length);
-       return new StringReader(sub);
+        String sub = toString().substring((int)pos -1, (int)pos -1 + (int)length);
+        return new StringReader(sub);
     }
 
     @Override
@@ -112,8 +112,8 @@ public class MySQLClob extends MySQLBlob implements Clob, NClob, Serializable {
      * return character length of the Clob. Assume UTF8 encoding.
      */
     public long length() {
-       long len = 0;
-       for(int i = 0; i < actualSize;)  {
+        long len = 0;
+        for(int i = 0; i < actualSize;)  {
             int c = blobContent[i] & 0xff;
             if(c < 0x80) {
                 i += 1;

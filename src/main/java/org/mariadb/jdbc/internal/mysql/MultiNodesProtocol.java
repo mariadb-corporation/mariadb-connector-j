@@ -84,7 +84,7 @@ public class MultiNodesProtocol extends MySQLProtocol {
             } catch (IOException e) {
                 if (i == addrs.length - 1) {
                     throw new QueryException("Could not connect to " + HostAddress.toString(addrs) +
-                            " : " + e.getMessage(),  -1,  SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), e);
+                                             " : " + e.getMessage(),  -1,  SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), e);
                 }
             }
         }
@@ -119,7 +119,7 @@ public class MultiNodesProtocol extends MySQLProtocol {
             } catch (IOException e) {
                 if (i == jdbcUrl.getHostAddresses().length - 1) {
                     throw new QueryException("Could not connect to " + HostAddress.toString(jdbcUrl.getHostAddresses()) +
-                            " : " + e.getMessage(),  -1,  SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), e);
+                                             " : " + e.getMessage(),  -1,  SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), e);
                 }
             }
         }
@@ -141,8 +141,8 @@ public class MultiNodesProtocol extends MySQLProtocol {
         if (masterConnection) {
             String alias = jdbcUrl.getProperties().getProperty("createDatabaseIfNotExist");
             return jdbcUrl.getProperties() != null
-                    && (jdbcUrl.getProperties().getProperty("createDB", "").equalsIgnoreCase("true")
-                    || (alias != null && alias.equalsIgnoreCase("true")));
+                   && (jdbcUrl.getProperties().getProperty("createDB", "").equalsIgnoreCase("true")
+                       || (alias != null && alias.equalsIgnoreCase("true")));
         }
         return false;
     }

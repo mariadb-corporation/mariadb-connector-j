@@ -266,7 +266,7 @@ public final class MySQLConnection implements Connection {
      */
     public DatabaseMetaData getMetaData() throws SQLException {
         return new MySQLDatabaseMetaData(this,protocol.getUsername(),
-                "jdbc:mysql://" + protocol.getHost()  + ":" + protocol.getPort() + "/" + protocol.getDatabase());
+                                         "jdbc:mysql://" + protocol.getHost()  + ":" + protocol.getPort() + "/" + protocol.getDatabase());
     }
 
     /**
@@ -318,7 +318,7 @@ public final class MySQLConnection implements Connection {
      * @see #getCatalog
      */
     public void setCatalog(final String catalog) throws SQLException {
-        if (catalog == null){
+        if (catalog == null) {
             throw new SQLException("The catalog name may not be null", "XAE05");
         }
         Statement st = createStatement();
@@ -526,7 +526,7 @@ public final class MySQLConnection implements Connection {
      *                               concurrency
      */
     public PreparedStatement prepareStatement(final String sql, final int resultSetType, final int resultSetConcurrency)
-            throws SQLException {
+    throws SQLException {
         // for now resultSetType and resultSetConcurrency are ignored
         // TODO: fix
         return prepareStatement(sql);
@@ -733,7 +733,7 @@ public final class MySQLConnection implements Connection {
      * @since 1.4
      */
     public Statement createStatement(final int resultSetType, final int resultSetConcurrency, final int resultSetHoldability)
-            throws SQLException {
+    throws SQLException {
         if (resultSetConcurrency != ResultSet.CONCUR_READ_ONLY) {
             throw SQLExceptionMapper.getFeatureNotSupportedException("Only read-only result sets allowed");
         }
@@ -768,9 +768,9 @@ public final class MySQLConnection implements Connection {
      * @since 1.4
      */
     public PreparedStatement prepareStatement(final String sql,
-                                              final int resultSetType,
-                                              final int resultSetConcurrency,
-                                              final int resultSetHoldability) throws SQLException {
+            final int resultSetType,
+            final int resultSetConcurrency,
+            final int resultSetHoldability) throws SQLException {
         if (resultSetConcurrency != ResultSet.CONCUR_READ_ONLY) {
             throw SQLExceptionMapper.getFeatureNotSupportedException("Only read-only result sets allowed");
         }
@@ -1279,7 +1279,7 @@ public final class MySQLConnection implements Connection {
             return;
         }
         SQLPermission sqlPermission = new SQLPermission("callAbort");
-		SecurityManager securityManager = System.getSecurityManager();
+        SecurityManager securityManager = System.getSecurityManager();
         if (securityManager != null && sqlPermission != null) {
             securityManager.checkPermission(sqlPermission);
         }
@@ -1323,7 +1323,7 @@ public final class MySQLConnection implements Connection {
             throw SQLExceptionMapper.getSQLException("Connection.setNetworkTimeout cannot be called with a negative timeout");
         }
         SQLPermission sqlPermission = new SQLPermission("setNetworkTimeout");
-		SecurityManager securityManager = System.getSecurityManager();
+        SecurityManager securityManager = System.getSecurityManager();
         if (securityManager != null && sqlPermission != null) {
             securityManager.checkPermission(sqlPermission);
         }

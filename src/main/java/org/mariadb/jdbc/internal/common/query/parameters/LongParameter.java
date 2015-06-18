@@ -57,7 +57,7 @@ public class LongParameter extends ParameterHolder {
     private long value;
 
     public LongParameter(long value) {
-      this.value = value;
+        this.value = value;
     }
 
     public void writeTo(final OutputStream os) throws IOException {

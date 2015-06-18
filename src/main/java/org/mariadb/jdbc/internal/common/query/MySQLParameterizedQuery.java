@@ -72,7 +72,7 @@ public class MySQLParameterizedQuery implements ParameterizedQuery {
         this.query = query;
         List<String> queryParts = createQueryParts(query, noBackslashEscapes);
         queryPartsArray = new byte[queryParts.size()][];
-        for(int i=0;i < queryParts.size(); i++) {
+        for(int i=0; i < queryParts.size(); i++) {
             try {
                 queryPartsArray[i] = queryParts.get(i).getBytes("UTF-8");
             } catch (UnsupportedEncodingException e) {
@@ -89,7 +89,7 @@ public class MySQLParameterizedQuery implements ParameterizedQuery {
     public MySQLParameterizedQuery cloneQuery() {
         MySQLParameterizedQuery q = new  MySQLParameterizedQuery();
         q.parameters = new ParameterHolder[parameters.length];
-        for (int i = 0; i < parameters.length;i++) {
+        for (int i = 0; i < parameters.length; i++) {
             q.parameters[i] = parameters[i];
         }
         q.paramCount = paramCount;
@@ -114,7 +114,7 @@ public class MySQLParameterizedQuery implements ParameterizedQuery {
         this.parameters = new ParameterHolder[paramCount];
     }
 
-    public void validate() throws QueryException{
+    public void validate() throws QueryException {
         if(containsNull(parameters)) {
             throw new QueryException("You need to set exactly " + paramCount + " parameters on the prepared statement");
         }

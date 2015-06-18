@@ -65,12 +65,12 @@ public class DateParameter extends ParameterHolder {
      * @param date
      */
     public DateParameter(Date date) {
-       this(date, null);
+        this(date, null);
     }
 
     public DateParameter(Date date, Calendar cal) {
-       this.date = date;
-       this.calendar = cal;
+        this.date = date;
+        this.calendar = cal;
     }
 
     public void writeTo(OutputStream os) throws IOException {

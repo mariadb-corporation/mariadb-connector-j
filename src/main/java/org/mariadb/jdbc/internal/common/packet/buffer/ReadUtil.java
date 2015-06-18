@@ -1,4 +1,4 @@
- /*
+/*
 MariaDB Client for Java
 
 Copyright (c) 2012 Monty Program Ab.
@@ -73,7 +73,7 @@ public final class ReadUtil {
      * @throws java.io.IOException if an error occurs while reading the stream.
      * java.io.EOFException of end of stream is hit.
      */
-    public static void readFully(InputStream stream, byte[] b , int off, int len) throws IOException{
+    public static void readFully(InputStream stream, byte[] b , int off, int len) throws IOException {
         if (len < 0) {
             throw new AssertionError("len < 0");
         }
@@ -93,7 +93,7 @@ public final class ReadUtil {
     }
 
     /**
-     * Checks whether the next packet is EOF. 
+     * Checks whether the next packet is EOF.
      * @param rawPacket the raw packet
      * @return true if the packet is an EOF packet
      */

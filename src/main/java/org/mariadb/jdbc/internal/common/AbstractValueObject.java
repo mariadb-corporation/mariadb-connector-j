@@ -79,10 +79,10 @@ public abstract class AbstractValueObject implements ValueObject {
             return null;
         }
         try {
-           return new String(rawBytes, "UTF-8");
+            return new String(rawBytes, "UTF-8");
         } catch (UnsupportedEncodingException e) {
-           throw new RuntimeException("Unsupported encoding: " + e.getMessage(), e);
-       }
+            throw new RuntimeException("Unsupported encoding: " + e.getMessage(), e);
+        }
     }
 
     public long getLong() {
@@ -93,7 +93,7 @@ public abstract class AbstractValueObject implements ValueObject {
             return Long.valueOf(getString());
         } catch(NumberFormatException nfe) {
             BigDecimal d = new BigDecimal(getString());
-            if (d.compareTo(BigDecimal.valueOf(Long.MIN_VALUE)) < 0) 
+            if (d.compareTo(BigDecimal.valueOf(Long.MIN_VALUE)) < 0)
                 return Long.MIN_VALUE;
             if (d.compareTo(BigDecimal.valueOf(Long.MAX_VALUE)) > 0)
                 return Long.MAX_VALUE;
@@ -109,7 +109,7 @@ public abstract class AbstractValueObject implements ValueObject {
             return Integer.valueOf(getString());
         } catch(NumberFormatException nfe) {
             BigDecimal d = new BigDecimal(getString());
-            if (d.compareTo(BigDecimal.valueOf(Integer.MIN_VALUE)) < 0) 
+            if (d.compareTo(BigDecimal.valueOf(Integer.MIN_VALUE)) < 0)
                 return Integer.MIN_VALUE;
             if (d.compareTo(BigDecimal.valueOf(Integer.MAX_VALUE)) > 0)
                 return Integer.MAX_VALUE;
@@ -125,7 +125,7 @@ public abstract class AbstractValueObject implements ValueObject {
             return Short.valueOf(getString());
         } catch(NumberFormatException nfe) {
             BigDecimal d = new BigDecimal(getString());
-            if (d.compareTo(BigDecimal.valueOf(Short.MIN_VALUE)) < 0) 
+            if (d.compareTo(BigDecimal.valueOf(Short.MIN_VALUE)) < 0)
                 return Short.MIN_VALUE;
             if (d.compareTo(BigDecimal.valueOf(Short.MAX_VALUE)) > 0)
                 return Short.MAX_VALUE;
@@ -138,7 +138,7 @@ public abstract class AbstractValueObject implements ValueObject {
             return 0;
         }
         if(dataType == MySQLType.BIT) {
-                return rawBytes[0];
+            return rawBytes[0];
         }
         return Byte.valueOf(getString());
     }
@@ -181,15 +181,15 @@ public abstract class AbstractValueObject implements ValueObject {
         String rawValue = getString();
         String zeroDate = "0000-00-00";
         if (rawValue.equals(zeroDate)) {
-        	return null;
+            return null;
         }
         SimpleDateFormat sdf;
         if (dataType == MySQLType.YEAR) {
-           if (rawBytes.length == 2) {
-              sdf = new SimpleDateFormat("yy");
-           } else {
-              sdf = new SimpleDateFormat("yyyy");
-           }
+            if (rawBytes.length == 2) {
+                sdf = new SimpleDateFormat("yy");
+            } else {
+                sdf = new SimpleDateFormat("yyyy");
+            }
         } else {
             sdf = new SimpleDateFormat("yyyy-MM-dd");
         }
@@ -208,7 +208,7 @@ public abstract class AbstractValueObject implements ValueObject {
         String rawValue = getString();
         String zeroDate = "0000-00-00";
         if (rawValue.equals(zeroDate)) {
-        	return null;
+            return null;
         }
         SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
 
@@ -223,7 +223,7 @@ public abstract class AbstractValueObject implements ValueObject {
         return new Time(t0+milliseconds);
     }
 
-    private int extractNanos(String timestring) throws ParseException{
+    private int extractNanos(String timestring) throws ParseException {
         int index = timestring.indexOf('.');
         if (index == -1)
             return 0;
@@ -250,12 +250,12 @@ public abstract class AbstractValueObject implements ValueObject {
         String rawValue = getString();
         String zeroTimestamp = "0000-00-00 00:00:00";
         if (rawValue.equals(zeroTimestamp)) {
-        	return null;
+            return null;
         }
         if (rawValue.length() >= 4  &&  rawValue.charAt(4) != '-') {
-           /* This is probably a time value, since year separator is missing */
-           Time t = getTime(cal);
-           return new Timestamp(t.getTime());
+            /* This is probably a time value, since year separator is missing */
+            Time t = getTime(cal);
+            return new Timestamp(t.getTime());
         }
 
         SimpleDateFormat sdf;
@@ -271,14 +271,14 @@ public abstract class AbstractValueObject implements ValueObject {
         }
         java.util.Date utilTime;
         try {
-        	utilTime = sdf.parse(rawValue);
+            utilTime = sdf.parse(rawValue);
         } catch (ParseException pe) {
-        	if (cal == null) {
-        		sdf.setCalendar(Calendar.getInstance(TimeZone.getTimeZone("UTC")));
-        		utilTime = sdf.parse(rawValue);
-        	} else {
-        		throw pe;
-        	}
+            if (cal == null) {
+                sdf.setCalendar(Calendar.getInstance(TimeZone.getTimeZone("UTC")));
+                utilTime = sdf.parse(rawValue);
+            } else {
+                throw pe;
+            }
         }
         Timestamp ts = new Timestamp(utilTime.getTime());
         if(rawValue.indexOf('.') != -1) {
@@ -300,7 +300,7 @@ public abstract class AbstractValueObject implements ValueObject {
         }
         return new ByteArrayInputStream(rawBytes);
     }
-    
+
     public abstract Object getObject(int datatypeMappingFlags, Calendar cal) throws ParseException;
 
 
@@ -317,9 +317,9 @@ public abstract class AbstractValueObject implements ValueObject {
         String zeroTimestamp = "0000-00-00 00:00:00";
         String zeroDate = "0000-00-00";
         return (rawBytes == null
-        		|| ((dataType == MySQLType.TIMESTAMP || dataType == MySQLType.DATETIME) && rawValue.equals(zeroTimestamp))
-        		|| (dataType== MySQLType.DATE && rawValue.equals(zeroDate))
-        		);
+                || ((dataType == MySQLType.TIMESTAMP || dataType == MySQLType.DATETIME) && rawValue.equals(zeroTimestamp))
+                || (dataType== MySQLType.DATE && rawValue.equals(zeroDate))
+               );
     }
 
 

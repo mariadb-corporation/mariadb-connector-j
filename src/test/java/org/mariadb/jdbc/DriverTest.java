@@ -20,15 +20,17 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 
-public class DriverTest extends BaseTest{
-    static { Logger.getLogger("").setLevel(Level.OFF); }
+public class DriverTest extends BaseTest {
+    static {
+        Logger.getLogger("").setLevel(Level.OFF);
+    }
 
     public DriverTest() throws SQLException {
-       
+
     }
 
     @Test
-    public void doQuery() throws SQLException{
+    public void doQuery() throws SQLException {
         Statement stmt = connection.createStatement();
         createTablet1(stmt);
         stmt.execute("insert into t1 (test) values ('hej1')");
@@ -36,7 +38,7 @@ public class DriverTest extends BaseTest{
         stmt.execute("insert into t1 (test) values ('hej3')");
         stmt.execute("insert into t1 (test) values (null)");
         ResultSet rs = stmt.executeQuery("select * from t1");
-        for(int i=1;i<4;i++) {
+        for(int i=1; i<4; i++) {
             rs.next();
             assertEquals(String.valueOf(i),rs.getString(1));
             assertEquals("hej"+i,rs.getString("test"));
@@ -51,7 +53,7 @@ public class DriverTest extends BaseTest{
     }
 
     @Test(expected = SQLException.class)
-    public void askForBadColumnTest() throws SQLException{
+    public void askForBadColumnTest() throws SQLException {
         Statement stmt = connection.createStatement();
         createTablet1(stmt);
         stmt.execute("insert into t1 (test) values ('hej1')");
@@ -63,7 +65,7 @@ public class DriverTest extends BaseTest{
         rs.getInt("non_existing_column");
     }
     @Test(expected = SQLException.class)
-    public void askForBadColumnIndexTest() throws SQLException{
+    public void askForBadColumnIndexTest() throws SQLException {
 
         Statement stmt = connection.createStatement();
         createTablet1(stmt);
@@ -131,7 +133,7 @@ public class DriverTest extends BaseTest{
         assertEquals(2, prepStmt.getParameterMetaData().getParameterCount());
     }
 
-    
+
     @Test
     public void streamingResultSet() throws Exception {
         Statement stmt = connection.createStatement();
@@ -172,14 +174,14 @@ public class DriverTest extends BaseTest{
         }
         assertEquals("updated",result);
     }
-    
+
     @Test
     public void ralfTest() throws SQLException {
-    	connection.prepareStatement(
-    				"select serverrequ0_.id as id75_, serverrequ0_.date_time as date2_75_, serverrequ0_.name as name75_, serverrequ0_.server_request_type as server4_75_, serverrequ0_.response_code_storage_tag as response5_75_, serverrequ0_.storage_tag as storage6_75_, serverrequ0_.timeout as "+
-    				" timeout75_, serverrequ0_.url as url75_ from ussd_server_request_tag serverrequ0_ where serverrequ0_.name='ß' limit ?"); 
-    							
-    							
+        connection.prepareStatement(
+            "select serverrequ0_.id as id75_, serverrequ0_.date_time as date2_75_, serverrequ0_.name as name75_, serverrequ0_.server_request_type as server4_75_, serverrequ0_.response_code_storage_tag as response5_75_, serverrequ0_.storage_tag as storage6_75_, serverrequ0_.timeout as "+
+            " timeout75_, serverrequ0_.url as url75_ from ussd_server_request_tag serverrequ0_ where serverrequ0_.name='ß' limit ?");
+
+
     }
     @Test
     public void autoIncTest() throws SQLException {
@@ -190,18 +192,18 @@ public class DriverTest extends BaseTest{
         stmt.execute("INSERT INTO t2 (test) VALUES ('aa')");
         ResultSet rs = stmt.getGeneratedKeys();
         assertTrue (rs.next());
-        
+
         assertEquals(1,rs.getInt(1));
         assertEquals(1,rs.getInt("insert_id"));
-        
+
         stmt.execute("INSERT INTO t2 (test) VALUES ('aa')");
         rs = stmt.getGeneratedKeys();
         assertTrue(rs.next());
-        
+
         assertEquals(2,rs.getInt(1));
         assertEquals(2,rs.getInt("insert_id"));
-        
-        
+
+
         /* multi-row inserts */
         stmt.execute("INSERT INTO t2 (test) VALUES ('bb'),('cc'),('dd')");
         rs = stmt.getGeneratedKeys();
@@ -274,17 +276,17 @@ public class DriverTest extends BaseTest{
     }
     @Test
     public void isolationLevel() throws SQLException {
-    	
-    	int[] levels = new int[]{
-    			Connection.TRANSACTION_READ_UNCOMMITTED,
-    			Connection.TRANSACTION_READ_COMMITTED,
-    			Connection.TRANSACTION_SERIALIZABLE,
-    			Connection.TRANSACTION_REPEATABLE_READ
-    			};
-    	for (int level : levels) {
-    		connection.setTransactionIsolation(level);
+
+        int[] levels = new int[] {
+            Connection.TRANSACTION_READ_UNCOMMITTED,
+            Connection.TRANSACTION_READ_COMMITTED,
+            Connection.TRANSACTION_SERIALIZABLE,
+            Connection.TRANSACTION_REPEATABLE_READ
+        };
+        for (int level : levels) {
+            connection.setTransactionIsolation(level);
             assertEquals(level,connection.getTransactionIsolation());
-    	}
+        }
     }
 
     @Test
@@ -295,8 +297,8 @@ public class DriverTest extends BaseTest{
 
 
     @Test
-    public void testConnectNoDB() throws Exception{
-    	setConnection();
+    public void testConnectNoDB() throws Exception {
+        setConnection();
         connection.close();
     }
 
@@ -338,9 +340,9 @@ public class DriverTest extends BaseTest{
 
     @Test
     public void connectFailover() throws SQLException {
-    	String hosts = hostname + ":" + port + "," + hostname + ":" + (port+1);
-    	String url = "jdbc:mysql://" + hosts + "/" + database + "?user=" + username;
-    	url += (password != null && !"".equals(password) ? "&password=" + password : "");
+        String hosts = hostname + ":" + port + "," + hostname + ":" + (port+1);
+        String url = "jdbc:mysql://" + hosts + "/" + database + "?user=" + username;
+        url += (password != null && !"".equals(password) ? "&password=" + password : "");
         Connection c  = openNewConnection(url);
         MySQLConnection my=(MySQLConnection) c;
         assertTrue(my.getPort() == port);
@@ -362,8 +364,8 @@ public class DriverTest extends BaseTest{
         int [] a = ps.executeBatch();
         ResultSet rs1 = ps.getGeneratedKeys();
         for (int count=1; count<=3; count++) {
-        	assertTrue(rs1.next());
-        	assertTrue(String.valueOf(count).equalsIgnoreCase(rs1.getString(1)));
+            assertTrue(rs1.next());
+            assertTrue(String.valueOf(count).equalsIgnoreCase(rs1.getString(1)));
         }
         for(int c : a ) assertEquals(1,c);
         ps.setString(1, "aaa");
@@ -397,7 +399,7 @@ public class DriverTest extends BaseTest{
         stmt.addBatch("insert into test_batch2 values (null, 'hej4')");
         stmt.executeBatch();
         ResultSet rs = connection.createStatement().executeQuery("select * from test_batch2");
-        for(int i=1;i<=4;i++) {
+        for(int i=1; i<=4; i++) {
             assertEquals(true,rs.next());
             assertEquals(i, rs.getInt(1));
             assertEquals("hej"+i,rs.getString(2));
@@ -427,13 +429,13 @@ public class DriverTest extends BaseTest{
         Statement stmt = connection.createStatement();
         stmt.execute("drop table if exists test_many_columns");
         String query = "create table test_many_columns (a0 int primary key not null";
-        for(int i=1;i<1000;i++) {
+        for(int i=1; i<1000; i++) {
             query+=",a"+i+" int";
         }
         query+=")";
         stmt.execute(query);
         query="insert into test_many_columns values (0";
-        for(int i=1;i<1000;i++) {
+        for(int i=1; i<1000; i++) {
             query+=","+i;
         }
         query+=")";
@@ -441,8 +443,8 @@ public class DriverTest extends BaseTest{
         ResultSet rs = stmt.executeQuery("select * from test_many_columns");
 
         assertEquals(true,rs.next());
-       
-        for(int i=0;i<1000;i++) {
+
+        for(int i=0; i<1000; i++) {
             assertEquals(rs.getInt("a"+i),i);
         }
 
@@ -472,10 +474,10 @@ public class DriverTest extends BaseTest{
 
     @Test
     public void bigUpdateCountTest() throws SQLException {
-    	Statement stmt = connection.createStatement();
+        Statement stmt = connection.createStatement();
         stmt.execute("drop table if exists test_big_update");
         stmt.execute("create table test_big_update (id int primary key not null, updateme int)");
-        for(int i=0;i<4000;i++) {
+        for(int i=0; i<4000; i++) {
             stmt.execute("insert into test_big_update values ("+i+","+i+")");
         }
         ResultSet rs = stmt.executeQuery("select count(*) from test_big_update");
@@ -485,9 +487,9 @@ public class DriverTest extends BaseTest{
         assertEquals(4000,updateCount);
     }
 
-    
+
     @SuppressWarnings("deprecation")
-	@Test
+    @Test
     public void testCharacterStreams() throws SQLException, IOException {
         connection.createStatement().execute("drop table if exists streamtest");
         connection.createStatement().execute("create table streamtest (id int not null primary key, strm text)");
@@ -508,7 +510,7 @@ public class DriverTest extends BaseTest{
         assertEquals(sb.toString(),(toInsert));
         rdr = rs.getCharacterStream(2);
         sb = new StringBuilder();
-        
+
         while((ch = rdr.read()) != -1) {
             sb.append((char)ch);
         }
@@ -549,7 +551,7 @@ public class DriverTest extends BaseTest{
         assertEquals(sb.toString(),toInsert.substring(0,5));
     }
 
- 
+
     @Test
     public void testEmptyResultSet() throws SQLException {
         connection.createStatement().execute("drop table if exists emptytest");
@@ -563,8 +565,8 @@ public class DriverTest extends BaseTest{
         connection.createStatement().execute("drop table if exists longcol");
         DatabaseMetaData dbmd = connection.getMetaData();
         String str="";
-        for(int i =0;i<dbmd.getMaxColumnNameLength();i++) {
-            str+="x";   
+        for(int i =0; i<dbmd.getMaxColumnNameLength(); i++) {
+            str+="x";
         }
         connection.createStatement().execute("create table longcol ("+str+" int not null primary key)");
         connection.createStatement().execute("insert into longcol values (1)");
@@ -585,7 +587,7 @@ public class DriverTest extends BaseTest{
     public void setobjectTest() throws SQLException, IOException, ClassNotFoundException {
         connection.createStatement().execute("drop table if exists objecttest");
         connection.createStatement().execute(
-                "create table objecttest (int_test int primary key not null, string_test varchar(30), timestamp_test timestamp, serial_test blob)");
+            "create table objecttest (int_test int primary key not null, string_test varchar(30), timestamp_test timestamp, serial_test blob)");
         PreparedStatement ps = connection.prepareStatement("insert into objecttest values (?,?,?,?)");
         ps.setObject(1, 5);
         ps.setObject(2, "aaa");
@@ -625,9 +627,9 @@ public class DriverTest extends BaseTest{
     public void binTest() throws SQLException, IOException {
         connection.createStatement().execute("drop table if exists bintest");
         connection.createStatement().execute(
-                "create table bintest (id int not null primary key auto_increment, bin1 varbinary(300), bin2 varbinary(300))");
+            "create table bintest (id int not null primary key auto_increment, bin1 varbinary(300), bin2 varbinary(300))");
         byte [] allBytes = new byte[256];
-        for(int i=0;i<256;i++) {
+        for(int i=0; i<256; i++) {
             allBytes[i]=(byte) (i&0xff);
         }
         ByteArrayInputStream bais = new ByteArrayInputStream(allBytes);
@@ -641,13 +643,13 @@ public class DriverTest extends BaseTest{
         rs.getBlob(1);
         InputStream is = rs.getBinaryStream(1);
 
-        for(int i=0;i<256;i++) {
+        for(int i=0; i<256; i++) {
             int read = is.read();
             assertEquals(i,read);
         }
         is = rs.getBinaryStream(2);
 
-        for(int i=0;i<256;i++) {
+        for(int i=0; i<256; i++) {
             int read = is.read();
             assertEquals(i,read);
         }
@@ -661,38 +663,38 @@ public class DriverTest extends BaseTest{
     */
     @Test
     public void generatedKeys() throws Exception {
-      connection.createStatement().execute("drop table if exists genkeys");
-      connection.createStatement().execute(
-              "CREATE TABLE genkeys ("
-                       + "priKey INT NOT NULL AUTO_INCREMENT, "
-                       + "dataField VARCHAR(64), PRIMARY KEY (priKey))");
+        connection.createStatement().execute("drop table if exists genkeys");
+        connection.createStatement().execute(
+            "CREATE TABLE genkeys ("
+            + "priKey INT NOT NULL AUTO_INCREMENT, "
+            + "dataField VARCHAR(64), PRIMARY KEY (priKey))");
 
-      Statement st = connection.createStatement();
-      st.executeUpdate("insert into genkeys(dataField) values('a')", Statement.RETURN_GENERATED_KEYS);
-      ResultSet rs = st.getGeneratedKeys();
-      assertTrue(rs.next());
-      assertEquals(rs.getInt(1), 1);
-      assertEquals(rs.getInt("priKey"), 1);
-      assertEquals(rs.getInt("foo"),1);
-      int indexes[] = {1,2,3};
-      st.executeUpdate("insert into genkeys(dataField) values('b')", indexes);
-      rs = st.getGeneratedKeys();
-      assertTrue(rs.next());
-      assertEquals(rs.getInt(1), 2);
-      try {
-        assertEquals(rs.getInt(2), 2);
-        assertFalse("should never get here", true);
-      } catch(SQLException e) {
-          // eat
-      }
+        Statement st = connection.createStatement();
+        st.executeUpdate("insert into genkeys(dataField) values('a')", Statement.RETURN_GENERATED_KEYS);
+        ResultSet rs = st.getGeneratedKeys();
+        assertTrue(rs.next());
+        assertEquals(rs.getInt(1), 1);
+        assertEquals(rs.getInt("priKey"), 1);
+        assertEquals(rs.getInt("foo"),1);
+        int indexes[] = {1,2,3};
+        st.executeUpdate("insert into genkeys(dataField) values('b')", indexes);
+        rs = st.getGeneratedKeys();
+        assertTrue(rs.next());
+        assertEquals(rs.getInt(1), 2);
+        try {
+            assertEquals(rs.getInt(2), 2);
+            assertFalse("should never get here", true);
+        } catch(SQLException e) {
+            // eat
+        }
 
-      String columnNames[] = {"priKey", "Alice", "Bob"};
-      st.executeUpdate("insert into genkeys(dataField) values('c')", columnNames);
-      rs = st.getGeneratedKeys();
-      assertTrue(rs.next());
-      for(int i=0; i < 3; i++)  {
-          assertEquals(rs.getInt(columnNames[i]), 3);
-      }
+        String columnNames[] = {"priKey", "Alice", "Bob"};
+        st.executeUpdate("insert into genkeys(dataField) values('c')", columnNames);
+        rs = st.getGeneratedKeys();
+        assertTrue(rs.next());
+        for(int i=0; i < 3; i++)  {
+            assertEquals(rs.getInt(columnNames[i]), 3);
+        }
     }
 
     @Test
@@ -704,11 +706,11 @@ public class DriverTest extends BaseTest{
                 "create table bintest2 (bin1 longblob) engine=innodb");
         } else {
             connection.createStatement().execute(
-                "create table bintest2 (id int not null primary key auto_increment, bin1 blob)");            
+                "create table bintest2 (id int not null primary key auto_increment, bin1 blob)");
         }
 
         byte [] buf=new byte[1000000];
-        for(int i=0;i<1000000;i++) {
+        for(int i=0; i<1000000; i++) {
             buf[i]=(byte)i;
         }
         InputStream is = new ByteArrayInputStream(buf);
@@ -722,13 +724,13 @@ public class DriverTest extends BaseTest{
         ResultSet rs = connection.createStatement().executeQuery("select bin1 from bintest2");
         assertEquals(true,rs.next());
         byte [] buf2 = rs.getBytes(1);
-        for(int i=0;i<1000000;i++) {
+        for(int i=0; i<1000000; i++) {
             assertEquals((byte)i,buf2[i]);
         }
 
         assertEquals(true,rs.next());
         buf2 = rs.getBytes(1);
-        for(int i=0;i<1000000;i++) {
+        for(int i=0; i<1000000; i++) {
             assertEquals((byte)i,buf2[i]);
         }
         assertEquals(false,rs.next());
@@ -737,7 +739,7 @@ public class DriverTest extends BaseTest{
     public void testException1() throws SQLException {
         connection.createStatement().execute("drop table if exists extest");
         connection.createStatement().execute(
-                "create table extest (id int not null primary key)");
+            "create table extest (id int not null primary key)");
         connection.createStatement().execute("insert into extest values (1)");
         connection.createStatement().execute("insert into extest values (1)");
     }
@@ -757,9 +759,9 @@ public class DriverTest extends BaseTest{
     public void testBatchLoop() throws SQLException {
         connection.createStatement().execute("drop table if exists rewritetest");
         connection.createStatement().execute(
-                "create table rewritetest (id int not null primary key, a varchar(10), b int) engine=innodb");
+            "create table rewritetest (id int not null primary key, a varchar(10), b int) engine=innodb");
         PreparedStatement ps = connection.prepareStatement("insert into rewritetest values (?,?,?)");
-        for(int i = 0;i<10;i++) {
+        for(int i = 0; i<10; i++) {
             ps.setInt(1,i);
             ps.setString(2,"bbb"+i);
             ps.setInt(3,30+i);
@@ -777,10 +779,10 @@ public class DriverTest extends BaseTest{
     public void testBatchLoopWithDupKey() throws SQLException {
         connection.createStatement().execute("drop table if exists rewritetest2");
         connection.createStatement().execute(
-                "create table rewritetest2 (id int not null primary key, a varchar(10), b int) engine=innodb");
+            "create table rewritetest2 (id int not null primary key, a varchar(10), b int) engine=innodb");
 
         PreparedStatement ps = connection.prepareStatement("insert into rewritetest2 values (?,?,?) on duplicate key update a=values(a)");
-        for(int i = 0;i<2;i++) {
+        for(int i = 0; i<2; i++) {
             ps.setInt(1,0);
             ps.setString(2,"bbb"+i);
             ps.setInt(3,30+i);
@@ -800,7 +802,7 @@ public class DriverTest extends BaseTest{
     public void testPreparedStatementsWithComments() throws SQLException {
         connection.createStatement().execute("drop table if exists commentPreparedStatements");
         connection.createStatement().execute(
-                        "create table commentPreparedStatements (id int not null primary key auto_increment, a varchar(10))");
+            "create table commentPreparedStatements (id int not null primary key auto_increment, a varchar(10))");
 
         String query = "INSERT INTO commentPreparedStatements (a) VALUES (?) # ?";
         PreparedStatement pstmt = connection.prepareStatement(query);
@@ -811,7 +813,7 @@ public class DriverTest extends BaseTest{
     public void testPreparedStatementsWithQuotes() throws SQLException {
         connection.createStatement().execute("drop table if exists quotesPreparedStatements");
         connection.createStatement().execute(
-                        "create table quotesPreparedStatements (id int not null primary key auto_increment, a varchar(10))");
+            "create table quotesPreparedStatements (id int not null primary key auto_increment, a varchar(10))");
 
         String query = "INSERT INTO quotesPreparedStatements (a) VALUES ('hellooo?') # ?";
         PreparedStatement pstmt = connection.prepareStatement(query);
@@ -825,7 +827,7 @@ public class DriverTest extends BaseTest{
         BigDecimal bd = BigDecimal.TEN;
         connection.createStatement().execute("drop table if exists bigdectest");
         connection.createStatement().execute(
-                        "create table bigdectest (id int not null primary key auto_increment, bd decimal) engine=innodb");
+            "create table bigdectest (id int not null primary key auto_increment, bd decimal) engine=innodb");
         PreparedStatement ps = connection.prepareStatement("insert into bigdectest (bd) values (?)");
         ps.setBigDecimal(1,bd);
         ps.execute();
@@ -843,12 +845,12 @@ public class DriverTest extends BaseTest{
     }
 
 
-   
+
     @Test
     public void byteTest() throws SQLException {
         connection.createStatement().execute("drop table if exists bytetest");
         connection.createStatement().execute(
-                        "create table bytetest (id int not null primary key auto_increment, a int) engine=innodb");
+            "create table bytetest (id int not null primary key auto_increment, a int) engine=innodb");
         PreparedStatement ps = connection.prepareStatement("insert into bytetest (a) values (?)");
         ps.setByte(1,Byte.MAX_VALUE);
         ps.execute();
@@ -869,7 +871,7 @@ public class DriverTest extends BaseTest{
     public void shortTest() throws SQLException {
         connection.createStatement().execute("drop table if exists shorttest");
         connection.createStatement().execute(
-                        "create table shorttest (id int not null primary key auto_increment,a int) engine=innodb");
+            "create table shorttest (id int not null primary key auto_increment,a int) engine=innodb");
         PreparedStatement ps = connection.prepareStatement("insert into shorttest (a) values (?)");
         ps.setShort(1,Short.MAX_VALUE);
         ps.execute();
@@ -884,11 +886,11 @@ public class DriverTest extends BaseTest{
 
 
     }
-   @Test
+    @Test
     public void doubleTest() throws SQLException {
         connection.createStatement().execute("drop table if exists doubletest");
         connection.createStatement().execute(
-                        "create table doubletest (id int not null primary key auto_increment,a double) engine=innodb");
+            "create table doubletest (id int not null primary key auto_increment,a double) engine=innodb");
         PreparedStatement ps = connection.prepareStatement("insert into doubletest (a) values (?)");
         double d = 1.5;
         ps.setDouble(1,d);
@@ -911,7 +913,7 @@ public class DriverTest extends BaseTest{
     public void testResultSetPositions() throws SQLException {
         connection.createStatement().execute("drop table if exists ressetpos");
         connection.createStatement().execute(
-                        "create table ressetpos (i int not null primary key) engine=innodb");
+            "create table ressetpos (i int not null primary key) engine=innodb");
         connection.createStatement().execute("insert into ressetpos values (1),(2),(3),(4)");
 
         ResultSet rs =connection.createStatement().executeQuery("select * from ressetpos");
@@ -978,7 +980,7 @@ public class DriverTest extends BaseTest{
         rs.next();
         URL url = rs.getURL(1);
         assertNotNull(url);
-        
+
 
     }
     @Test(expected = SQLException.class)
@@ -1022,7 +1024,7 @@ public class DriverTest extends BaseTest{
         assertTrue(connection.getAutoCommit());
         connection.setAutoCommit(false);
         assertFalse(connection.getAutoCommit());
-        
+
         /* Check that autocommit value "false" , that driver derives from server status flags
          * remains the same when EOF, ERROR or OK packet were received.
          */
@@ -1033,16 +1035,16 @@ public class DriverTest extends BaseTest{
         try {
             connection.createStatement().execute("insert into nosuchtable values(1)");
         } catch(Exception e) {
-            
+
         }
         assertFalse(connection.getAutoCommit());
         ResultSet  rs = connection.createStatement().executeQuery("select @@autocommit");
         rs.next();
-        assertEquals(0,rs.getInt(1)); 
-        
-        
+        assertEquals(0,rs.getInt(1));
+
+
         connection.setAutoCommit(true);
-        
+
         /* Check that autocommit value "true" , that driver derives from server status flags
          * remains the same when EOF, ERROR or OK packet were received.
          */
@@ -1052,25 +1054,25 @@ public class DriverTest extends BaseTest{
         try {
             connection.createStatement().execute("insert into nosuchtable values(1)");
         } catch(Exception e) {
-            
+
         }
         assertTrue(connection.getAutoCommit());
         rs = connection.createStatement().executeQuery("select @@autocommit");
         rs.next();
-        assertEquals(1,rs.getInt(1)); 
-        
-        /* Set autocommit value using Statement.execute */ 
+        assertEquals(1,rs.getInt(1));
+
+        /* Set autocommit value using Statement.execute */
         connection.createStatement().execute("set @@autocommit=0");
         assertFalse(connection.getAutoCommit());
-        
+
         connection.createStatement().execute("set @@autocommit=1");
         assertTrue(connection.getAutoCommit());
-        
+
         /* Use session variable to set autocommit to 0 */
         setConnection("&sessionVariables=autocommit=0");
         assertFalse(connection.getAutoCommit());
     }
-    
+
     @Test
     public void testUpdateCount() throws SQLException {
         Statement stmt = connection.createStatement();
@@ -1130,11 +1132,11 @@ public class DriverTest extends BaseTest{
         connection.createStatement().executeUpdate("drop database test_testdrop");
     }
 
-     @Test
+    @Test
     public void testError() throws SQLException {
         // check that max_allowed_packet is big enough for the test
-    	Assume.assumeTrue(checkMaxAllowedPacket("testError"));
-            
+        Assume.assumeTrue(checkMaxAllowedPacket("testError"));
+
         try {
             char arr[] = new char[16*1024*1024-1];
             Arrays.fill(arr,'a');
@@ -1170,10 +1172,10 @@ public class DriverTest extends BaseTest{
     @Test
     public void NoBackslashEscapes() throws SQLException {
         requireMinimumVersion(5,0);
-        
+
         // super privilege is needed for this test
         Assume.assumeTrue(hasSuperPrivilege("NoBackslashEscapes"));
-        
+
         Statement st = connection.createStatement();
         ResultSet rs = st.executeQuery("select @@global.sql_mode");
         rs.next();
@@ -1186,7 +1188,7 @@ public class DriverTest extends BaseTest{
             Connection newConnection = openNewConnection();
             try {
                 PreparedStatement preparedStatement =
-                        newConnection.prepareStatement("insert into testBlob2(a) values(?)");
+                    newConnection.prepareStatement("insert into testBlob2(a) values(?)");
                 byte[] b = new byte[255];
                 for(byte i= -128; i < 127; i++) {
                     b[i+128] = i;
@@ -1204,14 +1206,14 @@ public class DriverTest extends BaseTest{
         }
     }
 
- // Test if driver works with sql_mode= NO_BACKSLASH_ESCAPES
+// Test if driver works with sql_mode= NO_BACKSLASH_ESCAPES
     @Test
     public void NoBackslashEscapes2() throws SQLException {
         requireMinimumVersion(5,0);
-        
+
         // super privilege is needed for this test
         Assume.assumeTrue(hasSuperPrivilege("NoBackslashEscapes2"));
-        
+
         Statement st = connection.createStatement();
         ResultSet rs = st.executeQuery("select @@global.sql_mode");
         rs.next();
@@ -1224,13 +1226,13 @@ public class DriverTest extends BaseTest{
             Connection newConnection = openNewConnection();
             try {
                 PreparedStatement preparedStatement =
-                        newConnection.prepareStatement("insert into testString2(a) values(?)");
+                    newConnection.prepareStatement("insert into testString2(a) values(?)");
                 preparedStatement.setString(1, "'\\");
                 int affectedRows = preparedStatement.executeUpdate();
                 Assert.assertEquals(affectedRows, 1);
                 preparedStatement.close();
                 preparedStatement =
-                        newConnection.prepareStatement("select * from testString2");
+                    newConnection.prepareStatement("select * from testString2");
                 rs = preparedStatement.executeQuery();
                 rs.next();
                 String out = rs.getString(1);
@@ -1252,10 +1254,10 @@ public class DriverTest extends BaseTest{
     // Test if driver works with sql_mode= ANSI_QUOTES
     @Test
     public void AnsiQuotes() throws SQLException {
-    	
-    	// super privilege is needed for this test
+
+        // super privilege is needed for this test
         Assume.assumeTrue(hasSuperPrivilege("AnsiQuotes"));
-    	
+
         Statement st = connection.createStatement();
         ResultSet rs = st.executeQuery("select @@global.sql_mode");
         rs.next();
@@ -1269,7 +1271,7 @@ public class DriverTest extends BaseTest{
             Connection newConnection = openNewConnection();
             try {
                 PreparedStatement preparedStatement =
-                        newConnection.prepareStatement("insert into testBlob2(a) values(?)");
+                    newConnection.prepareStatement("insert into testBlob2(a) values(?)");
                 byte[] b = new byte[255];
                 for(byte i= -128; i < 127; i++) {
                     b[i+128] = i;
@@ -1300,31 +1302,31 @@ public class DriverTest extends BaseTest{
 
     @Test
     public void autoreconnect() throws Exception {
-    	setConnection("&autoReconnect=true");
-       ResultSet rs= connection.createStatement().executeQuery("select connection_id()");
-       rs.next();
-       long connectionId = rs.getLong(1);
-       rs.close();
+        setConnection("&autoReconnect=true");
+        ResultSet rs= connection.createStatement().executeQuery("select connection_id()");
+        rs.next();
+        long connectionId = rs.getLong(1);
+        rs.close();
 
-       connection.createStatement().execute("set wait_timeout=1");
-       Thread.sleep(3000);
+        connection.createStatement().execute("set wait_timeout=1");
+        Thread.sleep(3000);
 
-       boolean success = false;
-       for (int i=0; i < 2; i++) {
-           try {
-               rs = connection.createStatement().executeQuery("select 1");
-               rs.close();
-               success = true;
-               break;
-           } catch (Exception e) {
-        	   // eat exception
-           }
-       }
-       assertTrue(success);
-       rs = connection.createStatement().executeQuery("select connection_id()");
-       rs.next();
-       long connectionId2 = rs.getLong(1);
-       assertNotSame(connectionId, connectionId2);
+        boolean success = false;
+        for (int i=0; i < 2; i++) {
+            try {
+                rs = connection.createStatement().executeQuery("select 1");
+                rs.close();
+                success = true;
+                break;
+            } catch (Exception e) {
+                // eat exception
+            }
+        }
+        assertTrue(success);
+        rs = connection.createStatement().executeQuery("select connection_id()");
+        rs.next();
+        long connectionId2 = rs.getLong(1);
+        assertNotSame(connectionId, connectionId2);
     }
 
     @Test
@@ -1338,39 +1340,39 @@ public class DriverTest extends BaseTest{
     @Test
     // Bug in URL parser
     public void mdev3916() throws Exception {
-    	try {
-    		setConnection("&password=");
-    	}
-    	catch (SQLException ex)
-    	{
-    		//SQLException is ok because we might get for example an access denied exception
-    		if (!(ex.getMessage().indexOf("Could not connect: Access denied") > -1))
-    			throw ex;
-    	}
+        try {
+            setConnection("&password=");
+        }
+        catch (SQLException ex)
+        {
+            //SQLException is ok because we might get for example an access denied exception
+            if (!(ex.getMessage().indexOf("Could not connect: Access denied") > -1))
+                throw ex;
+        }
     }
 
-    @Test 
+    @Test
     public void conj1() throws Exception {
         requireMinimumVersion(5,0);
-    	Statement st = connection.createStatement();
-		st.setQueryTimeout(1);
-		st.execute("select sleep(0.5)");
-		try {
-			st.execute("select sleep(1.5)");
-			assertFalse("must be exception here", true);
-		}catch (Exception e) {
-			
-		}
-		
-		Statement st2 = connection.createStatement();
-		assertEquals(st2.getQueryTimeout(),0);
-		// no exception
-		st2.execute("select sleep(1.5)");
-		
-		Statement st3 = connection.createStatement();
-		st3.setQueryTimeout(1);
-		st3.execute("select sleep(0.1)");
-		assertEquals(st3.getQueryTimeout(),1);
+        Statement st = connection.createStatement();
+        st.setQueryTimeout(1);
+        st.execute("select sleep(0.5)");
+        try {
+            st.execute("select sleep(1.5)");
+            assertFalse("must be exception here", true);
+        } catch (Exception e) {
+
+        }
+
+        Statement st2 = connection.createStatement();
+        assertEquals(st2.getQueryTimeout(),0);
+        // no exception
+        st2.execute("select sleep(1.5)");
+
+        Statement st3 = connection.createStatement();
+        st3.setQueryTimeout(1);
+        st3.execute("select sleep(0.1)");
+        assertEquals(st3.getQueryTimeout(),1);
     }
 
     /* Check that exception contains SQL statement, for queries with syntax errors */
@@ -1381,31 +1383,31 @@ public class DriverTest extends BaseTest{
             Statement st = connection.createStatement();
             st.execute(syntacticallyWrongQuery);
         } catch (SQLException sqle) {
-           assertTrue(sqle.getMessage().contains("Query is:\n" + syntacticallyWrongQuery));
-        } 
+            assertTrue(sqle.getMessage().contains("Query is:\n" + syntacticallyWrongQuery));
+        }
     }
-    
+
     /* Check that query contains SQL statement, if dumpQueryOnException is true */
     @Test
     public void dumpQueryOnException() throws Exception {
-    	setConnection("&dumpQueriesOnException=true");
+        setConnection("&dumpQueriesOnException=true");
         String selectFromNonExistingTable = "select * from banana";
         try {
             Statement st = connection.createStatement();
             st.execute(selectFromNonExistingTable);
         } catch (SQLException sqle) {
-           assertTrue(sqle.getMessage().contains("Query is:\n" + selectFromNonExistingTable));
+            assertTrue(sqle.getMessage().contains("Query is:\n" + selectFromNonExistingTable));
         }
     }
-    
-    /* CONJ-14 
+
+    /* CONJ-14
      * getUpdateCount(), getResultSet() should indicate "no more results" with
-     * (getUpdateCount() == -1 && getResultSet() == null)  
+     * (getUpdateCount() == -1 && getResultSet() == null)
      */
     @Test
     public void conj14() throws Exception {
         Statement st = connection.createStatement();
-        
+
         /* 1. Test update statement */
         st.execute("use " + database);
         assertEquals(0,st.getUpdateCount());
@@ -1414,56 +1416,56 @@ public class DriverTest extends BaseTest{
         assertFalse(st.getMoreResults());
         assertEquals(-1,st.getUpdateCount());
         assertEquals(null, st.getResultSet());
-        
+
         /* 2. Test select statement */
         st.execute("select 1");
         assertEquals(-1,st.getUpdateCount());
         assertTrue(st.getResultSet() != null);
-        
-        /* No More results */ 
+
+        /* No More results */
         assertFalse(st.getMoreResults());
         assertEquals(-1,st.getUpdateCount());
         assertEquals(null, st.getResultSet());
-        
+
         /* Test batch  */
         try {
             /* Create connection that allows batching queries */
-        	setConnection("&allowMultiQueries=true");
+            setConnection("&allowMultiQueries=true");
             st = connection.createStatement();
-            
+
             /* 3. Batch with two SELECTs */
-            
+
             st.execute("select 1;select 2");
             /* First result (select)*/
             assertEquals(-1,st.getUpdateCount());
             assertTrue(st.getResultSet() != null);
-            
+
             /* has more results */
-            assertTrue(st.getMoreResults()); 
-            
+            assertTrue(st.getMoreResults());
+
             /* Second result (select) */
             assertEquals(-1,st.getUpdateCount());
             assertTrue(st.getResultSet() != null);
-            
+
             /* no more results */
             assertFalse(st.getMoreResults());
             assertEquals(-1,st.getUpdateCount());
             assertEquals(null, st.getResultSet());
-            
+
             /* 4. Batch with a SELECT and non-SELECT */
-            
+
             st.execute("select 1; use " + database);
             /* First result (select)*/
             assertEquals(-1,st.getUpdateCount());
             assertTrue(st.getResultSet() != null);
-            
+
             /* has more results */
-            assertTrue(st.getMoreResults()); 
-            
+            assertTrue(st.getMoreResults());
+
             /* Second result (use) */
             assertEquals(0,st.getUpdateCount());
             assertTrue(st.getResultSet() == null);
-            
+
             /* no more results */
             assertFalse(st.getMoreResults());
             assertEquals(-1,st.getUpdateCount());
@@ -1471,7 +1473,7 @@ public class DriverTest extends BaseTest{
         } finally {
         }
     }
-    
+
     @Test
     public void conj25() throws Exception {
         Statement stmt;
@@ -1480,14 +1482,14 @@ public class DriverTest extends BaseTest{
         stmt.execute("CREATE TABLE t1 (a VARCHAR(1024))");
         String st = "INSERT INTO t1 VALUES (REPEAT('a',1024))";
         for ( int i=1; i<=100; i++) {
-          st = st + ",(REPEAT('a',1024))";
+            st = st + ",(REPEAT('a',1024))";
         }
         stmt.setFetchSize(Integer.MIN_VALUE);
         stmt.execute(st);
-        stmt.executeQuery("SELECT * FROM t1 a, t1 b"); 
+        stmt.executeQuery("SELECT * FROM t1 a, t1 b");
 
     }
-    
+
     @Test
     public void namedpipe() throws Exception {
         String namedPipeName = null;
@@ -1503,10 +1505,10 @@ public class DriverTest extends BaseTest{
             //named pipe not found,
             log.info("test 'namedpipe' skipped");
         }
-        
+
         //skip test if no namedPipeName was obtained because then we do not use a socket connection
         Assume.assumeTrue(namedPipeName != null);
-        
+
         setConnection("&pipe=" + namedPipeName);
         Statement stmt = connection.createStatement();
         ResultSet rs = stmt.executeQuery("SELECT 1");
@@ -1536,40 +1538,40 @@ public class DriverTest extends BaseTest{
             assertTrue(bue.getCause() instanceof SQLIntegrityConstraintViolationException);
         }
     }
-    
+
     @Test
     public void localSocket() throws  Exception {
         requireMinimumVersion(5,1);
-        
+
         Assume.assumeTrue(isLocalConnection("localSocket"));
-        
+
         Statement st = connection.createStatement();
-       	ResultSet rs = st.executeQuery("select @@version_compile_os,@@socket");
-       	if (!rs.next())
-       		return;
+        ResultSet rs = st.executeQuery("select @@version_compile_os,@@socket");
+        if (!rs.next())
+            return;
 
         String os = rs.getString(1);
         if (os.toLowerCase().startsWith("win"))
-               return;
+            return;
 
-    	String path = rs.getString(2);
-    	setConnection("&localSocket=" + path);
-     	rs = connection.createStatement().executeQuery("select 1");
-     	rs.next();
+        String path = rs.getString(2);
+        setConnection("&localSocket=" + path);
+        rs = connection.createStatement().executeQuery("select 1");
+        rs.next();
     }
 
     @Test
     public void sharedMemory() throws Exception {
         requireMinimumVersion(5,1);
         Statement st = connection.createStatement();
-       	ResultSet rs = st.executeQuery("select @@version_compile_os");
-       	if (!rs.next()) {
-       		return;
+        ResultSet rs = st.executeQuery("select @@version_compile_os");
+        if (!rs.next()) {
+            return;
         }
 
         String os = rs.getString(1);
         if (!os.toLowerCase().startsWith("win")) {
-               return;  // skip test on non-Windows
+            return;  // skip test on non-Windows
         }
 
         rs = st.executeQuery("select @@shared_memory,@@shared_memory_base_name");
@@ -1581,10 +1583,10 @@ public class DriverTest extends BaseTest{
             return;
         }
 
-    	String shmBaseName = rs.getString(2);
-    	setConnection("&sharedMemory=" + shmBaseName);
-     	rs = connection.createStatement().executeQuery("select repeat('a',100000)");
-     	rs.next();
+        String shmBaseName = rs.getString(2);
+        setConnection("&sharedMemory=" + shmBaseName);
+        rs = connection.createStatement().executeQuery("select repeat('a',100000)");
+        rs.next();
         assertEquals(100000,rs.getString(1).length());
         char [] arr = new char [100000];
         Arrays.fill(arr,'a');
@@ -1611,14 +1613,14 @@ public class DriverTest extends BaseTest{
     /* Test that CLOSE_CURSORS_ON_COMMIT is silently ignored, and HOLD_CURSORS_OVER_COMMIT is actually used*/
     @Test
     public void resultSetHoldability() throws Exception {
-       Statement st = connection.createStatement(ResultSet.TYPE_FORWARD_ONLY,ResultSet.CONCUR_READ_ONLY,ResultSet.CLOSE_CURSORS_AT_COMMIT);
-       assertEquals(ResultSet.HOLD_CURSORS_OVER_COMMIT, st.getResultSetHoldability() );
-       PreparedStatement ps = connection.prepareStatement("SELECT 1",ResultSet.TYPE_FORWARD_ONLY,ResultSet.CONCUR_READ_ONLY,ResultSet.CLOSE_CURSORS_AT_COMMIT);
-       assertEquals(ResultSet.HOLD_CURSORS_OVER_COMMIT,  ps.getResultSetHoldability());
-       ResultSet rs = ps.executeQuery();
-       assertEquals(rs.getHoldability(),ResultSet.HOLD_CURSORS_OVER_COMMIT);
-       CallableStatement cs = connection.prepareCall("{CALL foo}",ResultSet.TYPE_FORWARD_ONLY,ResultSet.CONCUR_READ_ONLY,ResultSet.CLOSE_CURSORS_AT_COMMIT);
-       assertEquals(cs.getResultSetHoldability(),ResultSet.HOLD_CURSORS_OVER_COMMIT);
+        Statement st = connection.createStatement(ResultSet.TYPE_FORWARD_ONLY,ResultSet.CONCUR_READ_ONLY,ResultSet.CLOSE_CURSORS_AT_COMMIT);
+        assertEquals(ResultSet.HOLD_CURSORS_OVER_COMMIT, st.getResultSetHoldability() );
+        PreparedStatement ps = connection.prepareStatement("SELECT 1",ResultSet.TYPE_FORWARD_ONLY,ResultSet.CONCUR_READ_ONLY,ResultSet.CLOSE_CURSORS_AT_COMMIT);
+        assertEquals(ResultSet.HOLD_CURSORS_OVER_COMMIT,  ps.getResultSetHoldability());
+        ResultSet rs = ps.executeQuery();
+        assertEquals(rs.getHoldability(),ResultSet.HOLD_CURSORS_OVER_COMMIT);
+        CallableStatement cs = connection.prepareCall("{CALL foo}",ResultSet.TYPE_FORWARD_ONLY,ResultSet.CONCUR_READ_ONLY,ResultSet.CLOSE_CURSORS_AT_COMMIT);
+        assertEquals(cs.getResultSetHoldability(),ResultSet.HOLD_CURSORS_OVER_COMMIT);
     }
 
     @Test
@@ -1626,12 +1628,12 @@ public class DriverTest extends BaseTest{
         Statement st = connection.createStatement();
         st.executeBatch();
     }
-    
+
     @Test
     public void createDbWithSpacesTest() throws SQLException {
-    	String oldDb = database;
-    	setParameters("&createDB=true");
-    	setDatabase("test with spaces");
+        String oldDb = database;
+        setParameters("&createDB=true");
+        setDatabase("test with spaces");
         DatabaseMetaData dbmd = connection.getMetaData();
         ResultSet rs = dbmd.getCatalogs();
         boolean foundDb = false;

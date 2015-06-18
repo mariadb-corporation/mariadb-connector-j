@@ -55,7 +55,7 @@ import java.io.IOException;
 
 
 public class EOFPacket extends ResultPacket {
- 
+
     private final byte packetSeq;
     private final short warningCount;
     private final short statusFlags;
@@ -88,9 +88,9 @@ public class EOFPacket extends ResultPacket {
     @Override
     public String toString() {
         return "EOFPacket{" +
-                "packetSeq=" + packetSeq +
-                ", warningCount=" + warningCount +
-                ", statusFlags=" + statusFlags +
-                '}';
+               "packetSeq=" + packetSeq +
+               ", warningCount=" + warningCount +
+               ", statusFlags=" + statusFlags +
+               '}';
     }
 }

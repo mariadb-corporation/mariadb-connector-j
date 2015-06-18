@@ -59,11 +59,11 @@ public class SharedMemorySocket extends Socket {
             public boolean bInheritHandle;
 
             protected java.util.List getFieldOrder() {
-                   return Arrays.asList(new String[]{"nLength", "lpSecurityDescriptor", "bInheritHandle"});
+                return Arrays.asList(new String[] {"nLength", "lpSecurityDescriptor", "bInheritHandle"});
             }
         }
         boolean ConvertStringSecurityDescriptorToSecurityDescriptor(String sddl, int sddlVersion, PointerByReference psd,
-                                                                    IntByReference length);
+                IntByReference length);
 
     }
     //SDDL string for mutex security flags (Everyone group has SYNCHRONIZE right)
@@ -159,7 +159,7 @@ public class SharedMemorySocket extends Socket {
 
         @Override
         public void write(int b) throws IOException {
-            write(new byte[]{(byte) b});
+            write(new byte[] {(byte) b});
         }
 
         @Override
@@ -197,7 +197,7 @@ public class SharedMemorySocket extends Socket {
     time, could get the same connection number. Note, that this mutex, or any synchronization does not exist in
     in either C or .NET connectors (i.e they are racy)
     */
-    private HANDLE lockMutex() throws IOException{
+    private HANDLE lockMutex() throws IOException {
         PointerByReference securityDescriptor = new PointerByReference();
         Advapi32.INSTANCE.ConvertStringSecurityDescriptorToSecurityDescriptor(EVERYONE_SYNCHRONIZE_SDDL, 1, securityDescriptor,null);
         Advapi32.SECURITY_ATTRIBUTES sa = new Advapi32.SECURITY_ATTRIBUTES();

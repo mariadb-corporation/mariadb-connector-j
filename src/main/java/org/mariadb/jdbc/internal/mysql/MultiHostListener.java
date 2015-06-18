@@ -66,7 +66,7 @@ import java.util.logging.Logger;
 /**
  * this class handle the operation when multiple hosts.
  */
-public class MultiHostListener extends BaseFailoverListener implements FailoverListener{
+public class MultiHostListener extends BaseFailoverListener implements FailoverListener {
     private final static Logger log = Logger.getLogger(MultiHostListener.class.getName());
 
     protected MultiNodesProtocol masterProtocol;
@@ -163,9 +163,9 @@ public class MultiHostListener extends BaseFailoverListener implements FailoverL
         final MultiHostListener hostListener = MultiHostListener.this;
         Executors.newSingleThreadExecutor().execute(new Runnable() {
             public void run() {
-            try {
-                hostListener.reconnectFailedConnection();
-            } catch (Exception e) { }
+                try {
+                    hostListener.reconnectFailedConnection();
+                } catch (Exception e) { }
             }
         });
     }
@@ -317,7 +317,7 @@ public class MultiHostListener extends BaseFailoverListener implements FailoverL
                     }
                 }
             }
-            
+
         }
     }
 
@@ -337,7 +337,7 @@ public class MultiHostListener extends BaseFailoverListener implements FailoverL
         }
         try {
             if (from.getDatabase() != null && !"".equals(from.getDatabase())) {
-                    to.selectDB(from.getDatabase());
+                to.selectDB(from.getDatabase());
             }
             if (from.getAutocommit() != to.getAutocommit()) {
                 to.executeQuery(new MySQLQuery("set autocommit=" + (from.getAutocommit()?"1":"0")));
@@ -453,7 +453,7 @@ public class MultiHostListener extends BaseFailoverListener implements FailoverL
      * @throws IllegalAccessException
      * @throws InvocationTargetException
      */
-    protected HandleErrorResult relaunchOperation(Method method, Object[] args) throws IllegalAccessException, InvocationTargetException{
+    protected HandleErrorResult relaunchOperation(Method method, Object[] args) throws IllegalAccessException, InvocationTargetException {
         HandleErrorResult handleErrorResult = new HandleErrorResult();
         if (method != null) {
             if ("executeQuery".equals(method.getName())) {
@@ -485,29 +485,29 @@ public class MultiHostListener extends BaseFailoverListener implements FailoverL
 
         public void run() {
             //if (lastQueryTime + validConnectionTimeout < System.currentTimeMillis()) {
-                log.finest("PingLoop run");
-                boolean masterFail = false;
-                try {
-                    if (masterProtocol.ping()) {
-                        if (!masterProtocol.checkIfMaster()) {
-                            //the connection that was master isn't now
-                            masterFail = true;
-                        }
+            log.finest("PingLoop run");
+            boolean masterFail = false;
+            try {
+                if (masterProtocol.ping()) {
+                    if (!masterProtocol.checkIfMaster()) {
+                        //the connection that was master isn't now
+                        masterFail = true;
                     }
-                } catch (QueryException e) {
-                    masterFail = true;
                 }
+            } catch (QueryException e) {
+                masterFail = true;
+            }
 
-                if (masterFail) {
-                    if (setMasterHostFail()) {
-                        currentConnectionAttempts = 0;
-                        try {
-                            listener.primaryFail(null, null);
-                        } catch (Throwable t) {
-                            //do nothing
-                        }
+            if (masterFail) {
+                if (setMasterHostFail()) {
+                    currentConnectionAttempts = 0;
+                    try {
+                        listener.primaryFail(null, null);
+                    } catch (Throwable t) {
+                        //do nothing
                     }
                 }
+            }
             //}
         }
     }

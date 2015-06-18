@@ -57,7 +57,7 @@ public abstract class QueryResult {
 
     private boolean isClosed;
     public void close() {
-      isClosed = true;
+        isClosed = true;
     }
     public boolean isClosed() {
         return isClosed;

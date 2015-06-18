@@ -91,10 +91,10 @@ public enum MySQLType {
 
     static MySQLType[] typeMap;
     static {
-      typeMap = new MySQLType[256];
-      for( MySQLType v : values())  {
-          typeMap[v.mysqlType] = v;
-      }
+        typeMap = new MySQLType[256];
+        for( MySQLType v : values())  {
+            typeMap[v.mysqlType] = v;
+        }
     }
 
     MySQLType( int mysqlType,int javaType, String className) {
@@ -122,69 +122,69 @@ public enum MySQLType {
 
     public static String getClassName(MySQLType t, int len, boolean signed, boolean binary, int flags) {
         switch(t) {
-            case TINYINT:
-                if (len == 1 && ((flags & ValueObject.TINYINT1_IS_BIT) != 0))
-                    return Boolean.class.getName();
-                return Integer.class.getName();
-            case INTEGER:
-                return (signed)? Integer.class.getName():Long.class.getName();
-            case BIGINT:
-                return (signed)?Long.class.getName(): BigInteger.class.getName();
-            case YEAR:
-                if ((flags & ValueObject.YEAR_IS_DATE_TYPE) != 0)
-                    return java.sql.Date.class.getName();
-                return Short.class.getName();
-            case BIT:
-                 return (len == 1)?Boolean.class.getName():"[B";
-            case STRING:
-            case VARCHAR:
-            case VARSTRING:
-                 return binary?  "[B" : String.class.getName();
-            default:
-            	break;
+        case TINYINT:
+            if (len == 1 && ((flags & ValueObject.TINYINT1_IS_BIT) != 0))
+                return Boolean.class.getName();
+            return Integer.class.getName();
+        case INTEGER:
+            return (signed)? Integer.class.getName():Long.class.getName();
+        case BIGINT:
+            return (signed)?Long.class.getName(): BigInteger.class.getName();
+        case YEAR:
+            if ((flags & ValueObject.YEAR_IS_DATE_TYPE) != 0)
+                return java.sql.Date.class.getName();
+            return Short.class.getName();
+        case BIT:
+            return (len == 1)?Boolean.class.getName():"[B";
+        case STRING:
+        case VARCHAR:
+        case VARSTRING:
+            return binary?  "[B" : String.class.getName();
+        default:
+            break;
         }
         return t.getClassName();
     }
 
     public static String getColumnTypeName(MySQLType t, long  len, boolean signed, boolean binary)  {
         switch(t) {
-             case SMALLINT:
-             case MEDIUMINT:
-             case INTEGER:
-             case BIGINT:
-                if(!signed) {
-                    return  t.getTypeName() + " UNSIGNED";
-                } else {
-                    return t.getTypeName();
-                }
-             case BLOB:
-                 /*
-                   map to different blob types based on datatype length
-                   see http://dev.mysql.com/doc/refman/5.0/en/storage-requirements.html
-                  */
-                 if (len  < 0)
-                     return "LONGBLOB";
-                 if(len <= 255) {
-                     return "TINYBLOB";
-                 } else if (len <= 65535) {
-                     return "BLOB";
-                 } else if (len <= 16777215) {
-                     return "MEDIUMBLOB";
-                 } else {
-                     return "LONGBLOB";
-                 }
-             case VARSTRING:
-             case VARCHAR:
-                 if (binary)
-                     return "VARBINARY";
-                 return "VARCHAR";
-             case STRING :
-                 if (binary)
-                     return "BINARY";
-                 return "CHAR";
-             default:
-                 return t.getTypeName();
-         }
+        case SMALLINT:
+        case MEDIUMINT:
+        case INTEGER:
+        case BIGINT:
+            if(!signed) {
+                return  t.getTypeName() + " UNSIGNED";
+            } else {
+                return t.getTypeName();
+            }
+        case BLOB:
+            /*
+              map to different blob types based on datatype length
+              see http://dev.mysql.com/doc/refman/5.0/en/storage-requirements.html
+             */
+            if (len  < 0)
+                return "LONGBLOB";
+            if(len <= 255) {
+                return "TINYBLOB";
+            } else if (len <= 65535) {
+                return "BLOB";
+            } else if (len <= 16777215) {
+                return "MEDIUMBLOB";
+            } else {
+                return "LONGBLOB";
+            }
+        case VARSTRING:
+        case VARCHAR:
+            if (binary)
+                return "VARBINARY";
+            return "VARCHAR";
+        case STRING :
+            if (binary)
+                return "BINARY";
+            return "CHAR";
+        default:
+            return t.getTypeName();
+        }
     }
 
     public static MySQLType fromServer(int typeValue) {

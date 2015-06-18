@@ -161,7 +161,7 @@ public class MySQLResultSetMetaData implements ResultSetMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public int getColumnDisplaySize(final int column) throws SQLException {
-       return getColumnInformation(column).getDisplaySize();
+        return getColumnInformation(column).getDisplaySize();
     }
 
     /**
@@ -237,10 +237,10 @@ public class MySQLResultSetMetaData implements ResultSetMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public String getTableName(final int column) throws SQLException {
-    	if (returnTableAlias == true)
-    		return getColumnInformation(column).getTable();
-    	else
-    		return getColumnInformation(column).getOriginalTable();
+        if (returnTableAlias == true)
+            return getColumnInformation(column).getTable();
+        else
+            return getColumnInformation(column).getOriginalTable();
     }
 
 
@@ -259,37 +259,37 @@ public class MySQLResultSetMetaData implements ResultSetMetaData {
     public int getColumnType(final int column) throws SQLException {
         MySQLColumnInformation ci = getColumnInformation(column);
         switch(ci.getType()) {
-            case BIT:
-                if(ci.getLength() == 1)
-                    return Types.BIT;
+        case BIT:
+            if(ci.getLength() == 1)
+                return Types.BIT;
+            return Types.VARBINARY;
+        case TINYINT:
+            if(ci.getLength() == 1 && (datatypeMappingflags & ValueObject.TINYINT1_IS_BIT) != 0)
+                return Types.BIT;
+            else
+                return Types.TINYINT;
+        case YEAR:
+            if((datatypeMappingflags & ValueObject.YEAR_IS_DATE_TYPE) != 0)
+                return Types.DATE;
+            else
+                return Types.SMALLINT;
+        case BLOB:
+            if (ci.getLength() < 0 || ci.getLength() > 16777215)
+                return Types.LONGVARBINARY;
+            return Types.VARBINARY;
+        case VARCHAR:
+        case VARSTRING:
+            if (ci.isBinary())
                 return Types.VARBINARY;
-            case TINYINT:
-                if(ci.getLength() == 1 && (datatypeMappingflags & ValueObject.TINYINT1_IS_BIT) != 0)
-                    return Types.BIT;
-                else
-                    return Types.TINYINT;
-            case YEAR:
-                if((datatypeMappingflags & ValueObject.YEAR_IS_DATE_TYPE) != 0)
-                    return Types.DATE;
-                else
-                    return Types.SMALLINT;
-            case BLOB:
-                if (ci.getLength() < 0 || ci.getLength() > 16777215)
-                    return Types.LONGVARBINARY;
-                return Types.VARBINARY;
-            case VARCHAR:
-            case VARSTRING:
-                if (ci.isBinary())
-                    return Types.VARBINARY;
-                if (ci.getLength() < 0)
-                    return Types.LONGVARCHAR;
-                return Types.VARCHAR;
-            case STRING :
-                if (ci.isBinary())
-                    return Types.BINARY;
-                return Types.CHAR;
-            default:
-                return ci.getType().getSqlType();
+            if (ci.getLength() < 0)
+                return Types.LONGVARCHAR;
+            return Types.VARCHAR;
+        case STRING :
+            if (ci.isBinary())
+                return Types.BINARY;
+            return Types.CHAR;
+        default:
+            return ci.getType().getSqlType();
         }
 
     }

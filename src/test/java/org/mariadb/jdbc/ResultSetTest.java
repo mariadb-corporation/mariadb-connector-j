@@ -9,16 +9,16 @@ import java.sql.Statement;
 import org.junit.Before;
 import org.junit.Test;
 
-public class ResultSetTest extends BaseTest {    
+public class ResultSetTest extends BaseTest {
     private Statement statement;
-    
+
     @Before
     public void setUp() throws SQLException {
         statement = connection.createStatement();
         statement.execute("drop table if exists result_set_test");
         statement.execute("create table result_set_test (id int not null primary key auto_increment, name char(20))");
     }
-    
+
     @Test
     public void isClosedTest() throws SQLException {
         insertRows(1);
@@ -31,7 +31,7 @@ public class ResultSetTest extends BaseTest {
         resultSet.close();
         assertTrue(resultSet.isClosed());
     }
-    
+
     @Test
     public void isBeforeFirstTest() throws SQLException {
         insertRows(1);
@@ -51,7 +51,7 @@ public class ResultSetTest extends BaseTest {
             assertTrue(e instanceof SQLException);
         }
     }
-    
+
     @Test
     public void isFirstZeroRowsTest() throws SQLException {
         insertRows(0);
@@ -68,7 +68,7 @@ public class ResultSetTest extends BaseTest {
             assertTrue(e.getMessage().contains("closed"));
         }
     }
-    
+
     @Test
     public void isFirstTwoRowsTest() throws SQLException {
         insertRows(2);
@@ -106,8 +106,8 @@ public class ResultSetTest extends BaseTest {
             assertTrue(e.getMessage().contains("closed"));
         }
     }
-    
-    
+
+
     @Test
     public void isLastTwoRowsTest() throws SQLException {
         insertRows(2);
@@ -128,7 +128,7 @@ public class ResultSetTest extends BaseTest {
             assertTrue(e.getMessage().contains("closed"));
         }
     }
-    
+
     @Test
     public void isAfterLastZeroRowsTest() throws SQLException {
         insertRows(0);
@@ -145,7 +145,7 @@ public class ResultSetTest extends BaseTest {
             assertTrue(e.getMessage().contains("closed"));
         }
     }
-    
+
     @Test
     public void isAfterLastTwoRowsTest() throws SQLException {
         insertRows(2);
@@ -166,10 +166,10 @@ public class ResultSetTest extends BaseTest {
             assertTrue(e.getMessage().contains("closed"));
         }
     }
-    
+
     @Test
     public void previousTest() throws SQLException {
-    	insertRows(2);
+        insertRows(2);
         ResultSet rs = statement.executeQuery("SELECT * FROM result_set_test");
         assertFalse(rs.previous());
         assertTrue(rs.next());
@@ -179,42 +179,42 @@ public class ResultSetTest extends BaseTest {
         assertTrue(rs.previous());
         rs.close();
     }
-    
+
     @Test
     public void firstTest() throws SQLException {
-    	insertRows(2);
-    	ResultSet rs = statement.executeQuery("SELECT * FROM result_set_test");
-    	assertTrue(rs.next());
-    	assertTrue(rs.next());
-    	assertTrue(rs.first());
-    	assertTrue(rs.isFirst());
-    	rs.close();
-    	try {
-    		rs.first();
-    		fail("cannot call first() on a closed result set");
-    	} catch(SQLException sqlex) {
-    	}
+        insertRows(2);
+        ResultSet rs = statement.executeQuery("SELECT * FROM result_set_test");
+        assertTrue(rs.next());
+        assertTrue(rs.next());
+        assertTrue(rs.first());
+        assertTrue(rs.isFirst());
+        rs.close();
+        try {
+            rs.first();
+            fail("cannot call first() on a closed result set");
+        } catch(SQLException sqlex) {
+        }
     }
-    
+
     @Test
     public void lastTest() throws SQLException {
-    	insertRows(2);
-    	ResultSet rs = statement.executeQuery("SELECT * FROM result_set_test");
-    	assertTrue(rs.last());
-    	assertTrue(rs.isLast());
-    	assertFalse(rs.next());
-    	rs.first();
-    	rs.close();
-    	try {
-    		rs.last();
-    		fail("cannot call last() on a closed result set");
-    	} catch(SQLException sqlex) {
-    	}
+        insertRows(2);
+        ResultSet rs = statement.executeQuery("SELECT * FROM result_set_test");
+        assertTrue(rs.last());
+        assertTrue(rs.isLast());
+        assertFalse(rs.next());
+        rs.first();
+        rs.close();
+        try {
+            rs.last();
+            fail("cannot call last() on a closed result set");
+        } catch(SQLException sqlex) {
+        }
     }
-    
+
     private void insertRows(int numberOfRowsToInsert) throws SQLException {
         for (int i = 1; i <= numberOfRowsToInsert; i++) {
-            statement.executeUpdate("INSERT INTO result_set_test VALUES(" + i + ", 'row" + i + "')");    
+            statement.executeUpdate("INSERT INTO result_set_test VALUES(" + i + ", 'row" + i + "')");
         }
     }
 }

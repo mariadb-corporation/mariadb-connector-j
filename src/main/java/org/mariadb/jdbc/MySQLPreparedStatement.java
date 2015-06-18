@@ -1,4 +1,4 @@
- /*
+/*
 MariaDB Client for Java
 
 Copyright (c) 2012 Monty Program Ab.
@@ -81,12 +81,12 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
         super(connection);
         this.sql = sql;
         useFractionalSeconds =
-              connection.getProtocol().getInfo().getProperty("useFractionalSeconds") != null;
+            connection.getProtocol().getInfo().getProperty("useFractionalSeconds") != null;
         if(log.isLoggable(Level.FINEST)) {
             log.finest("Creating prepared statement for " + sql);
         }
         dQuery = new MySQLParameterizedQuery(Utils.nativeSQL(sql, connection.noBackslashEscapes),
-                connection.noBackslashEscapes);
+                                             connection.noBackslashEscapes);
         parametersCleared = true;
     }
 
@@ -145,7 +145,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
      *                               <code>ResultSet</code> object
      */
     public int executeUpdate() throws SQLException {
-       return executeUpdate(dQuery);
+        return executeUpdate(dQuery);
     }
 
 
@@ -187,13 +187,13 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
         isInsertRewriteable(dQuery.getQuery());
     }
     public void addBatch(final String sql) throws SQLException {
-    	checkBatchFields();
+        checkBatchFields();
         isInsertRewriteable(sql);
         batchQueries.add(new MySQLQuery(sql));
     }
-    
+
     private void checkBatchFields() {
-    	if (batchQueries == null) {
+        if (batchQueries == null) {
             batchQueries = new ArrayList<Query>();
         }
     }
@@ -206,24 +206,24 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
         isRewriteable = true;
     }
 
-  /**
-     * Sets the designated parameter to the given <code>Reader</code> object, which is the given number of characters
-     * long. When a very large UNICODE value is input to a <code>LONGVARCHAR</code> parameter, it may be more practical
-     * to send it via a <code>java.io.Reader</code> object. The data will be read from the stream as needed until
-     * end-of-file is reached.  The JDBC driver will do any necessary conversion from UNICODE to the database char
-     * format.
-     * <br>
-     * <P><B>Note:</B> This stream object can either be a standard Java stream object or your own subclass that
-     * implements the standard interface.
-     *
-     * @param parameterIndex the first parameter is 1, the second is 2, ...
-     * @param reader         the <code>java.io.Reader</code> object that contains the Unicode data
-     * @param length         the number of characters in the stream
-     * @throws java.sql.SQLException if parameterIndex does not correspond to a parameter marker in the SQL statement;
-     *                               if a database access error occurs or this method is called on a closed
-     *                               <code>PreparedStatement</code>
-     * @since 1.2
-     */
+    /**
+       * Sets the designated parameter to the given <code>Reader</code> object, which is the given number of characters
+       * long. When a very large UNICODE value is input to a <code>LONGVARCHAR</code> parameter, it may be more practical
+       * to send it via a <code>java.io.Reader</code> object. The data will be read from the stream as needed until
+       * end-of-file is reached.  The JDBC driver will do any necessary conversion from UNICODE to the database char
+       * format.
+       * <br>
+       * <P><B>Note:</B> This stream object can either be a standard Java stream object or your own subclass that
+       * implements the standard interface.
+       *
+       * @param parameterIndex the first parameter is 1, the second is 2, ...
+       * @param reader         the <code>java.io.Reader</code> object that contains the Unicode data
+       * @param length         the number of characters in the stream
+       * @throws java.sql.SQLException if parameterIndex does not correspond to a parameter marker in the SQL statement;
+       *                               if a database access error occurs or this method is called on a closed
+       *                               <code>PreparedStatement</code>
+       * @since 1.2
+       */
     public void setCharacterStream(final int parameterIndex, final Reader reader, final int length) throws SQLException {
         setParameter(parameterIndex, new ReaderParameter(reader, length, connection.noBackslashEscapes));
     }
@@ -318,7 +318,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
      * <br>
      * <B>NOTE:</B> Using this method may be expensive for some drivers due to the lack of underlying DBMS support.
      *
-     * 
+     *
      * @return the description of a <code>ResultSet</code> object's columns or <code>null</code> if the driver cannot
      *         return a <code>ResultSetMetaData</code> object
      * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed
@@ -699,24 +699,24 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
             return;
         }
         switch (targetSqlType) {
-            case Types.ARRAY:
-            case Types.CLOB:
-            case Types.DATALINK:
-            case Types.NCHAR:
-            case Types.NCLOB:
-            case Types.NVARCHAR:
-            case Types.LONGNVARCHAR:
-            case Types.REF:
-            case Types.ROWID:
-            case Types.SQLXML:
-            case Types.STRUCT:
-                throw SQLExceptionMapper.getFeatureNotSupportedException("Datatype not supported");
-            case Types.INTEGER:
-                if (x instanceof Number) {
-                    setNumber(parameterIndex, (Number) x);
-                } else {
-                    setInt(parameterIndex, Integer.valueOf((String) x));
-                }
+        case Types.ARRAY:
+        case Types.CLOB:
+        case Types.DATALINK:
+        case Types.NCHAR:
+        case Types.NCLOB:
+        case Types.NVARCHAR:
+        case Types.LONGNVARCHAR:
+        case Types.REF:
+        case Types.ROWID:
+        case Types.SQLXML:
+        case Types.STRUCT:
+            throw SQLExceptionMapper.getFeatureNotSupportedException("Datatype not supported");
+        case Types.INTEGER:
+            if (x instanceof Number) {
+                setNumber(parameterIndex, (Number) x);
+            } else {
+                setInt(parameterIndex, Integer.valueOf((String) x));
+            }
         }
 
         throw SQLExceptionMapper.getFeatureNotSupportedException("Method not yet implemented");
@@ -967,7 +967,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
             setNull(parameterIndex, Types.BLOB);
             return;
         }
-        
+
         setParameter(parameterIndex, new StreamParameter(inputStream, connection.noBackslashEscapes));
     }
 
@@ -1209,21 +1209,21 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
     public void setObject(final int parameterIndex, final Object x, final int targetSqlType) throws SQLException {
 
         switch(targetSqlType ) {
-            case Types.ARRAY:
-            case Types.CLOB:
-            case Types.DATALINK:
-            case Types.JAVA_OBJECT:
-            case Types.NCHAR:
-            case Types.NCLOB:
-            case Types.NVARCHAR:
-            case Types.LONGNVARCHAR:
-            case Types.REF:
-            case Types.ROWID:
-            case Types.SQLXML:
-            case Types.STRUCT:
-                throw SQLExceptionMapper.getFeatureNotSupportedException("Type not supported");
+        case Types.ARRAY:
+        case Types.CLOB:
+        case Types.DATALINK:
+        case Types.JAVA_OBJECT:
+        case Types.NCHAR:
+        case Types.NCLOB:
+        case Types.NVARCHAR:
+        case Types.LONGNVARCHAR:
+        case Types.REF:
+        case Types.ROWID:
+        case Types.SQLXML:
+        case Types.STRUCT:
+            throw SQLExceptionMapper.getFeatureNotSupportedException("Type not supported");
         }
-        
+
         if (x == null) {
             setNull(parameterIndex,Types.INTEGER);
         } else if (x instanceof String) {
@@ -1232,86 +1232,86 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
             }
             String s = (String)x;
             switch(targetSqlType) {
-                case Types.TINYINT:
-                case Types.SMALLINT:
-                case Types.INTEGER:
-                case Types.BIGINT:
-                    try {
-                        setLong(parameterIndex,Long.valueOf(s));
-                    } catch (NumberFormatException e) {
-                        throw SQLExceptionMapper.getSQLException("Could not convert ["+s+"] to "+targetSqlType,e);
-                    }
-                    break;
-                case Types.DOUBLE:
-                    try {
-                        setDouble(parameterIndex,Double.valueOf(s));
-                    } catch (NumberFormatException e) {
-                        throw SQLExceptionMapper.getSQLException("Could not convert ["+s+"] to "+targetSqlType,e);
-                    }
-                    break;
-                case Types.REAL:
-                case Types.FLOAT:
-                    try {
-                        setFloat(parameterIndex,Float.valueOf(s));
-                    } catch (NumberFormatException e) {
-                        throw SQLExceptionMapper.getSQLException("Could not convert ["+s+"] to "+targetSqlType,e);
-                    }
-                    break;
-                case Types.DECIMAL:
-                case Types.NUMERIC:
-                    try {
-                        setBigDecimal(parameterIndex,new BigDecimal(s));
-                    } catch (NumberFormatException e) {
-                        throw SQLExceptionMapper.getSQLException("Could not convert ["+s+"] to "+targetSqlType,e);
-                    }
-                    break;
-                case Types.BIT:
-                    setBoolean(parameterIndex, Boolean.valueOf(s));
-                    break;
-                case Types.CHAR:
-                case Types.VARCHAR:
-                case Types.LONGVARCHAR:
-                case Types.TIMESTAMP: 
-                case Types.TIME:
-                    setString(parameterIndex, s);
-                    break;
-                default:
-                    throw SQLExceptionMapper.getSQLException("Could not convert ["+s+"] to "+targetSqlType);
+            case Types.TINYINT:
+            case Types.SMALLINT:
+            case Types.INTEGER:
+            case Types.BIGINT:
+                try {
+                    setLong(parameterIndex,Long.valueOf(s));
+                } catch (NumberFormatException e) {
+                    throw SQLExceptionMapper.getSQLException("Could not convert ["+s+"] to "+targetSqlType,e);
+                }
+                break;
+            case Types.DOUBLE:
+                try {
+                    setDouble(parameterIndex,Double.valueOf(s));
+                } catch (NumberFormatException e) {
+                    throw SQLExceptionMapper.getSQLException("Could not convert ["+s+"] to "+targetSqlType,e);
+                }
+                break;
+            case Types.REAL:
+            case Types.FLOAT:
+                try {
+                    setFloat(parameterIndex,Float.valueOf(s));
+                } catch (NumberFormatException e) {
+                    throw SQLExceptionMapper.getSQLException("Could not convert ["+s+"] to "+targetSqlType,e);
+                }
+                break;
+            case Types.DECIMAL:
+            case Types.NUMERIC:
+                try {
+                    setBigDecimal(parameterIndex,new BigDecimal(s));
+                } catch (NumberFormatException e) {
+                    throw SQLExceptionMapper.getSQLException("Could not convert ["+s+"] to "+targetSqlType,e);
+                }
+                break;
+            case Types.BIT:
+                setBoolean(parameterIndex, Boolean.valueOf(s));
+                break;
+            case Types.CHAR:
+            case Types.VARCHAR:
+            case Types.LONGVARCHAR:
+            case Types.TIMESTAMP:
+            case Types.TIME:
+                setString(parameterIndex, s);
+                break;
+            default:
+                throw SQLExceptionMapper.getSQLException("Could not convert ["+s+"] to "+targetSqlType);
 
             }
         } else if(x instanceof Number) {
             testNumbers(targetSqlType);
             Number bd = (Number) x;
             switch(targetSqlType) {
-                case Types.TINYINT:
-                case Types.SMALLINT:
-                case Types.INTEGER:
-                case Types.BIGINT:
-                    setLong(parameterIndex,bd.longValue());
-                    break;
-                case Types.DOUBLE:
-                    setDouble(parameterIndex, bd.doubleValue());
-                    break;
-                case Types.REAL:
-                case Types.FLOAT:
-                    setFloat(parameterIndex, bd.floatValue());
-                    break;
-                case Types.DECIMAL:
-                case Types.NUMERIC:
-                    if(x instanceof BigDecimal)
-                        setBigDecimal(parameterIndex, (BigDecimal)x);
-                    else
-                        setLong(parameterIndex, bd.longValue());
-                    break;
-                case Types.BIT:
-                    setBoolean(parameterIndex, bd.shortValue() != 0);
-                    break;
-                case Types.CHAR:
-                case Types.VARCHAR:
-                    setString(parameterIndex, bd.toString());
-                    break;
-                default:
-                    throw SQLExceptionMapper.getSQLException("Could not convert ["+bd+"] to "+targetSqlType);
+            case Types.TINYINT:
+            case Types.SMALLINT:
+            case Types.INTEGER:
+            case Types.BIGINT:
+                setLong(parameterIndex,bd.longValue());
+                break;
+            case Types.DOUBLE:
+                setDouble(parameterIndex, bd.doubleValue());
+                break;
+            case Types.REAL:
+            case Types.FLOAT:
+                setFloat(parameterIndex, bd.floatValue());
+                break;
+            case Types.DECIMAL:
+            case Types.NUMERIC:
+                if(x instanceof BigDecimal)
+                    setBigDecimal(parameterIndex, (BigDecimal)x);
+                else
+                    setLong(parameterIndex, bd.longValue());
+                break;
+            case Types.BIT:
+                setBoolean(parameterIndex, bd.shortValue() != 0);
+                break;
+            case Types.CHAR:
+            case Types.VARCHAR:
+                setString(parameterIndex, bd.toString());
+                break;
+            default:
+                throw SQLExceptionMapper.getSQLException("Could not convert ["+bd+"] to "+targetSqlType);
 
             }
         } else if (x instanceof byte[]) {
@@ -1345,23 +1345,23 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
         } else if (x instanceof Blob) {
             setBlob(parameterIndex, (Blob) x);
         } else if (x instanceof BigInteger) {
-        	setBigDecimal(parameterIndex, new BigDecimal((BigInteger) x));
+            setBigDecimal(parameterIndex, new BigDecimal((BigInteger) x));
         } else {
-        	throw SQLExceptionMapper.getSQLException("Could not set parameter in setObject, could not convert: " + x.getClass()+" to "+ targetSqlType);
+            throw SQLExceptionMapper.getSQLException("Could not set parameter in setObject, could not convert: " + x.getClass()+" to "+ targetSqlType);
         }
 
     }
 
     private void testNumbers(int targetSqlType) throws SQLException {
         switch(targetSqlType ) {
-            case Types.BINARY:
-            case Types.VARBINARY:
-            case Types.LONGVARBINARY:
-            case Types.DATE:
-            case Types.TIME:
-            case Types.TIMESTAMP:
-            case Types.BLOB:
-                throw SQLExceptionMapper.getSQLException("Cannot convert to "+targetSqlType);
+        case Types.BINARY:
+        case Types.VARBINARY:
+        case Types.LONGVARBINARY:
+        case Types.DATE:
+        case Types.TIME:
+        case Types.TIMESTAMP:
+        case Types.BLOB:
+            throw SQLExceptionMapper.getSQLException("Cannot convert to "+targetSqlType);
         }
     }
 
@@ -1432,7 +1432,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
         } else if (x instanceof BigDecimal) {
             setBigDecimal(parameterIndex, (BigDecimal)x);
         } else if (x instanceof BigInteger) {
-        	setBigDecimal(parameterIndex, new BigDecimal((BigInteger)x));
+            setBigDecimal(parameterIndex, new BigDecimal((BigInteger)x));
         }
         else if (x instanceof Clob) {
             setClob(parameterIndex, (Clob)x);
@@ -1517,7 +1517,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
         super.close();
 
         if (connection == null ||  connection.pooledConnection == null ||
-               connection.pooledConnection.statementEventListeners.isEmpty())  {
+                connection.pooledConnection.statementEventListeners.isEmpty())  {
             return;
         }
 

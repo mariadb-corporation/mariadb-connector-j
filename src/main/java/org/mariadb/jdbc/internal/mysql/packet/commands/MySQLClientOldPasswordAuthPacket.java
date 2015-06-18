@@ -66,7 +66,7 @@ public class MySQLClientOldPasswordAuthPacket implements CommandPacket
     {
         writeBuffer = new WriteBuffer();
         this.packSeq  = packSeq;
-        
+
         byte[] oldPassword = cryptOldFormatPassword(password, new String(seed));
         writeBuffer.writeByteArray(oldPassword).writeByte((byte) 0x00);
     }
@@ -79,8 +79,8 @@ public class MySQLClientOldPasswordAuthPacket implements CommandPacket
         pos.finishPacket();
         return packSeq;
     }
-    
-    
+
+
     private byte[] cryptOldFormatPassword(String password, String seed)
     {
         byte[] result = new byte[seed.length()];
@@ -94,7 +94,7 @@ public class MySQLClientOldPasswordAuthPacket implements CommandPacket
         long[] passHash = hashPassword(password);
 
         randStruct randSeed = new randStruct(seedHash[0] ^ passHash[0],
-                seedHash[1] ^ passHash[1]);
+                                             seedHash[1] ^ passHash[1]);
 
         for (int i = 0; i < seed.length(); i++)
         {
@@ -131,7 +131,7 @@ public class MySQLClientOldPasswordAuthPacket implements CommandPacket
         }
         return new long[] {nr & 0x7FFFFFFF, nr2 & 0x7FFFFFFF};
     }
-    
+
     private class randStruct
     {
         long seed1, seed2;

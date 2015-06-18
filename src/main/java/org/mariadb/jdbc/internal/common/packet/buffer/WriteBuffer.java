@@ -60,11 +60,11 @@ public class WriteBuffer {
     private final ByteBuffer byteBuffer;
 
     public WriteBuffer() {
-         byteBuffer = ByteBuffer.allocate(1000).order(ByteOrder.LITTLE_ENDIAN);
+        byteBuffer = ByteBuffer.allocate(1000).order(ByteOrder.LITTLE_ENDIAN);
     }
-    
+
     public WriteBuffer(int bufferSize) {
-         byteBuffer = ByteBuffer.allocate(bufferSize).order(ByteOrder.LITTLE_ENDIAN);
+        byteBuffer = ByteBuffer.allocate(bufferSize).order(ByteOrder.LITTLE_ENDIAN);
     }
 
     private void assureBufferCapacity(final int len) {

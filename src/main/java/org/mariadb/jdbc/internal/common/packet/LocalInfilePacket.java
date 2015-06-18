@@ -5,11 +5,11 @@ import org.mariadb.jdbc.internal.common.packet.buffer.Reader;
 
 import java.io.IOException;
 
-public class LocalInfilePacket extends ResultPacket{
+public class LocalInfilePacket extends ResultPacket {
     private long fieldCount;
     private String fileName;
 
-    public LocalInfilePacket(RawPacket rawPacket) throws IOException{
+    public LocalInfilePacket(RawPacket rawPacket) throws IOException {
         Reader reader = new Reader(rawPacket);
         fieldCount = reader.getLengthEncodedBinary();
         if (fieldCount != -1)
@@ -25,7 +25,7 @@ public class LocalInfilePacket extends ResultPacket{
     }
 
     public ResultType getResultType() {
-         return ResultType.LOCALINFILE;
+        return ResultType.LOCALINFILE;
     }
 
     public byte getPacketSeq() {

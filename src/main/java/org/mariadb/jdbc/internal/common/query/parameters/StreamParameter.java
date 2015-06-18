@@ -68,7 +68,7 @@ public class StreamParameter extends ParameterHolder {
     public StreamParameter(InputStream is, boolean noBackSlashEscapes) {
         this(is,Long.MAX_VALUE, noBackSlashEscapes);
     }
-    
+
     public void setText(boolean b) {
         isText = b;
     }

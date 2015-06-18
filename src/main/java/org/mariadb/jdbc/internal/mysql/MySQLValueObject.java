@@ -58,7 +58,7 @@ import java.util.Calendar;
  * Contains the raw value returned from the server
  *
  * Is immutable
- * 
+ *
  */
 public class MySQLValueObject extends AbstractValueObject {
     MySQLColumnInformation columnInfo;
@@ -74,92 +74,92 @@ public class MySQLValueObject extends AbstractValueObject {
             return null;
         if (columnInfo.getType() == MySQLType.BIT && columnInfo.getLength() == 1)
             return (bytes[0] == 0)?"0":"1";
-        
+
         return super.getString();
     }
-    
+
     public Object getObject(int datatypeMappingFlags, Calendar cal) throws ParseException {
         if (this.getBytes() == null) {
             return null;
         }
         switch (dataType) {
-            case BIT:
+        case BIT:
+            if (columnInfo.getLength() == 1) {
+                return (getBytes()[0] != 0);
+            }
+            return getBytes();
+        case TINYINT:
+            if ((datatypeMappingFlags & TINYINT1_IS_BIT) != 0) {
                 if (columnInfo.getLength() == 1) {
-                    return (getBytes()[0] != 0);
+                    return (getBytes()[0] != '0');
                 }
-                return getBytes();
-            case TINYINT:
-                if ((datatypeMappingFlags & TINYINT1_IS_BIT) != 0) {
-                    if (columnInfo.getLength() == 1) {
-                        return (getBytes()[0] != '0');
-                    }
-                }
-                return getInt();
-            case INTEGER:
-                if (!columnInfo.isSigned()) {
-                    return getLong();
-                }
-                return getInt();
-            case BIGINT:
-                if (!columnInfo.isSigned()) {
-                    return getBigInteger();
-                }
+            }
+            return getInt();
+        case INTEGER:
+            if (!columnInfo.isSigned()) {
                 return getLong();
-            case DOUBLE:
-                return getDouble();
-            case TIMESTAMP:
-                return getTimestamp(cal);
-            case DATETIME:
-                return getTimestamp(cal);
-            case DATE:
-                return getDate(cal);
-            case VARCHAR:
-                if (columnInfo.isBinary())
-                    return getBytes();
-                return getString();
-            case DECIMAL:
-                return getBigDecimal();
-            case BLOB:
+            }
+            return getInt();
+        case BIGINT:
+            if (!columnInfo.isSigned()) {
+                return getBigInteger();
+            }
+            return getLong();
+        case DOUBLE:
+            return getDouble();
+        case TIMESTAMP:
+            return getTimestamp(cal);
+        case DATETIME:
+            return getTimestamp(cal);
+        case DATE:
+            return getDate(cal);
+        case VARCHAR:
+            if (columnInfo.isBinary())
                 return getBytes();
-            case LONGBLOB:
-            	return getBytes();
-            case MEDIUMBLOB:
-            	return getBytes();
-            case TINYBLOB:
-            	return getBytes();
-            	
-            case NULL:
-            	return null;
-            
-            case YEAR:
-                if ((datatypeMappingFlags & YEAR_IS_DATE_TYPE) != 0) {
-                    return getDate(cal);
-                }
-                return getShort();
-            case SMALLINT:
-            case MEDIUMINT:
-                return getInt();
-            case FLOAT:
-                return getFloat();
-            case TIME:
-                return getTime(cal);
-            case VARSTRING:
-            case STRING:
-                if (columnInfo.isBinary())
-                    return getBytes();
-                return getString();
-            case OLDDECIMAL:
-            	return getString();
-            case GEOMETRY:
-            	return getBytes();
-            case ENUM:
-            	break;
-            case NEWDATE:
-            	break;
-            case SET:
-            	break;
-            default:
-            	break;
+            return getString();
+        case DECIMAL:
+            return getBigDecimal();
+        case BLOB:
+            return getBytes();
+        case LONGBLOB:
+            return getBytes();
+        case MEDIUMBLOB:
+            return getBytes();
+        case TINYBLOB:
+            return getBytes();
+
+        case NULL:
+            return null;
+
+        case YEAR:
+            if ((datatypeMappingFlags & YEAR_IS_DATE_TYPE) != 0) {
+                return getDate(cal);
+            }
+            return getShort();
+        case SMALLINT:
+        case MEDIUMINT:
+            return getInt();
+        case FLOAT:
+            return getFloat();
+        case TIME:
+            return getTime(cal);
+        case VARSTRING:
+        case STRING:
+            if (columnInfo.isBinary())
+                return getBytes();
+            return getString();
+        case OLDDECIMAL:
+            return getString();
+        case GEOMETRY:
+            return getBytes();
+        case ENUM:
+            break;
+        case NEWDATE:
+            break;
+        case SET:
+            break;
+        default:
+            break;
         }
         throw new RuntimeException(dataType.toString());
     }

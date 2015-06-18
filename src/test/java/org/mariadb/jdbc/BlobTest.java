@@ -26,32 +26,34 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class BlobTest extends BaseTest {
-    static { Logger.getLogger("").setLevel(Level.OFF); }
+    static {
+        Logger.getLogger("").setLevel(Level.OFF);
+    }
     @Test
     public void testPosition() throws SQLException {
-        byte[] blobContent = new byte[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
-        byte [] pattern = new byte[]{3,4};
+        byte[] blobContent = new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
+        byte [] pattern = new byte[] {3,4};
         Blob blob = new MySQLBlob(blobContent);
         assertEquals(3, blob.position(pattern,1));
-        pattern=new byte[]{12,13};
+        pattern=new byte[] {12,13};
         assertEquals(-1, blob.position(pattern,1));
-        pattern=new byte[]{11,12};
+        pattern=new byte[] {11,12};
         assertEquals(11, blob.position(pattern,1));
-        pattern=new byte[]{1,2};
+        pattern=new byte[] {1,2};
         assertEquals(1, blob.position(pattern,1));
 
     }
     @Test(expected = SQLException.class)
     public void testBadStart() throws SQLException {
-        byte[] blobContent = new byte[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
-        byte [] pattern = new byte[]{3,4};
+        byte[] blobContent = new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
+        byte [] pattern = new byte[] {3,4};
         Blob blob = new MySQLBlob(blobContent);
         blob.position(pattern,0);
     }
     @Test(expected = SQLException.class)
     public void testBadStart2() throws SQLException {
-        byte[] blobContent = new byte[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
-        byte [] pattern = new byte[]{3,4};
+        byte[] blobContent = new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
+        byte [] pattern = new byte[] {3,4};
         Blob blob = new MySQLBlob(blobContent);
         blob.position(pattern,44);
     }
@@ -70,7 +72,7 @@ public class BlobTest extends BaseTest {
         assertEquals(arr.getClass(), rs.getObject(3).getClass());
         assertEquals(String.class, rs.getObject(4).getClass());
     }
-    
+
 
     @Test
     public void testCharacterStreamWithMultibyteCharacterAndLength() throws Exception {
@@ -113,7 +115,7 @@ public class BlobTest extends BaseTest {
         }
         assertEquals(toInsert, sb.toString());
     }
- 
+
     @Test
     public void testClobWithLengthAndMultibyteCharacter() throws SQLException, IOException {
         connection.createStatement().execute("drop table if exists clobtest");
@@ -149,8 +151,8 @@ public class BlobTest extends BaseTest {
         String s = rs.getString(1);
         assertEquals("\u00D8hello", s);
     }
-    
-       @Test
+
+    @Test
     public void testBlob() throws SQLException, IOException {
         connection.createStatement().execute("drop table if exists blobtest");
         connection.createStatement().execute("create table blobtest (id int not null primary key, strm blob)");
@@ -176,7 +178,7 @@ public class BlobTest extends BaseTest {
             assertEquals(theBlob[pos++],ch);
         }
     }
-   @Test
+    @Test
     public void testBlobWithLength() throws SQLException, IOException {
         connection.createStatement().execute("drop table if exists blobtest");
         connection.createStatement().execute("create table blobtest (id int not null primary key, strm blob)");
@@ -233,116 +235,116 @@ public class BlobTest extends BaseTest {
     }
     @Test
     public void blobSerialization() throws Exception {
-       Blob b = new MySQLBlob(new byte[]{1,2,3});
-       ByteArrayOutputStream baos = new ByteArrayOutputStream();
-       ObjectOutputStream oos = new ObjectOutputStream(baos);
-       oos.writeObject(b);
+        Blob b = new MySQLBlob(new byte[] {1,2,3});
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ObjectOutputStream oos = new ObjectOutputStream(baos);
+        oos.writeObject(b);
 
-       ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(baos.toByteArray()));
-       MySQLBlob b2 = (MySQLBlob)ois.readObject();
-       byte[] a = b2.getBytes(1, (int)b2.length());
-       assertEquals(3, a.length);
-       assertEquals(1, a[0]);
-       assertEquals(2, a[1]);
-       assertEquals(3, a[2]);
+        ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(baos.toByteArray()));
+        MySQLBlob b2 = (MySQLBlob)ois.readObject();
+        byte[] a = b2.getBytes(1, (int)b2.length());
+        assertEquals(3, a.length);
+        assertEquals(1, a[0]);
+        assertEquals(2, a[1]);
+        assertEquals(3, a[2]);
 
 
-       java.sql.Clob c = new MySQLClob(new byte[]{1,2,3});
-       baos = new ByteArrayOutputStream();
-       oos = new ObjectOutputStream(baos);
-       oos.writeObject(c);
+        java.sql.Clob c = new MySQLClob(new byte[] {1,2,3});
+        baos = new ByteArrayOutputStream();
+        oos = new ObjectOutputStream(baos);
+        oos.writeObject(c);
 
-       ois = new ObjectInputStream(new ByteArrayInputStream(baos.toByteArray()));
-       MySQLClob c2 = (MySQLClob)ois.readObject();
-       a = c2.getBytes(1, (int)c2.length());
-       assertEquals(3, a.length);
-       assertEquals(1, a[0]);
-       assertEquals(2, a[1]);
-       assertEquals(3, a[2]);
+        ois = new ObjectInputStream(new ByteArrayInputStream(baos.toByteArray()));
+        MySQLClob c2 = (MySQLClob)ois.readObject();
+        a = c2.getBytes(1, (int)c2.length());
+        assertEquals(3, a.length);
+        assertEquals(1, a[0]);
+        assertEquals(2, a[1]);
+        assertEquals(3, a[2]);
     }
     @Test
     public void conj73() throws Exception {
-       /* CONJ-73: Assertion error: UTF8 length calculation reports invalid ut8 characters */
-       java.sql.Clob c = new MySQLClob(new byte[]{(byte)0x10, (byte)0xD0, (byte)0xA0, (byte)0xe0, (byte)0xa1, (byte)0x8e});
-       ByteArrayOutputStream baos = new ByteArrayOutputStream();
-       ObjectOutputStream oos = new ObjectOutputStream(baos);
-       oos.writeObject(c);
+        /* CONJ-73: Assertion error: UTF8 length calculation reports invalid ut8 characters */
+        java.sql.Clob c = new MySQLClob(new byte[] {(byte)0x10, (byte)0xD0, (byte)0xA0, (byte)0xe0, (byte)0xa1, (byte)0x8e});
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ObjectOutputStream oos = new ObjectOutputStream(baos);
+        oos.writeObject(c);
 
-       ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(baos.toByteArray()));
-       MySQLClob c2 = (MySQLClob)ois.readObject();
+        ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(baos.toByteArray()));
+        MySQLClob c2 = (MySQLClob)ois.readObject();
 
-       assertEquals(3, c2.length());
+        assertEquals(3, c2.length());
     }
-    
+
     @Test
     public void conj77() throws Exception {
-    	final Statement sta1 = connection.createStatement();
-    	try {
-    		sta1.execute( "DROP TABLE IF EXISTS conj77_test" );
-    		sta1.execute( "CREATE TABLE conj77_test ( Name VARCHAR(100) NOT NULL,Archive LONGBLOB, PRIMARY KEY (Name)) Engine=InnoDB DEFAULT CHARSET utf8" );
+        final Statement sta1 = connection.createStatement();
+        try {
+            sta1.execute( "DROP TABLE IF EXISTS conj77_test" );
+            sta1.execute( "CREATE TABLE conj77_test ( Name VARCHAR(100) NOT NULL,Archive LONGBLOB, PRIMARY KEY (Name)) Engine=InnoDB DEFAULT CHARSET utf8" );
 
-    		final PreparedStatement pre = connection.prepareStatement( "INSERT INTO conj77_test (Name,Archive) VALUES (?,?)" );
-    		try {
-    			pre.setString( 1,"Empty String" );
-    			pre.setBytes( 2,"".getBytes() );
-    			pre.addBatch();
+            final PreparedStatement pre = connection.prepareStatement( "INSERT INTO conj77_test (Name,Archive) VALUES (?,?)" );
+            try {
+                pre.setString( 1,"Empty String" );
+                pre.setBytes( 2,"".getBytes() );
+                pre.addBatch();
 
-    			pre.setString( 1,"Data Hello" );
-    			pre.setBytes( 2,"hello".getBytes() );
-    			pre.addBatch();
+                pre.setString( 1,"Data Hello" );
+                pre.setBytes( 2,"hello".getBytes() );
+                pre.addBatch();
 
-    			pre.setString( 1,"Empty Data null" );
-    			pre.setBytes( 2,null );
-    			pre.addBatch();
+                pre.setString( 1,"Empty Data null" );
+                pre.setBytes( 2,null );
+                pre.addBatch();
 
-    			pre.executeBatch();
-    		}
-    		finally {
-    			if( pre != null )
-    				pre.close();
-    		}
-    	}
-    	finally {
-    		if( sta1 != null )
-    			sta1.close();
-    	}
-    	final Statement sta2 = connection.createStatement();
-    	try {
-    		final ResultSet set = sta2.executeQuery( "Select name,archive as text FROM conj77_test" );
-    		try {
-    			while( set.next() ) {
-    				final Blob blob = set.getBlob( "text" );
-    				if( blob != null ) {
-    					final ByteArrayOutputStream bout = new ByteArrayOutputStream( (int)blob.length() );
-    					try {
-    						final InputStream bin = blob.getBinaryStream();
-    						try {
-    							final byte[] buffer = new byte[ 1024 * 4 ];
+                pre.executeBatch();
+            }
+            finally {
+                if( pre != null )
+                    pre.close();
+            }
+        }
+        finally {
+            if( sta1 != null )
+                sta1.close();
+        }
+        final Statement sta2 = connection.createStatement();
+        try {
+            final ResultSet set = sta2.executeQuery( "Select name,archive as text FROM conj77_test" );
+            try {
+                while( set.next() ) {
+                    final Blob blob = set.getBlob( "text" );
+                    if( blob != null ) {
+                        final ByteArrayOutputStream bout = new ByteArrayOutputStream( (int)blob.length() );
+                        try {
+                            final InputStream bin = blob.getBinaryStream();
+                            try {
+                                final byte[] buffer = new byte[ 1024 * 4 ];
 
-    							for( int read = bin.read( buffer );read != -1;read = bin.read( buffer ) )
-    								bout.write( buffer,0,read );
-    						}
-    						finally {
-    							if( bin != null )
-    								bin.close();
-    						}
-    					}
-    					finally {
-    						if( bout != null )
-    							bout.close();
-    					}
-    				}
-    			}
-    		}
-    		finally {
-    			if( set != null )
-    				set.close();
-    		}
-    	}
-    	finally {
-    		if( sta2 != null )
-    			sta2.close();
-    	}
+                                for( int read = bin.read( buffer ); read != -1; read = bin.read( buffer ) )
+                                    bout.write( buffer,0,read );
+                            }
+                            finally {
+                                if( bin != null )
+                                    bin.close();
+                            }
+                        }
+                        finally {
+                            if( bout != null )
+                                bout.close();
+                        }
+                    }
+                }
+            }
+            finally {
+                if( set != null )
+                    set.close();
+            }
+        }
+        finally {
+            if( sta2 != null )
+                sta2.close();
+        }
     }
 
 

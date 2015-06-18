@@ -58,7 +58,7 @@ public class TcpProxySocket implements Runnable {
                     } catch (IOException e) {
                         PrintWriter out = new PrintWriter(new OutputStreamWriter(to_client));
                         out.println("Proxy server cannot connect to " + host + ":" +
-                                remoteport + ":\n" + e);
+                                    remoteport + ":\n" + e);
                         out.flush();
                         client.close();
                         continue;
@@ -81,7 +81,7 @@ public class TcpProxySocket implements Runnable {
                             } catch (IOException e) {
                             }
                         }
-                    }.start();
+                    } .start();
                     int bytes_read;
                     try {
                         while ((bytes_read = from_server.read(reply)) != -1) {

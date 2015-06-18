@@ -10,22 +10,22 @@ import java.sql.Statement;
 
 @Ignore
 public class LoadTest extends BaseTest {
-	
-    @Test    
+
+    @Test
     public void tm() throws SQLException {
         Connection drizConnection = openNewConnection(connU);
         setConnection();
-              
+
         long sum = 0;
         int i;
-        for(i=0;i<10;i++) {
-          sum+=this.loadTest(drizConnection);
+        for(i=0; i<10; i++) {
+            sum+=this.loadTest(drizConnection);
             log.finest(String.valueOf(i));
         }
         log.finest(String.valueOf(sum / i));
         sum = 0;
-        for(i = 0;i<10;i++) {
-          sum+=this.loadTest(connection);
+        for(i = 0; i<10; i++) {
+            sum+=this.loadTest(connection);
             log.finest(String.valueOf(i));
         }
         log.finest(String.valueOf(sum/i));
@@ -37,12 +37,12 @@ public class LoadTest extends BaseTest {
         stmt.executeUpdate("create table loadsofdata (id int not null primary key auto_increment, data varchar(250)) engine=innodb");
         stmt.close();
         long startTime=System.currentTimeMillis();
-        for(int i=0;i<100;i++) {
+        for(int i=0; i<100; i++) {
             stmt=connection.createStatement();
             stmt.executeUpdate("insert into loadsofdata (data) values ('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"+i+"')");
             stmt.close();
         }
-        for(int i=0;i<100;i++){
+        for(int i=0; i<100; i++) {
             stmt=connection.createStatement();
             ResultSet rs = stmt.executeQuery("select * from loadsofdata ");
             while(rs.next()) {
@@ -64,7 +64,7 @@ public class LoadTest extends BaseTest {
         stmt.executeUpdate("drop table if exists loadsofdata2");
         stmt.executeUpdate("create table loadsofdata2 (id int not null primary key auto_increment, data blob) engine=innodb");
         byte [] theBytes = new byte[500];
-        for(int i=0;i<500; i++) {
+        for(int i=0; i<500; i++) {
             theBytes[i]= (byte) i;
         }
         long startTime=System.currentTimeMillis();
@@ -148,7 +148,7 @@ public class LoadTest extends BaseTest {
         log.fine(String.valueOf(System.currentTimeMillis() - startTime));
         stmt.executeUpdate("drop table if exists loadsofdata3");
         stmt.executeUpdate("create table loadsofdata3 (id int not null primary key auto_increment,"+sb.toString()+") engine=innodb");
-        
+
         startTime=System.currentTimeMillis();
         for(int i=0; i < 10000; i++) {
             PreparedStatement ps = connection.prepareStatement(query);

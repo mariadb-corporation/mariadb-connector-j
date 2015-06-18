@@ -17,42 +17,42 @@ public class ParameterWriter {
     static final byte[] QUOTE = {'\''};
 
     private static void writeBytesEscaped(OutputStream out, byte[] bytes, int count, boolean noBackslashEscapes)
-            throws IOException{
+    throws IOException {
         if (noBackslashEscapes) {
-           for (int i = 0; i < count; i++) {
+            for (int i = 0; i < count; i++) {
                 byte b = bytes[i];
                 switch(b) {
-                    case '\'':
-                        out.write('\'');
-                        out.write(b);
-                        break;
-                    default:
-                        out.write(b);
+                case '\'':
+                    out.write('\'');
+                    out.write(b);
+                    break;
+                default:
+                    out.write(b);
                 }
-           }
+            }
         } else {
             for (int i = 0; i < count; i++) {
                 byte b = bytes[i];
                 switch(b) {
-                    case '\\':
-                    case '\'':
-                    case '"':
-                    case 0:
-                        out.write('\\');
-                        out.write(b);
-                        break;
-                    default:
-                        out.write(b);
+                case '\\':
+                case '\'':
+                case '"':
+                case 0:
+                    out.write('\\');
+                    out.write(b);
+                    break;
+                default:
+                    out.write(b);
                 }
             }
         }
     }
 
-    private static void writeBytesEscaped(OutputStream out, byte[] bytes, boolean noBackslashEscapes) throws IOException{
+    private static void writeBytesEscaped(OutputStream out, byte[] bytes, boolean noBackslashEscapes) throws IOException {
         writeBytesEscaped(out, bytes, bytes.length, noBackslashEscapes);
     }
 
-    public static void write(OutputStream out, byte[] bytes, boolean noBackslashEscapes) throws IOException{
+    public static void write(OutputStream out, byte[] bytes, boolean noBackslashEscapes) throws IOException {
         out.write(BINARY_INTRODUCER);
         writeBytesEscaped(out, bytes, noBackslashEscapes);
         out.write(QUOTE);
@@ -65,7 +65,7 @@ public class ParameterWriter {
         out.write(QUOTE);
     }
 
-    public static void write(OutputStream out, InputStream is, boolean noBackslashEscapes, boolean isText) throws IOException{
+    public static void write(OutputStream out, InputStream is, boolean noBackslashEscapes, boolean isText) throws IOException {
         if (isText) {
             out.write(QUOTE);
         } else {
@@ -79,7 +79,7 @@ public class ParameterWriter {
         out.write(QUOTE);
     }
 
-     public static void write(OutputStream out, InputStream is, long length, boolean noBackslashEscapes, boolean isText) throws IOException{
+    public static void write(OutputStream out, InputStream is, long length, boolean noBackslashEscapes, boolean isText) throws IOException {
         if (isText) {
             out.write(QUOTE);
         } else {
@@ -107,13 +107,13 @@ public class ParameterWriter {
         char[] buffer = new char[1024];
         int len;
         while ((len = reader.read(buffer)) >= 0) {
-             writeBytesEscaped(out, new String(buffer,0, len).getBytes(UTF8), noBackslashEscapes);
+            writeBytesEscaped(out, new String(buffer,0, len).getBytes(UTF8), noBackslashEscapes);
         }
         out.write(QUOTE);
     }
 
-     public static void write(OutputStream out, java.io.Reader reader, long length, boolean noBackslashEscapes)
-             throws IOException{
+    public static void write(OutputStream out, java.io.Reader reader, long length, boolean noBackslashEscapes)
+    throws IOException {
         out.write(QUOTE);
         char[] buffer = new char[1024];
         long charsLeft = length;
@@ -133,12 +133,12 @@ public class ParameterWriter {
         out.write(QUOTE);
     }
 
-    public static void write(OutputStream out, int i) throws IOException{
+    public static void write(OutputStream out, int i) throws IOException {
         out.write(String.valueOf(i).getBytes());
     }
 
     public static void write(OutputStream out, long l) throws IOException {
-       out.write(String.valueOf(l).getBytes());
+        out.write(String.valueOf(l).getBytes());
     }
 
     public static void write(OutputStream out, double d) throws IOException {
@@ -150,15 +150,15 @@ public class ParameterWriter {
     }
 
     public static void writeDate(OutputStream out, java.util.Date date, Calendar calendar) throws IOException {
-       out.write(QUOTE);
-       String dateString;
-       SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-       if (calendar != null) {
-           sdf.setCalendar(calendar);
-       }
-       dateString = sdf.format(date);
-       out.write(dateString.getBytes());
-       out.write(QUOTE);
+        out.write(QUOTE);
+        String dateString;
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        if (calendar != null) {
+            sdf.setCalendar(calendar);
+        }
+        dateString = sdf.format(date);
+        out.write(dateString.getBytes());
+        out.write(QUOTE);
     }
 
     static void formatMicroseconds(OutputStream out, int microseconds, boolean writeFractionalSeconds) throws IOException {
@@ -176,31 +176,31 @@ public class ParameterWriter {
 
 
     public static void writeTimestamp(OutputStream out, Timestamp ts, Calendar calendar, boolean writeFractionalSeconds)
-            throws IOException {
-       out.write(QUOTE);
-       SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-       if (calendar != null) {
-           sdf.setCalendar(calendar);
-       }
-       String dateString = sdf.format(ts);
-       out.write(dateString.getBytes());
-       formatMicroseconds(out, ts.getNanos() / 1000, writeFractionalSeconds);
-       out.write(QUOTE);
+    throws IOException {
+        out.write(QUOTE);
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        if (calendar != null) {
+            sdf.setCalendar(calendar);
+        }
+        String dateString = sdf.format(ts);
+        out.write(dateString.getBytes());
+        formatMicroseconds(out, ts.getNanos() / 1000, writeFractionalSeconds);
+        out.write(QUOTE);
     }
 
 
     public static void writeTime(OutputStream out, Time time, Calendar calendar, boolean writeFractionalSeconds)
-            throws IOException{
-       out.write(QUOTE);
-       SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
-       if (calendar != null) {
-           sdf.setCalendar(calendar);
-       }
-       String dateString = sdf.format(time);
-       out.write(dateString.getBytes());
-       int microseconds =  (int)(time.getTime()%1000) * 1000;
-       formatMicroseconds(out, microseconds, writeFractionalSeconds);
-       out.write(QUOTE);
+    throws IOException {
+        out.write(QUOTE);
+        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+        if (calendar != null) {
+            sdf.setCalendar(calendar);
+        }
+        String dateString = sdf.format(time);
+        out.write(dateString.getBytes());
+        int microseconds =  (int)(time.getTime()%1000) * 1000;
+        formatMicroseconds(out, microseconds, writeFractionalSeconds);
+        out.write(QUOTE);
     }
 
     public static void writeObject(OutputStream out, Object o, boolean noBackslashEscapes)throws IOException {

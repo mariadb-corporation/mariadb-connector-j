@@ -125,8 +125,8 @@ public final class Driver implements java.sql.Driver {
      * @throws SQLException if there is a problem getting the property info
      */
     public DriverPropertyInfo[] getPropertyInfo(String url,
-                                                Properties info)
-            throws SQLException {
+            Properties info)
+    throws SQLException {
         return new DriverPropertyInfo[0];
     }
 

@@ -8,7 +8,7 @@ import java.sql.*;
 import static org.junit.Assert.*;
 
 
-public class BooleanTest extends BaseTest{
+public class BooleanTest extends BaseTest {
     @Test
     public void testBoolean() throws SQLException {
         Statement stmt = connection.createStatement();

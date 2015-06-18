@@ -19,8 +19,10 @@ import java.util.logging.Logger;
 
 import org.junit.Test;
 
-public class DateTest extends BaseTest{
-    static { Logger.getLogger("").setLevel(Level.OFF); }
+public class DateTest extends BaseTest {
+    static {
+        Logger.getLogger("").setLevel(Level.OFF);
+    }
 
     public DateTest() {
 
@@ -72,8 +74,8 @@ public class DateTest extends BaseTest{
         ps1.setTimestamp(2,timestamp3);
         ResultSet rs= ps1.executeQuery();
         assertEquals(true,rs.next());
-        Timestamp ts1= rs.getTimestamp(1); 
-        Timestamp ts2= rs.getTimestamp(2); 
+        Timestamp ts1= rs.getTimestamp(1);
+        Timestamp ts2= rs.getTimestamp(2);
         assertEquals(ts1.toString(), timestamp1.toString());
         assertEquals(ts2.toString(), timestamp2.toString());
 
@@ -113,9 +115,9 @@ public class DateTest extends BaseTest{
         Date[] data2 = new Date[] {null, Date.valueOf("1970-01-01"), Date.valueOf("2000-01-01"), Date.valueOf("1969-01-01")};
         int count = 0;
         while(rs.next()) {
-        	assertEquals(data1[count], rs.getObject(1));
-        	assertEquals(data2[count], rs.getObject(2));
-        	count++;
+            assertEquals(data1[count], rs.getObject(1));
+            assertEquals(data2[count], rs.getObject(2));
+            count++;
         }
     }
     @Test
@@ -128,8 +130,8 @@ public class DateTest extends BaseTest{
         Time[] data = new Time[] {null, Time.valueOf("-838:59:59"), Time.valueOf("00:00:00"), Time.valueOf("838:59:59")};
         int count = 0;
         while(rs.next()) {
-        	assertEquals(data[count], rs.getObject(1));
-        	count++;
+            assertEquals(data[count], rs.getObject(1));
+            count++;
         }
         rs.close();
         Calendar cal = Calendar.getInstance();
@@ -138,7 +140,7 @@ public class DateTest extends BaseTest{
         Time t = rs.getTime(1,cal);
         assertEquals(t.toString(), "11:11:11");
     }
-    
+
     @Test
     public void timestampZeroTest() throws SQLException {
         connection.createStatement().execute("drop table if exists timestampzerotest");
@@ -146,7 +148,7 @@ public class DateTest extends BaseTest{
         String timestampZero = "0000-00-00 00:00:00";
         String dateZero = "0000-00-00";
         connection.createStatement().execute("insert into timestampzerotest values ('"
-        		+ timestampZero + "', '" + timestampZero + "', '" + dateZero + "')");
+                                             + timestampZero + "', '" + timestampZero + "', '" + dateZero + "')");
         Statement stmt = connection.createStatement();
         ResultSet rs = stmt.executeQuery("select * from timestampzerotest");
         Timestamp ts = null;
@@ -180,7 +182,7 @@ public class DateTest extends BaseTest{
         /* Check that time is correct, up to seconds precision */
         assertEquals(d.getTime()/1000,rs.getTimestamp(1).getTime()/1000);
     }
-    
+
     @Test
     public void nullTimestampTest() throws SQLException {
         PreparedStatement ps = connection.prepareStatement("insert into dtest values(null)");
@@ -194,35 +196,35 @@ public class DateTest extends BaseTest{
     @SuppressWarnings( "deprecation" )
     @Test
     public void javaUtilDateInPreparedStatementAsDate() throws Exception {
-          connection.createStatement().execute("drop table if exists dtest");
-          connection.createStatement().execute("create table dtest (d date)");
-          java.util.Date d = Calendar.getInstance(TimeZone.getDefault()).getTime();
-          PreparedStatement ps = connection.prepareStatement("insert into dtest values(?)");
-          ps.setObject(1, d, Types.DATE);
-          ps.executeUpdate();
-          ResultSet rs = connection.createStatement().executeQuery("select * from dtest");
-          rs.next();
-          /* Check that time is correct, up to seconds precision */
-          assertEquals(d.getYear(),rs.getDate(1).getYear());
-          assertEquals(d.getMonth(),rs.getDate(1).getMonth());
-          assertEquals(d.getDay(),rs.getDate(1).getDay());
+        connection.createStatement().execute("drop table if exists dtest");
+        connection.createStatement().execute("create table dtest (d date)");
+        java.util.Date d = Calendar.getInstance(TimeZone.getDefault()).getTime();
+        PreparedStatement ps = connection.prepareStatement("insert into dtest values(?)");
+        ps.setObject(1, d, Types.DATE);
+        ps.executeUpdate();
+        ResultSet rs = connection.createStatement().executeQuery("select * from dtest");
+        rs.next();
+        /* Check that time is correct, up to seconds precision */
+        assertEquals(d.getYear(),rs.getDate(1).getYear());
+        assertEquals(d.getMonth(),rs.getDate(1).getMonth());
+        assertEquals(d.getDay(),rs.getDate(1).getDay());
     }
 
     @SuppressWarnings( "deprecation" )
     @Test
     public void javaUtilDateInPreparedStatementAsTime() throws Exception {
-          connection.createStatement().execute("drop table if exists dtest");
-          connection.createStatement().execute("create table dtest (d  time)");
-          java.util.Date d = Calendar.getInstance(TimeZone.getDefault()).getTime();
-          PreparedStatement ps = connection.prepareStatement("insert into dtest values(?)");
-          ps.setObject(1, d, Types.TIME);
-          ps.executeUpdate();
-          ResultSet rs = connection.createStatement().executeQuery("select * from dtest");
-          rs.next();
-          /* Check that time is correct, up to seconds precision */
-          assertEquals(d.getHours(),rs.getTime(1).getHours());
-          assertEquals(d.getMinutes(),rs.getTime(1).getMinutes());
-          assertEquals(d.getSeconds(),rs.getTime(1).getSeconds());
+        connection.createStatement().execute("drop table if exists dtest");
+        connection.createStatement().execute("create table dtest (d  time)");
+        java.util.Date d = Calendar.getInstance(TimeZone.getDefault()).getTime();
+        PreparedStatement ps = connection.prepareStatement("insert into dtest values(?)");
+        ps.setObject(1, d, Types.TIME);
+        ps.executeUpdate();
+        ResultSet rs = connection.createStatement().executeQuery("select * from dtest");
+        rs.next();
+        /* Check that time is correct, up to seconds precision */
+        assertEquals(d.getHours(),rs.getTime(1).getHours());
+        assertEquals(d.getMinutes(),rs.getTime(1).getMinutes());
+        assertEquals(d.getSeconds(),rs.getTime(1).getSeconds());
     }
 
     @Test
@@ -249,27 +251,27 @@ public class DateTest extends BaseTest{
         java.sql.Timestamp ts2 =  rs.getTimestamp(2);
         assertTrue(Math.abs(ts.getTime() - ts2.getTime()) < 1000); /* query take less than a second */
     }
-    
+
     /**
      * CONJ-107
-     * @throws SQLException 
+     * @throws SQLException
      */
     @Test
     public void timestampMillisecondsTest() throws SQLException {
-    	Statement statement = connection.createStatement();
-    	statement.execute("DROP TABLE IF EXISTS tt");
-    	statement.execute("CREATE TABLE tt (id decimal(10), create_time datetime(6) default 0)");
-    	statement.execute("INSERT INTO tt (id, create_time) VALUES (1,'2013-07-18 13:44:22.123456')");
-    	PreparedStatement ps = connection.prepareStatement("insert into tt (id, create_time) values (?,?)");
-    	ps.setInt(1, 2);
-    	Timestamp writeTs = new Timestamp(1273017612999L);
-    	ps.setTimestamp(2, writeTs);
-    	ps.execute();
-    	ResultSet rs = statement.executeQuery("SELECT * FROM tt");
-    	assertTrue(rs.next());
-    	assertTrue("2013-07-18 13:44:22.123456".equals(rs.getString(2)));
-    	assertTrue(rs.next());
-    	Timestamp readTs = rs.getTimestamp(2);
-    	assertEquals(writeTs, readTs);
+        Statement statement = connection.createStatement();
+        statement.execute("DROP TABLE IF EXISTS tt");
+        statement.execute("CREATE TABLE tt (id decimal(10), create_time datetime(6) default 0)");
+        statement.execute("INSERT INTO tt (id, create_time) VALUES (1,'2013-07-18 13:44:22.123456')");
+        PreparedStatement ps = connection.prepareStatement("insert into tt (id, create_time) values (?,?)");
+        ps.setInt(1, 2);
+        Timestamp writeTs = new Timestamp(1273017612999L);
+        ps.setTimestamp(2, writeTs);
+        ps.execute();
+        ResultSet rs = statement.executeQuery("SELECT * FROM tt");
+        assertTrue(rs.next());
+        assertTrue("2013-07-18 13:44:22.123456".equals(rs.getString(2)));
+        assertTrue(rs.next());
+        Timestamp readTs = rs.getTimestamp(2);
+        assertEquals(writeTs, readTs);
     }
 }
