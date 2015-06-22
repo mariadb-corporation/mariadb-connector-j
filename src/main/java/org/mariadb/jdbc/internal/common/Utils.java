@@ -48,6 +48,10 @@ OF SUCH DAMAGE.
 */
 package org.mariadb.jdbc.internal.common;
 
+import org.mariadb.jdbc.JDBCUrl;
+import org.mariadb.jdbc.internal.mysql.*;
+
+import java.lang.reflect.Proxy;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
@@ -511,30 +515,34 @@ public class Utils {
         return sqlBuffer.toString();
     }
     
-    /**
-     * Adds the parsed parameter to the properties object.
-     * 
-     * @param parameter a key=value pair
-     * @param info the properties object
-     */
-    public static void setUrlParameter(String parameter, Properties info) {
-    	int pos = parameter.indexOf('=');
-        if (pos == -1)  {
-            throw new IllegalArgumentException("Invalid connection URL, expected key=value pairs, found " + parameter);
+
+
+    public static Protocol retrieveProxy(JDBCUrl jdbcUrl) throws QueryException, SQLException {
+        Protocol proxyfiedProtocol;
+        if (jdbcUrl.getHostAddresses().length == 1) {
+            proxyfiedProtocol = (Protocol) Proxy.newProxyInstance(
+                    MySQLProtocol.class.getClassLoader(),
+                    new Class[]{Protocol.class},
+                    new FailoverProxy(new MySQLProtocol(jdbcUrl), new SingleHostListener()));
+        } else {
+            String favor = jdbcUrl.getProperties().getProperty("favor");
+            if ("aurora".equals(favor)) {
+                proxyfiedProtocol = (Protocol) Proxy.newProxyInstance(
+                        AuroraMultiNodesProtocol.class.getClassLoader(),
+                        new Class[] {Protocol.class},
+                        new FailoverProxy(new AuroraMultiNodesProtocol(jdbcUrl), new AuroraListener()));
+            } else if ("master-slave".equals(favor)) {
+                proxyfiedProtocol = (Protocol) Proxy.newProxyInstance(
+                        MultiNodesProtocol.class.getClassLoader(),
+                        new Class[] {Protocol.class},
+                        new FailoverProxy(new MultiNodesProtocol(jdbcUrl), new MultiHostListener()));
+            } else {
+                proxyfiedProtocol = (Protocol) Proxy.newProxyInstance(
+                        MySQLProtocol.class.getClassLoader(),
+                        new Class[]{Protocol.class},
+                        new FailoverProxy(new MySQLProtocol(jdbcUrl), new SingleHostListener()));
+            }
         }
-        info.setProperty(parameter.substring(0, pos), parameter.substring(pos + 1));
-    }
-    
-    /**
-     * Parses the parameters string and sets the corresponding properties in the properties object.
-     * 
-     * @param urlParameters the parameters string
-     * @param info the properties object
-     */
-    public static void setUrlParameters(String urlParameters, Properties info) {
-    	String [] parameters = urlParameters.split("&");
-    	for(String parameter : parameters) {
-    		setUrlParameter(parameter, info);
-    	}
+        return proxyfiedProtocol;
     }
 }

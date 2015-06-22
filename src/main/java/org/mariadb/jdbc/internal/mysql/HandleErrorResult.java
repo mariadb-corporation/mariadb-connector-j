@@ -20,7 +20,7 @@ This particular MariaDB Client for Java file is work
 derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
 the following copyright and notice provisions:
 
-Copyright (c) 2009-2011, Marcus Eriksson, Stephane Giron
+Copyright (c) 2009-2011, Marcus Eriksson
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
@@ -47,55 +47,9 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc.internal.common.packet.commands;
+package org.mariadb.jdbc.internal.mysql;
 
-import org.mariadb.jdbc.internal.common.QueryException;
-import org.mariadb.jdbc.internal.common.packet.CommandPacket;
-import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
-import org.mariadb.jdbc.internal.common.query.Query;
-
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.List;
-
-
-public class StreamedQueryPacket implements CommandPacket {
-
-    private List<Query> queries;
-    private boolean isRewritable;
-    private int rewriteOffset;
-
-    public StreamedQueryPacket(final List<Query> queries, boolean isRewritable, int rewriteOffset) {
-        this.queries = queries;
-        this.isRewritable = isRewritable;
-        this.rewriteOffset = rewriteOffset;
-    }
-
-    public int send(final OutputStream ostream) throws IOException, QueryException {
-
-        if (queries.size() == 1) {
-            PacketOutputStream pos = (PacketOutputStream)ostream;
-            pos.startPacket(0);
-            pos.write(0x03);
-            queries.get(0).writeTo(ostream);
-            pos.finishPacket();
-        } else {
-            PacketOutputStream pos = (PacketOutputStream)ostream;
-            pos.startPacket(0);
-            pos.write(0x03);
-            queries.get(0).writeTo(ostream);
-            for (int i=1;i<queries.size();i++) {
-                if (isRewritable) {
-                    queries.get(i).writeToRewritablePart(ostream, rewriteOffset);
-                } else {
-                    pos.write(';');
-                    queries.get(i).writeTo(ostream);
-                }
-            }
-            pos.finishPacket();
-        }
-        return 0;
-    }
-
+public class HandleErrorResult {
+    public boolean mustThrowError = true;
+    public Object resultObject = null;
 }
