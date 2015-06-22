@@ -1263,12 +1263,13 @@ public class MySQLStatement implements Statement {
         boolean rewriteBatchedStatements = "true".equals(getProtocol().getInfo().getProperty("rewriteBatchedStatements"));
         if (rewriteBatchedStatements) allowMultiQueries=true;
         try {
-        	synchronized (this.protocol) {
+            synchronized (this.protocol) {
                 if (allowMultiQueries) {
                     int size = batchQueries.size();
+                    boolean rewrittenBatch = isRewriteable && rewriteBatchedStatements;
                     MySQLStatement ps = (MySQLStatement) connection.createStatement();
-                    ps.execute(batchQueries, isRewriteable && rewriteBatchedStatements, (isRewriteable && rewriteBatchedStatements)?firstRewrite.length():0);
-                    return isRewriteable?getUpdateCountsForReWrittenBatch(ps, size):getUpdateCounts(ps, size);
+                    ps.execute(batchQueries, rewrittenBatch, rewrittenBatch?firstRewrite.length():0);
+                    return rewrittenBatch?getUpdateCountsForReWrittenBatch(ps, size):getUpdateCounts(ps, size);
                 } else {
         			for(; i < batchQueries.size(); i++)  {
         				execute(batchQueries.get(i));
