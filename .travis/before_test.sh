@@ -47,27 +47,11 @@ else
     sudo apt-get install mariadb-server
 fi
 
-if [ "x$MAX_ALLOWED_PACKET" == "1M" ]
-then
 sudo tee /etc/mysql/conf.d/map.cnf << END
 [mysqld]
-max_allowed_packet=1M
-innodb_log_file_size=4M
+max_allowed_packet=$MAX_ALLOWED_PACKET
+innodb_log_file_size=$INNODB_LOG_FILE_SIZE
 END
-elif [ "x$MAX_ALLOWED_PACKET" == "16M" ]
-then
-sudo tee /etc/mysql/conf.d/map.cnf << END
-[mysqld]
-max_allowed_packet=16M
-innodb_log_file_size=64M
-END
-else
-sudo tee /etc/mysql/conf.d/map.cnf << END
-[mysqld]
-max_allowed_packet=160M
-innodb_log_file_size=640M
-END
-fi
 
 sudo service mysql restart
 
