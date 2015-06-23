@@ -255,10 +255,10 @@ public class MySQLDriverTest extends BaseTest {
         char[] str= new char[16*1024*1024];
         Arrays.fill(str, 'a');
         String sql=  "select length(?) as len";
-
+        int packetHeaderSize = 4 + 2; //packet header + 2 because of string escape
         PreparedStatement ps = connection.prepareStatement(sql);
-        for (int i=16*1024*1024 - sql.length() -5;
-             i < 16*1024*1024 - sql.length();
+        for (int i=16*1024*1024 - sql.length() -5 - packetHeaderSize;
+             i < 16*1024*1024 - sql.length() - packetHeaderSize;
              i++) {
             String val = new String(str,0, i);
             ps.setString(1,val);

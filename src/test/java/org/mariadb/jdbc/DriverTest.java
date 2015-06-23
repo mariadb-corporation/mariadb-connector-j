@@ -1142,7 +1142,7 @@ public class DriverTest extends BaseTest{
             int max_allowed_packet = rs.getInt(1);
 
             int selectSize = 9;
-            int packetHeader = 4;
+            int packetHeader = 4 - 2; //packet header + 2 escape slash beacause of string escape
             char arr[] = new char[16 * 1024 * 1024 - selectSize - packetHeader];
             Arrays.fill(arr, 'a');
             String request = "select '" + new String(arr) + "'";
