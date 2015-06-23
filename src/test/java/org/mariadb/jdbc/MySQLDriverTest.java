@@ -233,9 +233,10 @@ public class MySQLDriverTest extends BaseTest {
         Arrays.fill(str, 'a');
         String prefix= "select length('";
         String suffix= "') as len";
+        int packetHeaderSize = 4 + 2 ; //packet head +2 escape for String parameter
 
-        for (int i=16*1024*1024 - prefix.length()  -suffix.length() -5 ;
-             i < 16*1024*1024 - prefix.length()  -suffix.length();
+        for (int i=16*1024*1024 - prefix.length()  -suffix.length() -5 - packetHeaderSize ;
+             i < 16*1024*1024 - prefix.length()  -suffix.length()  - packetHeaderSize;
              i++) {
             String query = prefix;
             String val = new String(str,0, i);
@@ -288,10 +289,11 @@ public class MySQLDriverTest extends BaseTest {
             char[] str= new char[16*1024*1024];
             Arrays.fill(str, 'a');
             String sql=  "select ?";
+            int packetHeaderSize = 4 + 2 ; //packet head +2 escape for String parameter
 
             PreparedStatement ps = connection.prepareStatement(sql);
-            for (int i=16*1024*1024 - sql.length() -5;
-                 i < 16*1024*1024 - sql.length();
+            for (int i=16*1024*1024 - sql.length() -5 - packetHeaderSize ;
+                 i < 16*1024*1024 - sql.length() - packetHeaderSize;
                  i++) {
                 String val = new String(str,0, i);
                 ps.setString(1,val);

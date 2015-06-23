@@ -23,8 +23,8 @@ then
     remove_mysql
 
     sudo tee /etc/apt/sources.list.d/mysql.list << END
-deb http://repo.mysql.com/apt/debian/ wheezy mysql-$MYSQL_VERSION
-deb-src http://repo.mysql.com/apt/debian/ wheezy mysql-$MYSQL_VERSION
+deb http://repo.mysql.com/apt/ubuntu/ precise mysql-$MYSQL_VERSION
+deb-src http://repo.mysql.com/apt/ubuntu/ precise mysql-$MYSQL_VERSION
 END
 
     sudo apt-key adv --keyserver pool.sks-keyservers.net --recv-keys $MYSQ_GPG_KEY
@@ -40,7 +40,7 @@ else
     sudo apt-get install python-software-properties
 
     sudo apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 0xcbcb082a1bb943db
-    sudo add-apt-repository "deb http://ftp.igh.cnrs.fr/pub/mariadb/repo/${MARIA_VERSION}/debian wheezy main"
+    sudo add-apt-repository "deb http://ftp.igh.cnrs.fr/pub/mariadb/repo/${MARIA_VERSION}/ubuntu precise main"
 
     sudo apt-get update
 
@@ -50,6 +50,7 @@ fi
 sudo tee /etc/mysql/conf.d/map.cnf << END
 [mysqld]
 max_allowed_packet=$MAX_ALLOWED_PACKET
+innodb_log_file_size=$[4*$MAX_ALLOWED_PACKET]
 END
 
 sudo service mysql restart

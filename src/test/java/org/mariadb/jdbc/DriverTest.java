@@ -1130,15 +1130,25 @@ public class DriverTest extends BaseTest{
         connection.createStatement().executeUpdate("drop database test_testdrop");
     }
 
-     @Test
+    @Test
     public void testError() throws SQLException {
         // check that max_allowed_packet is big enough for the test
-    	Assume.assumeTrue(checkMaxAllowedPacket("testError"));
-            
+        Assume.assumeTrue(checkMaxAllowedPacket("testError"));
+
         try {
-            char arr[] = new char[16*1024*1024-1];
-            Arrays.fill(arr,'a');
-            ResultSet rs = connection.createStatement().executeQuery("select '" + new String(arr) + "'");
+
+            ResultSet rs = connection.createStatement().executeQuery("select @@max_allowed_packet");
+            rs.next();
+            int max_allowed_packet = rs.getInt(1);
+
+            int selectSize = 9;
+            int packetHeader = 4;
+            char arr[] = new char[16 * 1024 * 1024 - selectSize - packetHeader];
+            Arrays.fill(arr, 'a');
+            String request = "select '" + new String(arr) + "'";
+            System.out.println("request size : " + (request.length()) + " / " + max_allowed_packet);
+
+            rs = connection.createStatement().executeQuery(request);
             rs.next();
             log.finest(String.valueOf(rs.getString(1).length()));
         } finally {

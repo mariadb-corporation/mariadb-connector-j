@@ -63,18 +63,15 @@ import static org.hamcrest.CoreMatchers.*;
             assertEquals(res, 1);
         }
 
-        @Test
+        @Test(expected = SQLException.class)
         public void useWrongParameterName() throws Exception {
             createProcedure("useWrongParameterName", "(a int) begin select a; end");
             CallableStatement stmt = connection.prepareCall("{call useParameterName(?)}");
-
-            try {
-                stmt.setInt("b",1);
-                fail("must fail");
-            } catch (SQLException sqle) {
-                assertTrue(sqle.getMessage().equals("there is no parameter with the name b"));
-            }
+            stmt.setInt("b", 1);
+            fail("must fail");
         }
+
+
         @Test
         public void multiResultSets() throws Exception {
             createProcedure("multiResultSets", "() BEGIN  SELECT 1; SELECT 2; END");

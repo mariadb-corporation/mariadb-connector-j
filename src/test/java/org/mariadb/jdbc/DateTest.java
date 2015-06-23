@@ -239,7 +239,7 @@ public class DateTest extends BaseTest{
         java.sql.Timestamp ts  =  rs.getTimestamp(1);
         long differenceToGMT = ts.getTime() - now.getTime();
         long diff = Math.abs(differenceToGMT - offset);
-        assertTrue(diff < 1000); /* query take less than a second */
+        assertTrue(diff < 2000); /* query take less than a second */
 
         ps = connection.prepareStatement("select utc_timestamp(), ?");
         ps.setObject(1,now);
@@ -249,27 +249,43 @@ public class DateTest extends BaseTest{
         java.sql.Timestamp ts2 =  rs.getTimestamp(2);
         assertTrue(Math.abs(ts.getTime() - ts2.getTime()) < 1000); /* query take less than a second */
     }
-    
+
     /**
      * CONJ-107
-     * @throws SQLException 
+     * @throws SQLException
      */
     @Test
     public void timestampMillisecondsTest() throws SQLException {
-    	Statement statement = connection.createStatement();
-    	statement.execute("DROP TABLE IF EXISTS tt");
-    	statement.execute("CREATE TABLE tt (id decimal(10), create_time datetime(6) default 0)");
-    	statement.execute("INSERT INTO tt (id, create_time) VALUES (1,'2013-07-18 13:44:22.123456')");
-    	PreparedStatement ps = connection.prepareStatement("insert into tt (id, create_time) values (?,?)");
-    	ps.setInt(1, 2);
-    	Timestamp writeTs = new Timestamp(1273017612999L);
-    	ps.setTimestamp(2, writeTs);
-    	ps.execute();
-    	ResultSet rs = statement.executeQuery("SELECT * FROM tt");
-    	assertTrue(rs.next());
-    	assertTrue("2013-07-18 13:44:22.123456".equals(rs.getString(2)));
-    	assertTrue(rs.next());
-    	Timestamp readTs = rs.getTimestamp(2);
-    	assertEquals(writeTs, readTs);
+        Statement statement = connection.createStatement();
+        statement.execute("DROP TABLE IF EXISTS tt");
+
+        boolean isMariadbServer = isMariadbServer();
+        if (isMariadbServer) {
+            statement.execute("CREATE TABLE tt (id decimal(10), create_time datetime(6) default 0)");
+            statement.execute("INSERT INTO tt (id, create_time) VALUES (1,'2013-07-18 13:44:22.123456')");
+        } else {
+            statement.execute("CREATE TABLE tt (id decimal(10), create_time datetime default 0)");
+            statement.execute("INSERT INTO tt (id, create_time) VALUES (1,'2013-07-18 13:44:22')");
+        }
+        PreparedStatement ps = connection.prepareStatement("insert into tt (id, create_time) values (?,?)");
+        ps.setInt(1, 2);
+        Timestamp writeTs = new Timestamp(1273017612999L);
+        Timestamp writeTsWithoutMilliSec = new Timestamp(1273017612999L);
+        ps.setTimestamp(2, writeTs);
+        ps.execute();
+        ResultSet rs = statement.executeQuery("SELECT * FROM tt");
+        assertTrue(rs.next());
+        if (isMariadbServer) {
+            assertTrue("2013-07-18 13:44:22.123456".equals(rs.getString(2)));
+        } else {
+            assertTrue("2013-07-18 13:44:22".equals(rs.getString(2)));
+        }
+        assertTrue(rs.next());
+        Timestamp readTs = rs.getTimestamp(2);
+        if (isMariadbServer) {
+            assertEquals(writeTs, readTs);
+        } else {
+            assertEquals(writeTs, writeTsWithoutMilliSec);
+        }
     }
 }

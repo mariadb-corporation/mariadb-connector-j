@@ -1,6 +1,8 @@
 sudo: required
 language: java
-before_install: .travis/before_install.sh
+before_install:
+    - chmod +x .travis/before_test.sh
+install: .travis/before_test.sh
 jdk:
     - oraclejdk8
     - oraclejdk7
