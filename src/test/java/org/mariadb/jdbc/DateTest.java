@@ -17,6 +17,8 @@ import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class DateTest extends BaseTest{
@@ -24,6 +26,11 @@ public class DateTest extends BaseTest{
 
     public DateTest() {
 
+    }
+    @Before
+    public void beforeDateTest() throws SQLException {
+        connection.createStatement().execute("drop table if exists dtest");
+        connection.createStatement().execute("create table dtest (d date)");
     }
 
     @Test
@@ -194,8 +201,6 @@ public class DateTest extends BaseTest{
     @SuppressWarnings( "deprecation" )
     @Test
     public void javaUtilDateInPreparedStatementAsDate() throws Exception {
-          connection.createStatement().execute("drop table if exists dtest");
-          connection.createStatement().execute("create table dtest (d date)");
           java.util.Date d = Calendar.getInstance(TimeZone.getDefault()).getTime();
           PreparedStatement ps = connection.prepareStatement("insert into dtest values(?)");
           ps.setObject(1, d, Types.DATE);

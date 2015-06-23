@@ -261,7 +261,7 @@ public class DatabaseMetadataTest extends BaseTest{
         ResultSet rs = dbmd.getTables(null,null,"prim_key",null);
 
         //mysql 5.5 not compatible
-        if (!isMariadbServer()) requireMinimumVersion(5,5);
+        if (!isMariadbServer()) requireMinimumVersion(5,6);
 
         assertEquals(true,rs.next());
         rs = dbmd.getTables("", null,"prim_key",null);
