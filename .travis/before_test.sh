@@ -53,8 +53,10 @@ max_allowed_packet=$MAX_ALLOWED_PACKET
 innodb_log_file_size=$INNODB_LOG_FILE_SIZE
 END
 
-sudo service mysql restart
-
+sudo mysql -u root -e "SET GLOBAL innodb_fast_shutdown = 1"
+sudo service mysql stop
+sudo rm -f /var/lib/mysql/ib_logfile*
+sudo service mysql start
 
 cat /etc/mysql/my.cnf
 
