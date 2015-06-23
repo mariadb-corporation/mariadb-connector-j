@@ -278,6 +278,12 @@ public class BaseTest {
     {
         log.info(message);
     }
+
+    boolean isMariadbServer() throws SQLException {
+        DatabaseMetaData md = connection.getMetaData();
+        return md.getDatabaseProductVersion().indexOf("MariaDB") != -1;
+    }
+
 }
 
 class CustomFormatter  extends Formatter {
