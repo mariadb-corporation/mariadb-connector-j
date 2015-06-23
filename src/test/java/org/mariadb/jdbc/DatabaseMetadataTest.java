@@ -257,13 +257,25 @@ public class DatabaseMetadataTest extends BaseTest{
     
     @Test
     public void testGetTables() throws SQLException {
+        Statement stmt = connection.createStatement();
+        stmt.execute("drop table if exists fore_key0");
+        stmt.execute("drop table if exists fore_key1");
+        stmt.execute("drop table if exists prim_key");
+
+
+        stmt.execute("create table prim_key (id int not null primary key, " +
+                "val varchar(20)) engine=innodb");
+        stmt.execute("create table fore_key0 (id int not null primary key, " +
+                "id_ref0 int, foreign key (id_ref0) references prim_key(id)) engine=innodb");
+        stmt.execute("create table fore_key1 (id int not null primary key, " +
+                "id_ref1 int, foreign key (id_ref1) references prim_key(id) on update cascade) engine=innodb");
+
         DatabaseMetaData dbmd = connection.getMetaData();
         ResultSet rs = dbmd.getTables(null,null,"prim_key",null);
 
-        //mysql 5.5 not compatible
-        if (!isMariadbServer()) requireMinimumVersion(5,6);
+        /*if (!isMariadbServer()) requireMinimumVersion(5,6);
         System.out.println("isMariadbServer() = "+isMariadbServer() + " "+ dbmd.getDatabaseProductVersion()+" "+ dbmd.getDatabaseMajorVersion() + " "+dbmd.getDatabaseMinorVersion());
-
+*/
         assertEquals(true,rs.next());
         rs = dbmd.getTables("", null,"prim_key",null);
         assertEquals(true,rs.next());
