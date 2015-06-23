@@ -14,10 +14,16 @@ remove_mysql(){
     sudo rm -rf /var/lib/mysql||true
 }
 
-if [ "x$MYSQL_VERSION" == "xtravis" ]
+if [ "x$MYSQL_VERSION" == "x5.5" ]
 then
-    :
-elif [ "x$MYSQL_VERSION" != "x" ]
+    remove_mysql
+
+    sudo apt-get update
+    sudo apt-get install mysql-server
+
+    dpkg -l|grep ^ii|grep mysql-server|grep ${MYSQL_VERSION/-dmr/}
+
+elif [ "x$MYSQL_VERSION" == "x5.6" ]
 then
 
     remove_mysql

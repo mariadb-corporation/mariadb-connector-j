@@ -112,7 +112,7 @@ public class DateTest extends BaseTest{
     @Test
     public void yearTest() throws SQLException {
         connection.createStatement().execute("drop table if exists yeartest");
-        connection.createStatement().execute("create table yeartest (y1 year, y2 year(2))");
+        connection.createStatement().execute("create table yeartest (y1 year, y2 year(4))");
         connection.createStatement().execute("insert into yeartest values (null, null), (1901, 70), (0, 0), (2155, 69)");
         Statement stmt = connection.createStatement();
         ResultSet rs = stmt.executeQuery("select * from yeartest");
@@ -120,8 +120,10 @@ public class DateTest extends BaseTest{
         Date[] data2 = new Date[] {null, Date.valueOf("1970-01-01"), Date.valueOf("2000-01-01"), Date.valueOf("1969-01-01")};
         int count = 0;
         while(rs.next()) {
-        	assertEquals(data1[count], rs.getObject(1));
-        	assertEquals(data2[count], rs.getObject(2));
+            System.out.println("d1 " +data1[count]+" / "+rs.getObject(1));
+            assertEquals(data1[count], rs.getObject(1));
+            System.out.println("d2 " +data2[count]+" / "+rs.getObject(2));
+            assertEquals(data2[count], rs.getObject(2));
         	count++;
         }
     }
