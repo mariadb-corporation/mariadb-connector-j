@@ -262,6 +262,7 @@ public class DatabaseMetadataTest extends BaseTest{
 
         //mysql 5.5 not compatible
         if (!isMariadbServer()) requireMinimumVersion(5,6);
+        System.out.println("isMariadbServer() = "+isMariadbServer() + " "+  dbmd.getDatabaseMajorVersion() + " "+dbmd.getDatabaseMinorVersion());
 
         assertEquals(true,rs.next());
         rs = dbmd.getTables("", null,"prim_key",null);
