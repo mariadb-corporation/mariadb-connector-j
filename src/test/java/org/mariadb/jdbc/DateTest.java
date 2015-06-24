@@ -17,6 +17,7 @@ import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -111,11 +112,13 @@ public class DateTest extends BaseTest{
 
     @Test
     public void yearTest() throws SQLException {
+        Assume.assumeTrue(isMariadbServer());
         connection.createStatement().execute("drop table if exists yeartest");
         connection.createStatement().execute("create table yeartest (y1 year, y2 year(2))");
         connection.createStatement().execute("insert into yeartest values (null, null), (1901, 70), (0, 0), (2155, 69)");
         Statement stmt = connection.createStatement();
         ResultSet rs = stmt.executeQuery("select * from yeartest");
+
         Date[] data1 = new Date[] {null, Date.valueOf("1901-01-01"), Date.valueOf("0000-01-01"), Date.valueOf("2155-01-01")};
         Date[] data2 = new Date[] {null, Date.valueOf("1970-01-01"), Date.valueOf("2000-01-01"), Date.valueOf("1969-01-01")};
         int count = 0;
