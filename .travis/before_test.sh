@@ -60,4 +60,4 @@ sudo service mysql start
 
 cat /etc/mysql/my.cnf
 
-mysql -u root -e "create database test"
+sudo mysql -uroot -e "create database IF NOT EXISTS test"
