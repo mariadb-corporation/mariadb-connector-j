@@ -190,13 +190,9 @@ public class DateTest extends BaseTest{
         ps.executeUpdate();
         ResultSet rs = connection.createStatement().executeQuery("select * from dtest");
         rs.next();
-        if (isMariadbServer()) {
-            assertEquals(d.getTime(), rs.getTimestamp(1).getTime());
-        } else {
-            /* Check that time is correct, up to milliseconds precision */
-            Assert.assertTrue(Math.abs((d.getTime() - rs.getTimestamp(1).getTime()) ) <= 1);
-        }
-    }
+        /* Check that time is correct, up to seconds precision */
+        Assert.assertTrue(Math.abs((d.getTime() - rs.getTimestamp(1).getTime()) ) <= 1000);
+}
     
     @Test
     public void nullTimestampTest() throws SQLException {
