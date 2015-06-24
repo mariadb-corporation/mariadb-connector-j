@@ -17,6 +17,7 @@ import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import junit.framework.Assert;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -190,7 +191,7 @@ public class DateTest extends BaseTest{
         ResultSet rs = connection.createStatement().executeQuery("select * from dtest");
         rs.next();
         /* Check that time is correct, up to seconds precision */
-        assertEquals(d.getTime()/1000,rs.getTimestamp(1).getTime()/1000);
+        Assert.assertTrue(Math.abs((d.getTime() - rs.getTimestamp(1).getTime()) / 1000 ) <= 1);
     }
     
     @Test
