@@ -8,10 +8,10 @@
 MariaDB Connector/J is used to connect applications developed in Java to MariaDB and MySQL databases. MariaDB Connector/J is LGPL licensed.
 
 Tracker link <a href="https://mariadb.atlassian.net/projects/CONJ/issues/">https://mariadb.atlassian.net/projects/CONJ/issues/</a>
-
+<!--
 ## Status
 [![Build Status](https://travis-ci.org/MariaDB/mariadb-connector-j.svg)](https://travis-ci.org/MariaDB/mariadb-connector-j)
-
+-->
 ## Obtaining the driver
 The driver (jar) can be downloaded from [mariadb connector download](https://mariadb.com/products/connectors-plugins)
 
