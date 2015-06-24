@@ -112,7 +112,7 @@ public class DateTest extends BaseTest{
     @Test
     public void yearTest() throws SQLException {
         connection.createStatement().execute("drop table if exists yeartest");
-        connection.createStatement().execute("create table yeartest (y1 year, y2 year(4))");
+        connection.createStatement().execute("create table yeartest (y1 year, y2 year(2))");
         connection.createStatement().execute("insert into yeartest values (null, null), (1901, 70), (0, 0), (2155, 69)");
         Statement stmt = connection.createStatement();
         ResultSet rs = stmt.executeQuery("select * from yeartest");
