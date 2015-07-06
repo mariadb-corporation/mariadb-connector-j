@@ -492,7 +492,7 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
     }
 
     public String getDriverVersion() throws SQLException {
-        return String.format("%d.%d",getDriverMajorVersion(),getDriverMinorVersion());
+        return Version.pomversion;
     }
 
 

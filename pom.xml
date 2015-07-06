@@ -5,12 +5,14 @@
     <artifactId>mariadb-java-client</artifactId>
     <packaging>jar</packaging>
     <name>mariadb-java-client</name>
-    <version>1.1.9</version>
+    <version>1.1.10-SNAPSHOT</version>
     <description>JDBC driver for MariaDB and MySQL</description>
     <url>https://kb.askmonty.org/en/about-the-mariadb-java-client/</url>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <jna.version>3.3.0</jna.version>
+        <version.template.file>src/main/resources/Version.java.template</version.template.file>
+        <version.file>src/main/java/org/mariadb/jdbc/Version.java</version.file>
     </properties>
     <licenses>
         <license>
@@ -161,6 +163,34 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>com.google.code.maven-replacer-plugin</groupId>
+                <artifactId>maven-replacer-plugin</artifactId>
+                <version>1.4.1</version>
+                <executions>
+                    <execution>
+                        <phase>process-sources</phase>
+                        <goals>
+                            <goal>replace</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <file>${version.template.file}</file>
+                    <outputFile>${version.file}</outputFile>
+                    <replacements>
+                        <replacement>
+                            <token>@buildtime@</token>
+                            <value>${maven.build.timestamp}</value>
+                        </replacement>
+                        <replacement>
+                            <token>@pomversion@</token>
+                            <value>${project.version}</value>
+                        </replacement>
+                    </replacements>
+                </configuration>
             </plugin>
         </plugins>
     </build>
