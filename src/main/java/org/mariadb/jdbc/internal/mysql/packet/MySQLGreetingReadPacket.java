@@ -67,6 +67,7 @@ public class MySQLGreetingReadPacket {
     private final byte serverLanguage;
     private final short serverStatus;
     private final byte[] seed;
+    private String pluginName;
 
     /* MDEV-4088/CONJ-32 :  in 10.0, the real version string maybe prefixed with "5.5.5-", 
      * to workaround bugs in Oracle MySQL replication 
@@ -80,23 +81,38 @@ public class MySQLGreetingReadPacket {
         serverThreadID = reader.readInt();
         final byte[] seed1 = reader.readRawBytes(8);
         reader.skipByte();
-        serverCapabilities = reader.readShort();
+        int serverCapabilitiesLower = reader.readShort();
         serverLanguage = reader.readByte();
         serverStatus = reader.readShort();
-        reader.skipBytes(13);
-        final byte[] seed2 = reader.readRawBytes(12);
-        seed = Utils.copyWithLength(seed1, seed1.length + seed2.length);
-        System.arraycopy(seed2, 0, seed, seed1.length, seed2.length);
-        reader.readByte(); // seems the seed is null terminated
-        
-        /* 
-         * check for MariaDB 10.x replication hack , remove fake prefix if needed
-         *  (see comments about MARIADB_RPL_HACK_PREFIX)
-         */ 
-        if ((serverCapabilities & MySQLServerCapabilities.PLUGIN_AUTH) != 0
-                && serverVersion.startsWith(MARIADB_RPL_HACK_PREFIX)) {
-            serverVersion = serverVersion.substring(MARIADB_RPL_HACK_PREFIX.length());
+        serverCapabilities = serverCapabilitiesLower + (reader.readShort() << 16);
+        int saltLength = 0;
+        if ((serverCapabilities & MySQLServerCapabilities.PLUGIN_AUTH) != 0) {
+            saltLength = Math.max(12, reader.readByte() -9);
+        } else {
+            reader.skipByte();
         }
+        reader.skipBytes(10);
+        if ((serverCapabilities & MySQLServerCapabilities.SECURE_CONNECTION) != 0) {
+            final byte[] seed2 = reader.readRawBytes(saltLength);
+            seed = Utils.copyWithLength(seed1, seed1.length + seed2.length);
+            System.arraycopy(seed2, 0, seed, seed1.length, seed2.length);
+          //  reader.skipByte();
+        } else {
+            seed = Utils.copyWithLength(seed1, seed1.length);
+        }
+        
+        reader.skipByte();
+        if ((serverCapabilities & MySQLServerCapabilities.PLUGIN_AUTH) != 0) {
+            pluginName = reader.readString("ASCII");
+            /*
+             * check for MariaDB 10.x replication hack , remove fake prefix if needed
+             *  (see comments about MARIADB_RPL_HACK_PREFIX)
+             */
+            if (serverVersion.startsWith(MARIADB_RPL_HACK_PREFIX)) {
+                serverVersion = serverVersion.substring(MARIADB_RPL_HACK_PREFIX.length());
+            }
+        }
+
     }
 
     @Override
@@ -140,5 +156,9 @@ public class MySQLGreetingReadPacket {
 
     public short getServerStatus() {
         return serverStatus;
+    }
+
+    public String getPluginName() {
+        return pluginName;
     }
 }

@@ -430,7 +430,8 @@ public class MySQLProtocol {
                    MySQLServerCapabilities.SECURE_CONNECTION|
                    MySQLServerCapabilities.LOCAL_FILES|
                    MySQLServerCapabilities.MULTI_RESULTS|
-                   MySQLServerCapabilities.FOUND_ROWS;
+                   MySQLServerCapabilities.FOUND_ROWS|
+                   MySQLServerCapabilities.PLUGIN_AUTH;
 
 
 
@@ -483,7 +484,9 @@ public class MySQLProtocol {
                    capabilities,
                    decideLanguage(),
                    greetingPacket.getSeed(),
-                   packetSeq);
+                   packetSeq,
+                   new byte[0],
+                   greetingPacket.getPluginName());
            cap.send(writer);
            log.finest("Sending auth packet");
 
