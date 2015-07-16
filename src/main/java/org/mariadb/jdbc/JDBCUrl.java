@@ -128,23 +128,20 @@ public class JDBCUrl {
         if (url != null) {
             if (prop == null) prop = new Properties();
             if (url.startsWith("jdbc:mysql:")) {
-                return parseNewObject(url, prop);
+                JDBCUrl jdbcUrl = new JDBCUrl();
+                parseInternal(jdbcUrl, url, prop);
+                return jdbcUrl;
             }
             String[] arr = new String[]{"jdbc:mysql:thin:", "jdbc:mariadb:"};
             for (String prefix : arr) {
                 if (url.startsWith(prefix)) {
-                    return parseNewObject("jdbc:mysql:" + url.substring(prefix.length()), prop);
+                    JDBCUrl jdbcUrl = new JDBCUrl();
+                    parseInternal(jdbcUrl, "jdbc:mysql:" + url.substring(prefix.length()), prop);
+                    return jdbcUrl;
                 }
             }
         }
         throw new IllegalArgumentException("Invalid connection URL url " + url);
-    }
-
-    private static JDBCUrl parseNewObject(String url, Properties properties) {
-        if (!url.startsWith("jdbc:mysql:")) return null;
-        JDBCUrl jdbcUrl = new JDBCUrl();
-        parseInternal(jdbcUrl, url, properties);
-        return jdbcUrl;
     }
 
     public void parseUrl(String url) {
@@ -181,16 +178,15 @@ public class JDBCUrl {
         if (additionalParameters == null) {
             jdbcUrl.database = null;
             jdbcUrl.options = DefaultOptions.parse(jdbcUrl.haMode, "",properties);
-            return;
-        }
-
-        int ind = additionalParameters.indexOf('?');
-        if (ind > -1) {
-            jdbcUrl.database = additionalParameters.substring(0, ind);
-            jdbcUrl.options = DefaultOptions.parse(jdbcUrl.haMode, additionalParameters.substring(ind + 1),properties);
         } else {
-            jdbcUrl.database = additionalParameters;
-            jdbcUrl.options = DefaultOptions.parse(jdbcUrl.haMode, "",properties);
+            int ind = additionalParameters.indexOf('?');
+            if (ind > -1) {
+                jdbcUrl.database = additionalParameters.substring(0, ind);
+                jdbcUrl.options = DefaultOptions.parse(jdbcUrl.haMode, additionalParameters.substring(ind + 1),properties);
+            } else {
+                jdbcUrl.database = additionalParameters;
+                jdbcUrl.options = DefaultOptions.parse(jdbcUrl.haMode, "",properties);
+            }
         }
 
         if (jdbcUrl.haMode == UrlHAMode.AURORA) {
