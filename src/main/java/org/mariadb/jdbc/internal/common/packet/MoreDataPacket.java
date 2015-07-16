@@ -14,8 +14,10 @@ import java.io.IOException;
  */
 public final class MoreDataPacket extends ResultPacket {
     private final byte[] data;
+    private final byte seq;
 
     public MoreDataPacket(final RawPacket rawPacket) throws IOException {
+        seq = (byte) rawPacket.getPacketSeq();
         Reader reader = new Reader(rawPacket);
         reader.skipByte();
         data = reader.readRawBytes();
@@ -30,6 +32,6 @@ public final class MoreDataPacket extends ResultPacket {
     }
 
     public byte getPacketSeq() {
-        return 0x00;
+        return seq;
     }
 }
