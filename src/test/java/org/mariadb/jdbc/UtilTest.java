@@ -5,7 +5,7 @@ import org.mariadb.jdbc.internal.common.Utils;
 
 import java.sql.SQLException;
 
-import static junit.framework.Assert.assertEquals;
+import static org.junit.Assert.assertEquals;
 
 
 public class UtilTest {

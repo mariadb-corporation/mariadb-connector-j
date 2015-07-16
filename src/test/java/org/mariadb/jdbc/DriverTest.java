@@ -15,7 +15,7 @@ import java.util.GregorianCalendar;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static junit.framework.Assert.*;
+import static org.junit.Assert.*;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -303,14 +303,14 @@ public class DriverTest extends BaseTest{
     @Test
     public void testConnectorJURL() {
         JDBCUrl url = JDBCUrl.parse("jdbc:mysql://localhost/test");
-        assertEquals("localhost", url.getHostname());
+        assertEquals("localhost", url.getHostAddresses().get(0).host);
         assertEquals("test", url.getDatabase());
-        assertEquals(3306,url.getPort());
+        assertEquals(3306,url.getHostAddresses().get(0).port);
 
         url = JDBCUrl.parse("jdbc:mysql://localhost:3307/test");
-        assertEquals("localhost", url.getHostname());
+        assertEquals("localhost", url.getHostAddresses().get(0).host);
         assertEquals("test", url.getDatabase());
-        assertEquals(3307,url.getPort());
+        assertEquals(3307,url.getHostAddresses().get(0).port);
 
     }
 
@@ -1116,7 +1116,7 @@ public class DriverTest extends BaseTest{
         } catch (Exception e) {}
         String oldDb = database;
         String oldParams = parameters;
-        setParameters("&createDB=true");
+        setParameters("&createDatabaseIfNotExist=true");
         setDatabase("test_testdrop");
         DatabaseMetaData dbmd = connection.getMetaData();
         ResultSet rs = dbmd.getCatalogs();
@@ -1308,34 +1308,6 @@ public class DriverTest extends BaseTest{
         assertNotNull(rs.getLong("unsignedtest.a"));
     }
 
-    @Test
-    public void autoreconnect() throws Exception {
-    	setConnection("&autoReconnect=true");
-       ResultSet rs= connection.createStatement().executeQuery("select connection_id()");
-       rs.next();
-       long connectionId = rs.getLong(1);
-       rs.close();
-
-       connection.createStatement().execute("set wait_timeout=1");
-       Thread.sleep(3000);
-
-       boolean success = false;
-       for (int i=0; i < 2; i++) {
-           try {
-               rs = connection.createStatement().executeQuery("select 1");
-               rs.close();
-               success = true;
-               break;
-           } catch (Exception e) {
-        	   // eat exception
-           }
-       }
-       assertTrue(success);
-       rs = connection.createStatement().executeQuery("select connection_id()");
-       rs.next();
-       long connectionId2 = rs.getLong(1);
-       assertNotSame(connectionId, connectionId2);
-    }
 
     @Test
     public void useSSL()  throws Exception {
@@ -1557,7 +1529,7 @@ public class DriverTest extends BaseTest{
        	ResultSet rs = st.executeQuery("select @@version_compile_os,@@socket");
        	if (!rs.next())
        		return;
-
+        log.info ("os:"+rs.getString(1) + " path:"+rs.getString(2));
         String os = rs.getString(1);
         if (os.toLowerCase().startsWith("win"))
                return;
@@ -1640,7 +1612,7 @@ public class DriverTest extends BaseTest{
     @Test
     public void createDbWithSpacesTest() throws SQLException {
     	String oldDb = database;
-    	setParameters("&createDB=true");
+    	setParameters("&createDatabaseIfNotExist=true");
     	setDatabase("test with spaces");
         DatabaseMetaData dbmd = connection.getMetaData();
         ResultSet rs = dbmd.getCatalogs();

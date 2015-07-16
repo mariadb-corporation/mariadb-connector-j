@@ -1,9 +1,13 @@
 package org.mariadb.jdbc;
 
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.sql.*;
+import java.util.Properties;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static org.junit.Assert.assertEquals;
 
@@ -12,15 +16,28 @@ public class CancelTest extends BaseTest {
     public void cancelSupported() throws SQLException {
         requireMinimumVersion(5,0);
     }
-    @Test(expected = SQLTransientException.class)
+    @Test
     public void cancelTest() throws SQLException{
+        Connection tmpConnection = null;
+        try {
+            tmpConnection = openNewConnection(connURI, new Properties());
+            Statement stmt = tmpConnection.createStatement();
+            ExecutorService exec = Executors.newFixedThreadPool(1);
+            //check blacklist shared
+            exec.execute(new CancelThread(stmt));
+            stmt.execute("select * from information_schema.columns, information_schema.tables");
 
-        Statement stmt = connection.createStatement();
-        new CancelThread(stmt).start();
-        stmt.execute("select * from information_schema.columns, information_schema.tables, information_schema.table_constraints");
+            //wait for thread endings
+            exec.shutdown();
+            Assert.fail();
+        } catch (SQLException e) {
+
+        }finally {
+            tmpConnection.close();
+        }
 
     }
-    private static class CancelThread extends Thread {
+    private static class CancelThread implements Runnable {
         private final Statement stmt;
 
         public CancelThread(Statement stmt) {

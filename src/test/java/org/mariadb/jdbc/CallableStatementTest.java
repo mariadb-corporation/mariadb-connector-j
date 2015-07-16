@@ -6,7 +6,7 @@ import org.junit.Test;
 
 import java.sql.*;
 
-import static junit.framework.Assert.*;
+import static org.junit.Assert.*;
 import static org.junit.Assert.assertThat;
 import static org.hamcrest.CoreMatchers.*;
 
@@ -134,7 +134,7 @@ import static org.hamcrest.CoreMatchers.*;
             ResultSet rs = stmt.executeQuery();
             assertTrue(rs.next());
             double res = rs.getDouble(1);
-            assertEquals(expected, res);
+            assertEquals(expected, res, 0);
             // now fail due to three decimals
             double tooMuch = 34.987;
             stmt.setDouble("a", tooMuch);

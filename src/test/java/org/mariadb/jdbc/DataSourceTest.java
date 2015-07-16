@@ -1,5 +1,7 @@
 package org.mariadb.jdbc;
 
+import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.BeforeClass;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -11,7 +13,7 @@ import java.sql.SQLException;
 import org.junit.Test;
 
 public class DataSourceTest extends BaseTest {
-    protected static final String defConnectToIP = "127.0.0.1";
+    protected static final String defConnectToIP = null;
     protected static String connectToIP;
 
     @BeforeClass
@@ -39,7 +41,20 @@ public class DataSourceTest extends BaseTest {
             connection.close();
         }
     }
-    
+
+    @Test
+    public void testDataSourceEmpty() throws SQLException {
+        MySQLDataSource ds = new MySQLDataSource();
+        ds.setDatabaseName(database);
+        ds.setPort(port);
+        ds.setServerName(hostname);
+        Connection connection = ds.getConnection(username, password);
+        try {
+            assertEquals(connection.isValid(0),true);
+        }finally {
+            connection.close();
+        }
+    }
     /**
      * CONJ-80
      * @throws SQLException
@@ -56,37 +71,50 @@ public class DataSourceTest extends BaseTest {
     	connection.createStatement().execute("DROP DATABASE IF EXISTS test2");
     	connection.close();
     }
-    
+
     /**
      * CONJ-80
      * @throws SQLException
      */
     @Test
     public void setServerNameTest() throws SQLException {
+        Assume.assumeTrue(connectToIP != null);
     	MySQLDataSource ds = new MySQLDataSource(hostname, port, database);
     	Connection connection = ds.getConnection(username, password);
     	ds.setServerName(connectToIP);
     	connection = ds.getConnection(username, password);
     	connection.close();
     }
-    
+
     /**
      * CONJ-80
      * @throws SQLException
      */
-    @Test(expected=SQLException.class) // unless port 3307 can be used
+    @Test // unless port 3307 can be used
     public void setPortTest() throws SQLException {
+
+
     	MySQLDataSource ds = new MySQLDataSource(hostname, port, database);
-    	Connection connection = ds.getConnection(username, password);
-    	ds.setPort(3307);
-    	connection = ds.getConnection(username, password);
-    	connection.close();
+    	Connection connection2 = ds.getConnection(username, password);
+        //delete blacklist, because can failover on 3306 is filled
+        assureBlackList(connection2);
+        connection2.close();
+
+        ds.setPort(3307);
+
+        //must throw SQLException
+        try {
+            ds.getConnection(username, password);
+            Assert.fail();
+        } catch (SQLException e) {
+            log.fine("port error : " +e.getMessage());
+        }
     }
-    
+
     /**
      * CONJ-123:
      * Session variables lost and exception if set via MySQLDataSource.setProperties/setURL
-     * @throws SQLException 
+     * @throws SQLException
      */
     @Test
     public void setPropertiesTest() throws SQLException {

@@ -6,7 +6,7 @@ import java.sql.*;
 import java.util.logging.Logger;
 import java.util.logging.Level;
 
-import static junit.framework.Assert.assertEquals;
+import static org.junit.Assert.assertEquals;
 
 
 public class UnicodeTest extends BaseTest {

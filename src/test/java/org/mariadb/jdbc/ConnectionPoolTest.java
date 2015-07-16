@@ -40,6 +40,95 @@ public class ConnectionPoolTest extends BaseTest {
         connection.close();
         dataSource.close();
     }
+    
+    /*
+     * 
+
+    @Test
+    public void testTimeoutsInPool() throws SQLException, InterruptedException {
+        org.apache.commons.dbcp.BasicDataSource dataSource;
+        dataSource = new org.apache.commons.dbcp.BasicDataSource();
+        dataSource.setUrl("jdbc:mysql://" + hostname + ":"+port+"/test?useCursorFetch=true&useTimezone=true&useLegacyDatetimeCode=false&serverTimezone=UTC");
+        dataSource.setUsername(username);
+        dataSource.setPassword(password);
+        // dataSource.setMaxActive(10);
+        // dataSource.setMinIdle(10); //keep 10 connections open
+        // dataSource.setValidationQuery("SELECT 1");
+        dataSource.setMaxActive(50);
+        dataSource.setLogAbandoned(true);
+        dataSource.setRemoveAbandoned(true);
+        dataSource.setRemoveAbandonedTimeout(300);
+        dataSource.setAccessToUnderlyingConnectionAllowed(true);
+        dataSource.setMinEvictableIdleTimeMillis(1800000);
+        dataSource.setTimeBetweenEvictionRunsMillis(-1);
+        dataSource.setNumTestsPerEvictionRun(3);
+        
+        // adjust server wait timeout to 1 second
+        // Statement stmt1 = conn1.createStatement();
+        // stmt1.execute("set session wait_timeout=1");
+        
+        
+        try {
+    		Connection conn = dataSource.getConnection();
+            log.fine("autocommit: " + conn.getAutoCommit());
+        	Statement stmt = conn.createStatement();
+        	stmt.executeUpdate("drop table if exists t3");
+    		stmt.executeUpdate("create table t3(message text)");
+        	conn.close();
+    	} catch (SQLException e1) {
+			e1.printStackTrace();
+		}
+        
+        InsertThread ins1 = new InsertThread(10000, dataSource);
+        Thread thread1 = new Thread(ins1);
+        thread1.start();
+        InsertThread ins2 = new InsertThread(10000, dataSource);
+        Thread thread2 = new Thread(ins2);
+        thread2.start();
+        InsertThread ins3 = new InsertThread(10000, dataSource);
+        Thread thread3 = new Thread(ins3);
+        thread3.start();
+        InsertThread ins4 = new InsertThread(10000, dataSource);
+        Thread thread4 = new Thread(ins4);
+        thread4.start();
+        InsertThread ins5 = new InsertThread(10000, dataSource);
+        Thread thread5 = new Thread(ins5);
+        thread5.start();
+        InsertThread ins6 = new InsertThread(10000, dataSource); 
+        Thread thread6 = new Thread(ins6);
+        thread6.start();
+        InsertThread ins7 = new InsertThread(10000, dataSource);
+        Thread thread7 = new Thread(ins7);
+        thread7.start();
+        InsertThread ins8 = new InsertThread(10000, dataSource);
+        Thread thread8 = new Thread(ins8);
+        thread8.start();
+        InsertThread ins9 = new InsertThread(10000, dataSource);
+        Thread thread9 = new Thread(ins9);
+        thread9.start();
+        InsertThread ins10 = new InsertThread(10000, dataSource);
+        Thread thread10 = new Thread(ins10);
+        thread10.start();
+                
+        // wait for threads to finish
+        while (thread1.isAlive() || thread2.isAlive() || thread3.isAlive() || thread4.isAlive() || thread5.isAlive() || thread6.isAlive() || thread7.isAlive() || thread8.isAlive() || thread9.isAlive() || thread10.isAlive())
+        {
+        	//keep on waiting for threads to finish
+        }
+        
+        // wait for 70 seconds so that the server times out the connections
+        Thread.sleep(70000); // Wait for the server to kill the connections
+        
+        // do something
+     	Statement stmt1 = dataSource.getConnection().createStatement();
+        stmt1.execute("SELECT COUNT(*) FROM t3");
+        
+        // close data source
+        dataSource.close();
+
+    }     */
+    
+
 
     /**
      * This test case simulates how the Apache DBCP connection pools works. It is written so it
@@ -52,7 +141,7 @@ public class ConnectionPoolTest extends BaseTest {
 
         Properties props = new Properties();
         props.put("user", username);
-        props.put("password", password);
+        props.put("password", (password==null)?"":password);
         
         //A connection pool typically has a connection factor that stored everything needed to
         //create a Connection. Here I create a factory that stores URL, username and password.

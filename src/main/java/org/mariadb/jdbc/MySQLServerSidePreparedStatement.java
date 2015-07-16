@@ -4,6 +4,7 @@ import org.mariadb.jdbc.internal.SQLExceptionMapper;
 import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.mysql.MySQLColumnInformation;
 import org.mariadb.jdbc.internal.mysql.MySQLProtocol;
+import org.mariadb.jdbc.internal.mysql.Protocol;
 
 import java.io.InputStream;
 import java.io.Reader;
@@ -27,24 +28,23 @@ public class MySQLServerSidePreparedStatement implements PreparedStatement {
 
 	private void prepare(String sql) throws SQLException {
 		try {
-			MySQLProtocol protocol = connection.getProtocol();
+			Protocol protocol = connection.getProtocol();
 			MySQLProtocol.PrepareResult result;
-			synchronized (protocol) {
+			connection.lock.writeLock().lock();
+			try {
 				if (protocol.hasUnreadData()) {
 					throw new SQLException(
 							"There is an open result set on the current connection, "
 									+ "which must be closed prior to executing a query");
 				}
 				result = protocol.prepare(sql);
+			} finally {
+				connection.lock.writeLock().unlock();
 			}
-
-			if (protocol.getInfo().getProperty("useOldAliasMetadataBehavior") != null
-					&& "true".equalsIgnoreCase(protocol.getInfo().getProperty(
-							"useOldAliasMetadataBehavior")))
-				returnTableAlias = true;
+			returnTableAlias = protocol.getOptions().useOldAliasMetadataBehavior;
 
 			metadata = new MySQLResultSetMetaData(result.columns,
-					protocol.datatypeMappingFlags, returnTableAlias);
+					protocol.getDatatypeMappingFlags(), returnTableAlias);
 			parameterInfo = result.parameters;
 			statementId = result.statementId;
 		} catch (QueryException e) {
@@ -148,6 +148,7 @@ public class MySQLServerSidePreparedStatement implements PreparedStatement {
 		throw new UnsupportedOperationException("Not supported yet.");
 	}
 
+	@Deprecated
 	@Override
 	public void setUnicodeStream(int parameterIndex, InputStream x, int length)
 			throws SQLException {

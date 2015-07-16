@@ -56,9 +56,9 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
     @After
     public void tearDown() {
         //Reset the FORMAT locate so other test cases are not disturbed.
-        Locale.setDefault(previousFormatLocale);
+        if (previousFormatLocale!=null) Locale.setDefault(previousFormatLocale);
         //Reset the timezone so so other test cases are not disturbed.
-        TimeZone.setDefault(previousTimeZone);
+        if (previousTimeZone != null ) TimeZone.setDefault(previousTimeZone);
     }
     
     
