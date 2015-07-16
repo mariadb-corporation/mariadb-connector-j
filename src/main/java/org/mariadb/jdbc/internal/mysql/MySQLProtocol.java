@@ -450,7 +450,7 @@ public class MySQLProtocol implements Protocol {
         if (rp.getByteBuffer().get(0) == -1) {
             ErrorPacket ep = new ErrorPacket(rp);
             String message = ep.getMessage();
-            throw new QueryException("Could not connect: " + message);
+            throw new QueryException("Could not connect: " + message, ep.getErrorNumber(), ep.getSqlState());
         }
     }
 

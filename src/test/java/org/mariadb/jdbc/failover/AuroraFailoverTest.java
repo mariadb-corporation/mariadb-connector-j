@@ -531,6 +531,23 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
         // the connection should not be closed
         assertTrue(!connection.isClosed());
     }
+
+    /**
+     * CONJ-166
+     * Connection error code must be thrown
+     * @throws SQLException
+     */
+    @Test
+    public void testAccessDeniedErrorCode() throws SQLException {
+        try {
+            DriverManager.getConnection(initialUrl+"&retriesAllDown=1", "foouser", "foopwd");
+            Assert.fail();
+        } catch (SQLException e) {
+            Assert.assertTrue("28000".equals(e.getSQLState()));
+            Assert.assertTrue(1045 == e.getErrorCode());
+        }
+    }
+
 //    @Test
 //    public void testFailoverMaster() throws Throwable {
 //        connection = getNewConnection("&validConnectionTimeout=1&secondsBeforeRetryMaster=1&autoReconnect=true", false);

@@ -364,7 +364,8 @@ public enum DefaultOptions {
                 if (pos == -1) {
                     throw new IllegalArgumentException("Invalid connection URL, expected key=value pairs, found " + parameter);
                 }
-                properties.setProperty(parameter.substring(0, pos), parameter.substring(pos + 1));
+                if (!properties.containsKey(parameter.substring(0, pos)))
+                    properties.setProperty(parameter.substring(0, pos), parameter.substring(pos + 1));
             }
         }
         return parse(haMode, properties, options);

@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.Properties;
 import java.util.concurrent.Executor;
 
+import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Test;
 import org.mariadb.jdbc.internal.common.query.MySQLQuery;
@@ -20,6 +21,23 @@ import org.mariadb.jdbc.internal.mysql.MySQLProtocol;
 import org.mariadb.jdbc.internal.mysql.Protocol;
 
 public class ConnectionTest extends BaseTest {
+
+
+	/**
+	 * CONJ-166
+	 * Connection error code must be thrown
+	 * @throws SQLException
+	 */
+	@Test
+	public void testAccessDeniedErrorCode() throws SQLException {
+		try {
+			DriverManager.getConnection("jdbc:mysql://" + hostname + ":" + port + "/" + database+"?user=foo");
+			Assert.fail();
+		} catch (SQLException e) {
+			Assert.assertTrue("28000".equals(e.getSQLState()));
+			Assert.assertTrue(1045 == e.getErrorCode());
+		}
+	}
 
 	/**
 	 * CONJ-89
