@@ -51,243 +51,197 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc;
 
 import org.mariadb.jdbc.internal.SQLExceptionMapper;
+import org.mariadb.jdbc.internal.common.DefaultOptions;
 import org.mariadb.jdbc.internal.common.QueryException;
+import org.mariadb.jdbc.internal.common.UrlHAMode;
 import org.mariadb.jdbc.internal.common.Utils;
-import org.mariadb.jdbc.internal.mysql.MySQLProtocol;
+import org.mariadb.jdbc.internal.mysql.*;
 
 import javax.sql.*;
 
 import java.io.PrintWriter;
+import java.lang.reflect.Proxy;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.util.ArrayList;
 import java.util.Properties;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Logger;
 
 
 public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XADataSource {
+    private final static Logger log = Logger.getLogger(MySQLDataSource.class.getName());
 
-
-    private String 	hostname = "localhost";
-    private int		port = 0;
-    private String	database = "";
-    private String	username = null;
-    private String	password = null;
-    private Properties	info = null;
-    private JDBCUrl url;
+    private final JDBCUrl jdbcUrl;
 
     public MySQLDataSource(String hostname, int port, String database) {
-        this.hostname = hostname;
-        this.port = port;
-        this.database = database;
-        this.info = new Properties();
+        ArrayList<HostAddress> hostAddresses = new ArrayList<HostAddress>();
+        hostAddresses.add(new HostAddress(hostname, port));
+        jdbcUrl = new JDBCUrl(database, hostAddresses, DefaultOptions.defaultValues(UrlHAMode.NONE), UrlHAMode.NONE);
+    }
+
+    public MySQLDataSource(String url) {
+        this.jdbcUrl = JDBCUrl.parse(url);
     }
 
     public MySQLDataSource() {
-	    this.info = new Properties();
+        ArrayList<HostAddress> hostAddresses = new ArrayList<HostAddress>();
+        hostAddresses.add(new HostAddress("localhost", 3306));
+        jdbcUrl = new JDBCUrl("", hostAddresses, DefaultOptions.defaultValues(UrlHAMode.NONE), UrlHAMode.NONE);
     }
 
     /**
      * Sets the database name.
-     * 
+     *
      * @param dbName
      *            the name of the database
      */
     public void setDatabaseName(String dbName) {
-	    this.database = dbName;
-	    resetUrl();
+        jdbcUrl.setDatabase(dbName);
     }
 
     /**
      * Gets the name of the database
-     * 
+     *
      * @return the name of the database for this data source
      */
     public String getDatabaseName() {
-	    return (this.database != null) ? this.database : "";
+        return (jdbcUrl.getDatabase() != null) ? jdbcUrl.getDatabase() : "";
     }
 
     /**
      * Sets the username
-     * 
+     *
      * @param userName
      *            the username
      */
     public void setUser(String userName) {
-	setUserName(userName);
+        setUserName(userName);
     }
 
     /**
      * Gets the username
-     * 
+     *
      * @return the username to use when connecting to the database
      */
     public String getUser() {
-	    return this.username;
+        return jdbcUrl.getUsername();
     }
 
     /**
      * Sets the username
-     * 
+     *
      * @param userName
      *            the username
      */
     public void setUserName(String userName) {
-	    this.username = userName;
+        jdbcUrl.setUsername(userName);
     }
 
     /**
      * Gets the username
-     * 
+     *
      * @return the username to use when connecting to the database
      */
     public String getUserName() {
-	    return this.username;
+        return jdbcUrl.getUsername();
     }
 
 
     /**
      * Sets the password
-     * 
+     *
      * @param pass
      *            the password
      */
     public void setPassword(String pass) {
-	    this.password = pass;
+        jdbcUrl.setPassword(pass);
     }
 
     /**
      * Sets the database port.
-     * 
+     *
      * @param p
      *            the port
      */
     public void setPort(int p) {
-	    this.port = p;
-	    resetUrl();
+        jdbcUrl.getHostAddresses().get(0).port = p;
     }
 
     /**
      * Returns the port number
-     * 
+     *
      * @return the port number
      */
     public int getPort() {
-	    return this.port;
+        return jdbcUrl.getHostAddresses().get(0).port;
     }
 
     /**
      * Sets the port number
-     * 
+     *
      * @param p
      *            the port
-     * 
+     *
      * @see #setPort
      */
     public void setPortNumber(int p) {
-	    setPort(p);
+        setPort(p);
     }
 
     /**
      * Returns the port number
-     * 
+     *
      * @return the port number
      */
     public int getPortNumber() {
-	    return getPort();
+        return getPort();
     }
 
     /**
      * Sets the server name.
-     * 
+     *
      * @param serverName
      *            the server name
      */
     public void setServerName(String serverName) {
-	    this.hostname = serverName;
-	    resetUrl();
+        jdbcUrl.getHostAddresses().get(0).host = serverName;
     }
 
     public void setProperties(String properties) {
-    	Utils.setUrlParameters(properties, this.info);
+        jdbcUrl.setProperties(properties);
     }
 
     /**
      * Sets the connection string URL.
-     * 
+     *
      * @param url
      *            the connection string
      */
     public void setURL(String url) {
-    	setUrl(url);
+        setUrl(url);
     }
 
     /**
      * Sets the connection string URL.
-     * 
+     *
      * @param s
      *            the connection string
      */
     public void setUrl(String s) {
-
-	String baseUrl = s;
-	int idx = s.lastIndexOf("?");
-	if (idx > 0) {
-		baseUrl = s.substring(0,idx);
-		String urlParams = s.substring(idx+1);
-		setProperties(urlParams);
-	}
-	this.url = JDBCUrl.parse(baseUrl);
-
-	String tmpStr;
-	if ((tmpStr = url.getDatabase()) != null) {
-		this.database = tmpStr;
-	}
-	if ((tmpStr = url.getHostname()) != null) {
-		this.hostname = tmpStr;
-	}
-	tmpStr = url.getUsername();
-	if (tmpStr.equals("")) {
-		tmpStr = this.info.getProperty("user", "");
-	}
-	if (!tmpStr.equals("")) {
-		this.username = tmpStr;
-	}
-	tmpStr = url.getPassword();
-	if (tmpStr.equals("")) {
-		tmpStr = this.info.getProperty("password", "");
-	}
-	if (!tmpStr.equals("")) {
-		this.password = tmpStr;
-	}
-	this.port = url.getPort();
+        this.jdbcUrl.parseUrl(s);
     }
 
     /**
      * Returns the name of the database server
-     * 
+     *
      * @return the name of the database server
      */
     public String getServerName() {
-	    return (this.hostname != null) ? this.hostname : "";
+        return (this.jdbcUrl.getHostAddresses().get(0).host != null) ? this.jdbcUrl.getHostAddresses().get(0).host : "";
     }
 
-
-    void createUrl() {
-        if (url != null)
-            return;
-
-        String urlString = "jdbc:mysql://" + hostname;
-        if (port != 0)
-            urlString = urlString + ":" + port;
-        if (database != null)
-            urlString = urlString + "/" + database;
-        url  = JDBCUrl.parse(urlString);
-    }
-    
-    private void resetUrl() {
-    	this.url = null;
-    }
     /**
      * Attempts to establish a connection with the data source that this <code>DataSource</code> object represents.
      *
@@ -295,9 +249,10 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XA
      * @throws java.sql.SQLException if a database access error occurs
      */
     public Connection getConnection() throws SQLException {
-        createUrl();
         try {
-            return MySQLConnection.newConnection(new MySQLProtocol(url, username, password, info));
+            ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+            Protocol proxyfiedProtocol = Utils.retrieveProxy(jdbcUrl, lock);
+            return MySQLConnection.newConnection(proxyfiedProtocol, lock);
         } catch (QueryException e) {
             SQLExceptionMapper.throwException(e, null, null);
             return null;
@@ -314,19 +269,15 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XA
      * @since 1.4
      */
     public Connection getConnection(final String username, final String password) throws SQLException {
-        createUrl();
-        try {
-        	Properties props = info == null ? new Properties() : info;
-            return MySQLConnection.newConnection(new MySQLProtocol(url, username, password, props));
-        } catch (QueryException e) {
-            SQLExceptionMapper.throwException(e, null, null);
-            return null;
-        }
+        jdbcUrl.setUsername(username);
+        jdbcUrl.setPassword(password);
+        log.finest("connection : " +jdbcUrl.toString());
+        return getConnection();
     }
 
     /**
      * Retrieves the log writer for this <code>DataSource</code> object.
-     * 
+     *
      * The log writer is a character output stream to which all logging and tracing messages for this data source
      * will be printed.  This includes messages printed by the methods of this object, messages printed by methods of
      * other objects manufactured by this object, and so on.  Messages printed to a data source specific log writer are
@@ -346,7 +297,7 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XA
     /**
      * Sets the log writer for this <code>DataSource</code> object to the given <code>java.io.PrintWriter</code>
      * object.
-     * 
+     *
      * The log writer is a character output stream to which all logging and tracing messages for this data source
      * will be printed.  This includes messages printed by the methods of this object, messages printed by methods of
      * other objects manufactured by this object, and so on.  Messages printed to a data source- specific log writer are
@@ -394,7 +345,7 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XA
     /**
      * Returns an object that implements the given interface to allow access to non-standard methods, or standard
      * methods not exposed by the proxy.
-     * 
+     *
      * If the receiver implements the interface then the result is the receiver or a proxy for the receiver. If the
      * receiver is a wrapper and the wrapped object implements the interface then the result is the wrapped object or a
      * proxy for the wrapped object. Otherwise return the the result of calling <code>unwrap</code> recursively on the
@@ -458,7 +409,7 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XA
      * @since 1.4
      */
     public PooledConnection getPooledConnection(String user, String password) throws SQLException {
-       return new MySQLPooledConnection((MySQLConnection)getConnection(user,password));
+        return new MySQLPooledConnection((MySQLConnection)getConnection(user,password));
     }
 
     public XAConnection getXAConnection() throws SQLException {
@@ -468,8 +419,8 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XA
         return new MySQLXAConnection((MySQLConnection)getConnection(user,password));
     }
 
-	public Logger getParentLogger() throws SQLFeatureNotSupportedException {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    public Logger getParentLogger() throws SQLFeatureNotSupportedException {
+        // TODO Auto-generated method stub
+        return null;
+    }
 }

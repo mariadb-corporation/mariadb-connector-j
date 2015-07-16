@@ -62,7 +62,7 @@ public class DateParameter extends ParameterHolder {
     /**
      * Represents a timestamp, constructed with time in millis since epoch
      *
-     * @param date
+     * @param date the date
      */
     public DateParameter(Date date) {
        this(date, null);

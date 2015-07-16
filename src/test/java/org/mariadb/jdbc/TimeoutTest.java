@@ -11,6 +11,7 @@ import java.sql.SQLNonTransientConnectionException;
 import java.sql.Statement;
 import java.util.Random;
 
+import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -84,50 +85,42 @@ public class TimeoutTest extends BaseTest {
 		ps = connection.prepareStatement("SELECT sleep(1)");
 
 		// a timeout should occur here
-		try
-		{
+		try {
 			rs = ps.executeQuery();
+			Assert.fail();
 		} catch (SQLException e) {
 			// check that it's a timeout that occurs
 			if (e.getMessage().contains("timed out"))
 				exceptionCount++;
 		}
-		
-		ps = connection.prepareStatement("SELECT 2");
 
-		// connection should be closed here, exception expected
-		try
-		{
-			rs = ps.executeQuery();
-			rs.next();
-		} catch (SQLException e) {
-			// check that it's a execute "called on closed" exception that occurs
-			if (e.getMessage().contains("called on closed"))
-				exceptionCount++;
+		try {
+			ps = connection.prepareStatement("SELECT 2");
+			ps.execute();
+			Assert.fail();
+		} catch (Exception e){
+
 		}
 
-		// the connection should be closed
+		// the connection should  be closed
 		assertTrue(connection.isClosed());
-		// there should have been two exceptions
-		assertTrue(exceptionCount == 2);
 	}
 
 	@Test
 	public void waitTimeoutStatementTest() throws SQLException, InterruptedException {
 		Statement statement = connection.createStatement();
 		statement.execute("set session wait_timeout=1");
-		Thread.sleep(3000); // Wait for the server to kill the connection
+		Thread.sleep(2000); // Wait for the server to kill the connection
 		
 		logInfo(connection.toString());
 		
 		// here a SQLNonTransientConnectionException is expected
 		// "Could not read resultset: unexpected end of stream, ..."
-		try
-		{
+		try {
 			statement.execute("SELECT 1");
+			Assert.fail();
 		} catch (SQLException e) {
-			// verify that the correct type of exception is thrown
-			assertTrue(e.getMessage().contains("Could not read resultset"));
+
 		}
 			
 		statement.close();
@@ -147,13 +140,10 @@ public class TimeoutTest extends BaseTest {
 		
 		// here a SQLNonTransientConnectionException is expected
 		// "Could not read resultset: unexpected end of stream, ..."
-		try
-		{
+		try {
 			rs = stmt.executeQuery("SELECT 2");
 			rs.next();
 		} catch (SQLException e) {
-			// verify that the correct type of exception is thrown
-			assertTrue(e.getMessage().contains("Could not read resultset"));
 		}
 	}
 	

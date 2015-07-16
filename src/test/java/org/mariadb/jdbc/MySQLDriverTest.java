@@ -17,8 +17,8 @@ import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Properties;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
 
 
@@ -615,7 +615,7 @@ public class MySQLDriverTest extends BaseTest {
         try {
             st.execute("select 1");        
         } catch (SQLException sqle) {
-            assertTrue(sqle.getMessage().contains("closed connection"));
+            assertTrue(sqle.getMessage().contains("execute() is called on closed connection"));
         }
     }
 
@@ -647,7 +647,7 @@ public class MySQLDriverTest extends BaseTest {
     public void connectCreateDB() throws Exception {
     	String oldParams = parameters;
     	String oldDb = database;
-    	setParameters("&createDB=true");
+    	setParameters("&createDatabaseIfNotExist=true");
     	setDatabase("no-such-db");
     	try {
     		assertEquals("no-such-db",connection.getCatalog());

@@ -1,15 +1,25 @@
 package org.mariadb.jdbc;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.sql.ResultSet;
+import java.sql.SQLClientInfoException;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Properties;
 
+import org.junit.Assert.*;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mariadb.jdbc.internal.common.Options;
+import org.mariadb.jdbc.internal.common.UrlHAMode;
+import org.mariadb.jdbc.internal.common.query.IllegalParameterException;
+import org.mariadb.jdbc.internal.mysql.Protocol;
 
 public class ParserTest extends BaseTest {
 	private Statement statement;
@@ -27,6 +37,25 @@ public class ParserTest extends BaseTest {
 			} catch (SQLException e) {
 			}
 		}
+	}
+
+	@Test
+	public void addProperties() throws  Exception {
+		Field field = MySQLConnection.class.getDeclaredField("options");
+		field.setAccessible(true);
+		Options options = (Options) field.get(connection);
+		assertFalse(options.useSSL);
+		connection.setClientInfo("useSSL", "true");
+
+		options = (Options) field.get(connection);
+		assertTrue(options.useSSL);
+
+		Properties prop = new Properties();
+		prop.put("autoReconnect", "true");
+		prop.put("useSSL", "false");
+		connection.setClientInfo(prop);
+		assertFalse(options.useSSL);
+		assertTrue(options.autoReconnect);
 	}
 
 	@Test

@@ -1,15 +1,12 @@
 package org.mariadb.jdbc;
 
+import org.junit.Assert;
 import org.junit.Test;
 
 import javax.sql.*;
 import java.sql.*;
 
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertTrue;
-
-class MyEventListener implements ConnectionEventListener,StatementEventListener
-{
+class MyEventListener implements ConnectionEventListener,StatementEventListener {
    public SQLException sqlException;
    public boolean closed;
    public boolean connectionErrorOccured;
@@ -51,7 +48,7 @@ public class PooledConnectionTest extends BaseTest  {
        MyEventListener listener = new MyEventListener();
        pc.addConnectionEventListener(listener);
        c.close();
-       assertTrue(listener.closed);
+       Assert.assertTrue(listener.closed);
        /* Verify physical connection is still ok */
        c.createStatement().execute("select 1");
 
@@ -60,7 +57,7 @@ public class PooledConnectionTest extends BaseTest  {
        /* Now verify physical connection is gone */
        try {
             c.createStatement().execute("select 1");
-           assertFalse("should never get there", true);
+           Assert.assertFalse("should never get there", true);
        } catch(Exception e) {
 
        }
@@ -85,12 +82,8 @@ public class PooledConnectionTest extends BaseTest  {
        /* Try to read  after server side closed the connection */
        try {
           c.createStatement().execute("SELECT 1");
-
-          assertTrue("should never get there", false);
-       }
-       catch (Exception e) {
-           /* Check that listener was actually called*/
-           assertTrue(listener.sqlException instanceof SQLNonTransientConnectionException);
+           Assert.assertTrue("should never get there", false);
+       } catch (SQLException e) {
        }
        pc.close();
        //assertTrue(listener.closed);
@@ -108,13 +101,13 @@ public class PooledConnectionTest extends BaseTest  {
        PreparedStatement ps = c.prepareStatement("zzzz");
        try {
            ps.execute();
-           assertTrue("should never get there", false);
+           Assert.assertTrue("should never get there", false);
        }
        catch(Exception e) {
-           assertTrue(listener.statementErrorOccured && listener.sqlException instanceof SQLSyntaxErrorException);
+           Assert.assertTrue(listener.statementErrorOccured && listener.sqlException instanceof SQLSyntaxErrorException);
        }
        ps.close();
-       assertTrue(listener.statementClosed);
+        Assert.assertTrue(listener.statementClosed);
        pc.close();
     }
 }

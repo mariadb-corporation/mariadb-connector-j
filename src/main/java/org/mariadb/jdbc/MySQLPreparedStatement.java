@@ -81,7 +81,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
         super(connection);
         this.sql = sql;
         useFractionalSeconds =
-              connection.getProtocol().getInfo().getProperty("useFractionalSeconds") != null;
+              connection.getProtocol().getOptions().useFractionalSeconds;
         if(log.isLoggable(Level.FINEST)) {
             log.finest("Creating prepared statement for " + sql);
         }
@@ -1513,16 +1513,21 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
 
     // Close prepared statement, maybe fire closed-statement events
     @Override
-    public synchronized  void close() throws SQLException {
-        super.close();
+    public  void close() throws SQLException {
+        connection.lock.writeLock().lock();
+        try {
+            super.close();
 
-        if (connection == null ||  connection.pooledConnection == null ||
-               connection.pooledConnection.statementEventListeners.isEmpty())  {
-            return;
+            if (connection == null || connection.pooledConnection == null ||
+                    connection.pooledConnection.statementEventListeners.isEmpty()) {
+                return;
+            }
+
+            isClosed = false;
+            connection.pooledConnection.fireStatementClosed(this);
+        } finally {
+            connection.lock.writeLock().unlock();
         }
-
-        isClosed = false;
-        connection.pooledConnection.fireStatementClosed(this);
     }
 
     public String toString() {

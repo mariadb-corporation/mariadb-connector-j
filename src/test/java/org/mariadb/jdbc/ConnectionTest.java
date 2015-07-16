@@ -15,7 +15,9 @@ import java.util.concurrent.Executor;
 import org.junit.Assume;
 import org.junit.Test;
 import org.mariadb.jdbc.internal.common.query.MySQLQuery;
+import org.mariadb.jdbc.internal.mysql.FailoverProxy;
 import org.mariadb.jdbc.internal.mysql.MySQLProtocol;
+import org.mariadb.jdbc.internal.mysql.Protocol;
 
 public class ConnectionTest extends BaseTest {
 
@@ -233,36 +235,6 @@ public class ConnectionTest extends BaseTest {
 		boolean isValid = connection.isValid(0);
 		assertFalse(isValid);
 		statement.close();
-	}
-
-	/**
-	 * CONJ-120 Fix Connection.isValid method
-	 * 
-	 * @throws Exception
-	 */
-	@Test
-	public void isValid_connectionThatIsKilledExternally() throws Exception {
-		long threadId = getServerThreadId();
-		Connection killerConnection = openNewConnection();
-		Statement killerStatement = killerConnection.createStatement();
-		killerStatement.execute("KILL CONNECTION " + threadId);
-		killerConnection.close();
-		boolean isValid = connection.isValid(0);
-		assertFalse(isValid);
-	}
-
-	/**
-	 * Reflection magic to extract the connection thread id assigned by the
-	 * server
-	 */
-	private long getServerThreadId() throws Exception {
-		Field protocolField = org.mariadb.jdbc.MySQLConnection.class.getDeclaredField("protocol");
-		protocolField.setAccessible(true);
-		MySQLProtocol protocol = (MySQLProtocol) protocolField.get(connection);
-		Field serverThreadIdField = MySQLProtocol.class.getDeclaredField("serverThreadId");
-		serverThreadIdField.setAccessible(true);
-		long threadId = serverThreadIdField.getLong(protocol);
-		return threadId;
 	}
 
 }

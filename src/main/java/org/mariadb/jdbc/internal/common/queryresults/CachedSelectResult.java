@@ -104,7 +104,7 @@ public  class CachedSelectResult extends SelectQueryResult {
      * gets the value at position i in the result set. i starts at zero!
      *
      * @param i index, starts at 0
-     * @return
+     * @return the value
      */
     public ValueObject getValueObject(int i) throws NoSuchColumnException {
         if (rowPointer < 0) {

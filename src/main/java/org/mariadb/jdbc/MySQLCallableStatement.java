@@ -1239,23 +1239,26 @@ public class MySQLCallableStatement implements CallableStatement
     }
 
     public boolean execute() throws SQLException {
-    	synchronized (con.getProtocol()) {
-	        if (rsOutputParameters != null) {
-	            rsOutputParameters.close();
-	            rsOutputParameters = null;
-	        }
-	        if(parametersCount > 0)  {
-	            preparedStatement.execute();
-	        }
-	        boolean ret = callStatement.execute(callQuery);
-	        
-	        // Read off output parameters, if there are any 
-	        // (but not if query is streaming)
-	        if (hasOutputParameters() && callStatement.getFetchSize() != Integer.MIN_VALUE) {
-	        	readOutputParameters();
-	        }
-	        return ret;
-    	}
+        con.lock.writeLock().lock();
+        try {
+            if (rsOutputParameters != null) {
+                rsOutputParameters.close();
+                rsOutputParameters = null;
+            }
+            if (parametersCount > 0) {
+                preparedStatement.execute();
+            }
+            boolean ret = callStatement.execute(callQuery);
+
+            // Read off output parameters, if there are any
+            // (but not if query is streaming)
+            if (hasOutputParameters() && callStatement.getFetchSize() != Integer.MIN_VALUE) {
+                readOutputParameters();
+            }
+            return ret;
+        } finally {
+            con.lock.writeLock().unlock();
+        }
     }
 
     public void addBatch() throws SQLException {

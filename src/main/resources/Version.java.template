@@ -1,7 +1,10 @@
 package org.mariadb.jdbc;
 
 public final class Version {
-    public static final String build_time="@buildtime@";
-    public static final String pomversion="@pomversion@";
+    public static final String version = "@version";
+    public static final int majorVersion = @majorVersion;
+    public static final int minorVersion = @minorVersion;
+    public static final int patchVersion = @patchVersion;
+    public static final String qualifier = "@qualifier";
 
 }

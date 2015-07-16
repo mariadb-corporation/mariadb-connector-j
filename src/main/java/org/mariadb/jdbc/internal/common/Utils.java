@@ -48,12 +48,19 @@ OF SUCH DAMAGE.
 */
 package org.mariadb.jdbc.internal.common;
 
+import org.mariadb.jdbc.JDBCUrl;
+import org.mariadb.jdbc.internal.mysql.*;
+import org.mariadb.jdbc.internal.mysql.listener.impl.AuroraListener;
+import org.mariadb.jdbc.internal.mysql.listener.impl.MastersFailoverListener;
+import org.mariadb.jdbc.internal.mysql.listener.impl.MastersSlavesListener;
+
+import java.lang.reflect.Proxy;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Properties;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 
 public class Utils {
@@ -511,30 +518,28 @@ public class Utils {
         return sqlBuffer.toString();
     }
     
-    /**
-     * Adds the parsed parameter to the properties object.
-     * 
-     * @param parameter a key=value pair
-     * @param info the properties object
-     */
-    public static void setUrlParameter(String parameter, Properties info) {
-    	int pos = parameter.indexOf('=');
-        if (pos == -1)  {
-            throw new IllegalArgumentException("Invalid connection URL, expected key=value pairs, found " + parameter);
+
+
+    public static Protocol retrieveProxy(final JDBCUrl jdbcUrl, final ReentrantReadWriteLock lock) throws QueryException, SQLException {
+        if (jdbcUrl.getHaMode().equals(UrlHAMode.AURORA)) {
+            return (Protocol) Proxy.newProxyInstance(
+                    AuroraProtocol.class.getClassLoader(),
+                    new Class[] {Protocol.class},
+                    new FailoverProxy(new AuroraListener(jdbcUrl), lock));
+        } else if (jdbcUrl.getHaMode().equals(UrlHAMode.REPLICATION)){
+            return (Protocol) Proxy.newProxyInstance(
+                    MastersSlavesProtocol.class.getClassLoader(),
+                    new Class[] {Protocol.class},
+                    new FailoverProxy(new MastersSlavesListener(jdbcUrl), lock));
+        }  else  if (jdbcUrl.getHaMode().equals(UrlHAMode.FAILOVER)){
+                return (Protocol) Proxy.newProxyInstance(
+                        MySQLProtocol.class.getClassLoader(),
+                        new Class[]{Protocol.class},
+                        new FailoverProxy(new MastersFailoverListener(jdbcUrl), lock));
+        } else {
+            MySQLProtocol protocol = new MySQLProtocol(jdbcUrl, lock);
+            protocol.connectWithoutProxy();
+            return protocol;
         }
-        info.setProperty(parameter.substring(0, pos), parameter.substring(pos + 1));
-    }
-    
-    /**
-     * Parses the parameters string and sets the corresponding properties in the properties object.
-     * 
-     * @param urlParameters the parameters string
-     * @param info the properties object
-     */
-    public static void setUrlParameters(String urlParameters, Properties info) {
-    	String [] parameters = urlParameters.split("&");
-    	for(String parameter : parameters) {
-    		setUrlParameter(parameter, info);
-    	}
     }
 }

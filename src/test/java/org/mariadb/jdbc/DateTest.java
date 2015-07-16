@@ -1,7 +1,7 @@
 package org.mariadb.jdbc;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.sql.Date;
 import java.sql.PreparedStatement;
@@ -17,7 +17,7 @@ import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import junit.framework.Assert;
+import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -196,6 +196,8 @@ public class DateTest extends BaseTest{
     
     @Test
     public void nullTimestampTest() throws SQLException {
+        connection.createStatement().execute("drop table if exists dtest");
+        connection.createStatement().execute("create table dtest (d date)");
         PreparedStatement ps = connection.prepareStatement("insert into dtest values(null)");
         ps.executeUpdate();
         ResultSet rs = connection.createStatement().executeQuery("select * from dtest where d is null");
@@ -207,6 +209,8 @@ public class DateTest extends BaseTest{
     @SuppressWarnings( "deprecation" )
     @Test
     public void javaUtilDateInPreparedStatementAsDate() throws Exception {
+          connection.createStatement().execute("drop table if exists dtest");
+          connection.createStatement().execute("create table dtest (d date)");
           java.util.Date d = Calendar.getInstance(TimeZone.getDefault()).getTime();
           PreparedStatement ps = connection.prepareStatement("insert into dtest values(?)");
           ps.setObject(1, d, Types.DATE);
@@ -255,7 +259,8 @@ public class DateTest extends BaseTest{
         java.sql.Timestamp ts  =  rs.getTimestamp(1);
         long differenceToGMT = ts.getTime() - now.getTime();
         long diff = Math.abs(differenceToGMT - offset);
-        assertTrue(diff < 2000); /* query take less than a second */
+        log.fine("diff : "+diff);
+        assertTrue(diff < 5000); /* query take less than a second but taking in accout server and client time second diff ... */
 
         ps = connection.prepareStatement("select utc_timestamp(), ?");
         ps.setObject(1,now);
@@ -263,7 +268,8 @@ public class DateTest extends BaseTest{
         rs.next();
         ts  =  rs.getTimestamp(1);
         java.sql.Timestamp ts2 =  rs.getTimestamp(2);
-        assertTrue(Math.abs(ts.getTime() - ts2.getTime()) < 1000); /* query take less than a second */
+        long diff2 = Math.abs(ts.getTime() - ts2.getTime());
+        assertTrue(diff2 < 5000); /* query take less than a second */
     }
 
     /**
