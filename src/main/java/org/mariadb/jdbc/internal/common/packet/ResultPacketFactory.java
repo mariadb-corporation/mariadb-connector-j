@@ -58,6 +58,7 @@ import java.io.IOException;
 public class ResultPacketFactory {
     private final static byte ERROR = (byte) 0xff;
     private final static byte OK = (byte) 0x00;
+    private final static byte MOREDATA = (byte) 0x01;
     private final static byte EOF = (byte) 0xfe;
     private final static byte LOCALINFILE = (byte) 0xfb;
 
@@ -74,6 +75,8 @@ public class ResultPacketFactory {
                 return new ErrorPacket(rawPacket);
             case OK:
                 return new OKPacket(rawPacket);
+            case MOREDATA:
+                return new MoreDataPacket(rawPacket);
             case EOF:
                 return new EOFPacket(rawPacket);
             case LOCALINFILE:

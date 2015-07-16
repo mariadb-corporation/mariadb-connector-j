@@ -103,6 +103,8 @@ public class MySQLClientAuthPacket implements CommandPacket {
             } catch (NoSuchAlgorithmException e) {
                 throw new RuntimeException("Could not use SHA-1, failing", e);
             }
+        } else if (plugin.equals("mysql_clear_password")) {
+            authData = password.getBytes();
         }
 
         writeBuffer.writeInt(serverCapabilities).

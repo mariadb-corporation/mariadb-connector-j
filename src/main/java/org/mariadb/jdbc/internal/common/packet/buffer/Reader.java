@@ -127,6 +127,11 @@ public class Reader {
         return tmpArr;
     }
 
+    public byte[] readRawBytes() {
+        final int numberOfBytest = byteBuffer.remaining();
+        return readRawBytes(numberOfBytest);
+    }
+
     public void skipByte() throws IOException {
         byteBuffer.get();
     }

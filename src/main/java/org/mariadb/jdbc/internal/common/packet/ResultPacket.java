@@ -57,6 +57,6 @@ public abstract class ResultPacket {
     public abstract byte getPacketSeq();
 
     public enum ResultType {
-        OK, ERROR, EOF, RESULTSET, LOCALINFILE, FIELD
+        OK, ERROR, EOF, RESULTSET, LOCALINFILE, FIELD, MOREDATA
     }
 }
