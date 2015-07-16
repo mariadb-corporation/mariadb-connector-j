@@ -25,13 +25,12 @@ public class CancelTest extends BaseTest {
             ExecutorService exec = Executors.newFixedThreadPool(1);
             //check blacklist shared
             exec.execute(new CancelThread(stmt));
-            stmt.execute("select * from information_schema.columns, information_schema.tables");
+            stmt.execute("select * from information_schema.columns as c1,  information_schema.tables, information_schema.tables as t2");
 
             //wait for thread endings
             exec.shutdown();
             Assert.fail();
         } catch (SQLException e) {
-
         }finally {
             tmpConnection.close();
         }
@@ -46,7 +45,7 @@ public class CancelTest extends BaseTest {
         @Override
         public void run() {
             try {
-                Thread.sleep(1000);
+                Thread.sleep(100);
 
                 stmt.cancel();
 

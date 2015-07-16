@@ -19,9 +19,9 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
         initialUrl = initialAuroraUrl;
         proxyUrl = proxyAuroraUrl;
         currentType = TestType.AURORA;
+        testBeginTime = System.currentTimeMillis();
         Assume.assumeTrue(initialAuroraUrl != null);
         connection = null;
-        testBeginTime = System.currentTimeMillis();
     }
 
     @After
