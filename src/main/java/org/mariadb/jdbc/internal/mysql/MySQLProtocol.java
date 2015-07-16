@@ -630,11 +630,14 @@ public class MySQLProtocol {
                 if (resultPacket.getResultType() == ResultPacket.ResultType.OK) {
                     break;
                 }
-                if (resultPacket.getResultType() != ResultPacket.ResultType.MOREDATA) {
-                    throw new QueryException("Unexpected packet");
+                if ((rp.getByteBuffer().get(0) & 0xFF) == 0x01) {
+                    seqNo = rp.getPacketSeq();
+                    Reader reader = new Reader(rp);
+                    reader.skipByte();
+                    authData = reader.readRawBytes();
+                    continue;
                 }
-                authData = ((MoreDataPacket) resultPacket).getData();
-                seqNo = rp.getPacketSeq();
+                throw new QueryException("Unexpected packet");
             }
             return rp;
         } else {
