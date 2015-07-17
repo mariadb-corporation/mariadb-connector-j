@@ -114,7 +114,7 @@ public class ConnectionTest extends BaseTest {
 			try {
 			securityManager.checkPermission(sqlPermission);
 			} catch (SecurityException se) {
-				log.warning("test 'setNetworkTimeout' skipped  due to missing policy");
+				log.warn("test 'setNetworkTimeout' skipped  due to missing policy");
 				return;
 			}
 		}
@@ -172,7 +172,7 @@ public class ConnectionTest extends BaseTest {
 		ResultSet rs = statement.executeQuery("show variables like 'max_allowed_packet'");
 		rs.next();
         int maxAllowedPacket = rs.getInt(2);
-		log.fine("max_allowed_packet DB" + maxAllowedPacket);
+		log.debug("max_allowed_packet DB" + maxAllowedPacket);
 
 		/**Create a SQL packet bigger than maxAllowedPacket**/
 		StringBuilder sb = new StringBuilder();
@@ -188,7 +188,7 @@ public class ConnectionTest extends BaseTest {
 			statement.executeUpdate("INSERT INTO dummy VALUES " + sb.toString());
 			fail("The previous statement should throw an SQLException");
 		} catch (OutOfMemoryError e) {
-			log.warning("skip test 'maxAllowedPackedExceptionIsPrettyTest' - not enough memory");
+			log.warn("skip test 'maxAllowedPackedExceptionIsPrettyTest' - not enough memory");
 			Assume.assumeNoException(e);
 		} catch (SQLException e) {
 			assertTrue(e.getMessage().contains("max_allowed_packet"));
@@ -208,10 +208,10 @@ public class ConnectionTest extends BaseTest {
 			preparedStatement.executeBatch();
 			fail("The previous statement should throw an SQLException");
 		} catch (OutOfMemoryError e) {
-			log.warning("skip second test 'maxAllowedPackedExceptionIsPrettyTest' - not enough memory");
+			log.warn("skip second test 'maxAllowedPackedExceptionIsPrettyTest' - not enough memory");
 			Assume.assumeNoException(e);
 		} catch (SQLException e) {
-			log.fine("normal SQlExeption "+e.getMessage());
+			log.debug("normal SQlExeption "+e.getMessage());
 			assertTrue(e.getMessage().contains("max_allowed_packet"));
 		} catch (Exception e) {
 			fail("The previous statement should throw an SQLException not a general Exception");

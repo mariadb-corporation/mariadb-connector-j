@@ -20,15 +20,15 @@ public class LoadTest extends BaseTest {
         int i;
         for(i=0;i<10;i++) {
           sum+=this.loadTest(drizConnection);
-            log.finest(String.valueOf(i));
+            log.trace(String.valueOf(i));
         }
-        log.finest(String.valueOf(sum / i));
+        log.trace(String.valueOf(sum / i));
         sum = 0;
         for(i = 0;i<10;i++) {
           sum+=this.loadTest(connection);
-            log.finest(String.valueOf(i));
+            log.trace(String.valueOf(i));
         }
-        log.finest(String.valueOf(sum/i));
+        log.trace(String.valueOf(sum/i));
     }
 
     public long loadTest(Connection connection) throws SQLException {
@@ -76,7 +76,7 @@ public class LoadTest extends BaseTest {
             ps.execute();
             ps.close();
         }
-        log.fine(String.valueOf(System.currentTimeMillis() - startTime));
+        log.debug(String.valueOf(System.currentTimeMillis() - startTime));
 
         stmt.executeUpdate("drop table if exists loadsofdata2");
         stmt.executeUpdate("create table loadsofdata2 (id int not null primary key auto_increment, data blob) engine=innodb");
@@ -89,7 +89,7 @@ public class LoadTest extends BaseTest {
             ps.execute();
             ps.close();
         }
-        log.fine(String.valueOf(System.currentTimeMillis() - startTime));
+        log.debug(String.valueOf(System.currentTimeMillis() - startTime));
         startTime=System.currentTimeMillis();
 
         for(int i=1; i<10000; i++) {
@@ -100,7 +100,7 @@ public class LoadTest extends BaseTest {
             rs.getBytes(2);
             ps.close();
         }
-        log.fine(String.valueOf(System.currentTimeMillis() - startTime));
+        log.debug(String.valueOf(System.currentTimeMillis() - startTime));
 
         startTime=System.currentTimeMillis();
 
@@ -114,7 +114,7 @@ public class LoadTest extends BaseTest {
 
         }
 
-        log.fine(String.valueOf(System.currentTimeMillis() - startTime));
+        log.debug(String.valueOf(System.currentTimeMillis() - startTime));
 
     }
 
@@ -145,7 +145,7 @@ public class LoadTest extends BaseTest {
             }
             ps.execute();
         }
-        log.fine(String.valueOf(System.currentTimeMillis() - startTime));
+        log.debug(String.valueOf(System.currentTimeMillis() - startTime));
         stmt.executeUpdate("drop table if exists loadsofdata3");
         stmt.executeUpdate("create table loadsofdata3 (id int not null primary key auto_increment,"+sb.toString()+") engine=innodb");
         
@@ -159,7 +159,7 @@ public class LoadTest extends BaseTest {
             ps.execute();
 
         }
-        log.fine(String.valueOf(System.currentTimeMillis() - startTime));
+        log.debug(String.valueOf(System.currentTimeMillis() - startTime));
 
     }
     @Test
@@ -170,7 +170,7 @@ public class LoadTest extends BaseTest {
         for(int i=0; i<x; i++ ) {
             drizConnection.prepareStatement("SELECT * FROM EH WHERE EH=? and UU=? and GG=?");
         }
-        log.fine(String.valueOf((System.nanoTime() - startTime)/x));
+        log.debug(String.valueOf((System.nanoTime() - startTime)/x));
     }
 
 

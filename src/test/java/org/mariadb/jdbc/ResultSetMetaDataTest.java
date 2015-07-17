@@ -10,9 +10,6 @@ import java.util.logging.Logger;
 import static org.junit.Assert.assertEquals;
 
 public class ResultSetMetaDataTest extends BaseTest {
-	static {
-		Logger.getLogger("").setLevel(Level.OFF);
-	}
 
 	@Test
 	public void metaDataTest() throws SQLException {

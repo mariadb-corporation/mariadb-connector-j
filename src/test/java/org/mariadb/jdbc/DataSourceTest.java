@@ -107,7 +107,7 @@ public class DataSourceTest extends BaseTest {
             ds.getConnection(username, password);
             Assert.fail();
         } catch (SQLException e) {
-            log.fine("port error : " +e.getMessage());
+            log.debug("port error : " +e.getMessage());
         }
     }
 

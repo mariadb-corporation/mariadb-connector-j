@@ -1,16 +1,15 @@
 package org.mariadb.jdbc.failover;
 
-import java.io.*;
-import java.net.ServerSocket;
-import java.net.Socket;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
 import java.util.concurrent.Executors;
-import java.util.concurrent.RunnableScheduledFuture;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
+
 
 public class TcpProxy {
-    protected static Logger log = Logger.getLogger("org.maria.jdbc");
+    protected final static Logger log = LoggerFactory.getLogger(TcpProxy.class);
 
     String host;
     int remoteport;
@@ -36,8 +35,10 @@ public class TcpProxy {
         Executors.newSingleThreadExecutor().execute(socket);
         try {
             Thread.sleep(10);
-        }catch(InterruptedException e) {}
+        } catch (InterruptedException e) {
+        }
     }
+
     public void assureProxyOk() {
         if (socket.isClosed()) {
             restart();

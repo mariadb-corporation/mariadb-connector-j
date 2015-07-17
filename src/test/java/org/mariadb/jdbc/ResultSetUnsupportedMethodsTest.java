@@ -11,8 +11,6 @@ import java.util.logging.Logger;
 public class ResultSetUnsupportedMethodsTest extends BaseTest {
     private  ResultSet rs;
 
-    static { Logger.getLogger("").setLevel(Level.OFF); }
-
     public ResultSetUnsupportedMethodsTest() throws SQLException {
 
     }

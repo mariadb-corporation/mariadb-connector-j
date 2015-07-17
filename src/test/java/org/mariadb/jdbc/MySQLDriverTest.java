@@ -301,7 +301,7 @@ public class MySQLDriverTest extends BaseTest {
                 Assert.assertTrue(rs.next());
                 assertEquals(rs.getString(1).length(), i);
                 rs.close();
-                log.finest("i=" +i);
+                log.trace("i=" +i);
             }
         } finally {
         }

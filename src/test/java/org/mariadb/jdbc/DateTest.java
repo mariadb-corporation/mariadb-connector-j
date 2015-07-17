@@ -24,7 +24,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class DateTest extends BaseTest{
-    static { Logger.getLogger("").setLevel(Level.OFF); }
 
     public DateTest() {
 
@@ -259,7 +258,7 @@ public class DateTest extends BaseTest{
         java.sql.Timestamp ts  =  rs.getTimestamp(1);
         long differenceToGMT = ts.getTime() - now.getTime();
         long diff = Math.abs(differenceToGMT - offset);
-        log.fine("diff : "+diff);
+        log.trace("diff : "+diff);
         assertTrue(diff < 5000); /* query take less than a second but taking in accout server and client time second diff ... */
 
         ps = connection.prepareStatement("select utc_timestamp(), ?");

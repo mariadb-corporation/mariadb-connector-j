@@ -53,6 +53,8 @@ import org.mariadb.jdbc.internal.SQLExceptionMapper;
 import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.common.Utils;
 import org.mariadb.jdbc.internal.mysql.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Proxy;
 import java.sql.Connection;
@@ -62,14 +64,11 @@ import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.Properties;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.logging.Logger;
+
 
 
 public final class Driver implements java.sql.Driver {
-    /**
-     * the logger.
-     */
-    private static final Logger log = Logger.getLogger(Driver.class.getName());
+    private final static Logger log = LoggerFactory.getLogger(Driver.class);
 
     static {
         try {
@@ -90,7 +89,7 @@ public final class Driver implements java.sql.Driver {
      */
     public Connection connect(final String url, final Properties props) throws SQLException {
 
-        log.finest("Connecting to: " + url);
+        log.debug("Connecting to: " + url);
         try {
             JDBCUrl jdbcUrl = JDBCUrl.parse(url, props);
             if (jdbcUrl.getHostAddresses() == null) {
@@ -159,7 +158,7 @@ public final class Driver implements java.sql.Driver {
         return false;
     }
 
-    public Logger getParentLogger() throws SQLFeatureNotSupportedException {
+    public java.util.logging.Logger getParentLogger() throws SQLFeatureNotSupportedException {
         // TODO Auto-generated method stub
         return null;
     }

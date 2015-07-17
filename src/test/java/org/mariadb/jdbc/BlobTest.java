@@ -26,7 +26,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class BlobTest extends BaseTest {
-    static { Logger.getLogger("").setLevel(Level.OFF); }
     @Test
     public void testPosition() throws SQLException {
         byte[] blobContent = new byte[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};

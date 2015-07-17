@@ -7,6 +7,7 @@ import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.mariadb.jdbc.failover.BaseMultiHostTest;
 import org.mariadb.jdbc.internal.mysql.Protocol;
+import org.slf4j.*;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -15,8 +16,6 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.sql.*;
 import java.util.*;
-import java.util.logging.*;
-import java.util.logging.Formatter;
 
 /**
  *  Base util class.
@@ -25,8 +24,7 @@ import java.util.logging.Formatter;
  */
 @Ignore
 public class BaseTest {
-
-    protected static Logger log = Logger.getLogger("org.mariadb.jdbc");
+    protected final static Logger log = LoggerFactory.getLogger(BaseTest.class);
     protected Connection connection;
     protected static String connU;
     protected static String connURI;
@@ -51,7 +49,7 @@ public class BaseTest {
     	username = jdbcUrl.getUsername();
     	password = jdbcUrl.getPassword();
     	
-    	log.fine("Properties parsed from JDBC URL - hostname: " + hostname + ", port: " + port + ", database: " + database + ", username: " + username + ", password: " + password);
+    	log.debug("Properties parsed from JDBC URL - hostname: " + hostname + ", port: " + port + ", database: " + database + ", username: " + username + ", password: " + password);
 
     	setURI();
     }
@@ -64,11 +62,11 @@ public class BaseTest {
     @Rule
     public TestRule watcher = new TestWatcher() {
         protected void starting(Description description) {
-            log.fine("Starting test: " + description.getMethodName());
+            log.debug("Starting test: " + description.getMethodName());
         }
 
         protected void finished(Description description) {
-            log.fine("finished test: " + description.getMethodName());
+            log.debug("finished test: " + description.getMethodName());
         }
     };
 

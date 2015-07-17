@@ -59,6 +59,8 @@ import org.mariadb.jdbc.internal.mysql.MySQLProtocol;
 import org.mariadb.jdbc.internal.mysql.Protocol;
 import org.mariadb.jdbc.internal.mysql.listener.AbstractMastersListener;
 import org.mariadb.jdbc.internal.mysql.listener.tools.SearchFilter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Method;
 import java.sql.SQLException;
@@ -66,12 +68,9 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 
 public class MastersFailoverListener extends AbstractMastersListener {
-    private final static Logger log = Logger.getLogger(MastersFailoverListener.class.getName());
+    private final static Logger log = LoggerFactory.getLogger(MastersFailoverListener.class);
     private final UrlHAMode mode;
 
     public MastersFailoverListener(final JDBCUrl jdbcUrl) {
@@ -82,9 +81,9 @@ public class MastersFailoverListener extends AbstractMastersListener {
 
     public void initializeConnection() throws QueryException {
         this.currentProtocol = null;
-        log.finest("launching initial loop");
+        log.trace("launching initial loop");
         reconnectFailedConnection(new SearchFilter(true, false));
-        log.finest("launching initial loop end");
+        log.trace("launching initial loop end");
 
     }
 
@@ -122,11 +121,11 @@ public class MastersFailoverListener extends AbstractMastersListener {
                 try {
                     executorService.awaitTermination(15, TimeUnit.SECONDS);
                 } catch (InterruptedException e) {
-                    log.finest("executorService interrupted");
+                    log.trace("executorService interrupted");
                 }
             }
         }
-        log.finest("preClose connections");
+        log.trace("preClose connections");
     }
 
     @Override
@@ -134,8 +133,8 @@ public class MastersFailoverListener extends AbstractMastersListener {
         boolean alreadyClosed = !currentProtocol.isConnected();
         try {
             if (currentProtocol != null && currentProtocol.isConnected() && currentProtocol.ping()) {
-                if (log.isLoggable(Level.FINE))
-                    log.fine("Primary node [" + currentProtocol.getHostAddress().toString() + "] connection re-established");
+                if (log.isDebugEnabled())
+                    log.debug("Primary node [" + currentProtocol.getHostAddress().toString() + "] connection re-established");
 
                 // if in transaction cannot be sure that the last query has been received by server of not, so rollback.
                 if (currentProtocol.inTransaction()) {
@@ -172,7 +171,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
      */
     @Override
     public void reconnectFailedConnection(SearchFilter searchFilter) throws QueryException {
-        if (log.isLoggable(Level.FINEST)) log.finest("search connection searchFilter=" + searchFilter);
+        if (log.isTraceEnabled()) log.trace("search connection searchFilter=" + searchFilter);
         currentConnectionAttempts.incrementAndGet();
         resetOldsBlackListHosts();
 
@@ -240,10 +239,10 @@ public class MastersFailoverListener extends AbstractMastersListener {
             setSessionReadOnly(true);
         }
 
-        if (log.isLoggable(Level.FINE)) {
+        if (log.isDebugEnabled()) {
             if (getMasterHostFailTimestamp() > 0) {
-                log.fine("new primary node [" + currentProtocol.getHostAddress().toString() + "] connection established after " + (System.currentTimeMillis() - getMasterHostFailTimestamp()));
-            } else log.fine("new primary node [" + currentProtocol.getHostAddress().toString() + "] connection established");
+                log.debug("new primary node [" + currentProtocol.getHostAddress().toString() + "] connection established after " + (System.currentTimeMillis() - getMasterHostFailTimestamp()));
+            } else log.debug("new primary node [" + currentProtocol.getHostAddress().toString() + "] connection established");
         }
 
         resetMasterFailoverData();

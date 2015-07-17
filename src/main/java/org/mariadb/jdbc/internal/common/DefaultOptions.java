@@ -215,11 +215,6 @@ public enum DefaultOptions {
     FAIL_ON_READ_ONLY("failOnReadOnly", Boolean.FALSE, "1.2.0"),
 
     /**
-     * If autoReconnect is enabled, the initial time to wait between re-connect attempts (in seconds, defaults to 2)
-     */
-    INITIAL_TIMEOUT("initialTimeout", new Integer(2), new Integer(0), Integer.MAX_VALUE, "1.2.0"),
-
-    /**
      * Number of seconds to issue before falling back to master when failed over (when using multi-host failover).
      * Whichever condition is met first, 'queriesBeforeRetryMaster' or 'secondsBeforeRetryMaster' will cause an
      * attempt to be made to reconnect to the master. Defaults to 50

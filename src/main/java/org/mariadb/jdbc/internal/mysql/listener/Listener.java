@@ -78,7 +78,6 @@ public interface Listener {
     void syncConnection(Protocol from, Protocol to) throws QueryException;
     JDBCUrl getJdbcUrl();
     void throwFailoverMessage(QueryException queryException, boolean reconnected) throws QueryException;
-    int getInitialTimeout();
     boolean isAutoReconnect();
     int getRetriesAllDown();
     boolean isExplicitClosed();

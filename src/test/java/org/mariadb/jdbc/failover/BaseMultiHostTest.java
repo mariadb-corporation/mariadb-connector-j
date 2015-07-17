@@ -12,13 +12,14 @@ import org.mariadb.jdbc.JDBCUrl;
 import org.mariadb.jdbc.MySQLConnection;
 import org.mariadb.jdbc.internal.common.UrlHAMode;
 import org.mariadb.jdbc.internal.mysql.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.sql.*;
 import java.util.HashMap;
 import java.util.List;
-import java.util.logging.*;
 
 /**
  *  Base util class.
@@ -32,7 +33,7 @@ import java.util.logging.*;
  */
 @Ignore
 public class BaseMultiHostTest {
-    protected static Logger log = Logger.getLogger("org.mariadb.jdbc");
+    protected final static Logger log = LoggerFactory.getLogger(BaseMultiHostTest.class);
 
     protected static String initialGaleraUrl;
     protected static String initialAuroraUrl;
@@ -58,11 +59,11 @@ public class BaseMultiHostTest {
     @Rule
     public TestRule watcher = new TestWatcher() {
         protected void starting(Description description) {
-            log.fine("Starting test: " + description.getMethodName());
+            log.debug("Starting test: " + description.getMethodName());
         }
 
         protected void finished(Description description) {
-            log.fine("finished test: " + description.getMethodName());
+            log.debug("finished test: " + description.getMethodName());
         }
     };
 
@@ -99,7 +100,7 @@ public class BaseMultiHostTest {
             try {
                 hostAddress = tmpJdbcUrl.getHostAddresses().get(i);
                 tcpProxies[i] = new TcpProxy(hostAddress.host, hostAddress.port);
-                log.fine("creating socket " + proxyType+" : "+ hostAddress.host + ":" + hostAddress.port + " -> localhost:" + tcpProxies[i].getLocalPort());
+                log.debug("creating socket " + proxyType + " : " + hostAddress.host + ":" + hostAddress.port + " -> localhost:" + tcpProxies[i].getLocalPort());
                 sockethosts+=",address=(host=localhost)(port="+tcpProxies[i].getLocalPort()+")"+((hostAddress.type != null)?"(type="+hostAddress.type+")":"");
             } catch (IOException e) {
                 e.printStackTrace();
@@ -161,17 +162,17 @@ public class BaseMultiHostTest {
     }
 
     public void stopProxy(int hostNumber, long millissecond) {
-        log.fine("stopping host "+hostNumber);
+        log.debug("stopping host " + hostNumber);
         proxySet.get(currentType)[hostNumber - 1].restart(millissecond);
     }
 
     public void stopProxy(int hostNumber) {
-        log.fine("stopping host "+hostNumber);
+        log.debug("stopping host " + hostNumber);
         proxySet.get(currentType)[hostNumber - 1].stop();
     }
 
     public void restartProxy(int hostNumber) {
-        log.fine("restart host "+hostNumber);
+        log.debug("restart host " + hostNumber);
         if (hostNumber != -1) proxySet.get(currentType)[hostNumber - 1].restart();
     }
     public void assureProxy() {
@@ -210,7 +211,7 @@ public class BaseMultiHostTest {
         rs.close();
 
         if (superPrivilege)
-            log.fine("test '" + testName + "' skipped because user '" + username + "' has SUPER privileges");
+            log.debug("test '" + testName + "' skipped because user '" + username + "' has SUPER privileges");
 
         return superPrivilege;
     }
