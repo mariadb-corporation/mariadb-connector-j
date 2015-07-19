@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<configuration>
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <!-- encoders are assigned the type
+             ch.qos.logback.classic.encoder.PatternLayoutEncoder by default -->
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{5} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <logger name="org.mariadb.jdbc" level="DEBUG" additivity="false">
+        <appender-ref ref="STDOUT" />
+    </logger>
+
+    <logger category="org.mariadb.jdbc.BlobTest">
+        <level name="ERROR"/>
+    </logger>
+    <logger category="org.mariadb.jdbc.DatabaseMetadataTest">
+        <level name="ERROR"/>
+    </logger>
+
+
+</configuration>

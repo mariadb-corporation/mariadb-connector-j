@@ -52,6 +52,8 @@ import org.mariadb.jdbc.internal.SQLExceptionMapper;
 import org.mariadb.jdbc.internal.common.Utils;
 import org.mariadb.jdbc.internal.common.query.*;
 import org.mariadb.jdbc.internal.common.query.parameters.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -64,12 +66,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 
 public class MySQLPreparedStatement extends MySQLStatement implements PreparedStatement {
-    private final static Logger log = Logger.getLogger(MySQLPreparedStatement.class.getName());
+    private final static Logger log = LoggerFactory.getLogger(MySQLPreparedStatement.class);
     private MySQLParameterizedQuery dQuery;
     private String sql;
     private boolean useFractionalSeconds;
@@ -82,8 +82,8 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
         this.sql = sql;
         useFractionalSeconds =
               connection.getProtocol().getOptions().useFractionalSeconds;
-        if(log.isLoggable(Level.FINEST)) {
-            log.finest("Creating prepared statement for " + sql);
+        if(log.isDebugEnabled()) {
+            log.debug("Creating prepared statement for " + sql);
         }
         dQuery = new MySQLParameterizedQuery(Utils.nativeSQL(sql, connection.noBackslashEscapes),
                 connection.noBackslashEscapes);

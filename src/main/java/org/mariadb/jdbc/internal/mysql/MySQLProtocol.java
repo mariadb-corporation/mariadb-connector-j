@@ -68,6 +68,8 @@ import org.mariadb.jdbc.internal.mysql.listener.Listener;
 import org.mariadb.jdbc.internal.mysql.listener.tools.SearchFilter;
 import org.mariadb.jdbc.internal.mysql.packet.MySQLGreetingReadPacket;
 import org.mariadb.jdbc.internal.mysql.packet.commands.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.net.SocketFactory;
 import javax.net.ssl.*;
@@ -87,10 +89,6 @@ import java.security.cert.X509Certificate;
 import java.sql.Connection;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-
 
 class MyX509TrustManager implements X509TrustManager {
     boolean trustServerCeritifcate;
@@ -155,7 +153,8 @@ class MyX509TrustManager implements X509TrustManager {
 }
 
 public class MySQLProtocol implements Protocol {
-    private final static Logger log = Logger.getLogger(MySQLProtocol.class.getName());
+
+    private final static Logger log = LoggerFactory.getLogger(MySQLProtocol.class);
     protected final ReentrantReadWriteLock lock;
     private boolean connected = false;
     private boolean explicitClosed = false;
@@ -236,7 +235,7 @@ public class MySQLProtocol implements Protocol {
             try {
                 socketFactory = (SocketFactory) (Class.forName(socketFactoryName).newInstance());
             } catch (Exception sfex){
-                log.fine("Failed to create socket factory " + socketFactoryName);
+                log.debug("Failed to create socket factory " + socketFactoryName);
                 socketFactory = SocketFactory.getDefault();
             }
         }  else {
@@ -271,7 +270,7 @@ public class MySQLProtocol implements Protocol {
             if (jdbcUrl.getOptions().tcpSndBuf != null) socket.setSendBufferSize(jdbcUrl.getOptions().tcpSndBuf);
             if (jdbcUrl.getOptions().tcpAbortiveClose) socket.setSoLinger(true, 0);
         } catch (Exception e) {
-            if (log.isLoggable(Level.FINE))log.fine("Failed to set socket option: " + e.getLocalizedMessage());
+            if (log.isDebugEnabled())log.debug("Failed to set socket option: " + e.getLocalizedMessage());
         }
 
         // Bind the socket to a particular interface if the connection property
@@ -531,7 +530,7 @@ public class MySQLProtocol implements Protocol {
         if (rp.getByteBuffer().get(0) == -1) {
             ErrorPacket ep = new ErrorPacket(rp);
             String message = ep.getMessage();
-            throw new QueryException("Could not connect: " + message);
+            throw new QueryException("Could not connect: " + message, ep.getErrorNumber(), ep.getSqlState());
         }
     }
 
@@ -726,8 +725,8 @@ public class MySQLProtocol implements Protocol {
      * @throws QueryException if not found
      */
     public static void loop(Listener listener, final List<HostAddress> addresses, Map<HostAddress, Long> blacklist, SearchFilter searchFilter) throws QueryException {
-        if (log.isLoggable(Level.FINE)) {
-            log.fine("searching for master:" + searchFilter.isSearchForMaster() + " replica:" + searchFilter.isSearchForSlave() + " addresses:" + addresses );
+        if (log.isDebugEnabled()) {
+            log.debug("searching for master:" + searchFilter.isSearchForMaster() + " replica:" + searchFilter.isSearchForSlave() + " addresses:" + addresses);
         }
 
         MySQLProtocol protocol;
@@ -744,16 +743,16 @@ public class MySQLProtocol implements Protocol {
                 protocol.setHostAddress(loopAddresses.get(0));
                 loopAddresses.remove(0);
 
-                if (log.isLoggable(Level.FINE)) log.fine("trying to connect to " + protocol.getHostAddress());
+                if (log.isDebugEnabled()) log.debug("trying to connect to " + protocol.getHostAddress());
                 protocol.connect();
                 blacklist.remove(protocol.getHostAddress());
-                if (log.isLoggable(Level.FINE)) log.fine("connected to primary " + protocol.getHostAddress());
+                if (log.isDebugEnabled()) log.debug("connected to primary " + protocol.getHostAddress());
                 listener.foundActiveMaster(protocol);
                 return;
 
             } catch (QueryException e) {
                 blacklist.put(protocol.getHostAddress(), System.currentTimeMillis());
-                if (log.isLoggable(Level.FINE)) log.fine("Could not connect to " + protocol.getHostAddress() + " searching: " + searchFilter + " error: " + e.getMessage());
+                if (log.isDebugEnabled()) log.debug("Could not connect to " + protocol.getHostAddress() + " searching: " + searchFilter + " error: " + e.getMessage());
                 lastQueryException = e;
             }
 
@@ -828,7 +827,7 @@ public class MySQLProtocol implements Protocol {
             try {
                 socket.close();
             } catch (IOException e) {
-                log.warning("Could not close socket");
+                log.warn("Could not close socket");
             }
         }
     }
@@ -852,11 +851,11 @@ public class MySQLProtocol implements Protocol {
             /* eat exception */
         }
         try {
-            if (log.isLoggable(Level.FINEST)) log.finest("Closing connection  " + currentHost);
+            if (log.isTraceEnabled()) log.trace("Closing connection  " + currentHost);
             close(packetFetcher, writer, socket);
         } catch (Exception e) {
             // socket is closed, so it is ok to ignore exception
-            log.fine("got exception " + e + " while closing connection");
+            log.debug("got exception " + e + " while closing connection");
         } finally {
             this.connected = false;
 
@@ -902,7 +901,7 @@ public class MySQLProtocol implements Protocol {
     @Override
     public void setCatalog(final String database) throws QueryException {
         lock.writeLock().lock();
-        log.finest("Selecting db " + database);
+        if (log.isTraceEnabled()) log.trace("Selecting db " + database);
         final SelectDBPacket packet = new SelectDBPacket(database);
         try {
             packet.send(writer);
@@ -984,7 +983,7 @@ public class MySQLProtocol implements Protocol {
             final MySQLPingPacket pingPacket = new MySQLPingPacket();
             try {
                 pingPacket.send(writer);
-                if (log.isLoggable(Level.FINEST))log.finest("Sent ping packet");
+                if (log.isTraceEnabled())log.trace("Sent ping packet");
                 final RawPacket rawPacket = packetFetcher.getRawPacket();
                 return ResultPacketFactory.createResultPacket(rawPacket).getResultType() == ResultPacket.ResultType.OK;
             } catch (IOException e) {
@@ -1020,7 +1019,7 @@ public class MySQLProtocol implements Protocol {
                 InputStream is;
                 if (localInfileInputStream == null) {
                     LocalInfilePacket localInfilePacket = (LocalInfilePacket) resultPacket;
-                    if (log.isLoggable(Level.FINEST)) log.finest("sending local file " + localInfilePacket.getFileName());
+                    if (log.isTraceEnabled()) log.trace("sending local file " + localInfilePacket.getFileName());
                     String localInfile = localInfilePacket.getFileName();
 
                     try {
@@ -1058,9 +1057,9 @@ public class MySQLProtocol implements Protocol {
                 this.hasWarnings = false;
                 ErrorPacket ep = (ErrorPacket) resultPacket;
                 if (dQueries != null && dQueries.size() == 1) {
-                    log.warning("Could not execute query " + dQueries.get(0) + ": " + ((ErrorPacket) resultPacket).getMessage());
+                    log.warn("Could not execute query " + dQueries.get(0) + ": " + ((ErrorPacket) resultPacket).getMessage());
                 } else {
-                    log.warning("Got error from server: " + ((ErrorPacket) resultPacket).getMessage());
+                    log.warn("Got error from server: " + ((ErrorPacket) resultPacket).getMessage());
                 }
                 throw new QueryException(ep.getMessage(), ep.getErrorNumber(), ep.getSqlState());
 
@@ -1073,7 +1072,7 @@ public class MySQLProtocol implements Protocol {
                         okpacket.getWarnings(),
                         okpacket.getMessage(),
                         okpacket.getInsertId());
-                if (log.isLoggable(Level.FINEST)) log.finest("OK, " + okpacket.getAffectedRows());
+                if (log.isTraceEnabled()) log.trace("OK, " + okpacket.getAffectedRows());
                 return updateResult;
             case RESULTSET:
                 this.hasWarnings = false;
@@ -1088,7 +1087,7 @@ public class MySQLProtocol implements Protocol {
                             e);
                 }
             default:
-                log.severe("Could not parse result..." + resultPacket.getResultType());
+                log.error("Could not parse result..." + resultPacket.getResultType());
                 throw new QueryException("Could not parse result", (short) -1, SQLExceptionMapper.SQLStates.INTERRUPTED_EXCEPTION.getSqlState());
         }
 

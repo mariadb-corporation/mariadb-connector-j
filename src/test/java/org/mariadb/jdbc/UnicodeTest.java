@@ -10,7 +10,6 @@ import static org.junit.Assert.assertEquals;
 
 
 public class UnicodeTest extends BaseTest {
-static { Logger.getLogger("").setLevel(Level.OFF); }
 
     @Test
     public void firstTest() throws SQLException {

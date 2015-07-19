@@ -179,7 +179,7 @@ public class MonoServerFailoverTest extends BaseMultiHostTest {
         try {
             while (rs.next()) {
                 nbRead++;
-                log.fine("nbRead = "+nbRead + " rs="+rs.getInt(1));
+                log.debug("nbRead = "+nbRead + " rs="+rs.getInt(1));
             }
             Assert.fail();
         } catch (SQLException e) {

@@ -33,7 +33,7 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
         assureBlackList(connection);
         if (connection != null) connection.close();
 
-        log.fine("test time : "+(System.currentTimeMillis() - testBeginTime) + "ms");
+        log.debug("test time : "+(System.currentTimeMillis() - testBeginTime) + "ms");
     }
 
     @Test
@@ -56,7 +56,7 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
                 Assume.assumeTrue(false);
             }
             stmt.execute("drop table  if exists multinode4");
-            log.severe("ERROR - > must not be able to write on slave ");
+            log.error("ERROR - > must not be able to write on slave ");
             fail();
         } catch (SQLException e) {
         }
@@ -69,12 +69,12 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
         for (int i = 0; i < 20; i++) {
             connection = getNewConnection("&retriesAllDown=1", false);
             int serverId = getServerId(connection);
-            log.fine("master server found " + serverId);
+            log.debug("master server found " + serverId);
             if (i > 0) assertTrue(masterId == serverId);
             masterId = serverId;
             connection.setReadOnly(true);
             int replicaId = getServerId(connection);
-            log.fine("++++++++++++slave  server found " + replicaId);
+            log.debug("++++++++++++slave  server found " + replicaId);
             MutableInt count = connectionMap.get(String.valueOf(replicaId));
             if (count == null) {
                 connectionMap.put(String.valueOf(replicaId), new MutableInt());
@@ -87,7 +87,7 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
         assertTrue(connectionMap.size() >= 2);
         for (String key : connectionMap.keySet()) {
             Integer connectionCount = connectionMap.get(key).get();
-            log.fine(" ++++ Server " + key + " : " + connectionCount + " connections ");
+            log.debug(" ++++ Server " + key + " : " + connectionCount + " connections ");
             assertTrue(connectionCount > 1);
         }
     }
@@ -103,7 +103,7 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
         connection.createStatement().execute("SELECT 1");
         int currentServerId = getServerId(connection);
 
-        log.fine("masterServerId = " + masterServerId + "/currentServerId = " + currentServerId);
+        log.debug("masterServerId = " + masterServerId + "/currentServerId = " + currentServerId);
         assertTrue(masterServerId == currentServerId);
 
         assertFalse(connection.isReadOnly());
@@ -149,10 +149,10 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
         while (loop) {
             try {
                 Thread.sleep(250);
-                log.fine("time : " + (System.currentTimeMillis() - stoppedTime) + "ms");
+                log.debug("time : " + (System.currentTimeMillis() - stoppedTime) + "ms");
                 int currentHost = getServerId(connection);
                 if (masterServerId == currentHost) {
-                    log.fine("reconnection with failover loop after : " + (System.currentTimeMillis() - stoppedTime) + "ms");
+                    log.debug("reconnection with failover loop after : " + (System.currentTimeMillis() - stoppedTime) + "ms");
                     assertTrue((System.currentTimeMillis() - stoppedTime) > 5 * 1000);
                     loop = false;
                 }
@@ -188,10 +188,10 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
     public void changeSlave() throws Throwable {
         connection = getNewConnection("&retriesAllDown=1", true);
         int masterServerId = getServerId(connection);
-        log.fine("master server_id = " + masterServerId);
+        log.debug("master server_id = " + masterServerId);
         connection.setReadOnly(true);
         int firstSlaveId = getServerId(connection);
-        log.fine("slave1 server_id = " + firstSlaveId);
+        log.debug("slave1 server_id = " + firstSlaveId);
 
         stopProxy(masterServerId);
         stopProxy(firstSlaveId);
@@ -207,10 +207,10 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
     public void masterWithoutFailover() throws Throwable {
         connection = getNewConnection("&retriesAllDown=1", true);
         int masterServerId = getServerId(connection);
-        log.fine("master server_id = " + masterServerId);
+        log.debug("master server_id = " + masterServerId);
         connection.setReadOnly(true);
         int firstSlaveId = getServerId(connection);
-        log.fine("slave1 server_id = " + firstSlaveId);
+        log.debug("slave1 server_id = " + firstSlaveId);
         connection.setReadOnly(false);
 
         stopProxy(masterServerId);
@@ -230,12 +230,12 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
 
         //search actual server_id for master and slave
         int masterServerId = getServerId(connection);
-        log.fine("master server_id = " + masterServerId);
+        log.debug("master server_id = " + masterServerId);
 
         connection.setReadOnly(true);
 
         int firstSlaveId = getServerId(connection);
-        log.fine("slave1 server_id = " + firstSlaveId);
+        log.debug("slave1 server_id = " + firstSlaveId);
 
         stopProxy(masterServerId);
         stopProxy(firstSlaveId);
@@ -243,7 +243,7 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
         //must reconnect to the second slave without error
         connection.createStatement().execute("SELECT 1");
         int currentSlaveId = getServerId(connection);
-        log.fine("currentSlaveId server_id = " + currentSlaveId);
+        log.debug("currentSlaveId server_id = " + currentSlaveId);
         assertTrue(currentSlaveId != firstSlaveId);
         assertTrue(currentSlaveId != masterServerId);
     }
@@ -280,7 +280,7 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
         for (int i = 1; i < 10; i++) {
             try {
                 st.execute("SELECT 1");
-                log.fine("i=" + i);
+                log.debug("i=" + i);
                 assertTrue(connection.isReadOnly());
             } catch (SQLException e) {
                 fail();
@@ -289,7 +289,7 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
         Thread.sleep(5000);
         long startTime = System.currentTimeMillis();
         connection.setReadOnly(false);
-        log.fine(" time = " + (System.currentTimeMillis() - startTime));
+        log.debug(" time = " + (System.currentTimeMillis() - startTime));
         assertTrue(System.currentTimeMillis() - startTime < 4000);
 
     }
@@ -357,7 +357,7 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
             Thread.sleep(250);
             try {
                 if (!connection.isReadOnly()) {
-                    log.fine("reconnection to master with failover loop after : " + (System.currentTimeMillis() - stoppedTime) + "ms");
+                    log.debug("reconnection to master with failover loop after : " + (System.currentTimeMillis() - stoppedTime) + "ms");
                     assertTrue((System.currentTimeMillis() - stoppedTime) > 10 * 1000);
                     loop = false;
                 }

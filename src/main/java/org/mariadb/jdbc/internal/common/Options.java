@@ -88,7 +88,6 @@ public class Options {
     //HA options
     public boolean autoReconnect;
     public boolean failOnReadOnly;
-    public int initialTimeout;
     public int secondsBeforeRetryMaster;
     public int queriesBeforeRetryMaster;
     public int retriesAllDown;
@@ -132,7 +131,6 @@ public class Options {
                 ", useOldAliasMetadataBehavior=" + useOldAliasMetadataBehavior +
                 ", autoReconnect=" + autoReconnect +
                 ", failOnReadOnly=" + failOnReadOnly +
-                ", initialTimeout=" + initialTimeout +
                 ", secondsBeforeRetryMaster=" + secondsBeforeRetryMaster +
                 ", queriesBeforeRetryMaster=" + queriesBeforeRetryMaster +
                 ", retriesAllDown=" + retriesAllDown +

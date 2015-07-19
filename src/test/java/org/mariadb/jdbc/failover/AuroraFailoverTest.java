@@ -19,9 +19,9 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
         initialUrl = initialAuroraUrl;
         proxyUrl = proxyAuroraUrl;
         currentType = TestType.AURORA;
+        testBeginTime = System.currentTimeMillis();
         Assume.assumeTrue(initialAuroraUrl != null);
         connection = null;
-        testBeginTime = System.currentTimeMillis();
     }
 
     @After
@@ -31,7 +31,7 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
             connection.close();
             assureBlackList(connection);
         }
-        log.fine("test time : " + (System.currentTimeMillis() - testBeginTime) + "ms");
+        log.debug("test time : " + (System.currentTimeMillis() - testBeginTime) + "ms");
     }
 
     @Test
@@ -50,7 +50,7 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
         Assert.assertTrue(connection.isReadOnly());
         try {
             stmt.execute("drop table  if exists multinode4");
-            log.severe("ERROR - > must not be able to write on slave --> check if you database is start with --read-only");
+            log.error("ERROR - > must not be able to write on slave --> check if you database is start with --read-only");
             Assert.fail();
         } catch (SQLException e) {
         }
@@ -80,12 +80,12 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
         for (int i = 0; i < 20; i++) {
             connection = getNewConnection(false);
             int serverId = getServerId(connection);
-            log.fine("master server found " + serverId);
+            log.debug("master server found " + serverId);
             if (i > 0) Assert.assertTrue(masterId == serverId);
             masterId = serverId;
             connection.setReadOnly(true);
             int replicaId = getServerId(connection);
-            log.fine("++++++++++++slave  server found " + replicaId);
+            log.debug("++++++++++++slave  server found " + replicaId);
             MutableInt count = connectionMap.get(String.valueOf(replicaId));
             if (count == null) {
                 connectionMap.put(String.valueOf(replicaId), new MutableInt());
@@ -98,10 +98,10 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
         Assert.assertTrue(connectionMap.size() >= 2);
         for (String key : connectionMap.keySet()) {
             Integer connectionCount = connectionMap.get(key).get();
-            log.fine(" ++++ Server " + key + " : " + connectionCount + " connections ");
+            log.debug(" ++++ Server " + key + " : " + connectionCount + " connections ");
             Assert.assertTrue(connectionCount > 1);
         }
-        log.fine("randomConnection OK");
+        log.debug("randomConnection OK");
     }
 
 
@@ -116,7 +116,7 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
         connection.createStatement().execute("SELECT 1");
         int currentServerId = getServerId(connection);
 
-        log.fine("masterServerId = " + masterServerId + "/currentServerId = " + currentServerId);
+        log.debug("masterServerId = " + masterServerId + "/currentServerId = " + currentServerId);
         Assert.assertTrue(masterServerId == currentServerId);
 
         Assert.assertFalse(connection.isReadOnly());
@@ -159,7 +159,7 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
         boolean loop = true;
         while (loop) {
             if (!connection.isClosed()) {
-                log.fine("reconnection with failover loop after : " + (System.currentTimeMillis() - stoppedTime) + "ms");
+                log.debug("reconnection with failover loop after : " + (System.currentTimeMillis() - stoppedTime) + "ms");
                 loop = false;
             }
             if (System.currentTimeMillis() - restartTime > 15 * 1000) Assert.fail();
@@ -204,10 +204,10 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
     public void failoverSlaveAndMasterWithoutAutoConnect() throws Throwable {
         connection = getNewConnection("&retriesAllDown=1", true);
         int masterServerId = getServerId(connection);
-        log.fine("master server_id = " + masterServerId);
+        log.debug("master server_id = " + masterServerId);
         connection.setReadOnly(true);
         int firstSlaveId = getServerId(connection);
-        log.fine("slave1 server_id = " + firstSlaveId);
+        log.debug("slave1 server_id = " + firstSlaveId);
 
         stopProxy(masterServerId);
         stopProxy(firstSlaveId);
@@ -226,12 +226,12 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
 
         //search actual server_id for master and slave
         int masterServerId = getServerId(connection);
-        log.fine("master server_id = " + masterServerId);
+        log.debug("master server_id = " + masterServerId);
 
         connection.setReadOnly(true);
 
         int firstSlaveId = getServerId(connection);
-        log.fine("slave1 server_id = " + firstSlaveId);
+        log.debug("slave1 server_id = " + firstSlaveId);
 
         stopProxy(masterServerId);
         stopProxy(firstSlaveId);
@@ -239,7 +239,7 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
         //must reconnect to the second slave without error
         connection.createStatement().execute("SELECT 1");
         int currentSlaveId = getServerId(connection);
-        log.fine("currentSlaveId server_id = " + currentSlaveId);
+        log.debug("currentSlaveId server_id = " + currentSlaveId);
         Assert.assertTrue(currentSlaveId != firstSlaveId);
         Assert.assertTrue(currentSlaveId != masterServerId);
     }
@@ -251,12 +251,12 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
 
         //search actual server_id for master and slave
         int masterServerId = getServerId(connection);
-        log.fine("master server_id = " + masterServerId);
+        log.debug("master server_id = " + masterServerId);
 
         connection.setReadOnly(true);
 
         int firstSlaveId = getServerId(connection);
-        log.fine("slave1 server_id = " + firstSlaveId);
+        log.debug("slave1 server_id = " + firstSlaveId);
 
         stopProxy(masterServerId);
         stopProxy(firstSlaveId);
@@ -264,7 +264,7 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
         //must reconnect to the second slave without error
         connection.createStatement().execute("SELECT 1");
         int currentSlaveId = getServerId(connection);
-        log.fine("currentSlaveId server_id = " + currentSlaveId);
+        log.debug("currentSlaveId server_id = " + currentSlaveId);
         Assert.assertTrue(currentSlaveId != firstSlaveId);
         Assert.assertTrue(currentSlaveId != masterServerId);
     }
@@ -303,7 +303,7 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
         for (int i = 1; i < 10; i++) {
             try {
                 st.execute("SELECT 1");
-                log.fine("i=" + i);
+                log.debug("i=" + i);
                 Assert.assertTrue(connection.isReadOnly());
             } catch (SQLException e) {
                 Assert.fail();
@@ -316,11 +316,11 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
                 Thread.sleep(250);
                 st.execute("SELECT 1");
                 if (!connection.isReadOnly()) {
-                    log.fine("reconnection with failover loop after : " + (System.currentTimeMillis() - stoppedTime) + "ms");
+                    log.debug("reconnection with failover loop after : " + (System.currentTimeMillis() - stoppedTime) + "ms");
                     loop = false;
                 }
             } catch (SQLException e) {
-                log.fine("not reconnected ... ");
+                log.debug("not reconnected ... ");
             }
             if (System.currentTimeMillis() - stoppedTime > 20 * 1000) Assert.fail();
         }
@@ -388,7 +388,7 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
             Thread.sleep(250);
             try {
                 if (!connection.isReadOnly()) {
-                    log.fine("reconnection to master with failover loop after : " + (System.currentTimeMillis() - stoppedTime) + "ms");
+                    log.debug("reconnection to master with failover loop after : " + (System.currentTimeMillis() - stoppedTime) + "ms");
                     loop = false;
                 }
             } catch (SQLException e) {
@@ -432,7 +432,7 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
             st.execute("insert into multinodeTransaction (id, amount) VALUE (2 , 10)");
             Assert.fail();
         } catch (SQLException e) {
-            log.finest("normal error : " + e.getMessage());
+            log.trace("normal error : " + e.getMessage());
         }
         restartProxy(masterServerId);
         try {
@@ -531,6 +531,23 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
         // the connection should not be closed
         assertTrue(!connection.isClosed());
     }
+
+    /**
+     * CONJ-166
+     * Connection error code must be thrown
+     * @throws SQLException
+     */
+    @Test
+    public void testAccessDeniedErrorCode() throws SQLException {
+        try {
+            DriverManager.getConnection(initialUrl+"&retriesAllDown=1", "foouser", "foopwd");
+            Assert.fail();
+        } catch (SQLException e) {
+            Assert.assertTrue("28000".equals(e.getSQLState()));
+            Assert.assertTrue(1045 == e.getErrorCode());
+        }
+    }
+
 //    @Test
 //    public void testFailoverMaster() throws Throwable {
 //        connection = getNewConnection("&validConnectionTimeout=1&secondsBeforeRetryMaster=1&autoReconnect=true", false);
@@ -538,9 +555,9 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
 //        ResultSet rs;
 //        stmt.execute("ALTER SYSTEM SIMULATE 100 PERCENT DISK FAILURE FOR INTERVAL 60 SECOND");
 //        int initMaster = getServerId(connection);
-//        log.fine("master is " + initMaster);
+//        log.debug("master is " + initMaster);
 //        FailoverProxy proxy = getProtocolFromConnection(connection).getProxy();
-//        log.fine("lock : "+proxy.lock.getReadHoldCount() + " " + proxy.lock.getWriteHoldCount());
+//        log.debug("lock : "+proxy.lock.getReadHoldCount() + " " + proxy.lock.getWriteHoldCount());
 //        long failInitTime = 0;
 //        long launchInit = System.currentTimeMillis();
 //        while (System.currentTimeMillis() - launchInit < 120000) {
@@ -556,16 +573,16 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
 //                if (failInitTime != 0 && "OFF".equals(rs.getString(2))) {
 //                    long endFailover = System.currentTimeMillis() - launchInit;
 //                    Assert.assertTrue(initMaster != getServerId(connection));
-//                    log.fine("End failover after " + endFailover + " new master is " + getServerId(connection));
+//                    log.debug("End failover after " + endFailover + " new master is " + getServerId(connection));
 //                    //wait 15s for others tests may not be disturb by replica restart
 //                    Thread.sleep(15000);
 //                    return;
 //                }
 //            } catch (SQLException e) {
-//                log.fine("error : " + e.getMessage());
+//                log.debug("error : " + e.getMessage());
 //                if (failInitTime == 0) {
 //                    failInitTime = System.currentTimeMillis();
-//                    log.fine("start failover master was " + getServerId(connection));
+//                    log.debug("start failover master was " + getServerId(connection));
 //                }
 //            }
 //        }
@@ -578,7 +595,7 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
 //        Statement stmt = connection.createStatement();
 //        stmt.execute("ALTER SYSTEM SIMULATE 100 PERCENT DISK FAILURE FOR INTERVAL 35 SECOND");
 //        int initMaster = getServerId(connection);
-//        log.fine("master is " + initMaster);
+//        log.debug("master is " + initMaster);
 //        long launchInit = System.currentTimeMillis();
 //        while (System.currentTimeMillis() - launchInit < 180000) {
 //            Thread.sleep(250);
@@ -587,13 +604,13 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
 //            //master must change
 //            if (currentMaster != initMaster) {
 //                long endFailover = System.currentTimeMillis() - launchInit;
-//                log.fine("Master automatically change after failover after " + endFailover + "ms. new master is " + currentMaster);
+//                log.debug("Master automatically change after failover after " + endFailover + "ms. new master is " + currentMaster);
 //
 //                //wait 15s for others tests may not be disturb by replica restart
 //                Thread.sleep(15000);
 //                return;
 //            } else {
-//                log.fine("++++++++ping in testFailoverMasterPing ");
+//                log.debug("++++++++ping in testFailoverMasterPing ");
 //            }
 //        }
 //        Assert.fail();
@@ -617,9 +634,9 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
 //                if (connection2SlaveId == connection1SlaveId) connection2.close();
 //            }
 //
-//            log.fine("master is " + initMaster);
-//            log.fine("connection 1 slave is " + connection1SlaveId);
-//            log.fine("connection 2 slave is " + connection2SlaveId);
+//            log.debug("master is " + initMaster);
+//            log.debug("connection 1 slave is " + connection1SlaveId);
+//            log.debug("connection 2 slave is " + connection2SlaveId);
 //
 //            connection.setReadOnly(false);
 //            connection2.setReadOnly(false);

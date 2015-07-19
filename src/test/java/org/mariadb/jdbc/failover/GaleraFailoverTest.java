@@ -62,7 +62,7 @@ public class GaleraFailoverTest extends BaseMultiHostTest {
         for (int i = 0; i < 20; i++) {
             connection = getNewConnection(false);
             int serverId = getServerId(connection);
-            log.fine("master server found " + serverId);
+            log.debug("master server found " + serverId);
             MutableInt count = connectionMap.get(String.valueOf(serverId));
             if (count == null) {
                 connectionMap.put(String.valueOf(serverId), new MutableInt());
@@ -75,10 +75,10 @@ public class GaleraFailoverTest extends BaseMultiHostTest {
         Assert.assertTrue(connectionMap.size() >= 2);
         for (String key : connectionMap.keySet()) {
             Integer connectionCount = connectionMap.get(key).get();
-            log.fine(" ++++ Server " + key + " : " + connectionCount + " connections ");
+            log.debug(" ++++ Server " + key + " : " + connectionCount + " connections ");
             Assert.assertTrue(connectionCount > 1);
         }
-        log.fine("randomConnection OK");
+        log.debug("randomConnection OK");
     }
 
     @Test
@@ -100,7 +100,7 @@ public class GaleraFailoverTest extends BaseMultiHostTest {
             //check blacklist size
             try {
                 Protocol protocol = getProtocolFromConnection(connection);
-                log.fine("backlist size : " + protocol.getProxy().getListener().getBlacklist().size());
+                log.debug("backlist size : " + protocol.getProxy().getListener().getBlacklist().size());
                 Assert.assertTrue(protocol.getProxy().getListener().getBlacklist().size() == 1);
 
                 //replace proxified HostAddress by normal one
@@ -147,7 +147,7 @@ public class GaleraFailoverTest extends BaseMultiHostTest {
             try {
                 connection2 = getNewConnection();
                 int otherServerId = getServerId(connection2);
-                log.fine("connected to server " + otherServerId);
+                log.debug("connected to server " + otherServerId);
                 Assert.assertTrue(otherServerId != firstServerId);
                 Protocol protocol = getProtocolFromConnection(connection2);
                 Assert.assertTrue(blacklist.keySet().toArray()[0].equals(protocol.getProxy().getListener().getBlacklist().keySet().toArray()[0]));
@@ -171,17 +171,17 @@ public class GaleraFailoverTest extends BaseMultiHostTest {
     public void testMultiHostWriteOnMaster() throws Throwable {
         Assume.assumeTrue(initialGaleraUrl != null);
         Connection connection = null;
-        log.fine("testMultiHostWriteOnMaster begin");
+        log.debug("testMultiHostWriteOnMaster begin");
         try {
             connection = getNewConnection();
             Statement stmt = connection.createStatement();
             stmt.execute("drop table  if exists multinode");
             stmt.execute("create table multinode (id int not null primary key auto_increment, test VARCHAR(10))");
-            log.fine("testMultiHostWriteOnMaster OK");
+            log.debug("testMultiHostWriteOnMaster OK");
         } finally {
             assureProxy();
             assureBlackList(connection);
-            log.fine("testMultiHostWriteOnMaster done");
+            log.debug("testMultiHostWriteOnMaster done");
             if (connection != null) connection.close();
         }
     }
@@ -203,7 +203,7 @@ public class GaleraFailoverTest extends BaseMultiHostTest {
         boolean loop = true;
         while (loop) {
             if (!connection.isClosed()) {
-                log.fine("reconnection with failover loop after : " + (System.currentTimeMillis() - stoppedTime) + "ms");
+                log.debug("reconnection with failover loop after : " + (System.currentTimeMillis() - stoppedTime) + "ms");
                 loop = false;
             }
             if (System.currentTimeMillis() - restartTime > 15 * 1000) Assert.fail();

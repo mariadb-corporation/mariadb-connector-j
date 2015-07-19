@@ -14,7 +14,6 @@ import static org.junit.Assert.assertTrue;
 
 
 public class DatabaseMetadataTest extends BaseTest{
-    static { Logger.getLogger("").setLevel(Level.OFF); }
 
     @Before
     public void checkSupported() throws SQLException {

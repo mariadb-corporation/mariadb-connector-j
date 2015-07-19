@@ -75,7 +75,7 @@ public class TimeoutTest extends BaseTest {
 	public void socketTimeoutTest() throws SQLException {
 		int exceptionCount = 0;
 		// set a short connection timeout
-		setConnection("&connectTimeout=5&socketTimeout=5");
+		setConnection("&connectTimeout=500&socketTimeout=500");
 		PreparedStatement ps = connection.prepareStatement("SELECT 1");
 		ResultSet rs = ps.executeQuery();
 		rs.next();

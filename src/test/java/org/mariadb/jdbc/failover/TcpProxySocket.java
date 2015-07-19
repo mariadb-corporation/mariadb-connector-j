@@ -1,16 +1,15 @@
 package org.mariadb.jdbc.failover;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.*;
 import java.net.BindException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.concurrent.Executors;
-import java.util.concurrent.RunnableScheduledFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
 
 public class TcpProxySocket implements Runnable {
-    protected static Logger log = Logger.getLogger("org.maria.jdbc");
+    protected final static Logger log = LoggerFactory.getLogger(TcpProxySocket.class);
 
     String host;
     int remoteport;
@@ -86,7 +85,7 @@ public class TcpProxySocket implements Runnable {
                             try {
                                 while ((bytes_read = from_client.read(request)) != -1) {
                                     to_server.write(request, 0, bytes_read);
-                                    log.finest(bytes_read + "to_server--->" + new String(request, "UTF-8") + "<---");
+                                    log.trace(bytes_read + "to_server--->" + new String(request, "UTF-8") + "<---");
                                     to_server.flush();
                                 }
                             } catch (IOException e) {
@@ -101,7 +100,7 @@ public class TcpProxySocket implements Runnable {
                         while ((bytes_read = from_server.read(reply)) != -1) {
                             try {
                                 Thread.sleep(1);
-                                log.finest(bytes_read + " to_client--->" + new String(reply, "UTF-8") + "<---");
+                                log.trace(bytes_read + " to_client--->" + new String(reply, "UTF-8") + "<---");
                             } catch (InterruptedException e) {
                                 e.printStackTrace();
                             }

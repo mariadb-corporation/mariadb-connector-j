@@ -21,7 +21,6 @@ import static org.junit.Assert.assertTrue;
 
 
 public class DriverTest extends BaseTest{
-    static { Logger.getLogger("").setLevel(Level.OFF); }
 
     public DriverTest() throws SQLException {
        
@@ -1150,7 +1149,7 @@ public class DriverTest extends BaseTest{
 
             rs = connection.createStatement().executeQuery(request);
             rs.next();
-            log.finest(String.valueOf(rs.getString(1).length()));
+            log.trace(String.valueOf(rs.getString(1).length()));
         } finally {
         }
     }
