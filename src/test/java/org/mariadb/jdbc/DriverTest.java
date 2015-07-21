@@ -300,7 +300,7 @@ public class DriverTest extends BaseTest{
     }
 
     @Test
-    public void testConnectorJURL() {
+    public void testConnectorJURL() throws SQLException  {
         JDBCUrl url = JDBCUrl.parse("jdbc:mysql://localhost/test");
         assertEquals("localhost", url.getHostAddresses().get(0).host);
         assertEquals("test", url.getDatabase());
