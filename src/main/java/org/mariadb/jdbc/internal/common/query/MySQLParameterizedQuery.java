@@ -67,10 +67,18 @@ public class MySQLParameterizedQuery implements ParameterizedQuery {
     private int paramCount;
     private String query;
     private byte[][] queryPartsArray;
+    private byte[] rewriteFirstPart = null;
 
-    public MySQLParameterizedQuery(String query, boolean noBackslashEscapes) {
+    public MySQLParameterizedQuery(String query, boolean noBackslashEscapes, int rewriteOffset) {
         this.query = query;
         List<String> queryParts = createQueryParts(query, noBackslashEscapes);
+        if (rewriteOffset != -1) {
+            try {
+                rewriteFirstPart = queryParts.get(0).substring(rewriteOffset + 1).getBytes("UTF-8");
+            } catch (UnsupportedEncodingException e) {
+                throw new RuntimeException("UTF-8 not supported", e);
+            }
+        }
         queryPartsArray = new byte[queryParts.size()][];
         for(int i=0;i < queryParts.size(); i++) {
             try {
@@ -95,6 +103,7 @@ public class MySQLParameterizedQuery implements ParameterizedQuery {
         q.paramCount = paramCount;
         q.query = query;
         q.queryPartsArray = queryPartsArray;
+        q.rewriteFirstPart = rewriteFirstPart;
         return q;
     }
 
@@ -138,7 +147,8 @@ public class MySQLParameterizedQuery implements ParameterizedQuery {
         if(queryPartsArray.length == 0) {
             throw new AssertionError("Invalid query, queryParts was empty");
         }
-        os.write(",(".getBytes());
+        os.write((",(").getBytes());
+        os.write(rewriteFirstPart);
         for(int i = 1; i<queryPartsArray.length; i++) {
             parameters[i-1].writeTo(os);
             if(queryPartsArray[i].length != 0)

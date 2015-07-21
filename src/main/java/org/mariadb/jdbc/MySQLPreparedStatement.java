@@ -85,8 +85,9 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
         if(log.isDebugEnabled()) {
             log.debug("Creating prepared statement for " + sql);
         }
+        isInsertRewriteable(sql);
         dQuery = new MySQLParameterizedQuery(Utils.nativeSQL(sql, connection.noBackslashEscapes),
-                connection.noBackslashEscapes);
+                connection.noBackslashEscapes, isRewriteable?firstRewrite.length():-1);
         parametersCleared = true;
     }
 
@@ -194,7 +195,7 @@ public class MySQLPreparedStatement extends MySQLStatement implements PreparedSt
     
     private void checkBatchFields() {
     	if (batchQueries == null) {
-            batchQueries = new ArrayList<Query>();
+            batchQueries = new ArrayList<>();
         }
     }
 

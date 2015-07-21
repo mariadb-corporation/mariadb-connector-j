@@ -1121,7 +1121,7 @@ public class MySQLStatement implements Statement {
      */
     public void addBatch(final String sql) throws SQLException {
         if (batchQueries == null) {
-            batchQueries = new ArrayList<Query>();
+            batchQueries = new ArrayList<>();
         }
         isInsertRewriteable(sql);
         batchQueries.add(new MySQLQuery(sql));
