@@ -92,6 +92,8 @@ public final class Driver implements java.sql.Driver {
         log.debug("Connecting to: " + url);
         try {
             JDBCUrl jdbcUrl = JDBCUrl.parse(url, props);
+            //
+            if (jdbcUrl == null) return null;
             if (jdbcUrl.getHostAddresses() == null) {
                 log.info("MariaDB connector : missing Host address");
                 return null;

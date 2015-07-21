@@ -116,7 +116,7 @@ public class JDBCUrl {
 
     static boolean acceptsURL(String url) {
         return (url != null) &&
-                (url.startsWith("jdbc:mariadb://") || url.startsWith("jdbc:mysql://"));
+                (url.startsWith("jdbc:mariadb:") || url.startsWith("jdbc:mysql:"));
 
     }
 
@@ -141,7 +141,7 @@ public class JDBCUrl {
                 }
             }
         }
-        throw new IllegalArgumentException("Invalid connection URL url " + url);
+        return null;
     }
 
     public void parseUrl(String url) {

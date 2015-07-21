@@ -79,12 +79,8 @@ public class JdbcParserTest {
     }
     @Test
     public void testJDBCParserSimpleIPv4basicError() {
-        try {
-            JDBCUrl.parse(null);
-            Assert.fail();
-        }catch (IllegalArgumentException e) {
-            Assert.assertTrue(true);
-        }
+        JDBCUrl jdbcUrl = JDBCUrl.parse(null);
+        Assert.assertTrue(jdbcUrl == null);
     }
     @Test
     public void testJDBCParserSimpleIPv4basicwithoutDatabase() {
@@ -158,20 +154,10 @@ public class JdbcParserTest {
     }
 
     @Test
-    public void testJDBCParserParameterError() {
-        try {
-            JDBCUrl.parse(null);
-            Assert.fail();
-        }catch (IllegalArgumentException e) {
-            Assert.assertTrue(true);
-        }
-    }
-
-    @Test
     public void testJDBCParserParameterErrorEqual() {
         String url = "jdbc:mysql://address=(type=)(port=3306)(host=master1),address=(port=3307)(type=master)(host=master2),address=(type=slave)(host=slave1)(port=3308)/database?user=greg&password=pass";
         try {
-            JDBCUrl.parse(null);
+            JDBCUrl.parse(url);
             Assert.fail();
         }catch (IllegalArgumentException e) {
             Assert.assertTrue(true);
@@ -221,6 +207,16 @@ public class JdbcParserTest {
         String url = "jdbc:mysql:aurora://localhost/database";
         JDBCUrl jdbc = JDBCUrl.parse(url);
         Assert.assertTrue(jdbc.getHaMode().equals(UrlHAMode.AURORA));
+    }
+
+    /**
+     * CONJ-167 : Driver is throwing IllegalArgumentException instead of returning null
+     */
+    @Test
+    public void checkOtherDriverCompatibility() {
+        String url = "jdbc:h2:mem:RZM;DB_CLOSE_DELAY=-1";
+        JDBCUrl jdbc = JDBCUrl.parse(url);
+        Assert.assertTrue(jdbc == null);
     }
 
 }

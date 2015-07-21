@@ -333,7 +333,6 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                             syncConnection(this.masterProtocol, this.secondaryProtocol);
 
                             currentProtocol = this.secondaryProtocol;
-                            setSessionReadOnly(true);
 
                             log.trace("current connection is now secondary");
                             return;
@@ -612,7 +611,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
     }
 
     public void checkIfTypeHaveChanged(SearchFilter searchFilter) throws QueryException {
-        if (masterProtocol.ping()) {
+        if (masterProtocol != null && masterProtocol.ping()) {
             log.trace("PingLoop master ping ok");
         }
     }
