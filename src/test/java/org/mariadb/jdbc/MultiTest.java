@@ -238,6 +238,36 @@ public class MultiTest extends BaseTest {
         throw new RuntimeException("Unable to retrieve, variable value from Server " + variable);
     }
 
+
+
+    @Test
+    public void rewriteBatchedStatementsWithQueryFirstAndLAst() throws SQLException {
+        Properties props = new Properties();
+        props.setProperty("rewriteBatchedStatements", "true");
+        Connection tmpConnection = null;
+        try {
+            tmpConnection = openNewConnection(connURI, props);
+            Statement st = tmpConnection.createStatement();
+            st.executeUpdate("drop table if exists t3_dupp");
+            st.executeUpdate("create table t3_dupp(col1 int, pkey int NOT NULL, col2 int, col3 int, col4 int, PRIMARY KEY (`pkey`))");
+
+            PreparedStatement sqlInsert = connection.prepareStatement("INSERT INTO t3_dupp(col1, pkey,col2,col3,col4) VALUES (9, ?, 5, ?, 8) ON DUPLICATE KEY UPDATE pkey=pkey+10");
+            sqlInsert.setInt(1, 1);
+            sqlInsert.setInt(2, 2);
+            sqlInsert.addBatch();
+
+            sqlInsert.setInt(1, 2);
+            sqlInsert.setInt(2, 5);
+            sqlInsert.addBatch();
+
+            sqlInsert.setInt(1, 7);
+            sqlInsert.setInt(2, 6);
+            sqlInsert.addBatch();
+            sqlInsert.executeBatch();
+        } finally {
+            if (tmpConnection != null) tmpConnection.close();
+        }
+    }
     /**
      * CONJ-142: Using a semicolon in a string with "rewriteBatchedStatements=true" fails
      *

@@ -224,7 +224,7 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XA
      * Sets the connection string URL.
      *
      * @param url the connection string
-     * @throws SQLException
+     * @throws SQLException if error in URL
      */
     public void setURL(String url) throws SQLException {
         setUrl(url);
@@ -233,7 +233,7 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XA
     /**
      * Sets the connection string URL.
      * @param s the connection string
-     * @throws SQLException
+     * @throws SQLException if error in URL
      */
     public void setUrl(String s) throws SQLException {
         this.jdbcUrl.parseUrl(s);
