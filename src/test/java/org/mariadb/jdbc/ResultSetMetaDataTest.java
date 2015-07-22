@@ -106,6 +106,9 @@ public class ResultSetMetaDataTest extends BaseTest {
 		logInfo(rsmd.getTableName(1));
 		Assert.assertEquals(rsmd.getTableName(1), "t1");
 
+		Assert.assertEquals(rsmd.getColumnLabel(1), "id_alias");
+		Assert.assertEquals(rsmd.getColumnName(1), "id");
+
 		// add useOldAliasMetadataBehavior to get the alias instead of the real
 		// table name
 		setConnection("&useOldAliasMetadataBehavior=true");
@@ -117,6 +120,8 @@ public class ResultSetMetaDataTest extends BaseTest {
 		// this should return the alias name of the table, i.e. old behavior
 		logInfo(rsmd.getTableName(1));
 		Assert.assertEquals(rsmd.getTableName(1), "t1_alias");
+		Assert.assertEquals(rsmd.getColumnLabel(1), "id_alias");
+		Assert.assertEquals(rsmd.getColumnName(1), "id_alias");
 
 	}
 
