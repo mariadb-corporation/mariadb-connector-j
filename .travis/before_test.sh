@@ -3,8 +3,6 @@
 set -x
 set -e
 
-export MYSQ_GPG_KEY=5072E1F5
-
 remove_mysql(){
     sudo service mysql stop
     sudo apt-get remove --purge mysql-server mysql-client mysql-common
@@ -23,7 +21,7 @@ then
 deb http://repo.mysql.com/apt/ubuntu/ precise mysql-$MYSQL_VERSION
 deb-src http://repo.mysql.com/apt/ubuntu/ precise mysql-$MYSQL_VERSION
 END
-
+    sudo gpg --recv-keys 5072E1F5
     sudo apt-get update
     sudo apt-get install mysql-server
 
