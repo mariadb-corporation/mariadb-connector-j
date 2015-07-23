@@ -313,12 +313,11 @@ public abstract class AbstractValueObject implements ValueObject {
     }
 
     public boolean isNull() {
-        String rawValue = getString();
         String zeroTimestamp = "0000-00-00 00:00:00";
         String zeroDate = "0000-00-00";
         return (rawBytes == null
-        		|| ((dataType == MySQLType.TIMESTAMP || dataType == MySQLType.DATETIME) && rawValue.equals(zeroTimestamp))
-        		|| (dataType== MySQLType.DATE && rawValue.equals(zeroDate))
+        		|| ((dataType == MySQLType.TIMESTAMP || dataType == MySQLType.DATETIME) && zeroTimestamp.equals(getString()))
+        		|| (dataType== MySQLType.DATE && zeroDate.equals(getString()))
         		);
     }
 
