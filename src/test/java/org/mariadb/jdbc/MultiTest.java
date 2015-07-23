@@ -239,7 +239,10 @@ public class MultiTest extends BaseTest {
     }
 
 
-
+    /**
+     * CONJ-141 : Batch Statement Rewrite: Support for ON DUPLICATE KEY
+     * @throws SQLException
+     */
     @Test
     public void rewriteBatchedStatementsWithQueryFirstAndLAst() throws SQLException {
         Properties props = new Properties();
@@ -268,6 +271,7 @@ public class MultiTest extends BaseTest {
             if (tmpConnection != null) tmpConnection.close();
         }
     }
+
     /**
      * CONJ-142: Using a semicolon in a string with "rewriteBatchedStatements=true" fails
      *
