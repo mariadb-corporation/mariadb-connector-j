@@ -4,6 +4,6 @@ before_install:
     - chmod +x .travis/before_test.sh
 install: .travis/before_test.sh
 jdk:
-    - openjdk7
+    - oraclejdk8
 env:
     - MYSQL_VERSION=5.6 MAX_ALLOWED_PACKET=16M INNODB_LOG_FILE_SIZE=64M
