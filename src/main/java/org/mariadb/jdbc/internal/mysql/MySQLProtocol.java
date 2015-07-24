@@ -459,6 +459,11 @@ public class MySQLProtocol implements Protocol {
     }
 
     private RawPacket processPlugin(String plugin, byte[] authData, int seqNo) throws QueryException, IOException {
+        // String pluginFactory = jdbcUrl.getOptions().pluginFact;
+        // classloader...
+        // pluginFact new plugin(jdbcUrl, this, plugin)
+        // plugin.handle(auth_data)...
+
         if (plugin.equals("mysql_native_password")) {
             // https://dev.mysql.com/doc/internals/en/secure-password-authentication.html#packet-Authentication::Native41
             try {
@@ -468,6 +473,10 @@ public class MySQLProtocol implements Protocol {
             } catch (NoSuchAlgorithmException e) {
                 throw new RuntimeException("Could not use SHA-1, failing", e);
             }
+        } else if (plugin.equals("mysql_old_password")) {
+            final MySQLClientOldPasswordAuthPacket oldPassPacket = new MySQLClientOldPasswordAuthPacket(
+                    this.password, Utils.copyWithLength(authData, 8), seqNo);
+            oldPassPacket.send(writer);
         } else if (plugin.equals("mysql_clear_password")) {
             // https://dev.mysql.com/doc/internals/en/clear-text-authentication.html
             writer.startPacket(seqNo);
@@ -481,11 +490,15 @@ public class MySQLProtocol implements Protocol {
             ResultPacket resultPacket;
             while (true) {
                 writer.startPacket(seqNo);
-                if (authData[0] == 0x04) {
+                if ((authData[0] & 0x06) == 0x04) {
                     echo = false;
-                } else if (authData[0] == 0x02) {
+                } else if ((authData[0] & 0x06) == 0x02) {
                     echo = true;
+                } else {
+                    // maybe should error here
+                    echo = true
                 }
+                last = (authData[0] & 0x01) == 0x01
                 promptb = new byte[authData.length -1];
                 for (int i=0; i < (authData.length -1); ++i) {
                     promptb[i] = authData[i+1];
@@ -507,17 +520,15 @@ public class MySQLProtocol implements Protocol {
                 rp = packetFetcher.getRawPacket();
                 checkErrorPacket(rp);
                 resultPacket = ResultPacketFactory.createResultPacket(rp);
-                if (resultPacket.getResultType() == ResultPacket.ResultType.OK) {
+                if (resultPacket.getResultType() == ResultPacket.ResultType.OK
+                   || last) {
                     break;
                 }
-                if ((rp.getByteBuffer().get(0) & 0xFF) == 0x01) {
-                    seqNo = rp.getPacketSeq();
-                    Reader reader = new Reader(rp);
-                    reader.skipByte();
-                    authData = reader.readRawBytes();
-                    continue;
-                }
-                throw new QueryException("Unexpected packet");
+                seqNo = rp.getPacketSeq();
+                seqNo += 1;
+                Reader reader = new Reader(rp);
+                reader.skipByte();
+                authData = reader.readRawBytes();
             }
             return rp;
         } else {
