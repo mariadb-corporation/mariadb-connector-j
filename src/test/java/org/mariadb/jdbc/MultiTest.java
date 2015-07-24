@@ -238,6 +238,40 @@ public class MultiTest extends BaseTest {
         throw new RuntimeException("Unable to retrieve, variable value from Server " + variable);
     }
 
+
+    /**
+     * CONJ-141 : Batch Statement Rewrite: Support for ON DUPLICATE KEY
+     * @throws SQLException
+     */
+    @Test
+    public void rewriteBatchedStatementsWithQueryFirstAndLAst() throws SQLException {
+        Properties props = new Properties();
+        props.setProperty("rewriteBatchedStatements", "true");
+        Connection tmpConnection = null;
+        try {
+            tmpConnection = openNewConnection(connURI, props);
+            Statement st = tmpConnection.createStatement();
+            st.executeUpdate("drop table if exists t3_dupp");
+            st.executeUpdate("create table t3_dupp(col1 int, pkey int NOT NULL, col2 int, col3 int, col4 int, PRIMARY KEY (`pkey`))");
+
+            PreparedStatement sqlInsert = connection.prepareStatement("INSERT INTO t3_dupp(col1, pkey,col2,col3,col4) VALUES (9, ?, 5, ?, 8) ON DUPLICATE KEY UPDATE pkey=pkey+10");
+            sqlInsert.setInt(1, 1);
+            sqlInsert.setInt(2, 2);
+            sqlInsert.addBatch();
+
+            sqlInsert.setInt(1, 2);
+            sqlInsert.setInt(2, 5);
+            sqlInsert.addBatch();
+
+            sqlInsert.setInt(1, 7);
+            sqlInsert.setInt(2, 6);
+            sqlInsert.addBatch();
+            sqlInsert.executeBatch();
+        } finally {
+            if (tmpConnection != null) tmpConnection.close();
+        }
+    }
+
     /**
      * CONJ-142: Using a semicolon in a string with "rewriteBatchedStatements=true" fails
      *
@@ -485,4 +519,54 @@ public class MultiTest extends BaseTest {
         assertEquals(updateCount, retrieveSessionVariableFromServer(tmpConnection, "Com_update"));
     }
 
+    @Test
+    public void testInsertWithLeadingConstantValue() throws Exception {
+        Properties props = new Properties();
+        props.setProperty("rewriteBatchedStatements", "true");
+        props.setProperty("allowMultiQueries", "true");
+        Connection tmpConnection = null;
+        try {
+            tmpConnection = openNewConnection(connURI, props);
+            Statement stmt = tmpConnection.createStatement();
+            stmt.executeUpdate("DROP TABLE IF EXISTS test_table");
+            stmt.executeUpdate("CREATE TABLE IF NOT EXISTS test_table(col1 VARCHAR(32), col2 VARCHAR(32), col3 VARCHAR(32), col4 VARCHAR(32), col5 VARCHAR(32))");
+            PreparedStatement insertStmt = tmpConnection.prepareStatement("INSERT INTO test_table (col1, col2, col3, col4, col5) values('some value', ?, 'other value', ?, 'third value')");
+            insertStmt.setString(1, "a1");
+            insertStmt.setString(2, "a2");
+            insertStmt.addBatch();
+            insertStmt.setString(1, "b1");
+            insertStmt.setString(2, "b2");
+            insertStmt.addBatch();
+            insertStmt.executeBatch();
+            tmpConnection.commit();
+        } finally {
+            if (tmpConnection != null) tmpConnection.close();
+        }
+    }
+
+
+    @Test
+    public void testInsertWithoutFirstContent() throws Exception {
+        Properties props = new Properties();
+        props.setProperty("rewriteBatchedStatements", "true");
+        props.setProperty("allowMultiQueries", "true");
+        Connection tmpConnection = null;
+        try {
+            tmpConnection = openNewConnection(connURI, props);
+            Statement stmt = tmpConnection.createStatement();
+            stmt.executeUpdate("DROP TABLE IF EXISTS test_table");
+            stmt.executeUpdate("CREATE TABLE IF NOT EXISTS test_table(col1 VARCHAR(32), col2 VARCHAR(32), col3 VARCHAR(32), col4 VARCHAR(32), col5 VARCHAR(32))");
+            PreparedStatement insertStmt = tmpConnection.prepareStatement("INSERT INTO test_table (col2, col3, col4, col5) values(?, 'other value', ?, 'third value')");
+            insertStmt.setString(1, "a1");
+            insertStmt.setString(2, "a2");
+            insertStmt.addBatch();
+            insertStmt.setString(1, "b1");
+            insertStmt.setString(2, "b2");
+            insertStmt.addBatch();
+            insertStmt.executeBatch();
+            tmpConnection.commit();
+        } finally {
+            if (tmpConnection != null) tmpConnection.close();
+        }
+    }
 }

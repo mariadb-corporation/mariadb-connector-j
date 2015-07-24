@@ -14,10 +14,10 @@
         <appender-ref ref="STDOUT" />
     </logger>
 
-    <logger category="org.mariadb.jdbc.BlobTest">
+    <logger name="org.mariadb.jdbc.BlobTest">
         <level name="ERROR"/>
     </logger>
-    <logger category="org.mariadb.jdbc.DatabaseMetadataTest">
+    <logger name="org.mariadb.jdbc.DatabaseMetadataTest">
         <level name="ERROR"/>
     </logger>
 

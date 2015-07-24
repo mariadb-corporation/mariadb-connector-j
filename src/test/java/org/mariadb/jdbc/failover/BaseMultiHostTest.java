@@ -89,7 +89,7 @@ public class BaseMultiHostTest {
                 (dbMajor == major && dbMinor >= minor));
     }
 
-    private static String createProxies(String tmpUrl, TestType proxyType) {
+    private static String createProxies(String tmpUrl, TestType proxyType) throws SQLException {
         JDBCUrl tmpJdbcUrl = JDBCUrl.parse(tmpUrl);
         TcpProxy[] tcpProxies = new TcpProxy[tmpJdbcUrl.getHostAddresses().size()];
         username = tmpJdbcUrl.getUsername();

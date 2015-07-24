@@ -72,6 +72,13 @@ public class MySQLQuery implements Query {
         }
     }
 
+    public void writeFirstRewritePart(final OutputStream os) throws IOException, QueryException {
+        writeTo(os);
+    }
+
+    public void writeLastRewritePart(final OutputStream os) throws IOException, QueryException { }
+
+
     public void writeToRewritablePart(final OutputStream os, int rewriteOffset) throws IOException, QueryException {
         try {
             byte[] queryToSend = query.substring(rewriteOffset).getBytes("UTF-8");
@@ -102,9 +109,8 @@ public class MySQLQuery implements Query {
         } catch (UnsupportedEncodingException e) {
             throw new RuntimeException("Unsupported encoding: " + e.getMessage(), e);
         }
-
-
     }
+
 
     public void validate() throws QueryException{
 

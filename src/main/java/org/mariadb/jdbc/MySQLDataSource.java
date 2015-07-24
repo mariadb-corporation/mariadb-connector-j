@@ -76,20 +76,26 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XA
 
     private final JDBCUrl jdbcUrl;
 
-    public MySQLDataSource(String hostname, int port, String database) {
+    public MySQLDataSource(String hostname, int port, String database) throws SQLException {
         ArrayList<HostAddress> hostAddresses = new ArrayList<HostAddress>();
         hostAddresses.add(new HostAddress(hostname, port));
         jdbcUrl = new JDBCUrl(database, hostAddresses, DefaultOptions.defaultValues(UrlHAMode.NONE), UrlHAMode.NONE);
     }
 
-    public MySQLDataSource(String url) {
+    public MySQLDataSource(String url) throws SQLException  {
         this.jdbcUrl = JDBCUrl.parse(url);
     }
 
     public MySQLDataSource() {
-        ArrayList<HostAddress> hostAddresses = new ArrayList<HostAddress>();
+        ArrayList<HostAddress> hostAddresses = new ArrayList<>();
         hostAddresses.add(new HostAddress("localhost", 3306));
-        jdbcUrl = new JDBCUrl("", hostAddresses, DefaultOptions.defaultValues(UrlHAMode.NONE), UrlHAMode.NONE);
+        JDBCUrl tmpJDBCUrl = null;
+        try {
+            tmpJDBCUrl = new JDBCUrl("", hostAddresses, DefaultOptions.defaultValues(UrlHAMode.NONE), UrlHAMode.NONE);
+        } catch (SQLException e) {
+            //cannot happen, but eating exception to avoid throw SQLException in class descriptor
+        }
+        jdbcUrl = tmpJDBCUrl;
     }
 
     /**
@@ -217,20 +223,19 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XA
     /**
      * Sets the connection string URL.
      *
-     * @param url
-     *            the connection string
+     * @param url the connection string
+     * @throws SQLException if error in URL
      */
-    public void setURL(String url) {
+    public void setURL(String url) throws SQLException {
         setUrl(url);
     }
 
     /**
      * Sets the connection string URL.
-     *
-     * @param s
-     *            the connection string
+     * @param s the connection string
+     * @throws SQLException if error in URL
      */
-    public void setUrl(String s) {
+    public void setUrl(String s) throws SQLException {
         this.jdbcUrl.parseUrl(s);
     }
 

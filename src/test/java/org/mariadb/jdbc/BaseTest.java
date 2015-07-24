@@ -38,7 +38,7 @@ public class BaseTest {
     protected static boolean testSingleHost;
     
     @BeforeClass
-    public static void beforeClassBaseTest() {
+    public static void beforeClassBaseTest() throws SQLException  {
     	String url = System.getProperty("dbUrl", mDefUrl);
         testSingleHost = Boolean.parseBoolean(System.getProperty("testSingleHost", "true"));
     	JDBCUrl jdbcUrl = JDBCUrl.parse(url);

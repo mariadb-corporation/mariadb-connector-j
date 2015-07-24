@@ -68,9 +68,24 @@ public class MySQLParameterizedQuery implements ParameterizedQuery {
     private String query;
     private byte[][] queryPartsArray;
 
-    public MySQLParameterizedQuery(String query, boolean noBackslashEscapes) {
+    private byte[] rewriteFirstPart = null;
+    private byte[] rewriteRepeatLastPart = null;
+    private byte[] rewriteNotRepeatLastPart = null;
+
+
+    public MySQLParameterizedQuery(String query, boolean noBackslashEscapes, int rewriteOffset) {
         this.query = query;
         List<String> queryParts = createQueryParts(query, noBackslashEscapes);
+        if (rewriteOffset != -1) {
+            try {
+                rewriteFirstPart = queryParts.get(0).substring(rewriteOffset + 1).getBytes("UTF-8");
+                String lastPart = queryParts.get(queryParts.size() - 1 );
+                rewriteRepeatLastPart = lastPart.substring(0, lastPart.indexOf(")")).getBytes("UTF-8");
+                rewriteNotRepeatLastPart = lastPart.substring(lastPart.indexOf(")") + 1 ).getBytes("UTF-8");
+            } catch (UnsupportedEncodingException e) {
+                throw new RuntimeException("UTF-8 not supported", e);
+            }
+        }
         queryPartsArray = new byte[queryParts.size()][];
         for(int i=0;i < queryParts.size(); i++) {
             try {
@@ -95,6 +110,9 @@ public class MySQLParameterizedQuery implements ParameterizedQuery {
         q.paramCount = paramCount;
         q.query = query;
         q.queryPartsArray = queryPartsArray;
+        q.rewriteFirstPart = rewriteFirstPart;
+        q.rewriteRepeatLastPart = rewriteRepeatLastPart;
+        q.rewriteNotRepeatLastPart = rewriteNotRepeatLastPart;
         return q;
     }
 
@@ -133,17 +151,39 @@ public class MySQLParameterizedQuery implements ParameterizedQuery {
         }
     }
 
+    public void writeFirstRewritePart(final OutputStream os) throws IOException, QueryException {
+        if(queryPartsArray.length == 0) {
+            throw new AssertionError("Invalid query, queryParts was empty");
+        }
+
+        for(int i = 0; i<queryPartsArray.length - 1; i++) {
+            os.write(queryPartsArray[i]);
+            parameters[i].writeTo(os);
+        }
+        if (rewriteRepeatLastPart != null) os.write(rewriteRepeatLastPart);
+        os.write(41); // ")" in UTF-8
+    }
+
+    public void writeLastRewritePart(final OutputStream os) throws IOException, QueryException {
+        if(rewriteNotRepeatLastPart != null) {
+            os.write(rewriteNotRepeatLastPart);
+        }
+    }
 
     public void writeToRewritablePart(final OutputStream os, int rewriteOffset) throws IOException, QueryException {
         if(queryPartsArray.length == 0) {
             throw new AssertionError("Invalid query, queryParts was empty");
         }
-        os.write(",(".getBytes());
-        for(int i = 1; i<queryPartsArray.length; i++) {
-            parameters[i-1].writeTo(os);
-            if(queryPartsArray[i].length != 0)
-                os.write(queryPartsArray[i]);
+
+        os.write(new byte[]{44,40}); //",(" in UTF-8
+        os.write(rewriteFirstPart);
+        for(int i = 0; i < parameters.length ; i++) {
+            parameters[i].writeTo(os);
+            if (i < parameters.length - 1)
+                os.write(queryPartsArray[i + 1]);
+            else os.write(rewriteRepeatLastPart);
         }
+        os.write(41); // ")" in UTF-8
     }
 
     private boolean containsNull(ParameterHolder[] parameters) {

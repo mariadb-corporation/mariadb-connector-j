@@ -55,6 +55,7 @@ import org.mariadb.jdbc.internal.common.ParameterConstant;
 import org.mariadb.jdbc.internal.common.UrlHAMode;
 import org.mariadb.jdbc.internal.common.query.IllegalParameterException;
 
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Properties;
 
@@ -96,7 +97,7 @@ public class JDBCUrl {
 
     private JDBCUrl(){};
 
-    protected JDBCUrl(String database, List<HostAddress> addresses, Options options, UrlHAMode haMode) {
+    protected JDBCUrl(String database, List<HostAddress> addresses, Options options, UrlHAMode haMode) throws SQLException {
         this.options = options;
         this.database = database;
         this.addresses = addresses;
@@ -116,15 +117,15 @@ public class JDBCUrl {
 
     static boolean acceptsURL(String url) {
         return (url != null) &&
-                (url.startsWith("jdbc:mariadb://") || url.startsWith("jdbc:mysql://"));
+                (url.startsWith("jdbc:mariadb:") || url.startsWith("jdbc:mysql:"));
 
     }
 
-    public static JDBCUrl parse(final String url) {
+    public static JDBCUrl parse(final String url) throws SQLException {
         return parse(url, new Properties());
     }
 
-    public static JDBCUrl parse(final String url, Properties prop) {
+    public static JDBCUrl parse(final String url, Properties prop) throws SQLException {
         if (url != null) {
             if (prop == null) prop = new Properties();
             if (url.startsWith("jdbc:mysql:")) {
@@ -141,10 +142,10 @@ public class JDBCUrl {
                 }
             }
         }
-        throw new IllegalArgumentException("Invalid connection URL url " + url);
+        return null;
     }
 
-    public void parseUrl(String url) {
+    public void parseUrl(String url) throws SQLException {
         if (!url.startsWith("jdbc:mysql:")) throw new IllegalArgumentException("Url must start with \"jdbc:mysql:\"");
         parseInternal(this, url, new Properties());
     }
@@ -154,49 +155,51 @@ public class JDBCUrl {
         jdbc:mysql://host:port/database
         Example: jdbc:mysql://localhost:3306/test?user=root&password=passwd
          */
-    private static void parseInternal(JDBCUrl jdbcUrl, String url, Properties properties) {
+    private static void parseInternal(JDBCUrl jdbcUrl, String url, Properties properties) throws SQLException {
+        try {
+            String[] baseTokens = url.substring(0,url.indexOf("//")).split(":");
 
-        String[] baseTokens = url.substring(0,url.indexOf("//")).split(":");
-
-        //parse HA mode
-        jdbcUrl.haMode = UrlHAMode.NONE;
-        if (baseTokens.length > 2) {
-            try {
-                jdbcUrl.haMode = UrlHAMode.valueOf(baseTokens[2].toUpperCase());
-            }catch (IllegalArgumentException i) {
-                throw new IllegalArgumentException("url parameter error '" + baseTokens[2] +"' is a unknown parameter in the url "+url);
+            //parse HA mode
+            jdbcUrl.haMode = UrlHAMode.NONE;
+            if (baseTokens.length > 2) {
+                try {
+                    jdbcUrl.haMode = UrlHAMode.valueOf(baseTokens[2].toUpperCase());
+                }catch (IllegalArgumentException i) {
+                    throw new IllegalArgumentException("url parameter error '" + baseTokens[2] +"' is a unknown parameter in the url "+url);
+                }
             }
-        }
 
-        url = url.substring(url.indexOf("//") + 2);
-        String[] tokens = url.split("/");
-        String hostAddressesString= tokens[0];
-        String additionalParameters = (tokens.length > 1) ? url.substring(tokens[0].length() + 1) : null;
+            url = url.substring(url.indexOf("//") + 2);
+            String[] tokens = url.split("/");
+            String hostAddressesString= tokens[0];
+            String additionalParameters = (tokens.length > 1) ? url.substring(tokens[0].length() + 1) : null;
 
-        jdbcUrl.addresses = HostAddress.parse(hostAddressesString, jdbcUrl.haMode);
+            jdbcUrl.addresses = HostAddress.parse(hostAddressesString, jdbcUrl.haMode);
 
-        if (additionalParameters == null) {
-            jdbcUrl.database = null;
-            jdbcUrl.options = DefaultOptions.parse(jdbcUrl.haMode, "",properties);
-        } else {
-            int ind = additionalParameters.indexOf('?');
-            if (ind > -1) {
-                jdbcUrl.database = additionalParameters.substring(0, ind);
-                jdbcUrl.options = DefaultOptions.parse(jdbcUrl.haMode, additionalParameters.substring(ind + 1),properties);
-            } else {
-                jdbcUrl.database = additionalParameters;
+            if (additionalParameters == null) {
+                jdbcUrl.database = null;
                 jdbcUrl.options = DefaultOptions.parse(jdbcUrl.haMode, "",properties);
+            } else {
+                int ind = additionalParameters.indexOf('?');
+                if (ind > -1) {
+                    jdbcUrl.database = additionalParameters.substring(0, ind);
+                    jdbcUrl.options = DefaultOptions.parse(jdbcUrl.haMode, additionalParameters.substring(ind + 1),properties);
+                } else {
+                    jdbcUrl.database = additionalParameters;
+                    jdbcUrl.options = DefaultOptions.parse(jdbcUrl.haMode, "",properties);
+                }
             }
-        }
 
-        if (jdbcUrl.haMode == UrlHAMode.AURORA) {
-            for (HostAddress hostAddress : jdbcUrl.addresses) hostAddress.type = null;
-        } else {
-            for (HostAddress hostAddress : jdbcUrl.addresses) {
-                if (hostAddress.type == null) hostAddress.type = ParameterConstant.TYPE_MASTER;
+            if (jdbcUrl.haMode == UrlHAMode.AURORA) {
+                for (HostAddress hostAddress : jdbcUrl.addresses) hostAddress.type = null;
+            } else {
+                for (HostAddress hostAddress : jdbcUrl.addresses) {
+                    if (hostAddress.type == null) hostAddress.type = ParameterConstant.TYPE_MASTER;
+                }
             }
+        } catch (IllegalArgumentException i) {
+            throw new SQLException(i.getMessage());
         }
-
     }
 
     public String getUsername() {
