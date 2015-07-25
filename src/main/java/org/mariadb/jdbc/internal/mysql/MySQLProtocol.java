@@ -485,6 +485,7 @@ public class MySQLProtocol implements Protocol {
             writer.finishPacket();
         } else if (plugin.equals("dialog")) {
             boolean echo;
+            boolean last;
             byte[] promptb;
             RawPacket rp;
             ResultPacket resultPacket;
@@ -496,9 +497,9 @@ public class MySQLProtocol implements Protocol {
                     echo = true;
                 } else {
                     // maybe should error here
-                    echo = true
+                    echo = true;
                 }
-                last = (authData[0] & 0x01) == 0x01
+                last = (authData[0] & 0x01) == 0x01;
                 promptb = new byte[authData.length -1];
                 for (int i=0; i < (authData.length -1); ++i) {
                     promptb[i] = authData[i+1];

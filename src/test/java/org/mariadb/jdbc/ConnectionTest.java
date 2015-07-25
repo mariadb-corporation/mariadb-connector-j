@@ -255,36 +255,4 @@ public class ConnectionTest extends BaseTest {
 		statement.close();
 	}
 
-	/**
-	 * CONJ-194 - add plugin capabilities
-	 * 
-	 * @throws SQLException
-	 * @throws InterruptedException
-	 */
-  @Before
-  public void pluginsAvailable() throws SQLException,
-			InterruptedException {
-		Statement statement = connection.createStatement();
-		ResultSet rs = statement.execute("SHOW PLUGINS");
-
-  }
-
-	@Test
-	public void isValid_socketAuth() throws SQLException,
-			InterruptedException {
-	}
-
-	@Test
-	public void isValid_dialogAuth() throws SQLException,
-			InterruptedException {
-		String params = "&useFractionalSeconds=true&allowMultiQueries=true&useCompression=false";
-		setConnection(params);
-	}
-
-	@Test
-	public void isValid_pamAuth() throws SQLException,
-			InterruptedException {
-		String params = "&useFractionalSeconds=true&allowMultiQueries=true&useCompression=false";
-		setConnection(params);
-	}
 }
