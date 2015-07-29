@@ -393,8 +393,9 @@ public class MySQLProtocol implements Protocol {
            SelectQueryResult qr = null;
            try {
                qr = (SelectQueryResult) executeQuery(new MySQLQuery("show variables like 'max_allowed_packet'"));
-               qr.next();
-               setMaxAllowedPacket(qr.getValueObject(1).getInt());
+               if (qr.next()) {
+                   setMaxAllowedPacket(qr.getValueObject(1).getInt());
+               }
            } finally {
                if (qr != null)qr.close();
            }
