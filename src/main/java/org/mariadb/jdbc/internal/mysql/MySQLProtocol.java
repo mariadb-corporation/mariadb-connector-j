@@ -82,6 +82,7 @@ import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.security.KeyStore;
+import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
@@ -113,7 +114,7 @@ class MyX509TrustManager implements X509TrustManager {
         }
 
         CertificateFactory cf = CertificateFactory.getInstance("X.509");
-        X509Certificate ca = (X509Certificate) cf.generateCertificate(inStream);
+        Collection<? extends Certificate> caList = cf.generateCertificates(inStream);
         inStream.close();
         KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
         try {
@@ -122,7 +123,9 @@ class MyX509TrustManager implements X509TrustManager {
         } catch (Exception e) {
 
         }
-        ks.setCertificateEntry(UUID.randomUUID().toString(), ca);
+        for(Certificate ca : caList) {
+            ks.setCertificateEntry(UUID.randomUUID().toString(), ca);
+        }
         TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
         tmf.init(ks);
         for(TrustManager tm : tmf.getTrustManagers()) {
