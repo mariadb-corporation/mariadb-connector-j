@@ -341,7 +341,7 @@ public class MySQLProtocol implements Protocol {
 
                 SSLSocketFactory f = getSSLSocketFactory(jdbcUrl.getOptions().trustServerCertificate);
                 SSLSocket sslSocket = (SSLSocket)f.createSocket(socket,
-                        socket.getInetAddress().getHostAddress(),  socket.getPort(),  false);
+                        socket.getInetAddress().getHostAddress(),  socket.getPort(), true);
 
                 sslSocket.setEnabledProtocols(new String [] {"TLSv1"});
                 sslSocket.setUseClientMode(true);
