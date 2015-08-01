@@ -938,6 +938,12 @@ public class MySQLProtocol implements Protocol {
 
                 InputStream is;
                 if (localInfileInputStream == null) {
+                    if (!getJdbcUrl().getOptions().allowLocalInfile) {
+                      throw new QueryException(
+                          "Usage of LOCAL INFILE is disabled. To use it enable it via the connection property allowLocalInfile=true",
+                          -1,
+                          SQLExceptionMapper.SQLStates.FEATURE_NOT_SUPPORTED.getSqlState());
+                    }
                     LocalInfilePacket localInfilePacket = (LocalInfilePacket) resultPacket;
                     if (log.isTraceEnabled()) log.trace("sending local file " + localInfilePacket.getFileName());
                     String localInfile = localInfilePacket.getFileName();
