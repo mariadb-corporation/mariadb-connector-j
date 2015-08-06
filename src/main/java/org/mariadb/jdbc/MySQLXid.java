@@ -15,8 +15,6 @@ public class MySQLXid implements Xid {
         this.branchQualifier = branchQualifier;
     }
 
-
-
     public boolean equals(Object o) {
         if (o instanceof Xid) {
             Xid other = (Xid) o;
@@ -38,5 +36,4 @@ public class MySQLXid implements Xid {
     public byte[] getBranchQualifier() {
         return branchQualifier;
     }
-
 }

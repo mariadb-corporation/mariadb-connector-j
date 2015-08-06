@@ -89,5 +89,4 @@ public class MySQLRowPacket {
         }
         return columns;
     }
-
 }

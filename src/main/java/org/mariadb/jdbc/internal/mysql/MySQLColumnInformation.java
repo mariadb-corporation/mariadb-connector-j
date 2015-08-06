@@ -267,5 +267,4 @@ public class MySQLColumnInformation  {
     public boolean isBinary() {
        return (getCharsetNumber() == 63);
     }
-
 }

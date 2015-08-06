@@ -65,4 +65,3 @@ public class ColumnFlags {
             TIMESTAMP = 1024,
             SET = 2048;
 }
-

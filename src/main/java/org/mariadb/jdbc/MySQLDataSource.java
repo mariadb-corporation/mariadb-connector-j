@@ -61,12 +61,10 @@ import org.slf4j.LoggerFactory;
 import javax.sql.*;
 
 import java.io.PrintWriter;
-import java.lang.reflect.Proxy;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.ArrayList;
-import java.util.Properties;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Logger;
 
