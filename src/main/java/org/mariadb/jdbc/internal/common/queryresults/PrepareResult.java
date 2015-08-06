@@ -46,51 +46,33 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWIS
 ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
 OF SUCH DAMAGE.
 */
+package org.mariadb.jdbc.internal.common.queryresults;
 
-package org.mariadb.jdbc.internal.common.query.parameters;
+import org.mariadb.jdbc.internal.mysql.MySQLColumnInformation;
 
-import org.mariadb.jdbc.internal.common.packet.buffer.WriteBuffer;
+public class PrepareResult {
+    public int statementId;
+    private int useTime = 1;
+    public MySQLColumnInformation[] columns;
+    public MySQLColumnInformation[] parameters;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.Calendar;
-import java.util.Date;
-import org.mariadb.jdbc.internal.mysql.MySQLType;
-
-public class DateParameter extends NotLongDataParameterHolder {
-    Date date;
-    Calendar calendar;
-
-    /**
-     * Represents a timestamp, constructed with time in millis since epoch
-     *
-     * @param date the date
-     */
-    public DateParameter(Date date) {
-       this(date, null);
+    public PrepareResult(int statementId, MySQLColumnInformation[] columns,  MySQLColumnInformation parameters[]) {
+        this.statementId = statementId;
+        this.columns = columns;
+        this.parameters = parameters;
     }
 
-    public DateParameter(Date date, Calendar cal) {
-       this.date = date;
-       this.calendar = cal;
+    public synchronized void addUse() {
+        useTime++;
     }
-
-
-    public void writeTo(OutputStream os) throws IOException {
-        ParameterWriter.writeDate(os, date, calendar);
+    public synchronized void removeUse() {
+        useTime--;
     }
-
-    public void writeBinary(WriteBuffer writeBuffer) {
-        calendar.setTime(date);
-        writeBuffer.writeDateLength(calendar);
+    public synchronized boolean hasToBeClose() {
+        return useTime <= 0;
     }
-
-    public void writeToLittleEndian(final OutputStream os) throws IOException {
-
+    //for test unit
+    public synchronized int getUseTime() {
+        return useTime;
     }
-
-    public void writeBufferType(final WriteBuffer writeBuffer) {
-        writeBuffer.writeByte((byte) MySQLType.DATE.getType());
-    }
-
 }

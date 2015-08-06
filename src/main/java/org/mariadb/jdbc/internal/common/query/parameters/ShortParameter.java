@@ -50,47 +50,30 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.common.query.parameters;
 
 import org.mariadb.jdbc.internal.common.packet.buffer.WriteBuffer;
+import  org.mariadb.jdbc.internal.mysql.MySQLType;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.Calendar;
-import java.util.Date;
-import org.mariadb.jdbc.internal.mysql.MySQLType;
 
-public class DateParameter extends NotLongDataParameterHolder {
-    Date date;
-    Calendar calendar;
 
-    /**
-     * Represents a timestamp, constructed with time in millis since epoch
-     *
-     * @param date the date
-     */
-    public DateParameter(Date date) {
-       this(date, null);
+public class ShortParameter extends NotLongDataParameterHolder {
+    short value;
+
+    public ShortParameter(short value) {
+        this.value = value;
     }
 
-    public DateParameter(Date date, Calendar cal) {
-       this.date = date;
-       this.calendar = cal;
+    public void writeTo(final OutputStream os) throws IOException {
+        os.write(String.valueOf(value).getBytes());
     }
 
-
-    public void writeTo(OutputStream os) throws IOException {
-        ParameterWriter.writeDate(os, date, calendar);
-    }
 
     public void writeBinary(WriteBuffer writeBuffer) {
-        calendar.setTime(date);
-        writeBuffer.writeDateLength(calendar);
-    }
-
-    public void writeToLittleEndian(final OutputStream os) throws IOException {
-
+        writeBuffer.writeShort(value);
     }
 
     public void writeBufferType(final WriteBuffer writeBuffer) {
-        writeBuffer.writeByte((byte) MySQLType.DATE.getType());
+        writeBuffer.writeByte((byte) MySQLType.SMALLINT.getType());
     }
 
 }

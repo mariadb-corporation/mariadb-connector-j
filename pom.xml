@@ -277,6 +277,6 @@
     <parent>
         <groupId>org.sonatype.oss</groupId>
         <artifactId>oss-parent</artifactId>
-        <version>6</version>
+        <version>9</version>
     </parent>
 </project>

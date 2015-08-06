@@ -49,13 +49,17 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.common.query.parameters;
 
+import org.mariadb.jdbc.internal.common.packet.buffer.WriteBuffer;
+import org.mariadb.jdbc.internal.mysql.*;
+import org.mariadb.jdbc.internal.mysql.MySQLType;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.sql.Timestamp;
 import java.util.Calendar;
 
 
-public class TimestampParameter extends ParameterHolder {
+public class TimestampParameter extends NotLongDataParameterHolder {
     Timestamp ts;
     Calendar calendar;
     boolean fractionalSeconds;
@@ -69,4 +73,15 @@ public class TimestampParameter extends ParameterHolder {
     public void writeTo(OutputStream os) throws IOException {
         ParameterWriter.writeTimestamp(os, ts, calendar, fractionalSeconds);
     }
+
+    public void writeBinary(WriteBuffer writeBuffer) {
+        calendar.setTime(ts);
+        writeBuffer.writeTimestampLength(calendar, ts);
+    }
+
+    public void writeBufferType(final WriteBuffer writeBuffer) {
+        writeBuffer.writeByte((byte) MySQLType.TIMESTAMP.getType());
+    }
+
+
 }

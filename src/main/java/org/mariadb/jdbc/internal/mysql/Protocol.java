@@ -51,8 +51,11 @@ package org.mariadb.jdbc.internal.mysql;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.JDBCUrl;
 import org.mariadb.jdbc.internal.common.Options;
+import org.mariadb.jdbc.internal.common.PrepareStatementCache;
 import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.common.query.Query;
+import org.mariadb.jdbc.internal.common.query.parameters.ParameterHolder;
+import org.mariadb.jdbc.internal.common.queryresults.PrepareResult;
 import org.mariadb.jdbc.internal.common.queryresults.QueryResult;
 
 import java.io.IOException;
@@ -61,7 +64,7 @@ import java.net.SocketException;
 import java.util.List;
 
 public interface Protocol {
-    MySQLProtocol.PrepareResult prepare(String sql) throws QueryException;
+    PrepareResult prepare(String sql) throws QueryException;
 
     void closePreparedStatement(int statementId) throws QueryException;
 
@@ -110,7 +113,7 @@ public interface Protocol {
 
     QueryResult executeQuery(Query dQuery)  throws QueryException;
     QueryResult executeQuery(final List<Query> dQueries, boolean streaming, boolean isRewritable, int rewriteOffset) throws QueryException;
-    QueryResult getResult(List<Query> dQuery, boolean streaming) throws QueryException;
+    QueryResult getResult(Object dQuery, boolean streaming) throws QueryException;
 
     QueryResult executeQuery(Query dQuery, boolean streaming) throws QueryException;
 
@@ -154,5 +157,9 @@ public interface Protocol {
     void connectWithoutProxy() throws  QueryException ;
     boolean shouldReconnectWithoutProxy();
     void setHostFailedWithoutProxy();
+    QueryResult executePreparedQuery(String sql, ParameterHolder[] parameters, PrepareResult prepareResult , boolean isStreaming) throws QueryException;
+    void releasePrepareStatement(String sql, int statementId) throws QueryException;
+    QueryResult executePreparedQueryAfterFailover(String sql, ParameterHolder[] parameters, PrepareResult oldPrepareResult, boolean isStreaming) throws QueryException; //used
+    PrepareStatementCache prepareStatementCache();
 
 }

@@ -20,7 +20,7 @@ This particular MariaDB Client for Java file is work
 derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
 the following copyright and notice provisions:
 
-Copyright (c) 2009-2011, Marcus Eriksson
+Copyright (c) 2009-2011, Marcus Eriksson , Stephane Giron
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
@@ -47,50 +47,28 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc.internal.common.query.parameters;
+package org.mariadb.jdbc.internal.mysql.packet.commands;
 
-import org.mariadb.jdbc.internal.common.packet.buffer.WriteBuffer;
+import org.mariadb.jdbc.internal.common.packet.CommandPacket;
+import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.Calendar;
-import java.util.Date;
-import org.mariadb.jdbc.internal.mysql.MySQLType;
 
-public class DateParameter extends NotLongDataParameterHolder {
-    Date date;
-    Calendar calendar;
+public class SendPrepareStatementPacket implements CommandPacket {
 
-    /**
-     * Represents a timestamp, constructed with time in millis since epoch
-     *
-     * @param date the date
-     */
-    public DateParameter(Date date) {
-       this(date, null);
+    String sql;
+
+    public SendPrepareStatementPacket(String sql) {
+        this.sql = sql;
     }
 
-    public DateParameter(Date date, Calendar cal) {
-       this.date = date;
-       this.calendar = cal;
+    public int send(final OutputStream os) throws IOException {
+        PacketOutputStream pos = (PacketOutputStream) os;
+        pos.startPacket(0);
+        pos.write(0x16);
+        pos.write(sql.getBytes("UTF8"));
+        pos.finishPacket();
+        return 0;
     }
-
-
-    public void writeTo(OutputStream os) throws IOException {
-        ParameterWriter.writeDate(os, date, calendar);
-    }
-
-    public void writeBinary(WriteBuffer writeBuffer) {
-        calendar.setTime(date);
-        writeBuffer.writeDateLength(calendar);
-    }
-
-    public void writeToLittleEndian(final OutputStream os) throws IOException {
-
-    }
-
-    public void writeBufferType(final WriteBuffer writeBuffer) {
-        writeBuffer.writeByte((byte) MySQLType.DATE.getType());
-    }
-
 }

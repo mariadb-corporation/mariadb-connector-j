@@ -120,6 +120,24 @@ public enum MySQLType {
         return className;
     }
 
+    public static boolean isNumeric(MySQLType t) {
+        switch (t) {
+            case OLDDECIMAL:
+            case TINYINT:
+            case SMALLINT:
+            case INTEGER:
+            case FLOAT:
+            case DOUBLE:
+            case BIGINT:
+            case MEDIUMINT:
+            case BIT:
+            case DECIMAL:
+                return true;
+            default:
+                return false;
+        }
+    }
+
     public static String getClassName(MySQLType t, int len, boolean signed, boolean binary, int flags) {
         switch(t) {
             case TINYINT:

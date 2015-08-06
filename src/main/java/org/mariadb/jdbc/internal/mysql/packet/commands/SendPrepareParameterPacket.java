@@ -20,7 +20,7 @@ This particular MariaDB Client for Java file is work
 derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
 the following copyright and notice provisions:
 
-Copyright (c) 2009-2011, Marcus Eriksson
+Copyright (c) 2009-2011, Marcus Eriksson , Stephane Giron
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
@@ -47,50 +47,37 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc.internal.common.query.parameters;
+package org.mariadb.jdbc.internal.mysql.packet.commands;
 
+import org.mariadb.jdbc.internal.common.packet.CommandPacket;
+import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
 import org.mariadb.jdbc.internal.common.packet.buffer.WriteBuffer;
+import org.mariadb.jdbc.internal.common.query.parameters.LongDataParameterHolder;
+import org.mariadb.jdbc.internal.common.query.parameters.ParameterHolder;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.Calendar;
-import java.util.Date;
-import org.mariadb.jdbc.internal.mysql.MySQLType;
 
-public class DateParameter extends NotLongDataParameterHolder {
-    Date date;
-    Calendar calendar;
+public class SendPrepareParameterPacket implements CommandPacket {
+    private final WriteBuffer writeBuffer;
+    LongDataParameterHolder parameter;
 
-    /**
-     * Represents a timestamp, constructed with time in millis since epoch
-     *
-     * @param date the date
-     */
-    public DateParameter(Date date) {
-       this(date, null);
-    }
-
-    public DateParameter(Date date, Calendar cal) {
-       this.date = date;
-       this.calendar = cal;
-    }
-
-
-    public void writeTo(OutputStream os) throws IOException {
-        ParameterWriter.writeDate(os, date, calendar);
-    }
-
-    public void writeBinary(WriteBuffer writeBuffer) {
-        calendar.setTime(date);
-        writeBuffer.writeDateLength(calendar);
-    }
-
-    public void writeToLittleEndian(final OutputStream os) throws IOException {
+    public SendPrepareParameterPacket(int parameterIndex, LongDataParameterHolder parameter, int statementId) {
+        this.parameter = parameter;
+        writeBuffer = new WriteBuffer();
+        writeBuffer.writeByte((byte) 0x18);
+        writeBuffer.writeInt(statementId);
+        writeBuffer.writeShort((short) parameterIndex);
 
     }
 
-    public void writeBufferType(final WriteBuffer writeBuffer) {
-        writeBuffer.writeByte((byte) MySQLType.DATE.getType());
-    }
+    public int send(final OutputStream os) throws IOException {
+        PacketOutputStream pos = (PacketOutputStream) os;
+        pos.startPacket(0);
+        os.write(writeBuffer.getBuffer(), 0, writeBuffer.getLength());
 
+        parameter.writeBinary(((PacketOutputStream) os));
+        pos.finishPacket();
+        return 0;
+    }
 }

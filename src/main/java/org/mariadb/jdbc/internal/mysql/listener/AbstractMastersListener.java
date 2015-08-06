@@ -51,10 +51,13 @@ OF SUCH DAMAGE.
 
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.JDBCUrl;
+import org.mariadb.jdbc.MySQLConnection;
 import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.common.UrlHAMode;
 import org.mariadb.jdbc.internal.common.query.MySQLQuery;
 import org.mariadb.jdbc.internal.common.query.Query;
+import org.mariadb.jdbc.internal.common.query.parameters.ParameterHolder;
+import org.mariadb.jdbc.internal.common.queryresults.PrepareResult;
 import org.mariadb.jdbc.internal.mysql.FailoverProxy;
 import org.mariadb.jdbc.internal.mysql.HandleErrorResult;
 import org.mariadb.jdbc.internal.mysql.Protocol;
@@ -194,7 +197,7 @@ public abstract class AbstractMastersListener implements Listener {
 
     protected void setSessionReadOnly(boolean readOnly) throws QueryException {
         if (this.currentProtocol.versionGreaterOrEqual(10, 0, 0)) {
-            this.currentProtocol.executeQuery(new MySQLQuery("SET SESSION TRANSACTION "+(readOnly?"READ ONLY":"READ WRITE")));
+            this.currentProtocol.executeQuery(new MySQLQuery("SET SESSION TRANSACTION " + (readOnly ? "READ ONLY" : "READ WRITE")));
         }
     }
 
@@ -264,6 +267,13 @@ public abstract class AbstractMastersListener implements Listener {
                     handleErrorResult.resultObject = method.invoke(currentProtocol, args);
                     handleErrorResult.mustThrowError = false;
                 }
+            } else if ("executePreparedQuery".equals(method.getName())) {
+                //the statementId has been discarded with previous session
+                try {
+                    Method methodFailure = currentProtocol.getClass().getDeclaredMethod("executePreparedQueryAfterFailover", String.class, ParameterHolder[].class, boolean.class);
+                    handleErrorResult.resultObject = methodFailure.invoke(currentProtocol, args);
+                    handleErrorResult.mustThrowError = false;
+                } catch (Exception e) {}
             } else {
                 handleErrorResult.resultObject = method.invoke(currentProtocol, args);
                 handleErrorResult.mustThrowError = false;

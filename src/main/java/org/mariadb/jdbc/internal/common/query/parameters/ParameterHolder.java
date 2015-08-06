@@ -49,6 +49,8 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.common.query.parameters;
 
+import org.mariadb.jdbc.internal.common.packet.buffer.WriteBuffer;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -61,7 +63,6 @@ public abstract class ParameterHolder {
      * @throws IOException when something goes wrong
      */
     public abstract void writeTo(OutputStream os) throws IOException;
-
 
     // allows for nice formatting of prepared statements using PreparedStatement.toString()
     public String toString() {
@@ -80,4 +81,7 @@ public abstract class ParameterHolder {
         }
 
     }
+    public abstract boolean isLongData();
+
+    public abstract void writeBufferType(WriteBuffer writeBuffer) ;
 }

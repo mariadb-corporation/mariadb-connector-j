@@ -84,6 +84,10 @@ public class Options {
     public boolean nullCatalogMeansCurrent;
     public boolean dumpQueriesOnException;
     public boolean useOldAliasMetadataBehavior;
+    public boolean cachePrepStmts;
+    public Integer prepStmtCacheSize;
+    public Integer prepStmtCacheSqlLimit;
+
 
     //HA options
     public boolean autoReconnect;
@@ -129,6 +133,9 @@ public class Options {
                 ", nullCatalogMeansCurrent=" + nullCatalogMeansCurrent +
                 ", dumpQueriesOnException=" + dumpQueriesOnException +
                 ", useOldAliasMetadataBehavior=" + useOldAliasMetadataBehavior +
+                ", cachePrepStmts=" + cachePrepStmts +
+                ", prepStmtCacheSize=" + prepStmtCacheSize +
+                ", prepStmtCacheSqlLimit=" + prepStmtCacheSqlLimit +
                 ", autoReconnect=" + autoReconnect +
                 ", failOnReadOnly=" + failOnReadOnly +
                 ", secondsBeforeRetryMaster=" + secondsBeforeRetryMaster +

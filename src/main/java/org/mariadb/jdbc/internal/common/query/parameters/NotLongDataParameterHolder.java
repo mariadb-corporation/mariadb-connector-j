@@ -51,46 +51,14 @@ package org.mariadb.jdbc.internal.common.query.parameters;
 
 import org.mariadb.jdbc.internal.common.packet.buffer.WriteBuffer;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.Calendar;
-import java.util.Date;
-import org.mariadb.jdbc.internal.mysql.MySQLType;
 
-public class DateParameter extends NotLongDataParameterHolder {
-    Date date;
-    Calendar calendar;
 
-    /**
-     * Represents a timestamp, constructed with time in millis since epoch
-     *
-     * @param date the date
-     */
-    public DateParameter(Date date) {
-       this(date, null);
+public abstract class NotLongDataParameterHolder  extends ParameterHolder {
+    public abstract void writeBinary(WriteBuffer writeBuffer);
+    public boolean isLongData() {
+        return false;
     }
-
-    public DateParameter(Date date, Calendar cal) {
-       this.date = date;
-       this.calendar = cal;
-    }
-
-
-    public void writeTo(OutputStream os) throws IOException {
-        ParameterWriter.writeDate(os, date, calendar);
-    }
-
-    public void writeBinary(WriteBuffer writeBuffer) {
-        calendar.setTime(date);
-        writeBuffer.writeDateLength(calendar);
-    }
-
-    public void writeToLittleEndian(final OutputStream os) throws IOException {
-
-    }
-
-    public void writeBufferType(final WriteBuffer writeBuffer) {
-        writeBuffer.writeByte((byte) MySQLType.DATE.getType());
-    }
-
 }

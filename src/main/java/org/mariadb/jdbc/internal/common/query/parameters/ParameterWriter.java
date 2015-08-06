@@ -207,7 +207,17 @@ public class ParameterWriter {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ObjectOutputStream oos = new ObjectOutputStream(baos);
         oos.writeObject(o);
-        write(out,baos.toByteArray(), noBackslashEscapes);
+        write(out, baos.toByteArray(), noBackslashEscapes);
     }
+
+
+    public static byte[] writeLittleEndian(int value) {
+        return new byte[] {
+                (byte) (( value >> 0 ) & 0xff ),
+                (byte) (( value >> 8 ) & 0xff ),
+                (byte) (( value >> 16 ) & 0xff ),
+                (byte) (( value >> 24 ) & 0xff ) };
+    }
+
 
 }

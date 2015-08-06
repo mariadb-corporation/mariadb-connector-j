@@ -178,9 +178,52 @@ public final class MySQLConnection implements Connection {
      */
     public PreparedStatement prepareStatement(final String sql) throws SQLException {
         checkConnection();
-        return new MySQLPreparedStatement(this, sql);
+        if (checkIfPreparable(sql)) return new MySQLServerPreparedStatement(this, sql);
+        return new MySQLClientPreparedStatement(this, sql);
     }
 
+    /**
+     * check if SQL request is "preparable" and has parameter
+     * @param sql
+     * @return
+     */
+    private boolean checkIfPreparable(String sql) {
+        if (sql == null) return true;
+
+        String cleanSql = sql.toUpperCase().trim();
+        if (cleanSql.startsWith("SELECT")
+                || cleanSql.startsWith("UPDATE")
+                || cleanSql.startsWith("INSERT")
+                || cleanSql.startsWith("DELETE")) {
+
+            //delete comment to avoid find ? in comment
+            cleanSql = cleanSql.replaceAll("((?<![\\\\])['\"])((?:.(?!(?<![\\\\])\\1))*.?)\\1","");
+
+            if (cleanSql.indexOf("?") > 0) return true;
+            return false;
+        } else if (cleanSql.startsWith("CALL") || cleanSql.startsWith("CASE")
+                || cleanSql.startsWith("CLOSE")
+                || cleanSql.startsWith("DEALLOCATE")
+                || cleanSql.startsWith("DECLARE")
+                || cleanSql.startsWith("DELIMITER")
+                || cleanSql.startsWith("EXECUTE")
+                || cleanSql.startsWith("EXPLAIN")
+                || cleanSql.startsWith("FETCH")
+                || cleanSql.startsWith("IF")
+                || cleanSql.startsWith("ITERATE")
+                || cleanSql.startsWith("LEAVE")
+                || cleanSql.startsWith("LOOP")
+                || cleanSql.startsWith("OPEN")
+                || cleanSql.startsWith("PREPARE")
+                || cleanSql.startsWith("QUIT")
+                || cleanSql.startsWith("REPEAT")
+                || cleanSql.startsWith("RETURN")
+                || cleanSql.startsWith("SIGNAL")
+                || cleanSql.startsWith("XA")
+                || cleanSql.startsWith("WHILE")) return false;
+        return true;
+
+    }
 
     public CallableStatement prepareCall(final String sql) throws SQLException {
         checkConnection();
@@ -788,6 +831,7 @@ public final class MySQLConnection implements Connection {
         if (resultSetConcurrency != ResultSet.CONCUR_READ_ONLY) {
             throw SQLExceptionMapper.getFeatureNotSupportedException("Only read-only result sets allowed");
         }
+        //TODO diego : implement parameters
         // resultSetType is ignored since we always are scroll insensitive
         return prepareStatement(sql);
     }

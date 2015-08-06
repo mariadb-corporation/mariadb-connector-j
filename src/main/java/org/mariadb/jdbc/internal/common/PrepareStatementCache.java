@@ -47,50 +47,26 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc.internal.common.query.parameters;
+package org.mariadb.jdbc.internal.common;
 
-import org.mariadb.jdbc.internal.common.packet.buffer.WriteBuffer;
+import org.mariadb.jdbc.internal.common.queryresults.PrepareResult;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.Calendar;
-import java.util.Date;
-import org.mariadb.jdbc.internal.mysql.MySQLType;
-
-public class DateParameter extends NotLongDataParameterHolder {
-    Date date;
-    Calendar calendar;
-
-    /**
-     * Represents a timestamp, constructed with time in millis since epoch
-     *
-     * @param date the date
-     */
-    public DateParameter(Date date) {
-       this(date, null);
+public class PrepareStatementCache extends LinkedHashMap<String, PrepareResult> {
+    private int maxSize;
+    private PrepareStatementCache(int size) {
+        super(size, .75f, true);
+        maxSize = size;
     }
 
-    public DateParameter(Date date, Calendar cal) {
-       this.date = date;
-       this.calendar = cal;
+    public static PrepareStatementCache newInstance(int size) {
+        return new PrepareStatementCache(size);
     }
 
-
-    public void writeTo(OutputStream os) throws IOException {
-        ParameterWriter.writeDate(os, date, calendar);
-    }
-
-    public void writeBinary(WriteBuffer writeBuffer) {
-        calendar.setTime(date);
-        writeBuffer.writeDateLength(calendar);
-    }
-
-    public void writeToLittleEndian(final OutputStream os) throws IOException {
-
-    }
-
-    public void writeBufferType(final WriteBuffer writeBuffer) {
-        writeBuffer.writeByte((byte) MySQLType.DATE.getType());
+    @Override
+    protected boolean removeEldestEntry(Map.Entry<String, PrepareResult> eldest) {
+        return this.size() > maxSize;
     }
 
 }

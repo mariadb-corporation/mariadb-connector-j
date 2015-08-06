@@ -103,14 +103,6 @@ public class DriverTest extends BaseTest{
     }
 
     @Test
-    public void intOperations() {
-        byte [] a = WriteBuffer.intToByteArray(56*256*256*256 + 11*256*256 + 77*256 + 99);
-        assertEquals(a[0],99);
-        assertEquals(a[1],77);
-        assertEquals(a[2],11);
-        assertEquals(a[3],56);
-    }
-    @Test
     public void preparedTest() throws SQLException {
         Statement stmt = connection.createStatement();
         createTablet1(stmt);
