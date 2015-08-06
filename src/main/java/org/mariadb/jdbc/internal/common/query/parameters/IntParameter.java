@@ -72,7 +72,7 @@ public class IntParameter extends NotLongDataParameterHolder {
     }
 
     public void writeBufferType(final WriteBuffer writeBuffer) {
-        writeBuffer.writeByte((byte) MySQLType.INTEGER.getType());
+        writeBuffer.writeShort((byte) MySQLType.INTEGER.getType());
     }
 
 }

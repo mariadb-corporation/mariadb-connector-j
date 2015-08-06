@@ -1083,10 +1083,9 @@ public class MySQLProtocol implements Protocol {
             //send binary data in a separate packet
             for (int i=0; i<parameterCount;i++) {
                 if (parameters[i].isLongData()) {
-                    log.debug("parameter " + i + " is long data !!!");
                     SendPrepareParameterPacket sendPrepareParameterPacket = new SendPrepareParameterPacket(i, (LongDataParameterHolder)parameters[i], prepareResult.statementId);
                     sendPrepareParameterPacket.send(writer);
-                } else log.debug("parameter " + i + " is not long data");
+                }
 
             }
 

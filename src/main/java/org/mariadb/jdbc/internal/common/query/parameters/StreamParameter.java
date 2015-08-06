@@ -93,6 +93,6 @@ public class StreamParameter extends LongDataParameterHolder {
     }
 
     public void writeBufferType(final WriteBuffer writeBuffer) {
-        writeBuffer.writeByte((byte) MySQLType.BLOB.getType());
+        writeBuffer.writeShort((byte) MySQLType.BLOB.getType());
     }
 }

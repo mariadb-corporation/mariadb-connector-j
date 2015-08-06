@@ -7,9 +7,10 @@ import org.mariadb.jdbc.internal.common.queryresults.PrepareResult;
 import org.mariadb.jdbc.internal.mysql.MySQLProtocol;
 import org.mariadb.jdbc.internal.mysql.Protocol;
 
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
+import java.net.URL;
 import java.sql.*;
+import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -138,7 +139,7 @@ public class ServerPrepareStatementTest extends BaseTest {
         assertTrue(protocol.prepareStatementCache().size() == 0);
     }
 
-
+*/
 
     @Test
     public void dataConformityTest() throws SQLException {
@@ -212,9 +213,22 @@ public class ServerPrepareStatementTest extends BaseTest {
 
         ps.addBatch();
         ps.execute();
+        ResultSet rs = connection.createStatement().executeQuery("SELECT * from preparetest");
+        rs.next();
+        assertEquals(rs.getBoolean(1), bit1);
+        assertEquals(rs.getByte(2), bit2);
+        assertEquals(rs.getByte(3), tinyint1);
+        assertEquals(rs.getShort(4), tinyint2);
+        assertEquals(rs.getBoolean(5), bool0);
+        assertEquals(rs.getShort(6), smallint0);
+        assertEquals(rs.getShort(7), smallint_unsigned);
+        assertEquals(rs.getInt(8), mediumint0);
+        assertEquals(rs.getInt(9), mediumint_unsigned);
+        assertEquals(rs.getInt(10), int0);
+
 
     }
-
+/*
 
     @Test
     public void checkReusability() throws Throwable {
@@ -281,21 +295,44 @@ public class ServerPrepareStatementTest extends BaseTest {
         }
     }
 */
+    /*
     @Test
-    public void longDataTest() throws Throwable {
+    public void blobTest() throws Throwable {
         BaseTest baseTest = new BaseTest();
         baseTest.setConnection("&prepStmtCacheSize=10");
 
         Statement statement = connection.createStatement();
-        statement.execute("drop table if exists ServerPrepareLongData");
-        statement.execute("create table ServerPrepareLongData (id int not null primary key auto_increment, test blob)");
+        statement.execute("drop table if exists ServerPrepareStatementCacheSize3");
+        statement.execute("create table ServerPrepareStatementCacheSize3 (id int not null primary key auto_increment, test blob)");
 
         PreparedStatement ps = connection.prepareStatement("INSERT INTO ServerPrepareStatementCacheSize3(test) VALUES (?)");
-        InputStream input = new java.net.URL("http://www.google.com/").openStream();
+        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+        for (URL root : Collections.list(Thread.currentThread().getContextClassLoader().getResources(""))) {
+            System.out.println(root);
+        }
+        InputStream input = classLoader.getResourceAsStream("logback.xml");
+
         ps.setBlob(1, input);
         ps.addBatch();
         ps.execute();
-    }
+    }*/
+/*
+    @Test
+    public void readerTest() throws Throwable {
+        BaseTest baseTest = new BaseTest();
+        baseTest.setConnection("&prepStmtCacheSize=10");
 
+        Statement statement = connection.createStatement();
+        statement.execute("drop table if exists ServerPrepareStatementCacheSize3");
+        statement.execute("create table ServerPrepareStatementCacheSize3 (id int not null primary key auto_increment, test blob)");
+
+        PreparedStatement ps = connection.prepareStatement("INSERT INTO ServerPrepareStatementCacheSize3(test) VALUES (?)");
+        Reader reader = new BufferedReader(new InputStreamReader(ClassLoader.getSystemResourceAsStream("logback.xml")));
+
+        ps.setCharacterStream(1, reader);
+        ps.addBatch();
+        ps.execute();
+    }
+*/
 
 }

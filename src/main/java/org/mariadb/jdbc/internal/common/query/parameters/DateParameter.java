@@ -90,7 +90,7 @@ public class DateParameter extends NotLongDataParameterHolder {
     }
 
     public void writeBufferType(final WriteBuffer writeBuffer) {
-        writeBuffer.writeByte((byte) MySQLType.DATE.getType());
+        writeBuffer.writeShort((byte) MySQLType.DATE.getType());
     }
 
 }

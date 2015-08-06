@@ -71,7 +71,7 @@ public class BigDecimalParameter extends NotLongDataParameterHolder {
     }
 
     public void writeBufferType(final WriteBuffer writeBuffer) {
-        writeBuffer.writeByte((byte) MySQLType.OLDDECIMAL.getType());
+        writeBuffer.writeShort((short) MySQLType.OLDDECIMAL.getType());
     }
 
 }

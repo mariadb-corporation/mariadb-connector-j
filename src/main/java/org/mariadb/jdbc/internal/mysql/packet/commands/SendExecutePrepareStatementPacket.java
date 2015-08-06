@@ -76,7 +76,7 @@ public class SendExecutePrepareStatementPacket implements CommandPacket {
         writeBuffer.writeByte((byte) 0x17);
         writeBuffer.writeInt(statementId);
         writeBuffer.writeByte((byte) 0x00); //CURSOR TYPE NO CURSOR TODO diego
-        writeBuffer.writeInt(1); //Iteration count
+        writeBuffer.writeInt(1); //Iteration countx²
 
         //create null bitmap
         if (parameterCount > 0) {
@@ -95,10 +95,9 @@ public class SendExecutePrepareStatementPacket implements CommandPacket {
                 writeBuffer.writeByte((byte) 0x01);
                 //Store types of parameters in first in first package that is sent to the server.
                 for (int i = 0; i < this.parameterCount; i++) {
-                    if (!(parameters[i] instanceof NullParameter)) {
-                        parameters[i].writeBufferType(writeBuffer);
-                        writeBuffer.writeByte((byte) 0x80);
-                    }
+                        if (!(parameters[i] instanceof NullParameter)) {
+                            parameters[i].writeBufferType(writeBuffer);
+                        }
                 }
             } else
                 writeBuffer.writeByte((byte) 0x00);

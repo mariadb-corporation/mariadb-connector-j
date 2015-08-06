@@ -71,6 +71,6 @@ public class ByteParameter extends NotLongDataParameterHolder {
     }
 
     public void writeBufferType(final WriteBuffer writeBuffer) {
-        writeBuffer.writeByte((byte) MySQLType.TINYINT.getType());
+        writeBuffer.writeShort((byte) MySQLType.TINYINT.getType());
     }
 }

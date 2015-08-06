@@ -82,7 +82,7 @@ public class TimeParameter extends NotLongDataParameterHolder {
     }
 
     public void writeBufferType(final WriteBuffer writeBuffer) {
-        writeBuffer.writeByte((byte) MySQLType.TIME.getType());
+        writeBuffer.writeShort((byte) MySQLType.TIME.getType());
     }
 
 
