@@ -9,6 +9,14 @@ import java.util.Properties;
 import org.junit.Test;
 
 public class ConnectionPoolTest extends BaseTest {
+    
+    /* For this test case to compile the following must be added to the pom.xml:
+       <dependency>
+         <groupId>commons-dbcp</groupId>
+         <artifactId>commons-dbcp</artifactId>
+         <version>1.4</version>
+      </dependency>
+     */
     @Test
     public void testConnectionWithApacheDBCP() throws SQLException {
         org.apache.commons.dbcp.BasicDataSource dataSource;
