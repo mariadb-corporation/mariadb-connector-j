@@ -231,7 +231,7 @@ public class MySQLServerPreparedStatement extends AbstractMySQLPrepareStatement 
             if (parameterCount > 0 && queryParameters.size() == 0)
                 throw SQLExceptionMapper.getSQLException("No Parameters set. The command addBatch() must have been set");
             int i = 0;
-            int[] ret = new int[batchQueries.size()];
+            int[] ret = new int[queryParameters.size()];
             MySQLResultSet rs = null;
             connection.lock.writeLock().lock();
             try {

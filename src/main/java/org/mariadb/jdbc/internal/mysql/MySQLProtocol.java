@@ -1090,6 +1090,7 @@ public class MySQLProtocol implements Protocol {
             }
 
             //send execute query
+            writer.clear();
             SendExecutePrepareStatementPacket packet = new SendExecutePrepareStatementPacket(prepareResult, parameters, parameterCount);
             packet.send(writer);
         } catch (MaxAllowedPacketException e) {

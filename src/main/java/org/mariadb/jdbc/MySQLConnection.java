@@ -120,6 +120,8 @@ public final class MySQLConnection implements Connection {
         if (options.serverTimezone != null) {
             TimeZone tz = getTimeZone(options.serverTimezone);
             connection.cal = Calendar.getInstance(tz);
+        } else {
+            connection.cal = new GregorianCalendar();
         }
         try {
             connection.noBackslashEscapes = protocol.noBackslashEscapes();

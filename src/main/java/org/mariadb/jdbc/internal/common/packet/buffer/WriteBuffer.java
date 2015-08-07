@@ -101,25 +101,14 @@ public class WriteBuffer {
     public WriteBuffer writeTimestampLength(final Calendar calendar, Timestamp ts) {
         assureBufferCapacity(12);
         byteBuffer.put((byte) 11);//length
-        int year = calendar.get(Calendar.YEAR);
-        byte[] b = new byte[2];
-        b[0] = (byte) ((( year >> 0 ) & 0xff ) << 8 );
-        b[1] = (byte) ((( year >> 8 ) & 0xff ) << 0 );
 
-        byteBuffer.put(b);
+        byteBuffer.putShort((short) calendar.get(Calendar.YEAR));
         byteBuffer.put((byte) ((calendar.get(Calendar.MONTH) + 1) & 0xff));
         byteBuffer.put((byte) (calendar.get(Calendar.DAY_OF_MONTH) & 0xff));
         byteBuffer.put((byte) calendar.get(Calendar.HOUR_OF_DAY));
         byteBuffer.put((byte) calendar.get(Calendar.MINUTE));
         byteBuffer.put((byte) calendar.get(Calendar.SECOND));
-
-        int microseconds = ts.getNanos() / 1000;
-        byte[] bmicroseconds = new byte[4];
-        bmicroseconds[0] = (byte) ((( microseconds >> 0) & 0xff ) << 24 );
-        bmicroseconds[1] = (byte) ((( microseconds >> 8 ) & 0xff ) << 16 );
-        bmicroseconds[2] = (byte) ((( microseconds >> 16 ) & 0xff ) << 8 );
-        bmicroseconds[3] = (byte) ((( microseconds >> 24 ) & 0xff ) << 0 );
-        byteBuffer.put(bmicroseconds);
+        byteBuffer.putInt(ts.getNanos() / 1000);
 
         return this;
     }
@@ -127,12 +116,8 @@ public class WriteBuffer {
     public WriteBuffer writeDateLength(final Calendar calendar) {
         assureBufferCapacity(8);
         byteBuffer.put((byte) 7);//length
-        int year = calendar.get(Calendar.YEAR);
-        byte[] b = new byte[2];
-        b[0] = (byte) ((( year >> 0 ) & 0xff ) << 8 );
-        b[1] = (byte) ((( year >> 8 ) & 0xff ) << 0 );
 
-        byteBuffer.put(b);
+        byteBuffer.putShort((short) calendar.get(Calendar.YEAR));
         byteBuffer.put((byte) ((calendar.get(Calendar.MONTH) + 1) & 0xff));
         byteBuffer.put((byte) (calendar.get(Calendar.DAY_OF_MONTH) & 0xff));
         byteBuffer.put((byte) 0);
@@ -143,15 +128,15 @@ public class WriteBuffer {
 
     public WriteBuffer writeTimeLength(final Calendar calendar) {
         assureBufferCapacity(8);
-        byteBuffer.put((byte) 7); //length
+        byteBuffer.put((byte) 7);//length
 
-        byteBuffer.put((byte) 0);
-        byteBuffer.put((byte) 0);
+        byteBuffer.putShort((short) 0);
         byteBuffer.put((byte) 0);
         byteBuffer.put((byte) 0);
         byteBuffer.put((byte) calendar.get(Calendar.HOUR_OF_DAY));
         byteBuffer.put((byte) calendar.get(Calendar.MINUTE));
         byteBuffer.put((byte) calendar.get(Calendar.SECOND));
+
         return this;
     }
 
@@ -202,7 +187,7 @@ public class WriteBuffer {
         assureBufferCapacity(strBytes.length + 9);
         writeFieldLength(strBytes.length);
         byteBuffer.put(strBytes);
-        return writeByteArray(strBytes);
+        return this;
     }
 
     public WriteBuffer writeFieldLength(long length) {

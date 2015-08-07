@@ -1035,15 +1035,15 @@ public abstract class AbstractMySQLPrepareStatement extends MySQLStatement imple
                     case Types.INTEGER:
                         setInt(parameterIndex, Integer.parseInt(s));
                         break;
-                    case Types.BIGINT:
-                        setLong(parameterIndex, Long.valueOf(s));
-                        break;
                     case Types.DOUBLE:
                         setDouble(parameterIndex, Double.valueOf(s));
                         break;
                     case Types.REAL:
                     case Types.FLOAT:
                         setFloat(parameterIndex, Float.valueOf(s));
+                        break;
+                    case Types.BIGINT:
+                        setBigInt(parameterIndex, new BigInteger(s));
                         break;
                     case Types.DECIMAL:
                     case Types.NUMERIC:
@@ -1055,7 +1055,8 @@ public abstract class AbstractMySQLPrepareStatement extends MySQLStatement imple
                         setString(parameterIndex, s);
                         break;
                     case Types.TIMESTAMP:
-                            setTimestamp(parameterIndex, Timestamp.valueOf((String) x));
+                            if (x!= null && ((String) x).startsWith("0000-00-00")) setTimestamp(parameterIndex, null);
+                            else setTimestamp(parameterIndex, Timestamp.valueOf((String) x));
                         break;
                     case Types.TIME:
                             setTime(parameterIndex, Time.valueOf((String) x));
@@ -1080,7 +1081,7 @@ public abstract class AbstractMySQLPrepareStatement extends MySQLStatement imple
                     setInt(parameterIndex, bd.intValue());
                     break;
                 case Types.BIGINT:
-                    setLong(parameterIndex, bd.longValue());
+                    setBigInt(parameterIndex, (BigInteger) bd);
                     break;
                 case Types.DOUBLE:
                     setDouble(parameterIndex, bd.doubleValue());
@@ -1135,7 +1136,7 @@ public abstract class AbstractMySQLPrepareStatement extends MySQLStatement imple
         } else if (x instanceof Blob) {
             setBlob(parameterIndex, (Blob) x);
         } else if (x instanceof BigInteger) {
-            setBigDecimal(parameterIndex, new BigDecimal((BigInteger) x));
+            setBigInt(parameterIndex, (BigInteger) x);
         } else {
             throw SQLExceptionMapper.getSQLException("Could not set parameter in setObject, could not convert: " + x.getClass() + " to " + targetSqlType);
         }
@@ -1222,7 +1223,7 @@ public abstract class AbstractMySQLPrepareStatement extends MySQLStatement imple
         } else if (x instanceof BigDecimal) {
             setBigDecimal(parameterIndex, (BigDecimal) x);
         } else if (x instanceof BigInteger) {
-            setBigDecimal(parameterIndex, new BigDecimal((BigInteger) x));
+            setBigInt(parameterIndex, (BigInteger) x);
         } else if (x instanceof Clob) {
             setClob(parameterIndex, (Clob) x);
         } else {
@@ -1298,6 +1299,15 @@ public abstract class AbstractMySQLPrepareStatement extends MySQLStatement imple
         }
 
         setParameter(parameterIndex, new BigDecimalParameter(x));
+    }
+
+
+    private void setBigInt(final int parameterIndex, final BigInteger x) throws SQLException {
+        if (x == null) {
+            setNull(parameterIndex, Types.BIGINT);
+            return;
+        }
+        setParameter(parameterIndex, new BigIntParameter(x));
     }
 
 }

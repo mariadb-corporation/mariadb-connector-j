@@ -75,7 +75,7 @@ public class TimestampParameter extends NotLongDataParameterHolder {
     }
 
     public void writeBinary(WriteBuffer writeBuffer) {
-        calendar.setTime(ts);
+        calendar.setTimeInMillis(ts.getTime());
         writeBuffer.writeTimestampLength(calendar, ts);
     }
 

@@ -26,6 +26,11 @@ public class PacketOutputStream extends OutputStream {
     int bytesWritten;
     boolean checkPacketLength;
 
+    public void clear() {
+        byteBuffer = new byte[1024];
+        this.seqNo = -1;
+    }
+
     public PacketOutputStream(OutputStream baseStream) {
        this.baseStream = baseStream;
        byteBuffer = new byte[1024];

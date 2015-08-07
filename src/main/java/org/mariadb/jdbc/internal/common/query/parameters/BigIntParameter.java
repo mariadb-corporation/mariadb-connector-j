@@ -47,54 +47,33 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
+
 package org.mariadb.jdbc.internal.common.query.parameters;
 
 import org.mariadb.jdbc.internal.common.packet.buffer.WriteBuffer;
+import org.mariadb.jdbc.internal.mysql.MySQLType;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.Calendar;
-import java.util.Date;
-import org.mariadb.jdbc.internal.mysql.MySQLType;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 
-public class DateParameter extends NotLongDataParameterHolder {
-    Date date;
-    Calendar calendar;
+public class BigIntParameter extends NotLongDataParameterHolder {
+    private BigDecimal value;
 
-    /**
-     * Represents a timestamp, constructed with time in millis since epoch
-     *
-     * @param date the date
-     */
-    public DateParameter(Date date) {
-       this(date, null);
+    public BigIntParameter(BigInteger value) {
+      this.value = new BigDecimal(value);
     }
 
-    public DateParameter(Date date, Calendar cal) {
-       this.date = date;
-       this.calendar = cal;
-    }
-
-
-    public void writeTo(OutputStream os) throws IOException {
-        ParameterWriter.writeDate(os, date, calendar);
+    public void writeTo(final OutputStream os) throws IOException {
+        ParameterWriter.write(os, value);
     }
 
     public void writeBinary(WriteBuffer writeBuffer) {
-        System.out.println("date : " + date.toString() + " calendar : " + calendar);
-        calendar.setTime(date);
-        System.out.println("date time=                  =" + date.getTime());
-        System.out.println("System.currentTimeMillis()  =" + System.currentTimeMillis());
-        System.out.println("calendar.getTime().getTime()="+calendar.getTime().getTime());
-        writeBuffer.writeDateLength(calendar);
-    }
-
-    public void writeToLittleEndian(final OutputStream os) throws IOException {
-
+        writeBuffer.writeStringLength(value.toPlainString());
     }
 
     public void writeBufferType(final WriteBuffer writeBuffer) {
-        writeBuffer.writeShort((byte) MySQLType.DATE.getType());
+        writeBuffer.writeShort((short) ( MySQLType.VARSTRING.getType() & 0xff));
     }
-
 }
