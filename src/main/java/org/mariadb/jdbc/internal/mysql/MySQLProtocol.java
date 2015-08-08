@@ -91,7 +91,6 @@ import java.util.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 class MyX509TrustManager implements X509TrustManager {
-    boolean trustServerCeritifcate;
     String serverCertFile;
     X509TrustManager  trustManager;
 
