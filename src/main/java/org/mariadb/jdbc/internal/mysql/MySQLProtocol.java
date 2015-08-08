@@ -191,7 +191,7 @@ public class MySQLProtocol implements Protocol {
 
     private SSLSocketFactory getSSLSocketFactory(boolean trustServerCertificate)  throws QueryException
     {
-        if (jdbcUrl.getOptions().trustServerCertificate
+        if (!jdbcUrl.getOptions().trustServerCertificate
                 && jdbcUrl.getOptions().serverSslCert == null) {
             return (SSLSocketFactory)SSLSocketFactory.getDefault();
         }
