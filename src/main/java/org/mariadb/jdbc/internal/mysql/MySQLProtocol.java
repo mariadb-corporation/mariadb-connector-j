@@ -82,6 +82,7 @@ import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.security.KeyStore;
+import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.NoSuchAlgorithmException;
@@ -114,7 +115,7 @@ class MyX509TrustManager implements X509TrustManager {
         }
 
         CertificateFactory cf = CertificateFactory.getInstance("X.509");
-        X509Certificate ca = (X509Certificate) cf.generateCertificate(inStream);
+        Collection<? extends Certificate> caList = cf.generateCertificates(inStream);
         inStream.close();
         KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
         try {
@@ -123,7 +124,9 @@ class MyX509TrustManager implements X509TrustManager {
         } catch (Exception e) {
 
         }
-        ks.setCertificateEntry(UUID.randomUUID().toString(), ca);
+        for(Certificate ca : caList) {
+            ks.setCertificateEntry(UUID.randomUUID().toString(), ca);
+        }
         TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
         tmf.init(ks);
         for(TrustManager tm : tmf.getTrustManagers()) {
@@ -343,7 +346,7 @@ public class MySQLProtocol implements Protocol {
 
                 SSLSocketFactory f = getSSLSocketFactory(jdbcUrl.getOptions().trustServerCertificate);
                 SSLSocket sslSocket = (SSLSocket)f.createSocket(socket,
-                        socket.getInetAddress().getHostAddress(),  socket.getPort(),  false);
+                        socket.getInetAddress().getHostAddress(),  socket.getPort(), true);
 
                 sslSocket.setEnabledProtocols(new String [] {"TLSv1"});
                 sslSocket.setUseClientMode(true);
@@ -406,8 +409,9 @@ public class MySQLProtocol implements Protocol {
            SelectQueryResult qr = null;
            try {
                qr = (SelectQueryResult) executeQuery(new MySQLQuery("show variables like 'max_allowed_packet'"));
-               qr.next();
-               setMaxAllowedPacket(qr.getValueObject(1).getInt());
+               if (qr.next()) {
+                   setMaxAllowedPacket(qr.getValueObject(1).getInt());
+               }
            } finally {
                if (qr != null)qr.close();
            }
@@ -1030,6 +1034,12 @@ public class MySQLProtocol implements Protocol {
 
                 InputStream is;
                 if (localInfileInputStream == null) {
+                    if (!getJdbcUrl().getOptions().allowLocalInfile) {
+                      throw new QueryException(
+                          "Usage of LOCAL INFILE is disabled. To use it enable it via the connection property allowLocalInfile=true",
+                          -1,
+                          SQLExceptionMapper.SQLStates.FEATURE_NOT_SUPPORTED.getSqlState());
+                    }
                     LocalInfilePacket localInfilePacket = (LocalInfilePacket) resultPacket;
                     if (log.isTraceEnabled()) log.trace("sending local file " + localInfilePacket.getFileName());
                     String localInfile = localInfilePacket.getFileName();

@@ -84,6 +84,7 @@ public class Options {
     public boolean nullCatalogMeansCurrent;
     public boolean dumpQueriesOnException;
     public boolean useOldAliasMetadataBehavior;
+    public boolean allowLocalInfile;
 
     //HA options
     public boolean autoReconnect;
@@ -129,6 +130,7 @@ public class Options {
                 ", nullCatalogMeansCurrent=" + nullCatalogMeansCurrent +
                 ", dumpQueriesOnException=" + dumpQueriesOnException +
                 ", useOldAliasMetadataBehavior=" + useOldAliasMetadataBehavior +
+                ", allowLocalInfile=" + allowLocalInfile +
                 ", autoReconnect=" + autoReconnect +
                 ", failOnReadOnly=" + failOnReadOnly +
                 ", secondsBeforeRetryMaster=" + secondsBeforeRetryMaster +

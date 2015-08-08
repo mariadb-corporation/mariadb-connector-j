@@ -37,7 +37,7 @@ else
     sudo apt-get install python-software-properties
 
     sudo apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 0xcbcb082a1bb943db
-    sudo add-apt-repository "deb http://ftp.igh.cnrs.fr/pub/mariadb/repo/${MARIA_VERSION}/ubuntu precise main"
+    sudo add-apt-repository "deb http://nyc2.mirrors.digitalocean.com/mariadb/repo/${MARIA_VERSION}/ubuntu precise main"
 
     sudo apt-get update
 
