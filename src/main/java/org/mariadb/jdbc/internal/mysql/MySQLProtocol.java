@@ -189,7 +189,7 @@ public class MySQLProtocol implements Protocol {
 
     private InputStream localInfileInputStream;
 
-    private SSLSocketFactory getSSLSocketFactory(boolean trustServerCertificate)  throws QueryException
+    private SSLSocketFactory getSSLSocketFactory() throws QueryException
     {
         if (!jdbcUrl.getOptions().trustServerCertificate
                 && jdbcUrl.getOptions().serverSslCert == null) {
@@ -341,7 +341,7 @@ public class MySQLProtocol implements Protocol {
                 AbbreviatedMySQLClientAuthPacket amcap = new AbbreviatedMySQLClientAuthPacket(capabilities);
                 amcap.send(writer);
 
-                SSLSocketFactory f = getSSLSocketFactory(jdbcUrl.getOptions().trustServerCertificate);
+                SSLSocketFactory f = getSSLSocketFactory();
                 SSLSocket sslSocket = (SSLSocket)f.createSocket(socket,
                         socket.getInetAddress().getHostAddress(),  socket.getPort(), true);
 
