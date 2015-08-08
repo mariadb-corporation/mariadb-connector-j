@@ -1311,9 +1311,8 @@ public class DriverTest extends BaseTest{
     @Test
     public void useSSL()  throws Exception {
         Assume.assumeTrue(haveSSL());
-        setConnection("&useSSL=1&trustServerCertificate=1");
+        setConnection("&useSSL=true&trustServerCertificate=true");
         connection.createStatement().execute("select 1");
-
     }
 
     @Test
