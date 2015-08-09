@@ -68,7 +68,9 @@ public class SSLValidationTest extends BaseTest {
 		String jdbcUrl = connURI;
 		Properties connProps = new Properties(info);
 		connProps.setProperty("user", username);
-		connProps.setProperty("password", password);
+		if( password != null ) {
+		    connProps.setProperty("password", password);
+		}
 		return openNewConnection(jdbcUrl, connProps);
 	}
 
