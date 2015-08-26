@@ -1438,8 +1438,8 @@ public class DriverTest extends BaseTest{
             assertEquals(-1,st.getUpdateCount());
             assertTrue(st.getResultSet() != null);
             
-            /* has more results */
-            assertTrue(st.getMoreResults()); 
+            /* Next result is no ResultSet */
+			assertFalse(st.getMoreResults());
             
             /* Second result (use) */
             assertEquals(0,st.getUpdateCount());

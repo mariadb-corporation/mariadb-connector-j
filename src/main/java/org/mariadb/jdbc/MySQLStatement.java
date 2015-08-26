@@ -972,7 +972,7 @@ public class MySQLStatement implements Statement {
             if(queryResult == null) return false;
             warningsCleared = false;
             connection.reenableWarnings();
-            return true;
+            return queryResult.getResultSetType() == ResultSetType.SELECT;
         } catch (QueryException e) {
             SQLExceptionMapper.throwException(e, connection, this);
             return false;
@@ -1008,7 +1008,7 @@ public class MySQLStatement implements Statement {
                 throw (SQLException)o;
 
             queryResult = (QueryResult)o;
-            return true;
+            return queryResult.getResultSetType() == ResultSetType.SELECT;
         }
         return getMoreResults(false);
     }
