@@ -194,7 +194,9 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XA
      * @see #setPort
      */
     public void setPortNumber(int p) {
-        setPort(p);
+        if (p > 0) {
+            setPort(p);
+        }
     }
 
     /**
@@ -213,7 +215,9 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XA
      *            the server name
      */
     public void setServerName(String serverName) {
-        jdbcUrl.getHostAddresses().get(0).host = serverName;
+        if (serverName != null && !serverName.isEmpty()) {
+            jdbcUrl.getHostAddresses().get(0).host = serverName;
+        }
     }
 
     public void setProperties(String properties) {

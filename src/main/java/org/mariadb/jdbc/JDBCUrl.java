@@ -146,8 +146,15 @@ public class JDBCUrl {
     }
 
     public void parseUrl(String url) throws SQLException {
-        if (!url.startsWith("jdbc:mysql:")) throw new IllegalArgumentException("Url must start with \"jdbc:mysql:\"");
-        parseInternal(this, url, new Properties());
+        if (url.startsWith("jdbc:mysql:")) {
+            parseInternal(this, url, new Properties());
+        }
+        String[] arr = new String[]{"jdbc:mysql:thin:", "jdbc:mariadb:"};
+        for (String prefix : arr) {
+            if (url.startsWith(prefix)) {
+                parseInternal(this, url, new Properties());
+            }
+        }
     }
 
     /*
