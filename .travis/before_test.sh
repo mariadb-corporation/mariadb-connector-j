@@ -85,7 +85,7 @@ sudo service mysql start
 #Adding sleep time if mysql DB. If not SSL not totally initialized when launching tests
 if [ "x$MYSQL_VERSION" != "x" ]
 then
-    sleep 10
+    sleep 20
 fi
 
 cat /etc/mysql/my.cnf
