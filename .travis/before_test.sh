@@ -5,6 +5,21 @@ set -e
 
 export MYSQ_GPG_KEY=5072E1F5
 
+#add JCE
+if [ "x$TRAVIS_JDK_VERSION" == "xoraclejdk7" ]
+then
+    sudo add-apt-repository -y ppa:webupd8team/java
+    sudo apt-get update
+    sudo apt-get install oracle-java7-unlimited-jce-policy
+
+else if [ "x$TRAVIS_JDK_VERSION" == "xoraclejdk8" ]
+    then
+        sudo add-apt-repository -y ppa:webupd8team/java
+        sudo apt-get update
+        sudo apt-get install oracle-java8-unlimited-jce-policy
+    fi
+fi
+
 remove_mysql(){
     sudo service mysql stop
     sudo apt-get remove --purge mysql-server mysql-client mysql-common
@@ -66,6 +81,12 @@ sudo mysql -u root -e "SET GLOBAL innodb_fast_shutdown = 1"
 sudo service mysql stop
 sudo rm -f /var/lib/mysql/ib_logfile*
 sudo service mysql start
+
+#Adding sleep time if mysql DB. If not SSL not totally initialized when launching tests
+if [ "x$MYSQL_VERSION" != "x" ]
+then
+    sleep 10
+fi
 
 cat /etc/mysql/my.cnf
 

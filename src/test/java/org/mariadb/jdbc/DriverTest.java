@@ -1311,6 +1311,8 @@ public class DriverTest extends BaseTest{
     @Test
     public void useSSL()  throws Exception {
         Assume.assumeTrue(haveSSL());
+        //Skip SSL test on java 7 since SSL packet size JDK-6521495).
+        org.junit.Assume.assumeFalse(System.getProperty("java.version").contains("1.7."));
         setConnection("&useSSL=true&trustServerCertificate=true");
         connection.createStatement().execute("select 1");
     }
