@@ -11,19 +11,18 @@ import java.sql.*;
 import java.util.Properties;
 
 public class SSLValidationTest extends BaseTest {
-	String serverCertificateCaPath;
-    String serverCertificatePath;
+	String serverCertificatePath;
 
     @Before
-     public  void checkSSL() throws SQLException{
+    public  void checkSSL() throws SQLException{
         super.before();
         org.junit.Assume.assumeTrue(haveSSL());
-        ResultSet rs =  connection.createStatement().executeQuery("select @@ssl_ca");
+        ResultSet rs =  connection.createStatement().executeQuery("select @@ssl_cert");
         rs.next();
         serverCertificatePath = rs.getString(1);
+        log.debug("Server certificate path: {}", serverCertificatePath);
         rs.close();
-     }
-
+    }
 
 	private String getServerCertificate() {
 		BufferedReader br = null;
@@ -69,7 +68,9 @@ public class SSLValidationTest extends BaseTest {
 		String jdbcUrl = connURI;
 		Properties connProps = new Properties(info);
 		connProps.setProperty("user", username);
-		connProps.setProperty("password", password);
+		if( password != null ) {
+		    connProps.setProperty("password", password);
+		}
 		return openNewConnection(jdbcUrl, connProps);
 	}
 

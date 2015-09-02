@@ -50,6 +50,18 @@ max_allowed_packet=$MAX_ALLOWED_PACKET
 innodb_log_file_size=$INNODB_LOG_FILE_SIZE
 END
 
+# Generate SSL files:
+sudo .travis/gen-ssl.sh mariadb.example.com /etc/mysql
+sudo chown mysql:mysql /etc/mysql/server.crt /etc/mysql/server.key /etc/mysql/ca.crt
+
+# Enable SSL:
+sudo tee /etc/mysql/conf.d/ssl.cnf << END
+[mysqld]
+ssl-ca=/etc/mysql/ca.crt
+ssl-cert=/etc/mysql/server.crt
+ssl-key=/etc/mysql/server.key
+END
+
 sudo mysql -u root -e "SET GLOBAL innodb_fast_shutdown = 1"
 sudo service mysql stop
 sudo rm -f /var/lib/mysql/ib_logfile*
