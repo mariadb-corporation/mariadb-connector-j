@@ -8,3 +8,6 @@ start %BINDIR%\mysqld.exe --console --max_allowed_packet=1G --enable-named-pipe 
 timeout 20
 call mvn exec:exec package -Dpackage-source
 call %BINDIR%\mysqladmin -uroot shutdown
+
+#deploy package
+#mvn clean deploy -Dmaven.test.skip=true -Dpackage-source
