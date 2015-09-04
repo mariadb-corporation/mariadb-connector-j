@@ -61,6 +61,7 @@ import java.util.Comparator;
 import java.util.List;
 
 public class MySQLDatabaseMetaData implements DatabaseMetaData {
+    private final static String DRIVER_NAME = "MariaDB connector/J";
     private String url;
     private MySQLConnection connection;
     private String databaseProductName = "MySQL";
@@ -488,20 +489,20 @@ public class MySQLDatabaseMetaData implements DatabaseMetaData {
 
 
     public String getDriverName() throws SQLException {
-        return "mariadb-jdbc"; // TODO: get from constants file
+        return DRIVER_NAME;
     }
 
     public String getDriverVersion() throws SQLException {
-        return String.format("%d.%d",getDriverMajorVersion(),getDriverMinorVersion());
+        return Version.version;
     }
 
 
     public int getDriverMajorVersion() {
-        return 1;
+        return Version.majorVersion;
     }
 
     public int getDriverMinorVersion() {
-        return 1;
+        return Version.minorVersion;
     }
 
 
