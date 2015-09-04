@@ -46,4 +46,11 @@ Development snapshot are available on sonatype nexus repository
 
 ## Documentation
 
-For a Getting started guide, API docs, recipes,  etc. see the [documentation page](https://mariadb.com/kb/en/mariadb/about-the-mariadb-java-client/)!
+For a Getting started guide, API docs, recipes,  etc. see the 
+[documentation index](https://mariadb.com/kb/en/mariadb/mariadb-connector-j/), 
+and specifically : 
+* [API documentation](https://mariadb.com/kb/en/mariadb/about-the-mariadb-java-client/)
+* [Failover and loadbalancing documentation](https://mariadb.com/kb/en/mariadb/failover-and-high-availability-with-mariadb-connector-j/)
+
+
+
