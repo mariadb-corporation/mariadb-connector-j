@@ -81,5 +81,4 @@ n (Length Coded Binary)    default
     public static MySQLColumnInformation columnInformationFactory(final RawPacket rawPacket) throws IOException {
         return new MySQLColumnInformation(rawPacket);
     }
-
 }

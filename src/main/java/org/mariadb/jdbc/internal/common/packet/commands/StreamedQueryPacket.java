@@ -56,7 +56,6 @@ import org.mariadb.jdbc.internal.common.query.Query;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.ArrayList;
 import java.util.List;
 
 
@@ -100,5 +99,4 @@ public class StreamedQueryPacket implements CommandPacket {
         }
         return 0;
     }
-
 }

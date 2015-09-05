@@ -6,5 +6,4 @@ public final class Version {
     public static final int minorVersion = 3;
     public static final int patchVersion = 0;
     public static final String qualifier = "SNAPSHOT";
-
 }

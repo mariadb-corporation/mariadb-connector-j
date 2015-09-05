@@ -53,7 +53,6 @@ import org.mariadb.jdbc.internal.common.DefaultOptions;
 import org.mariadb.jdbc.internal.common.Options;
 import org.mariadb.jdbc.internal.common.ParameterConstant;
 import org.mariadb.jdbc.internal.common.UrlHAMode;
-import org.mariadb.jdbc.internal.common.query.IllegalParameterException;
 
 import java.sql.SQLException;
 import java.util.List;

@@ -111,14 +111,10 @@ public class MySQLQuery implements Query {
         }
     }
 
-
     public void validate() throws QueryException{
-
     }
 
     public String toString() {
         return query;
     }
-
-
 }
