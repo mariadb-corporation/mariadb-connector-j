@@ -50,6 +50,7 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.common.query.parameters;
 
 import org.mariadb.jdbc.internal.common.packet.buffer.WriteBuffer;
+import org.mariadb.jdbc.internal.mysql.MySQLType;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -83,5 +84,10 @@ public abstract class ParameterHolder {
     }
     public abstract boolean isLongData();
 
-    public abstract void writeBufferType(WriteBuffer writeBuffer) ;
+
+    public abstract MySQLType getMySQLType();
+
+    public void writeBufferType(final WriteBuffer writeBuffer) {
+        writeBuffer.writeShort((short) getMySQLType().getType());
+    }
 }

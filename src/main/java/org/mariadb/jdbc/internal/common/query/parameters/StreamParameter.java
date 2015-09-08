@@ -83,8 +83,14 @@ public class StreamParameter extends LongDataParameterHolder {
             ParameterWriter.write(os, is, length, noBackslashEscapes, isText);
         }
     }
+
     public void writeBinary(PacketOutputStream os) throws IOException {
-        os.sendStream(is);
+        if (length == Long.MAX_VALUE) {
+            os.sendStream(is);
+        } else {
+            os.sendStream(is, length);
+        }
+
     }
 
 
@@ -92,7 +98,8 @@ public class StreamParameter extends LongDataParameterHolder {
         return "<Stream> " + is;
     }
 
-    public void writeBufferType(final WriteBuffer writeBuffer) {
-        writeBuffer.writeShort((byte) MySQLType.BLOB.getType());
+    public MySQLType getMySQLType() {
+        return MySQLType.BLOB;
     }
+
 }

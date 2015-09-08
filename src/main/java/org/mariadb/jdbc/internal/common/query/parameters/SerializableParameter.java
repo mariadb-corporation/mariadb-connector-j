@@ -80,7 +80,8 @@ public class SerializableParameter extends LongDataParameterHolder {
         return "<Serializable> " + object;
     }
 
-    public void writeBufferType(final WriteBuffer writeBuffer) {
-        writeBuffer.writeByte((byte) MySQLType.OLDDECIMAL.getType());
+    public MySQLType getMySQLType() {
+        return MySQLType.BLOB;
     }
+
 }

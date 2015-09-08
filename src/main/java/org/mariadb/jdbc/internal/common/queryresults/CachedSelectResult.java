@@ -72,7 +72,7 @@ public  class CachedSelectResult extends SelectQueryResult {
 
 
     public static CachedSelectResult createCachedSelectResult(StreamingSelectResult streamingResult) throws IOException, QueryException {
-         final List<ValueObject[]> valueObjects = new ArrayList<ValueObject[]>();
+         final List<ValueObject[]> valueObjects = new ArrayList<>();
 
         while(streamingResult.next()){
            valueObjects.add(streamingResult.values);

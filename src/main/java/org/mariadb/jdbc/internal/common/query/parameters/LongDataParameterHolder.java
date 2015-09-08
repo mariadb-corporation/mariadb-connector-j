@@ -62,5 +62,4 @@ public abstract class LongDataParameterHolder extends ParameterHolder {
         return true;
     }
 
-    public abstract void writeBufferType(WriteBuffer writeBuffer) ;
 }

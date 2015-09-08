@@ -70,7 +70,7 @@ public class LongParameter extends NotLongDataParameterHolder {
         writeBuffer.writeLong(value);
     }
 
-    public void writeBufferType(final WriteBuffer writeBuffer) {
-        writeBuffer.writeShort((byte) MySQLType.BIGINT.getType());
+    public MySQLType getMySQLType() {
+        return MySQLType.BIGINT;
     }
 }

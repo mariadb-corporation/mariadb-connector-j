@@ -163,7 +163,6 @@ public class Reader {
             return -1;
         }
         if ((type & 0xff) == 252) {
-
             return (long) 0xffff & readShort();
         }
         if ((type & 0xff) == 253) {

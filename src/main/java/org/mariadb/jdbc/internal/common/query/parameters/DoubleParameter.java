@@ -71,7 +71,8 @@ public class DoubleParameter extends NotLongDataParameterHolder {
         writeBuffer.writeLong(Double.doubleToLongBits(value));
     }
 
-    public void writeBufferType(final WriteBuffer writeBuffer) {
-        writeBuffer.writeShort((byte) MySQLType.DOUBLE.getType());
+    public MySQLType getMySQLType() {
+        return MySQLType.DOUBLE;
     }
+
 }

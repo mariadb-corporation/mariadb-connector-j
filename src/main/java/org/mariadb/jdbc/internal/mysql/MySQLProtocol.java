@@ -803,9 +803,9 @@ public class MySQLProtocol implements Protocol {
      * @return a CachedSelectResult
      * @throws java.io.IOException when something goes wrong while reading/writing from the server
      */
-    private SelectQueryResult createQueryResult(final ResultSetPacket packet, boolean streaming) throws IOException, QueryException {
+    private SelectQueryResult createQueryResult(final ResultSetPacket packet, boolean streaming, boolean binaryProtocol) throws IOException, QueryException {
 
-        StreamingSelectResult streamingResult =   StreamingSelectResult.createStreamingSelectResult(packet, packetFetcher, this);
+        StreamingSelectResult streamingResult =   StreamingSelectResult.createStreamingSelectResult(packet, packetFetcher, this, binaryProtocol);
         if (streaming)
             return streamingResult;
 
@@ -917,7 +917,7 @@ public class MySQLProtocol implements Protocol {
     }
 
     @Override
-    public QueryResult getResult(Object dQueries, boolean streaming) throws QueryException {
+    public QueryResult getResult(Object dQueries, boolean streaming, boolean binaryProtocol) throws QueryException {
 
         RawPacket rawPacket;
         ResultPacket resultPacket;
@@ -994,7 +994,7 @@ public class MySQLProtocol implements Protocol {
                 this.hasWarnings = false;
                 ResultSetPacket resultSetPacket = (ResultSetPacket) resultPacket;
                 try {
-                    return this.createQueryResult(resultSetPacket, streaming);
+                    return this.createQueryResult(resultSetPacket, streaming, binaryProtocol);
                 } catch (IOException e) {
 
                     throw new QueryException("Could not read result set: " + e.getMessage(),
@@ -1032,7 +1032,7 @@ public class MySQLProtocol implements Protocol {
         }
 
         try {
-            return getResult(dQueries, streaming);
+            return getResult(dQueries, streaming, false);
         } catch (QueryException qex) {
             if (qex.getCause() instanceof SocketTimeoutException) {
                 throw new QueryException("Connection timed out", -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), qex);
@@ -1057,7 +1057,7 @@ public class MySQLProtocol implements Protocol {
         }
 
         try {
-            return getResult(dQueries, streaming);
+            return getResult(dQueries, streaming, false);
         } catch (QueryException qex) {
             if (qex.getCause() instanceof SocketTimeoutException) {
                 throw new QueryException("Connection timed out", -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), qex);
@@ -1067,15 +1067,15 @@ public class MySQLProtocol implements Protocol {
         }
     }
     @Override
-    public QueryResult executePreparedQueryAfterFailover(String sql, ParameterHolder[] parameters, PrepareResult oldPrepareResult, boolean isStreaming) throws QueryException {
+    public QueryResult executePreparedQueryAfterFailover(String sql, ParameterHolder[] parameters, PrepareResult oldPrepareResult, MySQLType[] parameterTypeHeader, boolean isStreaming) throws QueryException {
         PrepareResult prepareResult = prepare(sql);
-        QueryResult queryResult = executePreparedQuery(sql, parameters, prepareResult, isStreaming);
+        QueryResult queryResult = executePreparedQuery(sql, parameters, prepareResult, parameterTypeHeader, isStreaming);
         queryResult.setFailureObject(prepareResult);
         return queryResult;
     }
 
     @Override
-    public QueryResult executePreparedQuery(String sql, ParameterHolder[] parameters, PrepareResult prepareResult, boolean isStreaming) throws QueryException {
+    public QueryResult executePreparedQuery(String sql, ParameterHolder[] parameters, PrepareResult prepareResult, MySQLType[] parameterTypeHeader, boolean isStreaming) throws QueryException {
 
         this.moreResults = false;
         try {
@@ -1091,7 +1091,7 @@ public class MySQLProtocol implements Protocol {
 
             //send execute query
             writer.clear();
-            SendExecutePrepareStatementPacket packet = new SendExecutePrepareStatementPacket(prepareResult, parameters, parameterCount);
+            SendExecutePrepareStatementPacket packet = new SendExecutePrepareStatementPacket(prepareResult, parameters, parameterCount, parameterTypeHeader);
             packet.send(writer);
         } catch (MaxAllowedPacketException e) {
             if (e.isMustReconnect()) connect();
@@ -1101,7 +1101,7 @@ public class MySQLProtocol implements Protocol {
         }
 
         try {
-            return getResult(sql, isStreaming);
+            return getResult(sql, isStreaming, true);
         } catch (QueryException qex) {
             if (qex.getCause() instanceof SocketTimeoutException) {
                 throw new QueryException("Connection timed out", -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), qex);
@@ -1146,7 +1146,7 @@ public class MySQLProtocol implements Protocol {
      */
     @Override
     public  void cancelCurrentQuery() throws QueryException, IOException {
-        MySQLProtocol copiedProtocol = new MySQLProtocol(jdbcUrl, null);
+        MySQLProtocol copiedProtocol = new MySQLProtocol(jdbcUrl, new ReentrantReadWriteLock());
         copiedProtocol.setHostAddress(getHostAddress());
         copiedProtocol.connect();
         //no lock, because there is already a query running that possessed the lock.
@@ -1158,7 +1158,7 @@ public class MySQLProtocol implements Protocol {
     public QueryResult getMoreResults(boolean streaming) throws QueryException {
         if(!moreResults)
             return null;
-        return getResult(null, streaming);
+        return getResult(null, streaming, activeResult.isBinaryProtocol());
     }
 
     public static String hexdump(byte[] buffer, int offset) {

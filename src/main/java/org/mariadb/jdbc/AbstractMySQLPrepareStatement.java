@@ -51,6 +51,7 @@ package org.mariadb.jdbc;
 
 import org.mariadb.jdbc.internal.SQLExceptionMapper;
 import org.mariadb.jdbc.internal.common.query.parameters.*;
+import org.mariadb.jdbc.internal.mysql.MySQLType;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -95,7 +96,7 @@ public abstract class AbstractMySQLPrepareStatement extends MySQLStatement imple
      */
     public void setCharacterStream(final int parameterIndex, final Reader reader, final int length) throws SQLException {
         if (reader == null) {
-            setNull(parameterIndex, Types.BINARY);
+            setNull(parameterIndex, MySQLType.BLOB);
             return;
         }
         setParameter(parameterIndex, new ReaderParameter(reader, length, isNoBackslashEscapes()));
@@ -151,7 +152,7 @@ public abstract class AbstractMySQLPrepareStatement extends MySQLStatement imple
      */
     public void setClob(final int parameterIndex, final Clob x) throws SQLException {
         if (x == null) {
-            setNull(parameterIndex, Types.CLOB);
+            setNull(parameterIndex, MySQLType.BLOB);
             return;
         }
         StreamParameter stream = new StreamParameter(x.getAsciiStream(), isNoBackslashEscapes());
@@ -216,7 +217,7 @@ public abstract class AbstractMySQLPrepareStatement extends MySQLStatement imple
      */
     public void setTime(final int parameterIndex, final Time time, final Calendar cal) throws SQLException {
         if (time == null) {
-            setNull(parameterIndex, Types.TIME);
+            setNull(parameterIndex, MySQLType.TIME);
             return;
         }
         setParameter(parameterIndex, new TimeParameter(time, cal, useFractionalSeconds()));
@@ -240,7 +241,7 @@ public abstract class AbstractMySQLPrepareStatement extends MySQLStatement imple
      */
     public void setTimestamp(final int parameterIndex, final Timestamp timestamp, final Calendar cal) throws SQLException {
         if (timestamp == null) {
-            setNull(parameterIndex, Types.TIMESTAMP);
+            setNull(parameterIndex, MySQLType.DATETIME);
             return;
         }
         TimestampParameter t = new TimestampParameter(timestamp, cal, useFractionalSeconds());
@@ -267,6 +268,27 @@ public abstract class AbstractMySQLPrepareStatement extends MySQLStatement imple
      */
     public void setNull(final int parameterIndex, final int sqlType) throws SQLException {
         setParameter(parameterIndex, new NullParameter());
+    }
+
+    /**
+     * Sets the designated parameter to SQL <code>NULL</code>.
+     * <br>
+     * <P><B>Note:</B> You must specify the parameter's SQL type.
+     *
+     * @param parameterIndex the first parameter is 1, the second is 2, ...
+     * @param mysqlType        the type code defined in <code> org.mariadb.jdbc.internal.mysql.MySQLType</code>
+     * @throws java.sql.SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
+     *                                                  if a database access error occurs or this method is called on a closed
+     *                                                  <code>PreparedStatement</code>
+     * @throws java.sql.SQLFeatureNotSupportedException if <code>sqlType</code> is a <code>ARRAY</code>, <code>BLOB</code>,
+     *                                                  <code>CLOB</code>, <code>DATALINK</code>, <code>JAVA_OBJECT</code>,
+     *                                                  <code>NCHAR</code>, <code>NCLOB</code>, <code>NVARCHAR</code>,
+     *                                                  <code>LONGNVARCHAR</code>, <code>REF</code>, <code>ROWID</code>,
+     *                                                  <code>SQLXML</code> or  <code>STRUCT</code> data type and the JDBC driver does not
+     *                                                  support this data type
+     */
+    public void setNull(final int parameterIndex, final MySQLType mysqlType) throws SQLException {
+        setParameter(parameterIndex, new NullParameter(mysqlType));
     }
 
     /**
@@ -444,7 +466,7 @@ public abstract class AbstractMySQLPrepareStatement extends MySQLStatement imple
      */
     public void setBlob(final int parameterIndex, final InputStream inputStream, final long length) throws SQLException {
         if (inputStream == null) {
-            setNull(parameterIndex, Types.BLOB);
+            setNull(parameterIndex, MySQLType.BLOB);
             return;
         }
         setParameter(parameterIndex, new StreamParameter(inputStream, length, isNoBackslashEscapes()));
@@ -557,7 +579,7 @@ public abstract class AbstractMySQLPrepareStatement extends MySQLStatement imple
      */
     public void setAsciiStream(final int parameterIndex, final InputStream x, final long length) throws SQLException {
         if (x == null) {
-            setNull(parameterIndex, Types.VARCHAR);
+            setNull(parameterIndex, MySQLType.BLOB);
             return;
         }
         setParameter(parameterIndex, new StreamParameter(x, length, isNoBackslashEscapes()));
@@ -582,7 +604,7 @@ public abstract class AbstractMySQLPrepareStatement extends MySQLStatement imple
      */
     public void setBinaryStream(final int parameterIndex, final InputStream x, final long length) throws SQLException {
         if (x == null) {
-            setNull(parameterIndex, Types.BLOB);
+            setNull(parameterIndex, MySQLType.BLOB);
             return;
         }
         setParameter(parameterIndex, new StreamParameter(x, length, isNoBackslashEscapes()));
@@ -608,7 +630,7 @@ public abstract class AbstractMySQLPrepareStatement extends MySQLStatement imple
      */
     public void setCharacterStream(final int parameterIndex, final Reader reader, final long length) throws SQLException {
         if (reader == null) {
-            setNull(parameterIndex, Types.BLOB);
+            setNull(parameterIndex, MySQLType.BLOB);
             return;
         }
         setParameter(parameterIndex, new ReaderParameter(reader, length, isNoBackslashEscapes()));
@@ -637,7 +659,7 @@ public abstract class AbstractMySQLPrepareStatement extends MySQLStatement imple
      */
     public void setAsciiStream(final int parameterIndex, final InputStream x) throws SQLException {
         if (x == null) {
-            setNull(parameterIndex, Types.BLOB);
+            setNull(parameterIndex, MySQLType.BLOB);
             return;
         }
         setParameter(parameterIndex, new StreamParameter(x, isNoBackslashEscapes()));
@@ -665,7 +687,7 @@ public abstract class AbstractMySQLPrepareStatement extends MySQLStatement imple
      */
     public void setBinaryStream(final int parameterIndex, final InputStream x) throws SQLException {
         if (x == null) {
-            setNull(parameterIndex, Types.BLOB);
+            setNull(parameterIndex, MySQLType.BLOB);
             return;
         }
         setParameter(parameterIndex, new StreamParameter(x, isNoBackslashEscapes()));
@@ -691,7 +713,7 @@ public abstract class AbstractMySQLPrepareStatement extends MySQLStatement imple
      */
     public void setCharacterStream(final int parameterIndex, final Reader reader) throws SQLException {
         if (reader == null) {
-            setNull(parameterIndex, Types.BLOB);
+            setNull(parameterIndex, MySQLType.BLOB);
             return;
         }
         setParameter(parameterIndex, new ReaderParameter(reader, isNoBackslashEscapes()));
@@ -763,7 +785,7 @@ public abstract class AbstractMySQLPrepareStatement extends MySQLStatement imple
      */
     public void setBlob(final int parameterIndex, final InputStream inputStream) throws SQLException {
         if (inputStream == null) {
-            setNull(parameterIndex, Types.BLOB);
+            setNull(parameterIndex, MySQLType.BLOB);
             return;
         }
 
@@ -838,7 +860,7 @@ public abstract class AbstractMySQLPrepareStatement extends MySQLStatement imple
 
     public void setString(final int column, final String s) throws SQLException {
         if (s == null) {
-            setNull(column, Types.VARCHAR);
+            setNull(column, MySQLType.VARCHAR);
             return;
         }
 
@@ -858,7 +880,7 @@ public abstract class AbstractMySQLPrepareStatement extends MySQLStatement imple
      */
     public void setBytes(final int parameterIndex, final byte[] x) throws SQLException {
         if (x == null) {
-            setNull(parameterIndex, Types.BLOB);
+            setNull(parameterIndex, MySQLType.BLOB);
             return;
         }
 
@@ -917,7 +939,7 @@ public abstract class AbstractMySQLPrepareStatement extends MySQLStatement imple
      */
     public void setAsciiStream(final int parameterIndex, final InputStream x, final int length) throws SQLException {
         if (x == null) {
-            setNull(parameterIndex, Types.BLOB);
+            setNull(parameterIndex, MySQLType.BLOB);
             return;
         }
         setParameter(parameterIndex, new StreamParameter(x, length, isNoBackslashEscapes()));
@@ -972,7 +994,7 @@ public abstract class AbstractMySQLPrepareStatement extends MySQLStatement imple
      */
     public void setBinaryStream(final int parameterIndex, final InputStream x, final int length) throws SQLException {
         if (x == null) {
-            setNull(parameterIndex, Types.BLOB);
+            setNull(parameterIndex, MySQLType.BLOB);
             return;
         }
         setParameter(parameterIndex, new StreamParameter(x, length, isNoBackslashEscapes()));
@@ -1265,7 +1287,7 @@ public abstract class AbstractMySQLPrepareStatement extends MySQLStatement imple
      *                               <code>PreparedStatement</code>
      */
     public void setFloat(final int parameterIndex, final float x) throws SQLException {
-        setParameter(parameterIndex, new DoubleParameter(x));
+        setParameter(parameterIndex, new FloatParameter(x));
     }
 
     /**
@@ -1294,7 +1316,7 @@ public abstract class AbstractMySQLPrepareStatement extends MySQLStatement imple
      */
     public void setBigDecimal(final int parameterIndex, final BigDecimal x) throws SQLException {
         if (x == null) {
-            setNull(parameterIndex, Types.BIGINT);
+            setNull(parameterIndex, MySQLType.DECIMAL);
             return;
         }
 
@@ -1304,7 +1326,7 @@ public abstract class AbstractMySQLPrepareStatement extends MySQLStatement imple
 
     private void setBigInt(final int parameterIndex, final BigInteger x) throws SQLException {
         if (x == null) {
-            setNull(parameterIndex, Types.BIGINT);
+            setNull(parameterIndex, MySQLType.VARSTRING);
             return;
         }
         setParameter(parameterIndex, new BigIntParameter(x));

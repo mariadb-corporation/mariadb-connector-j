@@ -54,6 +54,7 @@ import org.mariadb.jdbc.internal.common.query.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.common.queryresults.PrepareResult;
 import org.mariadb.jdbc.internal.common.queryresults.ResultSetType;
 import org.mariadb.jdbc.internal.mysql.MySQLProtocol;
+import org.mariadb.jdbc.internal.mysql.MySQLType;
 import org.mariadb.jdbc.internal.mysql.Protocol;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -100,7 +101,7 @@ public class MySQLServerPreparedStatement extends AbstractMySQLPrepareStatement 
                     protocol.getDatatypeMappingFlags(), returnTableAlias);
             parameterMetaData = new MySQLParameterMetaData(prepareResult.columns);
         } catch (QueryException e) {
-            this.close();
+            try {this.close(); } catch (Exception ee) {}
             SQLExceptionMapper.throwException(e, connection, this);
         } finally {
             stLock.writeLock().unlock();
@@ -146,13 +147,13 @@ public class MySQLServerPreparedStatement extends AbstractMySQLPrepareStatement 
         //check
         for (int i = 0; i < parameterCount; i++) {
             if (currentParameterHolder[i] == null)
-                throw SQLExceptionMapper.getSQLException("Parameter at position " + i + " is not set");
+                throw new SQLException("Parameter at position " + (i+1) + " is not set", "07004");
         }
 
         stLock.writeLock().lock();
         try {
             queryParameters.add(currentParameterHolder);
-            if (parameterCount > 0) currentParameterHolder = new ParameterHolder[prepareResult.parameters.length];
+            //currentParameterHolder = new ParameterHolder[prepareResult.parameters.length];
         } finally {
             stLock.writeLock().unlock();
         }
@@ -234,9 +235,10 @@ public class MySQLServerPreparedStatement extends AbstractMySQLPrepareStatement 
             int[] ret = new int[queryParameters.size()];
             MySQLResultSet rs = null;
             connection.lock.writeLock().lock();
+            MySQLType[] parameterTypeHeader = new MySQLType[parameterCount];
             try {
                 for (; i < queryParameters.size(); i++) {
-                    executeInternal(queryParameters.get(i));
+                    executeInternal(queryParameters.get(i), parameterTypeHeader);
                     int updateCount = getUpdateCount();
                     if (updateCount == -1) {
                         ret[i] = SUCCESS_NO_INFO;
@@ -263,7 +265,7 @@ public class MySQLServerPreparedStatement extends AbstractMySQLPrepareStatement 
     }
 
 
-    private boolean executeInternal(ParameterHolder[] parameters) throws SQLException {
+    private boolean executeInternal(ParameterHolder[] parameters, MySQLType[] parameterTypeHeader) throws SQLException {
         stLock.writeLock().lock();
         try {
             executing = true;
@@ -273,7 +275,7 @@ public class MySQLServerPreparedStatement extends AbstractMySQLPrepareStatement 
                 executeQueryProlog();
                 try {
                     batchResultSet = null;
-                    queryResult = protocol.executePreparedQuery(sql, parameters, prepareResult, isStreaming());
+                    queryResult = protocol.executePreparedQuery(sql, parameters, prepareResult, parameterTypeHeader, isStreaming());
 
                     // in case of failover
                     if (queryResult.getFailureObject() != null) {
@@ -338,13 +340,13 @@ public class MySQLServerPreparedStatement extends AbstractMySQLPrepareStatement 
 
     @Override
     public ResultSet executeQuery() throws SQLException {
-        executeBatch();
+        execute();
         return getResultSet();
     }
 
     @Override
     public int executeUpdate() throws SQLException {
-        executeBatch();
+        execute();
         return getUpdateCount();
     }
 
@@ -362,30 +364,18 @@ public class MySQLServerPreparedStatement extends AbstractMySQLPrepareStatement 
     public boolean execute() throws SQLException {
         stLock.writeLock().lock();
         try {
-            if (parameterCount > 0 && queryParameters.size() == 0)
-                throw SQLExceptionMapper.getSQLException("No Parameters set. The command addBatch() must have been set");
-            int i = 0;
-            int[] ret = new int[queryParameters.size()];
+            for (int i = 0; i < parameterCount; i++) {
+                if (currentParameterHolder[i] == null)
+                    throw new SQLException("Parameter at position " + (i+1) + " is not set", "07004");
+            }
             MySQLResultSet rs = null;
             boolean result = false;
             connection.lock.writeLock().lock();
             try {
-                for (; i < queryParameters.size(); i++) {
-                    result = executeInternal(queryParameters.get(i));
-                    int updateCount = getUpdateCount();
-                    if (updateCount == -1) {
-                        ret[i] = SUCCESS_NO_INFO;
-                    } else {
-                        ret[i] = updateCount;
-                    }
-                    if (i == 0) {
-                        rs = (MySQLResultSet) getGeneratedKeys();
-                    } else {
-                        rs = rs.joinResultSets((MySQLResultSet) getGeneratedKeys());
-                    }
-                }
+                result = executeInternal(currentParameterHolder, new MySQLType[parameterCount]);
+                rs = (MySQLResultSet) getGeneratedKeys();
             } catch (SQLException sqle) {
-                throw new BatchUpdateException(sqle.getMessage(), sqle.getSQLState(), sqle.getErrorCode(), Arrays.copyOf(ret, i), sqle);
+                throw new BatchUpdateException(sqle.getMessage(), sqle.getSQLState(), sqle.getErrorCode(), new int[]{0}, sqle);
             } finally {
                 connection.lock.writeLock().unlock();
                 clearBatch();

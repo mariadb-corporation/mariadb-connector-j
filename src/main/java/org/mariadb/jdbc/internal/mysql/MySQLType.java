@@ -157,7 +157,7 @@ public enum MySQLType {
             case STRING:
             case VARCHAR:
             case VARSTRING:
-                 return binary?  "[B" : String.class.getName();
+                return binary?  "[B" : String.class.getName();
             default:
             	break;
         }
@@ -193,12 +193,10 @@ public enum MySQLType {
                  }
              case VARSTRING:
              case VARCHAR:
-                 if (binary)
-                     return "VARBINARY";
+                 if (binary) return "VARBINARY";
                  return "VARCHAR";
              case STRING :
-                 if (binary)
-                     return "BINARY";
+                 if (binary) return "BINARY";
                  return "CHAR";
              default:
                  return t.getTypeName();

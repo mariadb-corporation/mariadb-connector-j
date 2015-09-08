@@ -57,6 +57,7 @@ import org.mariadb.jdbc.internal.common.query.parameters.NullParameter;
 import org.mariadb.jdbc.internal.common.query.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.common.query.parameters.ParameterWriter;
 import org.mariadb.jdbc.internal.common.queryresults.PrepareResult;
+import org.mariadb.jdbc.internal.mysql.MySQLType;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -67,7 +68,7 @@ public class SendExecutePrepareStatementPacket implements CommandPacket {
     private final ParameterHolder[] parameters;
     private final int statementId;
 
-    public SendExecutePrepareStatementPacket(PrepareResult prepareResult, ParameterHolder[] parameters, int parameterCount) {
+    public SendExecutePrepareStatementPacket(PrepareResult prepareResult, ParameterHolder[] parameters, int parameterCount, MySQLType[] parameterTypeHeader) {
         this.parameterCount = parameterCount;
         this.parameters = parameters;
         this.statementId = prepareResult.statementId;
@@ -89,18 +90,27 @@ public class SendExecutePrepareStatementPacket implements CommandPacket {
             }
             writeBuffer.writeByteArray(nullBitsBuffer);/*Null Bit Map*/
 
-            //TODO diego check if header type has changed !
-            //if not changed
-            if (true) {
+            //check if parameters type (using setXXX) have change since previous request, and resend new header type if so
+            boolean mustSendHeaderType = false;
+            if (parameterTypeHeader[0] == null) {
+                mustSendHeaderType = true;
+            } else {
+                for (int i = 0; i < this.parameterCount; i++) {
+                    if (!parameterTypeHeader[i].equals(parameters[i].getMySQLType())) {
+                        mustSendHeaderType = true;
+                        break;
+                    }
+                }
+            }
+
+            if (mustSendHeaderType) {
                 writeBuffer.writeByte((byte) 0x01);
                 //Store types of parameters in first in first package that is sent to the server.
                 for (int i = 0; i < this.parameterCount; i++) {
-                        if (!(parameters[i] instanceof NullParameter)) {
-                            parameters[i].writeBufferType(writeBuffer);
-                        }
+                    parameterTypeHeader[i] = parameters[i].getMySQLType();
+                    parameters[i].writeBufferType(writeBuffer);
                 }
-            } else
-                writeBuffer.writeByte((byte) 0x00);
+            } else writeBuffer.writeByte((byte) 0x00);
         }
 
         for (int i = 0; i < parameterCount; i++) {

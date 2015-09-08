@@ -72,8 +72,7 @@ public class ShortParameter extends NotLongDataParameterHolder {
         writeBuffer.writeShort(value);
     }
 
-    public void writeBufferType(final WriteBuffer writeBuffer) {
-        writeBuffer.writeShort((byte) MySQLType.SMALLINT.getType());
+    public MySQLType getMySQLType() {
+        return MySQLType.SMALLINT;
     }
-
 }

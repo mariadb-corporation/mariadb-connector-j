@@ -126,16 +126,25 @@ public class WriteBuffer {
         return this;
     }
 
-    public WriteBuffer writeTimeLength(final Calendar calendar) {
-        assureBufferCapacity(8);
-        byteBuffer.put((byte) 7);//length
-
-        byteBuffer.putShort((short) 0);
-        byteBuffer.put((byte) 0);
-        byteBuffer.put((byte) 0);
-        byteBuffer.put((byte) calendar.get(Calendar.HOUR_OF_DAY));
-        byteBuffer.put((byte) calendar.get(Calendar.MINUTE));
-        byteBuffer.put((byte) calendar.get(Calendar.SECOND));
+    public WriteBuffer writeTimeLength(final Calendar calendar, final boolean fractionalSeconds) {
+        if (fractionalSeconds) {
+            assureBufferCapacity(13);
+            byteBuffer.put((byte) 12);
+            byteBuffer.put((byte) 0);
+            byteBuffer.putInt(0);
+            byteBuffer.put((byte) calendar.get(Calendar.HOUR_OF_DAY));
+            byteBuffer.put((byte) calendar.get(Calendar.MINUTE));
+            byteBuffer.put((byte) calendar.get(Calendar.SECOND));
+            byteBuffer.putInt(calendar.get(Calendar.MILLISECOND) * 1000);
+        } else {
+            assureBufferCapacity(9);
+            byteBuffer.put((byte) 8);//length
+            byteBuffer.put((byte) 0);
+            byteBuffer.putInt(0);
+            byteBuffer.put((byte) calendar.get(Calendar.HOUR_OF_DAY));
+            byteBuffer.put((byte) calendar.get(Calendar.MINUTE));
+            byteBuffer.put((byte) calendar.get(Calendar.SECOND));
+        }
 
         return this;
     }

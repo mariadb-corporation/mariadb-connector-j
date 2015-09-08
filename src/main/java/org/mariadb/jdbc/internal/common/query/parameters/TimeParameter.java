@@ -78,14 +78,12 @@ public class TimeParameter extends NotLongDataParameterHolder {
 
     public void writeBinary(WriteBuffer writeBuffer) {
         calendar.setTime(time);
-        writeBuffer.writeTimeLength(calendar);
+        writeBuffer.writeTimeLength(calendar, fractionalSeconds);
     }
 
-    public void writeBufferType(final WriteBuffer writeBuffer) {
-        writeBuffer.writeShort((byte) MySQLType.TIME.getType());
+    public MySQLType getMySQLType() {
+        return MySQLType.TIME;
     }
-
-
 
 
 }

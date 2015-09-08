@@ -79,8 +79,8 @@ public class TimestampParameter extends NotLongDataParameterHolder {
         writeBuffer.writeTimestampLength(calendar, ts);
     }
 
-    public void writeBufferType(final WriteBuffer writeBuffer) {
-        writeBuffer.writeShort((byte) MySQLType.TIMESTAMP.getType());
+    public MySQLType getMySQLType() {
+        return MySQLType.DATETIME;
     }
 
 

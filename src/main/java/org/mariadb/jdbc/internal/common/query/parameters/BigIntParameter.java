@@ -73,7 +73,8 @@ public class BigIntParameter extends NotLongDataParameterHolder {
         writeBuffer.writeStringLength(value.toPlainString());
     }
 
-    public void writeBufferType(final WriteBuffer writeBuffer) {
-        writeBuffer.writeShort((short) ( MySQLType.VARSTRING.getType() & 0xff));
+    public MySQLType getMySQLType() {
+        return MySQLType.VARSTRING;
     }
+
 }

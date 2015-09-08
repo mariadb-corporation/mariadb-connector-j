@@ -62,11 +62,13 @@ public class ReaderParameter extends  LongDataParameterHolder {
     Reader reader;
     long length;
     boolean noBackslashEscapes;
+
     public ReaderParameter(Reader reader, long length, boolean noBackslashEscapes)  {
         this.reader = reader;
         this.length = length;
         this.noBackslashEscapes = noBackslashEscapes;
     }
+
     public ReaderParameter(Reader reader, boolean noBackslashEscapes) {
         this(reader, Long.MAX_VALUE, noBackslashEscapes);
     }
@@ -78,10 +80,14 @@ public class ReaderParameter extends  LongDataParameterHolder {
     }
 
     public void writeBinary(PacketOutputStream os) throws IOException {
-        os.sendStream(reader);
+        if (length == Long.MAX_VALUE)
+            os.sendStream(reader);
+        else
+            os.sendStream(reader, length);
     }
-    public void writeBufferType(final WriteBuffer writeBuffer) {
-        writeBuffer.writeByte((byte) MySQLType.BLOB.getType());
+
+    public MySQLType getMySQLType() {
+        return MySQLType.BLOB;
     }
 
 

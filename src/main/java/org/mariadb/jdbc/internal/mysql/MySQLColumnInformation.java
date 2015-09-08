@@ -295,7 +295,8 @@ public class MySQLColumnInformation {
         return ((this.flags & 64) > 0);
     }
 
+    // doesn't use & 128 bit filter, because char binary and varchar binary are not binary (handle like string), but have the binary flag
     public boolean isBinary() {
-        return ((this.flags & 128) > 0);
+        return (getCharsetNumber() == 63);
     }
 }

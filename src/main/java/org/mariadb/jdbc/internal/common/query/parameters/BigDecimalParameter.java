@@ -70,8 +70,8 @@ public class BigDecimalParameter extends NotLongDataParameterHolder {
         writeBuffer.writeStringLength(bigDecimal.toPlainString());
     }
 
-    public void writeBufferType(final WriteBuffer writeBuffer) {
-        writeBuffer.writeShort((short) MySQLType.OLDDECIMAL.getType());
+    public MySQLType getMySQLType() {
+        return MySQLType.DECIMAL;
     }
 
 }

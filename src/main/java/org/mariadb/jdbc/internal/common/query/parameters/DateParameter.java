@@ -81,11 +81,7 @@ public class DateParameter extends NotLongDataParameterHolder {
     }
 
     public void writeBinary(WriteBuffer writeBuffer) {
-        System.out.println("date : " + date.toString() + " calendar : " + calendar);
         calendar.setTime(date);
-        System.out.println("date time=                  =" + date.getTime());
-        System.out.println("System.currentTimeMillis()  =" + System.currentTimeMillis());
-        System.out.println("calendar.getTime().getTime()="+calendar.getTime().getTime());
         writeBuffer.writeDateLength(calendar);
     }
 
@@ -93,8 +89,8 @@ public class DateParameter extends NotLongDataParameterHolder {
 
     }
 
-    public void writeBufferType(final WriteBuffer writeBuffer) {
-        writeBuffer.writeShort((byte) MySQLType.DATE.getType());
+    public MySQLType getMySQLType() {
+        return MySQLType.DATE;
     }
 
 }

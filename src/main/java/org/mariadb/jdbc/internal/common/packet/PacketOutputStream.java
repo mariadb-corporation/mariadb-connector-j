@@ -82,23 +82,49 @@ public class PacketOutputStream extends OutputStream {
         }
         writeEmptyPacket(seq);
     }
-
     public void sendStream(InputStream is) throws IOException{
         int bufferSize = this.maxAllowedPacket > 0 ? Math.min(this.maxAllowedPacket, MAX_PACKET_LENGTH) : 1024;
         bufferSize -= HEADER_LENGTH;
         byte[] buffer = new byte[bufferSize];
         int len;
-        while((len = is.read(buffer)) > 0) {
+        while((len =is.read(buffer)) > 0) {
             write(buffer, 0, len);
         }
     }
+
+    public void sendStream(InputStream is, long readLength) throws IOException{
+        int bufferSize = this.maxAllowedPacket > 0 ? Math.min(this.maxAllowedPacket, MAX_PACKET_LENGTH) : 1024;
+        bufferSize -= HEADER_LENGTH;
+        byte[] buffer = new byte[bufferSize];
+        int len;
+        while((len = is.read(buffer, 0, (int) readLength)) > 0) {
+            write(buffer, 0, len);
+            if (len >= readLength) return;
+        }
+    }
+
     public void sendStream(java.io.Reader reader) throws IOException{
         int bufferSize = this.maxAllowedPacket > 0 ? Math.min(this.maxAllowedPacket, MAX_PACKET_LENGTH) : 1024;
         bufferSize -= HEADER_LENGTH;
+
         char[] buffer = new char[bufferSize];
         int len;
         while((len = reader.read(buffer)) > 0) {
-            write(new String(buffer,0, len).getBytes("UTF-8"), 0, len);
+            byte[] s = new String(buffer,0, len).getBytes("UTF-8");
+            write(s, 0, s.length);
+        }
+    }
+
+    public void sendStream(java.io.Reader reader, long readLength) throws IOException{
+        int bufferSize = this.maxAllowedPacket > 0 ? Math.min(this.maxAllowedPacket, MAX_PACKET_LENGTH) : 1024;
+        bufferSize -= HEADER_LENGTH;
+
+        char[] buffer = new char[bufferSize];
+        int len;
+        while((len = reader.read(buffer, 0, (int) readLength)) > 0) {
+            byte[] s = new String(buffer,0, len).getBytes("UTF-8");
+            write(s, 0, s.length);
+            if (len >= readLength) return;
         }
     }
 

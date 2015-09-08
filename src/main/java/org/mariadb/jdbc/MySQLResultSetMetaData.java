@@ -281,14 +281,12 @@ public class MySQLResultSetMetaData implements ResultSetMetaData {
                 return Types.VARBINARY;
             case VARCHAR:
             case VARSTRING:
-                if (ci.isBinary())
-                    return Types.VARBINARY;
+                if (ci.isBinary()) return Types.VARBINARY;
                 if (ci.getLength() < 0)
                     return Types.LONGVARCHAR;
                 return Types.VARCHAR;
             case STRING :
-                if (ci.isBinary())
-                    return Types.BINARY;
+                if (ci.isBinary()) return Types.BINARY;
                 return Types.CHAR;
             default:
                 return ci.getType().getSqlType();

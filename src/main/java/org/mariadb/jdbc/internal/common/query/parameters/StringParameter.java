@@ -73,9 +73,8 @@ public class StringParameter extends NotLongDataParameterHolder {
         writeBuffer.writeStringLength(s);
     }
 
-    public void writeBufferType(final WriteBuffer writeBuffer) {
-        writeBuffer.writeShort((byte) MySQLType.VARCHAR.getType());
+    public MySQLType getMySQLType() {
+        return MySQLType.VARCHAR;
     }
-
 
 }

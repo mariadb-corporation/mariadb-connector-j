@@ -113,7 +113,7 @@ public interface Protocol {
 
     QueryResult executeQuery(Query dQuery)  throws QueryException;
     QueryResult executeQuery(final List<Query> dQueries, boolean streaming, boolean isRewritable, int rewriteOffset) throws QueryException;
-    QueryResult getResult(Object dQuery, boolean streaming) throws QueryException;
+    QueryResult getResult(Object dQuery, boolean streaming, boolean binaryProtocol) throws QueryException;
 
     QueryResult executeQuery(Query dQuery, boolean streaming) throws QueryException;
 
@@ -157,9 +157,9 @@ public interface Protocol {
     void connectWithoutProxy() throws  QueryException ;
     boolean shouldReconnectWithoutProxy();
     void setHostFailedWithoutProxy();
-    QueryResult executePreparedQuery(String sql, ParameterHolder[] parameters, PrepareResult prepareResult , boolean isStreaming) throws QueryException;
+    QueryResult executePreparedQuery(String sql, ParameterHolder[] parameters, PrepareResult prepareResult, MySQLType[] parameterTypeHeader , boolean isStreaming) throws QueryException;
     void releasePrepareStatement(String sql, int statementId) throws QueryException;
-    QueryResult executePreparedQueryAfterFailover(String sql, ParameterHolder[] parameters, PrepareResult oldPrepareResult, boolean isStreaming) throws QueryException; //used
+    QueryResult executePreparedQueryAfterFailover(String sql, ParameterHolder[] parameters, PrepareResult oldPrepareResult, MySQLType[] parameterTypeHeader, boolean isStreaming) throws QueryException; //used
     PrepareStatementCache prepareStatementCache();
 
 }
