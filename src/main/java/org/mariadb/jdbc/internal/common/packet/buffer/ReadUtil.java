@@ -54,10 +54,11 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.nio.channels.ReadableByteChannel;
+import java.nio.channels.SocketChannel;
 
 
-
-public final class ReadUtil {
+ public final class ReadUtil {
     private ReadUtil() {
 
     }
@@ -66,20 +67,20 @@ public final class ReadUtil {
      * Read a number of bytes from the stream and store it in the buffer, and fix the problem with "incomplete" reads by
      * doing another read if we don't have all of the data yet.
      *
-     * @param stream the input stream to read from
+     * @param socketChannel the socketChannel to read from
      * @param b      buffer where to store the data
      * @param off    offset in the buffer
      * @param len    bytes to read
      * @throws java.io.IOException if an error occurs while reading the stream.
      * java.io.EOFException of end of stream is hit.
      */
-    public static void readFully(InputStream stream, byte[] b , int off, int len) throws IOException{
+    public static void readFully(ReadableByteChannel socketChannel, ByteBuffer b , int off, int len) throws IOException{
         if (len < 0) {
             throw new AssertionError("len < 0");
         }
         int remaining = len;
         while(remaining > 0) {
-            int count =  stream.read(b, off, remaining);
+            int count = socketChannel.read(b);
             if (count <= 0) {
                 throw new EOFException("unexpected end of stream, read "+ (len - remaining) + " bytes from "+ len);
             }
@@ -88,8 +89,8 @@ public final class ReadUtil {
         }
     }
 
-    public static void readFully(InputStream stream, byte[] b) throws IOException {
-        readFully(stream, b, 0 , b.length);
+    public static void readFully(ReadableByteChannel socketChannel, ByteBuffer b) throws IOException {
+        readFully(socketChannel, b, 0 , b.capacity());
     }
 
     /**

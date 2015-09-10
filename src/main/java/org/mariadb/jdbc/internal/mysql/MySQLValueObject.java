@@ -283,13 +283,13 @@ public class MySQLValueObject implements ValueObject {
                     return getInt();
                 case BIGINT:
                     long x = ((rawBytes[0] & 0xff)
-                            | (rawBytes[1] & 0xff) << 8
-                            | (rawBytes[2] & 0xff) << 16
-                            | (rawBytes[3] & 0xff) << 24
-                            | (rawBytes[4] & 0xff) << 32
-                            | (rawBytes[5] & 0xff) << 40
-                            | (rawBytes[6] & 0xff) << 48
-                            | (rawBytes[7] & 0xff) << 56
+                            | ((long)(rawBytes[1] & 0xff) << 8)
+                            | ((long)(rawBytes[2] & 0xff) << 16)
+                            | ((long)(rawBytes[3] & 0xff) << 24)
+                            | ((long)(rawBytes[4] & 0xff) << 32)
+                            | ((long)(rawBytes[5] & 0xff) << 40)
+                            | ((long)(rawBytes[6] & 0xff) << 48)
+                            | ((long)(rawBytes[7] & 0xff) << 56)
                     );
                     if (columnInfo.isSigned()) return x;
                     else {
@@ -372,13 +372,13 @@ public class MySQLValueObject implements ValueObject {
                     return getFloat();
                 case DOUBLE:
                     long x = ((rawBytes[0] & 0xff)
-                            | (rawBytes[1] & 0xff) << 8
-                            | (rawBytes[2] & 0xff) << 16
-                            | (rawBytes[3] & 0xff) << 24
-                            | (rawBytes[4] & 0xff) << 32
-                            | (rawBytes[5] & 0xff) << 40
-                            | (rawBytes[6] & 0xff) << 48
-                            | (rawBytes[7] & 0xff) << 56);
+                            | ((long)(rawBytes[1] & 0xff) << 8)
+                            | ((long)(rawBytes[2] & 0xff) << 16)
+                            | ((long)(rawBytes[3] & 0xff) << 24)
+                            | ((long)(rawBytes[4] & 0xff) << 32)
+                            | ((long)(rawBytes[5] & 0xff) << 40)
+                            | ((long)(rawBytes[6] & 0xff) << 48)
+                            | ((long)(rawBytes[7] & 0xff) << 56));
                     return Double.longBitsToDouble(x);
                 default:
                     return Double.valueOf(getString());
@@ -397,10 +397,47 @@ public class MySQLValueObject implements ValueObject {
     }
 
     public BigInteger getBigInteger() {
-        if (rawBytes == null) {
-            return null;
+        if (rawBytes == null) return null;
+        if (!this.isBinaryEncoded) {
+            return new BigInteger(getString());
+        } else {
+            switch (dataType) {
+                case BIT:
+                    return BigInteger.valueOf((long) rawBytes[0]);
+                case TINYINT:
+                    return BigInteger.valueOf((long) getByte());
+                case SMALLINT:
+                case YEAR:
+                    return BigInteger.valueOf(getShort());
+                case INTEGER:
+                case MEDIUMINT:
+                    return BigInteger.valueOf((long) getInt());
+                case BIGINT:
+                    long x = ((rawBytes[0] & 0xff)
+                            | ((long) (rawBytes[1] & 0xff) << 8)
+                            | ((long) (rawBytes[2] & 0xff) << 16)
+                            | ((long) (rawBytes[3] & 0xff) << 24)
+                            | ((long) (rawBytes[4] & 0xff) << 32)
+                            | ((long) (rawBytes[5] & 0xff) << 40)
+                            | ((long) (rawBytes[6] & 0xff) << 48)
+                            | ((long) (rawBytes[7] & 0xff) << 56)
+                    );
+                    if (columnInfo.isSigned()) return BigInteger.valueOf(x);
+                    else {
+                        return new BigInteger(1, new byte[] { (byte) (x >> 56),
+                                (byte) (x >> 48), (byte) (x >> 40), (byte) (x >> 32),
+                                (byte) (x >> 24), (byte) (x >> 16), (byte) (x >> 8),
+                                (byte) (x >> 0) });
+                    }
+                case FLOAT:
+                    return BigInteger.valueOf((long) getFloat());
+                case DOUBLE:
+                    return BigInteger.valueOf((long) getDouble());
+                default:
+                    return new BigInteger(getString());
+            }
         }
-        return new BigInteger(getString());
+
     }
 
     public Date getDate(Calendar cal) throws ParseException {
@@ -427,12 +464,8 @@ public class MySQLValueObject implements ValueObject {
             java.util.Date utilDate = sdf.parse(rawValue);
             return new Date(utilDate.getTime());
         } else {
-            switch (dataType) {
-                case TIME:
-                case DATE:
-                case DATETIME:
-                case TIMESTAMP:
-                    return getByte();
+            Timestamp tt = binaryTimestamp(cal);
+            return new Date(tt.getTime());
         }
     }
 
@@ -446,17 +479,71 @@ public class MySQLValueObject implements ValueObject {
         if (rawValue.equals(zeroDate)) {
             return null;
         }
-        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+        if (!this.isBinaryEncoded) {
 
-        //sdf.setLenient(false);
-        if (cal != null) {
-            sdf.setCalendar(cal);
+            SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+
+            //sdf.setLenient(false);
+            if (cal != null) {
+                sdf.setCalendar(cal);
+            }
+            final java.util.Date utilTime = sdf.parse(rawValue);
+            long t0 = utilTime.getTime();
+            int nanos = extractNanos(rawValue);
+            int milliseconds = nanos / 1000000;
+            return new Time(t0 + milliseconds);
+        } else {
+            Timestamp tt = binaryTimestamp(cal);
+            return new Time(tt.getTime());
+
         }
-        final java.util.Date utilTime = sdf.parse(rawValue);
-        long t0 = utilTime.getTime();
-        int nanos = extractNanos(rawValue);
-        int milliseconds = nanos/1000000;
-        return new Time(t0+milliseconds);
+    }
+
+    private Timestamp binaryTimestamp(Calendar cal) {
+        if (rawBytes.length == 0) return null;
+        int offset = (dataType == MySQLType.TIME)?1:0; //negative byte for binary time. (not used, because java don't permit negative time
+        int year = ((rawBytes[0+offset] & 0xff) | (rawBytes[1+offset] & 0xff) << 8);
+        int month = rawBytes[2+offset];
+        int day = rawBytes[3+offset];
+        int hour = 0;
+        int minutes = 0;
+        int seconds = 0;
+        int microseconds = 0;
+
+        if (rawBytes.length > 4+offset) {
+
+            hour = rawBytes[4+offset];
+            minutes = rawBytes[5+offset];
+            seconds = rawBytes[6+offset];
+
+            if (rawBytes.length > 7+offset) {
+                microseconds = ((rawBytes[7+offset] & 0xff)
+                        | (rawBytes[8+offset] & 0xff) << 8
+                        | (rawBytes[9+offset] & 0xff) << 16
+                        | (rawBytes[10+offset] & 0xff) << 24);
+            }
+        }
+        switch (dataType) {
+            case DATE:
+                hour = 0;
+                minutes = 0;
+                seconds = 0;
+                microseconds = 0;
+                break;
+            case TIME:
+                year = 1970;
+                month = 1;
+                day = 1;
+                break;
+        }
+        Timestamp tt;
+        synchronized (cal) {
+            cal.set(year, month - 1, day, hour, minutes, seconds);
+            cal.set(Calendar.MILLISECOND, microseconds / 1000);
+            tt = new Timestamp(cal.getTime().getTime());
+        }
+        tt.setNanos(microseconds * 1000);
+        return tt;
     }
 
     private int extractNanos(String timestring) throws ParseException{
@@ -488,39 +575,45 @@ public class MySQLValueObject implements ValueObject {
         if (rawValue.equals(zeroTimestamp)) {
             return null;
         }
-        if (rawValue.length() >= 4  &&  rawValue.charAt(4) != '-') {
+        if (!this.isBinaryEncoded) {
+
+            if (rawValue.length() >= 4  &&  rawValue.charAt(4) != '-') {
            /* This is probably a time value, since year separator is missing */
-            Time t = getTime(cal);
-            return new Timestamp(t.getTime());
-        }
-
-        SimpleDateFormat sdf;
-
-        if (rawValue.length() > 11) {
-            sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        } else {
-            sdf = new SimpleDateFormat("yyyy-MM-dd");
-        }
-        sdf.setLenient(false);
-        if (cal != null) {
-            sdf.setCalendar(cal);
-        }
-        java.util.Date utilTime;
-        try {
-            utilTime = sdf.parse(rawValue);
-        } catch (ParseException pe) {
-            if (cal == null) {
-                sdf.setCalendar(Calendar.getInstance(TimeZone.getTimeZone("UTC")));
-                utilTime = sdf.parse(rawValue);
-            } else {
-                throw pe;
+                Time t = getTime(cal);
+                return new Timestamp(t.getTime());
             }
+
+            SimpleDateFormat sdf;
+
+            if (rawValue.length() > 11) {
+                sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            } else {
+                sdf = new SimpleDateFormat("yyyy-MM-dd");
+            }
+            sdf.setLenient(false);
+            if (cal != null) {
+                sdf.setCalendar(cal);
+            }
+            java.util.Date utilTime;
+            try {
+                utilTime = sdf.parse(rawValue);
+            } catch (ParseException pe) {
+                if (cal == null) {
+                    sdf.setCalendar(Calendar.getInstance(TimeZone.getTimeZone("UTC")));
+                    utilTime = sdf.parse(rawValue);
+                } else {
+                    throw pe;
+                }
+            }
+            Timestamp ts = new Timestamp(utilTime.getTime());
+            if(rawValue.indexOf('.') != -1) {
+                ts.setNanos(extractNanos(rawValue));
+            }
+            return ts;
+        } else {
+            return binaryTimestamp(cal);
         }
-        Timestamp ts = new Timestamp(utilTime.getTime());
-        if(rawValue.indexOf('.') != -1) {
-            ts.setNanos(extractNanos(rawValue));
-        }
-        return ts;
+
     }
 
     public InputStream getInputStream() {
@@ -549,8 +642,9 @@ public class MySQLValueObject implements ValueObject {
         String zeroTimestamp = "0000-00-00 00:00:00";
         String zeroDate = "0000-00-00";
         return (rawBytes == null
-                || ((dataType == MySQLType.TIMESTAMP || dataType == MySQLType.DATETIME) && zeroTimestamp.equals(getString()))
-                || (dataType== MySQLType.DATE && zeroDate.equals(getString()))
+                || (isBinaryEncoded && ((dataType == MySQLType.DATE || dataType == MySQLType.TIMESTAMP || dataType == MySQLType.DATETIME) && rawBytes.length == 0))
+                || (!isBinaryEncoded && ((dataType == MySQLType.TIMESTAMP || dataType == MySQLType.DATETIME) && zeroTimestamp.equals(getString())))
+                || (!isBinaryEncoded && (dataType== MySQLType.DATE && zeroDate.equals(getString())))
         );
     }
 

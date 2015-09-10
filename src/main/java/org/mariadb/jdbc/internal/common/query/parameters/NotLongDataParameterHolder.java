@@ -49,6 +49,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.common.query.parameters;
 
+import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
 import org.mariadb.jdbc.internal.common.packet.buffer.WriteBuffer;
 
 import java.io.ByteArrayOutputStream;
@@ -57,7 +58,7 @@ import java.io.OutputStream;
 
 
 public abstract class NotLongDataParameterHolder  extends ParameterHolder {
-    public abstract void writeBinary(WriteBuffer writeBuffer);
+    public abstract void writeBinary(PacketOutputStream outputStream);
     public boolean isLongData() {
         return false;
     }

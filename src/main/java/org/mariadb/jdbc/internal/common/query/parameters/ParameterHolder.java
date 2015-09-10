@@ -49,6 +49,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.common.query.parameters;
 
+import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
 import org.mariadb.jdbc.internal.common.packet.buffer.WriteBuffer;
 import org.mariadb.jdbc.internal.mysql.MySQLType;
 
@@ -57,7 +58,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 
-public abstract class ParameterHolder {
+public abstract class ParameterHolder implements Cloneable {
     /**
      * Write parameter value
      * @param os the stream to write to
@@ -87,7 +88,7 @@ public abstract class ParameterHolder {
 
     public abstract MySQLType getMySQLType();
 
-    public void writeBufferType(final WriteBuffer writeBuffer) {
-        writeBuffer.writeShort((short) getMySQLType().getType());
+    public void writeBufferType(final PacketOutputStream buffer) {
+        buffer.writeShort((short) getMySQLType().getType());
     }
 }

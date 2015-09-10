@@ -96,7 +96,7 @@ public class MySQLBinaryRowPacket {
 
             if ((nullBitsBuffer[(i + 2) / 8] & (1 << ((i + 2) % 8))) > 0) {
                 //field is null
-                columns[i] = null;
+                columns[i] = new MySQLValueObject(null, columnInformation[i], true);
             } else {
                 switch (columnInformation[i].getType()) {
                     case VARCHAR:
@@ -108,6 +108,7 @@ public class MySQLBinaryRowPacket {
                     case LONGBLOB:
                     case BLOB:
                     case VARSTRING:
+                    case STRING:
                     case GEOMETRY:
                     case OLDDECIMAL:
                     case DECIMAL:
@@ -155,7 +156,7 @@ public class MySQLBinaryRowPacket {
                         columns[i] = new MySQLValueObject(reader.getLengthEncodedBytes(), columnInformation[i], true);
                         break;
                     default:
-                        columns[i] = null;
+                        columns[i] = new MySQLValueObject(null, columnInformation[i], true);
                         break;
                 }
             }

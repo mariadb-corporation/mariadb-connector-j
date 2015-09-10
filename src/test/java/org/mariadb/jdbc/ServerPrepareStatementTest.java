@@ -673,6 +673,7 @@ public void directExecuteNumber() throws Throwable {
 
         ps.addBatch();
         ps.executeBatch();
+
         PreparedStatement prepStmt = connection.prepareStatement("SELECT * from preparetest where bit1 = ?");
         prepStmt.setBoolean(1, true);
         ResultSet rs = prepStmt.executeQuery();

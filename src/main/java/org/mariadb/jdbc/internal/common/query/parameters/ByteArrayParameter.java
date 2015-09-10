@@ -48,6 +48,7 @@ OF SUCH DAMAGE.
 */
 package org.mariadb.jdbc.internal.common.query.parameters;
 
+import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
 import org.mariadb.jdbc.internal.common.packet.buffer.WriteBuffer;
 import org.mariadb.jdbc.internal.mysql.MySQLType;
 import java.io.IOException;
@@ -66,7 +67,7 @@ public class ByteArrayParameter extends NotLongDataParameterHolder {
         ParameterWriter.write(os, bytes, noBackslashEscapes);
     }
 
-    public void writeBinary(WriteBuffer writeBuffer) {
+    public void writeBinary(PacketOutputStream writeBuffer) {
         writeBuffer.writeByteArrayLength(bytes);
     }
 

@@ -62,7 +62,7 @@ import java.util.Calendar;
  * . User: marcuse Date: Jan 16, 2009 Time: 8:10:24 PM
  */
 public class WriteBuffer {
-    private final ByteBuffer byteBuffer;
+    private ByteBuffer byteBuffer;
 
     public WriteBuffer() {
          byteBuffer = ByteBuffer.allocate(1000).order(ByteOrder.LITTLE_ENDIAN);
@@ -73,11 +73,13 @@ public class WriteBuffer {
     }
 
     private void assureBufferCapacity(final int len) {
-
-        if (byteBuffer.remaining()<len) {
-            byteBuffer.limit(byteBuffer.capacity()*2);
+        while (byteBuffer.remaining()<len) {
+            ByteBuffer newByteBuffer = ByteBuffer.allocate(2*(len + byteBuffer.capacity())).order(ByteOrder.LITTLE_ENDIAN);
+            System.arraycopy(byteBuffer, 0, newByteBuffer, 0, byteBuffer.position());
+            byteBuffer = newByteBuffer;
         }
     }
+
     public WriteBuffer writeByte(final byte theByte) {
         assureBufferCapacity(1);
         byteBuffer.put(theByte);
@@ -202,17 +204,18 @@ public class WriteBuffer {
     public WriteBuffer writeFieldLength(long length) {
         if (length < 251) {
             byteBuffer.put((byte) length);
-        } else if (length < 251) {
+        } else if (length < 65536) {
+            assureBufferCapacity(3);
             byteBuffer.put((byte)0xfc);
             writeShort((short) length);
-        } else if (length < 65536) {
-            byteBuffer.put((byte)0xfd);
-            assureBufferCapacity(3);
-            byteBuffer.put((byte)0xff);
-            byteBuffer.put((byte)0xff);
-            byteBuffer.put((byte) (length >>> 16));
-            writeInt((int) length);
         } else if (length < 16777216) {
+            assureBufferCapacity(4);
+            byteBuffer.put((byte)0xfd);
+            byteBuffer.put((byte) (length & 0xff) );
+            byteBuffer.put((byte) (length >>> 8) );
+            byteBuffer.put((byte) (length >>> 16));
+        } else {
+            assureBufferCapacity(9);
             byteBuffer.put((byte)0xfe);
             writeLong(length);
         }

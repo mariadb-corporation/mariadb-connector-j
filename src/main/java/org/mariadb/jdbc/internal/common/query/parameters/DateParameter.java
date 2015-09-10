@@ -49,6 +49,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.common.query.parameters;
 
+import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
 import org.mariadb.jdbc.internal.common.packet.buffer.WriteBuffer;
 
 import java.io.IOException;
@@ -80,7 +81,7 @@ public class DateParameter extends NotLongDataParameterHolder {
         ParameterWriter.writeDate(os, date, calendar);
     }
 
-    public void writeBinary(WriteBuffer writeBuffer) {
+    public void writeBinary(PacketOutputStream writeBuffer) {
         calendar.setTime(date);
         writeBuffer.writeDateLength(calendar);
     }

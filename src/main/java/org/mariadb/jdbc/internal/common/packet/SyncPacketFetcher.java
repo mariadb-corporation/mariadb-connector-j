@@ -54,27 +54,30 @@ import org.mariadb.jdbc.internal.common.PacketFetcher;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
+import java.nio.channels.ReadableByteChannel;
+import java.nio.channels.SocketChannel;
 
-public class SyncPacketFetcher implements PacketFetcher {
+ public class SyncPacketFetcher implements PacketFetcher {
 
-    private final InputStream inputStream;
+    private final ReadableByteChannel socketChannel;
 
-    public SyncPacketFetcher(final InputStream is) {
-        this.inputStream=is;
+    public SyncPacketFetcher(final ReadableByteChannel socketChannel) {
+        this.socketChannel=socketChannel;
     }
 
     public RawPacket getRawPacket() throws IOException {
-        return RawPacket.nextPacket(inputStream);
+        return RawPacket.nextPacket(socketChannel);
     }
 
     public void clearInputStream() throws IOException {
-        int available = inputStream.available();
+        /*int available = inputStream.available();
         while(available > 0) {
             available -= inputStream.skip(available);
-        }
+        }*/
     }
 
     public void close() throws IOException {
-        inputStream.close();
+        socketChannel.close();
     }
 }

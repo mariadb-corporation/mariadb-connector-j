@@ -55,9 +55,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.channels.ReadableByteChannel;
+import java.nio.channels.SocketChannel;
 
 
-/**
+ /**
  * Class to represent a raw packet as transferred over the wire. First we got 3 bytes specifying the actual length, then
  * one byte packet sequence number and then n bytes with user data.
  */
@@ -68,20 +70,20 @@ public final class RawPacket {
     /**
      * Get the next packet from the stream
      *
-     * @param is the input stream to read the next packet from
+     * @param socketChannel the channel socket to read the next packet from
      * @return The next packet from the stream, or NULL if the stream is closed
      * @throws java.io.IOException if an error occurs while reading data
      */
-    static RawPacket nextPacket(final InputStream is) throws IOException {
-        byte[] lengthBuffer = new byte[4];
-        ReadUtil.readFully(is, lengthBuffer);
-        int length = (lengthBuffer[0] & 0xff) + ((lengthBuffer[1] & 0xff) << 8) + ((lengthBuffer[2] & 0xff) << 16);
-        int packetSeq = lengthBuffer[3];
+    static RawPacket nextPacket(final ReadableByteChannel socketChannel) throws IOException {
+        ByteBuffer buf = ByteBuffer.allocate(4);
+        ByteBuffer lengthBuffer = ByteBuffer.allocate(4);
+        ReadUtil.readFully(socketChannel, lengthBuffer);
+        int length = (lengthBuffer.get(0) & 0xff) + ((lengthBuffer.get(1) & 0xff) << 8) + ((lengthBuffer.get(2) & 0xff) << 16);
+        int packetSeq = lengthBuffer.get(3);
 
-        byte [] rawBytes = new byte[length];
-        ReadUtil.readFully(is, rawBytes);
-        return new RawPacket(ByteBuffer.wrap(rawBytes).order(ByteOrder.LITTLE_ENDIAN),
-                             packetSeq);
+        ByteBuffer rawBytes = ByteBuffer.allocate(length);
+        ReadUtil.readFully(socketChannel, rawBytes);
+        return new RawPacket(rawBytes.order(ByteOrder.LITTLE_ENDIAN), packetSeq);
     }
 
     /**
@@ -92,6 +94,7 @@ public final class RawPacket {
     public  RawPacket(final ByteBuffer byteBuffer, final int packetSeq) {
         this.byteBuffer = byteBuffer;
         this.packetSeq = packetSeq;
+        byteBuffer.clear();
     }
 
     /**

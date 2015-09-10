@@ -63,21 +63,27 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 public class SendExecutePrepareStatementPacket implements CommandPacket {
-    private final WriteBuffer writeBuffer;
     private final int parameterCount;
     private final ParameterHolder[] parameters;
     private final int statementId;
+    private MySQLType[] parameterTypeHeader;
 
-    public SendExecutePrepareStatementPacket(PrepareResult prepareResult, ParameterHolder[] parameters, int parameterCount, MySQLType[] parameterTypeHeader) {
+    public SendExecutePrepareStatementPacket(final PrepareResult prepareResult, final ParameterHolder[] parameters, final int parameterCount, MySQLType[] parameterTypeHeader) {
         this.parameterCount = parameterCount;
         this.parameters = parameters;
         this.statementId = prepareResult.statementId;
-        writeBuffer = new WriteBuffer();
+        this.parameterTypeHeader = parameterTypeHeader;
+    }
 
-        writeBuffer.writeByte((byte) 0x17);
-        writeBuffer.writeInt(statementId);
-        writeBuffer.writeByte((byte) 0x00); //CURSOR TYPE NO CURSOR TODO diego
-        writeBuffer.writeInt(1); //Iteration countx²
+    public int send(final OutputStream os) throws IOException {
+        PacketOutputStream buffer = (PacketOutputStream) os;
+        buffer.startPacket(0);
+        buffer.assureBufferCapacity(1000);
+
+        buffer.writeByte((byte) 0x17);
+        buffer.writeInt(statementId);
+        buffer.writeByte((byte) 0x00); //CURSOR TYPE NO CURSOR TODO diego
+        buffer.writeInt(1); //Iteration count
 
         //create null bitmap
         if (parameterCount > 0) {
@@ -88,7 +94,7 @@ public class SendExecutePrepareStatementPacket implements CommandPacket {
                     nullBitsBuffer[i / 8] |= (1 << (i % 8));
                 }
             }
-            writeBuffer.writeByteArray(nullBitsBuffer);/*Null Bit Map*/
+            buffer.writeByteArray(nullBitsBuffer);/*Null Bit Map*/
 
             //check if parameters type (using setXXX) have change since previous request, and resend new header type if so
             boolean mustSendHeaderType = false;
@@ -104,28 +110,20 @@ public class SendExecutePrepareStatementPacket implements CommandPacket {
             }
 
             if (mustSendHeaderType) {
-                writeBuffer.writeByte((byte) 0x01);
+                buffer.writeByte((byte) 0x01);
                 //Store types of parameters in first in first package that is sent to the server.
                 for (int i = 0; i < this.parameterCount; i++) {
                     parameterTypeHeader[i] = parameters[i].getMySQLType();
-                    parameters[i].writeBufferType(writeBuffer);
+                    parameters[i].writeBufferType(buffer);
                 }
-            } else writeBuffer.writeByte((byte) 0x00);
+            } else buffer.writeByte((byte) 0x00);
         }
-
         for (int i = 0; i < parameterCount; i++) {
             if (parameters[i] instanceof NotLongDataParameterHolder) {
-                ((NotLongDataParameterHolder) parameters[i]).writeBinary(writeBuffer);
+                ((NotLongDataParameterHolder) parameters[i]).writeBinary(buffer);
             }
         }
-
-    }
-
-    public int send(final OutputStream os) throws IOException {
-        PacketOutputStream pos = (PacketOutputStream) os;
-        pos.startPacket(0);
-        os.write(writeBuffer.getBuffer(), 0, writeBuffer.getLength());
-        pos.finishPacket();
+        buffer.finishPacket();
         return 0;
     }
 }

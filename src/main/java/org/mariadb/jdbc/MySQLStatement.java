@@ -598,7 +598,6 @@ public class MySQLStatement implements Statement {
      *                               if the JDBC driver does not support this method
      */
     public void cancel() throws SQLException {
-        stLock.writeLock().lock();
         try {
             if (!executing) {
                 return;
@@ -608,8 +607,6 @@ public class MySQLStatement implements Statement {
             SQLExceptionMapper.throwException(e, connection, this);
         } catch (IOException e) {
             // connection gone, query is definitely canceled
-        } finally {
-            stLock.writeLock().unlock();
         }
     }
 

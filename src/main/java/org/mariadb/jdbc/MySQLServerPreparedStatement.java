@@ -152,7 +152,7 @@ public class MySQLServerPreparedStatement extends AbstractMySQLPrepareStatement 
 
         stLock.writeLock().lock();
         try {
-            queryParameters.add(currentParameterHolder);
+            queryParameters.add(currentParameterHolder.clone());
             //currentParameterHolder = new ParameterHolder[prepareResult.parameters.length];
         } finally {
             stLock.writeLock().unlock();
@@ -436,4 +436,22 @@ public class MySQLServerPreparedStatement extends AbstractMySQLPrepareStatement 
         }
     }
 
+    public String toString() {
+        StringBuffer sb  = new StringBuffer ("sql : '" + sql + "'");
+        if (parameterCount > 0) {
+            sb.append(", parameters : [");
+            for(int i = 0; i < parameterCount; i++) {
+                if (currentParameterHolder[i] == null)  {
+                    sb.append("null");
+                }  else {
+                    sb.append(currentParameterHolder[i].toString());
+                }
+                if (i != parameterCount -1) {
+                    sb.append(",");
+                }
+            }
+            sb.append("]");
+        }
+        return sb.toString();
+    }
 }
