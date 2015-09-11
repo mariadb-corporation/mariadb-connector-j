@@ -85,6 +85,7 @@ import java.security.KeyStore;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
+import java.security.NoSuchAlgorithmException;
 import java.security.cert.X509Certificate;
 import java.sql.Connection;
 import java.util.*;
@@ -320,7 +321,8 @@ public class MySQLProtocol implements Protocol {
                             MySQLServerCapabilities.SECURE_CONNECTION|
                             MySQLServerCapabilities.LOCAL_FILES|
                             MySQLServerCapabilities.MULTI_RESULTS|
-                            MySQLServerCapabilities.FOUND_ROWS;
+                            MySQLServerCapabilities.FOUND_ROWS|
+                            MySQLServerCapabilities.PLUGIN_AUTH;
 
 
             if(jdbcUrl.getOptions().allowMultiQueries || (jdbcUrl.getOptions().rewriteBatchedStatements)) {
@@ -364,18 +366,29 @@ public class MySQLProtocol implements Protocol {
                     capabilities,
                     decideLanguage(),
                     greetingPacket.getSeed(),
-                    packetSeq);
+                    packetSeq,
+                    new byte[0],
+                    greetingPacket.getPluginName());
             cap.send(writer);
 
             RawPacket rp = packetFetcher.getRawPacket();
 
-            if ((rp.getByteBuffer().get(0) & 0xFF) == 0xFE) {   // Server asking for old format password
-                final MySQLClientOldPasswordAuthPacket oldPassPacket = new MySQLClientOldPasswordAuthPacket(
-                        this.password, Utils.copyWithLength(greetingPacket.getSeed(),
-                        8), rp.getPacketSeq() + 1);
-                oldPassPacket.send(writer);
-
-                rp = packetFetcher.getRawPacket();
+            // Protocol::AuthSwitchRequest
+            // Server asking for another authentication method
+            if ((rp.getByteBuffer().get(0) & 0xFF) == 0xFE) {
+                if ((greetingPacket.getServerCapabilities() & MySQLServerCapabilities.PLUGIN_AUTH) != 0) {
+                    final Reader authReader = new Reader(rp);
+                    authReader.readByte();
+                    String plugin = authReader.readString("ASCII");
+                    byte[] authData = authReader.readRawBytes();
+                    rp = processPlugin(plugin, authData, rp.getPacketSeq() + 1);
+                } else {
+                    final MySQLClientOldPasswordAuthPacket oldPassPacket = new MySQLClientOldPasswordAuthPacket(
+                            this.password, Utils.copyWithLength(greetingPacket.getSeed(),
+                            8), rp.getPacketSeq() + 1);
+                    oldPassPacket.send(writer);
+                    rp = packetFetcher.getRawPacket();
+                }
             }
 
             checkErrorPacket(rp);
@@ -446,6 +459,86 @@ public class MySQLProtocol implements Protocol {
     private byte decideLanguage() {
         byte result = (byte) (isServerLanguageUTF8MB4(this.serverLanguage) ? this.serverLanguage : 33);
         return result;
+    }
+
+    private RawPacket processPlugin(String plugin, byte[] authData, int seqNo) throws QueryException, IOException {
+        // String pluginFactory = jdbcUrl.getOptions().pluginFact;
+        // classloader...
+        // pluginFact new plugin(jdbcUrl, this, plugin)
+        // plugin.handle(auth_data)...
+
+        if (plugin.equals("mysql_native_password")) {
+            // https://dev.mysql.com/doc/internals/en/secure-password-authentication.html#packet-Authentication::Native41
+            try {
+                writer.startPacket(seqNo);
+                writer.write(Utils.encryptPassword(password, authData));
+                writer.finishPacket();
+            } catch (NoSuchAlgorithmException e) {
+                throw new RuntimeException("Could not use SHA-1, failing", e);
+            }
+        } else if (plugin.equals("mysql_old_password")) {
+            final MySQLClientOldPasswordAuthPacket oldPassPacket = new MySQLClientOldPasswordAuthPacket(
+                    this.password, Utils.copyWithLength(authData, 8), seqNo);
+            oldPassPacket.send(writer);
+        } else if (plugin.equals("mysql_clear_password")) {
+            // https://dev.mysql.com/doc/internals/en/clear-text-authentication.html
+            writer.startPacket(seqNo);
+            writer.write(password.getBytes());
+            writer.write(0);
+            writer.finishPacket();
+        } else if (plugin.equals("dialog")) {
+            boolean echo;
+            boolean last;
+            byte[] promptb;
+            RawPacket rp;
+            ResultPacket resultPacket;
+            while (true) {
+                writer.startPacket(seqNo);
+                if ((authData[0] & 0x06) == 0x04) {
+                    echo = false;
+                } else if ((authData[0] & 0x06) == 0x02) {
+                    echo = true;
+                } else {
+                    // maybe should error here
+                    echo = true;
+                }
+                last = (authData[0] & 0x01) == 0x01;
+                promptb = new byte[authData.length -1];
+                for (int i=0; i < (authData.length -1); ++i) {
+                    promptb[i] = authData[i+1];
+                }
+                String prompt = new String(promptb);
+
+                if (prompt.equals("Password: ")) {
+                    writer.write(password.getBytes());
+                    writer.write(0);
+                } else {
+                    // TODO critical implementation piece
+                    // we cant' just assume everything is a password
+                    // writer.write(  Dialog(echo, prompt).response())
+                    writer.write(password.getBytes());
+                    writer.write(0);
+                }
+                writer.finishPacket();
+
+                rp = packetFetcher.getRawPacket();
+                checkErrorPacket(rp);
+                resultPacket = ResultPacketFactory.createResultPacket(rp);
+                if (resultPacket.getResultType() == ResultPacket.ResultType.OK
+                   || last) {
+                    break;
+                }
+                seqNo = rp.getPacketSeq();
+                seqNo += 1;
+                Reader reader = new Reader(rp);
+                reader.skipByte();
+                authData = reader.readRawBytes();
+            }
+            return rp;
+        } else {
+            throw new QueryException("Unknown plugin " + plugin);
+        }
+        return packetFetcher.getRawPacket();
     }
 
     void checkErrorPacket(RawPacket rp) throws QueryException{

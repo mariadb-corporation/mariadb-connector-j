@@ -91,14 +91,20 @@ public class MySQLClientAuthPacket implements CommandPacket {
                                  final String database,
                                  final int serverCapabilities,
                                  final byte serverLanguage,
-                                 final byte[] seed, byte packetSeq) {
+                                 final byte[] seed,
+                                 byte packetSeq,
+                                 byte[] authData,
+                                 String plugin) {
         this.packetSeq = packetSeq;
         writeBuffer = new WriteBuffer();
-        final byte[] scrambledPassword;
-        try {
-            scrambledPassword = Utils.encryptPassword(password, seed);
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("Could not use SHA-1, failing", e);
+        if (plugin.equals("mysql_native_password")) {
+            try {
+                authData = Utils.encryptPassword(password, seed);
+            } catch (NoSuchAlgorithmException e) {
+                throw new RuntimeException("Could not use SHA-1, failing", e);
+            }
+        } else if (plugin.equals("mysql_clear_password")) {
+            authData = password.getBytes();
         }
 
         writeBuffer.writeInt(serverCapabilities).
@@ -106,12 +112,20 @@ public class MySQLClientAuthPacket implements CommandPacket {
                 writeByte(serverLanguage). //1
                 writeBytes((byte) 0, 23).    //23
                 writeString(username).     //strlen username
-                writeByte((byte) 0).        //1
-                writeByte((byte) scrambledPassword.length).
-                writeByteArray(scrambledPassword); //scrambledPassword.length
+                writeByte((byte) 0);        //1
+
+        if ((serverCapabilities & MySQLServerCapabilities.SECURE_CONNECTION) != 0) {
+            writeBuffer.writeByte((byte) authData.length).
+                writeByteArray(authData);
+        } else {
+            writeBuffer.writeByte((byte) 0);
+        }
 
         if ((serverCapabilities & MySQLServerCapabilities.CONNECT_WITH_DB) != 0) {
             writeBuffer.writeString(database).writeByte((byte) 0);
+        }
+        if ((serverCapabilities & MySQLServerCapabilities.PLUGIN_AUTH) != 0) {
+            writeBuffer.writeString(plugin).writeByte((byte) 0);
         }
     }
 
