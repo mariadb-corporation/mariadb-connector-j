@@ -66,7 +66,7 @@ import java.util.TimeZone;
 
 /**
  * Contains the raw value returned from the server
- * <p/>
+ *
  * Is immutable
  */
 public class MySQLValueObject implements ValueObject {

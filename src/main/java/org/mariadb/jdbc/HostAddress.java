@@ -76,7 +76,7 @@ public class HostAddress {
                 result.port = Integer.parseInt(s.substring(ind + 2));
             }
         } else if (s.contains(":")) {
-        	  /* Parse host:port */
+              /* Parse host:port */
             String[] hostPort = s.split(":");
             result.host = hostPort[0];
             result.port = Integer.parseInt(hostPort[1]);

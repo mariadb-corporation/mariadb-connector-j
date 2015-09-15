@@ -202,7 +202,7 @@ public class MySQLBlob implements Blob, Serializable {
      * the existing bytes in the <code>Blob</code> object starting at the position <code>pos</code>.  If the end of the
      * <code>Blob</code> value is reached while writing the array of bytes, then the length of the <code>Blob</code>
      * value will be increased to accomodate the extra bytes.
-     * <p/>
+     *
      * <b>Note:</b> If the value specified for <code>pos</code> is greater then the length+1 of the <code>BLOB</code>
      * value then the behavior is undefined. Some JDBC drivers may throw a <code>SQLException</code> while other drivers
      * may support this operation.
@@ -242,7 +242,7 @@ public class MySQLBlob implements Blob, Serializable {
      * The array of bytes will overwrite the existing bytes in the <code>Blob</code> object starting at the position
      * <code>pos</code>.  If the end of the <code>Blob</code> value is reached while writing the array of bytes, then
      * the length of the <code>Blob</code> value will be increased to accomodate the extra bytes.
-     * <p/>
+     *
      * <b>Note:</b> If the value specified for <code>pos</code> is greater then the length+1 of the <code>BLOB</code>
      * value then the behavior is undefined. Some JDBC drivers may throw a <code>SQLException</code> while other drivers
      * may support this operation.
@@ -284,7 +284,7 @@ public class MySQLBlob implements Blob, Serializable {
      * existing bytes in the <code>Blob</code> object starting at the position <code>pos</code>.  If the end of the
      * <code>Blob</code> value is reached while writing to the stream, then the length of the <code>Blob</code> value
      * will be increased to accomodate the extra bytes.
-     * <p/>
+     *
      * <b>Note:</b> If the value specified for <code>pos</code> is greater then the length+1 of the <code>BLOB</code>
      * value then the behavior is undefined. Some JDBC drivers may throw a <code>SQLException</code> while other drivers
      * may support this operation.
@@ -306,7 +306,7 @@ public class MySQLBlob implements Blob, Serializable {
     /**
      * Truncates the <code>BLOB</code> value that this <code>Blob</code> object represents to be <code>len</code> bytes
      * in length.
-     * <p/>
+     *
      * <b>Note:</b> If the value specified for <code>pos</code> is greater then the length+1 of the <code>BLOB</code>
      * value then the behavior is undefined. Some JDBC drivers may throw a <code>SQLException</code> while other drivers
      * may support this operation.
@@ -324,7 +324,7 @@ public class MySQLBlob implements Blob, Serializable {
     /**
      * This method frees the <code>Blob</code> object and releases the resources that it holds. The object is invalid
      * once the <code>free</code> method is called.
-     * <p/>
+     *
      * After <code>free</code> has been called, any attempt to invoke a method other than <code>free</code> will result
      * in a <code>SQLException</code> being thrown.  If <code>free</code> is called multiple times, the subsequent calls
      * to <code>free</code> are treated as a no-op.

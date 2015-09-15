@@ -152,7 +152,7 @@ public class FailoverProxy implements InvocationHandler {
 
     /**
      * Check if this Sqlerror is a connection exception. if that's the case, must be handle by failover
-     * <p/>
+     *
      * error codes :
      * 08000 : connection exception
      * 08001 : SQL client unable to establish SQL connection

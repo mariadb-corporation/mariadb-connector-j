@@ -480,7 +480,7 @@ public class MySQLResultSet implements ResultSet {
      * of ASCII characters. The value can then be read in chunks from the stream. This method is particularly suitable
      * for retrieving large <code>LONGVARCHAR</code> values. The JDBC driver will do any necessary conversion from the
      * database format into ASCII.</p>
-     * <p/>
+     *
      * <p><b>Note:</b> All the data in the returned stream must be read prior to getting the value of any other column.
      * The next call to a getter method implicitly closes the stream. Also, a stream may return <code>0</code> when the
      * method <code>available</code> is called whether there is data available or not.</p>
@@ -584,12 +584,12 @@ public class MySQLResultSet implements ResultSet {
 
     /**
      * Retrieves the name of the SQL cursor used by this <code>ResultSet</code> object.
-     * <p/>
+     *
      * In SQL, a result table is retrieved through a cursor that is named. The current row of a result set can be
      * updated or deleted using a positioned update/delete statement that references the cursor name. To insure that the
      * cursor has the proper isolation level to support update, the cursor's <code>SELECT</code> statement should be of
      * the form <code>SELECT FOR UPDATE</code>. If <code>FOR UPDATE</code> is omitted, the positioned updates may fail.
-     * <p/>
+     *
      * The JDBC API supports this SQL feature by providing the name of the SQL cursor used by a
      * <code>ResultSet</code> object. The current row of a <code>ResultSet</code> object is also the current row of this
      * SQL cursor.
@@ -663,7 +663,7 @@ public class MySQLResultSet implements ResultSet {
      * specified in the JDBC specification. If the value is an SQL <code>NULL</code>, the driver returns a Java
      * <code>null</code>.
      * </p>
-     * <p/>
+     *
      * <p>This method may also be used to read database-specific abstract data types.
      * </p>
      * <p>
@@ -806,7 +806,7 @@ public class MySQLResultSet implements ResultSet {
 
     /**
      * Retrieves whether the cursor is on the first row of this <code>ResultSet</code> object.
-     * <p/>
+     *
      * <strong>Note:</strong>Support for the <code>isFirst</code> method is optional for <code>ResultSet</code>s with a
      * result set type of <code>TYPE_FORWARD_ONLY</code>
      *
@@ -830,7 +830,7 @@ public class MySQLResultSet implements ResultSet {
      * Retrieves whether the cursor is on the last row of this <code>ResultSet</code> object. <strong>Note:</strong>
      * Calling the method <code>isLast</code> may be expensive because the JDBC driver might need to fetch ahead one row
      * in order to determine whether the current row is the last row in the result set.
-     * <p/>
+     *
      * <strong>Note:</strong> Support for the <code>isLast</code> method is optional for <code>ResultSet</code>s with a
      * result set type of <code>TYPE_FORWARD_ONLY</code>
      *
@@ -935,7 +935,7 @@ public class MySQLResultSet implements ResultSet {
 
     /**
      * Retrieves the current row number.  The first row is number 1, the second number 2, and so on.
-     * <p/>
+     *
      * <strong>Note:</strong>Support for the <code>getRow</code> method is optional for <code>ResultSet</code>s with a
      * result set type of <code>TYPE_FORWARD_ONLY</code>
      *
@@ -953,17 +953,17 @@ public class MySQLResultSet implements ResultSet {
 
     /**
      * Moves the cursor to the given row number in this <code>ResultSet</code> object.
-     * <p/>
+     *
      * If the row number is positive, the cursor moves to the given row number with respect to the beginning of the
      * result set.  The first row is row 1, the second is row 2, and so on.
-     * <p/>
+     *
      * If the given row number is negative, the cursor moves to an absolute row position with respect to the end of
      * the result set.  For example, calling the method <code>absolute(-1)</code> positions the cursor on the last row;
      * calling the method <code>absolute(-2)</code> moves the cursor to the next-to-last row, and so on.
-     * <p/>
+     *
      * An attempt to position the cursor beyond the first/last row in the result set leaves the cursor before the
      * first row or after the last row.
-     * <p/>
+     *
      * <B>Note:</B> Calling <code>absolute(1)</code> is the same as calling <code>first()</code>. Calling
      * <code>absolute(-1)</code> is the same as calling <code>last()</code>.
      *
@@ -1027,11 +1027,11 @@ public class MySQLResultSet implements ResultSet {
 
     /**
      * Moves the cursor to the previous row in this <code>ResultSet</code> object.
-     * <p/>
+     *
      * When a call to the <code>previous</code> method returns <code>false</code>, the cursor is positioned before the
      * first row.  Any invocation of a <code>ResultSet</code> method which requires a current row will result in a
      * <code>SQLException</code> being thrown.
-     * <p/>
+     *
      * If an input stream is open for the current row, a call to the method <code>previous</code> will implicitly close
      * it.  A <code>ResultSet</code> object's warning change is cleared when a new row is read.
      *
@@ -1146,7 +1146,7 @@ public class MySQLResultSet implements ResultSet {
     /**
      * <p>Retrieves whether the current row has been updated.  The value returned depends on whether or not the result set
      * can detect updates.</p>
-     * <p/>
+     *
      * <strong>Note:</strong> Support for the <code>rowUpdated</code> method is optional with a result set concurrency
      * of <code>CONCUR_READ_ONLY</code>
      *
@@ -1164,7 +1164,7 @@ public class MySQLResultSet implements ResultSet {
     /**
      * <p>Retrieves whether the current row has had an insertion. The value returned depends on whether or not this
      * <code>ResultSet</code> object can detect visible inserts.</p>
-     * <p/>
+     *
      * <strong>Note:</strong> Support for the <code>rowInserted</code> method is optional with a result set concurrency
      * of <code>CONCUR_READ_ONLY</code>
      *
@@ -1722,7 +1722,7 @@ public class MySQLResultSet implements ResultSet {
 
     /**
      * <p>Updates the designated column with a byte array value.</p>
-     * <p/>
+     *
      * The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.
@@ -1946,7 +1946,7 @@ public class MySQLResultSet implements ResultSet {
     /**
      * <p>Refreshes the current row with its most recent value in the database.  This method cannot be called when the
      * cursor is on the insert row.</p>
-     * <p/>
+     *
      * <p>The <code>refreshRow</code> method provides a way for an application to explicitly tell the JDBC driver to
      * refetch a row(s) from the database.  An application may want to call <code>refreshRow</code> when caching or
      * prefetching is being done by the JDBC driver to fetch the latest value of a row from the database.  The JDBC
@@ -2869,7 +2869,7 @@ public class MySQLResultSet implements ResultSet {
      * driver does the necessary conversion from Java character format to the national character set in the database. It
      * is intended for use when updating  <code>NCHAR</code>,<code>NVARCHAR</code> and <code>LONGNVARCHAR</code>
      * columns.</p>
-     * <p/>
+     *
      * The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.
@@ -2892,7 +2892,7 @@ public class MySQLResultSet implements ResultSet {
      * driver does the necessary conversion from Java character format to the national character set in the database. It
      * is intended for use when updating  <code>NCHAR</code>,<code>NVARCHAR</code> and <code>LONGNVARCHAR</code>
      * columns.
-     * <p/>
+     *
      * The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.
@@ -2913,7 +2913,7 @@ public class MySQLResultSet implements ResultSet {
 
     /**
      * Updates the designated column with an ascii stream value, which will have the specified number of bytes.
-     * <p/>
+     *
      * The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.
@@ -2933,7 +2933,7 @@ public class MySQLResultSet implements ResultSet {
 
     /**
      * Updates the designated column with a binary stream value, which will have the specified number of bytes.
-     * <p/>
+     *
      * The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.
@@ -2953,7 +2953,7 @@ public class MySQLResultSet implements ResultSet {
 
     /**
      * Updates the designated column with a character stream value, which will have the specified number of bytes.
-     * <p/>
+     *
      * The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.
@@ -3037,7 +3037,7 @@ public class MySQLResultSet implements ResultSet {
     /**
      * <p>Updates the designated column using the given input stream, which will have the specified number of bytes.
      * </p>
-     * <p/>
+     *
      * The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.
@@ -3082,8 +3082,8 @@ public class MySQLResultSet implements ResultSet {
      * long. When a very large UNICODE value is input to a <code>LONGVARCHAR</code> parameter, it may be more practical
      * to send it via a <code>java.io.Reader</code> object. The JDBC driver will do any necessary conversion from
      * UNICODE to the database char format.</p>
-     * <p/>
-     * <p/>
+     *
+     *
      * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.
@@ -3107,7 +3107,7 @@ public class MySQLResultSet implements ResultSet {
      * long. When a very large UNICODE value is input to a <code>LONGVARCHAR</code> parameter, it may be more practical
      * to send it via a <code>java.io.Reader</code> object.  The JDBC driver will do any necessary conversion from
      * UNICODE to the database char format.</p>
-     * <p/>
+     *
      * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.</p>
@@ -3131,7 +3131,7 @@ public class MySQLResultSet implements ResultSet {
      * long. When a very large UNICODE value is input to a <code>LONGVARCHAR</code> parameter, it may be more practical
      * to send it via a <code>java.io.Reader</code> object. The JDBC driver will do any necessary conversion from
      * UNICODE to the database char format.</p>
-     * <p/>
+     *
      * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.</p>
@@ -3155,7 +3155,7 @@ public class MySQLResultSet implements ResultSet {
      * long. When a very large UNICODE value is input to a <code>LONGVARCHAR</code> parameter, it may be more practical
      * to send it via a <code>java.io.Reader</code> object. The JDBC driver will do any necessary conversion from
      * UNICODE to the database char format.</p>
-     * <p/>
+     *
      * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.</p>
@@ -3180,11 +3180,11 @@ public class MySQLResultSet implements ResultSet {
      * until end-of-stream is reached.  The driver does the necessary conversion from Java character format to the
      * national character set in the database. It is intended for use when updating
      * <code>NCHAR</code>,<code>NVARCHAR</code> and <code>LONGNVARCHAR</code> columns.</p>
-     * <p/>
+     *
      * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.</p>
-     * <p/>
+     *
      * <p><B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
      * version of <code>updateNCharacterStream</code> which takes a length parameter.</p>
      *
@@ -3205,11 +3205,11 @@ public class MySQLResultSet implements ResultSet {
      * until end-of-stream is reached.  The driver does the necessary conversion from Java character format to the
      * national character set in the database. It is intended for use when updating
      * <code>NCHAR</code>,<code>NVARCHAR</code> and <code>LONGNVARCHAR</code> columns.</p>
-     * <p/>
+     *
      * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.</p>
-     * <p/>
+     *
      * <p><B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
      * version of <code>updateNCharacterStream</code> which takes a length parameter.</p>
      *
@@ -3229,11 +3229,11 @@ public class MySQLResultSet implements ResultSet {
     /**
      * <p>Updates the designated column with an ascii stream value. The data will be read from the stream as needed until
      * end-of-stream is reached.</p>
-     * <p/>
+     *
      * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.</p>
-     * <p/>
+     *
      * <p><B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
      * version of <code>updateAsciiStream</code> which takes a length parameter.</p>
      *
@@ -3252,11 +3252,11 @@ public class MySQLResultSet implements ResultSet {
     /**
      * <p>Updates the designated column with a binary stream value. The data will be read from the stream as needed until
      * end-of-stream is reached.</p>
-     * <p/>
+     *
      * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.</p>
-     * <p/>
+     *
      * <p><B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
      * version of <code>updateBinaryStream</code> which takes a length parameter.</p>
      *
@@ -3275,11 +3275,11 @@ public class MySQLResultSet implements ResultSet {
     /**
      * <p>Updates the designated column with a character stream value. The data will be read from the stream as needed
      * until end-of-stream is reached.</p>
-     * <p/>
+     *
      * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.</p>
-     * <p/>
+     *
      * <p><B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
      * version of <code>updateCharacterStream</code> which takes a length parameter.</p>
      *
@@ -3298,11 +3298,11 @@ public class MySQLResultSet implements ResultSet {
     /**
      * <p>Updates the designated column with an ascii stream value. The data will be read from the stream as needed until
      * end-of-stream is reached.</p>
-     * <p/>
+     *
      * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.</p>
-     * <p/>
+     *
      * <p><B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
      * version of <code>updateAsciiStream</code> which takes a length parameter.</p>
      *
@@ -3322,11 +3322,11 @@ public class MySQLResultSet implements ResultSet {
     /**
      * <p>Updates the designated column with a binary stream value. The data will be read from the stream as needed until
      * end-of-stream is reached.</p>
-     * <p/>
+     *
      * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.</p>
-     * <p/>
+     *
      * <p><B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
      * version of <code>updateBinaryStream</code> which takes a length parameter.</p>
      *
@@ -3346,11 +3346,11 @@ public class MySQLResultSet implements ResultSet {
     /**
      * <p>Updates the designated column with a character stream value. The data will be read from the stream as needed
      * until end-of-stream is reached.</p>
-     * <p/>
+     *
      * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.</p>
-     * <p/>
+     *
      * <p><B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
      * version of <code>updateCharacterStream</code> which takes a length parameter.</p>
      *
@@ -3370,11 +3370,11 @@ public class MySQLResultSet implements ResultSet {
     /**
      * <p>Updates the designated column using the given input stream. The data will be read from the stream as needed until
      * end-of-stream is reached.</p>
-     * <p/>
+     *
      * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.</p>
-     * <p/>
+     *
      * <p><B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
      * version of <code>updateBlob</code> which takes a length parameter.</p>
      *
@@ -3393,11 +3393,11 @@ public class MySQLResultSet implements ResultSet {
     /**
      * <p>Updates the designated column using the given input stream. The data will be read from the stream as needed until
      * end-of-stream is reached.</p>
-     * <p/>
+     *
      * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.</p>
-     * <p/>
+     *
      * <p><B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
      * version of <code>updateBlob</code> which takes a length parameter.</p>
      *
@@ -3418,11 +3418,11 @@ public class MySQLResultSet implements ResultSet {
      * <p>Updates the designated column using the given <code>Reader</code> object. The data will be read from the stream
      * as needed until end-of-stream is reached.  The JDBC driver will do any necessary conversion from UNICODE to the
      * database char format.</p>
-     * <p/>
+     *
      * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.</p>
-     * <p/>
+     *
      * <p><B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
      * version of <code>updateClob</code> which takes a length parameter.</p>
      *
@@ -3442,11 +3442,11 @@ public class MySQLResultSet implements ResultSet {
      * <p>Updates the designated column using the given <code>Reader</code> object. The data will be read from the stream
      * as needed until end-of-stream is reached.  The JDBC driver will do any necessary conversion from UNICODE to the
      * database char format.</p>
-     * <p/>
+     *
      * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.</p>
-     * <p/>
+     *
      * <p><B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
      * version of <code>updateClob</code> which takes a length parameter.</p>
      *
@@ -3465,14 +3465,14 @@ public class MySQLResultSet implements ResultSet {
 
     /**
      * <p>Updates the designated column using the given <code>Reader</code></p>
-     * <p/>
+     *
      * <p>The data will be read from the stream as needed until end-of-stream is reached.  The JDBC driver will do any
      * necessary conversion from UNICODE to the database char format.</p>
-     * <p/>
+     *
      * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.</p>
-     * <p/>
+     *
      * <p><B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
      * version of <code>updateNClob</code> which takes a length parameter.</p>
      *
@@ -3651,7 +3651,7 @@ public class MySQLResultSet implements ResultSet {
      * <p>The value can then be read in chunks from the stream. This method is particularly suitable for retrieving large
      * <code>LONGVARCHAR</code>values.  The JDBC driver will do any necessary conversion from the database format into
      * Unicode.</p>
-     * <p/>
+     *
      * <p>
      * <B>Note:</B> All the data in the returned stream must be read prior to getting the value of any other column.
      * The next call to a getter method implicitly closes the stream. Also, a stream may return <code>0</code> when the
@@ -3673,7 +3673,7 @@ public class MySQLResultSet implements ResultSet {
      * <p>Retrieves the value of the designated column in the current row of this <code>ResultSet</code> object as a stream
      * of uninterpreted bytes. The value can then be read in chunks from the stream. This method is particularly
      * suitable for retrieving large <code>LONGVARBINARY</code> values.</p>
-     * <p/>
+     *
      * <p><B>Note:</B> All the data in the returned stream must be read prior to getting the value of any other column.
      * The next call to a getter method implicitly closes the stream.  Also, a stream may return <code>0</code> when the
      * method <code>InputStream.available</code> is called whether there is data available or not.</p>
@@ -3706,7 +3706,7 @@ public class MySQLResultSet implements ResultSet {
     /**
      * <p>Retrieves the value of the designated column in the current row of this <code>ResultSet</code> object as a
      * <code>boolean</code> in the Java programming language.</p>
-     * <p/>
+     *
      * <p>If the designated column has a datatype of CHAR or VARCHAR and contains a "0" or has a datatype of BIT,
      * TINYINT, SMALLINT, INTEGER or BIGINT and contains  a 0, a value of <code>false</code> is returned.  If the
      * designated column has a datatype of CHAR or VARCHAR and contains a "1" or has a datatype of BIT, TINYINT,
@@ -3753,7 +3753,7 @@ public class MySQLResultSet implements ResultSet {
     /**
      * <p>Returns an object that implements the given interface to allow access to non-standard methods, or standard
      * methods not exposed by the proxy.</p>
-     * <p/>
+     *
      * <p>If the receiver implements the interface then the result is the receiver or a proxy for the receiver. If the
      * receiver is a wrapper and the wrapped object implements the interface then the result is the wrapped object or a
      * proxy for the wrapped object. Otherwise return the the result of calling <code>unwrap</code> recursively on the

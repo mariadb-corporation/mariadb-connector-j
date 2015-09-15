@@ -1251,7 +1251,7 @@ public class MySQLProtocol implements Protocol {
         if (this.majorVersion < major)
             return false;
         /*
-    	 * Major versions are equal, compare minor versions
+         * Major versions are equal, compare minor versions
     	 */
         if (this.minorVersion > minor)
             return true;
