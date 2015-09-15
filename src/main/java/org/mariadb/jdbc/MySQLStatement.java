@@ -1196,10 +1196,8 @@ public class MySQLStatement implements Statement {
             if (firstRewrite == null) {
                 firstRewrite = sql.substring(0, index);
             }
-            boolean isRewrite = sql.startsWith(firstRewrite);
-            if (isRewrite) {
-                isRewriteable = isRewriteable && true;
-            }
+            sql.startsWith(firstRewrite);
+
         } finally {
             stLock.writeLock().unlock();
         }
