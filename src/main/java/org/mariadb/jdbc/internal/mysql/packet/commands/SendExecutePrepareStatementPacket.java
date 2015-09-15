@@ -82,7 +82,7 @@ public class SendExecutePrepareStatementPacket implements CommandPacket {
 
         buffer.writeByte((byte) 0x17);
         buffer.writeInt(statementId);
-        buffer.writeByte((byte) 0x00); //CURSOR TYPE NO CURSOR TODO diego
+        buffer.writeByte((byte) 0x00); //CURSOR TYPE NO CURSOR TODO implement when using cursor
         buffer.writeInt(1); //Iteration count
 
         //create null bitmap

@@ -264,6 +264,7 @@
             <version>1.4</version>
         </dependency>
     </dependencies>
+
     <reporting>
         <plugins>
             <plugin>

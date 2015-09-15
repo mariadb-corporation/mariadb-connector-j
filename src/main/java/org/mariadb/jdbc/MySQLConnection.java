@@ -841,7 +841,7 @@ public final class MySQLConnection implements Connection {
         if (resultSetConcurrency != ResultSet.CONCUR_READ_ONLY) {
             throw SQLExceptionMapper.getFeatureNotSupportedException("Only read-only result sets allowed");
         }
-        //TODO diego : implement parameters
+        //TODO : implement parameters
         // resultSetType is ignored since we always are scroll insensitive
         return prepareStatement(sql);
     }

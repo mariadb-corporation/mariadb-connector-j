@@ -44,7 +44,6 @@ public class MySQLXAResource implements XAResource {
     }
 
     void execute(String command) throws XAException {
-        //System.out.println(command);
         try {
             connection.createStatement().execute(command);
         }catch (SQLException sqle) {

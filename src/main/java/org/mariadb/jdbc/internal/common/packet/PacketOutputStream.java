@@ -194,7 +194,6 @@ public class PacketOutputStream extends OutputStream {
                 header[1] = (byte) (length >>> 8);
                 header[2] = (byte) (length >>> 16);
                 header[3] = (byte) seqNo++;
-                //System.out.println("not compressed packet : packetLength="+length+" seqNo="+seqNo);
                 outputStream.write(header);
                 notCompressPosition+=4;
             }
@@ -224,7 +223,6 @@ public class PacketOutputStream extends OutputStream {
             this.seqNo=0;
             int position = 0;
             int packetLength;
-            //System.out.println("compressed packet : notCompressPosition="+notCompressPosition + " bufferBytes length="+bufferBytes.length);
 
             while (position - notCompressPosition < 0) {
                 packetLength = Math.min(notCompressPosition - position, maxPacketSize);
@@ -263,7 +261,6 @@ public class PacketOutputStream extends OutputStream {
 
 
     private void writeCompressedHeader(int packetLength, int initialLength, OutputStream outputStream) throws IOException {
-        //System.out.println("compressed packet : packetLength="+packetLength+" seqNo="+seqNo+" initialLength="+initialLength);
         byte header[] = new byte[7];
         header[0] = (byte)(packetLength & 0xff);
         header[1] = (byte)((packetLength >> 8) & 0xff);
