@@ -26,7 +26,7 @@ import static org.junit.Assert.*;
 import static org.junit.Assert.assertTrue;
 
 public class ServerPrepareStatementTest extends BaseTest {
-/*
+
     @Test
     public void ServerExecutionTest() throws SQLException {
         Statement statement = connection.createStatement();
@@ -272,7 +272,7 @@ public class ServerPrepareStatementTest extends BaseTest {
         ps.setTime(23, time0);
         ps.setShort(24, year2);
         ps.setInt(25, year4);
-        ps.setString(26, char0);
+        ps.setObject(26, char0, java.sql.Types.CHAR);
         ps.setString(27, char_binary);
         ps.setString(28, varchar0);
         ps.setString(29, varchar_binary);
@@ -453,8 +453,7 @@ public class ServerPrepareStatementTest extends BaseTest {
         ps.addBatch();
         ps.execute();
     }
-*/
-/*
+
 
     @Test
     public void blobMultipleSizeTest() throws Throwable {
@@ -481,13 +480,12 @@ public class ServerPrepareStatementTest extends BaseTest {
 
         ResultSet rs = statement.executeQuery("select * from ServerPrepareStatementCacheSize4");
         rs.next();
-        byte [] newBytes = rs.getBytes(1);;
+        byte [] newBytes = rs.getBytes(2);
         assertEquals(arr.length, newBytes.length);
         for(int i = 0; i<arr.length; i++) {
             assertEquals(arr[i], newBytes[i]);
         }
-    }*/
-/*
+    }
 
     @Test
     public void executeNumber() throws Throwable {
@@ -537,10 +535,9 @@ public class ServerPrepareStatementTest extends BaseTest {
         rs.next();
         Assert.assertEquals(rs.getInt(1), 1);
     }
-*/
-    /*
+
 @Test
-public void directExecuteNumber() throws Throwable {
+public void directExecuteNumber2() throws Throwable {
     connection.createStatement().execute("drop table if exists streamtest2");
     connection.createStatement().execute("create table streamtest2 (id int primary key not null, strm text)");
     PreparedStatement stmt = connection.prepareStatement("insert into streamtest2 (id, strm) values (?,?)");
@@ -559,11 +556,9 @@ public void directExecuteNumber() throws Throwable {
     }
     assertEquals(toInsert, sb.toString());
 }
-    */
-
 
     @Test
-    public void dataConformityTest() throws SQLException {
+    public void dataConformityTest2() throws SQLException {
         Statement statement = connection.createStatement();
         statement.execute("drop table if exists preparetest");
         statement.execute("CREATE TABLE preparetest (" +
@@ -675,7 +670,7 @@ public void directExecuteNumber() throws Throwable {
         ps.executeBatch();
 
         PreparedStatement prepStmt = connection.prepareStatement("SELECT * from preparetest where bit1 = ?");
-        prepStmt.setBoolean(1, true);
+        prepStmt.setBoolean(1, false);
         ResultSet rs = prepStmt.executeQuery();
         rs.next();
         assertEquals(rs.getBoolean(1), bit1);
