@@ -233,13 +233,15 @@ public class DateTest extends BaseTest{
           ps.executeUpdate();
           ResultSet rs = connection.createStatement().executeQuery("select * from dtest");
           rs.next();
+          assertEquals(d.getHours(), rs.getTime(1).getHours());
+
           /* Check that time is correct, up to seconds precision */
-          assertEquals(d.getHours(),rs.getTime(1).getHours());
-          assertEquals(d.getMinutes(),rs.getTime(1).getMinutes());
           if (isMariadbServer()) {
+              assertEquals(d.getMinutes(),rs.getTime(1).getMinutes());
               assertEquals(d.getSeconds(), rs.getTime(1).getSeconds());
           } else {
               //mysql 1 seconde precision
+              Assert.assertTrue(Math.abs(d.getMinutes() - rs.getTime(1).getMinutes()) <= 1);
               Assert.assertTrue(Math.abs(d.getSeconds() - rs.getTime(1).getSeconds())<=1);
           }
     }

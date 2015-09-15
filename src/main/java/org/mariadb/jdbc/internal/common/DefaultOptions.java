@@ -118,6 +118,11 @@ public enum DefaultOptions {
     USE_OLD_ALIAS_METADATA_BEHAVIOR("useOldAliasMetadataBehavior", Boolean.FALSE, "1.1.9"),
 
     /**
+     *  If set to 'false', exception thrown during LOCAL INFILE if no InputStream has already been set.
+     */
+    ALLOW_LOCAL_INFILE("allowLocalInfile", Boolean.TRUE, "1.2.1"),
+
+    /**
      * var=value pairs separated by comma, mysql session variables, set upon establishing successful connection
      */
     SESSION_VARIABLES("sessionVariables", "1.1.0"),

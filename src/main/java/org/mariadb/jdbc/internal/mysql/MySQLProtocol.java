@@ -88,6 +88,7 @@ import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.WritableByteChannel;
 import java.security.KeyStore;
+import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
@@ -96,7 +97,6 @@ import java.util.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 class MyX509TrustManager implements X509TrustManager {
-    boolean trustServerCeritifcate;
     String serverCertFile;
     X509TrustManager  trustManager;
 
@@ -119,7 +119,7 @@ class MyX509TrustManager implements X509TrustManager {
         }
 
         CertificateFactory cf = CertificateFactory.getInstance("X.509");
-        X509Certificate ca = (X509Certificate) cf.generateCertificate(inStream);
+        Collection<? extends Certificate> caList = cf.generateCertificates(inStream);
         inStream.close();
         KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
         try {
@@ -128,7 +128,9 @@ class MyX509TrustManager implements X509TrustManager {
         } catch (Exception e) {
 
         }
-        ks.setCertificateEntry(UUID.randomUUID().toString(), ca);
+        for(Certificate ca : caList) {
+            ks.setCertificateEntry(UUID.randomUUID().toString(), ca);
+        }
         TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
         tmf.init(ks);
         for(TrustManager tm : tmf.getTrustManagers()) {
@@ -192,9 +194,9 @@ public class MySQLProtocol implements Protocol {
 
     private InputStream localInfileInputStream;
 
-    private SSLSocketFactory getSSLSocketFactory(boolean trustServerCertificate)  throws QueryException
+    private SSLSocketFactory getSSLSocketFactory() throws QueryException
     {
-        if (jdbcUrl.getOptions().trustServerCertificate
+        if (!jdbcUrl.getOptions().trustServerCertificate
                 && jdbcUrl.getOptions().serverSslCert == null) {
             return (SSLSocketFactory)SSLSocketFactory.getDefault();
         }
@@ -349,9 +351,9 @@ public class MySQLProtocol implements Protocol {
                 AbbreviatedMySQLClientAuthPacket amcap = new AbbreviatedMySQLClientAuthPacket(capabilities);
                 amcap.send(writer);
 
-                SSLSocketFactory f = getSSLSocketFactory(jdbcUrl.getOptions().trustServerCertificate);
+                SSLSocketFactory f = getSSLSocketFactory();
                 SSLSocket sslSocket = (SSLSocket)f.createSocket(socket,
-                        socket.getInetAddress().getHostAddress(),  socket.getPort(),  false);
+                        socket.getInetAddress().getHostAddress(),  socket.getPort(), true);
 
                 sslSocket.setEnabledProtocols(new String [] {"TLSv1"});
                 sslSocket.setUseClientMode(true);
@@ -403,8 +405,9 @@ public class MySQLProtocol implements Protocol {
            SelectQueryResult qr = null;
            try {
                qr = (SelectQueryResult) executeQuery(new MySQLQuery("show variables like 'max_allowed_packet'"));
-               qr.next();
-               setMaxAllowedPacket(qr.getValueObject(1).getInt());
+               if (qr.next()) {
+                   setMaxAllowedPacket(qr.getValueObject(1).getInt());
+               }
            } finally {
                if (qr != null)qr.close();
            }
@@ -936,6 +939,12 @@ public class MySQLProtocol implements Protocol {
 
                 InputStream is;
                 if (localInfileInputStream == null) {
+                    if (!getJdbcUrl().getOptions().allowLocalInfile) {
+                      throw new QueryException(
+                          "Usage of LOCAL INFILE is disabled. To use it enable it via the connection property allowLocalInfile=true",
+                          -1,
+                          SQLExceptionMapper.SQLStates.FEATURE_NOT_SUPPORTED.getSqlState());
+                    }
                     LocalInfilePacket localInfilePacket = (LocalInfilePacket) resultPacket;
                     if (log.isTraceEnabled()) log.trace("sending local file " + localInfilePacket.getFileName());
                     String localInfile = localInfilePacket.getFileName();

@@ -21,9 +21,36 @@ or maven :
 <dependency>
 	<groupId>org.mariadb.jdbc</groupId>
 	<artifactId>mariadb-java-client</artifactId>
-	<version>1.2.0</version>
+	<version>1.2.2</version>
 </dependency>
 ```
+
+Development snapshot are available on sonatype nexus repository  
+```script
+<repositories>
+    <repository>
+        <id>sonatype-nexus-snapshots</id>
+        <name>Sonatype Nexus Snapshots</name>
+        <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+    </repository>
+</repositories>
+
+<dependencies>
+    <dependency>
+        <groupId>org.mariadb.jdbc</groupId>
+        <artifactId>mariadb-java-client</artifactId>
+        <version>1.3.0-SNAPSHOT</version>
+    </dependency>
+</dependencies>
+```
+
 ## Documentation
 
-For a Getting started guide, API docs, recipes,  etc. see the [documentation page](https://mariadb.com/kb/en/mariadb/about-the-mariadb-java-client/)!
+For a Getting started guide, API docs, recipes,  etc. see the 
+[documentation index](https://mariadb.com/kb/en/mariadb/mariadb-connector-j/), 
+and specifically : 
+* [API documentation](https://mariadb.com/kb/en/mariadb/about-the-mariadb-java-client/)
+* [Failover and loadbalancing documentation](https://mariadb.com/kb/en/mariadb/failover-and-high-availability-with-mariadb-connector-j/)
+
+
+

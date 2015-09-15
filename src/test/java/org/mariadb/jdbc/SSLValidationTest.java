@@ -11,19 +11,21 @@ import java.sql.*;
 import java.util.Properties;
 
 public class SSLValidationTest extends BaseTest {
-	String serverCertificateCaPath;
-    String serverCertificatePath;
+	String serverCertificatePath;
 
     @Before
-     public  void checkSSL() throws SQLException{
+    public  void checkSSL() throws SQLException{
         super.before();
-        org.junit.Assume.assumeTrue(haveSSL());
-        ResultSet rs =  connection.createStatement().executeQuery("select @@ssl_ca");
+		boolean isJava7 = System.getProperty("java.version").contains("1.7.");
+		org.junit.Assume.assumeTrue(haveSSL());
+		//Skip SSL test on java 7 since SSL packet size JDK-6521495).
+		org.junit.Assume.assumeFalse(isJava7);
+        ResultSet rs =  connection.createStatement().executeQuery("select @@ssl_cert");
         rs.next();
         serverCertificatePath = rs.getString(1);
+        log.debug("Server certificate path: {}", serverCertificatePath);
         rs.close();
-     }
-
+    }
 
 	private String getServerCertificate() {
 		BufferedReader br = null;
@@ -69,7 +71,9 @@ public class SSLValidationTest extends BaseTest {
 		String jdbcUrl = connURI;
 		Properties connProps = new Properties(info);
 		connProps.setProperty("user", username);
-		connProps.setProperty("password", password);
+		if( password != null ) {
+		    connProps.setProperty("password", password);
+		}
 		return openNewConnection(jdbcUrl, connProps);
 	}
 
