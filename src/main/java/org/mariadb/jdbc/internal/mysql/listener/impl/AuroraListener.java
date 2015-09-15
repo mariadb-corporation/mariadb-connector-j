@@ -56,8 +56,6 @@ import org.mariadb.jdbc.internal.common.query.MySQLQuery;
 import org.mariadb.jdbc.internal.common.queryresults.SelectQueryResult;
 import org.mariadb.jdbc.internal.mysql.*;
 import org.mariadb.jdbc.internal.mysql.listener.tools.SearchFilter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -66,8 +64,6 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class AuroraListener extends MastersSlavesListener {
-    private final static Logger log = LoggerFactory.getLogger(AuroraListener.class);
-
 
     public AuroraListener(JDBCUrl jdbcUrl) {
         super(jdbcUrl);
@@ -83,7 +79,7 @@ public class AuroraListener extends MastersSlavesListener {
         try {
             reconnectFailedConnection(new SearchFilter(true, true, true));
         } catch (QueryException e) {
-            log.debug("initializeConnection failed", e);
+//            log.debug("initializeConnection failed", e);
             checkInitialConnection();
             throw e;
         }
@@ -99,7 +95,7 @@ public class AuroraListener extends MastersSlavesListener {
      */
     @Override
     public void reconnectFailedConnection(SearchFilter searchFilter) throws QueryException {
-        if (log.isTraceEnabled()) log.trace("search connection searchFilter=" + searchFilter);
+//        if (log.isTraceEnabled()) log.trace("search connection searchFilter=" + searchFilter);
         currentConnectionAttempts.incrementAndGet();
         resetOldsBlackListHosts();
 
@@ -126,13 +122,14 @@ public class AuroraListener extends MastersSlavesListener {
                 //loopAddress.add(secondaryProtocol.getHostAddress());
             }
             if (isMasterHostFail()) {
-                log.debug("searching probableMaster");
+//                log.debug("searching probableMaster");
                 HostAddress probableMaster = searchByStartName(secondaryProtocol, loopAddress);
 
                 if (probableMaster != null) {
                     loopAddress.remove(probableMaster);
                     loopAddress.add(0, probableMaster);
-                } else if (log.isTraceEnabled()) log.trace("probableMaster not found");
+                }
+//                else if (log.isTraceEnabled()) log.trace("probableMaster not found");
             }
         }
 
@@ -163,17 +160,17 @@ public class AuroraListener extends MastersSlavesListener {
                 String masterHostName = queryResult.getValueObject(0).getString();
                 for (int i = 0; i < loopAddress.size(); i++) {
                     if (loopAddress.get(i).host.startsWith(masterHostName)) {
-                        if (log.isTraceEnabled()) log.trace("master probably " + loopAddress.get(i));
+//                        if (log.isTraceEnabled()) log.trace("master probably " + loopAddress.get(i));
                         return loopAddress.get(i);
                     }
                 }
             } catch (IOException ioe) {
-                log.trace("searchByStartName failed", ioe);
+//                log.trace("searchByStartName failed", ioe);
                 //eat exception
             } catch (QueryException qe) {
                 if (proxy.hasToHandleFailover(qe)) {
                     if (setSecondaryHostFail()) {
-                        log.warn("SQL Secondary node [" + this.currentProtocol.getHostAddress().toString() + "] connection fail ");
+//                        log.warn("SQL Secondary node [" + this.currentProtocol.getHostAddress().toString() + "] connection fail ");
                         addToBlacklist(currentProtocol.getHostAddress());
                     }
                 }

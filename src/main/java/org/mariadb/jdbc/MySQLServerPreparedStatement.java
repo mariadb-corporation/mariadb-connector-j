@@ -56,8 +56,7 @@ import org.mariadb.jdbc.internal.common.queryresults.ResultSetType;
 import org.mariadb.jdbc.internal.mysql.MySQLProtocol;
 import org.mariadb.jdbc.internal.mysql.MySQLType;
 import org.mariadb.jdbc.internal.mysql.Protocol;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -66,8 +65,6 @@ import java.util.Calendar;
 import java.util.List;
 
 public class MySQLServerPreparedStatement extends AbstractMySQLPrepareStatement {
-
-    private final static Logger log = LoggerFactory.getLogger(MySQLServerPreparedStatement.class);
     String sql;
     PrepareResult prepareResult;
     MySQLConnection connection;
@@ -419,7 +416,7 @@ public class MySQLServerPreparedStatement extends AbstractMySQLPrepareStatement 
                 try {
                     protocol.releasePrepareStatement(sql, prepareResult.statementId);
                 } catch (QueryException e) {
-                    if (log.isDebugEnabled()) log.debug("Error releasing preparedStatement", e);
+                    //if (log.isDebugEnabled()) log.debug("Error releasing preparedStatement", e);
                 }
             }
 

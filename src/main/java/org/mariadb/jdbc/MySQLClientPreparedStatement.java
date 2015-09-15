@@ -52,15 +52,12 @@ import org.mariadb.jdbc.internal.SQLExceptionMapper;
 import org.mariadb.jdbc.internal.common.Utils;
 import org.mariadb.jdbc.internal.common.query.*;
 import org.mariadb.jdbc.internal.common.query.parameters.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Calendar;
 
 public class MySQLClientPreparedStatement extends AbstractMySQLPrepareStatement {
-    private final static Logger log = LoggerFactory.getLogger(MySQLClientPreparedStatement.class);
     private MySQLClientParameterizedQuery dQuery;
     private final String sqlQuery;
     private boolean useFractionalSeconds;
@@ -76,9 +73,9 @@ public class MySQLClientPreparedStatement extends AbstractMySQLPrepareStatement 
         this.sqlQuery = sql;
         useFractionalSeconds = connection.getProtocol().getOptions().useFractionalSeconds;
 
-        if(log.isDebugEnabled()) {
+        /*if(log.isDebugEnabled()) {
             log.debug("Creating prepared statement for " + sql);
-        }
+        }*/
         isInsertRewriteable(sql);
         dQuery = new MySQLClientParameterizedQuery(Utils.nativeSQL(sql, connection.noBackslashEscapes),
                 connection.noBackslashEscapes, isRewriteable?firstRewrite.length():-1);

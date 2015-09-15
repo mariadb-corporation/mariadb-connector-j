@@ -1,8 +1,5 @@
 package org.mariadb.jdbc.internal.common.packet;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -14,7 +11,7 @@ import java.util.zip.DeflaterOutputStream;
 
 
 public class PacketOutputStream extends OutputStream {
-    private final static Logger log = LoggerFactory.getLogger(PacketOutputStream.class);
+    //private final static Logger log = LoggerFactory.getLogger(PacketOutputStream.class);
     private static final int MIN_COMPRESSION_SIZE = 16*1024;
     private static final float MIN_COMPRESSION_RATIO =0.9f;
     private static final int MAX_PACKET_LENGTH = 0x00ffffff;

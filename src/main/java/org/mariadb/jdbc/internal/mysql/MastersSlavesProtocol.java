@@ -54,15 +54,10 @@ import org.mariadb.jdbc.JDBCUrl;
 import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.mysql.listener.impl.MastersSlavesListener;
 import org.mariadb.jdbc.internal.mysql.listener.tools.SearchFilter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class MastersSlavesProtocol extends MySQLProtocol {
-
-    private final static Logger log = LoggerFactory.getLogger(MastersSlavesProtocol.class);
     boolean masterConnection = false;
     boolean mustBeMasterConnection = false;
 
@@ -81,9 +76,9 @@ public class MastersSlavesProtocol extends MySQLProtocol {
      * @throws QueryException if not found
      */
     public static void loop(MastersSlavesListener listener, final List<HostAddress> addresses, Map<HostAddress, Long> blacklist, SearchFilter searchFilter) throws QueryException {
-        if (log.isDebugEnabled()) {
-            log.debug("searching for master:" + searchFilter.isSearchForMaster() + " replica:" + searchFilter.isSearchForSlave() + " addresses:" + addresses);
-        }
+//        if (log.isDebugEnabled()) {
+//            log.debug("searching for master:" + searchFilter.isSearchForMaster() + " replica:" + searchFilter.isSearchForSlave() + " addresses:" + addresses);
+//        }
 
         MastersSlavesProtocol protocol;
         List<HostAddress> loopAddresses = new LinkedList<>(addresses);
@@ -100,11 +95,11 @@ public class MastersSlavesProtocol extends MySQLProtocol {
                 protocol.setHostAddress(loopAddresses.get(0));
                 loopAddresses.remove(0);
 
-                if (log.isDebugEnabled()) log.debug("trying to connect to " + protocol.getHostAddress());
+//                if (log.isDebugEnabled()) log.debug("trying to connect to " + protocol.getHostAddress());
 
                 protocol.connect();
                 blacklist.remove(protocol.getHostAddress());
-                if (log.isDebugEnabled()) log.debug("connected to " + (protocol.isMasterConnection()?"primary ":"replica ") + protocol.getHostAddress());
+//                if (log.isDebugEnabled()) log.debug("connected to " + (protocol.isMasterConnection()?"primary ":"replica ") + protocol.getHostAddress());
 
                 if (searchFilter.isSearchForMaster() && protocol.isMasterConnection()) {
                     if (foundMaster(listener, protocol, searchFilter)) return;
@@ -117,7 +112,7 @@ public class MastersSlavesProtocol extends MySQLProtocol {
             } catch (QueryException e) {
                 lastQueryException = e;
                 blacklist.put(protocol.getHostAddress(), System.currentTimeMillis());
-                if (log.isDebugEnabled()) log.debug("Could not connect to " + protocol.getHostAddress() + " searching: " + searchFilter + " error: " + e.getMessage());
+//                if (log.isDebugEnabled()) log.debug("Could not connect to " + protocol.getHostAddress() + " searching: " + searchFilter + " error: " + e.getMessage());
             }
 
             if (!searchFilter.isSearchForMaster() && !searchFilter.isSearchForSlave()) return;
