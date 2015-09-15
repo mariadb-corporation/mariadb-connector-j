@@ -532,6 +532,7 @@ public class MySQLDriverTest extends BaseTest {
     @Test
     public void UpdateCachedRowSet() throws Exception {
         Statement st = connection.createStatement();
+        connection.setAutoCommit(false);
         st.execute("DROP TABLE IF EXISTS updatable");
         st.execute("CREATE TABLE updatable(i int primary key, a varchar(10))");
         st.execute("INSERT INTO updatable values(1,'a')");

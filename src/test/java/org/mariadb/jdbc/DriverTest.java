@@ -166,12 +166,19 @@ public class DriverTest extends BaseTest{
     
     @Test
     public void ralfTest() throws SQLException {
-    	connection.prepareStatement(
-    				"select serverrequ0_.id as id75_, serverrequ0_.date_time as date2_75_, serverrequ0_.name as name75_, serverrequ0_.server_request_type as server4_75_, serverrequ0_.response_code_storage_tag as response5_75_, serverrequ0_.storage_tag as storage6_75_, serverrequ0_.timeout as "+
-    				" timeout75_, serverrequ0_.url as url75_ from ussd_server_request_tag serverrequ0_ where serverrequ0_.name='ß' limit ?"); 
-    							
-    							
+        Statement stmt = connection.createStatement();
+        stmt.execute("DROP TABLE IF EXISTS t2");
+        stmt.execute("CREATE TABLE t2 (id int not null primary key auto_increment, test varchar(10))");
+        for (int i=0;i<10;i++) stmt.execute("INSERT INTO t2 (test) VALUES ('aßa"+i+"')");
+        PreparedStatement ps = connection.prepareStatement("SELECT * FROM t2 where test like'%ß%' limit ?");
+        ps.setInt(1,5);
+        ps.addBatch();
+        ResultSet rs = ps.executeQuery();
+        int result = 0;
+        while (rs.next()) result++;
+        assertEquals(result, 5);
     }
+
     @Test
     public void autoIncTest() throws SQLException {
         String query = "CREATE TABLE t2 (id int not null primary key auto_increment, test varchar(10))";
@@ -802,11 +809,11 @@ public class DriverTest extends BaseTest{
     public void testPreparedStatementsWithQuotes() throws SQLException {
         connection.createStatement().execute("drop table if exists quotesPreparedStatements");
         connection.createStatement().execute(
-                        "create table quotesPreparedStatements (id int not null primary key auto_increment, a varchar(10))");
+                "create table quotesPreparedStatements (id int not null primary key auto_increment, a varchar(10) , b varchar(10))");
 
-        String query = "INSERT INTO quotesPreparedStatements (a) VALUES ('hellooo?') # ?";
+        String query = "INSERT INTO quotesPreparedStatements (a,b) VALUES ('hellooo?', ?) # ?";
         PreparedStatement pstmt = connection.prepareStatement(query);
-
+        pstmt.setString(1,"ff");
         pstmt.execute();
     }
 
@@ -979,10 +986,15 @@ public class DriverTest extends BaseTest{
         URL url = rs.getURL("url");
         assertNotNull(url);
     }
+
     @Test
     public void setNull() throws SQLException {
-        PreparedStatement ps = connection.prepareStatement("insert blabla (?)");
-        ps.setString(1,null);
+        Statement stmt = connection.createStatement();
+        stmt.executeUpdate("drop table if exists blabla");
+        stmt.executeUpdate("CREATE TABLE blabla (valsue varchar(20))");
+
+        PreparedStatement ps = connection.prepareStatement("insert blabla VALUE (?)");
+        ps.setString(1, null);
     }
 
     @Test
@@ -1003,9 +1015,6 @@ public class DriverTest extends BaseTest{
         ps.addBatch();
 
         ps.executeBatch();
-
-        connection.commit();
-
     }
 
     @Test
