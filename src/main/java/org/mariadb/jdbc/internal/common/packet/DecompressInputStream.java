@@ -39,7 +39,7 @@ public class DecompressInputStream extends InputStream{
             ret = baseStream.read(bytes, off, bytesToRead);
         }
         if (ret <= 0)  {
-            throw new EOFException("got "+ ret +"bytes, bytesToRead = " + bytesToRead);
+            throw new EOFException("got "+ ret +" bytes, bytesToRead = " + bytesToRead);
         }
 
         remainingBytes -= ret;

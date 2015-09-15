@@ -47,44 +47,26 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
+package org.mariadb.jdbc.internal.common;
 
-package org.mariadb.jdbc.internal.common.query.parameters;
+import org.mariadb.jdbc.internal.common.queryresults.PrepareResult;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
-
-import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
-import org.mariadb.jdbc.internal.common.packet.buffer.WriteBuffer;
-import org.mariadb.jdbc.internal.mysql.*;
-import org.mariadb.jdbc.internal.mysql.MySQLType;
-
-import java.io.IOException;
-import java.io.OutputStream;
-import java.sql.Time;
-import java.util.Calendar;
-
-
-public class TimeParameter extends NotLongDataParameterHolder {
-    Time time;
-    Calendar calendar;
-    boolean fractionalSeconds;
-
-    public TimeParameter(Time time, Calendar cal, boolean fractionalSeconds) {
-        this.time = time;
-        this.calendar = cal;
-        this.fractionalSeconds = fractionalSeconds;
+public class PrepareStatementCache extends LinkedHashMap<String, PrepareResult> {
+    private int maxSize;
+    private PrepareStatementCache(int size) {
+        super(size, .75f, true);
+        maxSize = size;
     }
 
-    public void writeTo(final OutputStream os) throws IOException {
-        ParameterWriter.writeTime(os, time, calendar, fractionalSeconds);
+    public static PrepareStatementCache newInstance(int size) {
+        return new PrepareStatementCache(size);
     }
 
-    public void writeBinary(PacketOutputStream writeBuffer) {
-        calendar.setTime(time);
-        writeBuffer.writeTimeLength(calendar, fractionalSeconds);
+    @Override
+    protected boolean removeEldestEntry(Map.Entry<String, PrepareResult> eldest) {
+        return this.size() > maxSize;
     }
-
-    public MySQLType getMySQLType() {
-        return MySQLType.TIME;
-    }
-
 
 }

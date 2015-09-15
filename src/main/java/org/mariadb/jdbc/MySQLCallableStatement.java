@@ -370,7 +370,7 @@ public class MySQLCallableStatement implements CallableStatement
     public MySQLCallableStatement(MySQLConnection connection, String query) throws SQLException{
         con = connection;
 
-        query = Utils.nativeSQL(query, ((MySQLConnection)connection).noBackslashEscapes);
+        query = Utils.nativeSQL(query, connection.noBackslashEscapes);
         batchIgnoreResult = new BitSet();
         Matcher m = CALLABLE_STATEMENT_PATTERN.matcher(query);
         if(!m.matches())
@@ -1136,13 +1136,13 @@ public class MySQLCallableStatement implements CallableStatement
     public ResultSet executeQuery() throws SQLException {
     	if (execute())
     		return getResultSet();
-    	throw new SQLException("CallableStatement.executeQuery() did not return a restult set","HY000");
+    	throw new SQLException("CallableStatement.executeQuery() did not return a resultset","HY000");
     }
 
     public int executeUpdate() throws SQLException {
     	if (!execute())
     		return getUpdateCount();
-    	throw new SQLException("CallableStatement.executeUpdate() returned a restult set","HY000");
+    	throw new SQLException("CallableStatement.executeUpdate() returned a resultset set","HY000");
     }
 
     public void setNull(int parameterIndex, int sqlType) throws SQLException {
@@ -1219,7 +1219,7 @@ public class MySQLCallableStatement implements CallableStatement
 
     public void clearParameters() throws SQLException {
         if(parametersCount > 0) {
-        	MySQLPreparedStatement ps = (MySQLPreparedStatement)inputParameters();
+        	MySQLClientPreparedStatement ps = (MySQLClientPreparedStatement)inputParameters();
         	if (!ps.parametersCleared) {
         		ps.clearParameters();
         		for(int i=1; i <= parametersCount; i++){
@@ -1265,11 +1265,9 @@ public class MySQLCallableStatement implements CallableStatement
         if (preparedStatement == null) {
             preparedStatement = con.prepareStatement(callQuery);
             preparedStatement.addBatch();
-        }
-        else if (parametersCount == 0) {
+        } else if (parametersCount == 0) {
             preparedStatement.addBatch();
-        }
-        else {
+        } else {
             /* add statement to set input parameters, mark it as ignorable */
             preparedStatement.addBatch();
             batchIgnoreResult.set(batchCount);

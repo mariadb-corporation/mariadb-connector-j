@@ -49,20 +49,26 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.common.query.parameters;
 
+import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
+import org.mariadb.jdbc.internal.common.packet.buffer.WriteBuffer;
+import org.mariadb.jdbc.internal.mysql.MySQLType;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.Reader;
 
 
-public class ReaderParameter extends  ParameterHolder{
+public class ReaderParameter extends  LongDataParameterHolder {
     Reader reader;
     long length;
     boolean noBackslashEscapes;
+
     public ReaderParameter(Reader reader, long length, boolean noBackslashEscapes)  {
         this.reader = reader;
         this.length = length;
         this.noBackslashEscapes = noBackslashEscapes;
     }
+
     public ReaderParameter(Reader reader, boolean noBackslashEscapes) {
         this(reader, Long.MAX_VALUE, noBackslashEscapes);
     }
@@ -73,7 +79,24 @@ public class ReaderParameter extends  ParameterHolder{
             ParameterWriter.write(os, reader, length, noBackslashEscapes);
     }
 
+    public void writeBinary(PacketOutputStream os) throws IOException {
+        if (length == Long.MAX_VALUE)
+            os.sendStream(reader);
+        else
+            os.sendStream(reader, length);
+    }
+
+    public MySQLType getMySQLType() {
+        return MySQLType.BLOB;
+    }
+
+
+
     public String toString() {
         return "<Reader> " + reader;
     }
+
+    public boolean isLongData() { return true; }
+
+
 }

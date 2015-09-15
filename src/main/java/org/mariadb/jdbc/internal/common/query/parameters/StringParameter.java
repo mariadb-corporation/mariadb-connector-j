@@ -49,11 +49,15 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.common.query.parameters;
 
+import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
+import org.mariadb.jdbc.internal.common.packet.buffer.WriteBuffer;
+import org.mariadb.jdbc.internal.mysql.MySQLType;
+
 import java.io.IOException;
 import java.io.OutputStream;
 
 
-public class StringParameter extends ParameterHolder {
+public class StringParameter extends NotLongDataParameterHolder {
     String s;
     boolean noBackslashEscapes;
 
@@ -61,7 +65,17 @@ public class StringParameter extends ParameterHolder {
         this.s = s;
         this.noBackslashEscapes = noBackslashEscapes;
     }
+
     public void writeTo(final OutputStream os) throws IOException {
         ParameterWriter.write(os, s, noBackslashEscapes);
     }
+
+    public void writeBinary(PacketOutputStream writeBuffer) {
+        writeBuffer.writeStringLength(s);
+    }
+
+    public MySQLType getMySQLType() {
+        return MySQLType.VARCHAR;
+    }
+
 }

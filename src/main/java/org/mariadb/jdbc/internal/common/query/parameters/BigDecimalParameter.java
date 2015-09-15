@@ -48,11 +48,15 @@ OF SUCH DAMAGE.
 */
 package org.mariadb.jdbc.internal.common.query.parameters;
 
+import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
+import org.mariadb.jdbc.internal.common.packet.buffer.WriteBuffer;
+import org.mariadb.jdbc.internal.mysql.MySQLType;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigDecimal;
 
-public class BigDecimalParameter extends ParameterHolder {
+public class BigDecimalParameter extends NotLongDataParameterHolder {
     BigDecimal bigDecimal;
 
     public BigDecimalParameter(final BigDecimal x) {
@@ -62,4 +66,16 @@ public class BigDecimalParameter extends ParameterHolder {
     public void writeTo(final OutputStream os) throws IOException {
         ParameterWriter.write(os, bigDecimal);
     }
+
+    /*public void writeBinary(PacketOutputStream outputStream) {
+        outputStream.writeStringLength(bigDecimal.toPlainString());
+    }*/
+    public void writeBinary(PacketOutputStream writeBuffer) {
+        writeBuffer.writeStringLength(bigDecimal.toPlainString());
+    }
+
+    public MySQLType getMySQLType() {
+        return MySQLType.DECIMAL;
+    }
+
 }

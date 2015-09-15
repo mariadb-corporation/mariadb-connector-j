@@ -63,6 +63,8 @@ import org.mariadb.jdbc.internal.common.packet.commands.SelectDBPacket;
 import org.mariadb.jdbc.internal.common.packet.commands.StreamedQueryPacket;
 import org.mariadb.jdbc.internal.common.query.MySQLQuery;
 import org.mariadb.jdbc.internal.common.query.Query;
+import org.mariadb.jdbc.internal.common.query.parameters.LongDataParameterHolder;
+import org.mariadb.jdbc.internal.common.query.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.common.queryresults.*;
 import org.mariadb.jdbc.internal.mysql.listener.Listener;
 import org.mariadb.jdbc.internal.mysql.listener.tools.SearchFilter;
@@ -81,6 +83,10 @@ import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
+import java.nio.channels.SocketChannel;
+import java.nio.channels.WritableByteChannel;
 import java.security.KeyStore;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
@@ -184,8 +190,7 @@ public class MySQLProtocol implements Protocol {
     private byte serverLanguage;
     private int transactionIsolationLevel=0;
     boolean hostFailed;
-
-    /* =========================== HA  parameters ========================================= */
+    private PrepareStatementCache prepareStatementCache = null;
 
     private InputStream localInfileInputStream;
 
@@ -218,6 +223,11 @@ public class MySQLProtocol implements Protocol {
         this.database = (jdbcUrl.getDatabase() == null ? "" : jdbcUrl.getDatabase());
         this.username = (jdbcUrl.getUsername() == null ? "" : jdbcUrl.getUsername());
         this.password = (jdbcUrl.getPassword() == null ? "" : jdbcUrl.getPassword());
+        if (jdbcUrl.getOptions().cachePrepStmts) {
+            lock.writeLock().lock();
+            if (prepareStatementCache == null) prepareStatementCache = PrepareStatementCache.newInstance(jdbcUrl.getOptions().prepStmtCacheSize);
+            lock.writeLock().unlock();
+        }
 
         setDatatypeMappingFlags();
     }
@@ -384,7 +394,7 @@ public class MySQLProtocol implements Protocol {
             serverStatus = ok.getServerStatus();
 
             if (jdbcUrl.getOptions().useCompression) {
-                writer = new PacketOutputStream(new CompressOutputStream(socket.getOutputStream()));
+                writer.setUseCompression(true);
                 packetFetcher = new SyncPacketFetcher(new DecompressInputStream(socket.getInputStream()));
             }
 
@@ -470,37 +480,21 @@ public class MySQLProtocol implements Protocol {
         this.serverStatus = eof.getStatusFlags();
     }
 
-    void readOKPacket()  throws QueryException, IOException  {
-        RawPacket rp = packetFetcher.getRawPacket();
-        checkErrorPacket(rp);
-        ResultPacket resultPacket = ResultPacketFactory.createResultPacket(rp);
-        if (resultPacket.getResultType() != ResultPacket.ResultType.OK) {
-            throw new QueryException("Unexpected packet type " + resultPacket.getResultType()  +
-                    "insted of OK");
-        }
-        OKPacket ok = (OKPacket)resultPacket;
-        this.hasWarnings = ok.getWarnings() > 0;
-        this.serverStatus = ok.getServerStatus();
-    }
-
-    public class PrepareResult {
-        public int statementId;
-        public MySQLColumnInformation[] columns;
-        public MySQLColumnInformation[] parameters;
-        public PrepareResult(int statementId, MySQLColumnInformation[] columns,  MySQLColumnInformation parameters[]) {
-            this.statementId = statementId;
-            this.columns = columns;
-            this.parameters = parameters;
-        }
-    }
-
     @Override
-    public  PrepareResult prepare(String sql) throws QueryException {
+    public PrepareResult prepare(String sql) throws QueryException {
         try {
-            writer.startPacket(0);
-            writer.write(0x16);
-            writer.write(sql.getBytes("UTF8"));
-            writer.finishPacket();
+            if (jdbcUrl.getOptions().cachePrepStmts) {
+                if (prepareStatementCache.containsKey(sql)) {
+                    log.debug("using already cached prepared statement");
+                    PrepareResult pr = prepareStatementCache.get(sql);
+                    pr.addUse();
+                    return pr;
+                }
+            }
+
+            log.debug("creating new prepared statement");
+            SendPrepareStatementPacket sendPrepareStatementPacket = new SendPrepareStatementPacket(sql);
+            sendPrepareStatementPacket.send(writer);
 
             RawPacket rp  = packetFetcher.getRawPacket();
             checkErrorPacket(rp);
@@ -528,8 +522,12 @@ public class MySQLProtocol implements Protocol {
                     }
                     readEOFPacket();
                 }
-
-                return new PrepareResult(statementId,columns,params);
+                PrepareResult prepareResult = new PrepareResult(statementId,columns,params);
+                if (jdbcUrl.getOptions().cachePrepStmts) {
+                    if (sql.length() < jdbcUrl.getOptions().prepStmtCacheSqlLimit) prepareStatementCache.putIfAbsent(sql, prepareResult);
+                }
+                if (log.isDebugEnabled()) log.debug("prepare statementId : " + prepareResult.statementId);
+                return prepareResult;
             } else {
                 throw new QueryException("Unexpected packet returned by server, first byte " + b);
             }
@@ -774,6 +772,7 @@ public class MySQLProtocol implements Protocol {
         }
         try {
             if (log.isTraceEnabled()) log.trace("Closing connection  " + currentHost);
+            prepareStatementCache.clear();
             close(packetFetcher, writer, socket);
         } catch (Exception e) {
             // socket is closed, so it is ok to ignore exception
@@ -811,9 +810,9 @@ public class MySQLProtocol implements Protocol {
      * @return a CachedSelectResult
      * @throws java.io.IOException when something goes wrong while reading/writing from the server
      */
-    private SelectQueryResult createQueryResult(final ResultSetPacket packet, boolean streaming) throws IOException, QueryException {
+    private SelectQueryResult createQueryResult(final ResultSetPacket packet, boolean streaming, boolean binaryProtocol) throws IOException, QueryException {
 
-        StreamingSelectResult streamingResult =   StreamingSelectResult.createStreamingSelectResult(packet, packetFetcher, this);
+        StreamingSelectResult streamingResult =   StreamingSelectResult.createStreamingSelectResult(packet, packetFetcher, this, binaryProtocol);
         if (streaming)
             return streamingResult;
 
@@ -925,7 +924,7 @@ public class MySQLProtocol implements Protocol {
     }
 
     @Override
-    public QueryResult getResult(List<Query> dQueries, boolean streaming) throws QueryException {
+    public QueryResult getResult(Object dQueries, boolean streaming, boolean binaryProtocol) throws QueryException {
 
         RawPacket rawPacket;
         ResultPacket resultPacket;
@@ -984,8 +983,10 @@ public class MySQLProtocol implements Protocol {
                 this.moreResults = false;
                 this.hasWarnings = false;
                 ErrorPacket ep = (ErrorPacket) resultPacket;
-                if (dQueries != null && dQueries.size() == 1) {
-                    log.warn("Could not execute query " + dQueries.get(0) + ": " + ((ErrorPacket) resultPacket).getMessage());
+                if (dQueries != null && dQueries instanceof List && ((List)dQueries).size() == 1) {
+                    log.warn("Could not execute query " + ((List)dQueries).get(0) + ": " + ((ErrorPacket) resultPacket).getMessage());
+                } else if (dQueries != null && dQueries instanceof String) {
+                    log.warn("Could not execute query " + dQueries + ": " + ((ErrorPacket) resultPacket).getMessage());
                 } else {
                     log.warn("Got error from server: " + ((ErrorPacket) resultPacket).getMessage());
                 }
@@ -1006,7 +1007,7 @@ public class MySQLProtocol implements Protocol {
                 this.hasWarnings = false;
                 ResultSetPacket resultSetPacket = (ResultSetPacket) resultPacket;
                 try {
-                    return this.createQueryResult(resultSetPacket, streaming);
+                    return this.createQueryResult(resultSetPacket, streaming, binaryProtocol);
                 } catch (IOException e) {
 
                     throw new QueryException("Could not read result set: " + e.getMessage(),
@@ -1023,10 +1024,11 @@ public class MySQLProtocol implements Protocol {
 
     @Override
     public QueryResult executeQuery(final Query query, boolean streaming) throws QueryException {
-        List<Query> queries = new ArrayList<Query>();
+        List<Query> queries = new ArrayList<>();
         queries.add(query);
         return executeQuery(queries, streaming, false, 0);
     }
+
 
     public QueryResult executeQuery(final List<Query> dQueries, boolean streaming, boolean isRewritable, int rewriteOffset) throws QueryException {
         for (Query query : dQueries) query.validate();
@@ -1043,7 +1045,7 @@ public class MySQLProtocol implements Protocol {
         }
 
         try {
-            return getResult(dQueries, streaming);
+            return getResult(dQueries, streaming, false);
         } catch (QueryException qex) {
             if (qex.getCause() instanceof SocketTimeoutException) {
                 throw new QueryException("Connection timed out", -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), qex);
@@ -1053,28 +1055,100 @@ public class MySQLProtocol implements Protocol {
         }
     }
 
+    public QueryResult executeBatch(final List<Query> dQueries, boolean streaming, boolean isRewritable, int rewriteOffset) throws QueryException {
+        for (Query query : dQueries) query.validate();
 
-
-
-    private String getServerVariable(String variable) throws QueryException {
-        CachedSelectResult qr = (CachedSelectResult) executeQuery(new MySQLQuery("select @@" + variable));
+        this.moreResults = false;
+        final StreamedQueryPacket packet = new StreamedQueryPacket(dQueries, isRewritable, rewriteOffset);
         try {
-            if (!qr.next()) {
-                throw new QueryException("Could not get variable: " + variable);
+            packet.send(writer);
+        } catch (MaxAllowedPacketException e) {
+            if (e.isMustReconnect()) connect();
+            throw new QueryException("Could not send query: " + e.getMessage(), -1, SQLExceptionMapper.SQLStates.INTERRUPTED_EXCEPTION.getSqlState(), e);
+        } catch (IOException e) {
+            throw new QueryException("Could not send query: " + e.getMessage(), -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), e);
+        }
+
+        try {
+            return getResult(dQueries, streaming, false);
+        } catch (QueryException qex) {
+            if (qex.getCause() instanceof SocketTimeoutException) {
+                throw new QueryException("Connection timed out", -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), qex);
+            } else {
+                throw qex;
             }
         }
-        catch (IOException ioe ){
-            throw new QueryException(ioe.getMessage(), 0, "HYOOO", ioe);
+    }
+    @Override
+    public QueryResult executePreparedQueryAfterFailover(String sql, ParameterHolder[] parameters, PrepareResult oldPrepareResult, MySQLType[] parameterTypeHeader, boolean isStreaming) throws QueryException {
+        PrepareResult prepareResult = prepare(sql);
+        QueryResult queryResult = executePreparedQuery(sql, parameters, prepareResult, parameterTypeHeader, isStreaming);
+        queryResult.setFailureObject(prepareResult);
+        return queryResult;
+    }
+
+    @Override
+    public QueryResult executePreparedQuery(String sql, ParameterHolder[] parameters, PrepareResult prepareResult, MySQLType[] parameterTypeHeader, boolean isStreaming) throws QueryException {
+
+        this.moreResults = false;
+        try {
+            int parameterCount = parameters.length;
+            //send binary data in a separate packet
+            for (int i=0; i<parameterCount;i++) {
+                if (parameters[i].isLongData()) {
+                    SendPrepareParameterPacket sendPrepareParameterPacket = new SendPrepareParameterPacket(i, (LongDataParameterHolder)parameters[i], prepareResult.statementId);
+                    sendPrepareParameterPacket.send(writer);
+                }
+
+            }
+
+            //send execute query
+            SendExecutePrepareStatementPacket packet = new SendExecutePrepareStatementPacket(prepareResult, parameters, parameterCount, parameterTypeHeader);
+            packet.send(writer);
+        } catch (MaxAllowedPacketException e) {
+            if (e.isMustReconnect()) connect();
+            throw new QueryException("Could not send query: " + e.getMessage(), -1, SQLExceptionMapper.SQLStates.INTERRUPTED_EXCEPTION.getSqlState(), e);
+        } catch (IOException e) {
+            throw new QueryException("Could not send query: " + e.getMessage(), -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), e);
         }
 
         try {
-            String value = qr.getValueObject(0).getString();
-            return value;
-        } catch (NoSuchColumnException e) {
-            throw new QueryException("Could not get variable: " + variable);
+            return getResult(sql, isStreaming, true);
+        } catch (QueryException qex) {
+            if (qex.getCause() instanceof SocketTimeoutException) {
+                throw new QueryException("Connection timed out", -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), qex);
+            } else {
+                throw qex;
+            }
         }
     }
 
+    @Override
+    public void releasePrepareStatement(String sql, int statementId) throws QueryException {
+        if (log.isDebugEnabled()) log.debug("Closing prepared statement "+statementId);
+        lock.writeLock().lock();
+        try {
+            if (jdbcUrl.getOptions().cachePrepStmts) {
+                if (prepareStatementCache.containsKey(sql)) {
+                    PrepareResult pr = prepareStatementCache.get(sql);
+                    pr.removeUse();
+                    if (!pr.hasToBeClose()) {
+                        log.debug("closing aborded, prepared statement used in another statement");
+                        return;
+                    }
+                    prepareStatementCache.remove(sql);
+                }
+            }
+            final SendClosePrepareStatementPacket packet = new SendClosePrepareStatementPacket(statementId);
+            try {
+                    packet.send(writer);
+            } catch (IOException e) {
+                throw new QueryException("Could not send query: " + e.getMessage(), -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), e);
+            }
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
 
     /**
      * cancels the current query - clones the current protocol and executes a query using the new connection
@@ -1084,7 +1158,7 @@ public class MySQLProtocol implements Protocol {
      */
     @Override
     public  void cancelCurrentQuery() throws QueryException, IOException {
-        MySQLProtocol copiedProtocol = new MySQLProtocol(jdbcUrl, null);
+        MySQLProtocol copiedProtocol = new MySQLProtocol(jdbcUrl, new ReentrantReadWriteLock());
         copiedProtocol.setHostAddress(getHostAddress());
         copiedProtocol.connect();
         //no lock, because there is already a query running that possessed the lock.
@@ -1096,7 +1170,7 @@ public class MySQLProtocol implements Protocol {
     public QueryResult getMoreResults(boolean streaming) throws QueryException {
         if(!moreResults)
             return null;
-        return getResult(null, streaming);
+        return getResult(null, streaming, (activeResult!=null)?activeResult.isBinaryProtocol():false);
     }
 
     public static String hexdump(byte[] buffer, int offset) {
@@ -1304,4 +1378,7 @@ public class MySQLProtocol implements Protocol {
         return explicitClosed;
     }
 
+    public PrepareStatementCache prepareStatementCache() {
+        return prepareStatementCache;
+    }
 }

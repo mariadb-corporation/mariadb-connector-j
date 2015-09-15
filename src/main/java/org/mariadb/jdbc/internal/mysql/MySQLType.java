@@ -120,6 +120,24 @@ public enum MySQLType {
         return className;
     }
 
+    public static boolean isNumeric(MySQLType t) {
+        switch (t) {
+            case OLDDECIMAL:
+            case TINYINT:
+            case SMALLINT:
+            case INTEGER:
+            case FLOAT:
+            case DOUBLE:
+            case BIGINT:
+            case MEDIUMINT:
+            case BIT:
+            case DECIMAL:
+                return true;
+            default:
+                return false;
+        }
+    }
+
     public static String getClassName(MySQLType t, int len, boolean signed, boolean binary, int flags) {
         switch(t) {
             case TINYINT:
@@ -139,7 +157,7 @@ public enum MySQLType {
             case STRING:
             case VARCHAR:
             case VARSTRING:
-                 return binary?  "[B" : String.class.getName();
+                return binary?  "[B" : String.class.getName();
             default:
             	break;
         }
@@ -175,12 +193,10 @@ public enum MySQLType {
                  }
              case VARSTRING:
              case VARCHAR:
-                 if (binary)
-                     return "VARBINARY";
+                 if (binary) return "VARBINARY";
                  return "VARCHAR";
              case STRING :
-                 if (binary)
-                     return "BINARY";
+                 if (binary) return "BINARY";
                  return "CHAR";
              default:
                  return t.getTypeName();

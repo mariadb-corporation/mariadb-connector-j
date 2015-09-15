@@ -49,13 +49,16 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.common.query.parameters;
 
+import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
+import org.mariadb.jdbc.internal.common.packet.buffer.WriteBuffer;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Calendar;
 import java.util.Date;
+import org.mariadb.jdbc.internal.mysql.MySQLType;
 
-
-public class DateParameter extends ParameterHolder {
+public class DateParameter extends NotLongDataParameterHolder {
     Date date;
     Calendar calendar;
 
@@ -73,7 +76,22 @@ public class DateParameter extends ParameterHolder {
        this.calendar = cal;
     }
 
+
     public void writeTo(OutputStream os) throws IOException {
         ParameterWriter.writeDate(os, date, calendar);
     }
+
+    public void writeBinary(PacketOutputStream writeBuffer) {
+        calendar.setTime(date);
+        writeBuffer.writeDateLength(calendar);
+    }
+
+    public void writeToLittleEndian(final OutputStream os) throws IOException {
+
+    }
+
+    public MySQLType getMySQLType() {
+        return MySQLType.DATE;
+    }
+
 }

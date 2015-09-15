@@ -85,6 +85,9 @@ public class Options {
     public boolean dumpQueriesOnException;
     public boolean useOldAliasMetadataBehavior;
     public boolean allowLocalInfile;
+    public boolean cachePrepStmts;
+    public Integer prepStmtCacheSize;
+    public Integer prepStmtCacheSqlLimit;
 
     //HA options
     public boolean autoReconnect;
@@ -131,6 +134,9 @@ public class Options {
                 ", dumpQueriesOnException=" + dumpQueriesOnException +
                 ", useOldAliasMetadataBehavior=" + useOldAliasMetadataBehavior +
                 ", allowLocalInfile=" + allowLocalInfile +
+                ", cachePrepStmts=" + cachePrepStmts +
+                ", prepStmtCacheSize=" + prepStmtCacheSize +
+                ", prepStmtCacheSqlLimit=" + prepStmtCacheSqlLimit +
                 ", autoReconnect=" + autoReconnect +
                 ", failOnReadOnly=" + failOnReadOnly +
                 ", secondsBeforeRetryMaster=" + secondsBeforeRetryMaster +

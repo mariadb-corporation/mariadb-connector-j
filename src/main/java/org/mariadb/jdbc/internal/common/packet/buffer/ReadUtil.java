@@ -1,4 +1,4 @@
- /*
+/*
 MariaDB Client for Java
 
 Copyright (c) 2012 Monty Program Ab.
@@ -56,7 +56,6 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 
 
-
 public final class ReadUtil {
     private ReadUtil() {
 
@@ -71,17 +70,17 @@ public final class ReadUtil {
      * @param off    offset in the buffer
      * @param len    bytes to read
      * @throws java.io.IOException if an error occurs while reading the stream.
-     * java.io.EOFException of end of stream is hit.
+     *                             java.io.EOFException of end of stream is hit.
      */
-    public static void readFully(InputStream stream, byte[] b , int off, int len) throws IOException{
+    public static void readFully(InputStream stream, byte[] b, int off, int len) throws IOException {
         if (len < 0) {
             throw new AssertionError("len < 0");
         }
         int remaining = len;
-        while(remaining > 0) {
-            int count =  stream.read(b, off, remaining);
+        while (remaining > 0) {
+            int count = stream.read(b, off, remaining);
             if (count <= 0) {
-                throw new EOFException("unexpected end of stream, read "+ (len - remaining) + " bytes from "+ len);
+                throw new EOFException("unexpected end of stream, read " + (len - remaining) + " bytes from " + len);
             }
             remaining -= count;
             off += count;
@@ -89,21 +88,22 @@ public final class ReadUtil {
     }
 
     public static void readFully(InputStream stream, byte[] b) throws IOException {
-        readFully(stream, b, 0 , b.length);
+        readFully(stream, b, 0, b.length);
     }
 
     /**
-     * Checks whether the next packet is EOF. 
+     * Checks whether the next packet is EOF.
+     *
      * @param rawPacket the raw packet
      * @return true if the packet is an EOF packet
      */
     public static boolean eofIsNext(final RawPacket rawPacket) {
         final ByteBuffer buf = rawPacket.getByteBuffer();
-        return (buf.get(0) == (byte)0xfe && buf.capacity() < 9);
+        return (buf.get(0) == (byte) 0xfe && buf.capacity() < 9);
 
     }
 
     public static boolean isErrorPacket(RawPacket rawPacket) {
-        return rawPacket.getByteBuffer().get(0) == (byte)0xff;
+        return rawPacket.getByteBuffer().get(0) == (byte) 0xff;
     }
 }

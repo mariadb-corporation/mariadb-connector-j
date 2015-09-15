@@ -47,44 +47,31 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-
 package org.mariadb.jdbc.internal.common.query.parameters;
-
 
 import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
 import org.mariadb.jdbc.internal.common.packet.buffer.WriteBuffer;
-import org.mariadb.jdbc.internal.mysql.*;
 import org.mariadb.jdbc.internal.mysql.MySQLType;
-
 import java.io.IOException;
 import java.io.OutputStream;
-import java.sql.Time;
-import java.util.Calendar;
 
 
-public class TimeParameter extends NotLongDataParameterHolder {
-    Time time;
-    Calendar calendar;
-    boolean fractionalSeconds;
+public class ByteParameter extends NotLongDataParameterHolder {
+    byte value;
 
-    public TimeParameter(Time time, Calendar cal, boolean fractionalSeconds) {
-        this.time = time;
-        this.calendar = cal;
-        this.fractionalSeconds = fractionalSeconds;
+    public ByteParameter(byte value) {
+        this.value = value;
     }
 
     public void writeTo(final OutputStream os) throws IOException {
-        ParameterWriter.writeTime(os, time, calendar, fractionalSeconds);
+        os.write(String.valueOf(value).getBytes());
     }
 
     public void writeBinary(PacketOutputStream writeBuffer) {
-        calendar.setTime(time);
-        writeBuffer.writeTimeLength(calendar, fractionalSeconds);
+        writeBuffer.writeByte(value);
     }
 
     public MySQLType getMySQLType() {
-        return MySQLType.TIME;
+        return MySQLType.TINYINT;
     }
-
-
 }

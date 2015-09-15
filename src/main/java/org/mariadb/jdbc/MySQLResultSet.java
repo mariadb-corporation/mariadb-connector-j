@@ -53,7 +53,10 @@ import org.mariadb.jdbc.internal.SQLExceptionMapper;
 import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.common.ValueObject;
 import org.mariadb.jdbc.internal.common.queryresults.*;
-import org.mariadb.jdbc.internal.mysql.*;
+import org.mariadb.jdbc.internal.mysql.MySQLColumnInformation;
+import org.mariadb.jdbc.internal.mysql.MySQLType;
+import org.mariadb.jdbc.internal.mysql.MySQLValueObject;
+import org.mariadb.jdbc.internal.mysql.Protocol;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -72,7 +75,7 @@ public class MySQLResultSet implements ResultSet {
 
     public static final MySQLResultSet EMPTY = createEmptyResultSet();
     private QueryResult queryResult;
-    private Statement statement;
+    private MySQLStatement statement;
     private Protocol protocol;
     private boolean lastGetWasNull;
     private boolean warningsCleared;
@@ -81,7 +84,8 @@ public class MySQLResultSet implements ResultSet {
 
     protected MySQLResultSet() {
     }
-    public MySQLResultSet(QueryResult dqr, Statement statement, Protocol protocol, Calendar cal) {
+
+    public MySQLResultSet(QueryResult dqr, MySQLStatement statement, Protocol protocol, Calendar cal) {
         this.queryResult = dqr;
         this.statement = statement;
         this.protocol = protocol;
@@ -96,20 +100,44 @@ public class MySQLResultSet implements ResultSet {
         return new MySQLResultSet(qr, null, null, null);
     }
 
+    private void writeLock() {
+        if (statement != null) statement.stLock.writeLock().lock();
+    }
+
+    private void writeUnlock() {
+        if (statement != null) statement.stLock.writeLock().unlock();
+    }
+
+    private void readLock() {
+        if (statement != null) statement.stLock.readLock().lock();
+    }
+
+    private void readUnlock() {
+        if (statement != null) statement.stLock.readLock().unlock();
+    }
+
     public boolean next() throws SQLException {
+        writeLock();
         try {
             return queryResult.getResultSetType() == ResultSetType.SELECT
-                && ((SelectQueryResult) queryResult).next();
-        } catch(IOException ioe) {
+                    && ((SelectQueryResult) queryResult).next();
+        } catch (IOException ioe) {
             throw new SQLException(ioe);
         } catch (QueryException qe) {
             throw new SQLException(qe);
+        } finally {
+            writeUnlock();
         }
     }
 
     public void close() throws SQLException {
         if (this.queryResult != null) {
-            this.queryResult.close();
+            writeLock();
+            try {
+                this.queryResult.close();
+            } finally {
+                writeUnlock();
+            }
         }
     }
 
@@ -119,11 +147,16 @@ public class MySQLResultSet implements ResultSet {
      * the value read was SQL <code>NULL</code>.
      *
      * @return <code>true</code> if the last column value read was SQL <code>NULL</code> and <code>false</code>
-     *         otherwise
+     * otherwise
      * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed result set
      */
     public boolean wasNull() throws SQLException {
-        return lastGetWasNull;
+        readLock();
+        try {
+            return lastGetWasNull;
+        } finally {
+            readUnlock();
+        }
     }
 
 
@@ -142,12 +175,17 @@ public class MySQLResultSet implements ResultSet {
     private ValueObject getValueObject(int i) throws SQLException {
         if (queryResult.getResultSetType() == ResultSetType.SELECT) {
             ValueObject vo;
+            writeLock();
             try {
-                vo = ((SelectQueryResult) queryResult).getValueObject(i - 1);
-            } catch (NoSuchColumnException e) {
-                throw SQLExceptionMapper.getSQLException(e.getMessage(), e);
+                try {
+                    vo = ((SelectQueryResult) queryResult).getValueObject(i - 1);
+                } catch (NoSuchColumnException e) {
+                    throw SQLExceptionMapper.getSQLException(e.getMessage(), e);
+                }
+                this.lastGetWasNull = vo.isNull();
+            } finally {
+                writeUnlock();
             }
-            this.lastGetWasNull = vo.isNull();
             return vo;
         }
         throw SQLExceptionMapper.getSQLException("Cannot get data from update-result sets");
@@ -203,14 +241,13 @@ public class MySQLResultSet implements ResultSet {
      *                    specified, then the label is the name of the column
      * @param scale       the number of digits to the right of the decimal point
      * @return the column value; if the value is SQL <code>NULL</code>, the value returned is <code>null</code>
-     * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs or this method
-     *                               is called on a closed result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if a database access error occurs or this method
+     *                                                  is called on a closed result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @deprecated
      */
     public BigDecimal getBigDecimal(String columnLabel, int scale) throws SQLException {
-        return getBigDecimal(findColumn(columnLabel),scale);
+        return getBigDecimal(findColumn(columnLabel), scale);
     }
 
     /**
@@ -271,19 +308,19 @@ public class MySQLResultSet implements ResultSet {
     }
 
     /**
-     * Retrieves the value of the designated column in the current row of this <code>ResultSet</code> object as a stream
+     * <p>Retrieves the value of the designated column in the current row of this <code>ResultSet</code> object as a stream
      * of ASCII characters. The value can then be read in chunks from the stream. This method is particularly suitable
      * for retrieving large <code>LONGVARCHAR</code> values. The JDBC driver will do any necessary conversion from the
-     * database format into ASCII.
-     * 
-     * <b>Note:</b> All the data in the returned stream must be read prior to getting the value of any other column.
+     * database format into ASCII.</p>
+     *
+     * <p><b>Note:</b> All the data in the returned stream must be read prior to getting the value of any other column.
      * The next call to a getter method implicitly closes the stream. Also, a stream may return <code>0</code> when the
-     * method <code>available</code> is called whether there is data available or not.
-     * 
+     * method <code>available</code> is called whether there is data available or not.</p>
+     *
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @return a Java input stream that delivers the database column value as a stream of one-byte ASCII characters. If
-     *         the value is SQL <code>NULL</code>, the value returned is <code>null</code>.
+     * the value is SQL <code>NULL</code>, the value returned is <code>null</code>.
      * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs or this method
      *                               is called on a closed result set
      */
@@ -293,27 +330,26 @@ public class MySQLResultSet implements ResultSet {
     }
 
     /**
+     * <p>
      * Retrieves the value of the designated column in the current row of this <code>ResultSet</code> object as a stream
      * of two-byte Unicode characters. The first byte is the high byte; the second byte is the low byte.
-     * 
-     * The value can then be read in chunks from the stream. This method is particularly suitable for retrieving large
+     * </p>
+     * <p>The value can then be read in chunks from the stream. This method is particularly suitable for retrieving large
      * <code>LONGVARCHAR</code> values. The JDBC technology-enabled driver will do any necessary conversion from the
      * database format into Unicode.
-     * 
-     * 
+     * </p>
+     * <p>
      * <b>Note:</b> All the data in the returned stream must be read prior to getting the value of any other column.
      * The next call to a getter method implicitly closes the stream. Also, a stream may return <code>0</code> when the
      * method <code>InputStream.available</code> is called, whether there is data available or not.
-     * 
-     *
+     * </p>
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @return a Java input stream that delivers the database column value as a stream of two-byte Unicode characters.
-     *         If the value is SQL <code>NULL</code>, the value returned is <code>null</code>.
-     * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs or this method
-     *                               is called on a closed result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * If the value is SQL <code>NULL</code>, the value returned is <code>null</code>.
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if a database access error occurs or this method
+     *                                                  is called on a closed result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @deprecated use <code>getCharacterStream</code> instead
      */
     public InputStream getUnicodeStream(String columnLabel) throws SQLException {
@@ -321,40 +357,41 @@ public class MySQLResultSet implements ResultSet {
     }
 
     /**
+     * <p>
      * Retrieves the value of the designated column in the current row of this <code>ResultSet</code> object as a stream
      * of uninterpreted <code>byte</code>s. The value can then be read in chunks from the stream. This method is
      * particularly suitable for retrieving large <code>LONGVARBINARY</code> values.
-     * 
+     * </p>
      * <b>Note:</b> All the data in the returned stream must be read prior to getting the value of any other column.
      * The next call to a getter method implicitly closes the stream. Also, a stream may return <code>0</code> when the
      * method <code>available</code> is called whether there is data available or not.
-     * 
      *
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @return a Java input stream that delivers the database column value as a stream of uninterpreted bytes; if the
-     *         value is SQL <code>NULL</code>, the result is <code>null</code>
+     * value is SQL <code>NULL</code>, the result is <code>null</code>
      * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs or this method
      *                               is called on a closed result set
      */
     public InputStream getBinaryStream(String columnLabel) throws SQLException {
-       return getBinaryStream(findColumn(columnLabel));
+        return getBinaryStream(findColumn(columnLabel));
     }
 
     /**
+     * <p>
      * Retrieves the first warning reported by calls on this <code>ResultSet</code> object. Subsequent warnings on this
      * <code>ResultSet</code> object will be chained to the <code>SQLWarning</code> object that this method returns.
-     * 
+     * </p>
+     * <p>
      * The warning chain is automatically cleared each time a new row is read.  This method may not be called on a
      * <code>ResultSet</code> object that has been closed; doing so will cause an <code>SQLException</code> to be
      * thrown.
-     * 
-     * 
+     * </p>
+     * <p>
      * <b>Note:</b> This warning chain only covers warnings caused by <code>ResultSet</code> methods.  Any warning
      * caused by <code>Statement</code> methods (such as reading OUT parameters) will be chained on the
      * <code>Statement</code> object.
-     * 
-     *
+     * </p>
      * @return the first <code>SQLWarning</code> object reported or <code>null</code> if there are none
      * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed result set
      */
@@ -377,20 +414,19 @@ public class MySQLResultSet implements ResultSet {
 
     /**
      * Retrieves the name of the SQL cursor used by this <code>ResultSet</code> object.
-     * 
+     *
      * In SQL, a result table is retrieved through a cursor that is named. The current row of a result set can be
      * updated or deleted using a positioned update/delete statement that references the cursor name. To insure that the
      * cursor has the proper isolation level to support update, the cursor's <code>SELECT</code> statement should be of
      * the form <code>SELECT FOR UPDATE</code>. If <code>FOR UPDATE</code> is omitted, the positioned updates may fail.
-     * 
+     *
      * The JDBC API supports this SQL feature by providing the name of the SQL cursor used by a
      * <code>ResultSet</code> object. The current row of a <code>ResultSet</code> object is also the current row of this
      * SQL cursor.
      *
      * @return the SQL name for this <code>ResultSet</code> object's cursor
-     * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if a database access error occurs or this method is called on a closed result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      */
     public String getCursorName() throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Cursors not supported");
@@ -407,30 +443,31 @@ public class MySQLResultSet implements ResultSet {
     }
 
     /**
-     * Gets the value of the designated column in the current row of this <code>ResultSet</code> object as an
+     * <p>Gets the value of the designated column in the current row of this <code>ResultSet</code> object as an
      * <code>Object</code> in the Java programming language.
-     * 
+     * </p>
+     * <p>
      * This method will return the value of the given column as a Java object.  The type of the Java object will be
      * the default Java object type corresponding to the column's SQL type, following the mapping for built-in types
      * specified in the JDBC specification. If the value is an SQL <code>NULL</code>, the driver returns a Java
      * <code>null</code>.
-     * 
-     * 
+     * </p>
+     * <p>
      * This method may also be used to read database-specific abstract data types.
-     * 
+     * </p>
+     * <p>
      * In the JDBC 2.0 API, the behavior of method <code>getObject</code> is extended to materialize data of SQL
      * user-defined types.
-     * 
-     * 
+     * </p>
+     * <p>
      * If <code>Connection.getTypeMap</code> does not throw a <code>SQLFeatureNotSupportedException</code>, then when a
      * column contains a structured or distinct value, the behavior of this method is as if it were a call to:
      * <code>getObject(columnIndex, this.getStatement().getConnection().getTypeMap())</code>.
-     * 
-     * If <code>Connection.getTypeMap</code> does throw a <code>SQLFeatureNotSupportedException</code>, then structured
+     * </p>
+     * <p>If <code>Connection.getTypeMap</code> does throw a <code>SQLFeatureNotSupportedException</code>, then structured
      * values are not supported, and distinct values are mapped to the default Java class as determined by the
      * underlying SQL type of the DISTINCT type.
-     * 
-     *
+     * </p>
      * @param columnIndex the first column is 1, the second is 2, ...
      * @return a <code>java.lang.Object</code> holding the column value
      * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs or this method
@@ -445,22 +482,24 @@ public class MySQLResultSet implements ResultSet {
     }
 
     /**
+     * <p>
      * Gets the value of the designated column in the current row of this <code>ResultSet</code> object as an
      * <code>Object</code> in the Java programming language.
-     * 
+     * </p>
+     * <p>
      * This method will return the value of the given column as a Java object.  The type of the Java object will be
      * the default Java object type corresponding to the column's SQL type, following the mapping for built-in types
      * specified in the JDBC specification. If the value is an SQL <code>NULL</code>, the driver returns a Java
      * <code>null</code>.
-     * 
-     * This method may also be used to read database-specific abstract data types.
-     * 
-     * 
+     * </p>
+     *
+     * <p>This method may also be used to read database-specific abstract data types.
+     * </p>
+     * <p>
      * In the JDBC 2.0 API, the behavior of the method <code>getObject</code> is extended to materialize data of SQL
      * user-defined types.  When a column contains a structured or distinct value, the behavior of this method is as if
      * it were a call to: <code>getObject(columnIndex, this.getStatement().getConnection().getTypeMap())</code>.
-     * 
-     *
+     * </p>
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @return a <code>java.lang.Object</code> holding the column value
@@ -483,7 +522,7 @@ public class MySQLResultSet implements ResultSet {
      */
     public int findColumn(String columnLabel) throws SQLException {
         if (this.queryResult.getResultSetType() == ResultSetType.SELECT) {
-             return columnNameMap.getIndex(columnLabel) +1;
+            return columnNameMap.getIndex(columnLabel) + 1;
         }
         throw SQLExceptionMapper.getSQLException("Cannot get column id of update result sets");
     }
@@ -494,7 +533,7 @@ public class MySQLResultSet implements ResultSet {
      *
      * @param columnIndex the first column is 1, the second is 2, ...
      * @return a <code>java.io.Reader</code> object that contains the column value; if the value is SQL
-     *         <code>NULL</code>, the value returned is <code>null</code> in the Java programming language.
+     * <code>NULL</code>, the value returned is <code>null</code> in the Java programming language.
      * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs or this method
      *                               is called on a closed result set
      * @since 1.2
@@ -513,7 +552,7 @@ public class MySQLResultSet implements ResultSet {
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @return a <code>java.io.Reader</code> object that contains the column value; if the value is SQL
-     *         <code>NULL</code>, the value returned is <code>null</code> in the Java programming language
+     * <code>NULL</code>, the value returned is <code>null</code> in the Java programming language
      * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs or this method
      *                               is called on a closed result set
      * @since 1.2
@@ -528,7 +567,7 @@ public class MySQLResultSet implements ResultSet {
      *
      * @param columnIndex the first column is 1, the second is 2, ...
      * @return the column value (full precision); if the value is SQL <code>NULL</code>, the value returned is
-     *         <code>null</code> in the Java programming language.
+     * <code>null</code> in the Java programming language.
      * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs or this method
      *                               is called on a closed result set
      * @since 1.2
@@ -544,7 +583,7 @@ public class MySQLResultSet implements ResultSet {
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @return the column value (full precision); if the value is SQL <code>NULL</code>, the value returned is
-     *         <code>null</code> in the Java programming language.
+     * <code>null</code> in the Java programming language.
      * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs or this method
      *                               is called on a closed result set
      * @since 1.2
@@ -554,69 +593,63 @@ public class MySQLResultSet implements ResultSet {
     }
 
     /**
-     * Retrieves whether the cursor is before the first row in this <code>ResultSet</code> object.
-     * 
+     * <p>Retrieves whether the cursor is before the first row in this <code>ResultSet</code> object.
+     * </p>
      * <strong>Note:</strong>Support for the <code>isBeforeFirst</code> method is optional for <code>ResultSet</code>
      * with a result set type of <code>TYPE_FORWARD_ONLY</code>
-     * 
      *
      * @return <code>true</code> if the cursor is before the first row; <code>false</code> if the cursor is at any other
-     *         position or the result set contains no rows
-     * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * position or the result set contains no rows
+     * @throws java.sql.SQLException                    if a database access error occurs or this method is called on a closed result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public boolean isBeforeFirst() throws SQLException {
-    	if (isClosed()) {
-    		throw new SQLException("The isBeforeFirst() method cannot be used on a closed ResultSet");
-    	}
-        return (queryResult.getResultSetType() == ResultSetType.SELECT  
+        if (isClosed()) {
+            throw new SQLException("The isBeforeFirst() method cannot be used on a closed ResultSet");
+        }
+        return (queryResult.getResultSetType() == ResultSetType.SELECT
                 && ((SelectQueryResult) queryResult).isBeforeFirst());
     }
 
     /**
-     * Retrieves whether the cursor is after the last row in this <code>ResultSet</code> object.
-     * 
+     * <p>Retrieves whether the cursor is after the last row in this <code>ResultSet</code> object.
+     * </p>
      * <strong>Note:</strong>Support for the <code>isAfterLast</code> method is optional for <code>ResultSet</code>s
      * with a result set type of <code>TYPE_FORWARD_ONLY</code>
-     * 
      *
      * @return <code>true</code> if the cursor is after the last row; <code>false</code> if the cursor is at any other
-     *         position or the result set contains no rows
-     * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * position or the result set contains no rows
+     * @throws java.sql.SQLException                    if a database access error occurs or this method is called on a closed result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public boolean isAfterLast() throws SQLException {
-    	if (isClosed()) {
-    		throw new SQLException("The isAfterLast() method cannot be used on a closed ResultSet");
-    	}
+        if (isClosed()) {
+            throw new SQLException("The isAfterLast() method cannot be used on a closed ResultSet");
+        }
         return queryResult.getResultSetType() == ResultSetType.SELECT
                 && ((SelectQueryResult) queryResult).isAfterLast();
     }
 
     /**
      * Retrieves whether the cursor is on the first row of this <code>ResultSet</code> object.
-     * 
+     *
      * <strong>Note:</strong>Support for the <code>isFirst</code> method is optional for <code>ResultSet</code>s with a
      * result set type of <code>TYPE_FORWARD_ONLY</code>
-     * 
      *
      * @return <code>true</code> if the cursor is on the first row; <code>false</code> otherwise
-     * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if a database access error occurs or this method is called on a closed result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public boolean isFirst() throws SQLException {
-    	if (isClosed()) {
-    		throw new SQLException("The isFirst() method cannot be used on a closed ResultSet");
-    	}
-    	if (queryResult.getRows() == 0) {
-    		return false;
-    	}
+        if (isClosed()) {
+            throw new SQLException("The isFirst() method cannot be used on a closed ResultSet");
+        }
+        if (queryResult.getRows() == 0) {
+            return false;
+        }
         return queryResult.getResultSetType() != ResultSetType.MODIFY
                 && ((SelectQueryResult) queryResult).getRowPointer() == 0;
     }
@@ -625,28 +658,25 @@ public class MySQLResultSet implements ResultSet {
      * Retrieves whether the cursor is on the last row of this <code>ResultSet</code> object. <strong>Note:</strong>
      * Calling the method <code>isLast</code> may be expensive because the JDBC driver might need to fetch ahead one row
      * in order to determine whether the current row is the last row in the result set.
-     * 
+     *
      * <strong>Note:</strong> Support for the <code>isLast</code> method is optional for <code>ResultSet</code>s with a
      * result set type of <code>TYPE_FORWARD_ONLY</code>
-     * 
      *
      * @return <code>true</code> if the cursor is on the last row; <code>false</code> otherwise
-     * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if a database access error occurs or this method is called on a closed result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public boolean isLast() throws SQLException {
-    	if (isClosed()) {
-    		throw new SQLException("The isLast() method cannot be used on a closed ResultSet");
-    	}
-    	if (queryResult.getRows() == 0) {
-    		return false;
-    	}
-        if (queryResult.getResultSetType() == ResultSetType.SELECT)
-        {
+        if (isClosed()) {
+            throw new SQLException("The isLast() method cannot be used on a closed ResultSet");
+        }
+        if (queryResult.getRows() == 0) {
+            return false;
+        }
+        if (queryResult.getResultSetType() == ResultSetType.SELECT) {
             if (queryResult instanceof CachedSelectResult) {
-               return ((SelectQueryResult) queryResult).getRowPointer() == queryResult.getRows() - 1;
+                return ((SelectQueryResult) queryResult).getRowPointer() == queryResult.getRows() - 1;
             }
         }
         throw new SQLFeatureNotSupportedException("isLast is not supported for TYPE_FORWARD_ONLY result sets");
@@ -656,16 +686,15 @@ public class MySQLResultSet implements ResultSet {
      * Moves the cursor to the front of this <code>ResultSet</code> object, just before the first row. This method has
      * no effect if the result set contains no rows.
      *
-     * @throws java.sql.SQLException if a database access error occurs; this method is called on a closed result set or
-     *                               the result set type is <code>TYPE_FORWARD_ONLY</code>
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if a database access error occurs; this method is called on a closed result set or
+     *                                                  the result set type is <code>TYPE_FORWARD_ONLY</code>
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public void beforeFirst() throws SQLException {
         if (queryResult.getResultSetType() == ResultSetType.SELECT) {
             if (!(queryResult instanceof CachedSelectResult)) {
-              throw new SQLException("Invalid operation for result set type TYPE_FORWARD_ONLY");
+                throw new SQLException("Invalid operation for result set type TYPE_FORWARD_ONLY");
             }
             ((SelectQueryResult) queryResult).moveRowPointerTo(-1);
         }
@@ -675,10 +704,9 @@ public class MySQLResultSet implements ResultSet {
      * Moves the cursor to the end of this <code>ResultSet</code> object, just after the last row. This method has no
      * effect if the result set contains no rows.
      *
-     * @throws java.sql.SQLException if a database access error occurs; this method is called on a closed result set or
-     *                               the result set type is <code>TYPE_FORWARD_ONLY</code>
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if a database access error occurs; this method is called on a closed result set or
+     *                                                  the result set type is <code>TYPE_FORWARD_ONLY</code>
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public void afterLast() throws SQLException {
@@ -689,22 +717,21 @@ public class MySQLResultSet implements ResultSet {
      * Moves the cursor to the first row in this <code>ResultSet</code> object.
      *
      * @return <code>true</code> if the cursor is on a valid row; <code>false</code> if there are no rows in the result
-     *         set
-     * @throws java.sql.SQLException if a database access error occurs; this method is called on a closed result set or
-     *                               the result set type is <code>TYPE_FORWARD_ONLY</code>
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * set
+     * @throws java.sql.SQLException                    if a database access error occurs; this method is called on a closed result set or
+     *                                                  the result set type is <code>TYPE_FORWARD_ONLY</code>
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public boolean first() throws SQLException {
-    	if (isClosed()) {
-    		throw new SQLException("Invalid operation on a closed result set");
-    	}
+        if (isClosed()) {
+            throw new SQLException("Invalid operation on a closed result set");
+        }
         if (queryResult.getResultSetType() == ResultSetType.SELECT) {
             if (!(queryResult instanceof CachedSelectResult)) {
-              throw new SQLException("Invalid operation for result set type TYPE_FORWARD_ONLY");
+                throw new SQLException("Invalid operation for result set type TYPE_FORWARD_ONLY");
             }
-             
+
             if (queryResult.getRows() > 0) {
                 ((SelectQueryResult) queryResult).moveRowPointerTo(0);
                 return true;
@@ -717,17 +744,16 @@ public class MySQLResultSet implements ResultSet {
      * Moves the cursor to the last row in this <code>ResultSet</code> object.
      *
      * @return <code>true</code> if the cursor is on a valid row; <code>false</code> if there are no rows in the result
-     *         set
-     * @throws java.sql.SQLException if a database access error occurs; this method is called on a closed result set or
-     *                               the result set type is <code>TYPE_FORWARD_ONLY</code>
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * set
+     * @throws java.sql.SQLException                    if a database access error occurs; this method is called on a closed result set or
+     *                                                  the result set type is <code>TYPE_FORWARD_ONLY</code>
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public boolean last() throws SQLException {
-    	if (isClosed()) {
-    		throw new SQLException("Invalid operation on a closed result set");
-    	}
+        if (isClosed()) {
+            throw new SQLException("Invalid operation on a closed result set");
+        }
         if (queryResult.getResultSetType() == ResultSetType.SELECT && queryResult.getRows() > 0) {
             ((SelectQueryResult) queryResult).moveRowPointerTo(queryResult.getRows() - 1);
             return true;
@@ -737,15 +763,13 @@ public class MySQLResultSet implements ResultSet {
 
     /**
      * Retrieves the current row number.  The first row is number 1, the second number 2, and so on.
-     * 
+     *
      * <strong>Note:</strong>Support for the <code>getRow</code> method is optional for <code>ResultSet</code>s with a
      * result set type of <code>TYPE_FORWARD_ONLY</code>
-     * 
      *
      * @return the current row number; <code>0</code> if there is no current row
-     * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if a database access error occurs or this method is called on a closed result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public int getRow() throws SQLException {
@@ -757,30 +781,28 @@ public class MySQLResultSet implements ResultSet {
 
     /**
      * Moves the cursor to the given row number in this <code>ResultSet</code> object.
-     * 
+     *
      * If the row number is positive, the cursor moves to the given row number with respect to the beginning of the
      * result set.  The first row is row 1, the second is row 2, and so on.
-     * 
+     *
      * If the given row number is negative, the cursor moves to an absolute row position with respect to the end of
      * the result set.  For example, calling the method <code>absolute(-1)</code> positions the cursor on the last row;
      * calling the method <code>absolute(-2)</code> moves the cursor to the next-to-last row, and so on.
-     * 
+     *
      * An attempt to position the cursor beyond the first/last row in the result set leaves the cursor before the
      * first row or after the last row.
-     * 
+     *
      * <B>Note:</B> Calling <code>absolute(1)</code> is the same as calling <code>first()</code>. Calling
      * <code>absolute(-1)</code> is the same as calling <code>last()</code>.
-     * 
      *
      * @param row the number of the row to which the cursor should move. A positive number indicates the row number
      *            counting from the beginning of the result set; a negative number indicates the row number counting
      *            from the end of the result set
      * @return <code>true</code> if the cursor is moved to a position in this <code>ResultSet</code> object;
-     *         <code>false</code> if the cursor is before the first row or after the last row
-     * @throws java.sql.SQLException if a database access error occurs; this method is called on a closed result set or
-     *                               the result set type is <code>TYPE_FORWARD_ONLY</code>
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * <code>false</code> if the cursor is before the first row or after the last row
+     * @throws java.sql.SQLException                    if a database access error occurs; this method is called on a closed result set or
+     *                                                  the result set type is <code>TYPE_FORWARD_ONLY</code>
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public boolean absolute(int row) throws SQLException {
@@ -811,10 +833,9 @@ public class MySQLResultSet implements ResultSet {
      * @param rows an <code>int</code> specifying the number of rows to move from the current row; a positive number
      *             moves the cursor forward; a negative number moves the cursor backward
      * @return <code>true</code> if the cursor is on a row; <code>false</code> otherwise
-     * @throws java.sql.SQLException if a database access error occurs;  this method is called on a closed result set or
-     *                               the result set type is <code>TYPE_FORWARD_ONLY</code>
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if a database access error occurs;  this method is called on a closed result set or
+     *                                                  the result set type is <code>TYPE_FORWARD_ONLY</code>
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public boolean relative(int rows) throws SQLException {
@@ -834,21 +855,19 @@ public class MySQLResultSet implements ResultSet {
 
     /**
      * Moves the cursor to the previous row in this <code>ResultSet</code> object.
-     * 
+     *
      * When a call to the <code>previous</code> method returns <code>false</code>, the cursor is positioned before the
      * first row.  Any invocation of a <code>ResultSet</code> method which requires a current row will result in a
      * <code>SQLException</code> being thrown.
-     * 
+     *
      * If an input stream is open for the current row, a call to the method <code>previous</code> will implicitly close
      * it.  A <code>ResultSet</code> object's warning change is cleared when a new row is read.
-     * 
      *
      * @return <code>true</code> if the cursor is now positioned on a valid row; <code>false</code> if the cursor is
-     *         positioned before the first row
-     * @throws java.sql.SQLException if a database access error occurs; this method is called on a closed result set or
-     *                               the result set type is <code>TYPE_FORWARD_ONLY</code>
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * positioned before the first row
+     * @throws java.sql.SQLException                    if a database access error occurs; this method is called on a closed result set or
+     *                                                  the result set type is <code>TYPE_FORWARD_ONLY</code>
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public boolean previous() throws SQLException {
@@ -931,12 +950,12 @@ public class MySQLResultSet implements ResultSet {
      * object that created the result set.
      *
      * @return <code>ResultSet.TYPE_FORWARD_ONLY</code>, <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or
-     *         <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
      * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed result set
      * @since 1.2
      */
     public int getType() throws SQLException {
-        return (queryResult instanceof StreamingSelectResult)? ResultSet.TYPE_FORWARD_ONLY : ResultSet.TYPE_SCROLL_INSENSITIVE;
+        return (queryResult instanceof StreamingSelectResult) ? ResultSet.TYPE_FORWARD_ONLY : ResultSet.TYPE_SCROLL_INSENSITIVE;
     }
 
     /**
@@ -944,7 +963,7 @@ public class MySQLResultSet implements ResultSet {
      * <code>Statement</code> object that created the result set.
      *
      * @return the concurrency type, either <code>ResultSet.CONCUR_READ_ONLY</code> or
-     *         <code>ResultSet.CONCUR_UPDATABLE</code>
+     * <code>ResultSet.CONCUR_UPDATABLE</code>
      * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed result set
      * @since 1.2
      */
@@ -953,17 +972,16 @@ public class MySQLResultSet implements ResultSet {
     }
 
     /**
-     * Retrieves whether the current row has been updated.  The value returned depends on whether or not the result set
-     * can detect updates.
-     * 
+     * <p>Retrieves whether the current row has been updated.  The value returned depends on whether or not the result set
+     * can detect updates.</p>
+     *
      * <strong>Note:</strong> Support for the <code>rowUpdated</code> method is optional with a result set concurrency
      * of <code>CONCUR_READ_ONLY</code>
-     * 
+     *
      * @return <code>true</code> if the current row is detected to have been visibly updated by the owner or another;
-     *         <code>false</code> otherwise
-     * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * <code>false</code> otherwise
+     * @throws java.sql.SQLException                    if a database access error occurs or this method is called on a closed result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @see java.sql.DatabaseMetaData#updatesAreDetected
      * @since 1.2
      */
@@ -972,17 +990,15 @@ public class MySQLResultSet implements ResultSet {
     }
 
     /**
-     * Retrieves whether the current row has had an insertion. The value returned depends on whether or not this
-     * <code>ResultSet</code> object can detect visible inserts.
-     * 
+     * <p>Retrieves whether the current row has had an insertion. The value returned depends on whether or not this
+     * <code>ResultSet</code> object can detect visible inserts.</p>
+     *
      * <strong>Note:</strong> Support for the <code>rowInserted</code> method is optional with a result set concurrency
      * of <code>CONCUR_READ_ONLY</code>
-     * 
      *
      * @return <code>true</code> if the current row is detected to have been inserted; <code>false</code> otherwise
-     * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if a database access error occurs or this method is called on a closed result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @see java.sql.DatabaseMetaData#insertsAreDetected
      * @since 1.2
      */
@@ -991,19 +1007,17 @@ public class MySQLResultSet implements ResultSet {
     }
 
     /**
-     * Retrieves whether a row has been deleted.  A deleted row may leave a visible "hole" in a result set.  This method
+     * <p>Retrieves whether a row has been deleted.  A deleted row may leave a visible "hole" in a result set.  This method
      * can be used to detect holes in a result set.  The value returned depends on whether or not this
      * <code>ResultSet</code> object can detect deletions.
-     * 
+     * </p>
      * <strong>Note:</strong> Support for the <code>rowDeleted</code> method is optional with a result set concurrency
      * of <code>CONCUR_READ_ONLY</code>
-     * 
      *
      * @return <code>true</code> if the current row is detected to have been deleted by the owner or another;
-     *         <code>false</code> otherwise
-     * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * <code>false</code> otherwise
+     * @throws java.sql.SQLException                    if a database access error occurs or this method is called on a closed result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @see java.sql.DatabaseMetaData#deletesAreDetected
      * @since 1.2
      */
@@ -1012,19 +1026,17 @@ public class MySQLResultSet implements ResultSet {
     }
 
     /**
-     * Updates the designated column with a <code>null</code> value.
-     * 
+     * <p>Updates the designated column with a <code>null</code> value.
+     * </p>
      * The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.
-     * 
      *
      * @param columnIndex the first column is 1, the second is 2, ...
-     * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public void updateNull(int columnIndex) throws SQLException {
@@ -1038,11 +1050,10 @@ public class MySQLResultSet implements ResultSet {
      *
      * @param columnIndex the first column is 1, the second is 2, ...
      * @param x           the new column value
-     * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public void updateBoolean(int columnIndex, boolean x) throws SQLException {
@@ -1056,11 +1067,10 @@ public class MySQLResultSet implements ResultSet {
      *
      * @param columnIndex the first column is 1, the second is 2, ...
      * @param x           the new column value
-     * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public void updateByte(int columnIndex, byte x) throws SQLException {
@@ -1074,11 +1084,10 @@ public class MySQLResultSet implements ResultSet {
      *
      * @param columnIndex the first column is 1, the second is 2, ...
      * @param x           the new column value
-     * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public void updateShort(int columnIndex, short x) throws SQLException {
@@ -1092,11 +1101,10 @@ public class MySQLResultSet implements ResultSet {
      *
      * @param columnIndex the first column is 1, the second is 2, ...
      * @param x           the new column value
-     * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public void updateInt(int columnIndex, int x) throws SQLException {
@@ -1110,11 +1118,10 @@ public class MySQLResultSet implements ResultSet {
      *
      * @param columnIndex the first column is 1, the second is 2, ...
      * @param x           the new column value
-     * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public void updateLong(int columnIndex, long x) throws SQLException {
@@ -1128,11 +1135,10 @@ public class MySQLResultSet implements ResultSet {
      *
      * @param columnIndex the first column is 1, the second is 2, ...
      * @param x           the new column value
-     * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public void updateFloat(int columnIndex, float x) throws SQLException {
@@ -1146,11 +1152,10 @@ public class MySQLResultSet implements ResultSet {
      *
      * @param columnIndex the first column is 1, the second is 2, ...
      * @param x           the new column value
-     * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public void updateDouble(int columnIndex, double x) throws SQLException {
@@ -1165,11 +1170,10 @@ public class MySQLResultSet implements ResultSet {
      *
      * @param columnIndex the first column is 1, the second is 2, ...
      * @param x           the new column value
-     * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public void updateBigDecimal(int columnIndex, BigDecimal x) throws SQLException {
@@ -1183,11 +1187,10 @@ public class MySQLResultSet implements ResultSet {
      *
      * @param columnIndex the first column is 1, the second is 2, ...
      * @param x           the new column value
-     * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public void updateString(int columnIndex, String x) throws SQLException {
@@ -1201,11 +1204,10 @@ public class MySQLResultSet implements ResultSet {
      *
      * @param columnIndex the first column is 1, the second is 2, ...
      * @param x           the new column value
-     * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public void updateBytes(int columnIndex, byte[] x) throws SQLException {
@@ -1219,11 +1221,10 @@ public class MySQLResultSet implements ResultSet {
      *
      * @param columnIndex the first column is 1, the second is 2, ...
      * @param x           the new column value
-     * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public void updateDate(int columnIndex, Date x) throws SQLException {
@@ -1237,11 +1238,10 @@ public class MySQLResultSet implements ResultSet {
      *
      * @param columnIndex the first column is 1, the second is 2, ...
      * @param x           the new column value
-     * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public void updateTime(int columnIndex, Time x) throws SQLException {
@@ -1256,11 +1256,10 @@ public class MySQLResultSet implements ResultSet {
      *
      * @param columnIndex the first column is 1, the second is 2, ...
      * @param x           the new column value
-     * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public void updateTimestamp(int columnIndex, Timestamp x) throws SQLException {
@@ -1276,11 +1275,10 @@ public class MySQLResultSet implements ResultSet {
      * @param columnIndex the first column is 1, the second is 2, ...
      * @param x           the new column value
      * @param length      the length of the stream
-     * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public void updateAsciiStream(int columnIndex, InputStream x, int length) throws SQLException {
@@ -1296,11 +1294,10 @@ public class MySQLResultSet implements ResultSet {
      * @param columnIndex the first column is 1, the second is 2, ...
      * @param x           the new column value
      * @param length      the length of the stream
-     * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public void updateBinaryStream(int columnIndex, InputStream x, int length) throws SQLException {
@@ -1316,11 +1313,10 @@ public class MySQLResultSet implements ResultSet {
      * @param columnIndex the first column is 1, the second is 2, ...
      * @param x           the new column value
      * @param length      the length of the stream
-     * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public void updateCharacterStream(int columnIndex, Reader x, int length) throws SQLException {
@@ -1328,27 +1324,26 @@ public class MySQLResultSet implements ResultSet {
     }
 
     /**
-     * Updates the designated column with an <code>Object</code> value. The updater methods are used to update column
+     * <p>Updates the designated column with an <code>Object</code> value. The updater methods are used to update column
      * values in the current row or the insert row.  The updater methods do not update the underlying database; instead
      * the <code>updateRow</code> or <code>insertRow</code> methods are called to update the database.
-     * 
+     * </p>
+     * <p>
      * If the second argument is an <code>InputStream</code> then the stream must contain the number of bytes specified
      * by scaleOrLength.  If the second argument is a <code>Reader</code> then the reader must contain the number of
      * characters specified by scaleOrLength. If these conditions are not true the driver will generate a
      * <code>SQLException</code> when the statement is executed.
-     * 
-     *
+     * </p>
      * @param columnIndex   the first column is 1, the second is 2, ...
      * @param x             the new column value
      * @param scaleOrLength for an object of <code>java.math.BigDecimal</code> , this is the number of digits after the
      *                      decimal point. For Java Object types <code>InputStream</code> and <code>Reader</code>, this
      *                      is the length of the data in the stream or reader.  For all other types, this value will be
      *                      ignored.
-     * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public void updateObject(int columnIndex, Object x, int scaleOrLength) throws SQLException {
@@ -1362,11 +1357,10 @@ public class MySQLResultSet implements ResultSet {
      *
      * @param columnIndex the first column is 1, the second is 2, ...
      * @param x           the new column value
-     * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public void updateObject(int columnIndex, Object x) throws SQLException {
@@ -1380,11 +1374,10 @@ public class MySQLResultSet implements ResultSet {
      *
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
-     * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public void updateNull(String columnLabel) throws SQLException {
@@ -1399,11 +1392,10 @@ public class MySQLResultSet implements ResultSet {
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @param x           the new column value
-     * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public void updateBoolean(String columnLabel, boolean x) throws SQLException {
@@ -1418,11 +1410,10 @@ public class MySQLResultSet implements ResultSet {
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @param x           the new column value
-     * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public void updateByte(String columnLabel, byte x) throws SQLException {
@@ -1437,11 +1428,10 @@ public class MySQLResultSet implements ResultSet {
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @param x           the new column value
-     * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public void updateShort(String columnLabel, short x) throws SQLException {
@@ -1456,11 +1446,10 @@ public class MySQLResultSet implements ResultSet {
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @param x           the new column value
-     * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public void updateInt(String columnLabel, int x) throws SQLException {
@@ -1475,11 +1464,10 @@ public class MySQLResultSet implements ResultSet {
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @param x           the new column value
-     * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public void updateLong(String columnLabel, long x) throws SQLException {
@@ -1494,11 +1482,10 @@ public class MySQLResultSet implements ResultSet {
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @param x           the new column value
-     * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public void updateFloat(String columnLabel, float x) throws SQLException {
@@ -1513,11 +1500,10 @@ public class MySQLResultSet implements ResultSet {
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @param x           the new column value
-     * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public void updateDouble(String columnLabel, double x) throws SQLException {
@@ -1533,11 +1519,10 @@ public class MySQLResultSet implements ResultSet {
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @param x           the new column value
-     * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public void updateBigDecimal(String columnLabel, BigDecimal x) throws SQLException {
@@ -1552,11 +1537,10 @@ public class MySQLResultSet implements ResultSet {
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @param x           the new column value
-     * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public void updateString(String columnLabel, String x) throws SQLException {
@@ -1564,8 +1548,8 @@ public class MySQLResultSet implements ResultSet {
     }
 
     /**
-     * Updates the designated column with a byte array value.
-     * 
+     * <p>Updates the designated column with a byte array value.</p>
+     *
      * The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.
@@ -1573,11 +1557,10 @@ public class MySQLResultSet implements ResultSet {
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @param x           the new column value
-     * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public void updateBytes(String columnLabel, byte[] x) throws SQLException {
@@ -1592,11 +1575,10 @@ public class MySQLResultSet implements ResultSet {
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @param x           the new column value
-     * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public void updateDate(String columnLabel, Date x) throws SQLException {
@@ -1611,11 +1593,10 @@ public class MySQLResultSet implements ResultSet {
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @param x           the new column value
-     * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public void updateTime(String columnLabel, Time x) throws SQLException {
@@ -1631,11 +1612,10 @@ public class MySQLResultSet implements ResultSet {
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @param x           the new column value
-     * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public void updateTimestamp(String columnLabel, Timestamp x) throws SQLException {
@@ -1652,11 +1632,10 @@ public class MySQLResultSet implements ResultSet {
      *                    specified, then the label is the name of the column
      * @param x           the new column value
      * @param length      the length of the stream
-     * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public void updateAsciiStream(String columnLabel, InputStream x, int length) throws SQLException {
@@ -1673,11 +1652,10 @@ public class MySQLResultSet implements ResultSet {
      *                    specified, then the label is the name of the column
      * @param x           the new column value
      * @param length      the length of the stream
-     * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public void updateBinaryStream(String columnLabel, InputStream x, int length) throws SQLException {
@@ -1694,11 +1672,10 @@ public class MySQLResultSet implements ResultSet {
      *                    specified, then the label is the name of the column
      * @param reader      the <code>java.io.Reader</code> object containing the new column value
      * @param length      the length of the stream
-     * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public void updateCharacterStream(String columnLabel, Reader reader, int length) throws SQLException {
@@ -1706,10 +1683,10 @@ public class MySQLResultSet implements ResultSet {
     }
 
     /**
-     * Updates the designated column with an <code>Object</code> value. The updater methods are used to update column
+     * <p>Updates the designated column with an <code>Object</code> value. The updater methods are used to update column
      * values in the current row or the insert row.  The updater methods do not update the underlying database; instead
      * the <code>updateRow</code> or <code>insertRow</code> methods are called to update the database.
-     * 
+     * </p>
      * If the second argument is an <code>InputStream</code> then the stream must contain the number of bytes specified
      * by scaleOrLength.  If the second argument is a <code>Reader</code> then the reader must contain the number of
      * characters specified by scaleOrLength. If these conditions are not true the driver will generate a
@@ -1722,11 +1699,10 @@ public class MySQLResultSet implements ResultSet {
      *                      decimal point. For Java Object types <code>InputStream</code> and <code>Reader</code>, this
      *                      is the length of the data in the stream or reader.  For all other types, this value will be
      *                      ignored.
-     * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public void updateObject(String columnLabel, Object x, int scaleOrLength) throws SQLException {
@@ -1741,11 +1717,10 @@ public class MySQLResultSet implements ResultSet {
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @param x           the new column value
-     * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public void updateObject(String columnLabel, Object x) throws SQLException {
@@ -1756,12 +1731,11 @@ public class MySQLResultSet implements ResultSet {
      * Inserts the contents of the insert row into this <code>ResultSet</code> object and into the database. The cursor
      * must be on the insert row when this method is called.
      *
-     * @throws java.sql.SQLException if a database access error occurs; the result set concurrency is
-     *                               <code>CONCUR_READ_ONLY</code>, this method is called on a closed result set, if
-     *                               this method is called when the cursor is not on the insert row, or if not all of
-     *                               non-nullable columns in the insert row have been given a non-null value
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if a database access error occurs; the result set concurrency is
+     *                                                  <code>CONCUR_READ_ONLY</code>, this method is called on a closed result set, if
+     *                                                  this method is called when the cursor is not on the insert row, or if not all of
+     *                                                  non-nullable columns in the insert row have been given a non-null value
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public void insertRow() throws SQLException {
@@ -1772,11 +1746,10 @@ public class MySQLResultSet implements ResultSet {
      * Updates the underlying database with the new contents of the current row of this <code>ResultSet</code> object.
      * This method cannot be called when the cursor is on the insert row.
      *
-     * @throws java.sql.SQLException if a database access error occurs; the result set concurrency is
-     *                               <code>CONCUR_READ_ONLY</code>; this method is called on a closed result set or if
-     *                               this method is called when the cursor is on the insert row
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if a database access error occurs; the result set concurrency is
+     *                                                  <code>CONCUR_READ_ONLY</code>; this method is called on a closed result set or if
+     *                                                  this method is called when the cursor is on the insert row
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public void updateRow() throws SQLException {
@@ -1787,11 +1760,10 @@ public class MySQLResultSet implements ResultSet {
      * Deletes the current row from this <code>ResultSet</code> object and from the underlying database.  This method
      * cannot be called when the cursor is on the insert row.
      *
-     * @throws java.sql.SQLException if a database access error occurs; the result set concurrency is
-     *                               <code>CONCUR_READ_ONLY</code>; this method is called on a closed result set or if
-     *                               this method is called when the cursor is on the insert row
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if a database access error occurs; the result set concurrency is
+     *                                                  <code>CONCUR_READ_ONLY</code>; this method is called on a closed result set or if
+     *                                                  this method is called when the cursor is on the insert row
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public void deleteRow() throws SQLException {
@@ -1799,26 +1771,24 @@ public class MySQLResultSet implements ResultSet {
     }
 
     /**
-     * Refreshes the current row with its most recent value in the database.  This method cannot be called when the
-     * cursor is on the insert row.
-     * 
-     * The <code>refreshRow</code> method provides a way for an application to explicitly tell the JDBC driver to
+     * <p>Refreshes the current row with its most recent value in the database.  This method cannot be called when the
+     * cursor is on the insert row.</p>
+     *
+     * <p>The <code>refreshRow</code> method provides a way for an application to explicitly tell the JDBC driver to
      * refetch a row(s) from the database.  An application may want to call <code>refreshRow</code> when caching or
      * prefetching is being done by the JDBC driver to fetch the latest value of a row from the database.  The JDBC
      * driver may actually refresh multiple rows at once if the fetch size is greater than one.
-     * 
+     * </p>
      * All values are refetched subject to the transaction isolation level and cursor sensitivity.  If
      * <code>refreshRow</code> is called after calling an updater method, but before calling the method
      * <code>updateRow</code>, then the updates made to the row are lost.  Calling the method <code>refreshRow</code>
      * frequently will likely slow performance.
-     * 
      *
-     * @throws java.sql.SQLException if a database access error occurs; this method is called on a closed result set;
-     *                               the result set type is <code>TYPE_FORWARD_ONLY</code> or if this method is called
-     *                               when the cursor is on the insert row
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method or this method is not supported for
-     *                               the specified result set type and result set concurrency.
+     * @throws java.sql.SQLException                    if a database access error occurs; this method is called on a closed result set;
+     *                                                  the result set type is <code>TYPE_FORWARD_ONLY</code> or if this method is called
+     *                                                  when the cursor is on the insert row
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method or this method is not supported for
+     *                                                  the specified result set type and result set concurrency.
      * @since 1.2
      */
     public void refreshRow() throws SQLException {
@@ -1831,11 +1801,10 @@ public class MySQLResultSet implements ResultSet {
      * made to a row.  If no updates have been made or <code>updateRow</code> has already been called, this method has
      * no effect.
      *
-     * @throws java.sql.SQLException if a database access error occurs; this method is called on a closed result set;
-     *                               the result set concurrency is <code>CONCUR_READ_ONLY</code> or if this method is
-     *                               called when the cursor is on the insert row
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if a database access error occurs; this method is called on a closed result set;
+     *                                                  the result set concurrency is <code>CONCUR_READ_ONLY</code> or if this method is
+     *                                                  called when the cursor is on the insert row
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public void cancelRowUpdates() throws SQLException {
@@ -1845,19 +1814,17 @@ public class MySQLResultSet implements ResultSet {
     /**
      * Moves the cursor to the insert row.  The current cursor position is remembered while the cursor is positioned on
      * the insert row.
-     * 
+     * <p>
      * The insert row is a special row associated with an updatable result set.  It is essentially a buffer where a new
      * row may be constructed by calling the updater methods prior to inserting the row into the result set.
-     * 
+     * </p>
      * Only the updater, getter, and <code>insertRow</code> methods may be called when the cursor is on the insert row.
      * All of the columns in a result set must be given a value each time this method is called before calling
      * <code>insertRow</code>. An updater method must be called before a getter method can be called on a column value.
-     * 
      *
-     * @throws java.sql.SQLException if a database access error occurs; this method is called on a closed result set or
-     *                               the result set concurrency is <code>CONCUR_READ_ONLY</code>
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if a database access error occurs; this method is called on a closed result set or
+     *                                                  the result set concurrency is <code>CONCUR_READ_ONLY</code>
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public void moveToInsertRow() throws SQLException {
@@ -1868,10 +1835,9 @@ public class MySQLResultSet implements ResultSet {
      * Moves the cursor to the remembered cursor position, usually the current row.  This method has no effect if the
      * cursor is not on the insert row.
      *
-     * @throws java.sql.SQLException if a database access error occurs; this method is called on a closed result set or
-     *                               the result set concurrency is <code>CONCUR_READ_ONLY</code>
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if a database access error occurs; this method is called on a closed result set or
+     *                                                  the result set concurrency is <code>CONCUR_READ_ONLY</code>
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public void moveToCurrentRow() throws SQLException {
@@ -1884,7 +1850,7 @@ public class MySQLResultSet implements ResultSet {
      * <code>null</code>.
      *
      * @return the <code>Statment</code> object that produced this <code>ResultSet</code> object or <code>null</code> if
-     *         the result set was produced some other way
+     * the result set was produced some other way
      * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed result set
      * @since 1.2
      */
@@ -1895,21 +1861,19 @@ public class MySQLResultSet implements ResultSet {
     /**
      * According to the JDBC4 spec, this is only required for UDT's, and since drizzle does not support UDTs, this
      * method ignores the map parameter
-     * 
+     * <p>
      * Retrieves the value of the designated column in the current row of this <code>ResultSet</code> object as an
      * <code>Object</code> in the Java programming language. If the value is an SQL <code>NULL</code>, the driver
      * returns a Java <code>null</code>. This method uses the given <code>Map</code> object for the custom mapping of
      * the SQL structured or distinct type that is being retrieved.
-     * 
-     *
+     * </p>
      * @param columnIndex the first column is 1, the second is 2, ...
      * @param map         a <code>java.util.Map</code> object that contains the mapping from SQL type names to classes
      *                    in the Java programming language
      * @return an <code>Object</code> in the Java programming language representing the SQL value
-     * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs or this method
-     *                               is called on a closed result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if a database access error occurs or this method
+     *                                                  is called on a closed result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public Object getObject(int columnIndex, Map<String, Class<?>> map) throws SQLException {
@@ -1922,10 +1886,9 @@ public class MySQLResultSet implements ResultSet {
      *
      * @param columnIndex the first column is 1, the second is 2, ...
      * @return a <code>Ref</code> object representing an SQL <code>REF</code> value
-     * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs or this method
-     *                               is called on a closed result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if a database access error occurs or this method
+     *                                                  is called on a closed result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public Ref getRef(int columnIndex) throws SQLException {
@@ -1939,10 +1902,9 @@ public class MySQLResultSet implements ResultSet {
      *
      * @param columnIndex the first column is 1, the second is 2, ...
      * @return a <code>Blob</code> object representing the SQL <code>BLOB</code> value in the specified column
-     * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs or this method
-     *                               is called on a closed result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if a database access error occurs or this method
+     *                                                  is called on a closed result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public Blob getBlob(int columnIndex) throws SQLException {
@@ -1958,10 +1920,9 @@ public class MySQLResultSet implements ResultSet {
      *
      * @param columnIndex the first column is 1, the second is 2, ...
      * @return a <code>Clob</code> object representing the SQL <code>CLOB</code> value in the specified column
-     * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs or this method
-     *                               is called on a closed result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if a database access error occurs or this method
+     *                                                  is called on a closed result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public Clob getClob(int columnIndex) throws SQLException {
@@ -1977,10 +1938,9 @@ public class MySQLResultSet implements ResultSet {
      *
      * @param columnIndex the first column is 1, the second is 2, ...
      * @return an <code>Array</code> object representing the SQL <code>ARRAY</code> value in the specified column
-     * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs or this method
-     *                               is called on a closed result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if a database access error occurs or this method
+     *                                                  is called on a closed result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public Array getArray(int columnIndex) throws SQLException {
@@ -1988,9 +1948,9 @@ public class MySQLResultSet implements ResultSet {
     }
 
     /**
-     * According to the JDBC4 spec, this is only required for UDT's, and since drizzle does not support UDTs, this
+     * <p>According to the JDBC4 spec, this is only required for UDT's, and since drizzle does not support UDTs, this
      * method ignores the map parameter
-     * 
+     * </p>
      * Retrieves the value of the designated column in the current row of this <code>ResultSet</code> object as an
      * <code>Object</code> in the Java programming language. If the value is an SQL <code>NULL</code>, the driver
      * returns a Java <code>null</code>. This method uses the specified <code>Map</code> object for custom mapping if
@@ -2001,10 +1961,9 @@ public class MySQLResultSet implements ResultSet {
      * @param map         a <code>java.util.Map</code> object that contains the mapping from SQL type names to classes
      *                    in the Java programming language
      * @return an <code>Object</code> representing the SQL value in the specified column
-     * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs or this method
-     *                               is called on a closed result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if a database access error occurs or this method
+     *                                                  is called on a closed result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public Object getObject(String columnLabel, Map<String, Class<?>> map) throws SQLException {
@@ -2019,10 +1978,9 @@ public class MySQLResultSet implements ResultSet {
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @return a <code>Ref</code> object representing the SQL <code>REF</code> value in the specified column
-     * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs or this method
-     *                               is called on a closed result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if a database access error occurs or this method
+     *                                                  is called on a closed result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public Ref getRef(String columnLabel) throws SQLException {
@@ -2037,14 +1995,13 @@ public class MySQLResultSet implements ResultSet {
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @return a <code>Blob</code> object representing the SQL <code>BLOB</code> value in the specified column
-     * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs or this method
-     *                               is called on a closed result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if a database access error occurs or this method
+     *                                                  is called on a closed result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public Blob getBlob(String columnLabel) throws SQLException {
-       return getBlob(findColumn(columnLabel));
+        return getBlob(findColumn(columnLabel));
     }
 
     /**
@@ -2054,10 +2011,9 @@ public class MySQLResultSet implements ResultSet {
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @return a <code>Clob</code> object representing the SQL <code>CLOB</code> value in the specified column
-     * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs or this method
-     *                               is called on a closed result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if a database access error occurs or this method
+     *                                                  is called on a closed result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public Clob getClob(String columnLabel) throws SQLException {
@@ -2071,10 +2027,9 @@ public class MySQLResultSet implements ResultSet {
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @return an <code>Array</code> object representing the SQL <code>ARRAY</code> value in the specified column
-     * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs or this method
-     *                               is called on a closed result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if a database access error occurs or this method
+     *                                                  is called on a closed result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public Array getArray(String columnLabel) throws SQLException {
@@ -2090,7 +2045,7 @@ public class MySQLResultSet implements ResultSet {
      * @param columnIndex the first column is 1, the second is 2, ...
      * @param cal         the <code>java.util.Calendar</code> object to use in constructing the date
      * @return the column value as a <code>java.sql.Date</code> object; if the value is SQL <code>NULL</code>, the value
-     *         returned is <code>null</code> in the Java programming language
+     * returned is <code>null</code> in the Java programming language
      * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs or this method
      *                               is called on a closed result set
      * @since 1.2
@@ -2113,13 +2068,13 @@ public class MySQLResultSet implements ResultSet {
      *                    specified, then the label is the name of the column
      * @param cal         the <code>java.util.Calendar</code> object to use in constructing the date
      * @return the column value as a <code>java.sql.Date</code> object; if the value is SQL <code>NULL</code>, the value
-     *         returned is <code>null</code> in the Java programming language
+     * returned is <code>null</code> in the Java programming language
      * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs or this method
      *                               is called on a closed result set
      * @since 1.2
      */
     public Date getDate(String columnLabel, Calendar cal) throws SQLException {
-       return getDate(findColumn(columnLabel),cal);
+        return getDate(findColumn(columnLabel), cal);
     }
 
     /**
@@ -2131,7 +2086,7 @@ public class MySQLResultSet implements ResultSet {
      * @param columnIndex the first column is 1, the second is 2, ...
      * @param cal         the <code>java.util.Calendar</code> object to use in constructing the time
      * @return the column value as a <code>java.sql.Time</code> object; if the value is SQL <code>NULL</code>, the value
-     *         returned is <code>null</code> in the Java programming language
+     * returned is <code>null</code> in the Java programming language
      * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs or this method
      *                               is called on a closed result set
      * @since 1.2
@@ -2154,13 +2109,13 @@ public class MySQLResultSet implements ResultSet {
      *                    specified, then the label is the name of the column
      * @param cal         the <code>java.util.Calendar</code> object to use in constructing the time
      * @return the column value as a <code>java.sql.Time</code> object; if the value is SQL <code>NULL</code>, the value
-     *         returned is <code>null</code> in the Java programming language
+     * returned is <code>null</code> in the Java programming language
      * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs or this method
      *                               is called on a closed result set
      * @since 1.2
      */
     public Time getTime(String columnLabel, Calendar cal) throws SQLException {
-        return getTime(findColumn(columnLabel),cal);
+        return getTime(findColumn(columnLabel), cal);
     }
 
     /**
@@ -2172,20 +2127,20 @@ public class MySQLResultSet implements ResultSet {
      * @param columnIndex the first column is 1, the second is 2, ...
      * @param cal         the <code>java.util.Calendar</code> object to use in constructing the timestamp
      * @return the column value as a <code>java.sql.Timestamp</code> object; if the value is SQL <code>NULL</code>, the
-     *         value returned is <code>null</code> in the Java programming language
+     * value returned is <code>null</code> in the Java programming language
      * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs or this method
      *                               is called on a closed result set
      * @since 1.2
      */
     public Timestamp getTimestamp(int columnIndex, Calendar cal) throws SQLException {
         try {
-        	Timestamp result = getValueObject(columnIndex).getTimestamp(cal);
-        	if (result == null) {
-        		return null;
-        	}
+            Timestamp result = getValueObject(columnIndex).getTimestamp(cal);
+            if (result == null) {
+                return null;
+            }
             return new Timestamp(result.getTime());
         } catch (ParseException e) {
-            throw SQLExceptionMapper.getSQLException("Could not parse timestamp",e);
+            throw SQLExceptionMapper.getSQLException("Could not parse timestamp", e);
         }
     }
 
@@ -2199,13 +2154,13 @@ public class MySQLResultSet implements ResultSet {
      *                    specified, then the label is the name of the column
      * @param cal         the <code>java.util.Calendar</code> object to use in constructing the date
      * @return the column value as a <code>java.sql.Timestamp</code> object; if the value is SQL <code>NULL</code>, the
-     *         value returned is <code>null</code> in the Java programming language
+     * value returned is <code>null</code> in the Java programming language
      * @throws java.sql.SQLException if the columnLabel is not valid or if a database access error occurs or this method
      *                               is called on a closed result set
      * @since 1.2
      */
     public Timestamp getTimestamp(String columnLabel, Calendar cal) throws SQLException {
-        return getTimestamp(findColumn(columnLabel),cal);
+        return getTimestamp(findColumn(columnLabel), cal);
     }
 
     /**
@@ -2214,11 +2169,10 @@ public class MySQLResultSet implements ResultSet {
      *
      * @param columnIndex the index of the column 1 is the first, 2 is the second,...
      * @return the column value as a <code>java.net.URL</code> object; if the value is SQL <code>NULL</code>, the value
-     *         returned is <code>null</code> in the Java programming language
-     * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs; this method is
-     *                               called on a closed result set or if a URL is malformed
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * returned is <code>null</code> in the Java programming language
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if a database access error occurs; this method is
+     *                                                  called on a closed result set or if a URL is malformed
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.4
      */
     public URL getURL(int columnIndex) throws SQLException {
@@ -2236,15 +2190,14 @@ public class MySQLResultSet implements ResultSet {
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @return the column value as a <code>java.net.URL</code> object; if the value is SQL <code>NULL</code>, the value
-     *         returned is <code>null</code> in the Java programming language
-     * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs; this method is
-     *                               called on a closed result set or if a URL is malformed
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * returned is <code>null</code> in the Java programming language
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if a database access error occurs; this method is
+     *                                                  called on a closed result set or if a URL is malformed
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.4
      */
     public URL getURL(String columnLabel) throws SQLException {
-       return getURL(findColumn(columnLabel));
+        return getURL(findColumn(columnLabel));
     }
 
     /**
@@ -2254,11 +2207,10 @@ public class MySQLResultSet implements ResultSet {
      *
      * @param columnIndex the first column is 1, the second is 2, ...
      * @param x           the new column value
-     * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.4
      */
     public void updateRef(int columnIndex, Ref x) throws SQLException {
@@ -2273,11 +2225,10 @@ public class MySQLResultSet implements ResultSet {
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @param x           the new column value
-     * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.4
      */
     public void updateRef(String columnLabel, Ref x) throws SQLException {
@@ -2291,11 +2242,10 @@ public class MySQLResultSet implements ResultSet {
      *
      * @param columnIndex the first column is 1, the second is 2, ...
      * @param x           the new column value
-     * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.4
      */
     public void updateBlob(int columnIndex, Blob x) throws SQLException {
@@ -2310,11 +2260,10 @@ public class MySQLResultSet implements ResultSet {
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @param x           the new column value
-     * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.4
      */
     public void updateBlob(String columnLabel, Blob x) throws SQLException {
@@ -2328,11 +2277,10 @@ public class MySQLResultSet implements ResultSet {
      *
      * @param columnIndex the first column is 1, the second is 2, ...
      * @param x           the new column value
-     * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.4
      */
     public void updateClob(int columnIndex, Clob x) throws SQLException {
@@ -2347,11 +2295,10 @@ public class MySQLResultSet implements ResultSet {
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @param x           the new column value
-     * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.4
      */
     public void updateClob(String columnLabel, Clob x) throws SQLException {
@@ -2365,11 +2312,10 @@ public class MySQLResultSet implements ResultSet {
      *
      * @param columnIndex the first column is 1, the second is 2, ...
      * @param x           the new column value
-     * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.4
      */
     public void updateArray(int columnIndex, Array x) throws SQLException {
@@ -2384,11 +2330,10 @@ public class MySQLResultSet implements ResultSet {
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @param x           the new column value
-     * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.4
      */
     public void updateArray(String columnLabel, Array x) throws SQLException {
@@ -2401,10 +2346,9 @@ public class MySQLResultSet implements ResultSet {
      *
      * @param columnIndex the first column is 1, the second 2, ...
      * @return the column value; if the value is a SQL <code>NULL</code> the value returned is <code>null</code>
-     * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs or this method
-     *                               is called on a closed result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if a database access error occurs or this method
+     *                                                  is called on a closed result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.6
      */
     public java.sql.RowId getRowId(int columnIndex) throws SQLException {
@@ -2418,10 +2362,9 @@ public class MySQLResultSet implements ResultSet {
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @return the column value ; if the value is a SQL <code>NULL</code> the value returned is <code>null</code>
-     * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs or this method
-     *                               is called on a closed result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if a database access error occurs or this method
+     *                                                  is called on a closed result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.6
      */
     public java.sql.RowId getRowId(String columnLabel) throws SQLException {
@@ -2435,11 +2378,10 @@ public class MySQLResultSet implements ResultSet {
      *
      * @param columnIndex the first column is 1, the second 2, ...
      * @param x           the column value
-     * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.6
      */
     public void updateRowId(int columnIndex, java.sql.RowId x) throws SQLException {
@@ -2455,11 +2397,10 @@ public class MySQLResultSet implements ResultSet {
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @param x           the column value
-     * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.6
      */
     public void updateRowId(String columnLabel, java.sql.RowId x) throws SQLException {
@@ -2501,12 +2442,11 @@ public class MySQLResultSet implements ResultSet {
      *
      * @param columnIndex the first column is 1, the second 2, ...
      * @param nString     the value for the column to be updated
-     * @throws java.sql.SQLException if the columnIndex is not valid; if the driver does not support national character
-     *                               sets;  if the driver can detect that a data conversion error could occur; this
-     *                               method is called on a closed result set; the result set concurrency is
-     *                               <code>CONCUR_READ_ONLY</code> or if a database access error occurs
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if the driver does not support national character
+     *                                                  sets;  if the driver can detect that a data conversion error could occur; this
+     *                                                  method is called on a closed result set; the result set concurrency is
+     *                                                  <code>CONCUR_READ_ONLY</code> or if a database access error occurs
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.6
      */
     public void updateNString(int columnIndex, String nString) throws SQLException {
@@ -2523,12 +2463,11 @@ public class MySQLResultSet implements ResultSet {
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @param nString     the value for the column to be updated
-     * @throws java.sql.SQLException if the columnLabel is not valid; if the driver does not support national character
-     *                               sets;  if the driver can detect that a data conversion error could occur; this
-     *                               method is called on a closed result set; the result set concurrency is
-     *                               <CODE>CONCUR_READ_ONLY</code> or if a database access error occurs
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if the driver does not support national character
+     *                                                  sets;  if the driver can detect that a data conversion error could occur; this
+     *                                                  method is called on a closed result set; the result set concurrency is
+     *                                                  <CODE>CONCUR_READ_ONLY</code> or if a database access error occurs
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.6
      */
     public void updateNString(String columnLabel, String nString) throws SQLException {
@@ -2542,12 +2481,11 @@ public class MySQLResultSet implements ResultSet {
      *
      * @param columnIndex the first column is 1, the second 2, ...
      * @param nClob       the value for the column to be updated
-     * @throws java.sql.SQLException if the columnIndex is not valid; if the driver does not support national character
-     *                               sets;  if the driver can detect that a data conversion error could occur; this
-     *                               method is called on a closed result set; if a database access error occurs or the
-     *                               result set concurrency is <code>CONCUR_READ_ONLY</code>
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if the driver does not support national character
+     *                                                  sets;  if the driver can detect that a data conversion error could occur; this
+     *                                                  method is called on a closed result set; if a database access error occurs or the
+     *                                                  result set concurrency is <code>CONCUR_READ_ONLY</code>
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.6
      */
     public void updateNClob(int columnIndex, java.sql.NClob nClob) throws SQLException {
@@ -2562,12 +2500,11 @@ public class MySQLResultSet implements ResultSet {
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @param nClob       the value for the column to be updated
-     * @throws java.sql.SQLException if the columnLabel is not valid; if the driver does not support national character
-     *                               sets;  if the driver can detect that a data conversion error could occur; this
-     *                               method is called on a closed result set; if a database access error occurs or the
-     *                               result set concurrency is <code>CONCUR_READ_ONLY</code>
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if the driver does not support national character
+     *                                                  sets;  if the driver can detect that a data conversion error could occur; this
+     *                                                  method is called on a closed result set; if a database access error occurs or the
+     *                                                  result set concurrency is <code>CONCUR_READ_ONLY</code>
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.6
      */
     public void updateNClob(String columnLabel, java.sql.NClob nClob) throws SQLException {
@@ -2580,11 +2517,10 @@ public class MySQLResultSet implements ResultSet {
      *
      * @param columnIndex the first column is 1, the second is 2, ...
      * @return a <code>NClob</code> object representing the SQL <code>NCLOB</code> value in the specified column
-     * @throws java.sql.SQLException if the columnIndex is not valid; if the driver does not support national character
-     *                               sets;  if the driver can detect that a data conversion error could occur; this
-     *                               method is called on a closed result set or if a database access error occurs
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if the driver does not support national character
+     *                                                  sets;  if the driver can detect that a data conversion error could occur; this
+     *                                                  method is called on a closed result set or if a database access error occurs
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.6
      */
     public java.sql.NClob getNClob(int columnIndex) throws SQLException {
@@ -2598,11 +2534,10 @@ public class MySQLResultSet implements ResultSet {
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @return a <code>NClob</code> object representing the SQL <code>NCLOB</code> value in the specified column
-     * @throws java.sql.SQLException if the columnLabel is not valid; if the driver does not support national character
-     *                               sets;  if the driver can detect that a data conversion error could occur; this
-     *                               method is called on a closed result set or if a database access error occurs
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if the driver does not support national character
+     *                                                  sets;  if the driver can detect that a data conversion error could occur; this
+     *                                                  method is called on a closed result set or if a database access error occurs
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.6
      */
     public java.sql.NClob getNClob(String columnLabel) throws SQLException {
@@ -2615,10 +2550,9 @@ public class MySQLResultSet implements ResultSet {
      *
      * @param columnIndex the first column is 1, the second is 2, ...
      * @return a <code>SQLXML</code> object that maps an <code>SQL XML</code> value
-     * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs or this method
-     *                               is called on a closed result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if a database access error occurs or this method
+     *                                                  is called on a closed result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.6
      */
     public java.sql.SQLXML getSQLXML(int columnIndex) throws SQLException {
@@ -2632,10 +2566,9 @@ public class MySQLResultSet implements ResultSet {
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @return a <code>SQLXML</code> object that maps an <code>SQL XML</code> value
-     * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs or this method
-     *                               is called on a closed result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if a database access error occurs or this method
+     *                                                  is called on a closed result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.6
      */
     public java.sql.SQLXML getSQLXML(String columnLabel) throws SQLException {
@@ -2646,19 +2579,17 @@ public class MySQLResultSet implements ResultSet {
      * Updates the designated column with a <code>java.sql.SQLXML</code> value. The updater methods are used to update
      * column values in the current row or the insert row. The updater methods do not update the underlying database;
      * instead the <code>updateRow</code> or <code>insertRow</code> methods are called to update the database.
-     * 
      *
      * @param columnIndex the first column is 1, the second 2, ...
      * @param xmlObject   the value for the column to be updated
-     * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs; this method is
-     *                               called on a closed result set; the <code>java.xml.transform.Result</code>,
-     *                               <code>Writer</code> or <code>OutputStream</code> has not been closed for the
-     *                               <code>SQLXML</code> object; if there is an error processing the XML value or the
-     *                               result set concurrency is <code>CONCUR_READ_ONLY</code>.  The <code>getCause</code>
-     *                               method of the exception may provide a more detailed exception, for example, if the
-     *                               stream does not contain valid XML.
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if a database access error occurs; this method is
+     *                                                  called on a closed result set; the <code>java.xml.transform.Result</code>,
+     *                                                  <code>Writer</code> or <code>OutputStream</code> has not been closed for the
+     *                                                  <code>SQLXML</code> object; if there is an error processing the XML value or the
+     *                                                  result set concurrency is <code>CONCUR_READ_ONLY</code>.  The <code>getCause</code>
+     *                                                  method of the exception may provide a more detailed exception, for example, if the
+     *                                                  stream does not contain valid XML.
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.6
      */
     public void updateSQLXML(int columnIndex, java.sql.SQLXML xmlObject) throws SQLException {
@@ -2669,20 +2600,18 @@ public class MySQLResultSet implements ResultSet {
      * Updates the designated column with a <code>java.sql.SQLXML</code> value. The updater methods are used to update
      * column values in the current row or the insert row. The updater methods do not update the underlying database;
      * instead the <code>updateRow</code> or <code>insertRow</code> methods are called to update the database.
-     * 
      *
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @param xmlObject   the column value
-     * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs; this method is
-     *                               called on a closed result set; the <code>java.xml.transform.Result</code>,
-     *                               <code>Writer</code> or <code>OutputStream</code> has not been closed for the
-     *                               <code>SQLXML</code> object; if there is an error processing the XML value or the
-     *                               result set concurrency is <code>CONCUR_READ_ONLY</code>.  The <code>getCause</code>
-     *                               method of the exception may provide a more detailed exception, for example, if the
-     *                               stream does not contain valid XML.
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if a database access error occurs; this method is
+     *                                                  called on a closed result set; the <code>java.xml.transform.Result</code>,
+     *                                                  <code>Writer</code> or <code>OutputStream</code> has not been closed for the
+     *                                                  <code>SQLXML</code> object; if there is an error processing the XML value or the
+     *                                                  result set concurrency is <code>CONCUR_READ_ONLY</code>.  The <code>getCause</code>
+     *                                                  method of the exception may provide a more detailed exception, for example, if the
+     *                                                  stream does not contain valid XML.
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.6
      */
     public void updateSQLXML(String columnLabel, java.sql.SQLXML xmlObject) throws SQLException {
@@ -2696,10 +2625,9 @@ public class MySQLResultSet implements ResultSet {
      *
      * @param columnIndex the first column is 1, the second is 2, ...
      * @return the column value; if the value is SQL <code>NULL</code>, the value returned is <code>null</code>
-     * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs or this method
-     *                               is called on a closed result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if a database access error occurs or this method
+     *                                                  is called on a closed result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.6
      */
     public String getNString(int columnIndex) throws SQLException {
@@ -2714,10 +2642,9 @@ public class MySQLResultSet implements ResultSet {
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @return the column value; if the value is SQL <code>NULL</code>, the value returned is <code>null</code>
-     * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs or this method
-     *                               is called on a closed result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if a database access error occurs or this method
+     *                                                  is called on a closed result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.6
      */
     public String getNString(String columnLabel) throws SQLException {
@@ -2731,11 +2658,10 @@ public class MySQLResultSet implements ResultSet {
      *
      * @param columnIndex the first column is 1, the second is 2, ...
      * @return a <code>java.io.Reader</code> object that contains the column value; if the value is SQL
-     *         <code>NULL</code>, the value returned is <code>null</code> in the Java programming language.
-     * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs or this method
-     *                               is called on a closed result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * <code>NULL</code>, the value returned is <code>null</code> in the Java programming language.
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if a database access error occurs or this method
+     *                                                  is called on a closed result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.6
      */
     public Reader getNCharacterStream(int columnIndex) throws SQLException {
@@ -2750,11 +2676,10 @@ public class MySQLResultSet implements ResultSet {
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @return a <code>java.io.Reader</code> object that contains the column value; if the value is SQL
-     *         <code>NULL</code>, the value returned is <code>null</code> in the Java programming language
-     * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs or this method
-     *                               is called on a closed result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * <code>NULL</code>, the value returned is <code>null</code> in the Java programming language
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if a database access error occurs or this method
+     *                                                  is called on a closed result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.6
      */
     public Reader getNCharacterStream(String columnLabel) throws SQLException {
@@ -2762,11 +2687,11 @@ public class MySQLResultSet implements ResultSet {
     }
 
     /**
-     * Updates the designated column with a character stream value, which will have the specified number of bytes.   The
+     * <p>Updates the designated column with a character stream value, which will have the specified number of bytes.   The
      * driver does the necessary conversion from Java character format to the national character set in the database. It
      * is intended for use when updating  <code>NCHAR</code>,<code>NVARCHAR</code> and <code>LONGNVARCHAR</code>
-     * columns.
-     * 
+     * columns.</p>
+     *
      * The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.
@@ -2774,11 +2699,10 @@ public class MySQLResultSet implements ResultSet {
      * @param columnIndex the first column is 1, the second is 2, ...
      * @param x           the new column value
      * @param length      the length of the stream
-     * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.6
      */
     public void updateNCharacterStream(int columnIndex, Reader x, long length) throws SQLException {
@@ -2790,7 +2714,7 @@ public class MySQLResultSet implements ResultSet {
      * driver does the necessary conversion from Java character format to the national character set in the database. It
      * is intended for use when updating  <code>NCHAR</code>,<code>NVARCHAR</code> and <code>LONGNVARCHAR</code>
      * columns.
-     * 
+     *
      * The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.
@@ -2799,11 +2723,10 @@ public class MySQLResultSet implements ResultSet {
      *                    specified, then the label is the name of the column
      * @param reader      the <code>java.io.Reader</code> object containing the new column value
      * @param length      the length of the stream
-     * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.6
      */
     public void updateNCharacterStream(String columnLabel, Reader reader, long length) throws SQLException {
@@ -2812,7 +2735,7 @@ public class MySQLResultSet implements ResultSet {
 
     /**
      * Updates the designated column with an ascii stream value, which will have the specified number of bytes.
-     * 
+     *
      * The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.
@@ -2820,11 +2743,10 @@ public class MySQLResultSet implements ResultSet {
      * @param columnIndex the first column is 1, the second is 2, ...
      * @param x           the new column value
      * @param length      the length of the stream
-     * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.6
      */
     public void updateAsciiStream(int columnIndex, InputStream x, long length) throws SQLException {
@@ -2833,7 +2755,7 @@ public class MySQLResultSet implements ResultSet {
 
     /**
      * Updates the designated column with a binary stream value, which will have the specified number of bytes.
-     * 
+     *
      * The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.
@@ -2841,11 +2763,10 @@ public class MySQLResultSet implements ResultSet {
      * @param columnIndex the first column is 1, the second is 2, ...
      * @param x           the new column value
      * @param length      the length of the stream
-     * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.6
      */
     public void updateBinaryStream(int columnIndex, InputStream x, long length) throws SQLException {
@@ -2854,7 +2775,7 @@ public class MySQLResultSet implements ResultSet {
 
     /**
      * Updates the designated column with a character stream value, which will have the specified number of bytes.
-     * 
+     *
      * The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.
@@ -2862,11 +2783,10 @@ public class MySQLResultSet implements ResultSet {
      * @param columnIndex the first column is 1, the second is 2, ...
      * @param x           the new column value
      * @param length      the length of the stream
-     * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.6
      */
     public void updateCharacterStream(int columnIndex, Reader x, long length) throws SQLException {
@@ -2874,8 +2794,8 @@ public class MySQLResultSet implements ResultSet {
     }
 
     /**
-     * Updates the designated column with an ascii stream value, which will have the specified number of bytes.
-     * 
+     * <p>Updates the designated column with an ascii stream value, which will have the specified number of bytes.
+     * </p>
      * The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.
@@ -2884,11 +2804,10 @@ public class MySQLResultSet implements ResultSet {
      *                    specified, then the label is the name of the column
      * @param x           the new column value
      * @param length      the length of the stream
-     * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.6
      */
     public void updateAsciiStream(String columnLabel, InputStream x, long length) throws SQLException {
@@ -2896,8 +2815,8 @@ public class MySQLResultSet implements ResultSet {
     }
 
     /**
-     * Updates the designated column with a binary stream value, which will have the specified number of bytes.
-     * 
+     * <p>Updates the designated column with a binary stream value, which will have the specified number of bytes.
+     * </p>
      * The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.
@@ -2906,11 +2825,10 @@ public class MySQLResultSet implements ResultSet {
      *                    specified, then the label is the name of the column
      * @param x           the new column value
      * @param length      the length of the stream
-     * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.6
      */
     public void updateBinaryStream(String columnLabel, InputStream x, long length) throws SQLException {
@@ -2918,8 +2836,8 @@ public class MySQLResultSet implements ResultSet {
     }
 
     /**
-     * Updates the designated column with a character stream value, which will have the specified number of bytes.
-     * 
+     * <p>Updates the designated column with a character stream value, which will have the specified number of bytes.
+     * </p>
      * The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.
@@ -2928,11 +2846,10 @@ public class MySQLResultSet implements ResultSet {
      *                    specified, then the label is the name of the column
      * @param reader      the <code>java.io.Reader</code> object containing the new column value
      * @param length      the length of the stream
-     * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.6
      */
     public void updateCharacterStream(String columnLabel, Reader reader, long length) throws SQLException {
@@ -2940,9 +2857,9 @@ public class MySQLResultSet implements ResultSet {
     }
 
     /**
-     * Updates the designated column using the given input stream, which will have the specified number of bytes.
-     * 
-     * 
+     * <p>Updates the designated column using the given input stream, which will have the specified number of bytes.
+     * </p>
+     *
      * The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.
@@ -2950,11 +2867,10 @@ public class MySQLResultSet implements ResultSet {
      * @param columnIndex the first column is 1, the second is 2, ...
      * @param inputStream An object that contains the data to set the parameter value to.
      * @param length      the number of bytes in the parameter data.
-     * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.6
      */
     public void updateBlob(int columnIndex, InputStream inputStream, long length) throws SQLException {
@@ -2962,22 +2878,21 @@ public class MySQLResultSet implements ResultSet {
     }
 
     /**
-     * Updates the designated column using the given input stream, which will have the specified number of bytes.
-     * 
-     * 
+     * <p>Updates the designated column using the given input stream, which will have the specified number of bytes.
+     * </p>
+     * <p>
      * The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
-     * called to update the database.
+     * called to update the database.</p>
      *
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @param inputStream An object that contains the data to set the parameter value to.
      * @param length      the number of bytes in the parameter data.
-     * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.6
      */
     public void updateBlob(String columnLabel, InputStream inputStream, long length) throws SQLException {
@@ -2985,24 +2900,23 @@ public class MySQLResultSet implements ResultSet {
     }
 
     /**
-     * Updates the designated column using the given <code>Reader</code> object, which is the given number of characters
+     * <p>Updates the designated column using the given <code>Reader</code> object, which is the given number of characters
      * long. When a very large UNICODE value is input to a <code>LONGVARCHAR</code> parameter, it may be more practical
      * to send it via a <code>java.io.Reader</code> object. The JDBC driver will do any necessary conversion from
-     * UNICODE to the database char format.
-     * 
-     * 
-     * The updater methods are used to update column values in the current row or the insert row.  The updater methods
+     * UNICODE to the database char format.</p>
+     *
+     *
+     * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.
-     *
+     * </p>
      * @param columnIndex the first column is 1, the second is 2, ...
      * @param reader      An object that contains the data to set the parameter value to.
      * @param length      the number of characters in the parameter data.
-     * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.6
      */
     public void updateClob(int columnIndex, Reader reader, long length) throws SQLException {
@@ -3010,25 +2924,23 @@ public class MySQLResultSet implements ResultSet {
     }
 
     /**
-     * Updates the designated column using the given <code>Reader</code> object, which is the given number of characters
+     * <p>Updates the designated column using the given <code>Reader</code> object, which is the given number of characters
      * long. When a very large UNICODE value is input to a <code>LONGVARCHAR</code> parameter, it may be more practical
      * to send it via a <code>java.io.Reader</code> object.  The JDBC driver will do any necessary conversion from
-     * UNICODE to the database char format.
-     * 
-     * 
-     * The updater methods are used to update column values in the current row or the insert row.  The updater methods
+     * UNICODE to the database char format.</p>
+     *
+     * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
-     * called to update the database.
+     * called to update the database.</p>
      *
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @param reader      An object that contains the data to set the parameter value to.
      * @param length      the number of characters in the parameter data.
-     * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.6
      */
     public void updateClob(String columnLabel, Reader reader, long length) throws SQLException {
@@ -3036,25 +2948,23 @@ public class MySQLResultSet implements ResultSet {
     }
 
     /**
-     * Updates the designated column using the given <code>Reader</code> object, which is the given number of characters
+     * <p>Updates the designated column using the given <code>Reader</code> object, which is the given number of characters
      * long. When a very large UNICODE value is input to a <code>LONGVARCHAR</code> parameter, it may be more practical
      * to send it via a <code>java.io.Reader</code> object. The JDBC driver will do any necessary conversion from
-     * UNICODE to the database char format.
-     * 
-     * 
-     * The updater methods are used to update column values in the current row or the insert row.  The updater methods
+     * UNICODE to the database char format.</p>
+     *
+     * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
-     * called to update the database.
+     * called to update the database.</p>
      *
      * @param columnIndex the first column is 1, the second 2, ...
      * @param reader      An object that contains the data to set the parameter value to.
      * @param length      the number of characters in the parameter data.
-     * @throws java.sql.SQLException if the columnIndex is not valid; if the driver does not support national character
-     *                               sets;  if the driver can detect that a data conversion error could occur; this
-     *                               method is called on a closed result set, if a database access error occurs or the
-     *                               result set concurrency is <code>CONCUR_READ_ONLY</code>
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if the driver does not support national character
+     *                                                  sets;  if the driver can detect that a data conversion error could occur; this
+     *                                                  method is called on a closed result set, if a database access error occurs or the
+     *                                                  result set concurrency is <code>CONCUR_READ_ONLY</code>
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.6
      */
     public void updateNClob(int columnIndex, Reader reader, long length) throws SQLException {
@@ -3062,26 +2972,24 @@ public class MySQLResultSet implements ResultSet {
     }
 
     /**
-     * Updates the designated column using the given <code>Reader</code> object, which is the given number of characters
+     * <p>Updates the designated column using the given <code>Reader</code> object, which is the given number of characters
      * long. When a very large UNICODE value is input to a <code>LONGVARCHAR</code> parameter, it may be more practical
      * to send it via a <code>java.io.Reader</code> object. The JDBC driver will do any necessary conversion from
-     * UNICODE to the database char format.
-     * 
-     * 
-     * The updater methods are used to update column values in the current row or the insert row.  The updater methods
+     * UNICODE to the database char format.</p>
+     *
+     * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
-     * called to update the database.
+     * called to update the database.</p>
      *
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @param reader      An object that contains the data to set the parameter value to.
      * @param length      the number of characters in the parameter data.
-     * @throws java.sql.SQLException if the columnLabel is not valid; if the driver does not support national character
-     *                               sets;  if the driver can detect that a data conversion error could occur; this
-     *                               method is called on a closed result set; if a database access error occurs or the
-     *                               result set concurrency is <code>CONCUR_READ_ONLY</code>
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if the driver does not support national character
+     *                                                  sets;  if the driver can detect that a data conversion error could occur; this
+     *                                                  method is called on a closed result set; if a database access error occurs or the
+     *                                                  result set concurrency is <code>CONCUR_READ_ONLY</code>
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.6
      */
     public void updateNClob(String columnLabel, Reader reader, long length) throws SQLException {
@@ -3089,25 +2997,24 @@ public class MySQLResultSet implements ResultSet {
     }
 
     /**
-     * Updates the designated column with a character stream value. The data will be read from the stream as needed
+     * <p>Updates the designated column with a character stream value. The data will be read from the stream as needed
      * until end-of-stream is reached.  The driver does the necessary conversion from Java character format to the
      * national character set in the database. It is intended for use when updating
-     * <code>NCHAR</code>,<code>NVARCHAR</code> and <code>LONGNVARCHAR</code> columns.
-     * 
-     * The updater methods are used to update column values in the current row or the insert row.  The updater methods
+     * <code>NCHAR</code>,<code>NVARCHAR</code> and <code>LONGNVARCHAR</code> columns.</p>
+     *
+     * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
-     * called to update the database.
-     * 
-     * <B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
-     * version of <code>updateNCharacterStream</code> which takes a length parameter.
+     * called to update the database.</p>
+     *
+     * <p><B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
+     * version of <code>updateNCharacterStream</code> which takes a length parameter.</p>
      *
      * @param columnIndex the first column is 1, the second is 2, ...
      * @param x           the new column value
-     * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.6
      */
     public void updateNCharacterStream(int columnIndex, Reader x) throws SQLException {
@@ -3115,26 +3022,25 @@ public class MySQLResultSet implements ResultSet {
     }
 
     /**
-     * Updates the designated column with a character stream value. The data will be read from the stream as needed
+     * <p>Updates the designated column with a character stream value. The data will be read from the stream as needed
      * until end-of-stream is reached.  The driver does the necessary conversion from Java character format to the
      * national character set in the database. It is intended for use when updating
-     * <code>NCHAR</code>,<code>NVARCHAR</code> and <code>LONGNVARCHAR</code> columns.
-     * 
-     * The updater methods are used to update column values in the current row or the insert row.  The updater methods
+     * <code>NCHAR</code>,<code>NVARCHAR</code> and <code>LONGNVARCHAR</code> columns.</p>
+     *
+     * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
-     * called to update the database.
-     * 
-     * <B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
-     * version of <code>updateNCharacterStream</code> which takes a length parameter.
+     * called to update the database.</p>
+     *
+     * <p><B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
+     * version of <code>updateNCharacterStream</code> which takes a length parameter.</p>
      *
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @param reader      the <code>java.io.Reader</code> object containing the new column value
-     * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.6
      */
     public void updateNCharacterStream(String columnLabel, Reader reader) throws SQLException {
@@ -3142,23 +3048,22 @@ public class MySQLResultSet implements ResultSet {
     }
 
     /**
-     * Updates the designated column with an ascii stream value. The data will be read from the stream as needed until
-     * end-of-stream is reached.
-     * 
-     * The updater methods are used to update column values in the current row or the insert row.  The updater methods
+     * <p>Updates the designated column with an ascii stream value. The data will be read from the stream as needed until
+     * end-of-stream is reached.</p>
+     *
+     * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
-     * called to update the database.
-     * 
-     * <B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
-     * version of <code>updateAsciiStream</code> which takes a length parameter.
+     * called to update the database.</p>
+     *
+     * <p><B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
+     * version of <code>updateAsciiStream</code> which takes a length parameter.</p>
      *
      * @param columnIndex the first column is 1, the second is 2, ...
      * @param x           the new column value
-     * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.6
      */
     public void updateAsciiStream(int columnIndex, InputStream x) throws SQLException {
@@ -3166,23 +3071,22 @@ public class MySQLResultSet implements ResultSet {
     }
 
     /**
-     * Updates the designated column with a binary stream value. The data will be read from the stream as needed until
-     * end-of-stream is reached.
-     * 
-     * The updater methods are used to update column values in the current row or the insert row.  The updater methods
+     * <p>Updates the designated column with a binary stream value. The data will be read from the stream as needed until
+     * end-of-stream is reached.</p>
+     *
+     * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
-     * called to update the database.
-     * 
-     * <B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
-     * version of <code>updateBinaryStream</code> which takes a length parameter.
+     * called to update the database.</p>
+     *
+     * <p><B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
+     * version of <code>updateBinaryStream</code> which takes a length parameter.</p>
      *
      * @param columnIndex the first column is 1, the second is 2, ...
      * @param x           the new column value
-     * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.6
      */
     public void updateBinaryStream(int columnIndex, InputStream x) throws SQLException {
@@ -3190,23 +3094,22 @@ public class MySQLResultSet implements ResultSet {
     }
 
     /**
-     * Updates the designated column with a character stream value. The data will be read from the stream as needed
-     * until end-of-stream is reached.
-     * 
-     * The updater methods are used to update column values in the current row or the insert row.  The updater methods
+     * <p>Updates the designated column with a character stream value. The data will be read from the stream as needed
+     * until end-of-stream is reached.</p>
+     *
+     * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
-     * called to update the database.
-     * 
-     * <B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
-     * version of <code>updateCharacterStream</code> which takes a length parameter.
+     * called to update the database.</p>
+     *
+     * <p><B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
+     * version of <code>updateCharacterStream</code> which takes a length parameter.</p>
      *
      * @param columnIndex the first column is 1, the second is 2, ...
      * @param x           the new column value
-     * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.6
      */
     public void updateCharacterStream(int columnIndex, Reader x) throws SQLException {
@@ -3214,24 +3117,23 @@ public class MySQLResultSet implements ResultSet {
     }
 
     /**
-     * Updates the designated column with an ascii stream value. The data will be read from the stream as needed until
-     * end-of-stream is reached.
-     * 
-     * The updater methods are used to update column values in the current row or the insert row.  The updater methods
+     * <p>Updates the designated column with an ascii stream value. The data will be read from the stream as needed until
+     * end-of-stream is reached.</p>
+     *
+     * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
-     * called to update the database.
-     * 
-     * <B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
-     * version of <code>updateAsciiStream</code> which takes a length parameter.
+     * called to update the database.</p>
+     *
+     * <p><B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
+     * version of <code>updateAsciiStream</code> which takes a length parameter.</p>
      *
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @param x           the new column value
-     * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.6
      */
     public void updateAsciiStream(String columnLabel, InputStream x) throws SQLException {
@@ -3239,24 +3141,23 @@ public class MySQLResultSet implements ResultSet {
     }
 
     /**
-     * Updates the designated column with a binary stream value. The data will be read from the stream as needed until
-     * end-of-stream is reached.
-     * 
-     * The updater methods are used to update column values in the current row or the insert row.  The updater methods
+     * <p>Updates the designated column with a binary stream value. The data will be read from the stream as needed until
+     * end-of-stream is reached.</p>
+     *
+     * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
-     * called to update the database.
-     * 
-     * <B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
-     * version of <code>updateBinaryStream</code> which takes a length parameter.
+     * called to update the database.</p>
+     *
+     * <p><B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
+     * version of <code>updateBinaryStream</code> which takes a length parameter.</p>
      *
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @param x           the new column value
-     * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.6
      */
     public void updateBinaryStream(String columnLabel, InputStream x) throws SQLException {
@@ -3264,24 +3165,23 @@ public class MySQLResultSet implements ResultSet {
     }
 
     /**
-     * Updates the designated column with a character stream value. The data will be read from the stream as needed
-     * until end-of-stream is reached.
-     * 
-     * The updater methods are used to update column values in the current row or the insert row.  The updater methods
+     * <p>Updates the designated column with a character stream value. The data will be read from the stream as needed
+     * until end-of-stream is reached.</p>
+     *
+     * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
-     * called to update the database.
-     * 
-     * <B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
-     * version of <code>updateCharacterStream</code> which takes a length parameter.
+     * called to update the database.</p>
+     *
+     * <p><B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
+     * version of <code>updateCharacterStream</code> which takes a length parameter.</p>
      *
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @param reader      the <code>java.io.Reader</code> object containing the new column value
-     * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.6
      */
     public void updateCharacterStream(String columnLabel, Reader reader) throws SQLException {
@@ -3289,23 +3189,22 @@ public class MySQLResultSet implements ResultSet {
     }
 
     /**
-     * Updates the designated column using the given input stream. The data will be read from the stream as needed until
-     * end-of-stream is reached.
-     * 
-     * The updater methods are used to update column values in the current row or the insert row.  The updater methods
+     * <p>Updates the designated column using the given input stream. The data will be read from the stream as needed until
+     * end-of-stream is reached.</p>
+     *
+     * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
-     * called to update the database.
-     * 
-     * <B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
-     * version of <code>updateBlob</code> which takes a length parameter.
+     * called to update the database.</p>
+     *
+     * <p><B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
+     * version of <code>updateBlob</code> which takes a length parameter.</p>
      *
      * @param columnIndex the first column is 1, the second is 2, ...
      * @param inputStream An object that contains the data to set the parameter value to.
-     * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.6
      */
     public void updateBlob(int columnIndex, InputStream inputStream) throws SQLException {
@@ -3313,24 +3212,23 @@ public class MySQLResultSet implements ResultSet {
     }
 
     /**
-     * Updates the designated column using the given input stream. The data will be read from the stream as needed until
-     * end-of-stream is reached.
-     * 
-     * The updater methods are used to update column values in the current row or the insert row.  The updater methods
+     * <p>Updates the designated column using the given input stream. The data will be read from the stream as needed until
+     * end-of-stream is reached.</p>
+     *
+     * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
-     * called to update the database.
-     * 
-     * <B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
-     * version of <code>updateBlob</code> which takes a length parameter.
+     * called to update the database.</p>
+     *
+     * <p><B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
+     * version of <code>updateBlob</code> which takes a length parameter.</p>
      *
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @param inputStream An object that contains the data to set the parameter value to.
-     * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.6
      */
     public void updateBlob(String columnLabel, InputStream inputStream) throws SQLException {
@@ -3338,25 +3236,23 @@ public class MySQLResultSet implements ResultSet {
     }
 
     /**
-     * Updates the designated column using the given <code>Reader</code> object. The data will be read from the stream
+     * <p>Updates the designated column using the given <code>Reader</code> object. The data will be read from the stream
      * as needed until end-of-stream is reached.  The JDBC driver will do any necessary conversion from UNICODE to the
-     * database char format.
-     * 
-     * 
-     * The updater methods are used to update column values in the current row or the insert row.  The updater methods
+     * database char format.</p>
+     *
+     * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
-     * called to update the database.
-     * 
-     * <B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
-     * version of <code>updateClob</code> which takes a length parameter.
+     * called to update the database.</p>
+     *
+     * <p><B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
+     * version of <code>updateClob</code> which takes a length parameter.</p>
      *
      * @param columnIndex the first column is 1, the second is 2, ...
      * @param reader      An object that contains the data to set the parameter value to.
-     * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.6
      */
     public void updateClob(int columnIndex, Reader reader) throws SQLException {
@@ -3364,26 +3260,24 @@ public class MySQLResultSet implements ResultSet {
     }
 
     /**
-     * Updates the designated column using the given <code>Reader</code> object. The data will be read from the stream
+     * <p>Updates the designated column using the given <code>Reader</code> object. The data will be read from the stream
      * as needed until end-of-stream is reached.  The JDBC driver will do any necessary conversion from UNICODE to the
-     * database char format.
-     * 
-     * 
-     * The updater methods are used to update column values in the current row or the insert row.  The updater methods
+     * database char format.</p>
+     *
+     * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
-     * called to update the database.
-     * 
-     * <B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
-     * version of <code>updateClob</code> which takes a length parameter.
+     * called to update the database.</p>
+     *
+     * <p><B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
+     * version of <code>updateClob</code> which takes a length parameter.</p>
      *
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @param reader      An object that contains the data to set the parameter value to.
-     * @throws java.sql.SQLException if the columnLabel is not valid; if a database access error occurs; the result set
-     *                               concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
-     *                               result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if a database access error occurs; the result set
+     *                                                  concurrency is <code>CONCUR_READ_ONLY</code> or this method is called on a closed
+     *                                                  result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.6
      */
     public void updateClob(String columnLabel, Reader reader) throws SQLException {
@@ -3391,27 +3285,25 @@ public class MySQLResultSet implements ResultSet {
     }
 
     /**
-     * Updates the designated column using the given <code>Reader</code>
-     * 
-     * The data will be read from the stream as needed until end-of-stream is reached.  The JDBC driver will do any
-     * necessary conversion from UNICODE to the database char format.
-     * 
-     * 
-     * The updater methods are used to update column values in the current row or the insert row.  The updater methods
+     * <p>Updates the designated column using the given <code>Reader</code></p>
+     *
+     * <p>The data will be read from the stream as needed until end-of-stream is reached.  The JDBC driver will do any
+     * necessary conversion from UNICODE to the database char format.</p>
+     *
+     * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
-     * called to update the database.
-     * 
-     * <B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
-     * version of <code>updateNClob</code> which takes a length parameter.
+     * called to update the database.</p>
+     *
+     * <p><B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
+     * version of <code>updateNClob</code> which takes a length parameter.</p>
      *
      * @param columnIndex the first column is 1, the second 2, ...
      * @param reader      An object that contains the data to set the parameter value to.
-     * @throws java.sql.SQLException if the columnIndex is not valid; if the driver does not support national character
-     *                               sets;  if the driver can detect that a data conversion error could occur; this
-     *                               method is called on a closed result set, if a database access error occurs or the
-     *                               result set concurrency is <code>CONCUR_READ_ONLY</code>
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if the driver does not support national character
+     *                                                  sets;  if the driver can detect that a data conversion error could occur; this
+     *                                                  method is called on a closed result set, if a database access error occurs or the
+     *                                                  result set concurrency is <code>CONCUR_READ_ONLY</code>
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.6
      */
     public void updateNClob(int columnIndex, Reader reader) throws SQLException {
@@ -3419,27 +3311,23 @@ public class MySQLResultSet implements ResultSet {
     }
 
     /**
-     * Updates the designated column using the given <code>Reader</code> object. The data will be read from the stream
+     * <p>Updates the designated column using the given <code>Reader</code> object. The data will be read from the stream
      * as needed until end-of-stream is reached.  The JDBC driver will do any necessary conversion from UNICODE to the
-     * database char format.
-     * 
-     * 
-     * The updater methods are used to update column values in the current row or the insert row.  The updater methods
+     * database char format.</p>
+     * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
-     * called to update the database.
-     * 
+     * called to update the database.</p>
      * <B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
      * version of <code>updateNClob</code> which takes a length parameter.
      *
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @param reader      An object that contains the data to set the parameter value to.
-     * @throws java.sql.SQLException if the columnLabel is not valid; if the driver does not support national character
-     *                               sets;  if the driver can detect that a data conversion error could occur; this
-     *                               method is called on a closed result set; if a database access error occurs or the
-     *                               result set concurrency is <code>CONCUR_READ_ONLY</code>
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnLabel is not valid; if the driver does not support national character
+     *                                                  sets;  if the driver can detect that a data conversion error could occur; this
+     *                                                  method is called on a closed result set; if a database access error occurs or the
+     *                                                  result set concurrency is <code>CONCUR_READ_ONLY</code>
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.6
      */
     public void updateNClob(String columnLabel, Reader reader) throws SQLException {
@@ -3477,10 +3365,9 @@ public class MySQLResultSet implements ResultSet {
      * @param columnIndex the first column is 1, the second is 2, ...
      * @param scale       the number of digits to the right of the decimal point
      * @return the column value; if the value is SQL <code>NULL</code>, the value returned is <code>null</code>
-     * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs or this method
-     *                               is called on a closed result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if a database access error occurs or this method
+     *                                                  is called on a closed result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @deprecated
      */
     public BigDecimal getBigDecimal(int columnIndex, int scale) throws SQLException {
@@ -3552,25 +3439,25 @@ public class MySQLResultSet implements ResultSet {
         try {
             return getValueObject(columnIndex).getTimestamp(cal);
         } catch (ParseException e) {
-            throw SQLExceptionMapper.getSQLException("Could not parse column as timestamp, was: \""  +
+            throw SQLExceptionMapper.getSQLException("Could not parse column as timestamp, was: \"" +
                     getValueObject(columnIndex).getString() +
                     "\"", e);
         }
     }
 
     /**
-     * Retrieves the value of the designated column in the current row of this <code>ResultSet</code> object as a stream
+     * <p>Retrieves the value of the designated column in the current row of this <code>ResultSet</code> object as a stream
      * of ASCII characters. The value can then be read in chunks from the stream. This method is particularly suitable
      * for retrieving large <code>LONGVARCHAR</code> values. The JDBC driver will do any necessary conversion from the
      * database format into ASCII.
-     * 
+     * </p>
      * <B>Note:</B> All the data in the returned stream must be read prior to getting the value of any other column.
      * The next call to a getter method implicitly closes the stream.  Also, a stream may return <code>0</code> when the
      * method <code>InputStream.available</code> is called whether there is data available or not.
      *
      * @param columnIndex the first column is 1, the second is 2, ...
      * @return a Java input stream that delivers the database column value as a stream of one-byte ASCII characters; if
-     *         the value is SQL <code>NULL</code>, the value returned is <code>null</code>
+     * the value is SQL <code>NULL</code>, the value returned is <code>null</code>
      * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs or this method
      *                               is called on a closed result set
      */
@@ -3579,24 +3466,24 @@ public class MySQLResultSet implements ResultSet {
     }
 
     /**
-     * Retrieves the value of the designated column in the current row of this <code>ResultSet</code> object as as a
+     * <p>Retrieves the value of the designated column in the current row of this <code>ResultSet</code> object as as a
      * stream of two-byte 3 characters. The first byte is the high byte; the second byte is the low byte.
-     * 
-     * The value can then be read in chunks from the stream. This method is particularly suitable for retrieving large
+     * </p>
+     * <p>The value can then be read in chunks from the stream. This method is particularly suitable for retrieving large
      * <code>LONGVARCHAR</code>values.  The JDBC driver will do any necessary conversion from the database format into
-     * Unicode.
-     * 
+     * Unicode.</p>
+     *
+     * <p>
      * <B>Note:</B> All the data in the returned stream must be read prior to getting the value of any other column.
      * The next call to a getter method implicitly closes the stream. Also, a stream may return <code>0</code> when the
-     * method <code>InputStream.available</code> is called, whether there is data available or not.
+     * method <code>InputStream.available</code> is called, whether there is data available or not.</p>
      *
      * @param columnIndex the first column is 1, the second is 2, ...
      * @return a Java input stream that delivers the database column value as a stream of two-byte Unicode characters;
-     *         if the value is SQL <code>NULL</code>, the value returned is <code>null</code>
-     * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs or this method
-     *                               is called on a closed result set
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * if the value is SQL <code>NULL</code>, the value returned is <code>null</code>
+     * @throws java.sql.SQLException                    if the columnIndex is not valid; if a database access error occurs or this method
+     *                                                  is called on a closed result set
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @deprecated use <code>getCharacterStream</code> in place of <code>getUnicodeStream</code>
      */
     public InputStream getUnicodeStream(int columnIndex) throws SQLException {
@@ -3604,17 +3491,17 @@ public class MySQLResultSet implements ResultSet {
     }
 
     /**
-     * Retrieves the value of the designated column in the current row of this <code>ResultSet</code> object as a stream
+     * <p>Retrieves the value of the designated column in the current row of this <code>ResultSet</code> object as a stream
      * of uninterpreted bytes. The value can then be read in chunks from the stream. This method is particularly
-     * suitable for retrieving large <code>LONGVARBINARY</code> values.
-     * 
-     * <B>Note:</B> All the data in the returned stream must be read prior to getting the value of any other column.
+     * suitable for retrieving large <code>LONGVARBINARY</code> values.</p>
+     *
+     * <p><B>Note:</B> All the data in the returned stream must be read prior to getting the value of any other column.
      * The next call to a getter method implicitly closes the stream.  Also, a stream may return <code>0</code> when the
-     * method <code>InputStream.available</code> is called whether there is data available or not.
+     * method <code>InputStream.available</code> is called whether there is data available or not.</p>
      *
      * @param columnIndex the first column is 1, the second is 2, ...
      * @return a Java input stream that delivers the database column value as a stream of uninterpreted bytes; if the
-     *         value is SQL <code>NULL</code>, the value returned is <code>null</code>
+     * value is SQL <code>NULL</code>, the value returned is <code>null</code>
      * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs or this method
      *                               is called on a closed result set
      */
@@ -3638,13 +3525,13 @@ public class MySQLResultSet implements ResultSet {
     }
 
     /**
-     * Retrieves the value of the designated column in the current row of this <code>ResultSet</code> object as a
-     * <code>boolean</code> in the Java programming language.
-     * 
-     * If the designated column has a datatype of CHAR or VARCHAR and contains a "0" or has a datatype of BIT,
+     * <p>Retrieves the value of the designated column in the current row of this <code>ResultSet</code> object as a
+     * <code>boolean</code> in the Java programming language.</p>
+     *
+     * <p>If the designated column has a datatype of CHAR or VARCHAR and contains a "0" or has a datatype of BIT,
      * TINYINT, SMALLINT, INTEGER or BIGINT and contains  a 0, a value of <code>false</code> is returned.  If the
      * designated column has a datatype of CHAR or VARCHAR and contains a "1" or has a datatype of BIT, TINYINT,
-     * SMALLINT, INTEGER or BIGINT and contains  a 1, a value of <code>true</code> is returned.
+     * SMALLINT, INTEGER or BIGINT and contains  a 1, a value of <code>true</code> is returned.</p>
      *
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
@@ -3686,14 +3573,14 @@ public class MySQLResultSet implements ResultSet {
 
 
     /**
-     * Returns an object that implements the given interface to allow access to non-standard methods, or standard
-     * methods not exposed by the proxy.
-     * 
-     * If the receiver implements the interface then the result is the receiver or a proxy for the receiver. If the
+     * <p>Returns an object that implements the given interface to allow access to non-standard methods, or standard
+     * methods not exposed by the proxy.</p>
+     *
+     * <p>If the receiver implements the interface then the result is the receiver or a proxy for the receiver. If the
      * receiver is a wrapper and the wrapped object implements the interface then the result is the wrapped object or a
      * proxy for the wrapped object. Otherwise return the the result of calling <code>unwrap</code> recursively on the
      * wrapped object or a proxy for that result. If the receiver is not a wrapper and does not implement the interface,
-     * then an <code>SQLException</code> is thrown.
+     * then an <code>SQLException</code> is thrown.</p>
      *
      * @param iface A Class defining an interface that the result must implement.
      * @return an object that implements the interface. May be a proxy for the actual implementing object.
@@ -3722,227 +3609,237 @@ public class MySQLResultSet implements ResultSet {
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
         return false;
     }
-	public <T> T getObject(int arg0, Class<T> arg1) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	public <T> T getObject(String arg0, Class<T> arg1) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	
+
+    public <T> T getObject(int arg0, Class<T> arg1) throws SQLException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public <T> T getObject(String arg0, Class<T> arg1) throws SQLException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+
     /**
-    * Create a result set from given data. Useful for creating "fake" resultsets for DatabaseMetaData,
-    * (one example is  MySQLDatabaseMetaData.getTypeInfo())
-    * @param columnNames  - string array of column names
-    * @param columnTypes - column types
-    * @param data - each element of this array represents a complete row in the ResultSet.
-    * Each value is given in its string representation, as in MySQL text protocol, except boolean (BIT(1)) values
-    * that are represented as "1" or "0" strings
-    * @param protocol
-    * @param findColumnReturnsOne - special parameter, used only in generated key result sets
-    */
+     * Create a result set from given data. Useful for creating "fake" resultsets for DatabaseMetaData,
+     * (one example is  MySQLDatabaseMetaData.getTypeInfo())
+     *
+     * @param columnNames          - string array of column names
+     * @param columnTypes          - column types
+     * @param data                 - each element of this array represents a complete row in the ResultSet.
+     *                             Each value is given in its string representation, as in MySQL text protocol, except boolean (BIT(1)) values
+     *                             that are represented as "1" or "0" strings
+     * @param protocol
+     * @param findColumnReturnsOne - special parameter, used only in generated key result sets
+     */
     static ResultSet createResultSet(String[] columnNames, MySQLType[] columnTypes, String[][] data,
-            Protocol protocol, boolean findColumnReturnsOne)  {
+                                     Protocol protocol, boolean findColumnReturnsOne) {
         int N = columnNames.length;
         MySQLColumnInformation[] columns = new MySQLColumnInformation[N];
-        
-        for (int i = 0; i < N ; i++) {
-            columns[i] = MySQLColumnInformation.create(columnNames[i],columnTypes[i]);
+
+        for (int i = 0; i < N; i++) {
+            columns[i] = MySQLColumnInformation.create(columnNames[i], columnTypes[i]);
         }
-        
+
         byte[] BOOL_TRUE = {1};
-        byte[] BOOL_FALSE ={0};
-        List<ValueObject[]> rows  = new ArrayList<ValueObject[]>();
-        for(String[] rowData : data) {
+        byte[] BOOL_FALSE = {0};
+        List<ValueObject[]> rows = new ArrayList<ValueObject[]>();
+        for (String[] rowData : data) {
             ValueObject[] row = new ValueObject[N];
- 
+
             if (rowData.length != N) {
                 throw new RuntimeException("Number of elements in the row != number of columns :" + rowData.length + " vs " + N);
             }
-            for(int i = 0; i < N; i++){
+            for (int i = 0; i < N; i++) {
                 byte[] bytes;
                 if (rowData[i] == null) {
                     bytes = null;
                 } else if (columnTypes[i] == MySQLType.BIT) {
-                    bytes = rowData[i].equals("0")?BOOL_FALSE:BOOL_TRUE;
-                } else  { 
+                    bytes = rowData[i].equals("0") ? BOOL_FALSE : BOOL_TRUE;
+                } else {
                     try {
                         bytes = rowData[i].getBytes("UTF-8");
-                    } catch(Exception e) {
-                        throw new RuntimeException ("No UTF-8");
+                    } catch (Exception e) {
+                        throw new RuntimeException("No UTF-8");
                     }
                 }
-                row[i] = new MySQLValueObject(bytes,columns[i]);
+                row[i] = new MySQLValueObject(bytes, columns[i]);
             }
             rows.add(row);
         }
         if (findColumnReturnsOne) {
-            return new MySQLResultSet(new CachedSelectResult(columns , rows, (short)0),
+            return new MySQLResultSet(new CachedSelectResult(columns, rows, (short) 0),
                     null, protocol, null) {
                 public int findColumn(String name) {
                     return 1;
-                } 
+                }
             };
         }
-        return new MySQLResultSet(new CachedSelectResult(columns , rows, (short)0),
+        return new MySQLResultSet(new CachedSelectResult(columns, rows, (short) 0),
                 null, protocol, null);
     }
-    
+
     /**
      * Create a result set from given data. Useful for creating "fake" resultsets for DatabaseMetaData,
      * (one example is  MySQLDatabaseMetaData.getTypeInfo())
-     * @param columnNames  - string array of column names
+     *
+     * @param columnNames - string array of column names
      * @param columnTypes - column types
-     * @param data - each element of this array represents a complete row in the ResultSet.
-     * Each value is given in its string representation, as in MySQL text protocol, except boolean (BIT(1)) values
-     * that are represented as "1" or "0" strings
+     * @param data        - each element of this array represents a complete row in the ResultSet.
+     *                    Each value is given in its string representation, as in MySQL text protocol, except boolean (BIT(1)) values
+     *                    that are represented as "1" or "0" strings
      * @param protocol
      */
     static ResultSet createResultSet(String[] columnNames, MySQLType[] columnTypes, String[][] data,
-            Protocol protocol)  {
-        return createResultSet(columnNames, columnTypes, data, protocol,false);
+                                     Protocol protocol) {
+        return createResultSet(columnNames, columnTypes, data, protocol, false);
     }
-    
+
     /**
      * Create a result set from given data. Useful for creating "fake" resultsets for DatabaseMetaData,
      * (one example is  MySQLDatabaseMetaData.getTypeInfo())
-     * @param columns a MySQLColumnInformation array that contains the name and type of each column
-     * @param data - each element of this array represents a complete row in the ResultSet.
-     * Each value is given in its string representation, as in MySQL text protocol, except boolean (BIT(1)) values
-     * that are represented as "1" or "0" strings
+     *
+     * @param columns              a MySQLColumnInformation array that contains the name and type of each column
+     * @param data                 - each element of this array represents a complete row in the ResultSet.
+     *                             Each value is given in its string representation, as in MySQL text protocol, except boolean (BIT(1)) values
+     *                             that are represented as "1" or "0" strings
      * @param protocol
      * @param findColumnReturnsOne - special parameter, used only in generated key result sets
      */
-     static ResultSet createResultSet(MySQLColumnInformation[] columns, String[][] data,
-             Protocol protocol, boolean findColumnReturnsOne)  {
-         int N = columns.length;
-         
-         byte[] BOOL_TRUE = {1};
-         byte[] BOOL_FALSE ={0};
-         List<ValueObject[]> rows  = new ArrayList<ValueObject[]>();
-         for(String[] rowData : data) {
-             ValueObject[] row = new ValueObject[N];
-  
-             if (rowData.length != N) {
-                 throw new RuntimeException("Number of elements in the row != number of columns :" + rowData.length + " vs " + N);
-             }
-             for(int i = 0; i < N; i++){
-                 byte[] bytes;
-                 if (rowData[i] == null) {
-                     bytes = null;
-                 } else if (columns[i].getType() == MySQLType.BIT) {
-                     bytes = rowData[i].equals("0")?BOOL_FALSE:BOOL_TRUE;
-                 } else  { 
-                     try {
-                         bytes = rowData[i].getBytes("UTF-8");
-                     } catch(Exception e) {
-                         throw new RuntimeException ("No UTF-8");
-                     }
-                 }
-                 row[i] = new MySQLValueObject(bytes,columns[i]);
-             }
-             rows.add(row);
-         }
-         if (findColumnReturnsOne) {
-             return new MySQLResultSet(new CachedSelectResult(columns , rows, (short)0),
-                     null, protocol, null) {
-                 public int findColumn(String name) {
-                     return 1;
-                 } 
-             };
-         }
-         return new MySQLResultSet(new CachedSelectResult(columns , rows, (short)0),
-                 null, protocol, null);
-     }
-     
-     /**
-      * Create a result set from given data. Useful for creating "fake" resultsets for DatabaseMetaData,
-      * (one example is  MySQLDatabaseMetaData.getTypeInfo()) 
-      * @param columns a MySQLColumnInformation array that contains the name and type of each column
-      * @param data - each element of this array represents a complete row in the ResultSet.
-      * Each value is given in its string representation, as in MySQL text protocol, except boolean (BIT(1)) values
-      * that are represented as "1" or "0" strings
-      * @param protocol
-      */
-     static ResultSet createResultSet(MySQLColumnInformation[] columns, String[][] data, Protocol protocol)  {
-         return createResultSet(columns, data, protocol, false);
-     }
-     
-    static ResultSet createEmptyGeneratedKeysResultSet(MySQLConnection connection) {
-    	String[][] data = new String[0][];
-    	return createResultSet(new String[]{"insert_id"}, 
-                new MySQLType[] {MySQLType.BIGINT},
-                data, connection.getProtocol(),true);
+    static ResultSet createResultSet(MySQLColumnInformation[] columns, String[][] data,
+                                     Protocol protocol, boolean findColumnReturnsOne) {
+        int N = columns.length;
+
+        byte[] BOOL_TRUE = {1};
+        byte[] BOOL_FALSE = {0};
+        List<ValueObject[]> rows = new ArrayList<ValueObject[]>();
+        for (String[] rowData : data) {
+            ValueObject[] row = new ValueObject[N];
+
+            if (rowData.length != N) {
+                throw new RuntimeException("Number of elements in the row != number of columns :" + rowData.length + " vs " + N);
+            }
+            for (int i = 0; i < N; i++) {
+                byte[] bytes;
+                if (rowData[i] == null) {
+                    bytes = null;
+                } else if (columns[i].getType() == MySQLType.BIT) {
+                    bytes = rowData[i].equals("0") ? BOOL_FALSE : BOOL_TRUE;
+                } else {
+                    try {
+                        bytes = rowData[i].getBytes("UTF-8");
+                    } catch (Exception e) {
+                        throw new RuntimeException("No UTF-8");
+                    }
+                }
+                row[i] = new MySQLValueObject(bytes, columns[i]);
+            }
+            rows.add(row);
+        }
+        if (findColumnReturnsOne) {
+            return new MySQLResultSet(new CachedSelectResult(columns, rows, (short) 0),
+                    null, protocol, null) {
+                public int findColumn(String name) {
+                    return 1;
+                }
+            };
+        }
+        return new MySQLResultSet(new CachedSelectResult(columns, rows, (short) 0),
+                null, protocol, null);
     }
-    
-    static ResultSet createGeneratedKeysResultSet(long lastInsertId, int updateCount, 
-            MySQLConnection connection) {
+
+    /**
+     * Create a result set from given data. Useful for creating "fake" resultsets for DatabaseMetaData,
+     * (one example is  MySQLDatabaseMetaData.getTypeInfo())
+     *
+     * @param columns  a MySQLColumnInformation array that contains the name and type of each column
+     * @param data     - each element of this array represents a complete row in the ResultSet.
+     *                 Each value is given in its string representation, as in MySQL text protocol, except boolean (BIT(1)) values
+     *                 that are represented as "1" or "0" strings
+     * @param protocol
+     */
+    static ResultSet createResultSet(MySQLColumnInformation[] columns, String[][] data, Protocol protocol) {
+        return createResultSet(columns, data, protocol, false);
+    }
+
+    static ResultSet createEmptyGeneratedKeysResultSet(MySQLConnection connection) {
+        String[][] data = new String[0][];
+        return createResultSet(new String[]{"insert_id"},
+                new MySQLType[]{MySQLType.BIGINT},
+                data, connection.getProtocol(), true);
+    }
+
+    static ResultSet createGeneratedKeysResultSet(long lastInsertId, int updateCount, MySQLConnection connection) {
         if (updateCount <= 0) {
             return null;
         }
         int autoIncrementIncrement = 1; 
         /* only interesting if many rows were updated */
         if (updateCount > 1) {
-          autoIncrementIncrement = connection.getAutoIncrementIncrement();
+            autoIncrementIncrement = connection.getAutoIncrementIncrement();
         }
 
-        String[][] data =  new String[updateCount][];
-        for(int i=0; i < updateCount; i++) {
-             long id = lastInsertId + i*autoIncrementIncrement;
-             data[i] = new String[] {"" +  id};
+        String[][] data = new String[updateCount][];
+        for (int i = 0; i < updateCount; i++) {
+            long id = lastInsertId + i * autoIncrementIncrement;
+            data[i] = new String[]{"" + id};
         }
-        return createResultSet(new String[]{"insert_id"}, 
-                new MySQLType[] {MySQLType.BIGINT},
-                data, connection.getProtocol(),true);
+        return createResultSet(new String[]{"insert_id"},
+                new MySQLType[]{MySQLType.BIGINT},
+                data, connection.getProtocol(), true);
     }
 
-    void setStatement(Statement st) {
+    void setStatement(MySQLStatement st) {
         this.statement = st;
     }
-    
-    
+
+
     public MySQLResultSet joinResultSets(MySQLResultSet resultSet) throws SQLException {
-    	MySQLColumnInformation[] columnInfo = this.queryResult.getColumnInformation();
-    	MySQLColumnInformation[] otherColumnInfo = resultSet.queryResult.getColumnInformation();
-    	int thisColumnNumber = columnInfo.length;
-    	int resultSetColumnNumber = otherColumnInfo.length;
-    	if (thisColumnNumber != resultSetColumnNumber) {
-    		throw new SQLException("The two result sets do not have the same column number.");
-    	}
-    	for (int count=0; count<columnInfo.length; count++) {
-    		if (columnInfo[count].getType() != otherColumnInfo[count].getType()) {
-    			throw new SQLException("The two result sets differ in column types.");
-    		}
-    	}
-    	MySQLResultSet result = null;
-    	int rowNumber = this.queryResult.getRows() + resultSet.queryResult.getRows();
-    	String[][] data = new String[rowNumber][columnInfo.length];
-    	int i = 0;
-    	this.beforeFirst();
-    	while (this.next()) {
-    		for (int j=0; j<columnInfo.length; j++) {
-    			data[i][j] = this.getString(j+1);
-    		}
-    		i++;
-    	}
-    	resultSet.beforeFirst();
-    	while (resultSet.next()) {
-    		for (int j=0; j<columnInfo.length; j++) {
-    			data[i][j] = resultSet.getString(j+1);
-    		}
-    		i++;
-    	}
-    	result = (MySQLResultSet)createResultSet(columnInfo, data, protocol);
-    	return result;
+        writeLock();
+        try {
+            MySQLColumnInformation[] columnInfo = this.queryResult.getColumnInformation();
+            MySQLColumnInformation[] otherColumnInfo = resultSet.queryResult.getColumnInformation();
+            int thisColumnNumber = columnInfo.length;
+            int resultSetColumnNumber = otherColumnInfo.length;
+            if (thisColumnNumber != resultSetColumnNumber) {
+                throw new SQLException("The two result sets do not have the same column number.");
+            }
+            for (int count = 0; count < columnInfo.length; count++) {
+                if (columnInfo[count].getType() != otherColumnInfo[count].getType()) {
+                    throw new SQLException("The two result sets differ in column types.");
+                }
+            }
+            MySQLResultSet result = null;
+            int rowNumber = this.queryResult.getRows() + resultSet.queryResult.getRows();
+            String[][] data = new String[rowNumber][columnInfo.length];
+            int i = 0;
+            this.beforeFirst();
+            while (this.next()) {
+                for (int j = 0; j < columnInfo.length; j++) {
+                    data[i][j] = this.getString(j + 1);
+                }
+                i++;
+            }
+            resultSet.beforeFirst();
+            while (resultSet.next()) {
+                for (int j = 0; j < columnInfo.length; j++) {
+                    data[i][j] = resultSet.getString(j + 1);
+                }
+                i++;
+            }
+            result = (MySQLResultSet) createResultSet(columnInfo, data, protocol);
+            return result;
+        } finally {
+            writeUnlock();
+        }
     }
-    
+
     public MySQLResultSet joinResultSets(MySQLResultSet[] resultSets) throws SQLException {
-    	MySQLResultSet result = null;
-    	for (MySQLResultSet resultSet : resultSets) {
-    		result = joinResultSets(resultSet);
-    	}
-    	return result;
+        MySQLResultSet result = null;
+        for (MySQLResultSet resultSet : resultSets) {
+            result = joinResultSets(resultSet);
+        }
+        return result;
     }
 }

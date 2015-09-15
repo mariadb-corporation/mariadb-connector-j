@@ -50,41 +50,32 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.common.query.parameters;
 
-
 import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
 import org.mariadb.jdbc.internal.common.packet.buffer.WriteBuffer;
-import org.mariadb.jdbc.internal.mysql.*;
 import org.mariadb.jdbc.internal.mysql.MySQLType;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.sql.Time;
-import java.util.Calendar;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 
+public class BigIntParameter extends NotLongDataParameterHolder {
+    private BigDecimal value;
 
-public class TimeParameter extends NotLongDataParameterHolder {
-    Time time;
-    Calendar calendar;
-    boolean fractionalSeconds;
-
-    public TimeParameter(Time time, Calendar cal, boolean fractionalSeconds) {
-        this.time = time;
-        this.calendar = cal;
-        this.fractionalSeconds = fractionalSeconds;
+    public BigIntParameter(BigInteger value) {
+      this.value = new BigDecimal(value);
     }
 
     public void writeTo(final OutputStream os) throws IOException {
-        ParameterWriter.writeTime(os, time, calendar, fractionalSeconds);
+        ParameterWriter.write(os, value);
     }
 
     public void writeBinary(PacketOutputStream writeBuffer) {
-        calendar.setTime(time);
-        writeBuffer.writeTimeLength(calendar, fractionalSeconds);
+        writeBuffer.writeStringLength(value.toPlainString());
     }
 
     public MySQLType getMySQLType() {
-        return MySQLType.TIME;
+        return MySQLType.VARSTRING;
     }
-
 
 }

@@ -49,19 +49,22 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.common.query.parameters;
 
+import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
+import org.mariadb.jdbc.internal.common.packet.buffer.WriteBuffer;
+import org.mariadb.jdbc.internal.mysql.MySQLType;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 
 
-public abstract class ParameterHolder {
+public abstract class ParameterHolder implements Cloneable {
     /**
      * Write parameter value
      * @param os the stream to write to
      * @throws IOException when something goes wrong
      */
     public abstract void writeTo(OutputStream os) throws IOException;
-
 
     // allows for nice formatting of prepared statements using PreparedStatement.toString()
     public String toString() {
@@ -79,5 +82,13 @@ public abstract class ParameterHolder {
             return "";
         }
 
+    }
+    public abstract boolean isLongData();
+
+
+    public abstract MySQLType getMySQLType();
+
+    public void writeBufferType(final PacketOutputStream buffer) {
+        buffer.writeShort((short) getMySQLType().getType());
     }
 }

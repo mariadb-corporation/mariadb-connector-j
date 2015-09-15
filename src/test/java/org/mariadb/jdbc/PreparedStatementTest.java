@@ -44,7 +44,7 @@ public class PreparedStatementTest extends BaseTest {
     @Test
     public void testNoSuchTableBatchUpdate() throws SQLException, UnsupportedEncodingException {
         statement.execute("drop table if exists vendor_code_test");
-        PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO vendor_code_test VALUES(?)");
+        PreparedStatement preparedStatement = connection.prepareStatement("/*CLIENT*/ INSERT INTO vendor_code_test VALUES(?)");
         preparedStatement.setString(1, "dummyValue");
         preparedStatement.addBatch();
 
@@ -56,7 +56,13 @@ public class PreparedStatementTest extends BaseTest {
             assertEquals(ER_NO_SUCH_TABLE_STATE, sqlException.getSQLState());
         }
     }
-    
+
+    @Test(expected =  SQLException.class)
+    public void testNoSuchTableBatchUpdateServer() throws SQLException, UnsupportedEncodingException {
+        statement.execute("drop table if exists vendor_code_test");
+        PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO vendor_code_test VALUES(?)");
+    }
+
     /**
      * CONJ-124: BigInteger not supported when setObject is used on PreparedStatements.
      * @throws SQLException

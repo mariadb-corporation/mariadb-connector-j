@@ -58,7 +58,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.sql.Types;
 
-public class MySQLColumnInformation  {
+public class MySQLColumnInformation {
     RawPacket buffer;
     private short charsetNumber;
     private long length;
@@ -71,59 +71,59 @@ public class MySQLColumnInformation  {
     // "select  id, maxlen from information_schema.character_sets, information_schema.collations
     // where character_sets.character_set_name = collations.character_set_name order by id"
     private static final int[] maxCharlen = {
-        0,2,1,1,1,1,1,1,
-        1,1,1,1,3,2,1,1,
-        1,0,1,2,1,1,1,1,
-        2,1,1,1,2,1,1,1,
-        1,3,1,2,1,1,1,1,
-        1,1,1,1,1,4,4,1,
-        1,1,1,1,1,1,4,4,
-        0,1,1,1,4,4,0,1,
-        1,1,1,1,1,1,1,1,
-        1,1,1,1,0,1,1,1,
-        1,1,1,3,2,2,2,2,
-        2,1,2,3,1,1,1,2,
-        2,3,3,1,0,4,4,4,
-        4,4,4,4,4,4,4,4,
-        4,4,4,4,4,4,4,4,
-        4,0,0,0,0,0,0,0,
-        2,2,2,2,2,2,2,2,
-        2,2,2,2,2,2,2,2,
-        2,2,2,2,0,2,0,0,
-        0,0,0,0,0,0,0,2,
-        4,4,4,4,4,4,4,4,
-        4,4,4,4,4,4,4,4,
-        4,4,4,4,0,0,0,0,
-        0,0,0,0,0,0,0,0,
-        3,3,3,3,3,3,3,3,
-        3,3,3,3,3,3,3,3,
-        3,3,3,3,0,3,4,4,
-        0,0,0,0,0,0,0,3,
-        4,4,4,4,4,4,4,4,
-        4,4,4,4,4,4,4,4,
-        4,4,4,4,0,4,0,0,
-        0,0,0,0,0,0,0,0
+            0, 2, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 3, 2, 1, 1,
+            1, 0, 1, 2, 1, 1, 1, 1,
+            2, 1, 1, 1, 2, 1, 1, 1,
+            1, 3, 1, 2, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 4, 4, 1,
+            1, 1, 1, 1, 1, 1, 4, 4,
+            0, 1, 1, 1, 4, 4, 0, 1,
+            1, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 0, 1, 1, 1,
+            1, 1, 1, 3, 2, 2, 2, 2,
+            2, 1, 2, 3, 1, 1, 1, 2,
+            2, 3, 3, 1, 0, 4, 4, 4,
+            4, 4, 4, 4, 4, 4, 4, 4,
+            4, 4, 4, 4, 4, 4, 4, 4,
+            4, 0, 0, 0, 0, 0, 0, 0,
+            2, 2, 2, 2, 2, 2, 2, 2,
+            2, 2, 2, 2, 2, 2, 2, 2,
+            2, 2, 2, 2, 0, 2, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 2,
+            4, 4, 4, 4, 4, 4, 4, 4,
+            4, 4, 4, 4, 4, 4, 4, 4,
+            4, 4, 4, 4, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0,
+            3, 3, 3, 3, 3, 3, 3, 3,
+            3, 3, 3, 3, 3, 3, 3, 3,
+            3, 3, 3, 3, 0, 3, 4, 4,
+            0, 0, 0, 0, 0, 0, 0, 3,
+            4, 4, 4, 4, 4, 4, 4, 4,
+            4, 4, 4, 4, 4, 4, 4, 4,
+            4, 4, 4, 4, 0, 4, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0
     };
 
     public static MySQLColumnInformation create(String name, MySQLType type) {
         try {
             java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
             for (int i = 0; i < 4; i++) {
-                baos.write(new byte[] {1,0}); // catalog, empty string
+                baos.write(new byte[]{1, 0}); // catalog, empty string
             }
-            for (int i = 0 ; i < 2; i ++) {
-                baos.write(new byte[] {(byte)name.length()});
+            for (int i = 0; i < 2; i++) {
+                baos.write(new byte[]{(byte) name.length()});
                 baos.write(name.getBytes());
             }
             baos.write(0xc);
-            baos.write(new byte[]{33,0});  /* charset  = UTF8 */
-            int  len = 1;
+            baos.write(new byte[]{33, 0});  /* charset  = UTF8 */
+            int len = 1;
 
             /* Sensible predefined length - since we're dealing with I_S here, most char fields are 64 char long */
-            switch(type.getSqlType()) {
+            switch (type.getSqlType()) {
                 case Types.VARCHAR:
                 case Types.CHAR:
-                    len = 64*3; /* 3 bytes per UTF8 char */
+                    len = 64 * 3; /* 3 bytes per UTF8 char */
                     break;
                 case Types.SMALLINT:
                     len = 5;
@@ -135,14 +135,14 @@ public class MySQLColumnInformation  {
                     len = 1;
                     break;
             }
-            baos.write(new byte[]{(byte)len, 0 ,0, 0});  /*  length */
+            baos.write(new byte[]{(byte) len, 0, 0, 0});  /*  length */
             baos.write(MySQLType.toServer(type.getSqlType()).getType());
-            baos.write(new byte[]{0,0});   /* flags */
+            baos.write(new byte[]{0, 0});   /* flags */
             baos.write(0); /* decimals */
-            baos.write(new byte[]{0,0});   /* filler */
-            return new MySQLColumnInformation(new RawPacket(ByteBuffer.wrap(baos.toByteArray()).order(ByteOrder.LITTLE_ENDIAN),0));
-        }  catch (IOException ioe) {
-            throw new RuntimeException("unexpected condition",ioe);
+            baos.write(new byte[]{0, 0});   /* filler */
+            return new MySQLColumnInformation(new RawPacket(ByteBuffer.wrap(baos.toByteArray()).order(ByteOrder.LITTLE_ENDIAN), 0));
+        } catch (IOException ioe) {
+            throw new RuntimeException("unexpected condition", ioe);
         }
     }
 
@@ -182,29 +182,30 @@ public class MySQLColumnInformation  {
         decimals = reader.readByte();
 
 
-        int sqlType= type.getSqlType();
+        int sqlType = type.getSqlType();
 
-        if ((sqlType == Types.BLOB || sqlType == Types.VARBINARY || sqlType == Types.BINARY || sqlType == Types.LONGVARBINARY )
+        if ((sqlType == Types.BLOB || sqlType == Types.VARBINARY || sqlType == Types.BINARY || sqlType == Types.LONGVARBINARY)
                 && !isBinary()) {
            /* MySQL Text datatype */
-           type = MySQLType.VARCHAR;
+            type = MySQLType.VARCHAR;
         }
     }
 
 
     private String getString(int idx) {
-        try  {
+        try {
             buffer.getByteBuffer().reset();
             buffer.getByteBuffer().mark();
             Reader reader = new Reader(buffer);
-            for(int i = 0; i < idx ; i++) {
-               reader.skipLengthEncodedBytes();
+            for (int i = 0; i < idx; i++) {
+                reader.skipLengthEncodedBytes();
             }
-            return new String(reader.getLengthEncodedBytes(),"UTF-8");
-        }  catch (Exception e) {
-            throw new RuntimeException("this does not happen",e);
+            return new String(reader.getLengthEncodedBytes(), "UTF-8");
+        } catch (Exception e) {
+            throw new RuntimeException("this does not happen", e);
         }
     }
+
     public String getCatalog() {
         return null;
     }
@@ -239,15 +240,15 @@ public class MySQLColumnInformation  {
 
     public int getDisplaySize() {
         int t = type.getSqlType();
-        if (t == Types.VARCHAR || t == Types.CHAR ) {
+        if (t == Types.VARCHAR || t == Types.CHAR) {
             int maxWidth = maxCharlen[charsetNumber & 0xff];
             if (maxWidth == 0)
                 maxWidth = 1;
 
-            return (int)length / maxWidth;
+            return (int) length / maxWidth;
 
         }
-        return (int)length;
+        return (int) length;
     }
 
     public byte getDecimals() {
@@ -257,15 +258,45 @@ public class MySQLColumnInformation  {
     public MySQLType getType() {
         return type;
     }
+
     public short getFlags() {
         return flags;
     }
+
     public boolean isSigned() {
         return ((flags & ColumnFlags.UNSIGNED) == 0);
     }
 
-    public boolean isBinary() {
-       return (getCharsetNumber() == 63);
+    public boolean isNotNull() {
+        return ((this.flags & 1) > 0);
     }
 
+    public boolean isPrimaryKey() {
+        return ((this.flags & 2) > 0);
+    }
+
+    public boolean isUniqueKey() {
+        return ((this.flags & 4) > 0);
+    }
+
+    public boolean isMultipleKey() {
+        return ((this.flags & 8) > 0);
+    }
+
+    public boolean isBlob() {
+        return ((this.flags & 16) > 0);
+    }
+
+    public void setUnsigned() {
+        this.flags |= 32;
+    }
+
+    public boolean isZeroFill() {
+        return ((this.flags & 64) > 0);
+    }
+
+    // doesn't use & 128 bit filter, because char binary and varchar binary are not binary (handle like string), but have the binary flag
+    public boolean isBinary() {
+        return (getCharsetNumber() == 63);
+    }
 }

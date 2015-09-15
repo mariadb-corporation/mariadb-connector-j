@@ -20,7 +20,7 @@ This particular MariaDB Client for Java file is work
 derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
 the following copyright and notice provisions:
 
-Copyright (c) 2009-2011, Marcus Eriksson
+Copyright (c) 2009-2011, Marcus Eriksson , Stephane Giron
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
@@ -47,44 +47,29 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
+package org.mariadb.jdbc.internal.mysql.packet.commands;
 
-package org.mariadb.jdbc.internal.common.query.parameters;
-
-
+import org.mariadb.jdbc.internal.common.packet.CommandPacket;
 import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
-import org.mariadb.jdbc.internal.common.packet.buffer.WriteBuffer;
-import org.mariadb.jdbc.internal.mysql.*;
-import org.mariadb.jdbc.internal.mysql.MySQLType;
+import org.mariadb.jdbc.internal.common.query.parameters.ParameterWriter;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.sql.Time;
-import java.util.Calendar;
 
+public class SendClosePrepareStatementPacket implements CommandPacket {
 
-public class TimeParameter extends NotLongDataParameterHolder {
-    Time time;
-    Calendar calendar;
-    boolean fractionalSeconds;
+    int statementId;
 
-    public TimeParameter(Time time, Calendar cal, boolean fractionalSeconds) {
-        this.time = time;
-        this.calendar = cal;
-        this.fractionalSeconds = fractionalSeconds;
+    public SendClosePrepareStatementPacket(int statementId) {
+        this.statementId = statementId;
     }
 
-    public void writeTo(final OutputStream os) throws IOException {
-        ParameterWriter.writeTime(os, time, calendar, fractionalSeconds);
+    public int send(final OutputStream os) throws IOException {
+        PacketOutputStream pos = (PacketOutputStream) os;
+        pos.startPacket(0);
+        pos.write(0x19);
+        pos.write(ParameterWriter.writeLittleEndian(statementId));
+        pos.finishPacket();
+        return 0;
     }
-
-    public void writeBinary(PacketOutputStream writeBuffer) {
-        calendar.setTime(time);
-        writeBuffer.writeTimeLength(calendar, fractionalSeconds);
-    }
-
-    public MySQLType getMySQLType() {
-        return MySQLType.TIME;
-    }
-
-
 }

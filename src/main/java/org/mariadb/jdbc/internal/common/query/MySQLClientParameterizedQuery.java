@@ -51,17 +51,15 @@ package org.mariadb.jdbc.internal.common.query;
 import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.common.query.parameters.ParameterHolder;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
-import java.nio.charset.Charset;
 import java.util.List;
 
 import static org.mariadb.jdbc.internal.common.Utils.createQueryParts;
 
 
-public class MySQLParameterizedQuery implements ParameterizedQuery {
+public class MySQLClientParameterizedQuery implements ParameterizedQuery {
 
     private ParameterHolder[] parameters;
     private int paramCount;
@@ -73,7 +71,7 @@ public class MySQLParameterizedQuery implements ParameterizedQuery {
     private byte[] rewriteNotRepeatLastPart = null;
 
 
-    public MySQLParameterizedQuery(String query, boolean noBackslashEscapes, int rewriteOffset) {
+    public MySQLClientParameterizedQuery(String query, boolean noBackslashEscapes, int rewriteOffset) {
         this.query = query;
         List<String> queryParts = createQueryParts(query, noBackslashEscapes);
         if (rewriteOffset != -1) {
@@ -98,11 +96,11 @@ public class MySQLParameterizedQuery implements ParameterizedQuery {
         parameters = new ParameterHolder[paramCount];
     }
 
-    private  MySQLParameterizedQuery() {
+    private MySQLClientParameterizedQuery() {
 
     }
-    public MySQLParameterizedQuery cloneQuery() {
-        MySQLParameterizedQuery q = new  MySQLParameterizedQuery();
+    public MySQLClientParameterizedQuery cloneQuery() {
+        MySQLClientParameterizedQuery q = new MySQLClientParameterizedQuery();
         q.parameters = new ParameterHolder[parameters.length];
         for (int i = 0; i < parameters.length;i++) {
             q.parameters[i] = parameters[i];

@@ -50,67 +50,94 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
+import org.mariadb.jdbc.internal.SQLExceptionMapper;
 import org.mariadb.jdbc.internal.common.query.ParameterizedQuery;
+import org.mariadb.jdbc.internal.common.queryresults.ColumnFlags;
+import org.mariadb.jdbc.internal.mysql.MySQLColumnInformation;
+import org.mariadb.jdbc.internal.mysql.MySQLType;
 
 import java.sql.ParameterMetaData;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 
 /**
  * Very basic info about the parameterized query, only reliable method is getParameterCount();
  */
 public class MySQLParameterMetaData implements ParameterMetaData {
-    private final ParameterizedQuery query;
+    private final MySQLColumnInformation[] columnInformations;
 
-    public MySQLParameterMetaData(ParameterizedQuery dQuery) {
-        this.query = dQuery;
+    public MySQLParameterMetaData(MySQLColumnInformation[] columnInformations) {
+        this.columnInformations = columnInformations;
     }
 
+    @Override
     public int getParameterCount() throws SQLException {
-        return query.getParamCount();
+        return columnInformations.length;
     }
 
-    public int isNullable(int i) throws SQLException {
-        return ParameterMetaData.parameterNullableUnknown;
+    private MySQLColumnInformation getColumnInformation(int column) throws SQLException {
+        if (column >= 1 && column <= columnInformations.length) {
+            return columnInformations[column - 1];
+        }
+        throw new SQLException("Parameter metadata out of range : param was "+column+" and must be 1 <= param <="+columnInformations.length, "22003");
     }
 
-    public boolean isSigned(int i) throws SQLException {
-        return true;
+    @Override
+    public int isNullable(final int param) throws SQLException {
+        if ((getColumnInformation(param).getFlags() & ColumnFlags.NOT_NULL) == 0) {
+            return ParameterMetaData.parameterNullable;
+        } else {
+            return ParameterMetaData.parameterNoNulls;
+        }
     }
 
-    //TODO: fix
-    public int getPrecision(int i) throws SQLException {
-        return 1;
+    @Override
+    public boolean isSigned(int param) throws SQLException {
+        return getColumnInformation(param).isSigned();
     }
 
-    //TODO: fix
-    public int getScale(int i) throws SQLException {
+    @Override
+    public int getPrecision(int param) throws SQLException {
+        //TODO check real length (with numeric)
+        long length = getColumnInformation(param).getLength();
+        return (length > Integer.MAX_VALUE)?Integer.MAX_VALUE:(int)length;
+    }
+
+    @Override
+    public int getScale(int param) throws SQLException {
+        if (MySQLType.isNumeric(getColumnInformation(param).getType())) {
+            return getColumnInformation(param).getDecimals();
+        }
         return 0;
     }
 
-    //TODO: fix
-    public int getParameterType(int i) throws SQLException {
-        return java.sql.Types.VARCHAR;
+    @Override
+    public int getParameterType(int param) throws SQLException {
+        return getColumnInformation(param).getType().getSqlType();
     }
 
-    //TODO: fix
-    public String getParameterTypeName(int i) throws SQLException {
-        return "String";
+    @Override
+    public String getParameterTypeName(int param) throws SQLException {
+        return getColumnInformation(param).getType().getTypeName();
     }
 
-    //TODO: fix
-    public String getParameterClassName(int i) throws SQLException {
-        return "String.class";
+    @Override
+    public String getParameterClassName(int param) throws SQLException {
+        return getColumnInformation(param).getType().getClassName();
     }
 
-    public int getParameterMode(int i) throws SQLException {
-        return parameterModeInOut;
+    @Override
+    public int getParameterMode(int param) throws SQLException {
+        return parameterModeIn;
     }
 
-    public <T> T unwrap(Class<T> tClass) throws SQLException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+    @Override
+    public <T> T unwrap(Class<T> iface) throws SQLException {
+        return null;
     }
 
-    public boolean isWrapperFor(Class<?> aClass) throws SQLException {
-        return false;  //To change body of implemented methods use File | Settings | File Templates.
+    @Override
+    public boolean isWrapperFor(Class<?> iface) throws SQLException {
+        return false;
     }
 }

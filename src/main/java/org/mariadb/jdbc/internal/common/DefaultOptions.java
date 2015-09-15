@@ -256,7 +256,24 @@ public enum DefaultOptions {
     /**
      * time in second a server is blacklisted after a connection failure.  default to 50s
      */
-    LOAD_BALANCE_BLACKLIST_TIMEOUT("loadBalanceBlacklistTimeout", new Integer(50), new Integer(0), Integer.MAX_VALUE, "1.2.0");
+    LOAD_BALANCE_BLACKLIST_TIMEOUT("loadBalanceBlacklistTimeout", new Integer(50), new Integer(0), Integer.MAX_VALUE, "1.2.0"),
+
+    /**
+     * enable/disable prepare Statement cache, default true
+     */
+    CACHEPREPSTMTS("cachePrepStmts", Boolean.TRUE, "1.2.1"),
+
+    /**
+     * This sets the number of prepared statements that the driver will cache per VM if "cachePrepStmts" is enabled.
+     * default to 250.
+     */
+    PREPSTMTCACHESIZE("prepStmtCacheSize", new Integer(250), new Integer(0), Integer.MAX_VALUE, "1.2.1"),
+
+    /**
+     * This is the maximum length of a prepared SQL statement that the driver will cache  if "cachePrepStmts" is enabled.
+     * default to 2048.
+     */
+    PREPSTMTCACHESQLLIMIT("prepStmtCacheSqlLimit", new Integer(2048), new Integer(0), Integer.MAX_VALUE, "1.2.1");
 
     protected final String name;
     protected final Object objType;

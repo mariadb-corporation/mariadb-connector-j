@@ -83,8 +83,13 @@ import java.security.NoSuchAlgorithmException;
  * 
  */
 public class MySQLClientAuthPacket implements CommandPacket {
-    private final WriteBuffer writeBuffer;
     private final byte packetSeq;
+    private final String username;
+    private final String password;
+    private final byte[] seed;
+    private final int serverCapabilities;
+    private final byte serverLanguage;
+    private final String database;
 
     public MySQLClientAuthPacket(final String username,
                                  final String password,
@@ -93,7 +98,18 @@ public class MySQLClientAuthPacket implements CommandPacket {
                                  final byte serverLanguage,
                                  final byte[] seed, byte packetSeq) {
         this.packetSeq = packetSeq;
-        writeBuffer = new WriteBuffer();
+        this.username = username;
+        this.password = password;
+        this.seed = seed;
+        this.serverCapabilities = serverCapabilities;
+        this.serverLanguage = serverLanguage;
+        this.database = database;
+    }
+
+
+    public int send(final OutputStream os) throws IOException {
+        PacketOutputStream writeBuffer = (PacketOutputStream)os;
+        writeBuffer.startPacket(packetSeq);
         final byte[] scrambledPassword;
         try {
             scrambledPassword = Utils.encryptPassword(password, seed);
@@ -113,14 +129,8 @@ public class MySQLClientAuthPacket implements CommandPacket {
         if ((serverCapabilities & MySQLServerCapabilities.CONNECT_WITH_DB) != 0) {
             writeBuffer.writeString(database).writeByte((byte) 0);
         }
-    }
 
-
-    public int send(final OutputStream os) throws IOException {
-        PacketOutputStream pos = (PacketOutputStream)os;
-        pos.startPacket(packetSeq);
-        os.write(writeBuffer.getBuffer(),0,writeBuffer.getLength());
-        pos.finishPacket();
+        writeBuffer.finishPacket();
         return 1;
     }
 }

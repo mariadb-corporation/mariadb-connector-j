@@ -49,15 +49,20 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.common.packet.buffer;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
+import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.sql.Timestamp;
+import java.util.Calendar;
 
 /**
  * . User: marcuse Date: Jan 16, 2009 Time: 8:10:24 PM
  */
 public class WriteBuffer {
-    private final ByteBuffer byteBuffer;
+    private ByteBuffer byteBuffer;
 
     public WriteBuffer() {
          byteBuffer = ByteBuffer.allocate(1000).order(ByteOrder.LITTLE_ENDIAN);
@@ -68,11 +73,13 @@ public class WriteBuffer {
     }
 
     private void assureBufferCapacity(final int len) {
-
-        if(byteBuffer.remaining()<len) {
-            byteBuffer.limit(byteBuffer.capacity()*2);
+        while (byteBuffer.remaining()<len) {
+            ByteBuffer newByteBuffer = ByteBuffer.allocate(2*(len + byteBuffer.capacity())).order(ByteOrder.LITTLE_ENDIAN);
+            System.arraycopy(byteBuffer, 0, newByteBuffer, 0, byteBuffer.position());
+            byteBuffer = newByteBuffer;
         }
     }
+
     public WriteBuffer writeByte(final byte theByte) {
         assureBufferCapacity(1);
         byteBuffer.put(theByte);
@@ -84,6 +91,66 @@ public class WriteBuffer {
         byteBuffer.put(bytes);
         return this;
     }
+
+    public WriteBuffer writeByteArrayLength(final byte[] bytes) {
+        assureBufferCapacity(bytes.length + 9);
+        writeFieldLength(bytes.length);
+        byteBuffer.put(bytes);
+        return this;
+    }
+
+
+    public WriteBuffer writeTimestampLength(final Calendar calendar, Timestamp ts) {
+        assureBufferCapacity(12);
+        byteBuffer.put((byte) 11);//length
+
+        byteBuffer.putShort((short) calendar.get(Calendar.YEAR));
+        byteBuffer.put((byte) ((calendar.get(Calendar.MONTH) + 1) & 0xff));
+        byteBuffer.put((byte) (calendar.get(Calendar.DAY_OF_MONTH) & 0xff));
+        byteBuffer.put((byte) calendar.get(Calendar.HOUR_OF_DAY));
+        byteBuffer.put((byte) calendar.get(Calendar.MINUTE));
+        byteBuffer.put((byte) calendar.get(Calendar.SECOND));
+        byteBuffer.putInt(ts.getNanos() / 1000);
+
+        return this;
+    }
+
+    public WriteBuffer writeDateLength(final Calendar calendar) {
+        assureBufferCapacity(8);
+        byteBuffer.put((byte) 7);//length
+
+        byteBuffer.putShort((short) calendar.get(Calendar.YEAR));
+        byteBuffer.put((byte) ((calendar.get(Calendar.MONTH) + 1) & 0xff));
+        byteBuffer.put((byte) (calendar.get(Calendar.DAY_OF_MONTH) & 0xff));
+        byteBuffer.put((byte) 0);
+        byteBuffer.put((byte) 0);
+        byteBuffer.put((byte) 0);
+        return this;
+    }
+
+    public WriteBuffer writeTimeLength(final Calendar calendar, final boolean fractionalSeconds) {
+        if (fractionalSeconds) {
+            assureBufferCapacity(13);
+            byteBuffer.put((byte) 12);
+            byteBuffer.put((byte) 0);
+            byteBuffer.putInt(0);
+            byteBuffer.put((byte) calendar.get(Calendar.HOUR_OF_DAY));
+            byteBuffer.put((byte) calendar.get(Calendar.MINUTE));
+            byteBuffer.put((byte) calendar.get(Calendar.SECOND));
+            byteBuffer.putInt(calendar.get(Calendar.MILLISECOND) * 1000);
+        } else {
+            assureBufferCapacity(9);
+            byteBuffer.put((byte) 8);//length
+            byteBuffer.put((byte) 0);
+            byteBuffer.putInt(0);
+            byteBuffer.put((byte) calendar.get(Calendar.HOUR_OF_DAY));
+            byteBuffer.put((byte) calendar.get(Calendar.MINUTE));
+            byteBuffer.put((byte) calendar.get(Calendar.SECOND));
+        }
+
+        return this;
+    }
+
 
     public WriteBuffer writeBytes(final byte theByte, final int count) {
         for (int i = 0; i < count; i++) {
@@ -104,6 +171,12 @@ public class WriteBuffer {
         return this;
     }
 
+    public WriteBuffer writeLong(final long theLong) {
+        assureBufferCapacity(8);
+        byteBuffer.putLong(theLong);
+        return this;
+    }
+
     public WriteBuffer writeString(final String str) {
         final byte[] strBytes;
         try {
@@ -114,25 +187,44 @@ public class WriteBuffer {
         return writeByteArray(strBytes);
 
     }
-    public byte [] getLengthWithPacketSeq(byte packetNumber) {
-        int length = getLength();
-        byte [] lenArr = intToByteArray(length);
-        lenArr[3] = packetNumber;
-        return lenArr;
+
+    public WriteBuffer writeStringLength(final String str) {
+        final byte[] strBytes;
+        try {
+            strBytes = str.getBytes("UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException("UTF-8 not supported", e);
+        }
+        assureBufferCapacity(strBytes.length + 9);
+        writeFieldLength(strBytes.length);
+        byteBuffer.put(strBytes);
+        return this;
     }
+
+    public WriteBuffer writeFieldLength(long length) {
+        if (length < 251) {
+            byteBuffer.put((byte) length);
+        } else if (length < 65536) {
+            assureBufferCapacity(3);
+            byteBuffer.put((byte)0xfc);
+            writeShort((short) length);
+        } else if (length < 16777216) {
+            assureBufferCapacity(4);
+            byteBuffer.put((byte)0xfd);
+            byteBuffer.put((byte) (length & 0xff) );
+            byteBuffer.put((byte) (length >>> 8) );
+            byteBuffer.put((byte) (length >>> 16));
+        } else {
+            assureBufferCapacity(9);
+            byteBuffer.put((byte)0xfe);
+            writeLong(length);
+        }
+        return this;
+    }
+
 
     public byte[] getBuffer() {
         return byteBuffer.array();
-    }
-
-    public byte[] toByteArrayWithLength(final byte packetNumber) {
-        final int length = byteBuffer.capacity() - byteBuffer.remaining();
-        final ByteBuffer returnBuffer = ByteBuffer.allocate(length + 4);
-        final byte [] lenArr = intToByteArray(length);
-        lenArr[3] = packetNumber;
-        returnBuffer.put(lenArr);
-        returnBuffer.put(byteBuffer.array(), 0,length);
-        return returnBuffer.array();
     }
 
 

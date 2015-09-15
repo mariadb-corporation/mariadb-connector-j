@@ -1730,7 +1730,6 @@ class ShowCreateTableParser {
          List<String[]> data = new ArrayList<String[]>();
 
          for (String p:parts) {
-              //System.out.println("--" + p);
               p = p.trim();
               if (!p.startsWith("CONSTRAINT") && !p.contains("FOREIGN KEY"))
                   continue;

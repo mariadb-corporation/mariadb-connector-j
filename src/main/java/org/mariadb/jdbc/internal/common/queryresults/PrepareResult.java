@@ -46,45 +46,33 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWIS
 ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
 OF SUCH DAMAGE.
 */
+package org.mariadb.jdbc.internal.common.queryresults;
 
+import org.mariadb.jdbc.internal.mysql.MySQLColumnInformation;
 
-package org.mariadb.jdbc.internal.common.query.parameters;
+public class PrepareResult {
+    public int statementId;
+    private int useTime = 1;
+    public MySQLColumnInformation[] columns;
+    public MySQLColumnInformation[] parameters;
 
-
-import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
-import org.mariadb.jdbc.internal.common.packet.buffer.WriteBuffer;
-import org.mariadb.jdbc.internal.mysql.*;
-import org.mariadb.jdbc.internal.mysql.MySQLType;
-
-import java.io.IOException;
-import java.io.OutputStream;
-import java.sql.Time;
-import java.util.Calendar;
-
-
-public class TimeParameter extends NotLongDataParameterHolder {
-    Time time;
-    Calendar calendar;
-    boolean fractionalSeconds;
-
-    public TimeParameter(Time time, Calendar cal, boolean fractionalSeconds) {
-        this.time = time;
-        this.calendar = cal;
-        this.fractionalSeconds = fractionalSeconds;
+    public PrepareResult(int statementId, MySQLColumnInformation[] columns,  MySQLColumnInformation parameters[]) {
+        this.statementId = statementId;
+        this.columns = columns;
+        this.parameters = parameters;
     }
 
-    public void writeTo(final OutputStream os) throws IOException {
-        ParameterWriter.writeTime(os, time, calendar, fractionalSeconds);
+    public synchronized void addUse() {
+        useTime++;
     }
-
-    public void writeBinary(PacketOutputStream writeBuffer) {
-        calendar.setTime(time);
-        writeBuffer.writeTimeLength(calendar, fractionalSeconds);
+    public synchronized void removeUse() {
+        useTime--;
     }
-
-    public MySQLType getMySQLType() {
-        return MySQLType.TIME;
+    public synchronized boolean hasToBeClose() {
+        return useTime <= 0;
     }
-
-
+    //for test unit
+    public synchronized int getUseTime() {
+        return useTime;
+    }
 }

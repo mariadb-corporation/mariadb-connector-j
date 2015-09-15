@@ -289,7 +289,9 @@ public class MultiTest extends BaseTest {
             tmpConnection = openNewConnection(connURI, props);
             tmpConnection.createStatement().execute("TRUNCATE t3");
 
-            PreparedStatement sqlInsert = tmpConnection.prepareStatement("INSERT INTO t3 (message) VALUES (?)");
+            int currentInsert = retrieveSessionVariableFromServer(tmpConnection, "Com_insert");
+
+            PreparedStatement sqlInsert = tmpConnection.prepareStatement("/*CLIENT*/ INSERT INTO t3 (message) VALUES (?)");
             sqlInsert.setString(1, "aa");
             sqlInsert.addBatch();
             sqlInsert.setString(1, "b;b");
@@ -308,10 +310,12 @@ public class MultiTest extends BaseTest {
                 Assert.assertEquals(1, updateCounts[i]);
             }
 
-            tmpConnection.commit();
-            verifyInsertCount(tmpConnection, 1);
+            assertEquals(1, retrieveSessionVariableFromServer(tmpConnection, "Com_insert") - currentInsert);
+
+            currentInsert = retrieveSessionVariableFromServer(tmpConnection, "Com_insert");
+
             // Test for multiple statements which isn't allowed. rewrite shouldn't work
-            sqlInsert = tmpConnection.prepareStatement("INSERT INTO t3 (message) VALUES (?); INSERT INTO t3 (message) VALUES ('multiple')");
+            sqlInsert = tmpConnection.prepareStatement("/*CLIENT*/ INSERT INTO t3 (message) VALUES (?); INSERT INTO t3 (message) VALUES ('multiple')");
             sqlInsert.setString(1, "aa");
             sqlInsert.addBatch();
             sqlInsert.setString(1, "b;b");
@@ -322,8 +326,9 @@ public class MultiTest extends BaseTest {
             Assert.assertEquals(2, updateCounts.length);
             Assert.assertEquals(1, updateCounts[0]);
             Assert.assertEquals(1, updateCounts[1]);
-            verifyInsertCount(tmpConnection, 5);
-            tmpConnection.commit();
+
+            assertEquals(4, retrieveSessionVariableFromServer(tmpConnection, "Com_insert") - currentInsert);
+
         } finally {
             log.debug("rewriteBatchedStatementsSemicolon end");
             if (tmpConnection != null) tmpConnection.close();
@@ -386,6 +391,7 @@ public class MultiTest extends BaseTest {
         }
     }
 
+
     /**
      * CONJ-152: rewriteBatchedStatements and multiple executeBatch check
      * @throws SQLException
@@ -413,9 +419,8 @@ public class MultiTest extends BaseTest {
             preparedStatement.setInt(2, 3);
             preparedStatement.addBatch();
 
-            preparedStatement.executeBatch();
             int[] updateCounts = preparedStatement.executeBatch();
-            assertEquals(0, updateCounts.length);
+            assertEquals(2, updateCounts.length);
 
             preparedStatement.setString(1, "executebatch3");
             preparedStatement.setInt(2, 1);
@@ -485,10 +490,10 @@ public class MultiTest extends BaseTest {
 
             //Insert in prepare statement, cannot know the number og each one
             Assert.assertEquals(4, insertCounts.length);
-            Assert.assertEquals(-2, insertCounts[0]);
-            Assert.assertEquals(-2, insertCounts[1]);
-            Assert.assertEquals(-2, insertCounts[2]);
-            Assert.assertEquals(-2, insertCounts[3]);
+            Assert.assertEquals(1, insertCounts[0]);
+            Assert.assertEquals(0, insertCounts[1]);
+            Assert.assertEquals(1, insertCounts[2]);
+            Assert.assertEquals(1, insertCounts[3]);
 
 
             PreparedStatement sqlUpdate = tmpConnection.prepareStatement("UPDATE t4 SET test = ? WHERE test = ?");
@@ -538,7 +543,6 @@ public class MultiTest extends BaseTest {
             insertStmt.setString(2, "b2");
             insertStmt.addBatch();
             insertStmt.executeBatch();
-            tmpConnection.commit();
         } finally {
             if (tmpConnection != null) tmpConnection.close();
         }
@@ -564,7 +568,6 @@ public class MultiTest extends BaseTest {
             insertStmt.setString(2, "b2");
             insertStmt.addBatch();
             insertStmt.executeBatch();
-            tmpConnection.commit();
         } finally {
             if (tmpConnection != null) tmpConnection.close();
         }
