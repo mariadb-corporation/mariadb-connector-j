@@ -222,7 +222,8 @@ public final class MySQLConnection implements Connection {
                 || cleanSql.startsWith("RETURN")
                 || cleanSql.startsWith("SIGNAL")
                 || cleanSql.startsWith("XA")
-                || cleanSql.startsWith("WHILE")) return false;
+                || cleanSql.startsWith("WHILE")
+                || cleanSql.startsWith("/*CLIENT*/")) return false;
         return true;
 
     }
@@ -271,11 +272,18 @@ public final class MySQLConnection implements Connection {
      * @throws SQLException if there is an error commiting.
      */
     public void commit() throws SQLException {
-        Statement st = createStatement();
+        lock.writeLock().lock();
         try {
-            st.execute("COMMIT");
+            if (getAutoCommit()) throw new SQLException("Error : committing transaction on a autocommit connection", "HY012");
+            Statement st = createStatement();
+            try {
+                st.execute("COMMIT");
+            } finally {
+                st.close();
+            }
+
         } finally {
-            st.close();
+            lock.writeLock().unlock();
         }
     }
 

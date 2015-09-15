@@ -388,8 +388,47 @@ public class MySQLValueObject implements ValueObject {
 
 
     public BigDecimal getBigDecimal() {
-        if (rawBytes == null) return BigDecimal.ONE;
-        return new BigDecimal(getString());
+        if (rawBytes == null) return null;
+        if (!this.isBinaryEncoded) {
+            return new BigDecimal(getString());
+        } else {
+            switch (dataType) {
+                case BIT:
+                    return BigDecimal.valueOf((long) rawBytes[0]);
+                case TINYINT:
+                    return BigDecimal.valueOf((long) getByte());
+                case SMALLINT:
+                case YEAR:
+                    return BigDecimal.valueOf(getShort());
+                case INTEGER:
+                case MEDIUMINT:
+                    return BigDecimal.valueOf((long) getInt());
+                case BIGINT:
+                    long x = ((rawBytes[0] & 0xff)
+                            | ((long) (rawBytes[1] & 0xff) << 8)
+                            | ((long) (rawBytes[2] & 0xff) << 16)
+                            | ((long) (rawBytes[3] & 0xff) << 24)
+                            | ((long) (rawBytes[4] & 0xff) << 32)
+                            | ((long) (rawBytes[5] & 0xff) << 40)
+                            | ((long) (rawBytes[6] & 0xff) << 48)
+                            | ((long) (rawBytes[7] & 0xff) << 56)
+                    );
+                    if (columnInfo.isSigned()) return new BigDecimal(String.valueOf(BigInteger.valueOf(x))).setScale(columnInfo.getDecimals());
+                    else {
+                        return new BigDecimal(String.valueOf(new BigInteger(1, new byte[] { (byte) (x >> 56),
+                                (byte) (x >> 48), (byte) (x >> 40), (byte) (x >> 32),
+                                (byte) (x >> 24), (byte) (x >> 16), (byte) (x >> 8),
+                                (byte) (x >> 0) }))).setScale(columnInfo.getDecimals());
+                    }
+                case FLOAT:
+                    return BigDecimal.valueOf((long) getFloat());
+                case DOUBLE:
+                    return BigDecimal.valueOf((long) getDouble());
+                default:
+                    return new BigDecimal(getString());
+            }
+        }
+
     }
 
     public byte[] getBytes() {

@@ -39,7 +39,7 @@ public class DecompressInputStream extends InputStream{
             ret = baseStream.read(bytes, off, bytesToRead);
         }
         if (ret <= 0)  {
-            throw new EOFException("got "+ ret +"bytes, bytesToRead = " + bytesToRead);
+            throw new EOFException("got "+ ret +" bytes, bytesToRead = " + bytesToRead);
         }
 
         remainingBytes -= ret;
@@ -65,7 +65,7 @@ public class DecompressInputStream extends InputStream{
      * @throws IOException
      */
     private  void nextPacket() throws IOException {
-           /* ReadUtil.readFully(baseStream, header);
+            ReadUtil.readFully(baseStream, header);
             int compressedLength = (header[0] & 0xff) + ((header[1] & 0xff) << 8) + ((header[2] & 0xff) << 16);
             int decompressedLength = (header[4] & 0xff) + ((header[5] & 0xff) << 8) + ((header[6] & 0xff) << 16);
             if (decompressedLength != 0) {
@@ -92,7 +92,7 @@ public class DecompressInputStream extends InputStream{
                 doDecompress = false;
                 remainingBytes += compressedLength;
                 decompressedByteStream = null;
-            }*/
+            }
     }
 
 }

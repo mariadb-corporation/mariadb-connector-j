@@ -72,7 +72,7 @@ public class ByteArrayParameter extends NotLongDataParameterHolder {
     }
 
     public MySQLType getMySQLType() {
-        return MySQLType.STRING;
+        return MySQLType.VARSTRING;
     }
 
     public String toString() {

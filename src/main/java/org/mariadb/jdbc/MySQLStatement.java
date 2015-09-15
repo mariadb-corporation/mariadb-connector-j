@@ -1244,7 +1244,7 @@ public class MySQLStatement implements Statement {
     protected int getInsertIncipit(String sql) {
         String sqlUpper = sql.toUpperCase();
 
-        if (! sqlUpper.startsWith("INSERT"))
+        if (! sqlUpper.startsWith("INSERT") && ! sqlUpper.startsWith("/*CLIENT*/ INSERT"))
             return -1;
 
         int idx = sqlUpper.indexOf(" VALUE");

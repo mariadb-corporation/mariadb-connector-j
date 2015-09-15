@@ -157,6 +157,7 @@ public class JDBCUrl {
          */
     private static void parseInternal(JDBCUrl jdbcUrl, String url, Properties properties) throws SQLException {
         try {
+            if (url.indexOf("//") == -1) throw new IllegalArgumentException("url parsing error : '//' is not present in the url "+url);
             String[] baseTokens = url.substring(0,url.indexOf("//")).split(":");
 
             //parse HA mode

@@ -1,4 +1,4 @@
- /*
+/*
 MariaDB Client for Java
 
 Copyright (c) 2012 Monty Program Ab.
@@ -54,11 +54,9 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
-import java.nio.channels.ReadableByteChannel;
-import java.nio.channels.SocketChannel;
 
 
- public final class ReadUtil {
+public final class ReadUtil {
     private ReadUtil() {
 
     }
@@ -67,44 +65,45 @@ import java.nio.channels.SocketChannel;
      * Read a number of bytes from the stream and store it in the buffer, and fix the problem with "incomplete" reads by
      * doing another read if we don't have all of the data yet.
      *
-     * @param socketChannel the socketChannel to read from
+     * @param stream the input stream to read from
      * @param b      buffer where to store the data
      * @param off    offset in the buffer
      * @param len    bytes to read
      * @throws java.io.IOException if an error occurs while reading the stream.
-     * java.io.EOFException of end of stream is hit.
+     *                             java.io.EOFException of end of stream is hit.
      */
-    public static void readFully(ReadableByteChannel socketChannel, ByteBuffer b , int off, int len) throws IOException{
+    public static void readFully(InputStream stream, byte[] b, int off, int len) throws IOException {
         if (len < 0) {
             throw new AssertionError("len < 0");
         }
         int remaining = len;
-        while(remaining > 0) {
-            int count = socketChannel.read(b);
+        while (remaining > 0) {
+            int count = stream.read(b, off, remaining);
             if (count <= 0) {
-                throw new EOFException("unexpected end of stream, read "+ (len - remaining) + " bytes from "+ len);
+                throw new EOFException("unexpected end of stream, read " + (len - remaining) + " bytes from " + len);
             }
             remaining -= count;
             off += count;
         }
     }
 
-    public static void readFully(ReadableByteChannel socketChannel, ByteBuffer b) throws IOException {
-        readFully(socketChannel, b, 0 , b.capacity());
+    public static void readFully(InputStream stream, byte[] b) throws IOException {
+        readFully(stream, b, 0, b.length);
     }
 
     /**
-     * Checks whether the next packet is EOF. 
+     * Checks whether the next packet is EOF.
+     *
      * @param rawPacket the raw packet
      * @return true if the packet is an EOF packet
      */
     public static boolean eofIsNext(final RawPacket rawPacket) {
         final ByteBuffer buf = rawPacket.getByteBuffer();
-        return (buf.get(0) == (byte)0xfe && buf.capacity() < 9);
+        return (buf.get(0) == (byte) 0xfe && buf.capacity() < 9);
 
     }
 
     public static boolean isErrorPacket(RawPacket rawPacket) {
-        return rawPacket.getByteBuffer().get(0) == (byte)0xff;
+        return rawPacket.getByteBuffer().get(0) == (byte) 0xff;
     }
 }

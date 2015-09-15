@@ -88,7 +88,7 @@ public class MySQLServerPreparedStatement extends AbstractMySQLPrepareStatement 
             connection.lock.writeLock().lock();
             try {
                 if (protocol.hasUnreadData()) {
-                    throw new SQLException("There is an open result set on the current connection, which must be closed prior to executing a query");
+                    SQLExceptionMapper.throwException(new QueryException("There is an open result set on the current connection, which must be closed prior to executing a query"), connection, this);
                 }
                 prepareResult = protocol.prepare(sql);
                 parameterCount = prepareResult.parameters.length;
@@ -147,7 +147,7 @@ public class MySQLServerPreparedStatement extends AbstractMySQLPrepareStatement 
         //check
         for (int i = 0; i < parameterCount; i++) {
             if (currentParameterHolder[i] == null)
-                throw new SQLException("Parameter at position " + (i+1) + " is not set", "07004");
+                SQLExceptionMapper.throwException(new QueryException("Parameter at position " + (i+1) + " is not set", -1, "07004"), connection, this);
         }
 
         stLock.writeLock().lock();
@@ -366,7 +366,8 @@ public class MySQLServerPreparedStatement extends AbstractMySQLPrepareStatement 
         try {
             for (int i = 0; i < parameterCount; i++) {
                 if (currentParameterHolder[i] == null)
-                    throw new SQLException("Parameter at position " + (i+1) + " is not set", "07004");
+                    SQLExceptionMapper.throwException(new QueryException("Parameter at position " + (i+1) + " is not set", -1, "07004"), connection, this);
+
             }
             MySQLResultSet rs = null;
             boolean result = false;
@@ -430,11 +431,19 @@ public class MySQLServerPreparedStatement extends AbstractMySQLPrepareStatement 
                     connection.lock.writeLock().unlock();
                 }
             }
+            super.close();
             isClosed = true;
+
+            if (connection == null || connection.pooledConnection == null || connection.pooledConnection.statementEventListeners.isEmpty()) {
+                return;
+            }
+            connection.pooledConnection.fireStatementClosed(this);
+
         } finally {
             stLock.writeLock().unlock();
         }
     }
+
 
     public String toString() {
         StringBuffer sb  = new StringBuffer ("sql : '" + sql + "'");

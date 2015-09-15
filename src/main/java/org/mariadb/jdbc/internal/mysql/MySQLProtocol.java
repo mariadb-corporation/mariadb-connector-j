@@ -164,8 +164,6 @@ public class MySQLProtocol implements Protocol {
     private boolean connected = false;
     private boolean explicitClosed = false;
     protected Socket socket;
-    protected ReadableByteChannel readChannel;
-    protected WritableByteChannel writeChannel;
     protected PacketOutputStream writer;
     private  String version;
     protected boolean readOnly = false;
@@ -273,6 +271,7 @@ public class MySQLProtocol implements Protocol {
         } else {
             socket = socketFactory.createSocket();
         }
+
         try {
             if (jdbcUrl.getOptions().tcpNoDelay) socket.setTcpNoDelay(true);
             if (jdbcUrl.getOptions().tcpKeepAlive) socket.setKeepAlive(true);
@@ -303,14 +302,13 @@ public class MySQLProtocol implements Protocol {
         if (jdbcUrl.getOptions().socketTimeout != null) socket.setSoTimeout(jdbcUrl.getOptions().socketTimeout);
 
         try {
-            readChannel = Channels.newChannel(socket.getInputStream());
-            writeChannel = Channels.newChannel(socket.getOutputStream());
-
-            packetFetcher = new SyncPacketFetcher(readChannel);
-            writer = new PacketOutputStream(writeChannel);
+            InputStream reader;
+            reader = new BufferedInputStream(socket.getInputStream(), 32768);
+            packetFetcher = new SyncPacketFetcher(reader);
+            writer = new PacketOutputStream(socket.getOutputStream());
             RawPacket packet =  packetFetcher.getRawPacket();
             if (ReadUtil.isErrorPacket(packet)) {
-                packetFetcher.close();
+                reader.close();
                 ErrorPacket errorPacket = (ErrorPacket)ResultPacketFactory.createResultPacket(packet);
                 throw new QueryException(errorPacket.getMessage());
             }
@@ -345,7 +343,6 @@ public class MySQLProtocol implements Protocol {
             if (database != null && !jdbcUrl.getOptions().createDatabaseIfNotExist)
                 capabilities |= MySQLServerCapabilities.CONNECT_WITH_DB;
 
-
             if(jdbcUrl.getOptions().useSSL &&
                     (greetingPacket.getServerCapabilities() & MySQLServerCapabilities.SSL) != 0 ) {
                 capabilities |= MySQLServerCapabilities.SSL;
@@ -356,24 +353,18 @@ public class MySQLProtocol implements Protocol {
                 SSLSocket sslSocket = (SSLSocket)f.createSocket(socket,
                         socket.getInetAddress().getHostAddress(),  socket.getPort(),  false);
 
-                sslSocket.setEnabledProtocols(new String[]{"TLSv1"});
+                sslSocket.setEnabledProtocols(new String [] {"TLSv1"});
                 sslSocket.setUseClientMode(true);
                 sslSocket.startHandshake();
                 socket = sslSocket;
-
-                readChannel = Channels.newChannel(socket.getInputStream());
-                writeChannel = Channels.newChannel(socket.getOutputStream());
-
-                writer = new PacketOutputStream(writeChannel);
-                packetFetcher = new SyncPacketFetcher(readChannel);
+                writer = new PacketOutputStream(socket.getOutputStream());
+                reader = new BufferedInputStream(socket.getInputStream(), 32768);
+                packetFetcher = new SyncPacketFetcher(reader);
 
                 packetSeq++;
             } else if(jdbcUrl.getOptions().useSSL){
                 throw new QueryException("Trying to connect with ssl, but ssl not enabled in the server");
             }
-
-            readChannel = Channels.newChannel(socket.getInputStream());
-            writeChannel = Channels.newChannel(socket.getOutputStream());
 
             final MySQLClientAuthPacket cap = new MySQLClientAuthPacket(this.username,
                     this.password,
@@ -400,12 +391,10 @@ public class MySQLProtocol implements Protocol {
             OKPacket ok = (OKPacket)resultPacket;
             serverStatus = ok.getServerStatus();
 
-            //TODO implement compression
-            /*
             if (jdbcUrl.getOptions().useCompression) {
-                writer = new PacketOutputStream(new CompressOutputStream(socket.getOutputStream()));
+                writer.setUseCompression(true);
                 packetFetcher = new SyncPacketFetcher(new DecompressInputStream(socket.getInputStream()));
-            }*/
+            }
 
             // In JDBC, connection must start in autocommit mode.
             if ((serverStatus & ServerStatus.AUTOCOMMIT) == 0) {
@@ -733,12 +722,15 @@ public class MySQLProtocol implements Protocol {
     }
 
 
-    protected static void close(PacketFetcher fetcher, PacketOutputStream packetOutputStream, ReadableByteChannel readChannel, WritableByteChannel writeChannel) throws QueryException {
+    protected static void close(PacketFetcher fetcher, PacketOutputStream packetOutputStream, Socket socket) throws QueryException {
         ClosePacket closePacket = new ClosePacket();
         try {
             try {
                 closePacket.send(packetOutputStream);
-                while(readChannel.read(ByteBuffer.allocate(100)) != -1) {}
+                socket.shutdownOutput();
+                socket.setSoTimeout(3);
+                InputStream is = socket.getInputStream();
+                while(is.read() != -1) {}
             } catch (Throwable t) {
             }
             packetOutputStream.close();
@@ -750,8 +742,7 @@ public class MySQLProtocol implements Protocol {
                     e);
         } finally {
             try {
-                writeChannel.close();
-                readChannel.close();
+                socket.close();
             } catch (IOException e) {
                 log.warn("Could not close socket");
             }
@@ -779,7 +770,7 @@ public class MySQLProtocol implements Protocol {
         try {
             if (log.isTraceEnabled()) log.trace("Closing connection  " + currentHost);
             prepareStatementCache.clear();
-            close(packetFetcher, writer, readChannel, writeChannel);
+            close(packetFetcher, writer, socket);
         } catch (Exception e) {
             // socket is closed, so it is ok to ignore exception
             log.debug("got exception " + e + " while closing connection");
