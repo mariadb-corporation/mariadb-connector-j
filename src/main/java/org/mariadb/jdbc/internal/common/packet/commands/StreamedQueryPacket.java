@@ -56,7 +56,6 @@ import org.mariadb.jdbc.internal.common.query.Query;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.ArrayList;
 import java.util.List;
 
 
@@ -74,25 +73,25 @@ public class StreamedQueryPacket implements CommandPacket {
 
     public int send(final OutputStream ostream) throws IOException, QueryException {
         if (queries.size() == 1) {
-            PacketOutputStream pos = (PacketOutputStream)ostream;
+            PacketOutputStream pos = (PacketOutputStream) ostream;
             pos.startPacket(0);
             pos.write(0x03);
             queries.get(0).writeTo(ostream);
             pos.finishPacket();
         } else {
-            PacketOutputStream pos = (PacketOutputStream)ostream;
+            PacketOutputStream pos = (PacketOutputStream) ostream;
             pos.startPacket(0);
             pos.write(0x03);
             if (!isRewritable) {
                 queries.get(0).writeTo(ostream);
-                for (int i=1;i<queries.size();i++) {
+                for (int i = 1; i < queries.size(); i++) {
                     pos.write(';');
                     queries.get(i).writeTo(ostream);
                 }
             } else {
                 queries.get(0).writeFirstRewritePart(ostream);
-                for (int i = 1;i<queries.size();i++) {
-                        queries.get(i).writeToRewritablePart(ostream, rewriteOffset);
+                for (int i = 1; i < queries.size(); i++) {
+                    queries.get(i).writeToRewritablePart(ostream, rewriteOffset);
                 }
                 queries.get(0).writeLastRewritePart(ostream);
             }

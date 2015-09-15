@@ -7,7 +7,6 @@ import javax.sql.*;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.SQLSyntaxErrorException;
 
 class MyEventListener implements ConnectionEventListener, StatementEventListener {
     public SQLException sqlException;
@@ -15,6 +14,12 @@ class MyEventListener implements ConnectionEventListener, StatementEventListener
     public boolean connectionErrorOccured;
     public boolean statementClosed;
     public boolean statementErrorOccured;
+
+    public MyEventListener() {
+        sqlException = null;
+        closed = false;
+        connectionErrorOccured = false;
+    }
 
     public void connectionClosed(ConnectionEvent event) {
         sqlException = event.getSQLException();
@@ -24,12 +29,6 @@ class MyEventListener implements ConnectionEventListener, StatementEventListener
     public void connectionErrorOccurred(ConnectionEvent event) {
         sqlException = event.getSQLException();
         connectionErrorOccured = true;
-    }
-
-    public MyEventListener() {
-        sqlException = null;
-        closed = false;
-        connectionErrorOccured = false;
     }
 
     public void statementClosed(StatementEvent event) {
@@ -94,19 +93,17 @@ public class PooledConnectionTest extends BaseTest {
 
 
     @Test
-    public void testPooledConnectionStatementError() throws Exception
-    {
+    public void testPooledConnectionStatementError() throws Exception {
         ConnectionPoolDataSource ds = new MySQLDataSource(hostname, port, database);
         PooledConnection pc = ds.getPooledConnection(username, password);
         MyEventListener listener = new MyEventListener();
         pc.addStatementEventListener(listener);
-        MySQLConnection c = (MySQLConnection)pc.getConnection();
+        MySQLConnection c = (MySQLConnection) pc.getConnection();
         PreparedStatement ps = c.prepareStatement("SELECT ?");
         try {
             ps.execute();
             Assert.assertTrue("should never get there", false);
-        }
-        catch(Exception e) {
+        } catch (Exception e) {
             Assert.assertTrue(listener.statementErrorOccured && listener.sqlException.getSQLState().equals("07004"));
         }
         ps.close();

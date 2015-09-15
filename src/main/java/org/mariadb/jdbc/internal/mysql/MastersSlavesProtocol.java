@@ -54,7 +54,10 @@ import org.mariadb.jdbc.JDBCUrl;
 import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.mysql.listener.impl.MastersSlavesListener;
 import org.mariadb.jdbc.internal.mysql.listener.tools.SearchFilter;
-import java.util.*;
+
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class MastersSlavesProtocol extends MySQLProtocol {
@@ -69,9 +72,9 @@ public class MastersSlavesProtocol extends MySQLProtocol {
     /**
      * loop until found the failed connection.
      *
-     * @param listener current listener
-     * @param addresses list of HostAddress to loop
-     * @param blacklist current blacklist
+     * @param listener     current listener
+     * @param addresses    list of HostAddress to loop
+     * @param blacklist    current blacklist
      * @param searchFilter search parameter
      * @throws QueryException if not found
      */
@@ -88,7 +91,8 @@ public class MastersSlavesProtocol extends MySQLProtocol {
         while (!loopAddresses.isEmpty() || (!searchFilter.isUniqueLoop() && maxConnectionTry > 0)) {
             protocol = getNewProtocol(listener.getProxy(), listener.getJdbcUrl());
 
-            if (listener.isExplicitClosed() || (!listener.isSecondaryHostFail() && !listener.isMasterHostFail())) return;
+            if (listener.isExplicitClosed() || (!listener.isSecondaryHostFail() && !listener.isMasterHostFail()))
+                return;
             maxConnectionTry--;
 
             try {
@@ -136,7 +140,7 @@ public class MastersSlavesProtocol extends MySQLProtocol {
 
     }
 
-    private static boolean foundMaster(MastersSlavesListener listener, MastersSlavesProtocol protocol,SearchFilter searchFilter) {
+    private static boolean foundMaster(MastersSlavesListener listener, MastersSlavesProtocol protocol, SearchFilter searchFilter) {
         protocol.setMustBeMasterConnection(true);
         searchFilter.setSearchForMaster(false);
         listener.foundActiveMaster(protocol);
@@ -149,7 +153,7 @@ public class MastersSlavesProtocol extends MySQLProtocol {
         return false;
     }
 
-    private static boolean foundSecondary(MastersSlavesListener listener, MastersSlavesProtocol protocol,SearchFilter searchFilter) {
+    private static boolean foundSecondary(MastersSlavesListener listener, MastersSlavesProtocol protocol, SearchFilter searchFilter) {
         searchFilter.setSearchForSlave(false);
         protocol.setMustBeMasterConnection(false);
         listener.foundActiveSecondary(protocol);
@@ -171,6 +175,7 @@ public class MastersSlavesProtocol extends MySQLProtocol {
     public boolean mustBeMasterConnection() {
         return mustBeMasterConnection;
     }
+
     public void setMustBeMasterConnection(boolean mustBeMasterConnection) {
         this.mustBeMasterConnection = mustBeMasterConnection;
     }

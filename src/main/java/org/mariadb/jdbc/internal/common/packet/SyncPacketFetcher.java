@@ -1,4 +1,4 @@
- /*
+/*
 MariaDB Client for Java
 
 Copyright (c) 2012 Monty Program Ab.
@@ -60,7 +60,7 @@ public class SyncPacketFetcher implements PacketFetcher {
     private final InputStream inputStream;
 
     public SyncPacketFetcher(final InputStream is) {
-        this.inputStream=is;
+        this.inputStream = is;
     }
 
     public RawPacket getRawPacket() throws IOException {
@@ -69,7 +69,7 @@ public class SyncPacketFetcher implements PacketFetcher {
 
     public void clearInputStream() throws IOException {
         int available = inputStream.available();
-        while(available > 0) {
+        while (available > 0) {
             available -= inputStream.skip(available);
         }
     }

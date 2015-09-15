@@ -54,7 +54,8 @@ import org.mariadb.jdbc.JDBCUrl;
 import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.common.query.MySQLQuery;
 import org.mariadb.jdbc.internal.common.queryresults.SelectQueryResult;
-import org.mariadb.jdbc.internal.mysql.*;
+import org.mariadb.jdbc.internal.mysql.AuroraProtocol;
+import org.mariadb.jdbc.internal.mysql.Protocol;
 import org.mariadb.jdbc.internal.mysql.listener.tools.SearchFilter;
 
 import java.io.IOException;
@@ -133,7 +134,7 @@ public class AuroraListener extends MastersSlavesListener {
             }
         }
 
-        if (((searchFilter.isSearchForMaster() && isMasterHostFail())|| (searchFilter.isSearchForSlave() && isSecondaryHostFail())) || searchFilter.isInitialConnection()) {
+        if (((searchFilter.isSearchForMaster() && isMasterHostFail()) || (searchFilter.isSearchForSlave() && isSecondaryHostFail())) || searchFilter.isInitialConnection()) {
             AuroraProtocol.loop(this, loopAddress, blacklist, searchFilter);
         }
     }
@@ -142,9 +143,10 @@ public class AuroraListener extends MastersSlavesListener {
     /**
      * Aurora replica doesn't have the master endpoint but the master instance name.
      * since the end point normally use the instance name like "instancename.some_ugly_string.region.rds.amazonaws.com", if an endpoint start with this instance name, it will be checked first.
-     * @return the probable master address or null if not found
+     *
      * @param secondaryProtocol the current secondary protocol
-     * @param loopAddress list of possible hosts
+     * @param loopAddress       list of possible hosts
+     * @return the probable master address or null if not found
      */
     public HostAddress searchByStartName(Protocol secondaryProtocol, List<HostAddress> loopAddress) {
         if (!isSecondaryHostFail()) {

@@ -53,7 +53,6 @@ import org.mariadb.jdbc.internal.common.packet.CommandPacket;
 import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
 import org.mariadb.jdbc.internal.common.packet.buffer.WriteBuffer;
 import org.mariadb.jdbc.internal.common.query.parameters.LongDataParameterHolder;
-import org.mariadb.jdbc.internal.common.query.parameters.ParameterHolder;
 
 import java.io.IOException;
 import java.io.OutputStream;

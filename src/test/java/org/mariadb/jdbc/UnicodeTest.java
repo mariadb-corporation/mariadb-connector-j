@@ -2,9 +2,10 @@ package org.mariadb.jdbc;
 
 import org.junit.Test;
 
-import java.sql.*;
-import java.util.logging.Logger;
-import java.util.logging.Level;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 
 import static org.junit.Assert.assertEquals;
 
@@ -18,11 +19,11 @@ public class UnicodeTest extends BaseTest {
         stmt.executeUpdate("drop table if exists unicode_test");
         stmt.executeUpdate("create table unicode_test (id int not null primary key auto_increment, test_text varchar(100)) charset utf8");
         PreparedStatement ps = connection.prepareStatement("insert into unicode_test (test_text) values (?)");
-        ps.setString(1,jaString);
+        ps.setString(1, jaString);
         ps.executeUpdate();
         ResultSet rs = stmt.executeQuery("select test_text from unicode_test");
-        assertEquals(true,rs.next());
-        assertEquals(jaString,rs.getString(1));
+        assertEquals(true, rs.next());
+        assertEquals(jaString, rs.getString(1));
     }
 
     @Test
@@ -38,6 +39,7 @@ public class UnicodeTest extends BaseTest {
         assertEquals("MwSt. 7% Bücher & Lebensmittel", rs.getString(2));
         assertEquals(false, rs.next());
     }
+
     @Test
     public void mysqlTest() throws SQLException {
         String jaString = "\u65e5\u672c\u8a9e\u6587\u5b57\u5217"; // hmm wonder what this means...
@@ -45,10 +47,10 @@ public class UnicodeTest extends BaseTest {
         stmt.executeUpdate("drop table if exists unicode_test2");
         stmt.executeUpdate("create table unicode_test2 (id int not null primary key auto_increment, test_text varchar(100)) charset=utf8");
         PreparedStatement ps = connection.prepareStatement("insert into unicode_test2 (test_text) values (?)");
-        ps.setString(1,jaString);
+        ps.setString(1, jaString);
         ps.executeUpdate();
         ResultSet rs = stmt.executeQuery("select test_text from unicode_test2");
-        assertEquals(true,rs.next());
-        assertEquals(jaString,rs.getString(1));
+        assertEquals(true, rs.next());
+        assertEquals(jaString, rs.getString(1));
     }
 }

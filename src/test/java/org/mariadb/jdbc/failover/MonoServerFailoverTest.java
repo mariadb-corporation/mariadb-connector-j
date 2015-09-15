@@ -1,12 +1,12 @@
 package org.mariadb.jdbc.failover;
 
 import org.junit.*;
-import org.mariadb.jdbc.JDBCUrl;
 import org.mariadb.jdbc.internal.mysql.Protocol;
 
-import java.sql.*;
-import java.util.HashMap;
-import java.util.Map;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Statement;
 
 import static org.junit.Assert.assertFalse;
 
@@ -69,7 +69,7 @@ public class MonoServerFailoverTest extends BaseMultiHostTest {
         } catch (SQLException e) {
             //statement must be closed -> error
         }
-       Assert.assertTrue(connection.isClosed());
+        Assert.assertTrue(connection.isClosed());
 
     }
 

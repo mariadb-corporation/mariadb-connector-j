@@ -51,11 +51,9 @@ package org.mariadb.jdbc.internal.mysql.packet.commands;
 
 import org.mariadb.jdbc.internal.common.packet.CommandPacket;
 import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
-import org.mariadb.jdbc.internal.common.packet.buffer.WriteBuffer;
 import org.mariadb.jdbc.internal.common.query.parameters.NotLongDataParameterHolder;
 import org.mariadb.jdbc.internal.common.query.parameters.NullParameter;
 import org.mariadb.jdbc.internal.common.query.parameters.ParameterHolder;
-import org.mariadb.jdbc.internal.common.query.parameters.ParameterWriter;
 import org.mariadb.jdbc.internal.common.queryresults.PrepareResult;
 import org.mariadb.jdbc.internal.mysql.MySQLType;
 

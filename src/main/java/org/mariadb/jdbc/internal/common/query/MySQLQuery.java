@@ -48,11 +48,12 @@ OF SUCH DAMAGE.
 */
 
 package org.mariadb.jdbc.internal.common.query;
-import  org.mariadb.jdbc.internal.common.QueryException;
+
+import org.mariadb.jdbc.internal.common.QueryException;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
-
 
 
 public class MySQLQuery implements Query {
@@ -65,7 +66,7 @@ public class MySQLQuery implements Query {
 
     public void writeTo(final OutputStream os) throws IOException {
         try {
-            byte[] queryToSend =  query.getBytes("UTF-8");
+            byte[] queryToSend = query.getBytes("UTF-8");
             os.write(queryToSend, 0, queryToSend.length);
         } catch (UnsupportedEncodingException e) {
             throw new RuntimeException("Unsupported encoding: " + e.getMessage(), e);
@@ -76,7 +77,8 @@ public class MySQLQuery implements Query {
         writeTo(os);
     }
 
-    public void writeLastRewritePart(final OutputStream os) throws IOException, QueryException { }
+    public void writeLastRewritePart(final OutputStream os) throws IOException, QueryException {
+    }
 
 
     public void writeToRewritablePart(final OutputStream os, int rewriteOffset) throws IOException, QueryException {
@@ -104,7 +106,7 @@ public class MySQLQuery implements Query {
 
     public void writeTo(OutputStream ostream, int offset, int packLength) throws IOException {
         try {
-            byte[] queryToSend =  query.getBytes("UTF-8");
+            byte[] queryToSend = query.getBytes("UTF-8");
             ostream.write(queryToSend, offset, packLength);
         } catch (UnsupportedEncodingException e) {
             throw new RuntimeException("Unsupported encoding: " + e.getMessage(), e);
@@ -112,7 +114,7 @@ public class MySQLQuery implements Query {
     }
 
 
-    public void validate() throws QueryException{
+    public void validate() throws QueryException {
 
     }
 

@@ -50,15 +50,22 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.common.query;
 
 import org.mariadb.jdbc.internal.common.QueryException;
+
 import java.io.IOException;
 import java.io.OutputStream;
 
 public interface Query {
     String getQuery();
+
     void writeTo(OutputStream os) throws IOException, QueryException;
+
     void writeFirstRewritePart(final OutputStream os) throws IOException, QueryException;
+
     void writeLastRewritePart(final OutputStream os) throws IOException, QueryException;
+
     void writeToRewritablePart(OutputStream os, int rewriteOffset) throws IOException, QueryException;
+
     QueryType getQueryType();
+
     void validate() throws QueryException;
 }

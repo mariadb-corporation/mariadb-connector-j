@@ -11,7 +11,7 @@ import static org.junit.Assert.assertEquals;
 public class UtilTest {
     @Test
     public void escape() throws SQLException {
-        String[] inputs = new String[] {
+        String[] inputs = new String[]{
                 "select {fn timestampdiff(SQL_TSI_HOUR, {fn convert('SQL_', SQL_INTEGER)})}",
                 "{call foo({fn now()})}",
                 "{?=call foo({fn now()})}",
@@ -25,8 +25,8 @@ public class UtilTest {
                 "{ts'1997-05-24 10:30:29.123'}",
                 "'{string data with { or } will not be altered'",
                 "--  Also note that you can safely include { and } in comments"
-        } ;
-        String[] outputs = new String[] {
+        };
+        String[] outputs = new String[]{
                 "select timestampdiff(HOUR, convert('SQL_', INTEGER))",
                 "call foo(now())",
                 "?=call foo(now())",
@@ -36,12 +36,12 @@ public class UtilTest {
                 "'1997-05-24'",
                 "'10:30:29'",
                 "'10:30:29'",
-                "'1997-05-24 10:30:29.123'" ,
-                "'1997-05-24 10:30:29.123'" ,
+                "'1997-05-24 10:30:29.123'",
+                "'1997-05-24 10:30:29.123'",
                 "'{string data with { or } will not be altered'",
                 "--  Also note that you can safely include { and } in comments"
         };
-        for(int i = 0; i < inputs.length; i++)
-            assertEquals(Utils.nativeSQL(inputs[i],false), outputs[i]);
+        for (int i = 0; i < inputs.length; i++)
+            assertEquals(Utils.nativeSQL(inputs[i], false), outputs[i]);
     }
 }

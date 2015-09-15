@@ -59,8 +59,9 @@ import java.io.OutputStream;
 public class MySQLPingPacket implements CommandPacket {
     public MySQLPingPacket() {
     }
+
     public int send(final OutputStream os) throws IOException {
-        PacketOutputStream pos=(PacketOutputStream)os;
+        PacketOutputStream pos = (PacketOutputStream) os;
         pos.startPacket(0);
         pos.write(0x0e);
         pos.finishPacket();

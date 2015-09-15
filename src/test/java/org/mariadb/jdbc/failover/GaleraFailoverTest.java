@@ -12,7 +12,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -26,7 +25,7 @@ import static org.junit.Assert.assertTrue;
 public class GaleraFailoverTest extends BaseMultiHostTest {
     private Connection connection;
 
-   @Before
+    @Before
     public void init() throws SQLException {
         currentType = TestType.GALERA;
         initialUrl = initialGaleraUrl;
@@ -133,40 +132,6 @@ public class GaleraFailoverTest extends BaseMultiHostTest {
         }
     }
 
-    protected class CheckBlacklist implements Runnable {
-        int firstServerId;
-        Map<HostAddress, Long> blacklist;
-
-        public CheckBlacklist(int firstServerId, Map<HostAddress, Long> blacklist) {
-            this.firstServerId = firstServerId;
-            this.blacklist = blacklist;
-        }
-
-        public void run() {
-            Connection connection2 = null;
-            try {
-                connection2 = getNewConnection();
-                int otherServerId = getServerId(connection2);
-                log.debug("connected to server " + otherServerId);
-                Assert.assertTrue(otherServerId != firstServerId);
-                Protocol protocol = getProtocolFromConnection(connection2);
-                Assert.assertTrue(blacklist.keySet().toArray()[0].equals(protocol.getProxy().getListener().getBlacklist().keySet().toArray()[0]));
-
-            } catch (Throwable e) {
-                e.printStackTrace();
-                Assert.fail();
-            } finally {
-                if (connection2 != null) {
-                    try {
-                        connection2.close();
-                    } catch (SQLException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        }
-    }
-
     @Test
     public void testMultiHostWriteOnMaster() throws Throwable {
         Assume.assumeTrue(initialGaleraUrl != null);
@@ -211,8 +176,6 @@ public class GaleraFailoverTest extends BaseMultiHostTest {
         }
     }
 
-
-
     @Test
     public void socketTimeoutTest() throws SQLException {
 
@@ -236,12 +199,46 @@ public class GaleraFailoverTest extends BaseMultiHostTest {
         try {
             ps = connection.prepareStatement("SELECT 2");
             ps.execute();
-        } catch (Exception e){
+        } catch (Exception e) {
             Assert.fail();
         }
 
         // the connection should not be closed
         assertTrue(!connection.isClosed());
+    }
+
+    protected class CheckBlacklist implements Runnable {
+        int firstServerId;
+        Map<HostAddress, Long> blacklist;
+
+        public CheckBlacklist(int firstServerId, Map<HostAddress, Long> blacklist) {
+            this.firstServerId = firstServerId;
+            this.blacklist = blacklist;
+        }
+
+        public void run() {
+            Connection connection2 = null;
+            try {
+                connection2 = getNewConnection();
+                int otherServerId = getServerId(connection2);
+                log.debug("connected to server " + otherServerId);
+                Assert.assertTrue(otherServerId != firstServerId);
+                Protocol protocol = getProtocolFromConnection(connection2);
+                Assert.assertTrue(blacklist.keySet().toArray()[0].equals(protocol.getProxy().getListener().getBlacklist().keySet().toArray()[0]));
+
+            } catch (Throwable e) {
+                e.printStackTrace();
+                Assert.fail();
+            } finally {
+                if (connection2 != null) {
+                    try {
+                        connection2.close();
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
     }
 
     class MutableInt {

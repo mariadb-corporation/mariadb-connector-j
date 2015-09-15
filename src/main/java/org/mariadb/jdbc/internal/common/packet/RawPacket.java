@@ -1,4 +1,4 @@
- /*
+/*
 MariaDB Client for Java
 
 Copyright (c) 2012 Monty Program Ab.
@@ -66,6 +66,17 @@ public final class RawPacket {
     private final int packetSeq;
 
     /**
+     * create a raw packet.
+     *
+     * @param byteBuffer the byte buffer containing the packet
+     * @param packetSeq  the packet sequence
+     */
+    public RawPacket(final ByteBuffer byteBuffer, final int packetSeq) {
+        this.byteBuffer = byteBuffer;
+        this.packetSeq = packetSeq;
+    }
+
+    /**
      * Get the next packet from the stream
      *
      * @param is the input stream to read the next packet from
@@ -78,20 +89,10 @@ public final class RawPacket {
         int length = (lengthBuffer[0] & 0xff) + ((lengthBuffer[1] & 0xff) << 8) + ((lengthBuffer[2] & 0xff) << 16);
         int packetSeq = lengthBuffer[3];
 
-        byte [] rawBytes = new byte[length];
+        byte[] rawBytes = new byte[length];
         ReadUtil.readFully(is, rawBytes);
         return new RawPacket(ByteBuffer.wrap(rawBytes).order(ByteOrder.LITTLE_ENDIAN),
-                             packetSeq);
-    }
-
-    /**
-     * create a raw packet.
-     * @param byteBuffer the byte buffer containing the packet
-     * @param packetSeq the packet sequence
-     */
-    public  RawPacket(final ByteBuffer byteBuffer, final int packetSeq) {
-        this.byteBuffer = byteBuffer;
-        this.packetSeq = packetSeq;
+                packetSeq);
     }
 
     /**

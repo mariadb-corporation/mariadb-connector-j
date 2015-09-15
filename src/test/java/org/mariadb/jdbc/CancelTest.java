@@ -14,10 +14,11 @@ import static org.junit.Assert.assertEquals;
 public class CancelTest extends BaseTest {
     @Before
     public void cancelSupported() throws SQLException {
-        requireMinimumVersion(5,0);
+        requireMinimumVersion(5, 0);
     }
+
     @Test
-    public void cancelTest() throws SQLException{
+    public void cancelTest() throws SQLException {
         Connection tmpConnection = null;
         try {
             tmpConnection = openNewConnection(connURI, new Properties());
@@ -31,17 +32,43 @@ public class CancelTest extends BaseTest {
             exec.shutdown();
             Assert.fail();
         } catch (SQLException e) {
-        }finally {
+        } finally {
             tmpConnection.close();
         }
 
     }
+
+    @Test(expected = java.sql.SQLTimeoutException.class)
+    public void timeoutSleep() throws Exception {
+        PreparedStatement stmt = connection.prepareStatement("select sleep(100)");
+        stmt.setQueryTimeout(1);
+        stmt.execute();
+    }
+
+    @Test
+    public void NoTimeoutSleep() throws Exception {
+        Statement stmt = connection.createStatement();
+        stmt.setQueryTimeout(1);
+        stmt.execute("select sleep(0.5)");
+
+    }
+
+    @Test
+    public void CancelIdleStatement() throws Exception {
+        Statement stmt = connection.createStatement();
+        stmt.cancel();
+        ResultSet rs = stmt.executeQuery("select 1");
+        rs.next();
+        assertEquals(rs.getInt(1), 1);
+    }
+
     private static class CancelThread implements Runnable {
         private final Statement stmt;
 
         public CancelThread(Statement stmt) {
             this.stmt = stmt;
         }
+
         @Override
         public void run() {
             try {
@@ -56,30 +83,5 @@ public class CancelTest extends BaseTest {
                 e.printStackTrace();
             }
         }
-    }
-
-
-    @Test (expected = java.sql.SQLTimeoutException.class)
-    public void timeoutSleep() throws Exception{
-           PreparedStatement stmt = connection.prepareStatement("select sleep(100)");
-           stmt.setQueryTimeout(1);
-           stmt.execute();
-     }
-
-    @Test
-    public void NoTimeoutSleep() throws Exception{
-        Statement stmt = connection.createStatement();
-        stmt.setQueryTimeout(1);
-        stmt.execute("select sleep(0.5)");
-
-    }
-
-    @Test
-    public void CancelIdleStatement() throws Exception {
-        Statement stmt = connection.createStatement();
-        stmt.cancel();
-        ResultSet rs = stmt.executeQuery("select 1");
-        rs.next();
-        assertEquals(rs.getInt(1),1);
     }
 }

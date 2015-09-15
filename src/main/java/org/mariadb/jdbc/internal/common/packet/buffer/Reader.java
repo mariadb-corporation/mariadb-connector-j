@@ -77,11 +77,11 @@ public class Reader {
     public String readString(final String charset) {
         byte ch;
         int cnt = 0;
-        final byte [] byteArrBuff = new byte[byteBuffer.remaining()];
+        final byte[] byteArrBuff = new byte[byteBuffer.remaining()];
         while (byteBuffer.remaining() > 0 && ((ch = byteBuffer.get()) != 0)) {
             byteArrBuff[cnt++] = ch;
         }
-        return new String(byteArrBuff,0,cnt,Charset.forName(charset));
+        return new String(byteArrBuff, 0, cnt, Charset.forName(charset));
     }
 
     /**
@@ -117,13 +117,13 @@ public class Reader {
      *
      * @return the byte
      */
-    public byte readByte()  {
+    public byte readByte() {
         return byteBuffer.get();
     }
 
     public byte[] readRawBytes(final int numberOfBytes) {
-        final byte [] tmpArr = new byte[numberOfBytes];
-        byteBuffer.get(tmpArr, 0,numberOfBytes);
+        final byte[] tmpArr = new byte[numberOfBytes];
+        byteBuffer.get(tmpArr, 0, numberOfBytes);
         return tmpArr;
     }
 
@@ -132,20 +132,20 @@ public class Reader {
     }
 
     public long skipBytes(final int bytesToSkip) {
-        byteBuffer.position(byteBuffer.position()+bytesToSkip);
+        byteBuffer.position(byteBuffer.position() + bytesToSkip);
         return bytesToSkip;
     }
 
     public Reader skipLengthEncodedBytes() {
         long encLength = getLengthEncodedBinary();
         if (encLength == -1) {
-               return null;
+            return null;
         }
-        skipBytes((int)encLength);
+        skipBytes((int) encLength);
         return this;
     }
-    
-    public int read24bitword(){
+
+    public int read24bitword() {
         final byte[] tmpArr = new byte[3];
         for (int i = 0; i < 3; i++) {
             tmpArr[i] = byteBuffer.get();
@@ -155,7 +155,7 @@ public class Reader {
     }
 
     public long getLengthEncodedBinary() {
-        if(byteBuffer.remaining() == 0) {
+        if (byteBuffer.remaining() == 0) {
             return 0;
         }
         final byte type = byteBuffer.get();
@@ -166,7 +166,7 @@ public class Reader {
             return (long) 0xffff & readShort();
         }
         if ((type & 0xff) == 253) {
-            return 0xffffff&read24bitword();
+            return 0xffffff & read24bitword();
         }
         if ((type & 0xff) == 254) {
             return readLong();
@@ -184,7 +184,7 @@ public class Reader {
             return null;
         }
         final byte[] tmpBuf = new byte[(int) encLength];
-        byteBuffer.get(tmpBuf); 
+        byteBuffer.get(tmpBuf);
         try {
             return new String(tmpBuf, "UTF-8");
         } catch (UnsupportedEncodingException uee) {
@@ -203,7 +203,7 @@ public class Reader {
     }
 
     public byte[] getLengthEncodedBytesWithLength(long length) {
-        byte [] tmpBuf = new byte[(int) length];
+        byte[] tmpBuf = new byte[(int) length];
         byteBuffer.get(tmpBuf);
         return tmpBuf;
     }
@@ -230,7 +230,7 @@ public class Reader {
         byteBuffer = newBuffer;
     }
 
-    public long getSilentLengthEncodedBinary(){
+    public long getSilentLengthEncodedBinary() {
         if (byteBuffer.remaining() == 0)
             return 0;
         int pos1 = byteBuffer.position();

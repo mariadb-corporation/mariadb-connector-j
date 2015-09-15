@@ -57,36 +57,31 @@ import org.mariadb.jdbc.internal.common.packet.buffer.WriteBuffer;
 import java.io.IOException;
 import java.io.OutputStream;
 
-public class MySQLClientOldPasswordAuthPacket implements CommandPacket
-{
+public class MySQLClientOldPasswordAuthPacket implements CommandPacket {
     private final WriteBuffer writeBuffer;
     private int packSeq = 0;
 
-    public MySQLClientOldPasswordAuthPacket(String password, byte[] seed, int packSeq)
-    {
+    public MySQLClientOldPasswordAuthPacket(String password, byte[] seed, int packSeq) {
         writeBuffer = new WriteBuffer();
-        this.packSeq  = packSeq;
-        
+        this.packSeq = packSeq;
+
         byte[] oldPassword = cryptOldFormatPassword(password, new String(seed));
         writeBuffer.writeByteArray(oldPassword).writeByte((byte) 0x00);
     }
 
-    public int send(OutputStream os) throws IOException, QueryException
-    {
-        PacketOutputStream pos = (PacketOutputStream)os;
+    public int send(OutputStream os) throws IOException, QueryException {
+        PacketOutputStream pos = (PacketOutputStream) os;
         pos.startPacket(packSeq);
         pos.write(writeBuffer.getBuffer(), 0, writeBuffer.getLength());
         pos.finishPacket();
         return packSeq;
     }
-    
-    
-    private byte[] cryptOldFormatPassword(String password, String seed)
-    {
+
+
+    private byte[] cryptOldFormatPassword(String password, String seed) {
         byte[] result = new byte[seed.length()];
 
-        if ((password == null) || (password.length() == 0))
-        {
+        if ((password == null) || (password.length() == 0)) {
             return new byte[0];
         }
 
@@ -96,30 +91,25 @@ public class MySQLClientOldPasswordAuthPacket implements CommandPacket
         randStruct randSeed = new randStruct(seedHash[0] ^ passHash[0],
                 seedHash[1] ^ passHash[1]);
 
-        for (int i = 0; i < seed.length(); i++)
-        {
+        for (int i = 0; i < seed.length(); i++) {
             result[i] = (byte) Math.floor((random(randSeed) * 31) + 64);
         }
         byte extra = (byte) Math.floor(random(randSeed) * 31);
-        for (int i = 0; i < seed.length(); i++)
-        {
+        for (int i = 0; i < seed.length(); i++) {
             result[i] ^= extra;
         }
         return result;
     }
 
-    private double random(randStruct rand)
-    {
+    private double random(randStruct rand) {
         rand.seed1 = (rand.seed1 * 3 + rand.seed2) % rand.maxValue;
         rand.seed2 = (rand.seed1 + rand.seed2 + 33) % rand.maxValue;
-        return (double)rand.seed1 / rand.maxValue;
+        return (double) rand.seed1 / rand.maxValue;
     }
 
-    private long[] hashPassword(String password)
-    {
+    private long[] hashPassword(String password) {
         long nr = 1345345333L, nr2 = 0x12345671L, add = 7;
-        for (int i = 0; i < password.length(); i++)
-        {
+        for (int i = 0; i < password.length(); i++) {
             char currChar = password.charAt(i);
             if (currChar == ' ' || currChar == '\t')
                 continue;
@@ -129,16 +119,14 @@ public class MySQLClientOldPasswordAuthPacket implements CommandPacket
             nr2 += (nr2 << 8) ^ nr;
             add += tmp;
         }
-        return new long[] {nr & 0x7FFFFFFF, nr2 & 0x7FFFFFFF};
+        return new long[]{nr & 0x7FFFFFFF, nr2 & 0x7FFFFFFF};
     }
-    
-    private class randStruct
-    {
-        long seed1, seed2;
-        final long maxValue= 0x3FFFFFFFL;
 
-        public randStruct(long seed1, long seed2)
-        {
+    private class randStruct {
+        final long maxValue = 0x3FFFFFFFL;
+        long seed1, seed2;
+
+        public randStruct(long seed1, long seed2) {
             this.seed1 = seed1 % maxValue;
             this.seed2 = seed2 % maxValue;
         }

@@ -52,6 +52,7 @@ import java.io.IOException;
 
 public class MaxAllowedPacketException extends IOException {
     boolean mustReconnect;
+
     public MaxAllowedPacketException(String message, boolean mustReconnect) {
         super(message);
         this.mustReconnect = mustReconnect;

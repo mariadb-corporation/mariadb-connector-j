@@ -50,7 +50,6 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.common.query.parameters;
 
 import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
-import org.mariadb.jdbc.internal.common.packet.buffer.WriteBuffer;
 import org.mariadb.jdbc.internal.mysql.MySQLType;
 
 import java.io.IOException;
@@ -69,13 +68,15 @@ public class StreamParameter extends LongDataParameterHolder {
         this.length = length;
         this.noBackslashEscapes = noBackslashEscapes;
     }
+
     public StreamParameter(InputStream is, boolean noBackSlashEscapes) {
-        this(is,Long.MAX_VALUE, noBackSlashEscapes);
+        this(is, Long.MAX_VALUE, noBackSlashEscapes);
     }
-    
+
     public void setText(boolean b) {
         isText = b;
     }
+
     public void writeTo(final OutputStream os) throws IOException {
         if (length == Long.MAX_VALUE) {
             ParameterWriter.write(os, is, noBackslashEscapes, isText);

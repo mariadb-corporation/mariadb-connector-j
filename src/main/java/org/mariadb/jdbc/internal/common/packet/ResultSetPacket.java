@@ -62,15 +62,15 @@ public class ResultSetPacket extends ResultPacket {
 
     public ResultSetPacket(final RawPacket rawPacket) throws IOException {
         final Reader reader = new Reader(rawPacket);
-        
+
         fieldCount = reader.getLengthEncodedBinary();
         if (fieldCount == -1) {
             // Should never get there, it is LocalInfilePacket, not ResultSetPacket
             throw new AssertionError("field count is -1 in ResultSetPacket.");
         }
         if (reader.getRemainingSize() != 0) {
-              throw new IOException("invalid packet contents ,expected result set packet, actual packet hexdump = " +
-                    MySQLProtocol.hexdump(rawPacket.getByteBuffer(),0));
+            throw new IOException("invalid packet contents ,expected result set packet, actual packet hexdump = " +
+                    MySQLProtocol.hexdump(rawPacket.getByteBuffer(), 0));
         }
     }
 

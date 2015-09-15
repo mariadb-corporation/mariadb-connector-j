@@ -52,16 +52,16 @@ package org.mariadb.jdbc.internal.mysql;
 public class MySQLServerCapabilities {
     public static final int
             LONG_PASSWORD = 1,       /* new more secure passwords */
-            FOUND_ROWS    = 2,       /* Found instead of affected rows */
-            LONG_FLAG     = 4,       /* Get all column flags */
+            FOUND_ROWS = 2,       /* Found instead of affected rows */
+            LONG_FLAG = 4,       /* Get all column flags */
             CONNECT_WITH_DB = 8,     /* One can specify db on connect */
             NO_SCHEMA = 16,          /* Don't allow database.table.column */
-            COMPRESS =  32,          /* Can use compression protocol */
+            COMPRESS = 32,          /* Can use compression protocol */
             ODBC = 64,               /* Odbc client */
             LOCAL_FILES = 128,       /* Can use LOAD DATA LOCAL */
             IGNORE_SPACE = 256,       /* Ignore spaces before '(' */
             CLIENT_PROTOCOL_41 = 512, /* New 4.1 protocol */
-            CLIENT_INTERACTIVE =  1024,
+            CLIENT_INTERACTIVE = 1024,
             SSL = 2048,                /* Switch to SSL after handshake */
             IGNORE_SIGPIPE = 4096,     /* IGNORE sigpipes */
             TRANSACTIONS = 8192,

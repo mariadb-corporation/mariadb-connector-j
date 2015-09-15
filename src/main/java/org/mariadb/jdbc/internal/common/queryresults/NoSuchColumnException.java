@@ -52,9 +52,9 @@ import org.mariadb.jdbc.internal.common.QueryException;
 
 
 public class NoSuchColumnException extends QueryException {
-	private static final long serialVersionUID = -4592661729870053440L;
+    private static final long serialVersionUID = -4592661729870053440L;
 
-	public NoSuchColumnException(final String reason) {
+    public NoSuchColumnException(final String reason) {
         super(reason);
     }
 }

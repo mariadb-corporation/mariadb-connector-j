@@ -11,7 +11,7 @@
     </appender>
 
     <logger name="org.mariadb.jdbc" level="TRACE" additivity="false">
-        <appender-ref ref="STDOUT" />
+        <appender-ref ref="STDOUT"/>
     </logger>
 
     <logger name="org.mariadb.jdbc.BlobTest">

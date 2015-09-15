@@ -112,13 +112,13 @@ public enum DefaultOptions {
     DUMP_QUERY_ON_EXCEPTION("dumpQueriesOnException", Boolean.FALSE, "1.1.0"),
 
     /**
-     *  Metadata ResultSetMetaData.getTableName() return the physical table name.
-     *  "useOldAliasMetadataBehavior" permit to activate the legacy code that send the table alias if set.
+     * Metadata ResultSetMetaData.getTableName() return the physical table name.
+     * "useOldAliasMetadataBehavior" permit to activate the legacy code that send the table alias if set.
      */
     USE_OLD_ALIAS_METADATA_BEHAVIOR("useOldAliasMetadataBehavior", Boolean.FALSE, "1.1.9"),
 
     /**
-     *  If set to 'false', exception thrown during LOCAL INFILE if no InputStream has already been set.
+     * If set to 'false', exception thrown during LOCAL INFILE if no InputStream has already been set.
      */
     ALLOW_LOCAL_INFILE("allowLocalInfile", Boolean.TRUE, "1.2.1"),
 
@@ -149,7 +149,7 @@ public enum DefaultOptions {
     TINY_INT_IS_BIT("tinyInt1isBit", Boolean.TRUE, "1.0.0"),
 
     /**
-     *  Year is date type, rather than numerical
+     * Year is date type, rather than numerical
      */
     YEAR_IS_DATE_TYPE("yearIsDateType", Boolean.TRUE, "1.0.0"),
 
@@ -195,8 +195,8 @@ public enum DefaultOptions {
     PIN_GLOBAL_TX_TO_PHYSICAL_CONNECTION("pinGlobalTxToPhysicalConnection", Boolean.FALSE, "1.1.8"),
 
     /**
-    * When using SSL, do not check server's certificate
-    */
+     * When using SSL, do not check server's certificate
+     */
     TRUST_SERVER_CERTIFICATE("trustServerCertificate", Boolean.FALSE, "1.1.1"),
 
     /**
@@ -320,36 +320,6 @@ public enum DefaultOptions {
         this.implementationVersion = implementationVersion;
     }
 
-    private void setIntValue(Integer value) {
-        this.value = value;
-    }
-
-    private void setBooleanValue(Boolean value) {
-        this.value = value;
-    }
-
-    public int intValue() {
-        if (objType.equals(Integer.class)) {
-            if (value != null) return ((Integer) value).intValue();
-            else return ((Integer) defaultValue).intValue();
-        } else
-            throw new WrongMethodTypeException("Method " + name + " is of type " + objType + " intValue() does not apply");
-    }
-
-    public boolean boolValue() {
-        if (objType.equals(Boolean.class)) {
-            if (value != null) return ((Boolean) value).booleanValue();
-            else return ((Boolean) defaultValue).booleanValue();
-        } else
-            throw new WrongMethodTypeException("Method " + name + " is of type " + objType + " intValue() does not apply");
-    }
-    public String stringValue() {
-        if (objType.equals(String.class)) {
-            return ((String) value);
-        } else
-            throw new WrongMethodTypeException("Method " + name + " is of type " + objType + " intValue() does not apply");
-    }
-
     public static Options defaultValues(UrlHAMode haMode) {
         return parse(haMode, "", new Properties());
     }
@@ -390,7 +360,7 @@ public enum DefaultOptions {
 
     private static Options parse(UrlHAMode haMode, Properties properties, Options options) {
         boolean initial = false;
-        if (options==null) {
+        if (options == null) {
             options = new Options();
             initial = true;
         }
@@ -425,7 +395,7 @@ public enum DefaultOptions {
                 } else {
                     if (initial) {
                         if (o.defaultValue instanceof Integer[]) {
-                            Options.class.getField(o.name).set(options, ((Integer[])o.defaultValue)[haMode.ordinal()]);
+                            Options.class.getField(o.name).set(options, ((Integer[]) o.defaultValue)[haMode.ordinal()]);
                         } else Options.class.getField(o.name).set(options, o.defaultValue);
                     }
                 }
@@ -454,7 +424,6 @@ public enum DefaultOptions {
         return prop;
     }
 
-
     public static String getProperties(String optionName, Options options) {
         try {
             return String.valueOf(Options.class.getField(optionName).get(options));
@@ -462,5 +431,36 @@ public enum DefaultOptions {
             e.printStackTrace();
             return null;
         }
+    }
+
+    private void setIntValue(Integer value) {
+        this.value = value;
+    }
+
+    private void setBooleanValue(Boolean value) {
+        this.value = value;
+    }
+
+    public int intValue() {
+        if (objType.equals(Integer.class)) {
+            if (value != null) return ((Integer) value).intValue();
+            else return ((Integer) defaultValue).intValue();
+        } else
+            throw new WrongMethodTypeException("Method " + name + " is of type " + objType + " intValue() does not apply");
+    }
+
+    public boolean boolValue() {
+        if (objType.equals(Boolean.class)) {
+            if (value != null) return ((Boolean) value).booleanValue();
+            else return ((Boolean) defaultValue).booleanValue();
+        } else
+            throw new WrongMethodTypeException("Method " + name + " is of type " + objType + " intValue() does not apply");
+    }
+
+    public String stringValue() {
+        if (objType.equals(String.class)) {
+            return ((String) value);
+        } else
+            throw new WrongMethodTypeException("Method " + name + " is of type " + objType + " intValue() does not apply");
     }
 }

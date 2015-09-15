@@ -51,14 +51,14 @@ package org.mariadb.jdbc.internal.common;
 
 public class ServerStatus {
     public static final short
-            IN_TRANSACTION =  1,
-            AUTOCOMMIT =  2,
+            IN_TRANSACTION = 1,
+            AUTOCOMMIT = 2,
             MORE_RESULTS_EXISTS = 8,
             QUERY_NO_GOOD_INDEX_USED = 16,
             QUERY_NO_INDEX_USED = 32,
             CURSOR_EXISTS = 64,
             LAST_ROW_SENT = 128,
-            DB_DROPPED =  256,
+            DB_DROPPED = 256,
             NO_BACKSLASH_ESCAPES = 512,
-            QUERY_WAS_SLOW =  1024;
+            QUERY_WAS_SLOW = 1024;
 }

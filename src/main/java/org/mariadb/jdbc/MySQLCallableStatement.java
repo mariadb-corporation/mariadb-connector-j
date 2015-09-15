@@ -29,6 +29,7 @@ class CallParameter {
     int precision;
     String className;
     String name;
+
     public CallParameter() {
         sqlType = Types.OTHER;
         outputSQLType = Types.OTHER;
@@ -37,17 +38,17 @@ class CallParameter {
 
 class CallableParameterMetaData implements ParameterMetaData {
 
+    static Pattern PARAMETER_PATTERN =
+            Pattern.compile("\\s*(IN\\s+|OUT\\s+|INOUT\\s+)?([\\w\\d]+)\\s+(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*",
+                    Pattern.CASE_INSENSITIVE);
+    static Pattern RETURN_PATTERN =
+            Pattern.compile("\\s*(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*", Pattern.CASE_INSENSITIVE);
     CallParameter[] params;
     MySQLConnection con;
     String name;
     boolean valid;
     boolean isFunction;
     boolean noAccessToMetadata;
-    static Pattern PARAMETER_PATTERN =
-            Pattern.compile("\\s*(IN\\s+|OUT\\s+|INOUT\\s+)?([\\w\\d]+)\\s+(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*",
-                    Pattern.CASE_INSENSITIVE);
-    static Pattern RETURN_PATTERN =
-            Pattern.compile("\\s*(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*", Pattern.CASE_INSENSITIVE);
 
     public CallableParameterMetaData(CallParameter[] params, MySQLConnection con, String name, boolean isFunction) {
         this.params = params;
@@ -56,17 +57,18 @@ class CallableParameterMetaData implements ParameterMetaData {
         this.isFunction = isFunction;
     }
 
-    public void readMetadataFromDBIfRequired() throws SQLException{
+    public void readMetadataFromDBIfRequired() throws SQLException {
         if (noAccessToMetadata || valid)
             return;
         try {
             readMetadata();
             valid = true;
-        } catch(SQLException e) {
+        } catch (SQLException e) {
             noAccessToMetadata = true;
             throw e;
         }
     }
+
     int mapMySQLTypeToJDBC(String t) {
 
         t = t.toUpperCase();
@@ -107,34 +109,34 @@ class CallableParameterMetaData implements ParameterMetaData {
 
         return Types.OTHER;
     }
-    
- 
+
+
     /*
     Read procedure metadata from mysql.proc table(column param_list)
      */
-    public void  readMetadata() throws SQLException{
+    public void readMetadata() throws SQLException {
         if (noAccessToMetadata || valid)
             return;
 
-        boolean noBackslashEscapes  = false;
+        boolean noBackslashEscapes = false;
 
         if (con instanceof MySQLConnection) {
-            noBackslashEscapes =   ((MySQLConnection)con).noBackslashEscapes;
+            noBackslashEscapes = ((MySQLConnection) con).noBackslashEscapes;
         }
 
-        String dbname= "database()";
-        String procedureNameNoDb=name;
+        String dbname = "database()";
+        String procedureNameNoDb = name;
 
         int dotIndex = name.indexOf('.');
-        if(dotIndex > 0) {
+        if (dotIndex > 0) {
             dbname = name.substring(0, dotIndex);
             dbname = dbname.replace("`", "");
-            dbname = "'" + Utils.escapeString(dbname,noBackslashEscapes)  + "'";
-            procedureNameNoDb= name.substring(dotIndex+1);
+            dbname = "'" + Utils.escapeString(dbname, noBackslashEscapes) + "'";
+            procedureNameNoDb = name.substring(dotIndex + 1);
         }
 
-        procedureNameNoDb = procedureNameNoDb.replace("`","");
-        procedureNameNoDb = "'" + Utils.escapeString(procedureNameNoDb,noBackslashEscapes) + "'";
+        procedureNameNoDb = procedureNameNoDb.replace("`", "");
+        procedureNameNoDb = "'" + Utils.escapeString(procedureNameNoDb, noBackslashEscapes) + "'";
 
         Statement st = con.createStatement();
         ResultSet rs = null;
@@ -144,14 +146,14 @@ class CallableParameterMetaData implements ParameterMetaData {
             String q = "select param_list,returns from mysql.proc where db="
                     + dbname + " and name=" + procedureNameNoDb;
             rs = st.executeQuery(q);
-            if(!rs.next()) {
+            if (!rs.next()) {
                 throw new SQLException("procedure or function " + name + "does not exist");
             }
             paramList = rs.getString(1);
             functionReturn = rs.getString(2);
 
         } finally {
-            if(rs != null)
+            if (rs != null)
                 rs.close();
             st.close();
         }
@@ -169,10 +171,10 @@ class CallableParameterMetaData implements ParameterMetaData {
             p.isOutput = true;
             p.isSigned = (m.group(1) == null);
             p.typeName = m.group(2).trim();
-            p.sqlType  = mapMySQLTypeToJDBC(p.typeName);
+            p.sqlType = mapMySQLTypeToJDBC(p.typeName);
             String scale = m.group(3);
             if (scale != null) {
-                scale = scale.replace("(","").replace(")","").replace(" ","");
+                scale = scale.replace("(", "").replace(")", "").replace(" ", "");
                 p.scale = Integer.valueOf(scale).intValue();
             }
 
@@ -180,9 +182,9 @@ class CallableParameterMetaData implements ParameterMetaData {
 
         String splitter = ",";
         StringTokenizer tokenizer = new StringTokenizer(paramList, splitter, false);
-        int paramIndex = isFunction?2:1;
+        int paramIndex = isFunction ? 2 : 1;
 
-        while(tokenizer.hasMoreTokens()){
+        while (tokenizer.hasMoreTokens()) {
             if (paramIndex >= params.length) {
                 throw new SQLException("Invalid placeholder count in CallableStatement");
             }
@@ -190,15 +192,15 @@ class CallableParameterMetaData implements ParameterMetaData {
             Pattern pattern = Pattern.compile(".*\\([^)]*");
             Matcher matcher = pattern.matcher(paramDef);
             while (matcher.matches()) {
-            	paramDef += splitter + tokenizer.nextToken();
-            	matcher = pattern.matcher(paramDef);
+                paramDef += splitter + tokenizer.nextToken();
+                matcher = pattern.matcher(paramDef);
             }
 
             Matcher m = PARAMETER_PATTERN.matcher(paramDef);
             if (!m.matches())
                 throw new SQLException("cannot parse parameter definition :" + paramDef);
             String direction = m.group(1);
-            if(direction!= null)
+            if (direction != null)
                 direction = direction.trim();
             String paramName = m.group(2);
             paramName = paramName.trim();
@@ -212,11 +214,9 @@ class CallableParameterMetaData implements ParameterMetaData {
             CallParameter p = params[paramIndex];
             if (direction == null || direction.equalsIgnoreCase("IN")) {
                 p.isInput = true;
-            }
-            else if (direction.equalsIgnoreCase("OUT")) {
-                p.isOutput= true;
-            }
-            else if (direction.equalsIgnoreCase("INOUT")) {
+            } else if (direction.equalsIgnoreCase("OUT")) {
+                p.isOutput = true;
+            } else if (direction.equalsIgnoreCase("INOUT")) {
                 p.isInput = p.isOutput = true;
             } else {
                 throw new SQLException("unknown parameter direction " + direction + "for " + paramName);
@@ -226,9 +226,9 @@ class CallableParameterMetaData implements ParameterMetaData {
             p.sqlType = mapMySQLTypeToJDBC(p.typeName);
             p.isSigned = isSigned;
             if (scale != null) {
-                scale = scale.replace("(","").replace(")","").replace(" ","");
+                scale = scale.replace("(", "").replace(")", "").replace(" ", "");
                 if (scale.contains(",")) {
-                	scale = scale.substring(0, scale.indexOf(","));
+                    scale = scale.substring(0, scale.indexOf(","));
                 }
                 p.scale = Integer.valueOf(scale).intValue();
             }
@@ -237,18 +237,20 @@ class CallableParameterMetaData implements ParameterMetaData {
     }
 
     public int getParameterCount() throws SQLException {
-        return params.length -1;
+        return params.length - 1;
     }
 
-    CallParameter getParam(int index) throws SQLException{
+    CallParameter getParam(int index) throws SQLException {
         if (index < 1 || index >= params.length)
-            throw new SQLException("invalid parameter index "+index);
+            throw new SQLException("invalid parameter index " + index);
         readMetadataFromDBIfRequired();
         return params[index];
     }
+
     public int isNullable(int param) throws SQLException {
         return getParam(param).isNullable;
     }
+
     public boolean isSigned(int param) throws SQLException {
         return getParam(param).isSigned;
     }
@@ -260,6 +262,7 @@ class CallableParameterMetaData implements ParameterMetaData {
     public int getScale(int param) throws SQLException {
         return getParam(param).scale;
     }
+
     public int getParameterType(int param) throws SQLException {
         return getParam(param).sqlType;
     }
@@ -283,9 +286,10 @@ class CallableParameterMetaData implements ParameterMetaData {
         return parameterModeUnknown;
     }
 
-    public String getName(int param) throws SQLException{
+    public String getName(int param) throws SQLException {
         return getParam(param).name;
     }
+
     public <T> T unwrap(Class<T> iface) throws SQLException {
         return null;
     }
@@ -316,49 +320,7 @@ class CallableParameterMetaData implements ParameterMetaData {
  * If it cannot be fetched (e.g privilege issue) then some functionality won't be available, for example named parameters
  * will not work.
  */
-public class MySQLCallableStatement implements CallableStatement
-{
-    /**
-     *  Database connection
-     */
-    MySQLConnection con;
-
-    /**
-     *   Prepared statement, typically used to set input variables, in which case it has the form
-     *   set _jdbc_var1=?,...,jdbc_var_N=?
-     *   Also, handles addBatch/executeBatch() statements, even if there is no input parameters.
-     */
-    PreparedStatement preparedStatement;
-
-    /** Current count of batch statements */
-    int batchCount;
-
-    /**
-     * In case parameters are used, some results of the batch statement need to be ignored, since we generate
-     *  extra statements for setting input parameters. batchIgnoreResult is a bitmap for ignored results.
-     */
-    BitSet batchIgnoreResult;
-
-    /**
-     * Resolved query with ? placeholders replaces by user variables ,
-     * e.g {call proc(?,?)} would be resolved as CALL proc(@_jdbc_var_1,@_jdbc_var_2)
-     */
-    String callQuery;
-    Statement callStatement;
-
-    /**
-     * Result set containing output parameters.
-     * We generate query SELECT @_jdbc_var1, ... @_jdbc_var_N to fetch the results.
-     */
-    ResultSet rsOutputParameters;
-
-    /**
-     * Information about parameters, merely from registerOutputParameter() and setXXX() calls.
-     */
-    CallParameter params[];
-    CallableParameterMetaData parameterMetadata;
-    int parametersCount;
-
+public class MySQLCallableStatement implements CallableStatement {
     /**
      * Pattern  to check the correctness of callable statement query string
      * Legal queries, as documented in JDK have the form:
@@ -366,14 +328,50 @@ public class MySQLCallableStatement implements CallableStatement
      */
     static Pattern CALLABLE_STATEMENT_PATTERN =
             Pattern.compile("^\\s*\\{?\\s*(\\?\\s*=)?\\s*call\\s*([\\w.]+)(\\(.*\\))?\\s*}?", Pattern.CASE_INSENSITIVE);
+    /**
+     * Database connection
+     */
+    MySQLConnection con;
+    /**
+     * Prepared statement, typically used to set input variables, in which case it has the form
+     * set _jdbc_var1=?,...,jdbc_var_N=?
+     * Also, handles addBatch/executeBatch() statements, even if there is no input parameters.
+     */
+    PreparedStatement preparedStatement;
+    /**
+     * Current count of batch statements
+     */
+    int batchCount;
+    /**
+     * In case parameters are used, some results of the batch statement need to be ignored, since we generate
+     * extra statements for setting input parameters. batchIgnoreResult is a bitmap for ignored results.
+     */
+    BitSet batchIgnoreResult;
+    /**
+     * Resolved query with ? placeholders replaces by user variables ,
+     * e.g {call proc(?,?)} would be resolved as CALL proc(@_jdbc_var_1,@_jdbc_var_2)
+     */
+    String callQuery;
+    Statement callStatement;
+    /**
+     * Result set containing output parameters.
+     * We generate query SELECT @_jdbc_var1, ... @_jdbc_var_N to fetch the results.
+     */
+    ResultSet rsOutputParameters;
+    /**
+     * Information about parameters, merely from registerOutputParameter() and setXXX() calls.
+     */
+    CallParameter params[];
+    CallableParameterMetaData parameterMetadata;
+    int parametersCount;
 
-    public MySQLCallableStatement(MySQLConnection connection, String query) throws SQLException{
+    public MySQLCallableStatement(MySQLConnection connection, String query) throws SQLException {
         con = connection;
 
         query = Utils.nativeSQL(query, connection.noBackslashEscapes);
         batchIgnoreResult = new BitSet();
         Matcher m = CALLABLE_STATEMENT_PATTERN.matcher(query);
-        if(!m.matches())
+        if (!m.matches())
             throw new SQLSyntaxErrorException("invalid callable syntax");
 
         //
@@ -382,9 +380,8 @@ public class MySQLCallableStatement implements CallableStatement
         String arguments = m.group(3);
         if (!isFunction) {
             // real stored procedure, generate "CALL PROC(args)", with ? in args replaces by variables
-            callQuery = "call " + procedureName + resolveArguments(arguments,1);
-        }
-        else {
+            callQuery = "call " + procedureName + resolveArguments(arguments, 1);
+        } else {
             // function returning result, generate "SELECT FUNC(args) into @_jdbc_var_1
             callQuery = "select " + procedureName + resolveArguments(arguments, 2) + " into " + getVariableName(1);
         }
@@ -393,20 +390,20 @@ public class MySQLCallableStatement implements CallableStatement
         // Generate set _jdbc_var1=?,....set jdbc_var_n=? prepared statement
         if (parametersCount != 0) {
             StringBuffer sb = new StringBuffer("set ");
-            for(int i = 1; i <= parametersCount; i++) {
-                if(i > 1) {
+            for (int i = 1; i <= parametersCount; i++) {
+                if (i > 1) {
                     sb.append(",");
                 }
                 sb.append(getVariableName(i));
                 sb.append("=?");
             }
             preparedStatement = con.prepareStatement(sb.toString());
-            for(int i=1; i<= parametersCount; i++) {
+            for (int i = 1; i <= parametersCount; i++) {
                 preparedStatement.setNull(i, Types.NULL);
             }
         }
-        params = new CallParameter[parametersCount+1];
-        for(int i=1 ; i <= parametersCount; i++) {
+        params = new CallParameter[parametersCount + 1];
+        for (int i = 1; i <= parametersCount; i++) {
             params[i] = new CallParameter();
         }
         if (isFunction) {
@@ -417,71 +414,74 @@ public class MySQLCallableStatement implements CallableStatement
     }
 
     boolean hasOutputParameters() {
-    	for (int i=1; i < params.length;i++) {
-    		if (params[i].isOutput) {
-    			return true;
-    		}
-    	}
-    	return false;
+        for (int i = 1; i < params.length; i++) {
+            if (params[i].isOutput) {
+                return true;
+            }
+        }
+        return false;
     }
-    
+
     /**
-     *  Return user variable name corresponding to a parameter.
+     * Return user variable name corresponding to a parameter.
+     *
      * @param index
      * @return use variable name
      */
     private String getVariableName(int index) {
-        return "@_jdbc_var_"+index;
+        return "@_jdbc_var_" + index;
     }
 
 
-    
-    void readOutputParameters() throws SQLException{	
-    	if (callStatement.getFetchSize() == Integer.MIN_VALUE) {
-    		// For streaming queries 
-    		// make sure there are no more results left from the call statement
-    		while(callStatement.getMoreResults()) {};
-    	}
+    void readOutputParameters() throws SQLException {
+        if (callStatement.getFetchSize() == Integer.MIN_VALUE) {
+            // For streaming queries
+            // make sure there are no more results left from the call statement
+            while (callStatement.getMoreResults()) {
+            }
+            ;
+        }
 
         StringBuffer sb = new StringBuffer("SELECT ");
-        for(int i=1; i<= parametersCount; i++) {
-            if(i != 1) {
+        for (int i = 1; i <= parametersCount; i++) {
+            if (i != 1) {
                 sb.append(",");
             }
-            if(!params[i].isOutput) {
+            if (!params[i].isOutput) {
                 sb.append("NULL");
-            }
-            else {
+            } else {
                 sb.append(getVariableName(i));
             }
         }
-        Statement st= con.createStatement();
+        Statement st = con.createStatement();
         ResultSet rs = st.executeQuery(sb.toString());
         rs.next();
-        rsOutputParameters =  rs;
+        rsOutputParameters = rs;
     }
-    
+
     /**
      * Fetch output variables
+     *
      * @return ResultSet from "select @_jdbc_var_1...,@_jdbc_var_N
      * @throws SQLException
      */
     ResultSet outputParameters() throws SQLException {
-        if(parametersCount == 0)
+        if (parametersCount == 0)
             throw new SQLException("no output parameters");
         if (rsOutputParameters == null) {
-        	readOutputParameters();
+            readOutputParameters();
         }
         return rsOutputParameters;
     }
 
     /**
      * Get prepared statement to set input parameters
+     *
      * @return PreparedStatement (for query in the form SET @_jdbc_var_1=?, ...., _jdbc_var_N=?)
      * @throws SQLException
      */
-    PreparedStatement inputParameters() throws SQLException{
-        if(parametersCount == 0)
+    PreparedStatement inputParameters() throws SQLException {
+        if (parametersCount == 0)
             throw new SQLException("no input parameters");
         return preparedStatement;
     }
@@ -493,26 +493,28 @@ public class MySQLCallableStatement implements CallableStatement
      * @return
      * @throws SQLException
      */
-    private int nameToIndex(String parameterName) throws SQLException{
-        if(callStatement != null) {
-            while(callStatement.getMoreResults()) {}
+    private int nameToIndex(String parameterName) throws SQLException {
+        if (callStatement != null) {
+            while (callStatement.getMoreResults()) {
+            }
         }
-        for(int i=1; i<= parameterMetadata.getParameterCount(); i++) {
+        for (int i = 1; i <= parameterMetadata.getParameterCount(); i++) {
             String name = parameterMetadata.getName(i);
-            if(name != null && name.equalsIgnoreCase(parameterName))
+            if (name != null && name.equalsIgnoreCase(parameterName))
                 return i;
         }
-        throw new SQLException("there is no parameter with the name "+parameterName);
+        throw new SQLException("there is no parameter with the name " + parameterName);
     }
 
     /**
      * Replace placeholder in query string with corresponding user variables.
      * Takes case of string literal and comments
+     *
      * @param args
      * @param startingIndex (1 for stored procedure, 2 for stored function)
      * @return
      */
-    String resolveArguments(String args, int  startingIndex) {
+    String resolveArguments(String args, int startingIndex) {
         if (args == null) {
             parametersCount = 0;
             return "()";
@@ -522,14 +524,14 @@ public class MySQLCallableStatement implements CallableStatement
         int index = startingIndex;
 
         boolean inQuote = false;
-        boolean inComment =false;
-        char quoteChar=0;
-        char prevChar=0;
-        boolean slashStarComment= false;
+        boolean inComment = false;
+        char quoteChar = 0;
+        char prevChar = 0;
+        boolean slashStarComment = false;
         boolean inEscape = false;
 
         for (char c : args.toCharArray()) {
-            if(c == '\\' && !inComment && !inQuote) {
+            if (c == '\\' && !inComment && !inQuote) {
                 inEscape = !inEscape;
             }
             if (inEscape) {
@@ -538,7 +540,7 @@ public class MySQLCallableStatement implements CallableStatement
                 continue;
             }
 
-            switch(c) {
+            switch (c) {
                 case '?':
                     if (!inQuote && !inComment) {
                         /* Replace placeholder with variable */
@@ -549,12 +551,11 @@ public class MySQLCallableStatement implements CallableStatement
                     break;
                 case '"':
                 case '\'':
-                    if(!inComment) {
+                    if (!inComment) {
                         if (inQuote) {
                             if (quoteChar == c)
                                 inQuote = false;
-                        }
-                        else {
+                        } else {
                             inQuote = true;
                             quoteChar = c;
                         }
@@ -562,7 +563,7 @@ public class MySQLCallableStatement implements CallableStatement
                     sb.append(c);
                     break;
                 case '*':
-                    if(prevChar == '/' && !inQuote) {
+                    if (prevChar == '/' && !inQuote) {
                         inComment = true;
                         slashStarComment = true;
                     }
@@ -571,14 +572,14 @@ public class MySQLCallableStatement implements CallableStatement
                 case '/':
                     if (prevChar == '*' && inComment && slashStarComment) {
                         inComment = false;
-                        slashStarComment =false;
+                        slashStarComment = false;
                     } else if (prevChar == '/' && !inQuote) {
                         inComment = true;
                     }
                     sb.append(c);
                     break;
                 case '\n':
-                    if(inComment && !slashStarComment) {
+                    if (inComment && !slashStarComment) {
                         // End-of-line, end of slashslash comment
                         inComment = false;
                     }
@@ -597,12 +598,12 @@ public class MySQLCallableStatement implements CallableStatement
     }
 
 
-
-    CallParameter getParameter(int index) throws SQLException{
-        if(index > params.length || index < 1)
+    CallParameter getParameter(int index) throws SQLException {
+        if (index > params.length || index < 1)
             throw new SQLException("No parameter with index " + index);
         return params[index];
     }
+
     public void registerOutParameter(int parameterIndex, int sqlType) throws SQLException {
         registerOutParameter(parameterIndex, sqlType, -1);
     }
@@ -652,15 +653,15 @@ public class MySQLCallableStatement implements CallableStatement
 
     /**
      * @deprecated use <code>getBigDecimal(int parameterIndex)</code>
-     *             or <code>getBigDecimal(String parameterName)</code>
-    */
+     * or <code>getBigDecimal(String parameterName)</code>
+     */
     @Deprecated
     public BigDecimal getBigDecimal(int parameterIndex, int scale) throws SQLException {
         return outputParameters().getBigDecimal(parameterIndex);
     }
 
     public byte[] getBytes(int parameterIndex) throws SQLException {
-        return  outputParameters().getBytes(parameterIndex);
+        return outputParameters().getBytes(parameterIndex);
     }
 
     public Date getDate(int parameterIndex) throws SQLException {
@@ -676,78 +677,78 @@ public class MySQLCallableStatement implements CallableStatement
     }
 
     public Object getObject(int parameterIndex) throws SQLException {
-    	if (!params[parameterIndex].isOutput) {
-    		throw new SQLException("Parameter " + parameterIndex + " is not an output parameter");
-    	}
-        switch(params[parameterIndex].outputSQLType) {
-           case Types.OTHER:
-               throw new SQLException("unexpected Type returned");
-           case Types.ARRAY:
-               return getArray(parameterIndex);
-           case Types.BIGINT:
-               return getLong(parameterIndex);
-           case Types.BINARY:
-               return getBytes(parameterIndex);
-           case Types.BIT:
-               return getInt(parameterIndex);
-           case Types.BOOLEAN:
-               return getBoolean(parameterIndex);
-           case Types.CHAR:
-               return getString(parameterIndex);
-           case Types.CLOB:
-               return getClob(parameterIndex);
-           case Types.DATALINK:
-               return getString(parameterIndex);
-           case Types.DATE:
-               return getDate(parameterIndex);
-           case Types.DECIMAL:
-               return getBigDecimal(parameterIndex);
-           case Types.DISTINCT:
-               return getString(parameterIndex);
-           case Types.DOUBLE:
-               return getDouble(parameterIndex);
-           case Types.INTEGER:
-               return getInt(parameterIndex);
-           case Types.JAVA_OBJECT:
-               return getObject(parameterIndex);
-           case Types.LONGNVARCHAR:
-               return getString(parameterIndex);
-           case Types.LONGVARBINARY:
-               return getBytes(parameterIndex);
-           case Types.LONGVARCHAR:
-               return getString(parameterIndex);
-           case Types.NCHAR:
-               return getString(parameterIndex);
-           case Types.NCLOB:
-               return getNClob(parameterIndex);
-           case Types.NULL:
-               return null;
-           case Types.NUMERIC:
-               return getBigDecimal(parameterIndex);
-           case Types.NVARCHAR:
-               return getString(parameterIndex);
-           case Types.REAL:
-               return getDouble(parameterIndex);
-           case Types.REF:
-               return getRef(parameterIndex);
-           case Types.ROWID:
-               return getRowId(parameterIndex);
-           case Types.SMALLINT:
-               return getShort(parameterIndex);
-           case Types.SQLXML:
-               return getSQLXML(parameterIndex);
-           case Types.STRUCT:
-               return getBytes(parameterIndex);
-           case Types.TIME:
-               return getTime(parameterIndex);
-           case Types.TIMESTAMP:
-               return getTimestamp(parameterIndex);
-           case Types.TINYINT:
-               return getByte(parameterIndex);
-           case Types.VARBINARY:
-               return getBytes(parameterIndex);
-           case Types.VARCHAR:
-               return getString(parameterIndex);
+        if (!params[parameterIndex].isOutput) {
+            throw new SQLException("Parameter " + parameterIndex + " is not an output parameter");
+        }
+        switch (params[parameterIndex].outputSQLType) {
+            case Types.OTHER:
+                throw new SQLException("unexpected Type returned");
+            case Types.ARRAY:
+                return getArray(parameterIndex);
+            case Types.BIGINT:
+                return getLong(parameterIndex);
+            case Types.BINARY:
+                return getBytes(parameterIndex);
+            case Types.BIT:
+                return getInt(parameterIndex);
+            case Types.BOOLEAN:
+                return getBoolean(parameterIndex);
+            case Types.CHAR:
+                return getString(parameterIndex);
+            case Types.CLOB:
+                return getClob(parameterIndex);
+            case Types.DATALINK:
+                return getString(parameterIndex);
+            case Types.DATE:
+                return getDate(parameterIndex);
+            case Types.DECIMAL:
+                return getBigDecimal(parameterIndex);
+            case Types.DISTINCT:
+                return getString(parameterIndex);
+            case Types.DOUBLE:
+                return getDouble(parameterIndex);
+            case Types.INTEGER:
+                return getInt(parameterIndex);
+            case Types.JAVA_OBJECT:
+                return getObject(parameterIndex);
+            case Types.LONGNVARCHAR:
+                return getString(parameterIndex);
+            case Types.LONGVARBINARY:
+                return getBytes(parameterIndex);
+            case Types.LONGVARCHAR:
+                return getString(parameterIndex);
+            case Types.NCHAR:
+                return getString(parameterIndex);
+            case Types.NCLOB:
+                return getNClob(parameterIndex);
+            case Types.NULL:
+                return null;
+            case Types.NUMERIC:
+                return getBigDecimal(parameterIndex);
+            case Types.NVARCHAR:
+                return getString(parameterIndex);
+            case Types.REAL:
+                return getDouble(parameterIndex);
+            case Types.REF:
+                return getRef(parameterIndex);
+            case Types.ROWID:
+                return getRowId(parameterIndex);
+            case Types.SMALLINT:
+                return getShort(parameterIndex);
+            case Types.SQLXML:
+                return getSQLXML(parameterIndex);
+            case Types.STRUCT:
+                return getBytes(parameterIndex);
+            case Types.TIME:
+                return getTime(parameterIndex);
+            case Types.TIMESTAMP:
+                return getTimestamp(parameterIndex);
+            case Types.TINYINT:
+                return getByte(parameterIndex);
+            case Types.VARBINARY:
+                return getBytes(parameterIndex);
+            case Types.VARCHAR:
+                return getString(parameterIndex);
 
         }
         return outputParameters().getObject(parameterIndex);
@@ -845,7 +846,7 @@ public class MySQLCallableStatement implements CallableStatement
     }
 
     public void setDouble(String parameterName, double x) throws SQLException {
-        setDouble(nameToIndex(parameterName),x);
+        setDouble(nameToIndex(parameterName), x);
     }
 
     public void setBigDecimal(String parameterName, BigDecimal x) throws SQLException {
@@ -901,7 +902,7 @@ public class MySQLCallableStatement implements CallableStatement
     }
 
     public void setTime(String parameterName, Time x, Calendar cal) throws SQLException {
-        setTime(nameToIndex(parameterName), x , cal);
+        setTime(nameToIndex(parameterName), x, cal);
     }
 
     public void setTimestamp(String parameterName, Timestamp x, Calendar cal) throws SQLException {
@@ -1033,11 +1034,11 @@ public class MySQLCallableStatement implements CallableStatement
     }
 
     public void setBlob(String parameterName, InputStream inputStream, long length) throws SQLException {
-        setBlob(nameToIndex(parameterName),inputStream, length);
+        setBlob(nameToIndex(parameterName), inputStream, length);
     }
 
     public void setNClob(String parameterName, Reader reader, long length) throws SQLException {
-        setNClob(nameToIndex(parameterName),reader, length);
+        setNClob(nameToIndex(parameterName), reader, length);
     }
 
     public NClob getNClob(int parameterIndex) throws SQLException {
@@ -1069,7 +1070,7 @@ public class MySQLCallableStatement implements CallableStatement
     }
 
     public Reader getNCharacterStream(int parameterIndex) throws SQLException {
-        return  outputParameters().getNCharacterStream(parameterIndex);
+        return outputParameters().getNCharacterStream(parameterIndex);
     }
 
     public Reader getNCharacterStream(String parameterName) throws SQLException {
@@ -1098,7 +1099,7 @@ public class MySQLCallableStatement implements CallableStatement
     }
 
     public void setBinaryStream(String parameterName, InputStream x, long length) throws SQLException {
-        inputParameters().setBinaryStream(nameToIndex(parameterName), x , length);
+        inputParameters().setBinaryStream(nameToIndex(parameterName), x, length);
     }
 
     public void setCharacterStream(String parameterName, Reader reader, long length) throws SQLException {
@@ -1106,7 +1107,7 @@ public class MySQLCallableStatement implements CallableStatement
     }
 
     public void setAsciiStream(String parameterName, InputStream x) throws SQLException {
-        inputParameters().setAsciiStream(nameToIndex(parameterName),x);
+        inputParameters().setAsciiStream(nameToIndex(parameterName), x);
     }
 
     public void setBinaryStream(String parameterName, InputStream x) throws SQLException {
@@ -1132,17 +1133,17 @@ public class MySQLCallableStatement implements CallableStatement
     public void setNClob(String parameterName, Reader reader) throws SQLException {
         inputParameters().setNClob(nameToIndex(parameterName), reader);
     }
-    
+
     public ResultSet executeQuery() throws SQLException {
-    	if (execute())
-    		return getResultSet();
-    	throw new SQLException("CallableStatement.executeQuery() did not return a resultset","HY000");
+        if (execute())
+            return getResultSet();
+        throw new SQLException("CallableStatement.executeQuery() did not return a resultset", "HY000");
     }
 
     public int executeUpdate() throws SQLException {
-    	if (!execute())
-    		return getUpdateCount();
-    	throw new SQLException("CallableStatement.executeUpdate() returned a resultset set","HY000");
+        if (!execute())
+            return getUpdateCount();
+        throw new SQLException("CallableStatement.executeUpdate() returned a resultset set", "HY000");
     }
 
     public void setNull(int parameterIndex, int sqlType) throws SQLException {
@@ -1214,19 +1215,19 @@ public class MySQLCallableStatement implements CallableStatement
     }
 
     public void setBinaryStream(int parameterIndex, InputStream x, int length) throws SQLException {
-        inputParameters().setBinaryStream(parameterIndex, x , length);
+        inputParameters().setBinaryStream(parameterIndex, x, length);
     }
 
     public void clearParameters() throws SQLException {
-        if(parametersCount > 0) {
-        	MySQLClientPreparedStatement ps = (MySQLClientPreparedStatement)inputParameters();
-        	if (!ps.parametersCleared) {
-        		ps.clearParameters();
-        		for(int i=1; i <= parametersCount; i++){
-        			ps.setNull(i, Types.NULL);
-        		}
-        		inputParameters().execute();
-        	}
+        if (parametersCount > 0) {
+            MySQLClientPreparedStatement ps = (MySQLClientPreparedStatement) inputParameters();
+            if (!ps.parametersCleared) {
+                ps.clearParameters();
+                for (int i = 1; i <= parametersCount; i++) {
+                    ps.setNull(i, Types.NULL);
+                }
+                inputParameters().execute();
+            }
         }
     }
 
@@ -1416,12 +1417,11 @@ public class MySQLCallableStatement implements CallableStatement
 
     public void close() throws SQLException {
 
-        if(preparedStatement != null)
-        {
+        if (preparedStatement != null) {
             preparedStatement.close();
             preparedStatement = null;
         }
-        if(rsOutputParameters != null) {
+        if (rsOutputParameters != null) {
             rsOutputParameters.close();
             rsOutputParameters = null;
         }
@@ -1492,20 +1492,20 @@ public class MySQLCallableStatement implements CallableStatement
         return callStatement.getMoreResults();
     }
 
-    public void setFetchDirection(int direction) throws SQLException {
-        callStatement.setFetchDirection(direction);
-    }
-
     public int getFetchDirection() throws SQLException {
         return callStatement.getFetchDirection();
     }
 
-    public void setFetchSize(int rows) throws SQLException {
-        callStatement.setFetchSize(rows);
+    public void setFetchDirection(int direction) throws SQLException {
+        callStatement.setFetchDirection(direction);
     }
 
     public int getFetchSize() throws SQLException {
         return callStatement.getFetchSize();
+    }
+
+    public void setFetchSize(int rows) throws SQLException {
+        callStatement.setFetchSize(rows);
     }
 
     public int getResultSetConcurrency() throws SQLException {
@@ -1522,17 +1522,16 @@ public class MySQLCallableStatement implements CallableStatement
                 preparedStatement = con.prepareStatement(sql);
                 preparedStatement.addBatch();
             }
-        }
-        else {
+        } else {
             preparedStatement.addBatch(sql);
             batchCount++;
         }
     }
 
     public void clearBatch() throws SQLException {
-        if(preparedStatement != null) {
+        if (preparedStatement != null) {
             preparedStatement.clearBatch();
-            if(parametersCount == 0) {
+            if (parametersCount == 0) {
                 preparedStatement.close();
                 preparedStatement = null;
             }
@@ -1543,20 +1542,19 @@ public class MySQLCallableStatement implements CallableStatement
 
     public int[] executeBatch() throws SQLException {
         if (preparedStatement != null) {
-            int [] unfilteredResult = preparedStatement.executeBatch();
-            if(batchIgnoreResult.cardinality() == 0) {
+            int[] unfilteredResult = preparedStatement.executeBatch();
+            if (batchIgnoreResult.cardinality() == 0) {
                 return unfilteredResult;
             }
-            int [] filteredResult = new int[unfilteredResult.length - batchIgnoreResult.cardinality()];
-            int index=0;
-            for(int i=0; i< unfilteredResult.length; i++) {
-                if(!batchIgnoreResult.get(i)) {
+            int[] filteredResult = new int[unfilteredResult.length - batchIgnoreResult.cardinality()];
+            int index = 0;
+            for (int i = 0; i < unfilteredResult.length; i++) {
+                if (!batchIgnoreResult.get(i)) {
                     filteredResult[index++] = unfilteredResult[i];
                 }
             }
             return filteredResult;
-        }
-        else {
+        } else {
             return new int[0];
         }
     }
@@ -1606,12 +1604,12 @@ public class MySQLCallableStatement implements CallableStatement
         return callStatement.isClosed();
     }
 
-    public void setPoolable(boolean poolable) throws SQLException {
-
-    }
-
     public boolean isPoolable() throws SQLException {
         return false;
+    }
+
+    public void setPoolable(boolean poolable) throws SQLException {
+
     }
 
     public <T> T unwrap(Class<T> iface) throws SQLException {
@@ -1622,23 +1620,23 @@ public class MySQLCallableStatement implements CallableStatement
         return false;
     }
 
-	public void closeOnCompletion() throws SQLException {
-		// TODO Auto-generated method stub
-		
-	}
+    public void closeOnCompletion() throws SQLException {
+        // TODO Auto-generated method stub
 
-	public boolean isCloseOnCompletion() throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
-	}
+    }
 
-	public <T> T getObject(int arg0, Class<T> arg1) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    public boolean isCloseOnCompletion() throws SQLException {
+        // TODO Auto-generated method stub
+        return false;
+    }
 
-	public <T> T getObject(String arg0, Class<T> arg1) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    public <T> T getObject(int arg0, Class<T> arg1) throws SQLException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public <T> T getObject(String arg0, Class<T> arg1) throws SQLException {
+        // TODO Auto-generated method stub
+        return null;
+    }
 }

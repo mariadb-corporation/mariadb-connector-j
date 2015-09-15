@@ -77,15 +77,15 @@ public class MySQLClientParameterizedQuery implements ParameterizedQuery {
         if (rewriteOffset != -1) {
             try {
                 rewriteFirstPart = queryParts.get(0).substring(rewriteOffset + 1).getBytes("UTF-8");
-                String lastPart = queryParts.get(queryParts.size() - 1 );
+                String lastPart = queryParts.get(queryParts.size() - 1);
                 rewriteRepeatLastPart = lastPart.substring(0, lastPart.indexOf(")")).getBytes("UTF-8");
-                rewriteNotRepeatLastPart = lastPart.substring(lastPart.indexOf(")") + 1 ).getBytes("UTF-8");
+                rewriteNotRepeatLastPart = lastPart.substring(lastPart.indexOf(")") + 1).getBytes("UTF-8");
             } catch (UnsupportedEncodingException e) {
                 throw new RuntimeException("UTF-8 not supported", e);
             }
         }
         queryPartsArray = new byte[queryParts.size()][];
-        for(int i=0;i < queryParts.size(); i++) {
+        for (int i = 0; i < queryParts.size(); i++) {
             try {
                 queryPartsArray[i] = queryParts.get(i).getBytes("UTF-8");
             } catch (UnsupportedEncodingException e) {
@@ -99,10 +99,11 @@ public class MySQLClientParameterizedQuery implements ParameterizedQuery {
     private MySQLClientParameterizedQuery() {
 
     }
+
     public MySQLClientParameterizedQuery cloneQuery() {
         MySQLClientParameterizedQuery q = new MySQLClientParameterizedQuery();
         q.parameters = new ParameterHolder[parameters.length];
-        for (int i = 0; i < parameters.length;i++) {
+        for (int i = 0; i < parameters.length; i++) {
             q.parameters[i] = parameters[i];
         }
         q.paramCount = paramCount;
@@ -130,31 +131,31 @@ public class MySQLClientParameterizedQuery implements ParameterizedQuery {
         this.parameters = new ParameterHolder[paramCount];
     }
 
-    public void validate() throws QueryException{
-        if(containsNull(parameters)) {
+    public void validate() throws QueryException {
+        if (containsNull(parameters)) {
             throw new QueryException("You need to set exactly " + paramCount + " parameters on the prepared statement");
         }
     }
 
 
     public void writeTo(final OutputStream os) throws IOException, QueryException {
-        if(queryPartsArray.length == 0) {
+        if (queryPartsArray.length == 0) {
             throw new AssertionError("Invalid query, queryParts was empty");
         }
         os.write(queryPartsArray[0]);
-        for(int i = 1; i<queryPartsArray.length; i++) {
-            parameters[i-1].writeTo(os);
-            if(queryPartsArray[i].length != 0)
+        for (int i = 1; i < queryPartsArray.length; i++) {
+            parameters[i - 1].writeTo(os);
+            if (queryPartsArray[i].length != 0)
                 os.write(queryPartsArray[i]);
         }
     }
 
     public void writeFirstRewritePart(final OutputStream os) throws IOException, QueryException {
-        if(queryPartsArray.length == 0) {
+        if (queryPartsArray.length == 0) {
             throw new AssertionError("Invalid query, queryParts was empty");
         }
 
-        for(int i = 0; i<queryPartsArray.length - 1; i++) {
+        for (int i = 0; i < queryPartsArray.length - 1; i++) {
             os.write(queryPartsArray[i]);
             parameters[i].writeTo(os);
         }
@@ -163,19 +164,19 @@ public class MySQLClientParameterizedQuery implements ParameterizedQuery {
     }
 
     public void writeLastRewritePart(final OutputStream os) throws IOException, QueryException {
-        if(rewriteNotRepeatLastPart != null) {
+        if (rewriteNotRepeatLastPart != null) {
             os.write(rewriteNotRepeatLastPart);
         }
     }
 
     public void writeToRewritablePart(final OutputStream os, int rewriteOffset) throws IOException, QueryException {
-        if(queryPartsArray.length == 0) {
+        if (queryPartsArray.length == 0) {
             throw new AssertionError("Invalid query, queryParts was empty");
         }
 
-        os.write(new byte[]{44,40}); //",(" in UTF-8
+        os.write(new byte[]{44, 40}); //",(" in UTF-8
         os.write(rewriteFirstPart);
-        for(int i = 0; i < parameters.length ; i++) {
+        for (int i = 0; i < parameters.length; i++) {
             parameters[i].writeTo(os);
             if (i < parameters.length - 1)
                 os.write(queryPartsArray[i + 1]);
@@ -185,8 +186,8 @@ public class MySQLClientParameterizedQuery implements ParameterizedQuery {
     }
 
     private boolean containsNull(ParameterHolder[] parameters) {
-        for(ParameterHolder ph : parameters) {
-            if(ph == null) {
+        for (ParameterHolder ph : parameters) {
+            if (ph == null) {
                 return true;
             }
         }
@@ -210,16 +211,16 @@ public class MySQLClientParameterizedQuery implements ParameterizedQuery {
     }
 
     public String toString() {
-        StringBuffer sb  = new StringBuffer ("sql : '" + query + "'");
+        StringBuffer sb = new StringBuffer("sql : '" + query + "'");
         if (parameters.length > 0) {
             sb.append(", parameters : [");
-            for(int i = 0; i < parameters.length; i++) {
-                if (parameters[i] == null)  {
+            for (int i = 0; i < parameters.length; i++) {
+                if (parameters[i] == null) {
                     sb.append("null");
-                }  else {
+                } else {
                     sb.append(parameters[i].toString());
                 }
-                if (i != parameters.length -1) {
+                if (i != parameters.length - 1) {
                     sb.append(",");
                 }
             }
@@ -227,9 +228,6 @@ public class MySQLClientParameterizedQuery implements ParameterizedQuery {
         }
         return sb.toString();
     }
-
-
-
 
 
 }

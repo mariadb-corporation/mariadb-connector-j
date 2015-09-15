@@ -20,58 +20,18 @@ import java.util.Map;
 
 public class SharedMemorySocket extends Socket {
 
+    //SDDL string for mutex security flags (Everyone group has SYNCHRONIZE right)
+    public static final String EVERYONE_SYNCHRONIZE_SDDL = "D:(A;;0x100000;;;WD)";
     final static Map<String, Object> WIN32API_OPTIONS = new HashMap<String, Object>() {
         {
             put(Library.OPTION_FUNCTION_MAPPER, W32APIFunctionMapper.UNICODE);
             put(Library.OPTION_TYPE_MAPPER, W32APITypeMapper.UNICODE);
         }
     };
-    public interface Kernel32 extends StdCallLibrary {
-        public Kernel32 INSTANCE = (Kernel32) Native.loadLibrary("Kernel32", Kernel32.class, WIN32API_OPTIONS);
-        public static final int FILE_MAP_WRITE = 0x0002;
-        public static final int FILE_MAP_READ = 0x0004;
-        public static final int EVENT_MODIFY_STATE = 0x0002;
-        public static final int SYNCHRONIZE = 0x00100000;
-        public static final int INFINITE = -1;
-
-        public HANDLE OpenEvent(int dwDesiredAccess, boolean bInheritHandle, String name) throws LastErrorException;
-        public HANDLE OpenFileMapping(int dwDesiredAccess, boolean bInheritHandle, String name) throws LastErrorException;
-        public Pointer MapViewOfFile(HANDLE hFileMappingObject, int dwDesiredAccess, int dwFileOffsetHigh, int dwFileOffsetLow,
-                                     SIZE_T dwNumberOfBytesToMap) throws LastErrorException;
-        public boolean UnmapViewOfFile(Pointer view) throws LastErrorException;
-        public boolean SetEvent(HANDLE handle) throws LastErrorException;
-        public boolean CloseHandle(HANDLE handle) throws LastErrorException;
-        public int WaitForSingleObject(HANDLE handle, int timeout) throws LastErrorException;
-        public int WaitForMultipleObjects(int count, HANDLE[] handles, boolean waitAll, int millis) throws LastErrorException;
-        public int GetLastError() throws LastErrorException;
-        public HANDLE CreateMutex(Advapi32.SECURITY_ATTRIBUTES sa, boolean initialOwner, String name);
-        public boolean ReleaseMutex(HANDLE hMutex);
-        public Pointer LocalFree(Pointer p);
-
-
-    }
-
-    public interface Advapi32 extends StdCallLibrary {
-        public Advapi32 INSTANCE = (Advapi32) Native.loadLibrary("advapi32", Advapi32.class,WIN32API_OPTIONS);
-        public static class SECURITY_ATTRIBUTES extends Structure {
-            public int nLength;
-            public Pointer lpSecurityDescriptor;
-            public boolean bInheritHandle;
-
-            protected java.util.List getFieldOrder() {
-                   return Arrays.asList(new String[]{"nLength", "lpSecurityDescriptor", "bInheritHandle"});
-            }
-        }
-        boolean ConvertStringSecurityDescriptorToSecurityDescriptor(String sddl, int sddlVersion, PointerByReference psd,
-                                                                    IntByReference length);
-
-    }
-    //SDDL string for mutex security flags (Everyone group has SYNCHRONIZE right)
-    public static final String EVERYONE_SYNCHRONIZE_SDDL = "D:(A;;0x100000;;;WD)";
-
     // Size of memory mapped region
     static int BUFFERLEN = 16004;
-
+    InputStream is;
+    OutputStream os;
     private String memoryName;
     private HANDLE serverRead;
     private HANDLE serverWrote;
@@ -84,101 +44,11 @@ public class SharedMemorySocket extends Socket {
     private int connectNumber;
     private int timeout = Kernel32.INFINITE;
 
-    InputStream is;
-    OutputStream os;
-
-    class SharedMemoryInputStream extends InputStream {
-        @Override
-        public int read(byte[] b, int off, int count) throws IOException {
-            HANDLE handles[] = {serverWrote, connectionClosed};
-            if (bytesLeft == 0) {
-                int index = Kernel32.INSTANCE.WaitForMultipleObjects(2, handles, false, timeout);
-                if (index == -1) {
-                    throw new IOException("wait failed, timeout");
-                } else if (index == 1) {
-                    // Connection closed
-                    throw new IOException("Server closed connection");
-                } else if (index != 0) {
-                    throw new IOException("Unexpected return result from WaitForMultipleObjects : " + index);
-                }
-                bytesLeft = view.getInt(0);
-                position = 4;
-            }
-            int len = Math.min(count, bytesLeft);
-            view.read(position, b, off, len);
-            position += len;
-            bytesLeft -= len;
-            if (bytesLeft == 0)
-                Kernel32.INSTANCE.SetEvent(clientRead);
-            return len;
-        }
-
-        @Override
-        public int read() throws IOException {
-            byte[] b = new byte[1];
-            int bytesRead = read(b);
-            if (bytesRead == 0) {
-                return -1;
-            }
-            return b[0] & 0xff;
-        }
-
-        @Override
-        public int read(byte[] b) throws IOException {
-            return read(b, 0, b.length);
-        }
-    }
-
-    class SharedMemoryOutputStream extends OutputStream {
-        @Override
-        public void write(byte[] b, int off, int count) throws IOException {
-            int bytesToWrite = count;
-            int buffPos = off;
-            HANDLE handles[] = {serverRead, connectionClosed};
-            while (bytesToWrite > 0) {
-                int index = Kernel32.INSTANCE.WaitForMultipleObjects(2, handles, false, timeout);
-                if (index == -1) {
-                    // wait failed,  probably timeout
-                    throw new IOException("WaitForMultipleObjects() failed, timeout");
-                } else if (index == 1) {
-                    // Connection closed
-                    throw new IOException("Server closed connection");
-                } else if (index != 0) {
-                    throw new IOException("Unexpected return result from WaitForMultipleObjects : " + index);
-                }
-
-                int chunk = Math.min(bytesToWrite, BUFFERLEN);
-                view.setInt(0, chunk);
-                view.write(4, b, buffPos, chunk);
-                buffPos += chunk;
-                bytesToWrite -= chunk;
-                if (!Kernel32.INSTANCE.SetEvent(clientWrote))
-                    throw new IOException("SetEvent failed");
-            }
-        }
-
-        @Override
-        public void write(int b) throws IOException {
-            write(new byte[]{(byte) b});
-        }
-
-        @Override
-        public void write(byte[] b) throws IOException {
-            write(b, 0, b.length);
-        }
-    }
-
     public SharedMemorySocket(String name) throws IOException {
         if (!Platform.isWindows()) {
             throw new IOException("shared memory connections are only supported on Windows");
         }
         memoryName = name;
-    }
-
-
-    @Override
-    public void connect(SocketAddress endpoint) throws IOException {
-        connect(endpoint, 0);
     }
 
     public static HANDLE openEvent(String name) {
@@ -192,14 +62,19 @@ public class SharedMemorySocket extends Socket {
         return v;
     }
 
+    @Override
+    public void connect(SocketAddress endpoint) throws IOException {
+        connect(endpoint, 0);
+    }
+
     /*
     Create a mutex to synchronize login. Without mutex, different connections that are created at about the same
     time, could get the same connection number. Note, that this mutex, or any synchronization does not exist in
     in either C or .NET connectors (i.e they are racy)
     */
-    private HANDLE lockMutex() throws IOException{
+    private HANDLE lockMutex() throws IOException {
         PointerByReference securityDescriptor = new PointerByReference();
-        Advapi32.INSTANCE.ConvertStringSecurityDescriptorToSecurityDescriptor(EVERYONE_SYNCHRONIZE_SDDL, 1, securityDescriptor,null);
+        Advapi32.INSTANCE.ConvertStringSecurityDescriptorToSecurityDescriptor(EVERYONE_SYNCHRONIZE_SDDL, 1, securityDescriptor, null);
         Advapi32.SECURITY_ATTRIBUTES sa = new Advapi32.SECURITY_ATTRIBUTES();
         sa.nLength = sa.size();
         sa.lpSecurityDescriptor = securityDescriptor.getValue();
@@ -243,14 +118,13 @@ public class SharedMemorySocket extends Socket {
         } finally {
             Kernel32.INSTANCE.ReleaseMutex(mutex);
             Kernel32.INSTANCE.CloseHandle(mutex);
-            if (connectData != null)  {
+            if (connectData != null) {
                 Kernel32.INSTANCE.UnmapViewOfFile(connectData);
             }
             Kernel32.INSTANCE.CloseHandle(connectRequest);
             Kernel32.INSTANCE.CloseHandle(connectAnswer);
         }
     }
-
 
     public void connect(SocketAddress endpoint, int timeout) throws IOException {
         try {
@@ -331,5 +205,140 @@ public class SharedMemorySocket extends Socket {
         clientWrote = null;
         connectionClosed = null;
         view = null;
+    }
+
+    public interface Kernel32 extends StdCallLibrary {
+        public Kernel32 INSTANCE = (Kernel32) Native.loadLibrary("Kernel32", Kernel32.class, WIN32API_OPTIONS);
+        public static final int FILE_MAP_WRITE = 0x0002;
+        public static final int FILE_MAP_READ = 0x0004;
+        public static final int EVENT_MODIFY_STATE = 0x0002;
+        public static final int SYNCHRONIZE = 0x00100000;
+        public static final int INFINITE = -1;
+
+        public HANDLE OpenEvent(int dwDesiredAccess, boolean bInheritHandle, String name) throws LastErrorException;
+
+        public HANDLE OpenFileMapping(int dwDesiredAccess, boolean bInheritHandle, String name) throws LastErrorException;
+
+        public Pointer MapViewOfFile(HANDLE hFileMappingObject, int dwDesiredAccess, int dwFileOffsetHigh, int dwFileOffsetLow,
+                                     SIZE_T dwNumberOfBytesToMap) throws LastErrorException;
+
+        public boolean UnmapViewOfFile(Pointer view) throws LastErrorException;
+
+        public boolean SetEvent(HANDLE handle) throws LastErrorException;
+
+        public boolean CloseHandle(HANDLE handle) throws LastErrorException;
+
+        public int WaitForSingleObject(HANDLE handle, int timeout) throws LastErrorException;
+
+        public int WaitForMultipleObjects(int count, HANDLE[] handles, boolean waitAll, int millis) throws LastErrorException;
+
+        public int GetLastError() throws LastErrorException;
+
+        public HANDLE CreateMutex(Advapi32.SECURITY_ATTRIBUTES sa, boolean initialOwner, String name);
+
+        public boolean ReleaseMutex(HANDLE hMutex);
+
+        public Pointer LocalFree(Pointer p);
+
+
+    }
+
+    public interface Advapi32 extends StdCallLibrary {
+        public Advapi32 INSTANCE = (Advapi32) Native.loadLibrary("advapi32", Advapi32.class, WIN32API_OPTIONS);
+
+        boolean ConvertStringSecurityDescriptorToSecurityDescriptor(String sddl, int sddlVersion, PointerByReference psd,
+                                                                    IntByReference length);
+
+        public static class SECURITY_ATTRIBUTES extends Structure {
+            public int nLength;
+            public Pointer lpSecurityDescriptor;
+            public boolean bInheritHandle;
+
+            protected java.util.List getFieldOrder() {
+                return Arrays.asList(new String[]{"nLength", "lpSecurityDescriptor", "bInheritHandle"});
+            }
+        }
+
+    }
+
+    class SharedMemoryInputStream extends InputStream {
+        @Override
+        public int read(byte[] b, int off, int count) throws IOException {
+            HANDLE handles[] = {serverWrote, connectionClosed};
+            if (bytesLeft == 0) {
+                int index = Kernel32.INSTANCE.WaitForMultipleObjects(2, handles, false, timeout);
+                if (index == -1) {
+                    throw new IOException("wait failed, timeout");
+                } else if (index == 1) {
+                    // Connection closed
+                    throw new IOException("Server closed connection");
+                } else if (index != 0) {
+                    throw new IOException("Unexpected return result from WaitForMultipleObjects : " + index);
+                }
+                bytesLeft = view.getInt(0);
+                position = 4;
+            }
+            int len = Math.min(count, bytesLeft);
+            view.read(position, b, off, len);
+            position += len;
+            bytesLeft -= len;
+            if (bytesLeft == 0)
+                Kernel32.INSTANCE.SetEvent(clientRead);
+            return len;
+        }
+
+        @Override
+        public int read() throws IOException {
+            byte[] b = new byte[1];
+            int bytesRead = read(b);
+            if (bytesRead == 0) {
+                return -1;
+            }
+            return b[0] & 0xff;
+        }
+
+        @Override
+        public int read(byte[] b) throws IOException {
+            return read(b, 0, b.length);
+        }
+    }
+
+    class SharedMemoryOutputStream extends OutputStream {
+        @Override
+        public void write(byte[] b, int off, int count) throws IOException {
+            int bytesToWrite = count;
+            int buffPos = off;
+            HANDLE handles[] = {serverRead, connectionClosed};
+            while (bytesToWrite > 0) {
+                int index = Kernel32.INSTANCE.WaitForMultipleObjects(2, handles, false, timeout);
+                if (index == -1) {
+                    // wait failed,  probably timeout
+                    throw new IOException("WaitForMultipleObjects() failed, timeout");
+                } else if (index == 1) {
+                    // Connection closed
+                    throw new IOException("Server closed connection");
+                } else if (index != 0) {
+                    throw new IOException("Unexpected return result from WaitForMultipleObjects : " + index);
+                }
+
+                int chunk = Math.min(bytesToWrite, BUFFERLEN);
+                view.setInt(0, chunk);
+                view.write(4, b, buffPos, chunk);
+                buffPos += chunk;
+                bytesToWrite -= chunk;
+                if (!Kernel32.INSTANCE.SetEvent(clientWrote))
+                    throw new IOException("SetEvent failed");
+            }
+        }
+
+        @Override
+        public void write(int b) throws IOException {
+            write(new byte[]{(byte) b});
+        }
+
+        @Override
+        public void write(byte[] b) throws IOException {
+            write(b, 0, b.length);
+        }
     }
 }

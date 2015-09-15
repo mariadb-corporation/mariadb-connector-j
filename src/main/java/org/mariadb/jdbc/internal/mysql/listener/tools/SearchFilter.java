@@ -56,7 +56,7 @@ public class SearchFilter {
     boolean initialConnection;
     boolean uniqueLoop;
 
-    public SearchFilter (boolean searchForMaster, boolean searchForSlave) {
+    public SearchFilter(boolean searchForMaster, boolean searchForSlave) {
         this.searchForMaster = searchForMaster;
         this.searchForSlave = searchForSlave;
     }

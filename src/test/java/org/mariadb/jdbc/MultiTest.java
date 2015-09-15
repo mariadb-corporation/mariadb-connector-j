@@ -1,18 +1,18 @@
 package org.mariadb.jdbc;
 
-import org.junit.*;
+import org.junit.AfterClass;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.sql.*;
 import java.util.Properties;
-
-import org.junit.Assert;
-import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
 
 import static org.junit.Assert.*;
 
 
 public class MultiTest extends BaseTest {
-	private static Connection connectionMulti;
+    private static Connection connectionMulti;
 
     public MultiTest() throws SQLException {
     }
@@ -49,10 +49,10 @@ public class MultiTest extends BaseTest {
             st.executeUpdate("drop table if exists t2");
             st.executeUpdate("drop table if exists t3");
             st.executeUpdate("drop table if exists reWriteDuplicateTestTable");
-         } catch (Exception e) {
+        } catch (Exception e) {
             // eat
         } finally {
-            try  {
+            try {
                 connectionMulti.close();
             } catch (Exception e) {
 
@@ -241,6 +241,7 @@ public class MultiTest extends BaseTest {
 
     /**
      * CONJ-141 : Batch Statement Rewrite: Support for ON DUPLICATE KEY
+     *
      * @throws SQLException
      */
     @Test
@@ -394,6 +395,7 @@ public class MultiTest extends BaseTest {
 
     /**
      * CONJ-152: rewriteBatchedStatements and multiple executeBatch check
+     *
      * @throws SQLException
      */
     @Test
@@ -508,7 +510,7 @@ public class MultiTest extends BaseTest {
             sqlUpdate.addBatch();
 
             int[] updateCounts = sqlUpdate.executeBatch();
-            log.trace("updateCounts : "+updateCounts.length);
+            log.trace("updateCounts : " + updateCounts.length);
             Assert.assertEquals(3, updateCounts.length);
             Assert.assertEquals(1, updateCounts[0]);
             Assert.assertEquals(0, updateCounts[1]);

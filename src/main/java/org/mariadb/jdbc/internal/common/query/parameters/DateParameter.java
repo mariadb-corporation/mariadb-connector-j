@@ -50,13 +50,12 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.common.query.parameters;
 
 import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
-import org.mariadb.jdbc.internal.common.packet.buffer.WriteBuffer;
+import org.mariadb.jdbc.internal.mysql.MySQLType;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Calendar;
 import java.util.Date;
-import org.mariadb.jdbc.internal.mysql.MySQLType;
 
 public class DateParameter extends NotLongDataParameterHolder {
     Date date;
@@ -68,12 +67,12 @@ public class DateParameter extends NotLongDataParameterHolder {
      * @param date the date
      */
     public DateParameter(Date date) {
-       this(date, null);
+        this(date, null);
     }
 
     public DateParameter(Date date, Calendar cal) {
-       this.date = date;
-       this.calendar = cal;
+        this.date = date;
+        this.calendar = cal;
     }
 
 

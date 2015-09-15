@@ -49,10 +49,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.common.packet.buffer;
 
-import java.io.IOException;
-import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
-import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.sql.Timestamp;
@@ -65,16 +62,38 @@ public class WriteBuffer {
     private ByteBuffer byteBuffer;
 
     public WriteBuffer() {
-         byteBuffer = ByteBuffer.allocate(1000).order(ByteOrder.LITTLE_ENDIAN);
+        byteBuffer = ByteBuffer.allocate(1000).order(ByteOrder.LITTLE_ENDIAN);
     }
-    
+
     public WriteBuffer(int bufferSize) {
-         byteBuffer = ByteBuffer.allocate(bufferSize).order(ByteOrder.LITTLE_ENDIAN);
+        byteBuffer = ByteBuffer.allocate(bufferSize).order(ByteOrder.LITTLE_ENDIAN);
+    }
+
+    public static byte[] intToByteArray(final int l) {
+        final byte[] returnArray = new byte[4];
+        returnArray[0] = (byte) (l & 0xff);
+        returnArray[1] = (byte) (l >>> 8);
+        returnArray[2] = (byte) (l >>> 16);
+        returnArray[3] = (byte) (l >>> 24);
+        return returnArray;
+    }
+
+    public static byte[] longToByteArray(final long l) {
+        final byte[] returnArray = new byte[8];
+        returnArray[0] = (byte) (l & 0xff);
+        returnArray[1] = (byte) (l >>> 8);
+        returnArray[2] = (byte) (l >>> 16);
+        returnArray[3] = (byte) (l >>> 24);
+        returnArray[0] = (byte) (l >>> 32);
+        returnArray[1] = (byte) (l >>> 40);
+        returnArray[2] = (byte) (l >>> 48);
+        returnArray[3] = (byte) (l >>> 56);
+        return returnArray;
     }
 
     private void assureBufferCapacity(final int len) {
-        while (byteBuffer.remaining()<len) {
-            ByteBuffer newByteBuffer = ByteBuffer.allocate(2*(len + byteBuffer.capacity())).order(ByteOrder.LITTLE_ENDIAN);
+        while (byteBuffer.remaining() < len) {
+            ByteBuffer newByteBuffer = ByteBuffer.allocate(2 * (len + byteBuffer.capacity())).order(ByteOrder.LITTLE_ENDIAN);
             System.arraycopy(byteBuffer, 0, newByteBuffer, 0, byteBuffer.position());
             byteBuffer = newByteBuffer;
         }
@@ -98,7 +117,6 @@ public class WriteBuffer {
         byteBuffer.put(bytes);
         return this;
     }
-
 
     public WriteBuffer writeTimestampLength(final Calendar calendar, Timestamp ts) {
         assureBufferCapacity(12);
@@ -150,7 +168,6 @@ public class WriteBuffer {
 
         return this;
     }
-
 
     public WriteBuffer writeBytes(final byte theByte, final int count) {
         for (int i = 0; i < count; i++) {
@@ -206,48 +223,24 @@ public class WriteBuffer {
             byteBuffer.put((byte) length);
         } else if (length < 65536) {
             assureBufferCapacity(3);
-            byteBuffer.put((byte)0xfc);
+            byteBuffer.put((byte) 0xfc);
             writeShort((short) length);
         } else if (length < 16777216) {
             assureBufferCapacity(4);
-            byteBuffer.put((byte)0xfd);
-            byteBuffer.put((byte) (length & 0xff) );
-            byteBuffer.put((byte) (length >>> 8) );
+            byteBuffer.put((byte) 0xfd);
+            byteBuffer.put((byte) (length & 0xff));
+            byteBuffer.put((byte) (length >>> 8));
             byteBuffer.put((byte) (length >>> 16));
         } else {
             assureBufferCapacity(9);
-            byteBuffer.put((byte)0xfe);
+            byteBuffer.put((byte) 0xfe);
             writeLong(length);
         }
         return this;
     }
 
-
     public byte[] getBuffer() {
         return byteBuffer.array();
-    }
-
-
-    public static byte[] intToByteArray(final int l) {
-        final byte[] returnArray = new byte[4];
-        returnArray[0] = (byte) (l & 0xff);
-        returnArray[1] = (byte) (l >>> 8);
-        returnArray[2] = (byte) (l >>> 16);
-        returnArray[3] = (byte) (l >>> 24);
-        return returnArray;
-    }
-
-    public static byte[] longToByteArray(final long l) {
-        final byte[] returnArray = new byte[8];
-        returnArray[0] = (byte) (l & 0xff);
-        returnArray[1] = (byte) (l >>> 8);
-        returnArray[2] = (byte) (l >>> 16);
-        returnArray[3] = (byte) (l >>> 24);
-        returnArray[0] = (byte) (l >>> 32);
-        returnArray[1] = (byte) (l >>> 40);
-        returnArray[2] = (byte) (l >>> 48);
-        returnArray[3] = (byte) (l >>> 56);
-        return returnArray;
     }
 
     public int getLength() {

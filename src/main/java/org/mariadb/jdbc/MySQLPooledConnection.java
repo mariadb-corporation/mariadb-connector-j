@@ -1,29 +1,28 @@
 package org.mariadb.jdbc;
 
 import javax.sql.*;
-
-import java.sql.Statement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 
-public class MySQLPooledConnection implements  PooledConnection{
+public class MySQLPooledConnection implements PooledConnection {
 
     MySQLConnection connection;
     List<ConnectionEventListener> connectionEventListeners;
     List<StatementEventListener> statementEventListeners;
 
-    public MySQLPooledConnection(MySQLConnection connection)
-    {
-       this.connection = connection;
-       connection.pooledConnection = this;
-       statementEventListeners = new ArrayList<StatementEventListener>();
-       connectionEventListeners = new ArrayList<ConnectionEventListener>();
+    public MySQLPooledConnection(MySQLConnection connection) {
+        this.connection = connection;
+        connection.pooledConnection = this;
+        statementEventListeners = new ArrayList<StatementEventListener>();
+        connectionEventListeners = new ArrayList<ConnectionEventListener>();
     }
+
     /**
      * Creates and returns a <code>Connection</code> object that is a handle
      * for the physical connection that
@@ -34,7 +33,7 @@ public class MySQLPooledConnection implements  PooledConnection{
      * {@link javax.sql.PooledConnection interface description} for more information.
      *
      * @return a <code>Connection</code> object that is a handle to
-     *         this <code>PooledConnection</code> object
+     * this <code>PooledConnection</code> object
      * @throws java.sql.SQLException if a database access error occurs
      *                               if the JDBC driver does not support
      *                               this method
@@ -89,7 +88,7 @@ public class MySQLPooledConnection implements  PooledConnection{
      * @see #addConnectionEventListener
      */
     public void removeConnectionEventListener(ConnectionEventListener listener) {
-       connectionEventListeners.remove(listener);
+        connectionEventListeners.remove(listener);
     }
 
     /**
@@ -121,21 +120,21 @@ public class MySQLPooledConnection implements  PooledConnection{
      * @since 1.6
      */
     public void removeStatementEventListener(StatementEventListener listener) {
-       statementEventListeners.remove(listener);
+        statementEventListeners.remove(listener);
     }
 
     public void fireStatementClosed(Statement st) {
         if (st instanceof PreparedStatement) {
-            StatementEvent event = new StatementEvent(this, (PreparedStatement)st);
-            for(StatementEventListener listener:statementEventListeners)
+            StatementEvent event = new StatementEvent(this, (PreparedStatement) st);
+            for (StatementEventListener listener : statementEventListeners)
                 listener.statementClosed(event);
         }
     }
 
     public void fireStatementErrorOccured(Statement st, SQLException e) {
         if (st instanceof PreparedStatement) {
-            StatementEvent event = new StatementEvent(this,(PreparedStatement) st,e);
-            for(StatementEventListener listener:statementEventListeners)
+            StatementEvent event = new StatementEvent(this, (PreparedStatement) st, e);
+            for (StatementEventListener listener : statementEventListeners)
                 listener.statementErrorOccurred(event);
         }
     }
@@ -143,13 +142,13 @@ public class MySQLPooledConnection implements  PooledConnection{
     public void fireConnectionClosed() {
         ConnectionEvent event = new ConnectionEvent(this);
         CopyOnWriteArrayList<ConnectionEventListener> copyListeners = new CopyOnWriteArrayList<ConnectionEventListener>(connectionEventListeners);
-        for(ConnectionEventListener listener: copyListeners)
-           listener.connectionClosed(event);
+        for (ConnectionEventListener listener : copyListeners)
+            listener.connectionClosed(event);
     }
 
     public void fireConnectionErrorOccured(SQLException e) {
-        ConnectionEvent event = new ConnectionEvent(this,e);
-        for(ConnectionEventListener listener: connectionEventListeners)
-           listener.connectionErrorOccurred(event);
+        ConnectionEvent event = new ConnectionEvent(this, e);
+        for (ConnectionEventListener listener : connectionEventListeners)
+            listener.connectionErrorOccurred(event);
     }
 }

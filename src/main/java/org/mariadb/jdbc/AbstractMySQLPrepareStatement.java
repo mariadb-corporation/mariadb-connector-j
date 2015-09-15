@@ -61,20 +61,19 @@ import java.math.BigInteger;
 import java.net.URL;
 import java.sql.*;
 import java.util.Calendar;
-import java.util.concurrent.locks.ReentrantLock;
 
 public abstract class AbstractMySQLPrepareStatement extends MySQLStatement implements PreparedStatement {
     private boolean useFractionalSeconds;
-    protected abstract boolean isNoBackslashEscapes();
-
-    protected abstract boolean useFractionalSeconds();
-
-    protected abstract Calendar cal();
 
     public AbstractMySQLPrepareStatement(MySQLConnection connection) {
         super(connection);
     }
 
+    protected abstract boolean isNoBackslashEscapes();
+
+    protected abstract boolean useFractionalSeconds();
+
+    protected abstract Calendar cal();
 
     /**
      * Sets the designated parameter to the given <code>Reader</code> object, which is the given number of characters
@@ -276,7 +275,7 @@ public abstract class AbstractMySQLPrepareStatement extends MySQLStatement imple
      * <P><B>Note:</B> You must specify the parameter's SQL type.
      *
      * @param parameterIndex the first parameter is 1, the second is 2, ...
-     * @param mysqlType        the type code defined in <code> org.mariadb.jdbc.internal.mysql.MySQLType</code>
+     * @param mysqlType      the type code defined in <code> org.mariadb.jdbc.internal.mysql.MySQLType</code>
      * @throws java.sql.SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
      *                                                  if a database access error occurs or this method is called on a closed
      *                                                  <code>PreparedStatement</code>
@@ -1077,11 +1076,11 @@ public abstract class AbstractMySQLPrepareStatement extends MySQLStatement imple
                         setString(parameterIndex, s);
                         break;
                     case Types.TIMESTAMP:
-                            if (x!= null && ((String) x).startsWith("0000-00-00")) setTimestamp(parameterIndex, null);
-                            else setTimestamp(parameterIndex, Timestamp.valueOf((String) x));
+                        if (x != null && ((String) x).startsWith("0000-00-00")) setTimestamp(parameterIndex, null);
+                        else setTimestamp(parameterIndex, Timestamp.valueOf((String) x));
                         break;
                     case Types.TIME:
-                            setTime(parameterIndex, Time.valueOf((String) x));
+                        setTime(parameterIndex, Time.valueOf((String) x));
                         break;
                     default:
                         throw SQLExceptionMapper.getSQLException("Could not convert [" + s + "] to " + targetSqlType);

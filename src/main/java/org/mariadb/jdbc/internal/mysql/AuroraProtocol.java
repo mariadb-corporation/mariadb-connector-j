@@ -57,49 +57,17 @@ import org.mariadb.jdbc.internal.common.query.MySQLQuery;
 import org.mariadb.jdbc.internal.common.queryresults.SelectQueryResult;
 import org.mariadb.jdbc.internal.mysql.listener.impl.AuroraListener;
 import org.mariadb.jdbc.internal.mysql.listener.tools.SearchFilter;
+
 import java.io.IOException;
-import java.util.*;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class AuroraProtocol extends MastersSlavesProtocol {
     public AuroraProtocol(final JDBCUrl url, final ReentrantReadWriteLock lock) {
         super(url, lock);
     }
-
-
-    @Override
-    public boolean isMasterConnection() {
-        return this.masterConnection;
-    }
-
-    /**
-     * Aurora best way to check if a node is a master : is not in read-only mode
-     *
-     * @return indicate if master has been found
-     */
-    @Override
-    public boolean checkIfMaster() throws QueryException {
-        proxy.lock.writeLock().lock();
-        try {
-            SelectQueryResult queryResult = (SelectQueryResult) executeQuery(new MySQLQuery("show global variables like 'innodb_read_only'"));
-            if (queryResult != null) {
-                queryResult.next();
-                this.masterConnection = "OFF".equals(queryResult.getValueObject(1).getString());
-            } else {
-                this.masterConnection = false;
-            }
-            this.readOnly = !this.masterConnection;
-            return this.masterConnection;
-
-        } catch (IOException ioe) {
-            //log.trace("exception during checking if master", ioe);
-            throw new QueryException("could not check the 'innodb_read_only' variable status on " + this.getHostAddress() +
-                    " : " + ioe.getMessage(), -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), ioe);
-        } finally {
-            proxy.lock.writeLock().unlock();
-        }
-    }
-
 
     public static void searchProbableMaster(AuroraListener listener, HostAddress probableMaster, Map<HostAddress, Long> blacklist, SearchFilter searchFilter) throws QueryException {
         /*if (log.isDebugEnabled()) {
@@ -138,9 +106,9 @@ public class AuroraProtocol extends MastersSlavesProtocol {
     /**
      * loop until found the failed connection.
      *
-     * @param listener current listener
-     * @param addresses list of HostAddress to loop
-     * @param blacklist current blacklist
+     * @param listener     current listener
+     * @param addresses    list of HostAddress to loop
+     * @param blacklist    current blacklist
      * @param searchFilter search parameter
      * @throws QueryException if not found
      */
@@ -157,7 +125,8 @@ public class AuroraProtocol extends MastersSlavesProtocol {
         while (!loopAddresses.isEmpty() || (!searchFilter.isUniqueLoop() && maxConnectionTry > 0)) {
             protocol = getNewProtocol(listener.getProxy(), listener.getJdbcUrl());
 
-            if (listener.isExplicitClosed() || (!listener.isSecondaryHostFail() && !listener.isMasterHostFail())) return;
+            if (listener.isExplicitClosed() || (!listener.isSecondaryHostFail() && !listener.isMasterHostFail()))
+                return;
             maxConnectionTry--;
 
             try {
@@ -209,7 +178,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
         }
     }
 
-    private static boolean foundMaster(AuroraListener listener, AuroraProtocol protocol,SearchFilter searchFilter) {
+    private static boolean foundMaster(AuroraListener listener, AuroraProtocol protocol, SearchFilter searchFilter) {
         protocol.setMustBeMasterConnection(true);
         searchFilter.setSearchForMaster(false);
         listener.foundActiveMaster(protocol);
@@ -222,7 +191,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
         return false;
     }
 
-    private static boolean foundSecondary(AuroraListener listener, AuroraProtocol protocol,SearchFilter searchFilter) {
+    private static boolean foundSecondary(AuroraListener listener, AuroraProtocol protocol, SearchFilter searchFilter) {
         searchFilter.setSearchForSlave(false);
         protocol.setMustBeMasterConnection(false);
         listener.foundActiveSecondary(protocol);
@@ -241,6 +210,39 @@ public class AuroraProtocol extends MastersSlavesProtocol {
         AuroraProtocol newProtocol = new AuroraProtocol(jdbcUrl, proxy.lock);
         newProtocol.setProxy(proxy);
         return newProtocol;
+    }
+
+    @Override
+    public boolean isMasterConnection() {
+        return this.masterConnection;
+    }
+
+    /**
+     * Aurora best way to check if a node is a master : is not in read-only mode
+     *
+     * @return indicate if master has been found
+     */
+    @Override
+    public boolean checkIfMaster() throws QueryException {
+        proxy.lock.writeLock().lock();
+        try {
+            SelectQueryResult queryResult = (SelectQueryResult) executeQuery(new MySQLQuery("show global variables like 'innodb_read_only'"));
+            if (queryResult != null) {
+                queryResult.next();
+                this.masterConnection = "OFF".equals(queryResult.getValueObject(1).getString());
+            } else {
+                this.masterConnection = false;
+            }
+            this.readOnly = !this.masterConnection;
+            return this.masterConnection;
+
+        } catch (IOException ioe) {
+            //log.trace("exception during checking if master", ioe);
+            throw new QueryException("could not check the 'innodb_read_only' variable status on " + this.getHostAddress() +
+                    " : " + ioe.getMessage(), -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), ioe);
+        } finally {
+            proxy.lock.writeLock().unlock();
+        }
     }
 
 

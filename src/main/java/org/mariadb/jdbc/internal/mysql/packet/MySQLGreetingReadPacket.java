@@ -58,7 +58,10 @@ import java.io.IOException;
 
 
 public class MySQLGreetingReadPacket {
-    private String serverVersion;
+    /* MDEV-4088/CONJ-32 :  in 10.0, the real version string maybe prefixed with "5.5.5-",
+     * to workaround bugs in Oracle MySQL replication
+     */
+    static final String MARIADB_RPL_HACK_PREFIX = "5.5.5-";
     private final byte protocolVersion;
     private final long serverThreadID;
     //private final byte[] seed1;
@@ -67,12 +70,8 @@ public class MySQLGreetingReadPacket {
     private final byte serverLanguage;
     private final short serverStatus;
     private final byte[] seed;
+    private String serverVersion;
 
-    /* MDEV-4088/CONJ-32 :  in 10.0, the real version string maybe prefixed with "5.5.5-", 
-     * to workaround bugs in Oracle MySQL replication 
-     */
-    static final String MARIADB_RPL_HACK_PREFIX = "5.5.5-";
-            
     public MySQLGreetingReadPacket(final RawPacket rawPacket) throws IOException {
         final Reader reader = new Reader(rawPacket);
         protocolVersion = reader.readByte();
@@ -92,7 +91,7 @@ public class MySQLGreetingReadPacket {
         /* 
          * check for MariaDB 10.x replication hack , remove fake prefix if needed
          *  (see comments about MARIADB_RPL_HACK_PREFIX)
-         */ 
+         */
         if ((serverCapabilities & MySQLServerCapabilities.PLUGIN_AUTH) != 0
                 && serverVersion.startsWith(MARIADB_RPL_HACK_PREFIX)) {
             serverVersion = serverVersion.substring(MARIADB_RPL_HACK_PREFIX.length());

@@ -79,6 +79,7 @@ public class MySQLBinaryRowPacket {
             remaining = reader.getRemainingSize();
         }
     }
+
     public void appendPacketIfNeeded(PacketFetcher packetFetcher, long encLength) throws IOException {
         long remaining = reader.getRemainingSize();
         while (encLength > remaining) {

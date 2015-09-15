@@ -51,7 +51,6 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.common.query.parameters;
 
 import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
-import org.mariadb.jdbc.internal.common.packet.buffer.WriteBuffer;
 import org.mariadb.jdbc.internal.mysql.MySQLType;
 
 import java.io.IOException;
@@ -63,7 +62,7 @@ public class BigIntParameter extends NotLongDataParameterHolder {
     private BigDecimal value;
 
     public BigIntParameter(BigInteger value) {
-      this.value = new BigDecimal(value);
+        this.value = new BigDecimal(value);
     }
 
     public void writeTo(final OutputStream os) throws IOException {

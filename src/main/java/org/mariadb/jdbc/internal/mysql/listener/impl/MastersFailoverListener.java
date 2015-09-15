@@ -102,7 +102,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
     }
 
     @Override
-    public void preClose()  throws SQLException {
+    public void preClose() throws SQLException {
         setExplicitClosed(true);
         proxy.lock.writeLock().lock();
         try {
@@ -135,7 +135,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
 
                 // if in transaction cannot be sure that the last query has been received by server of not, so rollback.
                 if (currentProtocol.inTransaction()) {
-                        currentProtocol.rollback();
+                    currentProtocol.rollback();
                 }
                 return new HandleErrorResult(true);
             }
@@ -210,6 +210,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
 
     /**
      * method called when a new Master connection is found after a fallback
+     *
      * @param protocol the new active connection
      */
     @Override

@@ -49,23 +49,24 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.common.query.parameters;
 
-import org.mariadb.jdbc.internal.common.packet.buffer.WriteBuffer;
 import org.mariadb.jdbc.internal.mysql.MySQLType;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.sql.SQLException;
 
 
 public class NullParameter extends ParameterHolder {
-    private static final byte[] NULL = {'N','U','L','L'};
+    private static final byte[] NULL = {'N', 'U', 'L', 'L'};
     private MySQLType type;
+
     public NullParameter() {
         type = MySQLType.NULL;
     }
+
     public NullParameter(MySQLType type) {
         this.type = type;
     }
+
     public void writeTo(final OutputStream os) throws IOException {
         os.write(NULL);
     }

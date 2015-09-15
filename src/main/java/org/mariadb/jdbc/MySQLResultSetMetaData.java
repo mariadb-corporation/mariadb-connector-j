@@ -131,7 +131,7 @@ public class MySQLResultSetMetaData implements ResultSetMetaData {
      *
      * @param column the first column is 1, the second is 2, ...
      * @return the nullability status of the given column; one of <code>columnNoNulls</code>,
-     *         <code>columnNullable</code> or <code>columnNullableUnknown</code>
+     * <code>columnNullable</code> or <code>columnNullableUnknown</code>
      * @throws java.sql.SQLException if a database access error occurs
      */
     public int isNullable(final int column) throws SQLException {
@@ -161,7 +161,7 @@ public class MySQLResultSetMetaData implements ResultSetMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public int getColumnDisplaySize(final int column) throws SQLException {
-       return getColumnInformation(column).getDisplaySize();
+        return getColumnInformation(column).getDisplaySize();
     }
 
     /**
@@ -186,10 +186,10 @@ public class MySQLResultSetMetaData implements ResultSetMetaData {
      */
     public String getColumnName(final int column) throws SQLException {
         String s = getColumnInformation(column).getOriginalName();
-        if (returnTableAlias) s =  getColumnInformation(column).getName(); //for old mysql compatibility
+        if (returnTableAlias) s = getColumnInformation(column).getName(); //for old mysql compatibility
 
         if ("".equals(s))  // odd things that are no columns, e.g count(*)
-            s =  getColumnLabel(column);
+            s = getColumnLabel(column);
         return s;
     }
 
@@ -239,10 +239,10 @@ public class MySQLResultSetMetaData implements ResultSetMetaData {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public String getTableName(final int column) throws SQLException {
-    	if (returnTableAlias == true)
-    		return getColumnInformation(column).getTable();
-    	else
-    		return getColumnInformation(column).getOriginalTable();
+        if (returnTableAlias == true)
+            return getColumnInformation(column).getTable();
+        else
+            return getColumnInformation(column).getOriginalTable();
     }
 
 
@@ -260,18 +260,18 @@ public class MySQLResultSetMetaData implements ResultSetMetaData {
      */
     public int getColumnType(final int column) throws SQLException {
         MySQLColumnInformation ci = getColumnInformation(column);
-        switch(ci.getType()) {
+        switch (ci.getType()) {
             case BIT:
-                if(ci.getLength() == 1)
+                if (ci.getLength() == 1)
                     return Types.BIT;
                 return Types.VARBINARY;
             case TINYINT:
-                if(ci.getLength() == 1 && (datatypeMappingflags & ValueObject.TINYINT1_IS_BIT) != 0)
+                if (ci.getLength() == 1 && (datatypeMappingflags & ValueObject.TINYINT1_IS_BIT) != 0)
                     return Types.BIT;
                 else
                     return Types.TINYINT;
             case YEAR:
-                if((datatypeMappingflags & ValueObject.YEAR_IS_DATE_TYPE) != 0)
+                if ((datatypeMappingflags & ValueObject.YEAR_IS_DATE_TYPE) != 0)
                     return Types.DATE;
                 else
                     return Types.SMALLINT;
@@ -285,7 +285,7 @@ public class MySQLResultSetMetaData implements ResultSetMetaData {
                 if (ci.getLength() < 0)
                     return Types.LONGVARCHAR;
                 return Types.VARCHAR;
-            case STRING :
+            case STRING:
                 if (ci.isBinary()) return Types.BINARY;
                 return Types.CHAR;
             default:
@@ -299,12 +299,12 @@ public class MySQLResultSetMetaData implements ResultSetMetaData {
      *
      * @param column the first column is 1, the second is 2, ...
      * @return type name used by the database. If the column type is a user-defined type, then a fully-qualified type
-     *         name is returned.
+     * name is returned.
      * @throws java.sql.SQLException if a database access error occurs
      */
     public String getColumnTypeName(final int column) throws SQLException {
         MySQLColumnInformation ci = getColumnInformation(column);
-        return MySQLType.getColumnTypeName(ci.getType(),ci.getLength(), ci.isSigned(), ci.isBinary());
+        return MySQLType.getColumnTypeName(ci.getType(), ci.getLength(), ci.isSigned(), ci.isBinary());
 
     }
 
@@ -348,8 +348,8 @@ public class MySQLResultSetMetaData implements ResultSetMetaData {
      *
      * @param column the first column is 1, the second is 2, ...
      * @return the fully-qualified name of the class in the Java programming language that would be used by the method
-     *         <code>ResultSet.getObject</code> to retrieve the value in the specified column. This is the class name
-     *         used for custom mapping.
+     * <code>ResultSet.getObject</code> to retrieve the value in the specified column. This is the class name
+     * used for custom mapping.
      * @throws java.sql.SQLException if a database access error occurs
      * @since 1.2
      */
@@ -357,7 +357,7 @@ public class MySQLResultSetMetaData implements ResultSetMetaData {
     public String getColumnClassName(int column) throws SQLException {
         MySQLColumnInformation ci = getColumnInformation(column);
         MySQLType t = ci.getType();
-        return MySQLType.getClassName(t, (int)ci.getLength(), ci.isSigned(),ci.isBinary(),datatypeMappingflags);
+        return MySQLType.getClassName(t, (int) ci.getLength(), ci.isSigned(), ci.isBinary(), datatypeMappingflags);
     }
 
     private MySQLColumnInformation getColumnInformation(int column) throws SQLException {

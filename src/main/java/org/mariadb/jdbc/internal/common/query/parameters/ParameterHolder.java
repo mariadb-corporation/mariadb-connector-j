@@ -50,7 +50,6 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.common.query.parameters;
 
 import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
-import org.mariadb.jdbc.internal.common.packet.buffer.WriteBuffer;
 import org.mariadb.jdbc.internal.mysql.MySQLType;
 
 import java.io.ByteArrayOutputStream;
@@ -61,6 +60,7 @@ import java.io.OutputStream;
 public abstract class ParameterHolder implements Cloneable {
     /**
      * Write parameter value
+     *
      * @param os the stream to write to
      * @throws IOException when something goes wrong
      */
@@ -71,18 +71,19 @@ public abstract class ParameterHolder implements Cloneable {
         try {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             writeTo(baos);
-            byte[] a  = baos.toByteArray();
+            byte[] a = baos.toByteArray();
             if (a.length < 1024) {
-                return new String(a ,"UTF8");
+                return new String(a, "UTF8");
             } else {
                 // cut overlong strings.
-                return new String(a, 0, 1024, "UTF8")+ "<cut>...'";
+                return new String(a, 0, 1024, "UTF8") + "<cut>...'";
             }
         } catch (Exception e) {
             return "";
         }
 
     }
+
     public abstract boolean isLongData();
 
 

@@ -52,17 +52,11 @@ package org.mariadb.jdbc;
 import org.mariadb.jdbc.internal.SQLExceptionMapper;
 import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.common.Utils;
-import org.mariadb.jdbc.internal.mysql.*;
+import org.mariadb.jdbc.internal.mysql.Protocol;
 
-import java.lang.reflect.Proxy;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.DriverPropertyInfo;
-import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
+import java.sql.*;
 import java.util.Properties;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-
 
 
 public final class Driver implements java.sql.Driver {
@@ -75,12 +69,21 @@ public final class Driver implements java.sql.Driver {
         }
     }
 
+    /*
+        Provide a "cleanup" method that can be called after unloading driver, to fix Tomcat's obscure classpath handling.
+
+        See CONJ-61.
+     */
+    public static void unloadDriver() {
+        MySQLStatement.unloadDriver();
+    }
+
     /**
      * Connect to the given connection string.
-     *
+     * <p/>
      * the properties are currently ignored
      *
-     * @param url  the url to connect to
+     * @param url the url to connect to
      * @return a connection
      * @throws SQLException if it is not possible to connect
      */
@@ -113,7 +116,7 @@ public final class Driver implements java.sql.Driver {
      * @return true if the url is valid for this driver
      */
     public boolean acceptsURL(String url) {
-        return  JDBCUrl.acceptsURL(url);
+        return JDBCUrl.acceptsURL(url);
     }
 
     /**
@@ -160,14 +163,5 @@ public final class Driver implements java.sql.Driver {
     public java.util.logging.Logger getParentLogger() throws SQLFeatureNotSupportedException {
         // TODO Auto-generated method stub
         return null;
-    }
-
-    /*
-        Provide a "cleanup" method that can be called after unloading driver, to fix Tomcat's obscure classpath handling.
-
-        See CONJ-61.
-     */
-    public static void unloadDriver() {
-        MySQLStatement.unloadDriver();
     }
 }

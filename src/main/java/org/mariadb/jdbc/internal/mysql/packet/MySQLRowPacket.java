@@ -64,7 +64,7 @@ public class MySQLRowPacket {
     private final Reader reader;
     private final MySQLColumnInformation[] columnInformation;
 
-    public MySQLRowPacket(RawPacket rawPacket,  MySQLColumnInformation[] columnInformation2) throws IOException {
+    public MySQLRowPacket(RawPacket rawPacket, MySQLColumnInformation[] columnInformation2) throws IOException {
         columns = new ValueObject[columnInformation2.length];
         reader = new Reader(rawPacket);
         this.columnInformation = columnInformation2;
@@ -73,7 +73,7 @@ public class MySQLRowPacket {
     public boolean isPacketComplete() throws IOException {
         long encLength = reader.getSilentLengthEncodedBinary();
         long remaining = reader.getRemainingSize();
-        return encLength<=remaining;
+        return encLength <= remaining;
     }
 
     public void appendPacket(RawPacket rawPacket) {
@@ -82,7 +82,7 @@ public class MySQLRowPacket {
 
     public ValueObject[] getRow(PacketFetcher packetFetcher) throws IOException {
         for (int i = 0; i < columnInformation.length; i++) {
-            while(!isPacketComplete()) {
+            while (!isPacketComplete()) {
                 appendPacket(packetFetcher.getRawPacket());
             }
             columns[i] = new MySQLValueObject(reader.getLengthEncodedBytes(), columnInformation[i]);

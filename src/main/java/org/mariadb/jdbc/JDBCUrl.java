@@ -53,7 +53,6 @@ import org.mariadb.jdbc.internal.common.DefaultOptions;
 import org.mariadb.jdbc.internal.common.Options;
 import org.mariadb.jdbc.internal.common.ParameterConstant;
 import org.mariadb.jdbc.internal.common.UrlHAMode;
-import org.mariadb.jdbc.internal.common.query.IllegalParameterException;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -61,32 +60,32 @@ import java.util.Properties;
 
 /**
  * <p>parse and verification of URL.</p>
- *
- *
+ * <p/>
+ * <p/>
  * <p>basic syntax :<br>
  * {@code jdbc:(mysql|mariadb):[replication:|loadbalance:|aurora:]//<hostDescription>[,<hostDescription>]/[database>][?<key1>=<value1>[&<key2>=<value2>]] }
- *</p>
+ * </p>
  * <p>
  * hostDescription:<br>
- *  - simple :<br>
- *          {@code <host>:<portnumber>}<br>
- *          (for example localhost:3306)<br><br>
- *  - complex :<br>
- *           {@code address=[(type=(master|slave))][(port=<portnumber>)](host=<host>)}<br>
- *<br><br>
- *      type is by default master<br>
- *      port is by default 3306<br>
- *</p>
+ * - simple :<br>
+ * {@code <host>:<portnumber>}<br>
+ * (for example localhost:3306)<br><br>
+ * - complex :<br>
+ * {@code address=[(type=(master|slave))][(port=<portnumber>)](host=<host>)}<br>
+ * <br><br>
+ * type is by default master<br>
+ * port is by default 3306<br>
+ * </p>
  * <p>
  * host can be dns name, ipv4 or ipv6.<br>
- *      in case of ipv6 and simple host description, the ip must be written inside bracket.<br>
- *      exemple : {@code jdbc:mysql://[2001:0660:7401:0200:0000:0000:0edf:bdd7]:3306}<br>
- *</p>
- *<p>
+ * in case of ipv6 and simple host description, the ip must be written inside bracket.<br>
+ * exemple : {@code jdbc:mysql://[2001:0660:7401:0200:0000:0000:0edf:bdd7]:3306}<br>
+ * </p>
+ * <p>
  * Some examples :<br>
- *      {@code jdbc:mysql://localhost:3306/database?user=greg&password=pass}<br>
- *      {@code jdbc:mysql://address=(type=master)(host=master1),address=(port=3307)(type=slave)(host=slave1)/database?user=greg&password=pass}<br>
- *</p>
+ * {@code jdbc:mysql://localhost:3306/database?user=greg&password=pass}<br>
+ * {@code jdbc:mysql://address=(type=master)(host=master1),address=(port=3307)(type=slave)(host=slave1)/database?user=greg&password=pass}<br>
+ * </p>
  */
 public class JDBCUrl {
 
@@ -95,7 +94,10 @@ public class JDBCUrl {
     private List<HostAddress> addresses;
     private UrlHAMode haMode;
 
-    private JDBCUrl(){};
+    private JDBCUrl() {
+    }
+
+    ;
 
     protected JDBCUrl(String database, List<HostAddress> addresses, Options options, UrlHAMode haMode) throws SQLException {
         this.options = options;
@@ -106,13 +108,10 @@ public class JDBCUrl {
             for (HostAddress hostAddress : addresses) hostAddress.type = null;
         } else {
             for (HostAddress hostAddress : addresses) {
-                if (hostAddress.type == null)hostAddress.type = ParameterConstant.TYPE_MASTER;
+                if (hostAddress.type == null) hostAddress.type = ParameterConstant.TYPE_MASTER;
             }
         }
     }
-
-
-
 
 
     static boolean acceptsURL(String url) {
@@ -145,18 +144,6 @@ public class JDBCUrl {
         return null;
     }
 
-    public void parseUrl(String url) throws SQLException {
-        if (url.startsWith("jdbc:mysql:")) {
-            parseInternal(this, url, new Properties());
-        }
-        String[] arr = new String[]{"jdbc:mysql:thin:", "jdbc:mariadb:"};
-        for (String prefix : arr) {
-            if (url.startsWith(prefix)) {
-                parseInternal(this, url, new Properties());
-            }
-        }
-    }
-
     /*
         Parse ConnectorJ compatible urls
         jdbc:mysql://host:port/database
@@ -164,37 +151,38 @@ public class JDBCUrl {
          */
     private static void parseInternal(JDBCUrl jdbcUrl, String url, Properties properties) throws SQLException {
         try {
-            if (url.indexOf("//") == -1) throw new IllegalArgumentException("url parsing error : '//' is not present in the url "+url);
-            String[] baseTokens = url.substring(0,url.indexOf("//")).split(":");
+            if (url.indexOf("//") == -1)
+                throw new IllegalArgumentException("url parsing error : '//' is not present in the url " + url);
+            String[] baseTokens = url.substring(0, url.indexOf("//")).split(":");
 
             //parse HA mode
             jdbcUrl.haMode = UrlHAMode.NONE;
             if (baseTokens.length > 2) {
                 try {
                     jdbcUrl.haMode = UrlHAMode.valueOf(baseTokens[2].toUpperCase());
-                }catch (IllegalArgumentException i) {
-                    throw new IllegalArgumentException("url parameter error '" + baseTokens[2] +"' is a unknown parameter in the url "+url);
+                } catch (IllegalArgumentException i) {
+                    throw new IllegalArgumentException("url parameter error '" + baseTokens[2] + "' is a unknown parameter in the url " + url);
                 }
             }
 
             url = url.substring(url.indexOf("//") + 2);
             String[] tokens = url.split("/");
-            String hostAddressesString= tokens[0];
+            String hostAddressesString = tokens[0];
             String additionalParameters = (tokens.length > 1) ? url.substring(tokens[0].length() + 1) : null;
 
             jdbcUrl.addresses = HostAddress.parse(hostAddressesString, jdbcUrl.haMode);
 
             if (additionalParameters == null) {
                 jdbcUrl.database = null;
-                jdbcUrl.options = DefaultOptions.parse(jdbcUrl.haMode, "",properties);
+                jdbcUrl.options = DefaultOptions.parse(jdbcUrl.haMode, "", properties);
             } else {
                 int ind = additionalParameters.indexOf('?');
                 if (ind > -1) {
                     jdbcUrl.database = additionalParameters.substring(0, ind);
-                    jdbcUrl.options = DefaultOptions.parse(jdbcUrl.haMode, additionalParameters.substring(ind + 1),properties);
+                    jdbcUrl.options = DefaultOptions.parse(jdbcUrl.haMode, additionalParameters.substring(ind + 1), properties);
                 } else {
                     jdbcUrl.database = additionalParameters;
-                    jdbcUrl.options = DefaultOptions.parse(jdbcUrl.haMode, "",properties);
+                    jdbcUrl.options = DefaultOptions.parse(jdbcUrl.haMode, "", properties);
                 }
             }
 
@@ -210,36 +198,48 @@ public class JDBCUrl {
         }
     }
 
+    public void parseUrl(String url) throws SQLException {
+        if (url.startsWith("jdbc:mysql:")) {
+            parseInternal(this, url, new Properties());
+        }
+        String[] arr = new String[]{"jdbc:mysql:thin:", "jdbc:mariadb:"};
+        for (String prefix : arr) {
+            if (url.startsWith(prefix)) {
+                parseInternal(this, url, new Properties());
+            }
+        }
+    }
+
     public String getUsername() {
         return options.user;
-    }
-
-    public String getPassword() {
-        return options.password;
-    }
-
-    public String getDatabase() {
-        return database;
-    }
-
-    public List<HostAddress> getHostAddresses() {
-        return this.addresses;
     }
 
     protected void setUsername(String username) {
         options.user = username;
     }
 
+    public String getPassword() {
+        return options.password;
+    }
+
     protected void setPassword(String password) {
         options.password = password;
     }
 
-    public Options getOptions() {
-        return options;
+    public String getDatabase() {
+        return database;
     }
 
     protected void setDatabase(String database) {
         this.database = database;
+    }
+
+    public List<HostAddress> getHostAddresses() {
+        return this.addresses;
+    }
+
+    public Options getOptions() {
+        return options;
     }
 
     protected void setProperties(String urlParameters) {
@@ -248,7 +248,7 @@ public class JDBCUrl {
 
     public String toString() {
         String s = "jdbc:mysql://";
-        if (!haMode.equals(UrlHAMode.NONE)) s = "jdbc:mysql:"+haMode.toString().toLowerCase()+"://";
+        if (!haMode.equals(UrlHAMode.NONE)) s = "jdbc:mysql:" + haMode.toString().toLowerCase() + "://";
         if (addresses != null)
             s += HostAddress.toString(addresses);
         if (database != null)

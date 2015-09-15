@@ -53,10 +53,8 @@ import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.common.query.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.common.queryresults.PrepareResult;
 import org.mariadb.jdbc.internal.common.queryresults.ResultSetType;
-import org.mariadb.jdbc.internal.mysql.MySQLProtocol;
 import org.mariadb.jdbc.internal.mysql.MySQLType;
 import org.mariadb.jdbc.internal.mysql.Protocol;
-
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -69,14 +67,20 @@ public class MySQLServerPreparedStatement extends AbstractMySQLPrepareStatement 
     PrepareResult prepareResult;
     MySQLConnection connection;
     boolean returnTableAlias = false;
-    private boolean useFractionalSeconds;
     int parameterCount;
-
     MySQLResultSetMetaData metadata;
     MySQLParameterMetaData parameterMetaData;
-
     ParameterHolder[] currentParameterHolder;
     List<ParameterHolder[]> queryParameters = new ArrayList<>();
+    private boolean useFractionalSeconds;
+
+    public MySQLServerPreparedStatement(MySQLConnection connection, String sql) throws SQLException {
+        super(connection);
+        useFractionalSeconds = connection.getProtocol().getOptions().useFractionalSeconds;
+        this.connection = connection;
+        this.sql = sql;
+        prepare(sql);
+    }
 
     private void prepare(String sql) throws SQLException {
         stLock.writeLock().lock();
@@ -98,19 +102,14 @@ public class MySQLServerPreparedStatement extends AbstractMySQLPrepareStatement 
                     protocol.getDatatypeMappingFlags(), returnTableAlias);
             parameterMetaData = new MySQLParameterMetaData(prepareResult.columns);
         } catch (QueryException e) {
-            try {this.close(); } catch (Exception ee) {}
+            try {
+                this.close();
+            } catch (Exception ee) {
+            }
             SQLExceptionMapper.throwException(e, connection, this);
         } finally {
             stLock.writeLock().unlock();
         }
-    }
-
-    public MySQLServerPreparedStatement(MySQLConnection connection, String sql) throws SQLException {
-        super(connection);
-        useFractionalSeconds = connection.getProtocol().getOptions().useFractionalSeconds;
-        this.connection = connection;
-        this.sql = sql;
-        prepare(sql);
     }
 
     @Override
@@ -144,7 +143,7 @@ public class MySQLServerPreparedStatement extends AbstractMySQLPrepareStatement 
         //check
         for (int i = 0; i < parameterCount; i++) {
             if (currentParameterHolder[i] == null)
-                SQLExceptionMapper.throwException(new QueryException("Parameter at position " + (i+1) + " is not set", -1, "07004"), connection, this);
+                SQLExceptionMapper.throwException(new QueryException("Parameter at position " + (i + 1) + " is not set", -1, "07004"), connection, this);
         }
 
         stLock.writeLock().lock();
@@ -193,21 +192,21 @@ public class MySQLServerPreparedStatement extends AbstractMySQLPrepareStatement 
      * the commands in the batch, which are ordered according to the order in which they were added to the batch. The
      * elements in the array returned by the method <code>executeBatch</code> may be one of the following:</p>
      * <ol>
-     *     <li>A number greater than or equal to zero -- indicates that the command was processed successfully and is an update
+     * <li>A number greater than or equal to zero -- indicates that the command was processed successfully and is an update
      * count giving the number of rows in the database that were affected by the command's execution
      * <li>A value of <code>SUCCESS_NO_INFO</code> -- indicates that the command was processed successfully but that the number of rows
      * affected is unknown
-     *
+     * <p/>
      * If one of the commands in a batch update fails to execute properly, this method throws a
      * <code>BatchUpdateException</code>, and a JDBC driver may or may not continue to process the remaining commands in
      * the batch.  However, the driver's behavior must be consistent with a particular DBMS, either always continuing to
      * process commands or never continuing to process commands.  If the driver continues processing after a failure,
      * the array returned by the method <code>BatchUpdateException.getUpdateCounts</code> will contain as many elements
      * as there are commands in the batch, and at least one of the elements will be the following:
-     *
+     * <p/>
      * <LI>A value of <code>EXECUTE_FAILED</code> -- indicates that the command failed to execute successfully and
      * occurs only if a driver continues to process commands after a command fails </ol>
-     *
+     * <p/>
      * The possible implementations and return values have been modified in the Java 2 SDK, Standard Edition, version
      * 1.3 to accommodate the option of continuing to proccess commands in a batch update after a
      * <code>BatchUpdateException</code> object has been thrown.
@@ -364,7 +363,7 @@ public class MySQLServerPreparedStatement extends AbstractMySQLPrepareStatement 
         try {
             for (int i = 0; i < parameterCount; i++) {
                 if (currentParameterHolder[i] == null)
-                    SQLExceptionMapper.throwException(new QueryException("Parameter at position " + (i+1) + " is not set", -1, "07004"), connection, this);
+                    SQLExceptionMapper.throwException(new QueryException("Parameter at position " + (i + 1) + " is not set", -1, "07004"), connection, this);
 
             }
             MySQLResultSet rs = null;
@@ -391,9 +390,9 @@ public class MySQLServerPreparedStatement extends AbstractMySQLPrepareStatement 
      * <p>Releases this <code>Statement</code> object's database and JDBC resources immediately instead of waiting for this
      * to happen when it is automatically closed. It is generally good practice to release resources as soon as you are
      * finished with them to avoid tying up database resources.</p>
-     *
+     * <p/>
      * <p>Calling the method <code>close</code> on a <code>Statement</code> object that is already closed has no effect.</p>
-     *
+     * <p/>
      * <p><B>Note:</B>When a <code>Statement</code> object is closed, its current <code>ResultSet</code> object, if one
      * exists, is also closed.</p>
      *
@@ -444,16 +443,16 @@ public class MySQLServerPreparedStatement extends AbstractMySQLPrepareStatement 
 
 
     public String toString() {
-        StringBuffer sb  = new StringBuffer ("sql : '" + sql + "'");
+        StringBuffer sb = new StringBuffer("sql : '" + sql + "'");
         if (parameterCount > 0) {
             sb.append(", parameters : [");
-            for(int i = 0; i < parameterCount; i++) {
-                if (currentParameterHolder[i] == null)  {
+            for (int i = 0; i < parameterCount; i++) {
+                if (currentParameterHolder[i] == null) {
                     sb.append("null");
-                }  else {
+                } else {
                     sb.append(currentParameterHolder[i].toString());
                 }
-                if (i != parameterCount -1) {
+                if (i != parameterCount - 1) {
                     sb.append(",");
                 }
             }

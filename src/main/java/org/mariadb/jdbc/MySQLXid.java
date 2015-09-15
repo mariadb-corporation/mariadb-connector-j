@@ -16,7 +16,6 @@ public class MySQLXid implements Xid {
     }
 
 
-
     public boolean equals(Object o) {
         if (o instanceof Xid) {
             Xid other = (Xid) o;
@@ -27,6 +26,7 @@ public class MySQLXid implements Xid {
         }
         return false;
     }
+
     public int getFormatId() {
         return formatId;
     }

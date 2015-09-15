@@ -1,12 +1,11 @@
 package org.mariadb.jdbc;
 
-import org.junit.BeforeClass;
 import org.junit.Assert;
 import org.junit.Assume;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import javax.sql.rowset.CachedRowSet;
-
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -17,9 +16,7 @@ import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Properties;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.*;
 
 
 public class MySQLDriverTest extends BaseTest {
@@ -37,7 +34,7 @@ public class MySQLDriverTest extends BaseTest {
 
     @Test
     public void testAuthconnection() throws SQLException {
-        requireMinimumVersion(5,0);
+        requireMinimumVersion(5, 0);
         Statement st = connection.createStatement();
 
         st.execute("grant all privileges on *.* to 'test'@'" + connectFromHost + "' identified by 'test'");
@@ -64,45 +61,47 @@ public class MySQLDriverTest extends BaseTest {
     @Test
     public void testAuthConnectionProperties() throws SQLException {
         Properties props = new Properties();
-        props.setProperty("user","test");
-        props.setProperty("password","test");
+        props.setProperty("user", "test");
+        props.setProperty("password", "test");
         Statement st = connection.createStatement();
         st.execute("grant all privileges on *.* to 'test'@'" + connectFromHost + "' identified by 'test'");
         Connection conn = openNewConnection(connU, props);
         conn.close();
     }
-    
+
     @Test
     public void testBit() throws SQLException {
         connection.createStatement().execute("drop table if exists bittest");
         connection.createStatement().execute("create table bittest (a bit(1), b bit(3))");
         connection.createStatement().execute("insert into bittest values (null, null), (0, 0), (1, 1), (0, 2), (1, 3);");
-        byte[] bytes = new byte[] {0, 0, 1, 0, 1};
+        byte[] bytes = new byte[]{0, 0, 1, 0, 1};
         ResultSet rs = connection.createStatement().executeQuery("select * from bittest");
         int count = 0;
-        while(rs.next()) {
-            if(rs.getObject(1) != null) {
-            	assertEquals(Boolean.class, rs.getObject(1).getClass());
+        while (rs.next()) {
+            if (rs.getObject(1) != null) {
+                assertEquals(Boolean.class, rs.getObject(1).getClass());
             }
             assertEquals(bytes[count++], rs.getByte(1));
         }
     }
+
     @Test
     public void testSmallint() throws SQLException {
 
         connection.createStatement().execute("drop table if exists smallinttest");
         connection.createStatement().execute("create table smallinttest (i1 smallint, i2 smallint unsigned)");
         connection.createStatement().execute("insert into smallinttest values (null, null), (0, 0), (-1, 1), (-32768, 32767), (32767, 65535)");
-        Integer[] ints = new Integer[] {null, 0, 1, 32767, 65535};
+        Integer[] ints = new Integer[]{null, 0, 1, 32767, 65535};
         ResultSet rs = connection.createStatement().executeQuery("select * from smallinttest");
         int count = 0;
-        while(rs.next()) {
+        while (rs.next()) {
             assertEquals(ints[count++], rs.getObject(2));
-            if(rs.getObject(2) != null) {
-            	assertEquals(Integer.class, rs.getObject(2).getClass());
+            if (rs.getObject(2) != null) {
+                assertEquals(Integer.class, rs.getObject(2).getClass());
             }
         }
     }
+
     @Test
     public void testMediumint() throws SQLException {
 
@@ -110,15 +109,16 @@ public class MySQLDriverTest extends BaseTest {
         connection.createStatement().execute("create table mediuminttest (i1 mediumint, i2 mediumint unsigned)");
         connection.createStatement().execute("insert into mediuminttest values (null, null), (0, 0), (-1, 1), (-8388608, 8388607), (8388607, 16777215)");
         ResultSet rs = connection.createStatement().executeQuery("select * from mediuminttest");
-        Integer[] ints = new Integer[] {null, 0, 1, 8388607, 16777215};
+        Integer[] ints = new Integer[]{null, 0, 1, 8388607, 16777215};
         int count = 0;
-        while(rs.next()) {
+        while (rs.next()) {
             assertEquals(ints[count++], rs.getObject(2));
-            if(rs.getObject(2) != null) {
-            	assertEquals(Integer.class, rs.getObject(2).getClass());
+            if (rs.getObject(2) != null) {
+                assertEquals(Integer.class, rs.getObject(2).getClass());
             }
         }
     }
+
     @Test
     public void testTimestamp() throws SQLException {
 
@@ -126,12 +126,13 @@ public class MySQLDriverTest extends BaseTest {
         connection.createStatement().execute("create table t (t timestamp)");
         connection.createStatement().execute("insert into t values  ('1971-01-01 01:01:01'), ('2007-12-03 15:50:18'), ('2037-12-31 23:59:59')");
         ResultSet rs = connection.createStatement().executeQuery("select * from t");
-        String[] data = new String[] {"1971-01-01 01:01:01.0", "2007-12-03 15:50:18.0", "2037-12-31 23:59:59.0"};
+        String[] data = new String[]{"1971-01-01 01:01:01.0", "2007-12-03 15:50:18.0", "2037-12-31 23:59:59.0"};
         int count = 0;
-        while(rs.next()) {
-        	assertEquals(data[count++], rs.getTimestamp(1).toString());
+        while (rs.next()) {
+            assertEquals(data[count++], rs.getTimestamp(1).toString());
         }
     }
+
     @Test
     public void testDatetime() throws SQLException {
 
@@ -139,12 +140,13 @@ public class MySQLDriverTest extends BaseTest {
         connection.createStatement().execute("create table t (t datetime)");
         connection.createStatement().execute("insert into t values (null), ('1000-01-01 00:00:00'), ('2007-12-03 15:47:32'), ('9999-12-31 23:59:59')");
         ResultSet rs = connection.createStatement().executeQuery("select * from t");
-        Timestamp[] data = new Timestamp[] {null, Timestamp.valueOf("1000-01-01 00:00:00"), Timestamp.valueOf("2007-12-03 15:47:32"), Timestamp.valueOf("9999-12-31 23:59:59")};
+        Timestamp[] data = new Timestamp[]{null, Timestamp.valueOf("1000-01-01 00:00:00"), Timestamp.valueOf("2007-12-03 15:47:32"), Timestamp.valueOf("9999-12-31 23:59:59")};
         int count = 0;
-        while(rs.next()) {
-        	assertEquals(data[count++], rs.getObject(1));
+        while (rs.next()) {
+            assertEquals(data[count++], rs.getObject(1));
         }
     }
+
     @Test
     public void testFloat() throws SQLException {
 
@@ -152,12 +154,12 @@ public class MySQLDriverTest extends BaseTest {
         connection.createStatement().execute("create table t (f float)");
         connection.createStatement().execute("insert into t values (null), (-3.402823466E+38), (-1.175494351E-38), (0), (1.175494351E-38), (3.402823466E+38)");
         ResultSet rs = connection.createStatement().executeQuery("select * from t");
-        Float[] data = new Float[] {null, -3.40282E+38F, -1.17549E-38F, 0F, 1.17549E-38F, 3.40282E+38F};
+        Float[] data = new Float[]{null, -3.40282E+38F, -1.17549E-38F, 0F, 1.17549E-38F, 3.40282E+38F};
         int count = 0;
-        while(rs.next()) {
+        while (rs.next()) {
             assertEquals(data[count], rs.getObject(1));
-            if(rs.getObject(1) != null) {
-            	assertEquals(data[count].getClass(), rs.getObject(1).getClass());
+            if (rs.getObject(1) != null) {
+                assertEquals(data[count].getClass(), rs.getObject(1).getClass());
             }
             count++;
         }
@@ -170,21 +172,22 @@ public class MySQLDriverTest extends BaseTest {
         connection.createStatement().execute("create table t (d double)");
         connection.createStatement().execute("insert into t values (null), (-1.7976931348623157E+308), (-2.2250738585072014E-308), (0), (2.2250738585072014E-308), (1.7976931348623157E+308)");
         ResultSet rs = connection.createStatement().executeQuery("select * from t");
-        Double[] data = new Double[] {null, -1.7976931348623157E+308, -2.2250738585072014E-308, 0D, 2.2250738585072014E-308, 1.7976931348623157E+308};
+        Double[] data = new Double[]{null, -1.7976931348623157E+308, -2.2250738585072014E-308, 0D, 2.2250738585072014E-308, 1.7976931348623157E+308};
         int count = 0;
-        while(rs.next()) {
+        while (rs.next()) {
             assertEquals(data[count], rs.getObject(1));
-            if(rs.getObject(1) != null) {
-            	assertEquals(data[count].getClass(), rs.getObject(1).getClass());
+            if (rs.getObject(1) != null) {
+                assertEquals(data[count].getClass(), rs.getObject(1).getClass());
             }
             count++;
         }
     }
-     @Test
+
+    @Test
     public void bigintTest() throws SQLException {
         connection.createStatement().execute("drop table if exists biginttest");
         connection.createStatement().execute(
-                        "create table biginttest (i1 bigint, i2 bigint unsigned)");
+                "create table biginttest (i1 bigint, i2 bigint unsigned)");
         connection.createStatement().execute("insert into biginttest values (null, null), (0, 0), (-1, 1), (-9223372036854775808, 9223372036854775807), (9223372036854775807, 18446744073709551615)");
         ResultSet rs = connection.createStatement().executeQuery("select * from biginttest");
         assertTrue(rs.next());
@@ -208,11 +211,10 @@ public class MySQLDriverTest extends BaseTest {
     }
 
     @Test
-    public void FiftyMBRow() throws SQLException  {
-        ResultSet rs =   connection.createStatement().executeQuery("select @max_allowed_packet");
+    public void FiftyMBRow() throws SQLException {
+        ResultSet rs = connection.createStatement().executeQuery("select @max_allowed_packet");
         rs.next();
-        if (rs.getInt(1) < 50000000)
-        {
+        if (rs.getInt(1) < 50000000) {
             rs.close();
             return;
         }
@@ -224,22 +226,23 @@ public class MySQLDriverTest extends BaseTest {
         assertEquals(rs.getString(2).length(), 1);
         rs.close();
     }
+
     @Test
     // Test query with length around max  packet length. Requires max_allowed_packet to be >16M
     public void largeQueryWrite() throws SQLException {
         Assume.assumeTrue(checkMaxAllowedPacket("largeQueryWrite"));
-        
-        char[] str= new char[16*1024*1024];
-        Arrays.fill(str, 'a');
-        String prefix= "select length('";
-        String suffix= "') as len";
-        int packetHeaderSize = 4 + 2 ; //packet head +2 escape for String parameter
 
-        for (int i=16*1024*1024 - prefix.length()  -suffix.length() -5 - packetHeaderSize ;
-             i < 16*1024*1024 - prefix.length()  -suffix.length()  - packetHeaderSize;
+        char[] str = new char[16 * 1024 * 1024];
+        Arrays.fill(str, 'a');
+        String prefix = "select length('";
+        String suffix = "') as len";
+        int packetHeaderSize = 4 + 2; //packet head +2 escape for String parameter
+
+        for (int i = 16 * 1024 * 1024 - prefix.length() - suffix.length() - 5 - packetHeaderSize;
+             i < 16 * 1024 * 1024 - prefix.length() - suffix.length() - packetHeaderSize;
              i++) {
             String query = prefix;
-            String val = new String(str,0, i);
+            String val = new String(str, 0, i);
             query += val;
             query += suffix;
             ResultSet rs = connection.createStatement().executeQuery(query);
@@ -252,16 +255,16 @@ public class MySQLDriverTest extends BaseTest {
     public void largePreparedQueryWrite() throws SQLException {
         Assume.assumeTrue(checkMaxAllowedPacket("largePreparedQueryWrite"));
 
-        char[] str= new char[16*1024*1024];
+        char[] str = new char[16 * 1024 * 1024];
         Arrays.fill(str, 'a');
-        String sql=  "select length(?) as len";
+        String sql = "select length(?) as len";
         int packetHeaderSize = 4 + 2; //packet header + 2 because of string escape
         PreparedStatement ps = connection.prepareStatement(sql);
-        for (int i=16*1024*1024 - sql.length() -5 - packetHeaderSize;
-             i < 16*1024*1024 - sql.length() - packetHeaderSize;
+        for (int i = 16 * 1024 * 1024 - sql.length() - 5 - packetHeaderSize;
+             i < 16 * 1024 * 1024 - sql.length() - packetHeaderSize;
              i++) {
-            String val = new String(str,0, i);
-            ps.setString(1,val);
+            String val = new String(str, 0, i);
+            ps.setString(1, val);
             ResultSet rs = ps.executeQuery();
             Assert.assertTrue(rs.next());
             assertEquals(rs.getInt(1), i);
@@ -271,37 +274,38 @@ public class MySQLDriverTest extends BaseTest {
 
     @Test
     public void smallQueryWriteCompress() throws SQLException {
-    	String oldParams = parameters;
-    	setParameters("&useCompression=true");
-        String sql=  "select 1";
+        String oldParams = parameters;
+        setParameters("&useCompression=true");
+        String sql = "select 1";
         ResultSet rs = connection.createStatement().executeQuery(sql);
         Assert.assertTrue(rs.next());
         assertEquals(rs.getInt(1), 1);
         rs.close();
         setParameters(oldParams);
     }
+
     @Test
     public void largePreparedQueryWriteCompress() throws SQLException {
         Assume.assumeTrue(checkMaxAllowedPacket("largePreparedQueryCompress"));
-        
+
         setConnection("&useCompression=true");
         try {
-            char[] str= new char[16*1024*1024];
+            char[] str = new char[16 * 1024 * 1024];
             Arrays.fill(str, 'a');
-            String sql=  "select ?";
-            int packetHeaderSize = 4 + 2 ; //packet head +2 escape for String parameter
+            String sql = "select ?";
+            int packetHeaderSize = 4 + 2; //packet head +2 escape for String parameter
 
             PreparedStatement ps = connection.prepareStatement(sql);
-            for (int i=16*1024*1024 - sql.length() -5 - packetHeaderSize ;
-                 i < 16*1024*1024 - sql.length() - packetHeaderSize;
+            for (int i = 16 * 1024 * 1024 - sql.length() - 5 - packetHeaderSize;
+                 i < 16 * 1024 * 1024 - sql.length() - packetHeaderSize;
                  i++) {
-                String val = new String(str,0, i);
-                ps.setString(1,val);
+                String val = new String(str, 0, i);
+                ps.setString(1, val);
                 ResultSet rs = ps.executeQuery();
                 Assert.assertTrue(rs.next());
                 assertEquals(rs.getString(1).length(), i);
                 rs.close();
-                log.trace("i=" +i);
+                log.trace("i=" + i);
             }
         } finally {
         }
@@ -309,30 +313,30 @@ public class MySQLDriverTest extends BaseTest {
 
     /* Prepared statement metadata before/after executing the query */
     @Test
-    public void preparedStatementMetadata() throws Exception{
+    public void preparedStatementMetadata() throws Exception {
         Assume.assumeTrue(isMariadbServer());
-        requireMinimumVersion(5,0);
+        requireMinimumVersion(5, 0);
         PreparedStatement ps = connection.prepareStatement("select * from information_schema.tables where 1=0");
         ResultSetMetaData m1 = ps.getMetaData();
         assertTrue(m1 != null);
         ResultSet rs1 = ps.executeQuery();
         ResultSetMetaData m2 = rs1.getMetaData();
-        
+
         assertEquals(m1.getColumnCount(), m2.getColumnCount());
-        for(int i=1; i <= m1.getColumnCount(); i++) {
+        for (int i = 1; i <= m1.getColumnCount(); i++) {
             assertEquals(m1.getCatalogName(i), m2.getCatalogName(i));
-            assertEquals(m1.getColumnClassName(i),m2.getColumnClassName(i));
-            assertEquals(m1.getColumnDisplaySize(i),m2.getColumnDisplaySize(i));
-            assertEquals(m1.getColumnLabel(i),m2.getColumnLabel(i));
-            assertEquals(m1.getColumnName(i),m2.getColumnName(i));
+            assertEquals(m1.getColumnClassName(i), m2.getColumnClassName(i));
+            assertEquals(m1.getColumnDisplaySize(i), m2.getColumnDisplaySize(i));
+            assertEquals(m1.getColumnLabel(i), m2.getColumnLabel(i));
+            assertEquals(m1.getColumnName(i), m2.getColumnName(i));
             assertEquals(m1.getColumnType(i), m2.getColumnType(i));
-            assertEquals(m1.getColumnTypeName(i),m2.getColumnTypeName(i));
+            assertEquals(m1.getColumnTypeName(i), m2.getColumnTypeName(i));
         }
     }
-    
-     @Test
-    public void preparedStatementMetadata2() throws Exception{
-         Assume.assumeTrue(isMariadbServer());
+
+    @Test
+    public void preparedStatementMetadata2() throws Exception {
+        Assume.assumeTrue(isMariadbServer());
         requireMinimumVersion(5, 0);
         PreparedStatement ps = connection.prepareStatement("select * from information_schema.tables where table_type=?");
         ResultSetMetaData m1 = ps.getMetaData();
@@ -340,38 +344,39 @@ public class MySQLDriverTest extends BaseTest {
         ps.setString(1, "");
         ResultSet rs1 = ps.executeQuery();
         ResultSetMetaData m2 = rs1.getMetaData();
-        
+
         assertEquals(m1.getColumnCount(), m2.getColumnCount());
-        for(int i=1; i <= m1.getColumnCount(); i++) {
+        for (int i = 1; i <= m1.getColumnCount(); i++) {
             assertEquals(m1.getCatalogName(i), m2.getCatalogName(i));
-            assertEquals(m1.getColumnClassName(i),m2.getColumnClassName(i));
-            assertEquals(m1.getColumnDisplaySize(i),m2.getColumnDisplaySize(i));
-            assertEquals(m1.getColumnLabel(i),m2.getColumnLabel(i));
-            assertEquals(m1.getColumnName(i),m2.getColumnName(i));
+            assertEquals(m1.getColumnClassName(i), m2.getColumnClassName(i));
+            assertEquals(m1.getColumnDisplaySize(i), m2.getColumnDisplaySize(i));
+            assertEquals(m1.getColumnLabel(i), m2.getColumnLabel(i));
+            assertEquals(m1.getColumnName(i), m2.getColumnName(i));
             assertEquals(m1.getColumnType(i), m2.getColumnType(i));
-            assertEquals(m1.getColumnTypeName(i),m2.getColumnTypeName(i));
+            assertEquals(m1.getColumnTypeName(i), m2.getColumnTypeName(i));
         }
     }
-    
+
     @Test
-    public void conj40()  throws Exception{
-      PreparedStatement ps = connection.prepareStatement("select ?");
-      ps.setObject(1, new java.util.Date(), Types.TIMESTAMP);
+    public void conj40() throws Exception {
+        PreparedStatement ps = connection.prepareStatement("select ?");
+        ps.setObject(1, new java.util.Date(), Types.TIMESTAMP);
     }
+
     @Test
-    public void testWarnings() throws SQLException{
-        Statement st= connection.createStatement();
+    public void testWarnings() throws SQLException {
+        Statement st = connection.createStatement();
 
         /* To throw warnings rather than errors, we need a non-strict sql_mode */
         st.execute("set sql_mode=''");
         st.execute("create table if not exists warnings_test(c char(2)) ");
         st.executeUpdate("insert into warnings_test values('123'),('124')");
         SQLWarning w = st.getWarnings();
-        assertEquals(w.getMessage(),"Data truncated for column 'c' at row 1");
-        assertEquals(w.getSQLState(),"01000");
+        assertEquals(w.getMessage(), "Data truncated for column 'c' at row 1");
+        assertEquals(w.getSQLState(), "01000");
         w = w.getNextWarning();
-        assertEquals(w.getMessage(),"Data truncated for column 'c' at row 2");
-        assertEquals(w.getSQLState(),"01000");
+        assertEquals(w.getMessage(), "Data truncated for column 'c' at row 2");
+        assertEquals(w.getSQLState(), "01000");
 
         assertEquals(w.getNextWarning(), null);
         st.clearWarnings();
@@ -384,10 +389,10 @@ public class MySQLDriverTest extends BaseTest {
         st.execute("CREATE TABLE IF NOT EXISTS t_update_count(flag int, k varchar(10),name varchar(10))");
         try {
             int cnt = st.executeUpdate("INSERT into t_update_count values(1, '5', 'name1'), (1,'5','name2')");
-            assertEquals(cnt,2);
+            assertEquals(cnt, 2);
             PreparedStatement ps = connection.prepareStatement("UPDATE t_update_count SET flag=0 WHERE (k='5' AND (name=? OR name=?))");
-            ps.setString(1,"name1");
-            ps.setString(2,"name2");
+            ps.setString(1, "name1");
+            ps.setString(2, "name2");
             cnt = ps.executeUpdate();
             assertEquals(cnt, 2);
             ResultSet rs = st.executeQuery("select count(*) from t_update_count where flag=0");
@@ -395,27 +400,26 @@ public class MySQLDriverTest extends BaseTest {
             cnt = rs.getInt(1);
             assertEquals(cnt, 2);
 
-        }
-        finally {
+        } finally {
             st.execute("DROP TABLE t_update_count");
         }
     }
 
     @Test
     public void LoadDataInfile() throws SQLException, IOException {
-       // Create temp file.
+        // Create temp file.
         File temp = File.createTempFile("ldinfile", ".tmp");
 
         try {
             // Write to temp file
             BufferedWriter out = new BufferedWriter(new FileWriter(temp));
-            for(int i=0; i < 10000; i++)
+            for (int i = 0; i < 10000; i++)
                 out.write("aString\n");
             out.close();
             Statement st = connection.createStatement();
             st.execute("DROP TABLE IF EXISTS ldinfile");
             st.execute("CREATE TABLE  ldinfile(a varchar(10))");
-            st.execute("LOAD DATA LOCAL INFILE '" +temp.getAbsolutePath().replace('\\','/') + "' INTO TABLE ldinfile");
+            st.execute("LOAD DATA LOCAL INFILE '" + temp.getAbsolutePath().replace('\\', '/') + "' INTO TABLE ldinfile");
             ResultSet rs = st.executeQuery("SELECT * FROM ldinfile");
             rs.next();
             assertEquals("aString", rs.getString(1));
@@ -427,14 +431,14 @@ public class MySQLDriverTest extends BaseTest {
 
     @Test
     public void LoadDataInfileEmpty() throws SQLException, IOException {
-       // Create temp file.
+        // Create temp file.
         File temp = File.createTempFile("ldinfile", ".tmp");
 
         try {
             Statement st = connection.createStatement();
             st.execute("DROP TABLE IF EXISTS ldinfile");
             st.execute("CREATE TABLE  ldinfile(a varchar(10))");
-            st.execute("LOAD DATA LOCAL INFILE '" +temp.getAbsolutePath().replace('\\','/') + "' INTO TABLE ldinfile");
+            st.execute("LOAD DATA LOCAL INFILE '" + temp.getAbsolutePath().replace('\\', '/') + "' INTO TABLE ldinfile");
             ResultSet rs = st.executeQuery("SELECT * FROM ldinfile");
             assertFalse(rs.next());
             rs.close();
@@ -442,11 +446,12 @@ public class MySQLDriverTest extends BaseTest {
             temp.delete();
         }
     }
+
     @Test
     public void testBlob2() throws SQLException {
-        byte[] bytes = new byte[]{(byte)0xff};
+        byte[] bytes = new byte[]{(byte) 0xff};
         PreparedStatement ps = connection.prepareStatement("select ?");
-        ps.setBytes(1,bytes);
+        ps.setBytes(1, bytes);
         ResultSet rs = ps.executeQuery();
         rs.next();
         byte[] result = rs.getBytes(1);
@@ -469,7 +474,7 @@ public class MySQLDriverTest extends BaseTest {
         ResultSet rs = st.executeQuery("select '11:11:11.123'");
         rs.next();
         Time ts = rs.getTime(1);
-        assertEquals(ts.getTime()%1000,123);
+        assertEquals(ts.getTime() % 1000, 123);
     }
 
 
@@ -498,7 +503,7 @@ public class MySQLDriverTest extends BaseTest {
             rs = st.executeQuery();
             rs.next();
             Time time1 = rs.getTime(1);
-            assertEquals(time1.getTime()%1000,111);
+            assertEquals(time1.getTime() % 1000, 111);
             assertEquals(time, time1);
         } finally {
         }
@@ -518,7 +523,7 @@ public class MySQLDriverTest extends BaseTest {
         assertEquals(rs.getString(2), "b");
         rs.close();
 
-        ps.setString(2,"c");
+        ps.setString(2, "c");
         ps.executeUpdate();
 
         rs = st.executeQuery("select @a,@b");
@@ -541,8 +546,8 @@ public class MySQLDriverTest extends BaseTest {
         CachedRowSet crs;
         try {
             /* Reference implementation of CachedRowSet might not always be available ? */
-            crs =  (CachedRowSet)Class.forName("com.sun.rowset.CachedRowSetImpl").newInstance();
-        } catch(ClassNotFoundException ex) {
+            crs = (CachedRowSet) Class.forName("com.sun.rowset.CachedRowSetImpl").newInstance();
+        } catch (ClassNotFoundException ex) {
             return;
         }
         crs.setType(ResultSet.TYPE_SCROLL_INSENSITIVE);
@@ -561,7 +566,7 @@ public class MySQLDriverTest extends BaseTest {
 
     @Test
     public void setMaxRowsTest() throws Exception {
-        requireMinimumVersion(5,0);
+        requireMinimumVersion(5, 0);
         Statement st = connection.createStatement();
         assertEquals(0, st.getMaxRows());
 
@@ -570,9 +575,9 @@ public class MySQLDriverTest extends BaseTest {
 
         /* Check 3 rows are returned if maxRows is limited to 3 */
         ResultSet rs = st.executeQuery("select * from information_schema.tables");
-        int cnt=0;
+        int cnt = 0;
 
-        while(rs.next()) {
+        while (rs.next()) {
             cnt++;
         }
         rs.close();
@@ -584,8 +589,8 @@ public class MySQLDriverTest extends BaseTest {
 
         /* Check 3 rows are returned if maxRows is limited to 3 */
         ResultSet rs2 = st2.executeQuery("select * from information_schema.tables");
-        cnt=0;
-        while(rs2.next()) {
+        cnt = 0;
+        while (rs2.next()) {
             cnt++;
         }
         rs2.close();
@@ -593,72 +598,70 @@ public class MySQLDriverTest extends BaseTest {
 
         /* Check that attempt to use setMaxRows with negative limit fails */
         try {
-           st.setMaxRows(-1);
-           assertTrue("setMaxRows(-1) succeeded", false);
-        } catch(SQLException e) {
-           assertTrue(st.getMaxRows() == 3); /* limit should not change */
+            st.setMaxRows(-1);
+            assertTrue("setMaxRows(-1) succeeded", false);
+        } catch (SQLException e) {
+            assertTrue(st.getMaxRows() == 3); /* limit should not change */
         }
     }
-    
-    @Test 
+
+    @Test
     public void sessionVariables() throws Exception {
-    	setConnection("&sessionVariables=sql_mode=ANSI_QUOTES,collation_connection = utf8_bin");
-    	ResultSet rs = connection.createStatement().executeQuery("select @@sql_mode,@@collation_connection");
-    	rs.next();
-    	assertEquals("ANSI_QUOTES",rs.getString(1));
-    	assertEquals("utf8_bin",rs.getString(2));
+        setConnection("&sessionVariables=sql_mode=ANSI_QUOTES,collation_connection = utf8_bin");
+        ResultSet rs = connection.createStatement().executeQuery("select @@sql_mode,@@collation_connection");
+        rs.next();
+        assertEquals("ANSI_QUOTES", rs.getString(1));
+        assertEquals("utf8_bin", rs.getString(2));
     }
-    
-    @Test 
+
+    @Test
     public void executeStatementAfterConnectionClose() throws Exception {
         Statement st = connection.createStatement();
         connection.close();
         try {
-            st.execute("select 1");        
+            st.execute("select 1");
         } catch (SQLException sqle) {
             assertTrue(sqle.getMessage().contains("execute() is called on closed connection"));
         }
     }
 
     @Test
-     public void conj44() throws Exception {
-       ResultSet rs = connection.prepareStatement("select '\\''").executeQuery();
-       rs.next();
-       assertEquals("'",rs.getString(1));
-       rs = connection.prepareStatement("select '\\'a'").executeQuery();
-       rs.next();
-       assertEquals("'a",rs.getString(1));
+    public void conj44() throws Exception {
+        ResultSet rs = connection.prepareStatement("select '\\''").executeQuery();
+        rs.next();
+        assertEquals("'", rs.getString(1));
+        rs = connection.prepareStatement("select '\\'a'").executeQuery();
+        rs.next();
+        assertEquals("'a", rs.getString(1));
     }
-    
+
     @Test
     public void connectToDbWithDashInName() throws Exception {
-    	String oldDb = database;
-    	connection.createStatement().execute("create database `data-base`");
-    	try {
-    		setDatabase("data-base");
-    		assertEquals("data-base",connection.getCatalog());
-    	}
-    	finally {
-    		setDatabase(oldDb);
-    	   connection.createStatement().execute("drop database `data-base`");
-    	}
+        String oldDb = database;
+        connection.createStatement().execute("create database `data-base`");
+        try {
+            setDatabase("data-base");
+            assertEquals("data-base", connection.getCatalog());
+        } finally {
+            setDatabase(oldDb);
+            connection.createStatement().execute("drop database `data-base`");
+        }
     }
-    
+
     @Test
     public void connectCreateDB() throws Exception {
-    	String oldParams = parameters;
-    	String oldDb = database;
-    	setParameters("&createDatabaseIfNotExist=true");
-    	setDatabase("no-such-db");
-    	try {
-    		assertEquals("no-such-db",connection.getCatalog());
-    	}
-    	finally {
-    		setParameters(oldParams);
-    		setDatabase(oldDb);
-    	   connection.createStatement().execute("drop database `no-such-db`");
-    	}
+        String oldParams = parameters;
+        String oldDb = database;
+        setParameters("&createDatabaseIfNotExist=true");
+        setDatabase("no-such-db");
+        try {
+            assertEquals("no-such-db", connection.getCatalog());
+        } finally {
+            setParameters(oldParams);
+            setDatabase(oldDb);
+            connection.createStatement().execute("drop database `no-such-db`");
+        }
     }
-    
-    
+
+
 }

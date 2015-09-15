@@ -75,16 +75,19 @@ public interface Protocol {
     void connect() throws QueryException;
 
     JDBCUrl getJdbcUrl();
+
     boolean inTransaction();
-    void setProxy(FailoverProxy proxy);
+
     FailoverProxy getProxy();
-    void setHostAddress(HostAddress hostAddress);
+
+    void setProxy(FailoverProxy proxy);
 
     Options getOptions();
 
-    boolean  hasMoreResults();
+    boolean hasMoreResults();
 
     void close();
+
     void closeExplicit();
 
     boolean isClosed();
@@ -93,16 +96,26 @@ public interface Protocol {
 
     String getServerVersion();
 
-    void setReadonly(boolean readOnly) throws QueryException;
     boolean isConnected();
+
     boolean getReadonly();
+
+    void setReadonly(boolean readOnly) throws QueryException;
+
     boolean isMasterConnection();
+
     boolean mustBeMasterConnection();
+
     HostAddress getHostAddress();
+
+    void setHostAddress(HostAddress hostAddress);
+
     String getHost();
 
     int getPort();
+
     void rollback();
+
     String getDatabase();
 
     String getUsername();
@@ -111,8 +124,10 @@ public interface Protocol {
 
     boolean ping() throws QueryException;
 
-    QueryResult executeQuery(Query dQuery)  throws QueryException;
+    QueryResult executeQuery(Query dQuery) throws QueryException;
+
     QueryResult executeQuery(final List<Query> dQueries, boolean streaming, boolean isRewritable, int rewriteOffset) throws QueryException;
+
     QueryResult getResult(Object dQuery, boolean streaming, boolean binaryProtocol) throws QueryException;
 
     QueryResult executeQuery(Query dQuery, boolean streaming) throws QueryException;
@@ -122,14 +137,18 @@ public interface Protocol {
     QueryResult getMoreResults(boolean streaming) throws QueryException;
 
     boolean hasUnreadData();
-    boolean checkIfMaster() throws QueryException ;
+
+    boolean checkIfMaster() throws QueryException;
+
     boolean hasWarnings();
+
     int getDatatypeMappingFlags();
 
+    void setInternalMaxRows(int max);
+
+    int getMaxRows();
 
     void setMaxRows(int max) throws QueryException;
-    void setInternalMaxRows(int max);
-    int getMaxRows();
 
     int getMajorServerVersion();
 
@@ -143,23 +162,34 @@ public interface Protocol {
 
     void setMaxAllowedPacket(int maxAllowedPacket);
 
-    void setTimeout(int timeout) throws SocketException;
-
     int getTimeout() throws SocketException;
 
+    void setTimeout(int timeout) throws SocketException;
+
     boolean getPinGlobalTxToPhysicalConnection();
+
     long getServerThreadId();
+
     void setTransactionIsolation(int level) throws QueryException;
+
     int getTransactionIsolationLevel();
+
     boolean isExplicitClosed();
+
     void closeIfActiveResult();
 
-    void connectWithoutProxy() throws  QueryException ;
+    void connectWithoutProxy() throws QueryException;
+
     boolean shouldReconnectWithoutProxy();
+
     void setHostFailedWithoutProxy();
-    QueryResult executePreparedQuery(String sql, ParameterHolder[] parameters, PrepareResult prepareResult, MySQLType[] parameterTypeHeader , boolean isStreaming) throws QueryException;
+
+    QueryResult executePreparedQuery(String sql, ParameterHolder[] parameters, PrepareResult prepareResult, MySQLType[] parameterTypeHeader, boolean isStreaming) throws QueryException;
+
     void releasePrepareStatement(String sql, int statementId) throws QueryException;
+
     QueryResult executePreparedQueryAfterFailover(String sql, ParameterHolder[] parameters, PrepareResult oldPrepareResult, MySQLType[] parameterTypeHeader, boolean isStreaming) throws QueryException; //used
+
     PrepareStatementCache prepareStatementCache();
 
 }

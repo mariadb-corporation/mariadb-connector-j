@@ -1,17 +1,17 @@
 package org.mariadb.jdbc.failover;
 
 import org.junit.After;
-import static org.junit.Assert.*;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.sql.Connection;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
+
+import static org.junit.Assert.*;
 
 public class ReplicationFailoverTest extends BaseMultiHostTest {
     private Connection connection;
@@ -24,7 +24,7 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
         Assume.assumeTrue(initialReplicationUrl != null);
         connection = null;
         currentType = TestType.REPLICATION;
-        testBeginTime=System.currentTimeMillis();
+        testBeginTime = System.currentTimeMillis();
     }
 
     @After
@@ -33,7 +33,7 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
         assureBlackList(connection);
         if (connection != null) connection.close();
 
-        log.debug("test time : "+(System.currentTimeMillis() - testBeginTime) + "ms");
+        log.debug("test time : " + (System.currentTimeMillis() - testBeginTime) + "ms");
     }
 
     @Test
@@ -108,6 +108,7 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
 
         assertFalse(connection.isReadOnly());
     }
+
     @Test
     public void failoverSlaveToMasterFail() throws Throwable {
         connection = getNewConnection("&retriesAllDown=1&failOnReadOnly=true", true);
@@ -121,7 +122,7 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
         long failTime = System.currentTimeMillis();
         connection.createStatement().execute("SELECT 1");
         assertTrue(System.currentTimeMillis() - failTime < 100);
-        assertTrue(slaveServerId == getServerId(connection) );
+        assertTrue(slaveServerId == getServerId(connection));
     }
 
     @Test
@@ -133,7 +134,8 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
 
         try {
             st.execute("SELECT 1");
-        } catch (SQLException e) {}
+        } catch (SQLException e) {
+        }
 
         connection.setReadOnly(true);
         st = connection.createStatement();
@@ -141,7 +143,8 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
         try {
             connection.setReadOnly(false);
             fail();
-        } catch (SQLException e) {}
+        } catch (SQLException e) {
+        }
 
         long stoppedTime = System.currentTimeMillis();
 
@@ -184,6 +187,7 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
         assertFalse(slaveServerId == masterServerId);
         assertFalse(connection.isReadOnly());
     }
+
     @Test()
     public void changeSlave() throws Throwable {
         connection = getNewConnection("&retriesAllDown=1", true);
@@ -317,7 +321,7 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
 
     @Test
     public void writeToSlaveAfterFailover() throws Throwable {
-        connection = getNewConnection("&retriesAllDown=1",true);
+        connection = getNewConnection("&retriesAllDown=1", true);
         //if super user can write on slave
         Assume.assumeTrue(!hasSuperPrivilege(connection, "writeToSlaveAfterFailover"));
         Statement st = connection.createStatement();

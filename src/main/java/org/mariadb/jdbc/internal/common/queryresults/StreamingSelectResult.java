@@ -14,8 +14,8 @@ import org.mariadb.jdbc.internal.mysql.packet.MySQLRowPacket;
 import java.io.IOException;
 
 public class StreamingSelectResult extends SelectQueryResult {
-    PacketFetcher packetFetcher;
     public ValueObject[] values;
+    PacketFetcher packetFetcher;
     MySQLProtocol protocol;
     boolean isEOF;
     boolean beforeFirst;
@@ -33,13 +33,12 @@ public class StreamingSelectResult extends SelectQueryResult {
     }
 
     /**
-     *
-     * @param packet the result set packet from the server
-     * @param packetFetcher packetfetcher
-     * @param protocol the current connection protocol class
+     * @param packet         the result set packet from the server
+     * @param packetFetcher  packetfetcher
+     * @param protocol       the current connection protocol class
      * @param binaryProtocol is the mysql protocol binary
      * @return a StreamingQueryResult
-     * @throws IOException when something goes wrong while reading/writing from the server
+     * @throws IOException    when something goes wrong while reading/writing from the server
      * @throws QueryException if there is an actual active result on the current connection
      */
     public static StreamingSelectResult createStreamingSelectResult(

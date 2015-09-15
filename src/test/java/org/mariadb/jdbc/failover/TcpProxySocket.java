@@ -37,13 +37,16 @@ public class TcpProxySocket implements Runnable {
         stop = true;
         try {
             if (server != null) server.close();
-        } catch (IOException e) { }
+        } catch (IOException e) {
+        }
         try {
             if (client != null) client.close();
-        } catch (IOException e) { }
+        } catch (IOException e) {
+        }
         try {
             ss.close();
-        } catch (IOException e) { }
+        } catch (IOException e) {
+        }
     }
 
     @Override
@@ -57,7 +60,8 @@ public class TcpProxySocket implements Runnable {
                 //in case for testing crash and reopen too quickly
                 try {
                     Thread.sleep(100);
-                } catch (InterruptedException i) { }
+                } catch (InterruptedException i) {
+                }
                 if (ss.isClosed()) ss = new ServerSocket(localport);
             }
             final byte[] request = new byte[1024];
@@ -92,7 +96,8 @@ public class TcpProxySocket implements Runnable {
                             }
                             try {
                                 to_server.close();
-                            } catch (IOException e) { }
+                            } catch (IOException e) {
+                            }
                         }
                     }.start();
                     int bytes_read;
@@ -112,8 +117,7 @@ public class TcpProxySocket implements Runnable {
                     to_client.close();
                 } catch (IOException e) {
                     //System.err.println("ERROR socket : "+e);
-                }
-                finally {
+                } finally {
                     try {
                         if (server != null) server.close();
                         if (client != null) client.close();
@@ -121,7 +125,7 @@ public class TcpProxySocket implements Runnable {
                     }
                 }
             }
-        } catch ( IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }

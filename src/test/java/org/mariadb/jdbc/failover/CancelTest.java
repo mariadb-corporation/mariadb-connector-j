@@ -1,16 +1,15 @@
 package org.mariadb.jdbc.failover;
 
-import org.junit.*;
-import org.mariadb.jdbc.BaseTest;
+import org.junit.After;
+import org.junit.Assume;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.sql.*;
-import java.util.Properties;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import static org.junit.Assert.assertEquals;
 
-public class CancelTest extends  BaseMultiHostTest {
+public class CancelTest extends BaseMultiHostTest {
     private Connection connection;
 
     @Before
@@ -30,17 +29,16 @@ public class CancelTest extends  BaseMultiHostTest {
     }
 
 
-
-    @Test (expected = SQLTimeoutException.class)
-    public void timeoutSleep() throws Exception{
+    @Test(expected = SQLTimeoutException.class)
+    public void timeoutSleep() throws Exception {
         connection = getNewConnection(false);
-           PreparedStatement stmt = connection.prepareStatement("select sleep(100)");
-           stmt.setQueryTimeout(1);
-           stmt.execute();
-     }
+        PreparedStatement stmt = connection.prepareStatement("select sleep(100)");
+        stmt.setQueryTimeout(1);
+        stmt.execute();
+    }
 
     @Test
-    public void NoTimeoutSleep() throws Exception{
+    public void NoTimeoutSleep() throws Exception {
         connection = getNewConnection(false);
         Statement stmt = connection.createStatement();
         stmt.setQueryTimeout(1);
@@ -55,6 +53,6 @@ public class CancelTest extends  BaseMultiHostTest {
         stmt.cancel();
         ResultSet rs = stmt.executeQuery("select 1");
         rs.next();
-        assertEquals(rs.getInt(1),1);
+        assertEquals(rs.getInt(1), 1);
     }
 }

@@ -51,8 +51,8 @@ package org.mariadb.jdbc.internal.common;
 
 
 public class QueryException extends Exception {
-	private static final long serialVersionUID = 974263994278018455L;
-	/**
+    private static final long serialVersionUID = 974263994278018455L;
+    /**
      * the internal code.
      */
     private int errorCode;
@@ -104,19 +104,20 @@ public class QueryException extends Exception {
                           String sqlState,
                           Throwable cause) {
         super(message, cause);
-    	this.message= message;
+        this.message = message;
         this.errorCode = errorCode;
         this.sqlState = sqlState;
     }
 
     @Override
     public String getMessage() {
-    	return message;
+        return message;
     }
-    
+
     public void setMessage(String message) {
-    	this.message = message;
+        this.message = message;
     }
+
     /**
      * returns the error code.
      *
@@ -125,9 +126,10 @@ public class QueryException extends Exception {
     public final int getErrorCode() {
         return errorCode;
     }
-    
-   
-    /**S
+
+
+    /**
+     * S
      * gets the sql state.
      *
      * @return the sql state

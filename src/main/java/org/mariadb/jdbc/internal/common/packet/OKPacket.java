@@ -58,7 +58,7 @@ import java.io.IOException;
  */
 public class OKPacket extends ResultPacket {
     @SuppressWarnings("unused")
-	private final byte fieldCount;
+    private final byte fieldCount;
     private final long affectedRows;
     private final long insertId;
     private final short serverStatus;

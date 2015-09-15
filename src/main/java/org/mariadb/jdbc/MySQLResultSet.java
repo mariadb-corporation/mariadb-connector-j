@@ -74,13 +74,13 @@ import java.util.*;
 public class MySQLResultSet implements ResultSet {
 
     public static final MySQLResultSet EMPTY = createEmptyResultSet();
+    ColumnNameMap columnNameMap;
+    Calendar cal;
     private QueryResult queryResult;
     private MySQLStatement statement;
     private Protocol protocol;
     private boolean lastGetWasNull;
     private boolean warningsCleared;
-    ColumnNameMap columnNameMap;
-    Calendar cal;
 
     protected MySQLResultSet() {
     }
@@ -98,6 +98,175 @@ public class MySQLResultSet implements ResultSet {
         List<ValueObject[]> voList = Collections.emptyList();
         QueryResult qr = new CachedSelectResult(colList, voList, (short) 0);
         return new MySQLResultSet(qr, null, null, null);
+    }
+
+    /**
+     * Create a result set from given data. Useful for creating "fake" resultsets for DatabaseMetaData,
+     * (one example is  MySQLDatabaseMetaData.getTypeInfo())
+     *
+     * @param columnNames          - string array of column names
+     * @param columnTypes          - column types
+     * @param data                 - each element of this array represents a complete row in the ResultSet.
+     *                             Each value is given in its string representation, as in MySQL text protocol, except boolean (BIT(1)) values
+     *                             that are represented as "1" or "0" strings
+     * @param protocol
+     * @param findColumnReturnsOne - special parameter, used only in generated key result sets
+     */
+    static ResultSet createResultSet(String[] columnNames, MySQLType[] columnTypes, String[][] data,
+                                     Protocol protocol, boolean findColumnReturnsOne) {
+        int N = columnNames.length;
+        MySQLColumnInformation[] columns = new MySQLColumnInformation[N];
+
+        for (int i = 0; i < N; i++) {
+            columns[i] = MySQLColumnInformation.create(columnNames[i], columnTypes[i]);
+        }
+
+        byte[] BOOL_TRUE = {1};
+        byte[] BOOL_FALSE = {0};
+        List<ValueObject[]> rows = new ArrayList<ValueObject[]>();
+        for (String[] rowData : data) {
+            ValueObject[] row = new ValueObject[N];
+
+            if (rowData.length != N) {
+                throw new RuntimeException("Number of elements in the row != number of columns :" + rowData.length + " vs " + N);
+            }
+            for (int i = 0; i < N; i++) {
+                byte[] bytes;
+                if (rowData[i] == null) {
+                    bytes = null;
+                } else if (columnTypes[i] == MySQLType.BIT) {
+                    bytes = rowData[i].equals("0") ? BOOL_FALSE : BOOL_TRUE;
+                } else {
+                    try {
+                        bytes = rowData[i].getBytes("UTF-8");
+                    } catch (Exception e) {
+                        throw new RuntimeException("No UTF-8");
+                    }
+                }
+                row[i] = new MySQLValueObject(bytes, columns[i]);
+            }
+            rows.add(row);
+        }
+        if (findColumnReturnsOne) {
+            return new MySQLResultSet(new CachedSelectResult(columns, rows, (short) 0),
+                    null, protocol, null) {
+                public int findColumn(String name) {
+                    return 1;
+                }
+            };
+        }
+        return new MySQLResultSet(new CachedSelectResult(columns, rows, (short) 0),
+                null, protocol, null);
+    }
+
+    /**
+     * Create a result set from given data. Useful for creating "fake" resultsets for DatabaseMetaData,
+     * (one example is  MySQLDatabaseMetaData.getTypeInfo())
+     *
+     * @param columnNames - string array of column names
+     * @param columnTypes - column types
+     * @param data        - each element of this array represents a complete row in the ResultSet.
+     *                    Each value is given in its string representation, as in MySQL text protocol, except boolean (BIT(1)) values
+     *                    that are represented as "1" or "0" strings
+     * @param protocol
+     */
+    static ResultSet createResultSet(String[] columnNames, MySQLType[] columnTypes, String[][] data,
+                                     Protocol protocol) {
+        return createResultSet(columnNames, columnTypes, data, protocol, false);
+    }
+
+    /**
+     * Create a result set from given data. Useful for creating "fake" resultsets for DatabaseMetaData,
+     * (one example is  MySQLDatabaseMetaData.getTypeInfo())
+     *
+     * @param columns              a MySQLColumnInformation array that contains the name and type of each column
+     * @param data                 - each element of this array represents a complete row in the ResultSet.
+     *                             Each value is given in its string representation, as in MySQL text protocol, except boolean (BIT(1)) values
+     *                             that are represented as "1" or "0" strings
+     * @param protocol
+     * @param findColumnReturnsOne - special parameter, used only in generated key result sets
+     */
+    static ResultSet createResultSet(MySQLColumnInformation[] columns, String[][] data,
+                                     Protocol protocol, boolean findColumnReturnsOne) {
+        int N = columns.length;
+
+        byte[] BOOL_TRUE = {1};
+        byte[] BOOL_FALSE = {0};
+        List<ValueObject[]> rows = new ArrayList<ValueObject[]>();
+        for (String[] rowData : data) {
+            ValueObject[] row = new ValueObject[N];
+
+            if (rowData.length != N) {
+                throw new RuntimeException("Number of elements in the row != number of columns :" + rowData.length + " vs " + N);
+            }
+            for (int i = 0; i < N; i++) {
+                byte[] bytes;
+                if (rowData[i] == null) {
+                    bytes = null;
+                } else if (columns[i].getType() == MySQLType.BIT) {
+                    bytes = rowData[i].equals("0") ? BOOL_FALSE : BOOL_TRUE;
+                } else {
+                    try {
+                        bytes = rowData[i].getBytes("UTF-8");
+                    } catch (Exception e) {
+                        throw new RuntimeException("No UTF-8");
+                    }
+                }
+                row[i] = new MySQLValueObject(bytes, columns[i]);
+            }
+            rows.add(row);
+        }
+        if (findColumnReturnsOne) {
+            return new MySQLResultSet(new CachedSelectResult(columns, rows, (short) 0),
+                    null, protocol, null) {
+                public int findColumn(String name) {
+                    return 1;
+                }
+            };
+        }
+        return new MySQLResultSet(new CachedSelectResult(columns, rows, (short) 0),
+                null, protocol, null);
+    }
+
+    /**
+     * Create a result set from given data. Useful for creating "fake" resultsets for DatabaseMetaData,
+     * (one example is  MySQLDatabaseMetaData.getTypeInfo())
+     *
+     * @param columns  a MySQLColumnInformation array that contains the name and type of each column
+     * @param data     - each element of this array represents a complete row in the ResultSet.
+     *                 Each value is given in its string representation, as in MySQL text protocol, except boolean (BIT(1)) values
+     *                 that are represented as "1" or "0" strings
+     * @param protocol
+     */
+    static ResultSet createResultSet(MySQLColumnInformation[] columns, String[][] data, Protocol protocol) {
+        return createResultSet(columns, data, protocol, false);
+    }
+
+    static ResultSet createEmptyGeneratedKeysResultSet(MySQLConnection connection) {
+        String[][] data = new String[0][];
+        return createResultSet(new String[]{"insert_id"},
+                new MySQLType[]{MySQLType.BIGINT},
+                data, connection.getProtocol(), true);
+    }
+
+    static ResultSet createGeneratedKeysResultSet(long lastInsertId, int updateCount, MySQLConnection connection) {
+        if (updateCount <= 0) {
+            return null;
+        }
+        int autoIncrementIncrement = 1;
+        /* only interesting if many rows were updated */
+        if (updateCount > 1) {
+            autoIncrementIncrement = connection.getAutoIncrementIncrement();
+        }
+
+        String[][] data = new String[updateCount][];
+        for (int i = 0; i < updateCount; i++) {
+            long id = lastInsertId + i * autoIncrementIncrement;
+            data[i] = new String[]{"" + id};
+        }
+        return createResultSet(new String[]{"insert_id"},
+                new MySQLType[]{MySQLType.BIGINT},
+                data, connection.getProtocol(), true);
     }
 
     private void writeLock() {
@@ -158,7 +327,6 @@ public class MySQLResultSet implements ResultSet {
             readUnlock();
         }
     }
-
 
     public String getString(int i) throws SQLException {
         return getValueObject(i).getString();
@@ -312,7 +480,7 @@ public class MySQLResultSet implements ResultSet {
      * of ASCII characters. The value can then be read in chunks from the stream. This method is particularly suitable
      * for retrieving large <code>LONGVARCHAR</code> values. The JDBC driver will do any necessary conversion from the
      * database format into ASCII.</p>
-     *
+     * <p/>
      * <p><b>Note:</b> All the data in the returned stream must be read prior to getting the value of any other column.
      * The next call to a getter method implicitly closes the stream. Also, a stream may return <code>0</code> when the
      * method <code>available</code> is called whether there is data available or not.</p>
@@ -343,6 +511,7 @@ public class MySQLResultSet implements ResultSet {
      * The next call to a getter method implicitly closes the stream. Also, a stream may return <code>0</code> when the
      * method <code>InputStream.available</code> is called, whether there is data available or not.
      * </p>
+     *
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @return a Java input stream that delivers the database column value as a stream of two-byte Unicode characters.
@@ -392,6 +561,7 @@ public class MySQLResultSet implements ResultSet {
      * caused by <code>Statement</code> methods (such as reading OUT parameters) will be chained on the
      * <code>Statement</code> object.
      * </p>
+     *
      * @return the first <code>SQLWarning</code> object reported or <code>null</code> if there are none
      * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed result set
      */
@@ -414,12 +584,12 @@ public class MySQLResultSet implements ResultSet {
 
     /**
      * Retrieves the name of the SQL cursor used by this <code>ResultSet</code> object.
-     *
+     * <p/>
      * In SQL, a result table is retrieved through a cursor that is named. The current row of a result set can be
      * updated or deleted using a positioned update/delete statement that references the cursor name. To insure that the
      * cursor has the proper isolation level to support update, the cursor's <code>SELECT</code> statement should be of
      * the form <code>SELECT FOR UPDATE</code>. If <code>FOR UPDATE</code> is omitted, the positioned updates may fail.
-     *
+     * <p/>
      * The JDBC API supports this SQL feature by providing the name of the SQL cursor used by a
      * <code>ResultSet</code> object. The current row of a <code>ResultSet</code> object is also the current row of this
      * SQL cursor.
@@ -468,6 +638,7 @@ public class MySQLResultSet implements ResultSet {
      * values are not supported, and distinct values are mapped to the default Java class as determined by the
      * underlying SQL type of the DISTINCT type.
      * </p>
+     *
      * @param columnIndex the first column is 1, the second is 2, ...
      * @return a <code>java.lang.Object</code> holding the column value
      * @throws java.sql.SQLException if the columnIndex is not valid; if a database access error occurs or this method
@@ -492,7 +663,7 @@ public class MySQLResultSet implements ResultSet {
      * specified in the JDBC specification. If the value is an SQL <code>NULL</code>, the driver returns a Java
      * <code>null</code>.
      * </p>
-     *
+     * <p/>
      * <p>This method may also be used to read database-specific abstract data types.
      * </p>
      * <p>
@@ -500,6 +671,7 @@ public class MySQLResultSet implements ResultSet {
      * user-defined types.  When a column contains a structured or distinct value, the behavior of this method is as if
      * it were a call to: <code>getObject(columnIndex, this.getStatement().getConnection().getTypeMap())</code>.
      * </p>
+     *
      * @param columnLabel the label for the column specified with the SQL AS clause.  If the SQL AS clause was not
      *                    specified, then the label is the name of the column
      * @return a <code>java.lang.Object</code> holding the column value
@@ -634,7 +806,7 @@ public class MySQLResultSet implements ResultSet {
 
     /**
      * Retrieves whether the cursor is on the first row of this <code>ResultSet</code> object.
-     *
+     * <p/>
      * <strong>Note:</strong>Support for the <code>isFirst</code> method is optional for <code>ResultSet</code>s with a
      * result set type of <code>TYPE_FORWARD_ONLY</code>
      *
@@ -658,7 +830,7 @@ public class MySQLResultSet implements ResultSet {
      * Retrieves whether the cursor is on the last row of this <code>ResultSet</code> object. <strong>Note:</strong>
      * Calling the method <code>isLast</code> may be expensive because the JDBC driver might need to fetch ahead one row
      * in order to determine whether the current row is the last row in the result set.
-     *
+     * <p/>
      * <strong>Note:</strong> Support for the <code>isLast</code> method is optional for <code>ResultSet</code>s with a
      * result set type of <code>TYPE_FORWARD_ONLY</code>
      *
@@ -763,7 +935,7 @@ public class MySQLResultSet implements ResultSet {
 
     /**
      * Retrieves the current row number.  The first row is number 1, the second number 2, and so on.
-     *
+     * <p/>
      * <strong>Note:</strong>Support for the <code>getRow</code> method is optional for <code>ResultSet</code>s with a
      * result set type of <code>TYPE_FORWARD_ONLY</code>
      *
@@ -781,17 +953,17 @@ public class MySQLResultSet implements ResultSet {
 
     /**
      * Moves the cursor to the given row number in this <code>ResultSet</code> object.
-     *
+     * <p/>
      * If the row number is positive, the cursor moves to the given row number with respect to the beginning of the
      * result set.  The first row is row 1, the second is row 2, and so on.
-     *
+     * <p/>
      * If the given row number is negative, the cursor moves to an absolute row position with respect to the end of
      * the result set.  For example, calling the method <code>absolute(-1)</code> positions the cursor on the last row;
      * calling the method <code>absolute(-2)</code> moves the cursor to the next-to-last row, and so on.
-     *
+     * <p/>
      * An attempt to position the cursor beyond the first/last row in the result set leaves the cursor before the
      * first row or after the last row.
-     *
+     * <p/>
      * <B>Note:</B> Calling <code>absolute(1)</code> is the same as calling <code>first()</code>. Calling
      * <code>absolute(-1)</code> is the same as calling <code>last()</code>.
      *
@@ -855,11 +1027,11 @@ public class MySQLResultSet implements ResultSet {
 
     /**
      * Moves the cursor to the previous row in this <code>ResultSet</code> object.
-     *
+     * <p/>
      * When a call to the <code>previous</code> method returns <code>false</code>, the cursor is positioned before the
      * first row.  Any invocation of a <code>ResultSet</code> method which requires a current row will result in a
      * <code>SQLException</code> being thrown.
-     *
+     * <p/>
      * If an input stream is open for the current row, a call to the method <code>previous</code> will implicitly close
      * it.  A <code>ResultSet</code> object's warning change is cleared when a new row is read.
      *
@@ -887,6 +1059,18 @@ public class MySQLResultSet implements ResultSet {
     }
 
     /**
+     * Retrieves the fetch direction for this <code>ResultSet</code> object.
+     *
+     * @return the current fetch direction for this <code>ResultSet</code> object
+     * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed result set
+     * @see #setFetchDirection
+     * @since 1.2
+     */
+    public int getFetchDirection() throws SQLException {
+        return ResultSet.FETCH_UNKNOWN;
+    }
+
+    /**
      * Gives a hint as to the direction in which the rows in this <code>ResultSet</code> object will be processed. The
      * initial value is determined by the <code>Statement</code> object that produced this <code>ResultSet</code>
      * object. The fetch direction may be changed at any time.
@@ -906,15 +1090,15 @@ public class MySQLResultSet implements ResultSet {
     }
 
     /**
-     * Retrieves the fetch direction for this <code>ResultSet</code> object.
+     * Retrieves the fetch size for this <code>ResultSet</code> object.
      *
-     * @return the current fetch direction for this <code>ResultSet</code> object
+     * @return the current fetch size for this <code>ResultSet</code> object
      * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed result set
-     * @see #setFetchDirection
+     * @see #setFetchSize
      * @since 1.2
      */
-    public int getFetchDirection() throws SQLException {
-        return ResultSet.FETCH_UNKNOWN;
+    public int getFetchSize() throws SQLException {
+        return 0;
     }
 
     /**
@@ -931,18 +1115,6 @@ public class MySQLResultSet implements ResultSet {
      */
     public void setFetchSize(int rows) throws SQLException {
         // ignored - we fetch 'em all!
-    }
-
-    /**
-     * Retrieves the fetch size for this <code>ResultSet</code> object.
-     *
-     * @return the current fetch size for this <code>ResultSet</code> object
-     * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed result set
-     * @see #setFetchSize
-     * @since 1.2
-     */
-    public int getFetchSize() throws SQLException {
-        return 0;
     }
 
     /**
@@ -974,7 +1146,7 @@ public class MySQLResultSet implements ResultSet {
     /**
      * <p>Retrieves whether the current row has been updated.  The value returned depends on whether or not the result set
      * can detect updates.</p>
-     *
+     * <p/>
      * <strong>Note:</strong> Support for the <code>rowUpdated</code> method is optional with a result set concurrency
      * of <code>CONCUR_READ_ONLY</code>
      *
@@ -992,7 +1164,7 @@ public class MySQLResultSet implements ResultSet {
     /**
      * <p>Retrieves whether the current row has had an insertion. The value returned depends on whether or not this
      * <code>ResultSet</code> object can detect visible inserts.</p>
-     *
+     * <p/>
      * <strong>Note:</strong> Support for the <code>rowInserted</code> method is optional with a result set concurrency
      * of <code>CONCUR_READ_ONLY</code>
      *
@@ -1334,6 +1506,7 @@ public class MySQLResultSet implements ResultSet {
      * characters specified by scaleOrLength. If these conditions are not true the driver will generate a
      * <code>SQLException</code> when the statement is executed.
      * </p>
+     *
      * @param columnIndex   the first column is 1, the second is 2, ...
      * @param x             the new column value
      * @param scaleOrLength for an object of <code>java.math.BigDecimal</code> , this is the number of digits after the
@@ -1549,7 +1722,7 @@ public class MySQLResultSet implements ResultSet {
 
     /**
      * <p>Updates the designated column with a byte array value.</p>
-     *
+     * <p/>
      * The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.
@@ -1773,7 +1946,7 @@ public class MySQLResultSet implements ResultSet {
     /**
      * <p>Refreshes the current row with its most recent value in the database.  This method cannot be called when the
      * cursor is on the insert row.</p>
-     *
+     * <p/>
      * <p>The <code>refreshRow</code> method provides a way for an application to explicitly tell the JDBC driver to
      * refetch a row(s) from the database.  An application may want to call <code>refreshRow</code> when caching or
      * prefetching is being done by the JDBC driver to fetch the latest value of a row from the database.  The JDBC
@@ -1858,6 +2031,10 @@ public class MySQLResultSet implements ResultSet {
         return this.statement;
     }
 
+    void setStatement(MySQLStatement st) {
+        this.statement = st;
+    }
+
     /**
      * According to the JDBC4 spec, this is only required for UDT's, and since drizzle does not support UDTs, this
      * method ignores the map parameter
@@ -1867,6 +2044,7 @@ public class MySQLResultSet implements ResultSet {
      * returns a Java <code>null</code>. This method uses the given <code>Map</code> object for the custom mapping of
      * the SQL structured or distinct type that is being retrieved.
      * </p>
+     *
      * @param columnIndex the first column is 1, the second is 2, ...
      * @param map         a <code>java.util.Map</code> object that contains the mapping from SQL type names to classes
      *                    in the Java programming language
@@ -2691,7 +2869,7 @@ public class MySQLResultSet implements ResultSet {
      * driver does the necessary conversion from Java character format to the national character set in the database. It
      * is intended for use when updating  <code>NCHAR</code>,<code>NVARCHAR</code> and <code>LONGNVARCHAR</code>
      * columns.</p>
-     *
+     * <p/>
      * The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.
@@ -2714,7 +2892,7 @@ public class MySQLResultSet implements ResultSet {
      * driver does the necessary conversion from Java character format to the national character set in the database. It
      * is intended for use when updating  <code>NCHAR</code>,<code>NVARCHAR</code> and <code>LONGNVARCHAR</code>
      * columns.
-     *
+     * <p/>
      * The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.
@@ -2735,7 +2913,7 @@ public class MySQLResultSet implements ResultSet {
 
     /**
      * Updates the designated column with an ascii stream value, which will have the specified number of bytes.
-     *
+     * <p/>
      * The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.
@@ -2755,7 +2933,7 @@ public class MySQLResultSet implements ResultSet {
 
     /**
      * Updates the designated column with a binary stream value, which will have the specified number of bytes.
-     *
+     * <p/>
      * The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.
@@ -2775,7 +2953,7 @@ public class MySQLResultSet implements ResultSet {
 
     /**
      * Updates the designated column with a character stream value, which will have the specified number of bytes.
-     *
+     * <p/>
      * The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.
@@ -2859,7 +3037,7 @@ public class MySQLResultSet implements ResultSet {
     /**
      * <p>Updates the designated column using the given input stream, which will have the specified number of bytes.
      * </p>
-     *
+     * <p/>
      * The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.
@@ -2904,12 +3082,13 @@ public class MySQLResultSet implements ResultSet {
      * long. When a very large UNICODE value is input to a <code>LONGVARCHAR</code> parameter, it may be more practical
      * to send it via a <code>java.io.Reader</code> object. The JDBC driver will do any necessary conversion from
      * UNICODE to the database char format.</p>
-     *
-     *
+     * <p/>
+     * <p/>
      * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.
      * </p>
+     *
      * @param columnIndex the first column is 1, the second is 2, ...
      * @param reader      An object that contains the data to set the parameter value to.
      * @param length      the number of characters in the parameter data.
@@ -2928,7 +3107,7 @@ public class MySQLResultSet implements ResultSet {
      * long. When a very large UNICODE value is input to a <code>LONGVARCHAR</code> parameter, it may be more practical
      * to send it via a <code>java.io.Reader</code> object.  The JDBC driver will do any necessary conversion from
      * UNICODE to the database char format.</p>
-     *
+     * <p/>
      * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.</p>
@@ -2952,7 +3131,7 @@ public class MySQLResultSet implements ResultSet {
      * long. When a very large UNICODE value is input to a <code>LONGVARCHAR</code> parameter, it may be more practical
      * to send it via a <code>java.io.Reader</code> object. The JDBC driver will do any necessary conversion from
      * UNICODE to the database char format.</p>
-     *
+     * <p/>
      * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.</p>
@@ -2976,7 +3155,7 @@ public class MySQLResultSet implements ResultSet {
      * long. When a very large UNICODE value is input to a <code>LONGVARCHAR</code> parameter, it may be more practical
      * to send it via a <code>java.io.Reader</code> object. The JDBC driver will do any necessary conversion from
      * UNICODE to the database char format.</p>
-     *
+     * <p/>
      * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.</p>
@@ -3001,11 +3180,11 @@ public class MySQLResultSet implements ResultSet {
      * until end-of-stream is reached.  The driver does the necessary conversion from Java character format to the
      * national character set in the database. It is intended for use when updating
      * <code>NCHAR</code>,<code>NVARCHAR</code> and <code>LONGNVARCHAR</code> columns.</p>
-     *
+     * <p/>
      * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.</p>
-     *
+     * <p/>
      * <p><B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
      * version of <code>updateNCharacterStream</code> which takes a length parameter.</p>
      *
@@ -3026,11 +3205,11 @@ public class MySQLResultSet implements ResultSet {
      * until end-of-stream is reached.  The driver does the necessary conversion from Java character format to the
      * national character set in the database. It is intended for use when updating
      * <code>NCHAR</code>,<code>NVARCHAR</code> and <code>LONGNVARCHAR</code> columns.</p>
-     *
+     * <p/>
      * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.</p>
-     *
+     * <p/>
      * <p><B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
      * version of <code>updateNCharacterStream</code> which takes a length parameter.</p>
      *
@@ -3050,11 +3229,11 @@ public class MySQLResultSet implements ResultSet {
     /**
      * <p>Updates the designated column with an ascii stream value. The data will be read from the stream as needed until
      * end-of-stream is reached.</p>
-     *
+     * <p/>
      * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.</p>
-     *
+     * <p/>
      * <p><B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
      * version of <code>updateAsciiStream</code> which takes a length parameter.</p>
      *
@@ -3073,11 +3252,11 @@ public class MySQLResultSet implements ResultSet {
     /**
      * <p>Updates the designated column with a binary stream value. The data will be read from the stream as needed until
      * end-of-stream is reached.</p>
-     *
+     * <p/>
      * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.</p>
-     *
+     * <p/>
      * <p><B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
      * version of <code>updateBinaryStream</code> which takes a length parameter.</p>
      *
@@ -3096,11 +3275,11 @@ public class MySQLResultSet implements ResultSet {
     /**
      * <p>Updates the designated column with a character stream value. The data will be read from the stream as needed
      * until end-of-stream is reached.</p>
-     *
+     * <p/>
      * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.</p>
-     *
+     * <p/>
      * <p><B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
      * version of <code>updateCharacterStream</code> which takes a length parameter.</p>
      *
@@ -3119,11 +3298,11 @@ public class MySQLResultSet implements ResultSet {
     /**
      * <p>Updates the designated column with an ascii stream value. The data will be read from the stream as needed until
      * end-of-stream is reached.</p>
-     *
+     * <p/>
      * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.</p>
-     *
+     * <p/>
      * <p><B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
      * version of <code>updateAsciiStream</code> which takes a length parameter.</p>
      *
@@ -3143,11 +3322,11 @@ public class MySQLResultSet implements ResultSet {
     /**
      * <p>Updates the designated column with a binary stream value. The data will be read from the stream as needed until
      * end-of-stream is reached.</p>
-     *
+     * <p/>
      * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.</p>
-     *
+     * <p/>
      * <p><B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
      * version of <code>updateBinaryStream</code> which takes a length parameter.</p>
      *
@@ -3167,11 +3346,11 @@ public class MySQLResultSet implements ResultSet {
     /**
      * <p>Updates the designated column with a character stream value. The data will be read from the stream as needed
      * until end-of-stream is reached.</p>
-     *
+     * <p/>
      * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.</p>
-     *
+     * <p/>
      * <p><B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
      * version of <code>updateCharacterStream</code> which takes a length parameter.</p>
      *
@@ -3191,11 +3370,11 @@ public class MySQLResultSet implements ResultSet {
     /**
      * <p>Updates the designated column using the given input stream. The data will be read from the stream as needed until
      * end-of-stream is reached.</p>
-     *
+     * <p/>
      * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.</p>
-     *
+     * <p/>
      * <p><B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
      * version of <code>updateBlob</code> which takes a length parameter.</p>
      *
@@ -3214,11 +3393,11 @@ public class MySQLResultSet implements ResultSet {
     /**
      * <p>Updates the designated column using the given input stream. The data will be read from the stream as needed until
      * end-of-stream is reached.</p>
-     *
+     * <p/>
      * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.</p>
-     *
+     * <p/>
      * <p><B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
      * version of <code>updateBlob</code> which takes a length parameter.</p>
      *
@@ -3239,11 +3418,11 @@ public class MySQLResultSet implements ResultSet {
      * <p>Updates the designated column using the given <code>Reader</code> object. The data will be read from the stream
      * as needed until end-of-stream is reached.  The JDBC driver will do any necessary conversion from UNICODE to the
      * database char format.</p>
-     *
+     * <p/>
      * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.</p>
-     *
+     * <p/>
      * <p><B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
      * version of <code>updateClob</code> which takes a length parameter.</p>
      *
@@ -3263,11 +3442,11 @@ public class MySQLResultSet implements ResultSet {
      * <p>Updates the designated column using the given <code>Reader</code> object. The data will be read from the stream
      * as needed until end-of-stream is reached.  The JDBC driver will do any necessary conversion from UNICODE to the
      * database char format.</p>
-     *
+     * <p/>
      * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.</p>
-     *
+     * <p/>
      * <p><B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
      * version of <code>updateClob</code> which takes a length parameter.</p>
      *
@@ -3286,14 +3465,14 @@ public class MySQLResultSet implements ResultSet {
 
     /**
      * <p>Updates the designated column using the given <code>Reader</code></p>
-     *
+     * <p/>
      * <p>The data will be read from the stream as needed until end-of-stream is reached.  The JDBC driver will do any
      * necessary conversion from UNICODE to the database char format.</p>
-     *
+     * <p/>
      * <p>The updater methods are used to update column values in the current row or the insert row.  The updater methods
      * do not update the underlying database; instead the <code>updateRow</code> or <code>insertRow</code> methods are
      * called to update the database.</p>
-     *
+     * <p/>
      * <p><B>Note:</B> Consult your JDBC driver documentation to determine if it might be more efficient to use a
      * version of <code>updateNClob</code> which takes a length parameter.</p>
      *
@@ -3472,7 +3651,7 @@ public class MySQLResultSet implements ResultSet {
      * <p>The value can then be read in chunks from the stream. This method is particularly suitable for retrieving large
      * <code>LONGVARCHAR</code>values.  The JDBC driver will do any necessary conversion from the database format into
      * Unicode.</p>
-     *
+     * <p/>
      * <p>
      * <B>Note:</B> All the data in the returned stream must be read prior to getting the value of any other column.
      * The next call to a getter method implicitly closes the stream. Also, a stream may return <code>0</code> when the
@@ -3494,7 +3673,7 @@ public class MySQLResultSet implements ResultSet {
      * <p>Retrieves the value of the designated column in the current row of this <code>ResultSet</code> object as a stream
      * of uninterpreted bytes. The value can then be read in chunks from the stream. This method is particularly
      * suitable for retrieving large <code>LONGVARBINARY</code> values.</p>
-     *
+     * <p/>
      * <p><B>Note:</B> All the data in the returned stream must be read prior to getting the value of any other column.
      * The next call to a getter method implicitly closes the stream.  Also, a stream may return <code>0</code> when the
      * method <code>InputStream.available</code> is called whether there is data available or not.</p>
@@ -3527,7 +3706,7 @@ public class MySQLResultSet implements ResultSet {
     /**
      * <p>Retrieves the value of the designated column in the current row of this <code>ResultSet</code> object as a
      * <code>boolean</code> in the Java programming language.</p>
-     *
+     * <p/>
      * <p>If the designated column has a datatype of CHAR or VARCHAR and contains a "0" or has a datatype of BIT,
      * TINYINT, SMALLINT, INTEGER or BIGINT and contains  a 0, a value of <code>false</code> is returned.  If the
      * designated column has a datatype of CHAR or VARCHAR and contains a "1" or has a datatype of BIT, TINYINT,
@@ -3571,11 +3750,10 @@ public class MySQLResultSet implements ResultSet {
         return getShort(findColumn(columnLabel));
     }
 
-
     /**
      * <p>Returns an object that implements the given interface to allow access to non-standard methods, or standard
      * methods not exposed by the proxy.</p>
-     *
+     * <p/>
      * <p>If the receiver implements the interface then the result is the receiver or a proxy for the receiver. If the
      * receiver is a wrapper and the wrapped object implements the interface then the result is the wrapped object or a
      * proxy for the wrapped object. Otherwise return the the result of calling <code>unwrap</code> recursively on the
@@ -3619,181 +3797,6 @@ public class MySQLResultSet implements ResultSet {
         // TODO Auto-generated method stub
         return null;
     }
-
-
-    /**
-     * Create a result set from given data. Useful for creating "fake" resultsets for DatabaseMetaData,
-     * (one example is  MySQLDatabaseMetaData.getTypeInfo())
-     *
-     * @param columnNames          - string array of column names
-     * @param columnTypes          - column types
-     * @param data                 - each element of this array represents a complete row in the ResultSet.
-     *                             Each value is given in its string representation, as in MySQL text protocol, except boolean (BIT(1)) values
-     *                             that are represented as "1" or "0" strings
-     * @param protocol
-     * @param findColumnReturnsOne - special parameter, used only in generated key result sets
-     */
-    static ResultSet createResultSet(String[] columnNames, MySQLType[] columnTypes, String[][] data,
-                                     Protocol protocol, boolean findColumnReturnsOne) {
-        int N = columnNames.length;
-        MySQLColumnInformation[] columns = new MySQLColumnInformation[N];
-
-        for (int i = 0; i < N; i++) {
-            columns[i] = MySQLColumnInformation.create(columnNames[i], columnTypes[i]);
-        }
-
-        byte[] BOOL_TRUE = {1};
-        byte[] BOOL_FALSE = {0};
-        List<ValueObject[]> rows = new ArrayList<ValueObject[]>();
-        for (String[] rowData : data) {
-            ValueObject[] row = new ValueObject[N];
-
-            if (rowData.length != N) {
-                throw new RuntimeException("Number of elements in the row != number of columns :" + rowData.length + " vs " + N);
-            }
-            for (int i = 0; i < N; i++) {
-                byte[] bytes;
-                if (rowData[i] == null) {
-                    bytes = null;
-                } else if (columnTypes[i] == MySQLType.BIT) {
-                    bytes = rowData[i].equals("0") ? BOOL_FALSE : BOOL_TRUE;
-                } else {
-                    try {
-                        bytes = rowData[i].getBytes("UTF-8");
-                    } catch (Exception e) {
-                        throw new RuntimeException("No UTF-8");
-                    }
-                }
-                row[i] = new MySQLValueObject(bytes, columns[i]);
-            }
-            rows.add(row);
-        }
-        if (findColumnReturnsOne) {
-            return new MySQLResultSet(new CachedSelectResult(columns, rows, (short) 0),
-                    null, protocol, null) {
-                public int findColumn(String name) {
-                    return 1;
-                }
-            };
-        }
-        return new MySQLResultSet(new CachedSelectResult(columns, rows, (short) 0),
-                null, protocol, null);
-    }
-
-    /**
-     * Create a result set from given data. Useful for creating "fake" resultsets for DatabaseMetaData,
-     * (one example is  MySQLDatabaseMetaData.getTypeInfo())
-     *
-     * @param columnNames - string array of column names
-     * @param columnTypes - column types
-     * @param data        - each element of this array represents a complete row in the ResultSet.
-     *                    Each value is given in its string representation, as in MySQL text protocol, except boolean (BIT(1)) values
-     *                    that are represented as "1" or "0" strings
-     * @param protocol
-     */
-    static ResultSet createResultSet(String[] columnNames, MySQLType[] columnTypes, String[][] data,
-                                     Protocol protocol) {
-        return createResultSet(columnNames, columnTypes, data, protocol, false);
-    }
-
-    /**
-     * Create a result set from given data. Useful for creating "fake" resultsets for DatabaseMetaData,
-     * (one example is  MySQLDatabaseMetaData.getTypeInfo())
-     *
-     * @param columns              a MySQLColumnInformation array that contains the name and type of each column
-     * @param data                 - each element of this array represents a complete row in the ResultSet.
-     *                             Each value is given in its string representation, as in MySQL text protocol, except boolean (BIT(1)) values
-     *                             that are represented as "1" or "0" strings
-     * @param protocol
-     * @param findColumnReturnsOne - special parameter, used only in generated key result sets
-     */
-    static ResultSet createResultSet(MySQLColumnInformation[] columns, String[][] data,
-                                     Protocol protocol, boolean findColumnReturnsOne) {
-        int N = columns.length;
-
-        byte[] BOOL_TRUE = {1};
-        byte[] BOOL_FALSE = {0};
-        List<ValueObject[]> rows = new ArrayList<ValueObject[]>();
-        for (String[] rowData : data) {
-            ValueObject[] row = new ValueObject[N];
-
-            if (rowData.length != N) {
-                throw new RuntimeException("Number of elements in the row != number of columns :" + rowData.length + " vs " + N);
-            }
-            for (int i = 0; i < N; i++) {
-                byte[] bytes;
-                if (rowData[i] == null) {
-                    bytes = null;
-                } else if (columns[i].getType() == MySQLType.BIT) {
-                    bytes = rowData[i].equals("0") ? BOOL_FALSE : BOOL_TRUE;
-                } else {
-                    try {
-                        bytes = rowData[i].getBytes("UTF-8");
-                    } catch (Exception e) {
-                        throw new RuntimeException("No UTF-8");
-                    }
-                }
-                row[i] = new MySQLValueObject(bytes, columns[i]);
-            }
-            rows.add(row);
-        }
-        if (findColumnReturnsOne) {
-            return new MySQLResultSet(new CachedSelectResult(columns, rows, (short) 0),
-                    null, protocol, null) {
-                public int findColumn(String name) {
-                    return 1;
-                }
-            };
-        }
-        return new MySQLResultSet(new CachedSelectResult(columns, rows, (short) 0),
-                null, protocol, null);
-    }
-
-    /**
-     * Create a result set from given data. Useful for creating "fake" resultsets for DatabaseMetaData,
-     * (one example is  MySQLDatabaseMetaData.getTypeInfo())
-     *
-     * @param columns  a MySQLColumnInformation array that contains the name and type of each column
-     * @param data     - each element of this array represents a complete row in the ResultSet.
-     *                 Each value is given in its string representation, as in MySQL text protocol, except boolean (BIT(1)) values
-     *                 that are represented as "1" or "0" strings
-     * @param protocol
-     */
-    static ResultSet createResultSet(MySQLColumnInformation[] columns, String[][] data, Protocol protocol) {
-        return createResultSet(columns, data, protocol, false);
-    }
-
-    static ResultSet createEmptyGeneratedKeysResultSet(MySQLConnection connection) {
-        String[][] data = new String[0][];
-        return createResultSet(new String[]{"insert_id"},
-                new MySQLType[]{MySQLType.BIGINT},
-                data, connection.getProtocol(), true);
-    }
-
-    static ResultSet createGeneratedKeysResultSet(long lastInsertId, int updateCount, MySQLConnection connection) {
-        if (updateCount <= 0) {
-            return null;
-        }
-        int autoIncrementIncrement = 1; 
-        /* only interesting if many rows were updated */
-        if (updateCount > 1) {
-            autoIncrementIncrement = connection.getAutoIncrementIncrement();
-        }
-
-        String[][] data = new String[updateCount][];
-        for (int i = 0; i < updateCount; i++) {
-            long id = lastInsertId + i * autoIncrementIncrement;
-            data[i] = new String[]{"" + id};
-        }
-        return createResultSet(new String[]{"insert_id"},
-                new MySQLType[]{MySQLType.BIGINT},
-                data, connection.getProtocol(), true);
-    }
-
-    void setStatement(MySQLStatement st) {
-        this.statement = st;
-    }
-
 
     public MySQLResultSet joinResultSets(MySQLResultSet resultSet) throws SQLException {
         writeLock();

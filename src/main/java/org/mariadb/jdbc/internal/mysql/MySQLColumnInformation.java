@@ -59,13 +59,6 @@ import java.nio.ByteOrder;
 import java.sql.Types;
 
 public class MySQLColumnInformation {
-    RawPacket buffer;
-    private short charsetNumber;
-    private long length;
-    private MySQLType type;
-    private byte decimals;
-    private short flags;
-
     // This array stored character length for every collation id up to collation id 256
     // It is generated from the information schema using
     // "select  id, maxlen from information_schema.character_sets, information_schema.collations
@@ -104,48 +97,12 @@ public class MySQLColumnInformation {
             4, 4, 4, 4, 0, 4, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0
     };
-
-    public static MySQLColumnInformation create(String name, MySQLType type) {
-        try {
-            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
-            for (int i = 0; i < 4; i++) {
-                baos.write(new byte[]{1, 0}); // catalog, empty string
-            }
-            for (int i = 0; i < 2; i++) {
-                baos.write(new byte[]{(byte) name.length()});
-                baos.write(name.getBytes());
-            }
-            baos.write(0xc);
-            baos.write(new byte[]{33, 0});  /* charset  = UTF8 */
-            int len = 1;
-
-            /* Sensible predefined length - since we're dealing with I_S here, most char fields are 64 char long */
-            switch (type.getSqlType()) {
-                case Types.VARCHAR:
-                case Types.CHAR:
-                    len = 64 * 3; /* 3 bytes per UTF8 char */
-                    break;
-                case Types.SMALLINT:
-                    len = 5;
-                    break;
-                case Types.NULL:
-                    len = 0;
-                    break;
-                default:
-                    len = 1;
-                    break;
-            }
-            baos.write(new byte[]{(byte) len, 0, 0, 0});  /*  length */
-            baos.write(MySQLType.toServer(type.getSqlType()).getType());
-            baos.write(new byte[]{0, 0});   /* flags */
-            baos.write(0); /* decimals */
-            baos.write(new byte[]{0, 0});   /* filler */
-            return new MySQLColumnInformation(new RawPacket(ByteBuffer.wrap(baos.toByteArray()).order(ByteOrder.LITTLE_ENDIAN), 0));
-        } catch (IOException ioe) {
-            throw new RuntimeException("unexpected condition", ioe);
-        }
-    }
-
+    RawPacket buffer;
+    private short charsetNumber;
+    private long length;
+    private MySQLType type;
+    private byte decimals;
+    private short flags;
 
     public MySQLColumnInformation(RawPacket buffer) throws IOException {
         this.buffer = buffer;
@@ -191,6 +148,46 @@ public class MySQLColumnInformation {
         }
     }
 
+    public static MySQLColumnInformation create(String name, MySQLType type) {
+        try {
+            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+            for (int i = 0; i < 4; i++) {
+                baos.write(new byte[]{1, 0}); // catalog, empty string
+            }
+            for (int i = 0; i < 2; i++) {
+                baos.write(new byte[]{(byte) name.length()});
+                baos.write(name.getBytes());
+            }
+            baos.write(0xc);
+            baos.write(new byte[]{33, 0});  /* charset  = UTF8 */
+            int len = 1;
+
+            /* Sensible predefined length - since we're dealing with I_S here, most char fields are 64 char long */
+            switch (type.getSqlType()) {
+                case Types.VARCHAR:
+                case Types.CHAR:
+                    len = 64 * 3; /* 3 bytes per UTF8 char */
+                    break;
+                case Types.SMALLINT:
+                    len = 5;
+                    break;
+                case Types.NULL:
+                    len = 0;
+                    break;
+                default:
+                    len = 1;
+                    break;
+            }
+            baos.write(new byte[]{(byte) len, 0, 0, 0});  /*  length */
+            baos.write(MySQLType.toServer(type.getSqlType()).getType());
+            baos.write(new byte[]{0, 0});   /* flags */
+            baos.write(0); /* decimals */
+            baos.write(new byte[]{0, 0});   /* filler */
+            return new MySQLColumnInformation(new RawPacket(ByteBuffer.wrap(baos.toByteArray()).order(ByteOrder.LITTLE_ENDIAN), 0));
+        } catch (IOException ioe) {
+            throw new RuntimeException("unexpected condition", ioe);
+        }
+    }
 
     private String getString(int idx) {
         try {

@@ -1,8 +1,6 @@
 package org.mariadb.jdbc.failover;
 
 import org.junit.*;
-import org.junit.Test;
-import org.mariadb.jdbc.internal.mysql.FailoverProxy;
 
 import java.sql.*;
 import java.util.HashMap;
@@ -172,7 +170,7 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
     public void failoverDuringMasterSetReadOnly() throws Throwable {
         int masterServerId = -1;
         connection = getNewConnection("&retriesAllDown=1", true);
-                masterServerId = getServerId(connection);
+        masterServerId = getServerId(connection);
 
         stopProxy(masterServerId);
 
@@ -475,20 +473,6 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
         Assert.assertTrue(connection.isReadOnly());
     }
 
-    class MutableInt {
-        int value = 1; // note that we start at 1 since we're counting
-
-        public void increment() {
-            ++value;
-        }
-
-        public int get() {
-            return value;
-        }
-    }
-
-
-
     /**
      * CONJ-79
      *
@@ -518,7 +502,7 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
         try {
             ps = connection.prepareStatement("SELECT 2");
             ps.execute();
-        } catch (Exception e){
+        } catch (Exception e) {
             Assert.fail();
         }
 
@@ -535,16 +519,29 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
     /**
      * CONJ-166
      * Connection error code must be thrown
+     *
      * @throws SQLException
      */
     @Test
     public void testAccessDeniedErrorCode() throws SQLException {
         try {
-            DriverManager.getConnection(initialUrl+"&retriesAllDown=1", "foouser", "foopwd");
+            DriverManager.getConnection(initialUrl + "&retriesAllDown=1", "foouser", "foopwd");
             Assert.fail();
         } catch (SQLException e) {
             Assert.assertTrue("28000".equals(e.getSQLState()));
             Assert.assertTrue(1045 == e.getErrorCode());
+        }
+    }
+
+    class MutableInt {
+        int value = 1; // note that we start at 1 since we're counting
+
+        public void increment() {
+            ++value;
+        }
+
+        public int get() {
+            return value;
         }
     }
 

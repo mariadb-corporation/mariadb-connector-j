@@ -69,9 +69,9 @@ public class AbbreviatedMySQLClientAuthPacket implements CommandPacket {
 
 
     public int send(final OutputStream os) throws IOException {
-        PacketOutputStream pos = (PacketOutputStream)os;
+        PacketOutputStream pos = (PacketOutputStream) os;
         pos.startPacket(1);
-        pos.write(writeBuffer.getBuffer(),0,writeBuffer.getLength());
+        pos.write(writeBuffer.getBuffer(), 0, writeBuffer.getLength());
         pos.finishPacket();
         return 1;
     }

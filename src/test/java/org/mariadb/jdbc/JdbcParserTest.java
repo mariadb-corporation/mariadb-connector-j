@@ -58,6 +58,7 @@ public class JdbcParserTest {
         Assert.assertTrue("toto".equals(jdbc.getOptions().password));
         Assert.assertTrue("toto".equals(jdbc.getPassword()));
     }
+
     @Test
     public void testOptionParseIntegerMinimum() throws Throwable {
         JDBCUrl jdbc = JDBCUrl.parse("jdbc:mysql://localhost/test?user=root&autoReconnect=true&validConnectionTimeout=0&connectTimeout=5");
@@ -67,7 +68,7 @@ public class JdbcParserTest {
         Assert.assertTrue("root".equals(jdbc.getOptions().user));
     }
 
-    @Test(expected = SQLException.class )
+    @Test(expected = SQLException.class)
     public void testOptionParseIntegerNotPossible() throws Throwable {
         JDBCUrl.parse("jdbc:mysql://localhost/test?user=root&autoReconnect=true&validConnectionTimeout=-2&connectTimeout=5");
         Assert.fail();
@@ -78,13 +79,15 @@ public class JdbcParserTest {
         String url = "jdbc:mysql://master:3306,slave1:3307,slave2:3308/database";
         JDBCUrl jdbcUrl = JDBCUrl.parse(url);
     }
+
     @Test
-    public void testJDBCParserSimpleIPv4basicError() throws SQLException  {
+    public void testJDBCParserSimpleIPv4basicError() throws SQLException {
         JDBCUrl jdbcUrl = JDBCUrl.parse(null);
         Assert.assertTrue(jdbcUrl == null);
     }
+
     @Test
-    public void testJDBCParserSimpleIPv4basicwithoutDatabase() throws SQLException  {
+    public void testJDBCParserSimpleIPv4basicwithoutDatabase() throws SQLException {
         String url = "jdbc:mysql://master:3306,slave1:3307,slave2:3308/";
         JDBCUrl jdbcUrl = JDBCUrl.parse(url);
         Assert.assertNull(jdbcUrl.getDatabase());
@@ -97,11 +100,11 @@ public class JdbcParserTest {
     }
 
     @Test
-    public void testJDBCParserSimpleIPv4Properties() throws SQLException  {
+    public void testJDBCParserSimpleIPv4Properties() throws SQLException {
         String url = "jdbc:mysql://master:3306,slave1:3307,slave2:3308/database?autoReconnect=true";
         Properties prop = new Properties();
-        prop.setProperty("user","greg");
-        prop.setProperty("password","pass");
+        prop.setProperty("user", "greg");
+        prop.setProperty("password", "pass");
 
         JDBCUrl jdbcUrl = JDBCUrl.parse(url, prop);
         Assert.assertTrue("database".equals(jdbcUrl.getDatabase()));
@@ -115,7 +118,7 @@ public class JdbcParserTest {
     }
 
     @Test
-    public void testJDBCParserSimpleIPv4() throws SQLException  {
+    public void testJDBCParserSimpleIPv4() throws SQLException {
         String url = "jdbc:mysql://master:3306,slave1:3307,slave2:3308/database?user=greg&password=pass";
         JDBCUrl jdbcUrl = JDBCUrl.parse(url);
         Assert.assertTrue("database".equals(jdbcUrl.getDatabase()));
@@ -129,7 +132,7 @@ public class JdbcParserTest {
 
 
     @Test
-    public void testJDBCParserSimpleIPv6() throws SQLException  {
+    public void testJDBCParserSimpleIPv6() throws SQLException {
         String url = "jdbc:mysql://[2001:0660:7401:0200:0000:0000:0edf:bdd7]:3306,[2001:660:7401:200::edf:bdd7]:3307/database?user=greg&password=pass";
         JDBCUrl jdbcUrl = JDBCUrl.parse(url);
         Assert.assertTrue("database".equals(jdbcUrl.getDatabase()));
@@ -142,7 +145,7 @@ public class JdbcParserTest {
 
 
     @Test
-    public void testJDBCParserParameter()  throws SQLException {
+    public void testJDBCParserParameter() throws SQLException {
         String url = "jdbc:mysql://address=(type=master)(port=3306)(host=master1),address=(port=3307)(type=master)(host=master2),address=(type=slave)(host=slave1)(port=3308)/database?user=greg&password=pass";
         JDBCUrl jdbcUrl = JDBCUrl.parse(url);
         Assert.assertTrue("database".equals(jdbcUrl.getDatabase()));
@@ -160,27 +163,27 @@ public class JdbcParserTest {
         try {
             JDBCUrl.parse(url);
             Assert.fail();
-        }catch (SQLException e) {
+        } catch (SQLException e) {
             Assert.assertTrue(true);
         }
     }
 
     @Test
-    public void testJDBCParserHAModeNone() throws SQLException  {
+    public void testJDBCParserHAModeNone() throws SQLException {
         String url = "jdbc:mysql://localhost/database";
         JDBCUrl jdbc = JDBCUrl.parse(url);
         Assert.assertTrue(jdbc.getHaMode().equals(UrlHAMode.NONE));
     }
 
     @Test
-    public void testJDBCParserHAModeLoadReplication() throws SQLException  {
+    public void testJDBCParserHAModeLoadReplication() throws SQLException {
         String url = "jdbc:mysql:replication://localhost/database";
         JDBCUrl jdbc = JDBCUrl.parse(url);
         Assert.assertTrue(jdbc.getHaMode().equals(UrlHAMode.REPLICATION));
     }
 
     @Test
-    public void testJDBCParserReplicationParameter() throws SQLException  {
+    public void testJDBCParserReplicationParameter() throws SQLException {
         String url = "jdbc:mysql:replication://address=(type=master)(port=3306)(host=master1),address=(port=3307)(type=master)(host=master2),address=(type=slave)(host=slave1)(port=3308)/database?user=greg&password=pass";
         JDBCUrl jdbcUrl = JDBCUrl.parse(url);
         Assert.assertTrue("database".equals(jdbcUrl.getDatabase()));
@@ -193,7 +196,7 @@ public class JdbcParserTest {
     }
 
     @Test
-    public void testJDBCParserReplicationParameterWithoutType() throws SQLException  {
+    public void testJDBCParserReplicationParameterWithoutType() throws SQLException {
         String url = "jdbc:mysql:replication://master1,slave1,slave2/database";
         JDBCUrl jdbcUrl = JDBCUrl.parse(url);
         Assert.assertTrue("database".equals(jdbcUrl.getDatabase()));
@@ -204,7 +207,7 @@ public class JdbcParserTest {
     }
 
     @Test
-    public void testJDBCParserHAModeLoadAurora() throws SQLException  {
+    public void testJDBCParserHAModeLoadAurora() throws SQLException {
         String url = "jdbc:mysql:aurora://localhost/database";
         JDBCUrl jdbc = JDBCUrl.parse(url);
         Assert.assertTrue(jdbc.getHaMode().equals(UrlHAMode.AURORA));
@@ -214,7 +217,7 @@ public class JdbcParserTest {
      * CONJ-167 : Driver is throwing IllegalArgumentException instead of returning null
      */
     @Test
-    public void checkOtherDriverCompatibility() throws SQLException  {
+    public void checkOtherDriverCompatibility() throws SQLException {
         String url = "jdbc:h2:mem:RZM;DB_CLOSE_DELAY=-1";
         JDBCUrl jdbc = JDBCUrl.parse(url);
         Assert.assertTrue(jdbc == null);

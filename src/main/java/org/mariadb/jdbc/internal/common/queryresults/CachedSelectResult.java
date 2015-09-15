@@ -57,10 +57,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-public  class CachedSelectResult extends SelectQueryResult {
+public class CachedSelectResult extends SelectQueryResult {
 
-    private  List<ValueObject[]> resultSet;
     protected short warningCount;
+    private List<ValueObject[]> resultSet;
     private int rowPointer;
 
     public CachedSelectResult(MySQLColumnInformation[] ci, List<ValueObject[]> result, short warningCount) {
@@ -72,17 +72,17 @@ public  class CachedSelectResult extends SelectQueryResult {
 
 
     public static CachedSelectResult createCachedSelectResult(StreamingSelectResult streamingResult) throws IOException, QueryException {
-         final List<ValueObject[]> valueObjects = new ArrayList<>();
+        final List<ValueObject[]> valueObjects = new ArrayList<>();
 
-        while(streamingResult.next()){
-           valueObjects.add(streamingResult.values);
+        while (streamingResult.next()) {
+            valueObjects.add(streamingResult.values);
         }
         CachedSelectResult qr = new CachedSelectResult(streamingResult.columnInformation, valueObjects, streamingResult.warningCount);
         streamingResult.close();
         return qr;
     }
 
-    public boolean next() throws IOException, QueryException{
+    public boolean next() throws IOException, QueryException {
         rowPointer++;
         return rowPointer < resultSet.size();
     }
@@ -136,15 +136,17 @@ public  class CachedSelectResult extends SelectQueryResult {
     public ResultSetType getResultSetType() {
         return ResultSetType.SELECT;
     }
+
     public boolean isBeforeFirst() {
-       if (resultSet.size() == 0)
-           return false;
-       return getRowPointer() == -1 ;
+        if (resultSet.size() == 0)
+            return false;
+        return getRowPointer() == -1;
     }
+
     public boolean isAfterLast() {
-    	if (resultSet.size() == 0) {
-    		return false;
-    	}
-       return rowPointer >= resultSet.size();
+        if (resultSet.size() == 0) {
+            return false;
+        }
+        return rowPointer >= resultSet.size();
     }
 }

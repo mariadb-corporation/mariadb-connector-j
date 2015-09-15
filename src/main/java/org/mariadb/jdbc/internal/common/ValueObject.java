@@ -1,4 +1,3 @@
-
 package org.mariadb.jdbc.internal.common;
 
 import java.io.InputStream;
@@ -51,6 +50,8 @@ public interface ValueObject {
     boolean isNull();
 
     int getDisplayLength();
+
     Clob getClob();
+
     Blob getBlob();
 }

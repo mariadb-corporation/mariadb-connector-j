@@ -64,12 +64,17 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 
 public final class MySQLConnection implements Connection {
+    public final ReentrantReadWriteLock lock;
     /**
      * the protocol to communicate with.
      */
     private final Protocol protocol;
-    public final ReentrantReadWriteLock lock;
-
+    public MySQLPooledConnection pooledConnection;
+    boolean noBackslashEscapes;
+    boolean nullCatalogMeansCurrent = true;
+    int autoIncrementIncrement;
+    Calendar cal;
+    volatile int lowercaseTableNames = -1;
     /**
      * save point count - to generate good names for the savepoints.
      */
@@ -78,29 +83,17 @@ public final class MySQLConnection implements Connection {
      * the properties for the client.
      */
     private Options options;
-
-    public MySQLPooledConnection pooledConnection;
-
-
     private boolean warningsCleared;
-    boolean noBackslashEscapes;
-    boolean nullCatalogMeansCurrent = true;
-    int autoIncrementIncrement;
-    Calendar cal;
 
     /**
      * Creates a new connection with a given protocol and query factory.
      *
-     * @param protocol     the protocol to use.
+     * @param protocol the protocol to use.
      */
     private MySQLConnection(Protocol protocol, ReentrantReadWriteLock lock) throws SQLException {
         this.protocol = protocol;
         options = protocol.getOptions();
         this.lock = lock;
-    }
-
-    Protocol getProtocol() {
-        return protocol;
     }
 
     static TimeZone getTimeZone(String id) throws SQLException {
@@ -133,8 +126,23 @@ public final class MySQLConnection implements Connection {
         return connection;
     }
 
+    public static String quoteIdentifier(String s) {
+        return "`" + s.replaceAll("`", "``") + "`";
+    }
+
+    public static String unquoteIdentifier(String s) {
+        if (s != null && s.startsWith("`") && s.endsWith("`") && s.length() >= 2) {
+            return s.substring(1, s.length() - 1).replace("``", "`");
+        }
+        return s;
+    }
+
+    Protocol getProtocol() {
+        return protocol;
+    }
+
     int getAutoIncrementIncrement() {
-        if(autoIncrementIncrement == 0) {
+        if (autoIncrementIncrement == 0) {
             try {
                 ResultSet rs = createStatement().executeQuery("select @@auto_increment_increment");
                 rs.next();
@@ -145,6 +153,7 @@ public final class MySQLConnection implements Connection {
         }
         return autoIncrementIncrement;
     }
+
     /**
      * creates a new statement.
      *
@@ -171,6 +180,7 @@ public final class MySQLConnection implements Connection {
             }
         }
     }
+
     /**
      * creates a new prepared statement. Only client side prepared statement emulation right now.
      *
@@ -186,6 +196,7 @@ public final class MySQLConnection implements Connection {
 
     /**
      * check if SQL request is "preparable" and has parameter
+     *
      * @param sql
      * @return
      */
@@ -199,7 +210,7 @@ public final class MySQLConnection implements Connection {
                 || cleanSql.startsWith("DELETE")) {
 
             //delete comment to avoid find ? in comment
-            cleanSql = cleanSql.replaceAll("((?<![\\\\])['\"])((?:.(?!(?<![\\\\])\\1))*.?)\\1","");
+            cleanSql = cleanSql.replaceAll("((?<![\\\\])['\"])((?:.(?!(?<![\\\\])\\1))*.?)\\1", "");
 
             if (cleanSql.indexOf("?") > 0) return true;
             return false;
@@ -233,9 +244,18 @@ public final class MySQLConnection implements Connection {
         return new MySQLCallableStatement(this, sql);
     }
 
-
     public String nativeSQL(final String sql) throws SQLException {
-        return Utils.nativeSQL(sql,noBackslashEscapes);
+        return Utils.nativeSQL(sql, noBackslashEscapes);
+    }
+
+    /**
+     * returns true if statements on this connection are auto commited.
+     *
+     * @return true if auto commit is on.
+     * @throws SQLException if there is an error
+     */
+    public boolean getAutoCommit() throws SQLException {
+        return protocol.getAutocommit();
     }
 
     /**
@@ -250,20 +270,10 @@ public final class MySQLConnection implements Connection {
 
         Statement stmt = createStatement();
         try {
-            stmt.executeUpdate("set autocommit="+((autoCommit)?"1":"0"));
+            stmt.executeUpdate("set autocommit=" + ((autoCommit) ? "1" : "0"));
         } finally {
             stmt.close();
         }
-    }
-
-    /**
-     * returns true if statements on this connection are auto commited.
-     *
-     * @return true if auto commit is on.
-     * @throws SQLException if there is an error
-     */
-    public boolean getAutoCommit() throws SQLException {
-        return protocol.getAutocommit();
     }
 
     /**
@@ -274,7 +284,8 @@ public final class MySQLConnection implements Connection {
     public void commit() throws SQLException {
         lock.writeLock().lock();
         try {
-            if (getAutoCommit()) throw new SQLException("Error : committing transaction on a autocommit connection", "HY012");
+            if (getAutoCommit())
+                throw new SQLException("Error : committing transaction on a autocommit connection", "HY012");
             Statement st = createStatement();
             try {
                 st.execute("COMMIT");
@@ -335,8 +346,19 @@ public final class MySQLConnection implements Connection {
      * @throws SQLException if there is a problem creating the meta data.
      */
     public DatabaseMetaData getMetaData() throws SQLException {
-        return new MySQLDatabaseMetaData(this,protocol.getUsername(),
-                "jdbc:mysql://" + protocol.getHost()  + ":" + protocol.getPort() + "/" + protocol.getDatabase());
+        return new MySQLDatabaseMetaData(this, protocol.getUsername(),
+                "jdbc:mysql://" + protocol.getHost() + ":" + protocol.getPort() + "/" + protocol.getDatabase());
+    }
+
+    /**
+     * Retrieves whether this <code>Connection</code> object is in read-only mode.
+     *
+     * @return <code>true</code> if this <code>Connection</code> object is read-only; <code>false</code> otherwise
+     * @throws java.sql.SQLException SQLException if a database access error occurs or this method is called on a closed
+     *                               connection
+     */
+    public boolean isReadOnly() throws SQLException {
+        return protocol.getReadonly();
     }
 
     /**
@@ -354,55 +376,10 @@ public final class MySQLConnection implements Connection {
     }
 
     /**
-     * Retrieves whether this <code>Connection</code> object is in read-only mode.
-     *
-     * @return <code>true</code> if this <code>Connection</code> object is read-only; <code>false</code> otherwise
-     * @throws java.sql.SQLException SQLException if a database access error occurs or this method is called on a closed
-     *                               connection
-     */
-    public boolean isReadOnly() throws SQLException {
-        return protocol.getReadonly();
-    }
-
-    public static String quoteIdentifier(String s) {
-        return "`" + s.replaceAll("`","``") + "`";
-    }
-
-    public static String unquoteIdentifier(String s) {
-        if (s != null && s.startsWith("`") && s.endsWith("`") && s.length()>= 2) {
-            return s.substring(1, s.length()-1).replace("``", "`");
-        }
-        return s;
-    }
-    /**
-     * Sets the given catalog name in order to select a subspace of this <code>Connection</code> object's database in
-     * which to work.
-     *
-     * If the driver does not support catalogs, it will silently ignore this request.
-     *
-     * MySQL treats catalogs and databases as equivalent
-     *
-     * @param catalog the name of a catalog (subspace in this <code>Connection</code> object's database) in which to
-     *                work
-     * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed connection
-     * @see #getCatalog
-     */
-    public void setCatalog(final String catalog) throws SQLException {
-        if (catalog == null){
-            throw new SQLException("The catalog name may not be null", "XAE05");
-        }
-        try {
-            protocol.setCatalog(catalog);
-        } catch (QueryException e) {
-            SQLExceptionMapper.throwException(e, this, null);
-        }
-    }
-
-    /**
      * Retrieves this <code>Connection</code> object's current catalog name.
-     *
+     * <p/>
      * catalogs are not supported in drizzle
-     *
+     * <p/>
      * TODO: Explain the wrapper interface to be able to change database
      *
      * @return the current catalog name or <code>null</code> if there is none
@@ -425,23 +402,24 @@ public final class MySQLConnection implements Connection {
     }
 
     /**
-     * Attempts to change the transaction isolation level for this <code>Connection</code> object to the one given. The
-     * constants defined in the interface <code>Connection</code> are the possible transaction isolation levels.
+     * Sets the given catalog name in order to select a subspace of this <code>Connection</code> object's database in
+     * which to work.
+     * <p/>
+     * If the driver does not support catalogs, it will silently ignore this request.
+     * <p/>
+     * MySQL treats catalogs and databases as equivalent
      *
-     * <B>Note:</B> If this method is called during a transaction, the result is implementation-defined.
-     *
-     * @param level one of the following <code>Connection</code> constants: <code>Connection.TRANSACTION_READ_UNCOMMITTED</code>,
-     *              <code>Connection.TRANSACTION_READ_COMMITTED</code>, <code>Connection.TRANSACTION_REPEATABLE_READ</code>,
-     *              or <code>Connection.TRANSACTION_SERIALIZABLE</code>. (Note that <code>Connection.TRANSACTION_NONE</code>
-     *              cannot be used because it specifies that transactions are not supported.)
-     * @throws java.sql.SQLException if a database access error occurs, this method is called on a closed connection or
-     *                               the given parameter is not one of the <code>Connection</code> constants
-     * @see java.sql.DatabaseMetaData#supportsTransactionIsolationLevel
-     * @see #getTransactionIsolation
+     * @param catalog the name of a catalog (subspace in this <code>Connection</code> object's database) in which to
+     *                work
+     * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed connection
+     * @see #getCatalog
      */
-    public void setTransactionIsolation(final int level) throws SQLException {
+    public void setCatalog(final String catalog) throws SQLException {
+        if (catalog == null) {
+            throw new SQLException("The catalog name may not be null", "XAE05");
+        }
         try {
-            protocol.setTransactionIsolation(level);
+            protocol.setCatalog(catalog);
         } catch (QueryException e) {
             SQLExceptionMapper.throwException(e, this, null);
         }
@@ -451,9 +429,9 @@ public final class MySQLConnection implements Connection {
      * Retrieves this <code>Connection</code> object's current transaction isolation level.
      *
      * @return the current transaction isolation level, which will be one of the following constants:
-     *         <code>Connection.TRANSACTION_READ_UNCOMMITTED</code>, <code>Connection.TRANSACTION_READ_COMMITTED</code>,
-     *         <code>Connection.TRANSACTION_REPEATABLE_READ</code>, <code>Connection.TRANSACTION_SERIALIZABLE</code>, or
-     *         <code>Connection.TRANSACTION_NONE</code>.
+     * <code>Connection.TRANSACTION_READ_UNCOMMITTED</code>, <code>Connection.TRANSACTION_READ_COMMITTED</code>,
+     * <code>Connection.TRANSACTION_REPEATABLE_READ</code>, <code>Connection.TRANSACTION_SERIALIZABLE</code>, or
+     * <code>Connection.TRANSACTION_NONE</code>.
      * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed connection
      * @see #setTransactionIsolation
      */
@@ -482,16 +460,39 @@ public final class MySQLConnection implements Connection {
     }
 
     /**
+     * Attempts to change the transaction isolation level for this <code>Connection</code> object to the one given. The
+     * constants defined in the interface <code>Connection</code> are the possible transaction isolation levels.
+     * <p/>
+     * <B>Note:</B> If this method is called during a transaction, the result is implementation-defined.
+     *
+     * @param level one of the following <code>Connection</code> constants: <code>Connection.TRANSACTION_READ_UNCOMMITTED</code>,
+     *              <code>Connection.TRANSACTION_READ_COMMITTED</code>, <code>Connection.TRANSACTION_REPEATABLE_READ</code>,
+     *              or <code>Connection.TRANSACTION_SERIALIZABLE</code>. (Note that <code>Connection.TRANSACTION_NONE</code>
+     *              cannot be used because it specifies that transactions are not supported.)
+     * @throws java.sql.SQLException if a database access error occurs, this method is called on a closed connection or
+     *                               the given parameter is not one of the <code>Connection</code> constants
+     * @see java.sql.DatabaseMetaData#supportsTransactionIsolationLevel
+     * @see #getTransactionIsolation
+     */
+    public void setTransactionIsolation(final int level) throws SQLException {
+        try {
+            protocol.setTransactionIsolation(level);
+        } catch (QueryException e) {
+            SQLExceptionMapper.throwException(e, this, null);
+        }
+    }
+
+    /**
      * Not yet implemented: Protocol needs to store any warnings related to connections
-     *
-     *
+     * <p/>
+     * <p/>
      * Retrieves the first warning reported by calls on this <code>Connection</code> object.  If there is more than one
      * warning, subsequent warnings will be chained to the first one and can be retrieved by calling the method
      * <code>SQLWarning.getNextWarning</code> on the warning that was retrieved previously.
-     *
+     * <p/>
      * This method may not be called on a closed connection; doing so will cause an <code>SQLException</code> to be
      * thrown.
-     *
+     * <p/>
      * <P><B>Note:</B> Subsequent warnings will be chained to this SQLWarning.
      *
      * @return the first <code>SQLWarning</code> object or <code>null</code> if there are none
@@ -510,24 +511,22 @@ public final class MySQLConnection implements Connection {
             st = this.createStatement();
             rs = st.executeQuery("show warnings");
             // returned result set has 'level', 'code' and 'message' columns, in this order.
-            while(rs.next()) {
+            while (rs.next()) {
                 int code = rs.getInt(2);
                 String message = rs.getString(3);
                 SQLWarning w = new SQLWarning(message, SQLExceptionMapper.mapMySQLCodeToSQLState(code), code);
                 if (first == null) {
                     first = w;
                     last = w;
-                }
-                else {
+                } else {
                     last.setNextWarning(w);
                     last = w;
                 }
             }
-        }
-        finally {
+        } finally {
             if (rs != null)
                 rs.close();
-            if(st != null)
+            if (st != null)
                 st.close();
         }
         return first;
@@ -563,7 +562,7 @@ public final class MySQLConnection implements Connection {
      * @param resultSetConcurrency a concurrency type; one of <code>ResultSet.CONCUR_READ_ONLY</code> or
      *                             <code>ResultSet.CONCUR_UPDATABLE</code>
      * @return a new <code>Statement</code> object that will generate <code>ResultSet</code> objects with the given type
-     *         and concurrency
+     * and concurrency
      * @throws java.sql.SQLException if a database access error occurs, this method is called on a closed connection or
      *                               the given parameters are not <code>ResultSet</code> constants indicating type and
      *                               concurrency
@@ -587,7 +586,7 @@ public final class MySQLConnection implements Connection {
      * @param resultSetConcurrency a concurrency type; one of <code>ResultSet.CONCUR_READ_ONLY</code> or
      *                             <code>ResultSet.CONCUR_UPDATABLE</code>
      * @return a new PreparedStatement object containing the pre-compiled SQL statement that will produce
-     *         <code>ResultSet</code> objects with the given type and concurrency
+     * <code>ResultSet</code> objects with the given type and concurrency
      * @throws java.sql.SQLException if a database access error occurs, this method is called on a closed connection or
      *                               the given parameters are not <code>ResultSet</code> constants indicating type and
      *                               concurrency
@@ -612,16 +611,15 @@ public final class MySQLConnection implements Connection {
      * @param resultSetConcurrency a concurrency type; one of <code>ResultSet.CONCUR_READ_ONLY</code> or
      *                             <code>ResultSet.CONCUR_UPDATABLE</code>
      * @return a new <code>CallableStatement</code> object containing the pre-compiled SQL statement that will produce
-     *         <code>ResultSet</code> objects with the given type and concurrency
-     * @throws java.sql.SQLException if a database access error occurs, this method is called on a closed connection or
-     *                               the given parameters are not <code>ResultSet</code> constants indicating type and
-     *                               concurrency
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method or this method is not supported for
-     *                               the specified result set type and result set concurrency.
+     * <code>ResultSet</code> objects with the given type and concurrency
+     * @throws java.sql.SQLException                    if a database access error occurs, this method is called on a closed connection or
+     *                                                  the given parameters are not <code>ResultSet</code> constants indicating type and
+     *                                                  concurrency
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method or this method is not supported for
+     *                                                  the specified result set type and result set concurrency.
      */
     public CallableStatement prepareCall(final String sql, final int resultSetType, final int resultSetConcurrency) throws SQLException {
-        return new MySQLCallableStatement(this,sql);
+        return new MySQLCallableStatement(this, sql);
     }
 
     /**
@@ -629,14 +627,13 @@ public final class MySQLConnection implements Connection {
      * has added an entry, the type map returned will be empty.
      *
      * @return the <code>java.util.Map</code> object associated with this <code>Connection</code> object
-     * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed connection
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if a database access error occurs or this method is called on a closed connection
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @see #setTypeMap
      * @since 1.2
      */
     public Map<String, Class<?>> getTypeMap() throws SQLException {
-        return  null;
+        return null;
     }
 
     /**
@@ -645,10 +642,9 @@ public final class MySQLConnection implements Connection {
      *
      * @param map the <code>java.util.Map</code> object to install as the replacement for this <code>Connection</code>
      *            object's default type map
-     * @throws java.sql.SQLException if a database access error occurs, this method is called on a closed connection or
-     *                               the given parameter is not a <code>java.util.Map</code> object
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if a database access error occurs, this method is called on a closed connection or
+     *                                                  the given parameter is not a <code>java.util.Map</code> object
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @see #getTypeMap
      */
     public void setTypeMap(final Map<String, Class<?>> map) throws SQLException {
@@ -656,31 +652,11 @@ public final class MySQLConnection implements Connection {
     }
 
     /**
-     * Changes the default holdability of <code>ResultSet</code> objects created using this <code>Connection</code>
-     * object to the given holdability.  The default holdability of <code>ResultSet</code> objects can be be determined
-     * by invoking {@link java.sql.DatabaseMetaData#getResultSetHoldability}.
-     *
-     * @param holdability a <code>ResultSet</code> holdability constant; one of <code>ResultSet.HOLD_CURSORS_OVER_COMMIT</code>
-     *                    or <code>ResultSet.CLOSE_CURSORS_AT_COMMIT</code>
-     * @throws java.sql.SQLException if a database access occurs, this method is called on a closed connection, or the
-     *                               given parameter is not a <code>ResultSet</code> constant indicating holdability
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the given holdability is not supported
-     * @see #getHoldability
-     * @see java.sql.DatabaseMetaData#getResultSetHoldability
-     * @see java.sql.ResultSet
-     * @since 1.4
-     */
-    public void setHoldability(final int holdability) throws SQLException {
-
-    }
-
-    /**
      * Retrieves the current holdability of <code>ResultSet</code> objects created using this <code>Connection</code>
      * object.
      *
      * @return the holdability, one of <code>ResultSet.HOLD_CURSORS_OVER_COMMIT</code> or
-     *         <code>ResultSet.CLOSE_CURSORS_AT_COMMIT</code>
+     * <code>ResultSet.CLOSE_CURSORS_AT_COMMIT</code>
      * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed connection
      * @see #setHoldability
      * @see java.sql.DatabaseMetaData#getResultSetHoldability
@@ -692,18 +668,36 @@ public final class MySQLConnection implements Connection {
     }
 
     /**
+     * Changes the default holdability of <code>ResultSet</code> objects created using this <code>Connection</code>
+     * object to the given holdability.  The default holdability of <code>ResultSet</code> objects can be be determined
+     * by invoking {@link java.sql.DatabaseMetaData#getResultSetHoldability}.
+     *
+     * @param holdability a <code>ResultSet</code> holdability constant; one of <code>ResultSet.HOLD_CURSORS_OVER_COMMIT</code>
+     *                    or <code>ResultSet.CLOSE_CURSORS_AT_COMMIT</code>
+     * @throws java.sql.SQLException                    if a database access occurs, this method is called on a closed connection, or the
+     *                                                  given parameter is not a <code>ResultSet</code> constant indicating holdability
+     * @throws java.sql.SQLFeatureNotSupportedException if the given holdability is not supported
+     * @see #getHoldability
+     * @see java.sql.DatabaseMetaData#getResultSetHoldability
+     * @see java.sql.ResultSet
+     * @since 1.4
+     */
+    public void setHoldability(final int holdability) throws SQLException {
+
+    }
+
+    /**
      * Creates an unnamed savepoint in the current transaction and returns the new <code>Savepoint</code> object that
      * represents it.
-     *
+     * <p/>
      * if setSavepoint is invoked outside of an active transaction, a transaction will be started at this newly
      * created savepoint.
      *
      * @return the new <code>Savepoint</code> object
-     * @throws java.sql.SQLException if a database access error occurs, this method is called while participating in a
-     *                               distributed transaction, this method is called on a closed connection or this
-     *                               <code>Connection</code> object is currently in auto-commit mode
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if a database access error occurs, this method is called while participating in a
+     *                                                  distributed transaction, this method is called on a closed connection or this
+     *                                                  <code>Connection</code> object is currently in auto-commit mode
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @see java.sql.Savepoint
      * @since 1.4
      */
@@ -714,17 +708,16 @@ public final class MySQLConnection implements Connection {
     /**
      * Creates a savepoint with the given name in the current transaction and returns the new <code>Savepoint</code>
      * object that represents it.
-     *
+     * <p/>
      * if setSavepoint is invoked outside of an active transaction, a transaction will be started at this newly
      * created savepoint.
      *
      * @param name a <code>String</code> containing the name of the savepoint
      * @return the new <code>Savepoint</code> object
-     * @throws java.sql.SQLException if a database access error occurs, this method is called while participating in a
-     *                               distributed transaction, this method is called on a closed connection or this
-     *                               <code>Connection</code> object is currently in auto-commit mode
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if a database access error occurs, this method is called while participating in a
+     *                                                  distributed transaction, this method is called on a closed connection or this
+     *                                                  <code>Connection</code> object is currently in auto-commit mode
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @see java.sql.Savepoint
      * @since 1.4
      */
@@ -738,16 +731,15 @@ public final class MySQLConnection implements Connection {
 
     /**
      * Undoes all changes made after the given <code>Savepoint</code> object was set.
-     *
+     * <p/>
      * This method should be used only when auto-commit has been disabled.
      *
      * @param savepoint the <code>Savepoint</code> object to roll back to
-     * @throws java.sql.SQLException if a database access error occurs, this method is called while participating in a
-     *                               distributed transaction, this method is called on a closed connection, the
-     *                               <code>Savepoint</code> object is no longer valid, or this <code>Connection</code>
-     *                               object is currently in auto-commit mode
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if a database access error occurs, this method is called while participating in a
+     *                                                  distributed transaction, this method is called on a closed connection, the
+     *                                                  <code>Savepoint</code> object is no longer valid, or this <code>Connection</code>
+     *                                                  object is currently in auto-commit mode
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @see java.sql.Savepoint
      * @see #rollback
      * @since 1.4
@@ -764,11 +756,10 @@ public final class MySQLConnection implements Connection {
      * be thrown.
      *
      * @param savepoint the <code>Savepoint</code> object to be removed
-     * @throws java.sql.SQLException if a database access error occurs, this method is called on a closed connection or
-     *                               the given <code>Savepoint</code> object is not a valid savepoint in the current
-     *                               transaction
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if a database access error occurs, this method is called on a closed connection or
+     *                                                  the given <code>Savepoint</code> object is not a valid savepoint in the current
+     *                                                  transaction
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.4
      */
     public void releaseSavepoint(final Savepoint savepoint) throws SQLException {
@@ -789,13 +780,12 @@ public final class MySQLConnection implements Connection {
      * @param resultSetHoldability one of the following <code>ResultSet</code> constants: <code>ResultSet.HOLD_CURSORS_OVER_COMMIT</code>
      *                             or <code>ResultSet.CLOSE_CURSORS_AT_COMMIT</code>
      * @return a new <code>Statement</code> object that will generate <code>ResultSet</code> objects with the given
-     *         type, concurrency, and holdability
-     * @throws java.sql.SQLException if a database access error occurs, this method is called on a closed connection or
-     *                               the given parameters are not <code>ResultSet</code> constants indicating type,
-     *                               concurrency, and holdability
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method or this method is not supported for
-     *                               the specified result set type, result set holdability and result set concurrency.
+     * type, concurrency, and holdability
+     * @throws java.sql.SQLException                    if a database access error occurs, this method is called on a closed connection or
+     *                                                  the given parameters are not <code>ResultSet</code> constants indicating type,
+     *                                                  concurrency, and holdability
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method or this method is not supported for
+     *                                                  the specified result set type, result set holdability and result set concurrency.
      * @see java.sql.ResultSet
      * @since 1.4
      */
@@ -811,7 +801,7 @@ public final class MySQLConnection implements Connection {
     /**
      * Creates a <code>PreparedStatement</code> object that will generate <code>ResultSet</code> objects with the given
      * type, concurrency, and holdability.
-     *
+     * <p/>
      * This method is the same as the <code>prepareStatement</code> method above, but it allows the default result set
      * type, concurrency, and holdability to be overridden.
      *
@@ -824,13 +814,12 @@ public final class MySQLConnection implements Connection {
      * @param resultSetHoldability one of the following <code>ResultSet</code> constants: <code>ResultSet.HOLD_CURSORS_OVER_COMMIT</code>
      *                             or <code>ResultSet.CLOSE_CURSORS_AT_COMMIT</code>
      * @return a new <code>PreparedStatement</code> object, containing the pre-compiled SQL statement, that will
-     *         generate <code>ResultSet</code> objects with the given type, concurrency, and holdability
-     * @throws java.sql.SQLException if a database access error occurs, this method is called on a closed connection or
-     *                               the given parameters are not <code>ResultSet</code> constants indicating type,
-     *                               concurrency, and holdability
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method or this method is not supported for
-     *                               the specified result set type, result set holdability and result set concurrency.
+     * generate <code>ResultSet</code> objects with the given type, concurrency, and holdability
+     * @throws java.sql.SQLException                    if a database access error occurs, this method is called on a closed connection or
+     *                                                  the given parameters are not <code>ResultSet</code> constants indicating type,
+     *                                                  concurrency, and holdability
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method or this method is not supported for
+     *                                                  the specified result set type, result set holdability and result set concurrency.
      * @see java.sql.ResultSet
      * @since 1.4
      */
@@ -860,13 +849,12 @@ public final class MySQLConnection implements Connection {
      * @param resultSetHoldability one of the following <code>ResultSet</code> constants: <code>ResultSet.HOLD_CURSORS_OVER_COMMIT</code>
      *                             or <code>ResultSet.CLOSE_CURSORS_AT_COMMIT</code>
      * @return a new <code>CallableStatement</code> object, containing the pre-compiled SQL statement, that will
-     *         generate <code>ResultSet</code> objects with the given type, concurrency, and holdability
-     * @throws java.sql.SQLException if a database access error occurs, this method is called on a closed connection or
-     *                               the given parameters are not <code>ResultSet</code> constants indicating type,
-     *                               concurrency, and holdability
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method or this method is not supported for
-     *                               the specified result set type, result set holdability and result set concurrency.
+     * generate <code>ResultSet</code> objects with the given type, concurrency, and holdability
+     * @throws java.sql.SQLException                    if a database access error occurs, this method is called on a closed connection or
+     *                                                  the given parameters are not <code>ResultSet</code> constants indicating type,
+     *                                                  concurrency, and holdability
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method or this method is not supported for
+     *                                                  the specified result set type, result set holdability and result set concurrency.
      * @see java.sql.ResultSet
      * @since 1.4
      */
@@ -882,13 +870,13 @@ public final class MySQLConnection implements Connection {
      * The given constant tells the driver whether it should make auto-generated keys available for retrieval.  This
      * parameter is ignored if the SQL statement is not an <code>INSERT</code> statement, or an SQL statement able to
      * return auto-generated keys (the list of such statements is vendor-specific).
-     *
+     * <p/>
      * <B>Note:</B> This method is optimized for handling parametric SQL statements that benefit from precompilation. If
      * the driver supports precompilation, the method <code>prepareStatement</code> will send the statement to the
      * database for precompilation. Some drivers may not support precompilation. In this case, the statement may not be
      * sent to the database until the <code>PreparedStatement</code> object is executed.  This has no direct effect on
      * users; however, it does affect which methods throw certain SQLExceptions.
-     *
+     * <p/>
      * Result sets created using the returned <code>PreparedStatement</code> object will by default be type
      * <code>TYPE_FORWARD_ONLY</code> and have a concurrency level of <code>CONCUR_READ_ONLY</code>. The holdability of
      * the created result sets can be determined by calling {@link #getHoldability}.
@@ -897,13 +885,12 @@ public final class MySQLConnection implements Connection {
      * @param autoGeneratedKeys a flag indicating whether auto-generated keys should be returned; one of
      *                          <code>Statement.RETURN_GENERATED_KEYS</code> or <code>Statement.NO_GENERATED_KEYS</code>
      * @return a new <code>PreparedStatement</code> object, containing the pre-compiled SQL statement, that will have
-     *         the capability of returning auto-generated keys
-     * @throws java.sql.SQLException if a database access error occurs, this method is called on a closed connection or
-     *                               the given parameter is not a <code>Statement</code> constant indicating whether
-     *                               auto-generated keys should be returned
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method with a constant of
-     *                               Statement.RETURN_GENERATED_KEYS
+     * the capability of returning auto-generated keys
+     * @throws java.sql.SQLException                    if a database access error occurs, this method is called on a closed connection or
+     *                                                  the given parameter is not a <code>Statement</code> constant indicating whether
+     *                                                  auto-generated keys should be returned
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method with a constant of
+     *                                                  Statement.RETURN_GENERATED_KEYS
      * @since 1.4
      */
     public PreparedStatement prepareStatement(final String sql, final int autoGeneratedKeys) throws SQLException {
@@ -916,16 +903,16 @@ public final class MySQLConnection implements Connection {
      * auto-generated keys that should be made available.  The driver will ignore the array if the SQL statement is not
      * an <code>INSERT</code> statement, or an SQL statement able to return auto-generated keys (the list of such
      * statements is vendor-specific).
-     *
+     * <p/>
      * An SQL statement with or without IN parameters can be pre-compiled and stored in a <code>PreparedStatement</code>
      * object. This object can then be used to efficiently execute this statement multiple times.
-     *
+     * <p/>
      * <B>Note:</B> This method is optimized for handling parametric SQL statements that benefit from precompilation. If
      * the driver supports precompilation, the method <code>prepareStatement</code> will send the statement to the
      * database for precompilation. Some drivers may not support precompilation. In this case, the statement may not be
      * sent to the database until the <code>PreparedStatement</code> object is executed.  This has no direct effect on
      * users; however, it does affect which methods throw certain SQLExceptions.
-     *
+     * <p/>
      * Result sets created using the returned <code>PreparedStatement</code> object will by default be type
      * <code>TYPE_FORWARD_ONLY</code> and have a concurrency level of <code>CONCUR_READ_ONLY</code>. The holdability of
      * the created result sets can be determined by calling {@link #getHoldability}.
@@ -934,10 +921,9 @@ public final class MySQLConnection implements Connection {
      * @param columnIndexes an array of column indexes indicating the columns that should be returned from the inserted
      *                      row or rows
      * @return a new <code>PreparedStatement</code> object, containing the pre-compiled statement, that is capable of
-     *         returning the auto-generated keys designated by the given array of column indexes
-     * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed connection
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * returning the auto-generated keys designated by the given array of column indexes
+     * @throws java.sql.SQLException                    if a database access error occurs or this method is called on a closed connection
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.4
      */
     public PreparedStatement prepareStatement(final String sql, final int[] columnIndexes) throws SQLException {
@@ -950,16 +936,16 @@ public final class MySQLConnection implements Connection {
      * auto-generated keys that should be returned. The driver will ignore the array if the SQL statement is not an
      * <code>INSERT</code> statement, or an SQL statement able to return auto-generated keys (the list of such
      * statements is vendor-specific).
-     *
+     * <p/>
      * An SQL statement with or without IN parameters can be pre-compiled and stored in a <code>PreparedStatement</code>
      * object. This object can then be used to efficiently execute this statement multiple times.
-     *
+     * <p/>
      * <B>Note:</B> This method is optimized for handling parametric SQL statements that benefit from precompilation. If
      * the driver supports precompilation, the method <code>prepareStatement</code> will send the statement to the
      * database for precompilation. Some drivers may not support precompilation. In this case, the statement may not be
      * sent to the database until the <code>PreparedStatement</code> object is executed.  This has no direct effect on
      * users; however, it does affect which methods throw certain SQLExceptions.
-     *
+     * <p/>
      * Result sets created using the returned <code>PreparedStatement</code> object will by default be type
      * <code>TYPE_FORWARD_ONLY</code> and have a concurrency level of <code>CONCUR_READ_ONLY</code>. The holdability of
      * the created result sets can be determined by calling {@link #getHoldability}.
@@ -968,10 +954,9 @@ public final class MySQLConnection implements Connection {
      * @param columnNames an array of column names indicating the columns that should be returned from the inserted row
      *                    or rows
      * @return a new <code>PreparedStatement</code> object, containing the pre-compiled statement, that is capable of
-     *         returning the auto-generated keys designated by the given array of column names
-     * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed connection
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * returning the auto-generated keys designated by the given array of column names
+     * @throws java.sql.SQLException                    if a database access error occurs or this method is called on a closed connection
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.4
      */
     public PreparedStatement prepareStatement(final String sql, final String[] columnNames) throws SQLException {
@@ -984,11 +969,10 @@ public final class MySQLConnection implements Connection {
      * <code>Clob</code> interface may be used to add data to the <code>Clob</code>.
      *
      * @return An object that implements the <code>Clob</code> interface
-     * @throws java.sql.SQLException if an object that implements the <code>Clob</code> interface can not be
-     *                               constructed, this method is called on a closed connection or a database access
-     *                               error occurs.
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this data type
+     * @throws java.sql.SQLException                    if an object that implements the <code>Clob</code> interface can not be
+     *                                                  constructed, this method is called on a closed connection or a database access
+     *                                                  error occurs.
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this data type
      * @since 1.6
      */
     public Clob createClob() throws SQLException {
@@ -1001,11 +985,10 @@ public final class MySQLConnection implements Connection {
      * be used to add data to the <code>Blob</code>.
      *
      * @return An object that implements the <code>Blob</code> interface
-     * @throws java.sql.SQLException if an object that implements the <code>Blob</code> interface can not be
-     *                               constructed, this method is called on a closed connection or a database access
-     *                               error occurs.
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this data type
+     * @throws java.sql.SQLException                    if an object that implements the <code>Blob</code> interface can not be
+     *                                                  constructed, this method is called on a closed connection or a database access
+     *                                                  error occurs.
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this data type
      * @since 1.6
      */
     public Blob createBlob() throws SQLException {
@@ -1018,11 +1001,10 @@ public final class MySQLConnection implements Connection {
      * <code>NClob</code> interface may be used to add data to the <code>NClob</code>.
      *
      * @return An object that implements the <code>NClob</code> interface
-     * @throws java.sql.SQLException if an object that implements the <code>NClob</code> interface can not be
-     *                               constructed, this method is called on a closed connection or a database access
-     *                               error occurs.
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this data type
+     * @throws java.sql.SQLException                    if an object that implements the <code>NClob</code> interface can not be
+     *                                                  constructed, this method is called on a closed connection or a database access
+     *                                                  error occurs.
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this data type
      * @since 1.6
      */
     public java.sql.NClob createNClob() throws SQLException {
@@ -1035,11 +1017,10 @@ public final class MySQLConnection implements Connection {
      * interface may be used to add data to the <code>SQLXML</code> object.
      *
      * @return An object that implements the <code>SQLXML</code> interface
-     * @throws java.sql.SQLException if an object that implements the <code>SQLXML</code> interface can not be
-     *                               constructed, this method is called on a closed connection or a database access
-     *                               error occurs.
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this data type
+     * @throws java.sql.SQLException                    if an object that implements the <code>SQLXML</code> interface can not be
+     *                                                  constructed, this method is called on a closed connection or a database access
+     *                                                  error occurs.
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this data type
      * @since 1.6
      */
     public java.sql.SQLXML createSQLXML() throws SQLException {
@@ -1050,19 +1031,17 @@ public final class MySQLConnection implements Connection {
      * Returns true if the connection has not been closed and is still valid. The driver shall submit a query on the
      * connection or use some other mechanism that positively verifies the connection is still valid when this method is
      * called.
-     *
+     * <p/>
      * The query submitted by the driver to validate the connection shall be executed in the context of the current
      * transaction.
      *
      * @param timeout -             The time in seconds to wait for the database operation used to validate the
      *                connection to complete.  If the timeout period expires before the operation completes, this method
      *                returns false.  A value of 0 indicates a timeout is not applied to the database operation.
-     *
      * @return true if the connection is valid, false otherwise
      * @throws java.sql.SQLException if the value supplied for <code>timeout</code> is less then 0
      * @see java.sql.DatabaseMetaData#getClientInfoProperties
      * @since 1.6
-     *
      */
     public boolean isValid(final int timeout) throws SQLException {
         if (timeout < 0) {
@@ -1080,41 +1059,37 @@ public final class MySQLConnection implements Connection {
 
     /**
      * Sets the value of the client info property specified by name to the value specified by value.
-     *
+     * <p/>
      * Applications may use the <code>DatabaseMetaData.getClientInfoProperties</code> method to determine the client
      * info properties supported by the driver and the maximum length that may be specified for each property.
-     *
+     * <p/>
      * The driver stores the value specified in a suitable location in the database.  For example in a special register,
      * session parameter, or system table column.  For efficiency the driver may defer setting the value in the database
      * until the next time a statement is executed or prepared.  Other than storing the client information in the
      * appropriate place in the database, these methods shall not alter the behavior of the connection in anyway.  The
      * values supplied to these methods are used for accounting, diagnostics and debugging purposes only.
-     *
+     * <p/>
      * The driver shall generate a warning if the client info name specified is not recognized by the driver.
-     *
+     * <p/>
      * If the value specified to this method is greater than the maximum length for the property the driver may either
      * truncate the value and generate a warning or generate a <code>SQLClientInfoException</code>.  If the driver
      * generates a <code>SQLClientInfoException</code>, the value specified was not set on the connection.
-     *
+     * <p/>
      * The following are standard client info properties.  Drivers are not required to support these properties however
      * if the driver supports a client info property that can be described by one of the standard properties, the
      * standard property name should be used.
-     *
+     * <p/>
      * <ul> <li>ApplicationName  -       The name of the application currently utilizing the connection</li>
      * <li>ClientUser               -       The name of the user that the application using the connection is performing
      * work for.  This may not be the same as the user name that was used in establishing the connection.</li>
      * <li>ClientHostname   -       The hostname of the computer the application using the connection is running
      * on.</li> </ul>
      *
-     *
      * @param name  The name of the client info property to set
      * @param value The value to set the client info property to.  If the value is null, the current value of the
      *              specified property is cleared.
-     *
-     * @throws java.sql.SQLClientInfoException
-     *          if the database server returns an error while setting the client info value on the database server or
-     *          this method is called on a closed connection
-     *
+     * @throws java.sql.SQLClientInfoException if the database server returns an error while setting the client info value on the database server or
+     *                                         this method is called on a closed connection
      * @since 1.6
      */
     public void setClientInfo(final String name, final String value) throws java.sql.SQLClientInfoException {
@@ -1122,53 +1097,19 @@ public final class MySQLConnection implements Connection {
     }
 
     /**
-     * Sets the value of the connection's client info properties.  The <code>Properties</code> object contains the names
-     * and values of the client info properties to be set.  The set of client info properties contained in the
-     * properties list replaces the current set of client info properties on the connection.  If a property that is
-     * currently set on the connection is not present in the properties list, that property is cleared.  Specifying an
-     * empty properties list will clear all of the properties on the connection.  See <code>setClientInfo (String,
-     * String)</code> for more information.
-     *
-     * If an error occurs in setting any of the client info properties, a <code>SQLClientInfoException</code> is thrown.
-     * The <code>SQLClientInfoException</code> contains information indicating which client info properties were not
-     * set. The state of the client information is unknown because some databases do not allow multiple client info
-     * properties to be set atomically.  For those databases, one or more properties may have been set before the error
-     * occurred.
-     *
-     *
-     * @param properties the list of client info properties to set
-     *
-     * @throws java.sql.SQLClientInfoException
-     *          if the database server returns an error while setting the clientInfo values on the database server or
-     *          this method is called on a closed connection
-     *
-     * @see java.sql.Connection#setClientInfo(String, String) setClientInfo(String, String)
-     * @since 1.6
-     *
-     */
-    public void setClientInfo(final Properties properties) throws java.sql.SQLClientInfoException {
-        DefaultOptions.addProperty(protocol.getJdbcUrl().getHaMode(), properties, this.options);
-    }
-
-    /**
      * Returns the value of the client info property specified by name.  This method may return null if the specified
      * client info property has not been set and does not have a default value.  This method will also return null if
      * the specified client info property name is not supported by the driver.
-     *
+     * <p/>
      * Applications may use the <code>DatabaseMetaData.getClientInfoProperties</code> method to determine the client
      * info properties supported by the driver.
      *
-     *
      * @param name The name of the client info property to retrieve
-     *
      * @return The value of the client info property specified
-     *
      * @throws java.sql.SQLException if the database server returns an error when fetching the client info value from
      *                               the database or this method is called on a closed connection
-     *
      * @see java.sql.DatabaseMetaData#getClientInfoProperties
      * @since 1.6
-     *
      */
     public String getClientInfo(final String name) throws SQLException {
         return DefaultOptions.getProperties(name, options);
@@ -1178,13 +1119,10 @@ public final class MySQLConnection implements Connection {
      * Returns a list containing the name and current value of each client info property supported by the driver.  The
      * value of a client info property may be null if the property has not been set and does not have a default value.
      *
-     *
      * @return A <code>Properties</code> object that contains the name and current value of each of the client info
-     *         properties supported by the driver.
-     *
+     * properties supported by the driver.
      * @throws java.sql.SQLException if the database server returns an error when fetching the client info values from
      *                               the database or this method is called on a closed connection
-     *
      * @since 1.6
      */
     public Properties getClientInfo() throws SQLException {
@@ -1192,12 +1130,36 @@ public final class MySQLConnection implements Connection {
     }
 
     /**
-     * Factory method for creating Array objects.
+     * Sets the value of the connection's client info properties.  The <code>Properties</code> object contains the names
+     * and values of the client info properties to be set.  The set of client info properties contained in the
+     * properties list replaces the current set of client info properties on the connection.  If a property that is
+     * currently set on the connection is not present in the properties list, that property is cleared.  Specifying an
+     * empty properties list will clear all of the properties on the connection.  See <code>setClientInfo (String,
+     * String)</code> for more information.
+     * <p/>
+     * If an error occurs in setting any of the client info properties, a <code>SQLClientInfoException</code> is thrown.
+     * The <code>SQLClientInfoException</code> contains information indicating which client info properties were not
+     * set. The state of the client information is unknown because some databases do not allow multiple client info
+     * properties to be set atomically.  For those databases, one or more properties may have been set before the error
+     * occurred.
      *
+     * @param properties the list of client info properties to set
+     * @throws java.sql.SQLClientInfoException if the database server returns an error while setting the clientInfo values on the database server or
+     *                                         this method is called on a closed connection
+     * @see java.sql.Connection#setClientInfo(String, String) setClientInfo(String, String)
+     * @since 1.6
+     */
+    public void setClientInfo(final Properties properties) throws java.sql.SQLClientInfoException {
+        DefaultOptions.addProperty(protocol.getJdbcUrl().getHaMode(), properties, this.options);
+    }
+
+    /**
+     * Factory method for creating Array objects.
+     * <p/>
      * <b>Note: </b>When <code>createArrayOf</code> is used to create an array object that maps to a primitive data
      * type, then it is implementation-defined whether the <code>Array</code> object is an array of that primitive data
      * type or an array of <code>Object</code>.
-     *
+     * <p/>
      * <b>Note: </b>The JDBC driver is responsible for mapping the elements <code>Object</code> array to the default
      * JDBC SQL type defined in java.sql.Types for the given class of <code>Object</code>. The default mapping is
      * specified in Appendix B of the JDBC specification.  If the resulting JDBC type is not the appropriate type for
@@ -1209,11 +1171,10 @@ public final class MySQLConnection implements Connection {
      *                 supported by this database. This is the value returned by <code>Array.getBaseTypeName</code>
      * @param elements the elements that populate the returned object
      * @return an Array object whose elements map to the specified SQL type
-     * @throws java.sql.SQLException if a database error occurs, the JDBC type is not appropriate for the typeName and
-     *                               the conversion is not supported, the typeName is null or this method is called on a
-     *                               closed connection
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this data type
+     * @throws java.sql.SQLException                    if a database error occurs, the JDBC type is not appropriate for the typeName and
+     *                                                  the conversion is not supported, the typeName is null or this method is called on a
+     *                                                  closed connection
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this data type
      * @since 1.6
      */
     public Array createArrayOf(final String typeName, final Object[] elements) throws SQLException {
@@ -1228,10 +1189,9 @@ public final class MySQLConnection implements Connection {
      *                   value returned by <code>Struct.getSQLTypeName</code>.
      * @param attributes the attributes that populate the returned object
      * @return a Struct object that maps to the given SQL type and is populated with the given attributes
-     * @throws java.sql.SQLException if a database error occurs, the typeName is null or this method is called on a
-     *                               closed connection
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this data type
+     * @throws java.sql.SQLException                    if a database error occurs, the typeName is null or this method is called on a
+     *                                                  closed connection
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this data type
      * @since 1.6
      */
     public Struct createStruct(final String typeName, final Object[] attributes) throws SQLException {
@@ -1241,7 +1201,7 @@ public final class MySQLConnection implements Connection {
     /**
      * Returns an object that implements the given interface to allow access to non-standard methods, or standard
      * methods not exposed by the proxy.
-     *
+     * <p/>
      * If the receiver implements the interface then the result is the receiver or a proxy for the receiver. If the
      * receiver is a wrapper and the wrapped object implements the interface then the result is the wrapped object or a
      * proxy for the wrapped object. Otherwise return the the result of calling <code>unwrap</code> recursively on the
@@ -1329,13 +1289,12 @@ public final class MySQLConnection implements Connection {
         if (protocol.getProxy() == null) protocol.setHostFailedWithoutProxy();
     }
 
-    volatile int lowercaseTableNames = -1;
     public int getLowercaseTableNames() throws SQLException {
         if (lowercaseTableNames == -1) {
             Statement st = createStatement();
             ResultSet rs = st.executeQuery("select @@lower_case_table_names");
             rs.next();
-            lowercaseTableNames  = rs.getInt(1);
+            lowercaseTableNames = rs.getInt(1);
         }
         return lowercaseTableNames;
     }
@@ -1348,7 +1307,7 @@ public final class MySQLConnection implements Connection {
             return;
         }
         SQLPermission sqlPermission = new SQLPermission("callAbort");
-		SecurityManager securityManager = System.getSecurityManager();
+        SecurityManager securityManager = System.getSecurityManager();
         if (securityManager != null && sqlPermission != null) {
             securityManager.checkPermission(sqlPermission);
         }
@@ -1381,6 +1340,11 @@ public final class MySQLConnection implements Connection {
         return null;
     }
 
+    public void setSchema(String arg0) throws SQLException {
+        // We support only catalog
+        throw SQLExceptionMapper.getFeatureNotSupportedException("Only catalogs are supported");
+    }
+
     /* (non-Javadoc)
      * @see java.sql.Connection#setNetworkTimeout(java.util.concurrent.Executor, int)
      */
@@ -1392,7 +1356,7 @@ public final class MySQLConnection implements Connection {
             throw SQLExceptionMapper.getSQLException("Connection.setNetworkTimeout cannot be called with a negative timeout");
         }
         SQLPermission sqlPermission = new SQLPermission("setNetworkTimeout");
-		SecurityManager securityManager = System.getSecurityManager();
+        SecurityManager securityManager = System.getSecurityManager();
         if (securityManager != null && sqlPermission != null) {
             securityManager.checkPermission(sqlPermission);
         }
@@ -1414,11 +1378,6 @@ public final class MySQLConnection implements Connection {
         } catch (SocketException se) {
             throw SQLExceptionMapper.getSQLException("Cannot set the network timeout", se);
         }
-    }
-
-    public void setSchema(String arg0) throws SQLException {
-        // We support only catalog
-        throw SQLExceptionMapper.getFeatureNotSupportedException("Only catalogs are supported");
     }
 
 }

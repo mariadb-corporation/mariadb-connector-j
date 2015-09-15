@@ -64,10 +64,10 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public abstract class AbstractMastersSlavesListener extends AbstractMastersListener {
 
+    protected AtomicInteger queriesSinceFailover = new AtomicInteger();
     /* =========================== Failover variables ========================================= */
     private AtomicLong secondaryHostFailTimestamp = new AtomicLong();
     private AtomicBoolean secondaryHostFail = new AtomicBoolean();
-    protected AtomicInteger queriesSinceFailover = new AtomicInteger();
 
     protected AbstractMastersSlavesListener(JDBCUrl jdbcUrl) {
         super(jdbcUrl);
@@ -94,14 +94,15 @@ public abstract class AbstractMastersSlavesListener extends AbstractMastersListe
     }
 
     @Override
-    protected void resetMasterFailoverData()  {
+    protected void resetMasterFailoverData() {
         super.resetMasterFailoverData();
 
         //if all connection are up, reset failovers timers
         if (!secondaryHostFail.get()) {
             currentConnectionAttempts.set(0);
             lastRetry = 0;
-            queriesSinceFailover.set(0);;
+            queriesSinceFailover.set(0);
+            ;
         }
     }
 
@@ -136,11 +137,13 @@ public abstract class AbstractMastersSlavesListener extends AbstractMastersListe
     public boolean hasHostFail() {
         return isMasterHostFail() || isSecondaryHostFail();
     }
+
     public SearchFilter getFilterForFailedHost() {
         return new SearchFilter(isMasterHostFail(), isSecondaryHostFail());
     }
 
     public abstract HandleErrorResult secondaryFail(Method method, Object[] args) throws Throwable;
+
     public abstract void foundActiveSecondary(Protocol newSecondaryProtocol);
 
 }

@@ -54,8 +54,8 @@ import org.mariadb.jdbc.JDBCUrl;
 import org.mariadb.jdbc.internal.SQLExceptionMapper;
 import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.mysql.HandleErrorResult;
-import org.mariadb.jdbc.internal.mysql.Protocol;
 import org.mariadb.jdbc.internal.mysql.MastersSlavesProtocol;
+import org.mariadb.jdbc.internal.mysql.Protocol;
 import org.mariadb.jdbc.internal.mysql.listener.AbstractMastersSlavesListener;
 import org.mariadb.jdbc.internal.mysql.listener.tools.SearchFilter;
 
@@ -564,56 +564,11 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
         }
     }
 
-
-    /**
-     * private class to chech of currents connections are still ok.
-     */
-    protected class PingLoop implements Runnable {
-        MastersSlavesListener listener;
-
-        public PingLoop(MastersSlavesListener listener) {
-            this.listener = listener;
-        }
-
-        public void run() {
-            if (lastQueryTime + jdbcUrl.getOptions().validConnectionTimeout * 1000 < System.currentTimeMillis()) {
-//                log.trace("PingLoop run ");
-                if (!isMasterHostFail()) {
-//                    log.trace("PingLoop run, master not seen failed");
-                    boolean masterFail = false;
-                    try {
-
-                        if (masterProtocol != null && masterProtocol.isConnected()) {
-                            checkIfTypeHaveChanged(null);
-                        } else {
-                            masterFail = true;
-                        }
-                    } catch (QueryException e) {
-//                        log.trace("PingLoop ping to master error", e);
-                        masterFail = true;
-                    }
-
-                    if (masterFail) {
-//                        log.trace("PingLoop master failed -> will loop to found it");
-                        if (setMasterHostFail()) {
-                            try {
-                                listener.primaryFail(null, null);
-                            } catch (Throwable t) {
-                                //do nothing
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     public void checkIfTypeHaveChanged(SearchFilter searchFilter) throws QueryException {
         if (masterProtocol != null && masterProtocol.ping()) {
 //            log.trace("PingLoop master ping ok");
         }
     }
-
 
     /**
      * Throw a human readable message after a failoverException
@@ -673,6 +628,49 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
             error = queryException.getMessage() + ". " + error;
             queryException.setMessage(firstPart + error);
             throw queryException;
+        }
+    }
+
+    /**
+     * private class to chech of currents connections are still ok.
+     */
+    protected class PingLoop implements Runnable {
+        MastersSlavesListener listener;
+
+        public PingLoop(MastersSlavesListener listener) {
+            this.listener = listener;
+        }
+
+        public void run() {
+            if (lastQueryTime + jdbcUrl.getOptions().validConnectionTimeout * 1000 < System.currentTimeMillis()) {
+//                log.trace("PingLoop run ");
+                if (!isMasterHostFail()) {
+//                    log.trace("PingLoop run, master not seen failed");
+                    boolean masterFail = false;
+                    try {
+
+                        if (masterProtocol != null && masterProtocol.isConnected()) {
+                            checkIfTypeHaveChanged(null);
+                        } else {
+                            masterFail = true;
+                        }
+                    } catch (QueryException e) {
+//                        log.trace("PingLoop ping to master error", e);
+                        masterFail = true;
+                    }
+
+                    if (masterFail) {
+//                        log.trace("PingLoop master failed -> will loop to found it");
+                        if (setMasterHostFail()) {
+                            try {
+                                listener.primaryFail(null, null);
+                            } catch (Throwable t) {
+                                //do nothing
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

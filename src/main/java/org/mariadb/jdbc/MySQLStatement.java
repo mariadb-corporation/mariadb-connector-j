@@ -63,11 +63,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.sql.*;
 import java.util.*;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 
 public class MySQLStatement implements Statement {
+    private static volatile Timer timer;
     /**
      * the protocol used to talk to the server.
      */
@@ -76,35 +76,61 @@ public class MySQLStatement implements Statement {
      * the  Connection object.
      */
     protected MySQLConnection connection;
-
     /**
      * The actual query result.
      */
     protected QueryResult queryResult;
-    /**
-     * are warnings cleared?
-     */
-    private boolean warningsCleared;
-
-
-    private int queryTimeout;
-    private boolean escapeProcessing;
-    private int fetchSize;
-    private boolean wasStreaming=false;
-    private int maxRows;
-    boolean  isClosed;
-    private static volatile Timer timer;
     protected TimerTask timerTask;
-    boolean isTimedout;
-    volatile boolean executing;
-
-    List<Query> batchQueries;
-    Queue<Object> cachedResultSets;
     protected boolean isRewriteable = true;
     protected String firstRewrite = null;
     protected ResultSet batchResultSet = null;
     protected ReentrantReadWriteLock stLock = new ReentrantReadWriteLock();
+    boolean isClosed;
+    boolean isTimedout;
+    volatile boolean executing;
+    List<Query> batchQueries;
+    Queue<Object> cachedResultSets;
+    /**
+     * are warnings cleared?
+     */
+    private boolean warningsCleared;
+    private int queryTimeout;
+    private boolean escapeProcessing;
+    private int fetchSize;
+    private boolean wasStreaming = false;
+    private int maxRows;
 
+
+    /**
+     * Creates a new Statement.
+     *
+     * @param connection the connection to return in getConnection.
+     */
+
+    public MySQLStatement(MySQLConnection connection) {
+        this.protocol = connection.getProtocol();
+        this.connection = connection;
+        this.escapeProcessing = true;
+        cachedResultSets = new LinkedList<>();
+    }
+
+    private static Timer getTimer() {
+        Timer result = timer;
+        if (result == null) {
+            synchronized (MySQLStatement.class) {
+                result = timer;
+                if (result == null) {
+                    timer = result = new Timer("MariaDB-JDBC-Timer", true);
+                }
+            }
+        }
+        return result;
+    }
+
+    public static void unloadDriver() {
+        if (timer != null)
+            timer.cancel();
+    }
 
     public boolean isStreaming() {
         stLock.readLock().lock();
@@ -116,18 +142,6 @@ public class MySQLStatement implements Statement {
     }
 
     /**
-     * Creates a new Statement.
-     * @param connection   the connection to return in getConnection.
-     */
-
-    public MySQLStatement(MySQLConnection connection) {
-        this.protocol = connection.getProtocol();
-        this.connection = connection;
-        this.escapeProcessing = true;
-        cachedResultSets = new LinkedList<>();
-    }
-
-    /**
      * returns the protocol.
      *
      * @return the protocol used.
@@ -136,22 +150,9 @@ public class MySQLStatement implements Statement {
         return protocol;
     }
 
-    private static Timer getTimer() {
-        Timer result = timer;
-        if (result == null) {
-            synchronized(MySQLStatement.class) {
-                result = timer;
-                if (result == null) {
-                    timer = result = new Timer("MariaDB-JDBC-Timer", true);
-                }
-            }
-        }
-        return result;
-    }
-
     // Part of query prolog - setup timeout timer
     private void setTimerTask() {
-        assert(timerTask == null);
+        assert (timerTask == null);
         timerTask = new TimerTask() {
             @Override
             public void run() {
@@ -165,7 +166,7 @@ public class MySQLStatement implements Statement {
         getTimer().schedule(timerTask, queryTimeout * 1000);
     }
 
-    void executeQueryProlog() throws SQLException{
+    void executeQueryProlog() throws SQLException {
         if (isClosed()) {
             throw new SQLException("execute() is called on closed statement");
         }
@@ -179,16 +180,16 @@ public class MySQLStatement implements Statement {
         if (wasStreaming && protocol.hasMoreResults()) {
             // Skip remaining result sets. CallableStatement might return many of them  -
             // not only the "select" result sets, but also the "update" results
-            while(getMoreResults(true)) {
+            while (getMoreResults(true)) {
             }
         }
 
         cachedResultSets.clear();
-        ((MySQLConnection)getConnection()).reenableWarnings();
+        ((MySQLConnection) getConnection()).reenableWarnings();
 
         try {
             protocol.setMaxRows(maxRows);
-        } catch(QueryException qe) {
+        } catch (QueryException qe) {
             SQLExceptionMapper.throwException(qe, connection, this);
         }
 
@@ -202,7 +203,7 @@ public class MySQLStatement implements Statement {
         if (isStreaming()) return;
 
         QueryResult saveResult = queryResult;
-        for(;;) {
+        for (; ; ) {
             try {
                 if (protocol.hasMoreResults()) {
                     getMoreResults(false);
@@ -210,7 +211,7 @@ public class MySQLStatement implements Statement {
                 } else {
                     break;
                 }
-            } catch(SQLException e) {
+            } catch (SQLException e) {
                 cachedResultSets.add(e);
                 break;
             }
@@ -218,39 +219,37 @@ public class MySQLStatement implements Statement {
         queryResult = saveResult;
     }
 
-
-
     /*
      Reset timeout after query, re-throw  SQL  exception
     */
-    private void executeQueryEpilog(QueryException e, Query query) throws SQLException{
+    private void executeQueryEpilog(QueryException e, Query query) throws SQLException {
 
         if (timerTask != null) {
             timerTask.cancel();
             timerTask = null;
         }
 
-        if (isTimedout)  {
+        if (isTimedout) {
             isTimedout = false;
             e = new QueryException("Query timed out", 1317, "JZ0002", e);
         }
 
         if (e == null)
             return;
-        
-        /* Include query into exception message, if dumpQueriesOnException is true, 
-         * or on SQL syntax error (MySQL error code 1064). 
-         * 
-         * If SQL query is too long, truncate it to reasonable (for exception messages) 
-         * length. 
+
+        /* Include query into exception message, if dumpQueriesOnException is true,
+         * or on SQL syntax error (MySQL error code 1064).
+         *
+         * If SQL query is too long, truncate it to reasonable (for exception messages)
+         * length.
          */
         if (protocol.getOptions().dumpQueriesOnException
-                || e.getErrorCode() == 1064 ) {
+                || e.getErrorCode() == 1064) {
             String queryString = query.toString();
             if (queryString.length() > 4096) {
                 queryString = queryString.substring(0, 4096);
             }
-            e.setMessage(e.getMessage()+ "\nQuery is:\n" + queryString);
+            e.setMessage(e.getMessage() + "\nQuery is:\n" + queryString);
         }
 
         //if has a failover, closing the statement
@@ -297,14 +296,15 @@ public class MySQLStatement implements Statement {
     /**
      * Execute statements. if many queries, those queries will be rewritten
      * if isRewritable = false, the query will be agreggated :
-     *      INSERT INTO jdbc (`name`) VALUES ('Line 1: Lorem ipsum ...')
-     *      INSERT INTO jdbc (`name`) VALUES ('Line 2: Lorem ipsum ...')
+     * INSERT INTO jdbc (`name`) VALUES ('Line 1: Lorem ipsum ...')
+     * INSERT INTO jdbc (`name`) VALUES ('Line 2: Lorem ipsum ...')
      * will be agreggate as
-     *      INSERT INTO jdbc (`name`) VALUES ('Line 1: Lorem ipsum ...');INSERT INTO jdbc (`name`) VALUES ('Line 2: Lorem ipsum ...')
+     * INSERT INTO jdbc (`name`) VALUES ('Line 1: Lorem ipsum ...');INSERT INTO jdbc (`name`) VALUES ('Line 2: Lorem ipsum ...')
      * and if isRewritable, agreggated as
-     *      INSERT INTO jdbc (`name`) VALUES ('Line 1: Lorem ipsum ...'),('Line 2: Lorem ipsum ...')
-     * @param queries list of queries
-     * @param isRewritable are the queries of the same type to be agreggated
+     * INSERT INTO jdbc (`name`) VALUES ('Line 1: Lorem ipsum ...'),('Line 2: Lorem ipsum ...')
+     *
+     * @param queries       list of queries
+     * @param isRewritable  are the queries of the same type to be agreggated
      * @param rewriteOffset offset of the parameter if query are similar
      * @return true if there was a result set, false otherwise.
      * @throws SQLException the error description
@@ -337,7 +337,7 @@ public class MySQLStatement implements Statement {
         }
     }
 
-     /**
+    /**
      * executes a select query.
      *
      * @param query the query to send to the server
@@ -367,18 +367,17 @@ public class MySQLStatement implements Statement {
 
     private Query stringToQuery(String queryString) throws SQLException {
         if (escapeProcessing) {
-            queryString = Utils.nativeSQL(queryString,connection.noBackslashEscapes);
+            queryString = Utils.nativeSQL(queryString, connection.noBackslashEscapes);
         }
         return new MySQLQuery(queryString);
     }
-
 
     /**
      * executes a query.
      *
      * @param queryString the query
      * @return true if there was a result set, false otherwise.
-     * @throws SQLException if the query could not be sent to server 
+     * @throws SQLException if the query could not be sent to server
      */
     public boolean execute(String queryString) throws SQLException {
         return execute(stringToQuery(queryString));
@@ -395,7 +394,6 @@ public class MySQLStatement implements Statement {
         return executeUpdate(stringToQuery(queryString));
     }
 
-
     /**
      * executes a select query.
      *
@@ -407,14 +405,13 @@ public class MySQLStatement implements Statement {
         return executeQuery(stringToQuery(queryString));
     }
 
-
     /**
      * Releases this <code>Statement</code> object's database and JDBC resources immediately instead of waiting for this
      * to happen when it is automatically closed. It is generally good practice to release resources as soon as you are
      * finished with them to avoid tying up database resources.
-     *
+     * <p/>
      * Calling the method <code>close</code> on a <code>Statement</code> object that is already closed has no effect.
-     *
+     * <p/>
      * <B>Note:</B>When a <code>Statement</code> object is closed, its current <code>ResultSet</code> object, if one
      * exists, is also closed.
      *
@@ -454,7 +451,7 @@ public class MySQLStatement implements Statement {
      * the limit is exceeded, the excess data is silently discarded.
      *
      * @return the current column size limit for columns storing character and binary values; zero means there is no
-     *         limit
+     * limit
      * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed
      *                               <code>Statement</code>
      * @see #setMaxFieldSize
@@ -466,7 +463,7 @@ public class MySQLStatement implements Statement {
     /**
      * Sets the limit for the maximum number of bytes that can be returned for character and binary column values in a
      * <code>ResultSet</code> object produced by this <code>Statement</code> object.
-     *
+     * <p/>
      * This limit applies only to <code>BINARY</code>, <code>VARBINARY</code>, <code>LONGVARBINARY</code>,
      * <code>CHAR</code>, <code>VARCHAR</code>, <code>NCHAR</code>, <code>NVARCHAR</code>, <code>LONGNVARCHAR</code> and
      * <code>LONGVARCHAR</code> fields.  If the limit is exceeded, the excess data is silently discarded. For maximum
@@ -474,7 +471,7 @@ public class MySQLStatement implements Statement {
      *
      * @param max the new column size limit in bytes; zero means there is no limit
      * @throws java.sql.SQLException if a database access error occurs, this method is called on a closed
-     * <code>Statement</code> or the condition max &gt;= 0 is not satisfied
+     *                               <code>Statement</code> or the condition max &gt;= 0 is not satisfied
      * @see #getMaxFieldSize
      */
     public void setMaxFieldSize(final int max) throws SQLException {
@@ -486,7 +483,7 @@ public class MySQLStatement implements Statement {
      * object can contain.  If this limit is exceeded, the excess rows are silently dropped.
      *
      * @return the current maximum number of rows for a <code>ResultSet</code> object produced by this
-     *         <code>Statement</code> object; zero means there is no limit
+     * <code>Statement</code> object; zero means there is no limit
      * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed
      *                               <code>Statement</code>
      * @see #setMaxRows
@@ -507,7 +504,7 @@ public class MySQLStatement implements Statement {
      *
      * @param max the new max rows limit; zero means there is no limit
      * @throws java.sql.SQLException if a database access error occurs, this method is called on a closed
-     *         <code>Statement</code> or the condition max &gt;= 0 is not satisfied
+     *                               <code>Statement</code> or the condition max &gt;= 0 is not satisfied
      * @see #getMaxRows
      */
     public void setMaxRows(final int max) throws SQLException {
@@ -522,7 +519,7 @@ public class MySQLStatement implements Statement {
     /**
      * Sets escape processing on or off. If escape scanning is on (the default), the driver will do escape substitution
      * before sending the SQL statement to the database.
-     *
+     * <p/>
      * Note: Since prepared statements have usually been parsed prior to making this call, disabling escape processing
      * for <code>PreparedStatements</code> objects will have no effect.
      *
@@ -563,7 +560,7 @@ public class MySQLStatement implements Statement {
      *
      * @param seconds the new query timeout limit in seconds; zero means there is no limit
      * @throws java.sql.SQLException if a database access error occurs, this method is called on a closed
-     * <code>Statement</code> or the condition seconds &gt;= 0 is not satisfied
+     *                               <code>Statement</code> or the condition seconds &gt;= 0 is not satisfied
      * @see #getQueryTimeout
      */
     public void setQueryTimeout(final int seconds) throws SQLException {
@@ -592,10 +589,9 @@ public class MySQLStatement implements Statement {
      * Cancels this <code>Statement</code> object if both the DBMS and driver support aborting an SQL statement. This
      * method can be used by one thread to cancel a statement that is being executed by another thread.
      *
-     * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed
-     *                               <code>Statement</code>
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if a database access error occurs or this method is called on a closed
+     *                                                  <code>Statement</code>
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      */
     public void cancel() throws SQLException {
         try {
@@ -613,10 +609,10 @@ public class MySQLStatement implements Statement {
     /**
      * Retrieves the first warning reported by calls on this <code>Statement</code> object. Subsequent
      * <code>Statement</code> object warnings will be chained to this <code>SQLWarning</code> object.
-     *
+     * <p/>
      * The warning chain is automatically cleared each time a statement is (re)executed. This method may not be
      * called on a closed <code>Statement</code> object; doing so will cause an <code>SQLException</code> to be thrown.
-     *
+     * <p/>
      * <P><B>Note:</B> If you are processing a <code>ResultSet</code> object, any warnings associated with reads on that
      * <code>ResultSet</code> object will be chained on it rather than on the <code>Statement</code> object that
      * produced it.
@@ -659,16 +655,15 @@ public class MySQLStatement implements Statement {
      * cursor has the proper isolation level to support updates, the cursor's <code>SELECT</code> statement should have
      * the form <code>SELECT FOR UPDATE</code>.  If <code>FOR UPDATE</code> is not present, positioned updates may
      * fail.
-     *
+     * <p/>
      * <P><B>Note:</B> By definition, the execution of positioned updates and deletes must be done by a different
      * <code>Statement</code> object than the one that generated the <code>ResultSet</code> object being used for
      * positioning. Also, cursor names must be unique within a connection.
      *
      * @param name the new cursor name, which must be unique within a connection
-     * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed
-     *                               <code>Statement</code>
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * @throws java.sql.SQLException                    if a database access error occurs or this method is called on a closed
+     *                                                  <code>Statement</code>
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      */
     public void setCursorName(final String name) throws SQLException {
         throw SQLExceptionMapper.getFeatureNotSupportedException("Cursors are not supported");
@@ -688,25 +683,23 @@ public class MySQLStatement implements Statement {
      * Moves to this <code>Statement</code> object's next result, deals with any current <code>ResultSet</code>
      * object(s) according  to the instructions specified by the given flag, and returns <code>true</code> if the next
      * result is a <code>ResultSet</code> object.
-     *
+     * <p/>
      * There are no more results when the following is true: <pre> // stmt is a Statement object
      * ((stmt.getMoreResults(current) == false) &amp;&amp; (stmt.getUpdateCount() == -1))</pre>
-     *
      *
      * @param current one of the following <code>Statement</code> constants indicating what should happen to current
      *                <code>ResultSet</code> objects obtained using the method <code>getResultSet</code>:
      *                <code>Statement.CLOSE_CURRENT_RESULT</code>, <code>Statement.KEEP_CURRENT_RESULT</code>, or
      *                <code>Statement.CLOSE_ALL_RESULTS</code>
      * @return <code>true</code> if the next result is a <code>ResultSet</code> object; <code>false</code> if it is an
-     *         update count or there are no more results
-     * @throws java.sql.SQLException if a database access error occurs, this method is called on a closed
-     *                               <code>Statement</code> or the argument supplied is not one of the following:
-     *                               <code>Statement.CLOSE_CURRENT_RESULT</code>, <code>Statement.KEEP_CURRENT_RESULT</code>
-     *                               or <code>Statement.CLOSE_ALL_RESULTS</code>
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if <code>DatabaseMetaData.supportsMultipleOpenResults</code> returns
-     *                               <code>false</code> and either <code>Statement.KEEP_CURRENT_RESULT</code> or
-     *                               <code>Statement.CLOSE_ALL_RESULTS</code> are supplied as the argument.
+     * update count or there are no more results
+     * @throws java.sql.SQLException                    if a database access error occurs, this method is called on a closed
+     *                                                  <code>Statement</code> or the argument supplied is not one of the following:
+     *                                                  <code>Statement.CLOSE_CURRENT_RESULT</code>, <code>Statement.KEEP_CURRENT_RESULT</code>
+     *                                                  or <code>Statement.CLOSE_ALL_RESULTS</code>
+     * @throws java.sql.SQLFeatureNotSupportedException if <code>DatabaseMetaData.supportsMultipleOpenResults</code> returns
+     *                                                  <code>false</code> and either <code>Statement.KEEP_CURRENT_RESULT</code> or
+     *                                                  <code>Statement.CLOSE_ALL_RESULTS</code> are supplied as the argument.
      * @see #execute
      * @since 1.4
      */
@@ -717,16 +710,15 @@ public class MySQLStatement implements Statement {
     /**
      * Retrieves any auto-generated keys created as a result of executing this <code>Statement</code> object. If this
      * <code>Statement</code> object did not generate any keys, an empty <code>ResultSet</code> object is returned.
-     *
+     * <p/>
      * <B>Note:</B>If the columns which represent the auto-generated keys were not specified, the JDBC driver
      * implementation will determine the columns which best represent the auto-generated keys.
      *
      * @return a <code>ResultSet</code> object containing the auto-generated key(s) generated by the execution of this
-     *         <code>Statement</code> object
-     * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed
-     *                               <code>Statement</code>
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * <code>Statement</code> object
+     * @throws java.sql.SQLException                    if a database access error occurs or this method is called on a closed
+     *                                                  <code>Statement</code>
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.4
      */
     public ResultSet getGeneratedKeys() throws SQLException {
@@ -764,13 +756,12 @@ public class MySQLStatement implements Statement {
      *                          one of the following constants: <code>Statement.RETURN_GENERATED_KEYS</code>
      *                          <code>Statement.NO_GENERATED_KEYS</code>
      * @return either (1) the row count for SQL Data Manipulation Language (DML) statements or (2) 0 for SQL statements
-     *         that return nothing
-     * @throws java.sql.SQLException if a database access error occurs, this method is called on a closed
-     *                               <code>Statement</code>, the given SQL statement returns a <code>ResultSet</code>
-     *                               object, or the given constant is not one of those allowed
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method with a constant of
-     *                               Statement.RETURN_GENERATED_KEYS
+     * that return nothing
+     * @throws java.sql.SQLException                    if a database access error occurs, this method is called on a closed
+     *                                                  <code>Statement</code>, the given SQL statement returns a <code>ResultSet</code>
+     *                                                  object, or the given constant is not one of those allowed
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method with a constant of
+     *                                                  Statement.RETURN_GENERATED_KEYS
      * @since 1.4
      */
     public int executeUpdate(final String sql, final int autoGeneratedKeys) throws SQLException {
@@ -790,13 +781,12 @@ public class MySQLStatement implements Statement {
      * @param columnIndexes an array of column indexes indicating the columns that should be returned from the inserted
      *                      row
      * @return either (1) the row count for SQL Data Manipulation Language (DML) statements or (2) 0 for SQL statements
-     *         that return nothing
-     * @throws java.sql.SQLException if a database access error occurs, this method is called on a closed
-     *                               <code>Statement</code>, the SQL statement returns a <code>ResultSet</code> object,
-     *                               or the second argument supplied to this method is not an <code>int</code> array
-     *                               whose elements are valid column indexes
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * that return nothing
+     * @throws java.sql.SQLException                    if a database access error occurs, this method is called on a closed
+     *                                                  <code>Statement</code>, the SQL statement returns a <code>ResultSet</code> object,
+     *                                                  or the second argument supplied to this method is not an <code>int</code> array
+     *                                                  whose elements are valid column indexes
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.4
      */
     public int executeUpdate(final String sql, final int[] columnIndexes) throws SQLException {
@@ -815,13 +805,12 @@ public class MySQLStatement implements Statement {
      *                    a DDL statement.
      * @param columnNames an array of the names of the columns that should be returned from the inserted row
      * @return either the row count for <code>INSERT</code>, <code>UPDATE</code>, or <code>DELETE</code> statements, or
-     *         0 for SQL statements that return nothing
-     * @throws java.sql.SQLException if a database access error occurs, this method is called on a closed
-     *                               <code>Statement</code>, the SQL statement returns a <code>ResultSet</code> object,
-     *                               or the second argument supplied to this method is not a <code>String</code> array
-     *                               whose elements are valid column names
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * 0 for SQL statements that return nothing
+     * @throws java.sql.SQLException                    if a database access error occurs, this method is called on a closed
+     *                                                  <code>Statement</code>, the SQL statement returns a <code>ResultSet</code> object,
+     *                                                  or the second argument supplied to this method is not a <code>String</code> array
+     *                                                  whose elements are valid column names
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.4
      */
     public int executeUpdate(final String sql, final String[] columnNames) throws SQLException {
@@ -833,11 +822,11 @@ public class MySQLStatement implements Statement {
      * auto-generated keys should be made available for retrieval.  The driver will ignore this signal if the SQL
      * statement is not an <code>INSERT</code> statement, or an SQL statement able to return auto-generated keys (the
      * list of such statements is vendor-specific).
-     *
+     * <p/>
      * In some (uncommon) situations, a single SQL statement may return multiple result sets and/or update counts.
      * Normally you can ignore this unless you are (1) executing a stored procedure that you know may return multiple
      * results or (2) you are dynamically executing an unknown SQL string.
-     *
+     * <p/>
      * The <code>execute</code> method executes an SQL statement and indicates the form of the first result.  You must
      * then use the methods <code>getResultSet</code> or <code>getUpdateCount</code> to retrieve the result, and
      * <code>getMoreResults</code> to move to any subsequent result(s).
@@ -847,13 +836,12 @@ public class MySQLStatement implements Statement {
      *                          using the method <code>getGeneratedKeys</code>; one of the following constants:
      *                          <code>Statement.RETURN_GENERATED_KEYS</code> or <code>Statement.NO_GENERATED_KEYS</code>
      * @return <code>true</code> if the first result is a <code>ResultSet</code> object; <code>false</code> if it is an
-     *         update count or there are no results
-     * @throws java.sql.SQLException if a database access error occurs, this method is called on a closed
-     *                               <code>Statement</code> or the second parameter supplied to this method is not
-     *                               <code>Statement.RETURN_GENERATED_KEYS</code> or <code>Statement.NO_GENERATED_KEYS</code>.
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method with a constant of
-     *                               Statement.RETURN_GENERATED_KEYS
+     * update count or there are no results
+     * @throws java.sql.SQLException                    if a database access error occurs, this method is called on a closed
+     *                                                  <code>Statement</code> or the second parameter supplied to this method is not
+     *                                                  <code>Statement.RETURN_GENERATED_KEYS</code> or <code>Statement.NO_GENERATED_KEYS</code>.
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method with a constant of
+     *                                                  Statement.RETURN_GENERATED_KEYS
      * @see #getResultSet
      * @see #getUpdateCount
      * @see #getMoreResults
@@ -870,11 +858,11 @@ public class MySQLStatement implements Statement {
      * indexes of the columns in the target table that contain the auto-generated keys that should be made available.
      * The driver will ignore the array if the SQL statement is not an <code>INSERT</code> statement, or an SQL
      * statement able to return auto-generated keys (the list of such statements is vendor-specific).
-     *
+     * <p/>
      * Under some (uncommon) situations, a single SQL statement may return multiple result sets and/or update counts.
      * Normally you can ignore this unless you are (1) executing a stored procedure that you know may return multiple
      * results or (2) you are dynamically executing an unknown SQL string.
-     *
+     * <p/>
      * The <code>execute</code> method executes an SQL statement and indicates the form of the first result.  You must
      * then use the methods <code>getResultSet</code> or <code>getUpdateCount</code> to retrieve the result, and
      * <code>getMoreResults</code> to move to any subsequent result(s).
@@ -883,12 +871,11 @@ public class MySQLStatement implements Statement {
      * @param columnIndexes an array of the indexes of the columns in the inserted row that should be  made available
      *                      for retrieval by a call to the method <code>getGeneratedKeys</code>
      * @return <code>true</code> if the first result is a <code>ResultSet</code> object; <code>false</code> if it is an
-     *         update count or there are no results
-     * @throws java.sql.SQLException if a database access error occurs, this method is called on a closed
-     *                               <code>Statement</code> or the elements in the <code>int</code> array passed to this
-     *                               method are not valid column indexes
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * update count or there are no results
+     * @throws java.sql.SQLException                    if a database access error occurs, this method is called on a closed
+     *                                                  <code>Statement</code> or the elements in the <code>int</code> array passed to this
+     *                                                  method are not valid column indexes
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @see #getResultSet
      * @see #getUpdateCount
      * @see #getMoreResults
@@ -904,11 +891,11 @@ public class MySQLStatement implements Statement {
      * names of the columns in the target table that contain the auto-generated keys that should be made available.  The
      * driver will ignore the array if the SQL statement is not an <code>INSERT</code> statement, or an SQL statement
      * able to return auto-generated keys (the list of such statements is vendor-specific).
-     *
+     * <p/>
      * In some (uncommon) situations, a single SQL statement may return multiple result sets and/or update counts.
      * Normally you can ignore this unless you are (1) executing a stored procedure that you know may return multiple
      * results or (2) you are dynamically executing an unknown SQL string.
-     *
+     * <p/>
      * The <code>execute</code> method executes an SQL statement and indicates the form of the first result.  You must
      * then use the methods <code>getResultSet</code> or <code>getUpdateCount</code> to retrieve the result, and
      * <code>getMoreResults</code> to move to any subsequent result(s).
@@ -917,12 +904,11 @@ public class MySQLStatement implements Statement {
      * @param columnNames an array of the names of the columns in the inserted row that should be made available for
      *                    retrieval by a call to the method <code>getGeneratedKeys</code>
      * @return <code>true</code> if the next result is a <code>ResultSet</code> object; <code>false</code> if it is an
-     *         update count or there are no more results
-     * @throws java.sql.SQLException if a database access error occurs, this method is called on a closed
-     *                               <code>Statement</code> or the elements of the <code>String</code> array passed to
-     *                               this method are not valid column names
-     * @throws java.sql.SQLFeatureNotSupportedException
-     *                               if the JDBC driver does not support this method
+     * update count or there are no more results
+     * @throws java.sql.SQLException                    if a database access error occurs, this method is called on a closed
+     *                                                  <code>Statement</code> or the elements of the <code>String</code> array passed to
+     *                                                  this method are not valid column names
+     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @see #getResultSet
      * @see #getUpdateCount
      * @see #getMoreResults
@@ -964,49 +950,41 @@ public class MySQLStatement implements Statement {
     }
 
     /**
+     * Returns a  value indicating whether the <code>Statement</code> is poolable or not.
+     *
+     * @return <code>true</code> if the <code>Statement</code> is poolable; <code>false</code> otherwise
+     * @throws java.sql.SQLException if this method is called on a closed <code>Statement</code>
+     * @see java.sql.Statement#setPoolable(boolean) setPoolable(boolean)
+     * @since 1.6
+     */
+    public boolean isPoolable() throws SQLException {
+        return false;
+    }
+
+    /**
      * Requests that a <code>Statement</code> be pooled or not pooled.  The value specified is a hint to the statement
      * pool implementation indicating whether the applicaiton wants the statement to be pooled.  It is up to the
      * statement pool manager as to whether the hint is used.
-     *
+     * <p/>
      * The poolable value of a statement is applicable to both internal statement caches implemented by the driver and
      * external statement caches implemented by application servers and other applications.
-     *
+     * <p/>
      * By default, a <code>Statement</code> is not poolable when created, and a <code>PreparedStatement</code> and
      * <code>CallableStatement</code> are poolable when created.
      *
-     *
      * @param poolable requests that the statement be pooled if true and that the statement not be pooled if false
-     *
      * @throws java.sql.SQLException if this method is called on a closed <code>Statement</code>
-     *
      * @since 1.6
      */
     public void setPoolable(final boolean poolable) throws SQLException {
 
     }
 
-    /**
-     * Returns a  value indicating whether the <code>Statement</code> is poolable or not.
-     *
-     *
-     * @return <code>true</code> if the <code>Statement</code> is poolable; <code>false</code> otherwise
-     *
-     * @throws java.sql.SQLException if this method is called on a closed <code>Statement</code>
-     *
-     * @see java.sql.Statement#setPoolable(boolean) setPoolable(boolean)
-     * @since 1.6
-     *
-     */
-    public boolean isPoolable() throws SQLException {
-        return false;
-    }
-
-
     public ResultSet getResultSet() throws SQLException {
         if (queryResult == null || queryResult.getResultSetType() != ResultSetType.SELECT) {
             return null; /* Result is an update count, or there are no more results */
         }
-        return new MySQLResultSet(queryResult,this,protocol, connection.cal);
+        return new MySQLResultSet(queryResult, this, protocol, connection.cal);
     }
 
     public int getUpdateCount() throws SQLException {
@@ -1015,7 +993,6 @@ public class MySQLStatement implements Statement {
         }
         return (int) ((ModifyQueryResult) queryResult).getUpdateCount();
     }
-
 
     protected boolean getMoreResults(boolean streaming) throws SQLException {
         this.stLock.writeLock().lock();
@@ -1026,7 +1003,7 @@ public class MySQLStatement implements Statement {
             }
 
             queryResult = protocol.getMoreResults(streaming);
-            if(queryResult == null) return false;
+            if (queryResult == null) return false;
             warningsCleared = false;
             connection.reenableWarnings();
             return true;
@@ -1043,12 +1020,12 @@ public class MySQLStatement implements Statement {
      * Moves to this <code>Statement</code> object's next result, returns <code>true</code> if it is a
      * <code>ResultSet</code> object, and implicitly closes any current <code>ResultSet</code> object(s) obtained with
      * the method <code>getResultSet</code>.
-     *
+     * <p/>
      * There are no more results when the following is true: <pre> // stmt is a Statement object
      * ((stmt.getMoreResults() == false) &amp;&amp; (stmt.getUpdateCount() == -1)) </pre>
      *
      * @return <code>true</code> if the next result is a <code>ResultSet</code> object; <code>false</code> if it is an
-     *         update count or there are no more results
+     * update count or there are no more results
      * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed
      *                               <code>Statement</code>
      * @see #execute
@@ -1079,25 +1056,6 @@ public class MySQLStatement implements Statement {
     }
 
     /**
-     * Gives the driver a hint as to the direction in which rows will be processed in <code>ResultSet</code> objects
-     * created using this <code>Statement</code> object.  The default value is <code>ResultSet.FETCH_FORWARD</code>.
-     *
-     * Note that this method sets the default fetch direction for result sets generated by this <code>Statement</code>
-     * object. Each result set has its own methods for getting and setting its own fetch direction.
-     *
-     * @param direction the initial direction for processing rows
-     * @throws java.sql.SQLException if a database access error occurs, this method is called on a closed
-     *                               <code>Statement</code> or the given direction is not one of
-     *                               <code>ResultSet.FETCH_FORWARD</code>, <code>ResultSet.FETCH_REVERSE</code>, or
-     *                               <code>ResultSet.FETCH_UNKNOWN</code>
-     * @see #getFetchDirection
-     * @since 1.2
-     */
-    public void setFetchDirection(final int direction) throws SQLException {
-
-    }
-
-    /**
      * Retrieves the direction for fetching rows from database tables that is the default for result sets generated from
      * this <code>Statement</code> object. If this <code>Statement</code> object has not set a fetch direction by
      * calling the method <code>setFetchDirection</code>, the return value is implementation-specific.
@@ -1113,22 +1071,21 @@ public class MySQLStatement implements Statement {
     }
 
     /**
-     * Gives the JDBC driver a hint as to the number of rows that should be fetched from the database when more rows are
-     * needed for <code>ResultSet</code> objects genrated by this <code>Statement</code>. If the value specified is
-     * zero, then the hint is ignored. The default value is zero.
+     * Gives the driver a hint as to the direction in which rows will be processed in <code>ResultSet</code> objects
+     * created using this <code>Statement</code> object.  The default value is <code>ResultSet.FETCH_FORWARD</code>.
+     * <p/>
+     * Note that this method sets the default fetch direction for result sets generated by this <code>Statement</code>
+     * object. Each result set has its own methods for getting and setting its own fetch direction.
      *
-     * @param rows the number of rows to fetch
+     * @param direction the initial direction for processing rows
      * @throws java.sql.SQLException if a database access error occurs, this method is called on a closed
-     *                               <code>Statement</code> or the condition  <code>rows &gt;= 0</code> is not satisfied.
-     * @see #getFetchSize
+     *                               <code>Statement</code> or the given direction is not one of
+     *                               <code>ResultSet.FETCH_FORWARD</code>, <code>ResultSet.FETCH_REVERSE</code>, or
+     *                               <code>ResultSet.FETCH_UNKNOWN</code>
+     * @see #getFetchDirection
      * @since 1.2
      */
-    public void setFetchSize(final int rows) throws SQLException {
-        if (rows < 0 && rows != Integer.MIN_VALUE)
-            throw new SQLException("invalid fetch size");
-        this.stLock.writeLock().lock();
-        this.fetchSize = rows;
-        this.stLock.writeLock().unlock();
+    public void setFetchDirection(final int direction) throws SQLException {
 
     }
 
@@ -1153,6 +1110,26 @@ public class MySQLStatement implements Statement {
     }
 
     /**
+     * Gives the JDBC driver a hint as to the number of rows that should be fetched from the database when more rows are
+     * needed for <code>ResultSet</code> objects genrated by this <code>Statement</code>. If the value specified is
+     * zero, then the hint is ignored. The default value is zero.
+     *
+     * @param rows the number of rows to fetch
+     * @throws java.sql.SQLException if a database access error occurs, this method is called on a closed
+     *                               <code>Statement</code> or the condition  <code>rows &gt;= 0</code> is not satisfied.
+     * @see #getFetchSize
+     * @since 1.2
+     */
+    public void setFetchSize(final int rows) throws SQLException {
+        if (rows < 0 && rows != Integer.MIN_VALUE)
+            throw new SQLException("invalid fetch size");
+        this.stLock.writeLock().lock();
+        this.fetchSize = rows;
+        this.stLock.writeLock().unlock();
+
+    }
+
+    /**
      * Retrieves the result set concurrency for <code>ResultSet</code> objects generated by this <code>Statement</code>
      * object.
      *
@@ -1170,7 +1147,7 @@ public class MySQLStatement implements Statement {
      * object.
      *
      * @return one of <code>ResultSet.TYPE_FORWARD_ONLY</code>, <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or
-     *         <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
      * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed
      *                               <code>Statement</code>
      * @since 1.2
@@ -1183,7 +1160,6 @@ public class MySQLStatement implements Statement {
     /**
      * Adds the given SQL command to the current list of commmands for this <code>Statement</code> object. The commands
      * in this list can be executed as a batch by calling the method <code>executeBatch</code>.
-     *
      *
      * @param sql typically this is a SQL <code>INSERT</code> or <code>UPDATE</code> statement
      * @throws java.sql.SQLException if a database access error occurs, this method is called on a closed
@@ -1207,6 +1183,7 @@ public class MySQLStatement implements Statement {
 
     /**
      * Parses the sql string to understand whether it is compatible with rewritten batches.
+     *
      * @param sql the sql string
      */
     protected void isInsertRewriteable(String sql) {
@@ -1237,6 +1214,7 @@ public class MySQLStatement implements Statement {
      * Returns the position of the round bracket after the VALUE(S) SQL keyword,
      * or -1 if it cannot understand it is an INSERT statement.
      * Multiple statements cannot be parsed.
+     *
      * @param sql the input SQL statement
      * @return the position of the round bracket after the VALUE(S) SQL keyword,
      * or -1 if it cannot be parsed as an INSERT statement
@@ -1244,7 +1222,7 @@ public class MySQLStatement implements Statement {
     protected int getInsertIncipit(String sql) {
         String sqlUpper = sql.toUpperCase();
 
-        if (! sqlUpper.startsWith("INSERT") && ! sqlUpper.startsWith("/*CLIENT*/ INSERT"))
+        if (!sqlUpper.startsWith("INSERT") && !sqlUpper.startsWith("/*CLIENT*/ INSERT"))
             return -1;
 
         int idx = sqlUpper.indexOf(" VALUE");
@@ -1256,8 +1234,7 @@ public class MySQLStatement implements Statement {
 
         int semicolonPos = sqlUpper.indexOf(';');
 
-        while (semicolonPos > -1)
-        {
+        while (semicolonPos > -1) {
             if (semicolonPos < startBracket || semicolonPos > endBracket)
                 return -1;
 
@@ -1267,11 +1244,8 @@ public class MySQLStatement implements Statement {
         return startBracket;
     }
 
-
-
     /**
      * Empties this <code>Statement</code> object's current list of SQL commands.
-     *
      *
      * @throws java.sql.SQLException if a database access error occurs, this method is called on a closed
      *                               <code>Statement</code> or the driver does not support batch updates
@@ -1296,23 +1270,23 @@ public class MySQLStatement implements Statement {
      * count giving the number of rows in the database that were affected by the command's execution <LI>A value of
      * <code>SUCCESS_NO_INFO</code> -- indicates that the command was processed successfully but that the number of rows
      * affected is unknown
-     *
+     * <p/>
      * If one of the commands in a batch update fails to execute properly, this method throws a
      * <code>BatchUpdateException</code>, and a JDBC driver may or may not continue to process the remaining commands in
      * the batch.  However, the driver's behavior must be consistent with a particular DBMS, either always continuing to
      * process commands or never continuing to process commands.  If the driver continues processing after a failure,
      * the array returned by the method <code>BatchUpdateException.getUpdateCounts</code> will contain as many elements
      * as there are commands in the batch, and at least one of the elements will be the following:
-     *
+     * <p/>
      * <LI>A value of <code>EXECUTE_FAILED</code> -- indicates that the command failed to execute successfully and
      * occurs only if a driver continues to process commands after a command fails </OL>
-     *
+     * <p/>
      * The possible implementations and return values have been modified in the Java 2 SDK, Standard Edition, version
      * 1.3 to accommodate the option of continuing to proccess commands in a batch update after a
      * <code>BatchUpdateException</code> obejct has been thrown.
      *
      * @return an array of update counts containing one element for each command in the batch.  The elements of the
-     *         array are ordered according to the order in which commands were added to the batch.
+     * array are ordered according to the order in which commands were added to the batch.
      * @throws java.sql.SQLException if a database access error occurs, this method is called on a closed
      *                               <code>Statement</code> or the driver does not support batch statements. Throws
      *                               {@link java.sql.BatchUpdateException} (a subclass of <code>SQLException</code>) if
@@ -1337,9 +1311,9 @@ public class MySQLStatement implements Statement {
                     boolean rewrittenBatch = isRewriteable && getProtocol().getOptions().rewriteBatchedStatements;
                     MySQLStatement ps = (MySQLStatement) connection.createStatement();
                     ps.execute(batchQueries, rewrittenBatch, rewrittenBatch ? firstRewrite.length() : 0);
-                    return rewrittenBatch?getUpdateCountsForReWrittenBatch(ps, size):getUpdateCounts(ps, size);
+                    return rewrittenBatch ? getUpdateCountsForReWrittenBatch(ps, size) : getUpdateCounts(ps, size);
                 } else {
-                    for(; i < batchQueries.size(); i++)  {
+                    for (; i < batchQueries.size(); i++) {
                         execute(batchQueries.get(i));
                         int updateCount = getUpdateCount();
                         if (updateCount == -1) {
@@ -1348,9 +1322,9 @@ public class MySQLStatement implements Statement {
                             ret[i] = updateCount;
                         }
                         if (i == 0) {
-                            rs = (MySQLResultSet)getGeneratedKeys();
+                            rs = (MySQLResultSet) getGeneratedKeys();
                         } else {
-                            rs = rs.joinResultSets((MySQLResultSet)getGeneratedKeys());
+                            rs = rs.joinResultSets((MySQLResultSet) getGeneratedKeys());
                         }
                     }
                 }
@@ -1369,28 +1343,29 @@ public class MySQLStatement implements Statement {
     }
 
     /**
-	 * Retrieves the update counts for the batched statements rewritten as
-	 * a multi query. The rewritten statement must have been executed already.
-	 * @param statement the rewritten statement
-	 * @return an array of update counts containing one element for each command in the batch.
-	 *  The elements of the array are ordered according to the order in which commands were added to the batch.
-     * @param  size the number of batch statement
-	 * @throws SQLException if the connection has interruption
-	 */
-	protected int[] getUpdateCounts(Statement statement, int size) throws SQLException {
-		int[] result = new int[size];
-		int updateCount;
-		for (int count=0; count<size; count++) {
-			updateCount = statement.getUpdateCount();
+     * Retrieves the update counts for the batched statements rewritten as
+     * a multi query. The rewritten statement must have been executed already.
+     *
+     * @param statement the rewritten statement
+     * @param size      the number of batch statement
+     * @return an array of update counts containing one element for each command in the batch.
+     * The elements of the array are ordered according to the order in which commands were added to the batch.
+     * @throws SQLException if the connection has interruption
+     */
+    protected int[] getUpdateCounts(Statement statement, int size) throws SQLException {
+        int[] result = new int[size];
+        int updateCount;
+        for (int count = 0; count < size; count++) {
+            updateCount = statement.getUpdateCount();
             if (updateCount == -1) {
                 result[count] = SUCCESS_NO_INFO;
             } else {
                 result[count] = updateCount;
             }
             statement.getMoreResults();
-		}
-		return result;
-	}
+        }
+        return result;
+    }
 
     protected int[] getUpdateCountsForReWrittenBatch(Statement statement, int size) throws SQLException {
         int[] result = new int[size];
@@ -1404,7 +1379,7 @@ public class MySQLStatement implements Statement {
     /**
      * Returns an object that implements the given interface to allow access to non-standard methods, or standard
      * methods not exposed by the proxy.
-     *
+     * <p/>
      * If the receiver implements the interface then the result is the receiver or a proxy for the receiver. If the
      * receiver is a wrapper and the wrapped object implements the interface then the result is the wrapped object or a
      * proxy for the wrapped object. Otherwise return the the result of calling <code>unwrap</code> recursively on the
@@ -1420,7 +1395,7 @@ public class MySQLStatement implements Statement {
     public <T> T unwrap(final Class<T> iface) throws SQLException {
         try {
             if (isWrapperFor(iface)) {
-                return (T)this;
+                return (T) this;
             } else {
                 throw new SQLException("The receiver is not a wrapper and does not implement the interface");
             }
@@ -1456,11 +1431,6 @@ public class MySQLStatement implements Statement {
     public boolean isCloseOnCompletion() throws SQLException {
         // TODO Auto-generated method stub
         return false;
-    }
-
-    public static void unloadDriver() {
-        if (timer != null)
-            timer.cancel();
     }
 
     // Part of query prolog - check if connection is broken and reconnect

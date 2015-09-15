@@ -52,16 +52,16 @@ package org.mariadb.jdbc.internal.common.queryresults;
 
 public class ColumnFlags {
     public static final short
-            NOT_NULL    = 1,
+            NOT_NULL = 1,
             PRIMARY_KEY = 2,
-            UNIQUE_KEY  = 4,
-            MULTIPLE_KEY= 8,
-            BLOB =       16,
-            UNSIGNED =   32,
-            DECIMAL =    64,
+            UNIQUE_KEY = 4,
+            MULTIPLE_KEY = 8,
+            BLOB = 16,
+            UNSIGNED = 32,
+            DECIMAL = 64,
             BINARY_COLLATION = 128,
-            ENUM         =256,
-            AUTO_INCREMENT =  512,
+            ENUM = 256,
+            AUTO_INCREMENT = 512,
             TIMESTAMP = 1024,
             SET = 2048;
 }

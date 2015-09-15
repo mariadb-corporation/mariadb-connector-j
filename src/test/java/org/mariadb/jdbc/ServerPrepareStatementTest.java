@@ -2,11 +2,8 @@ package org.mariadb.jdbc;
 
 import org.junit.Assert;
 import org.junit.Assume;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mariadb.jdbc.internal.common.queryresults.PrepareResult;
-import org.mariadb.jdbc.internal.mysql.MySQLProtocol;
-import org.mariadb.jdbc.internal.mysql.MySQLType;
 import org.mariadb.jdbc.internal.mysql.Protocol;
 
 import java.io.*;
@@ -15,15 +12,13 @@ import java.math.BigInteger;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
-import java.sql.Date;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.*;
-import static org.junit.Assert.assertTrue;
 
 public class ServerPrepareStatementTest extends BaseTest {
 
@@ -73,7 +68,7 @@ public class ServerPrepareStatementTest extends BaseTest {
         statement.execute("create table ServerPrepareStatementTestCache (id int not null primary key auto_increment, test boolean)");
 
         Protocol protocol = getProtocolFromConnection(connection);
-        int cacheSize = protocol.prepareStatementCache().size() ;
+        int cacheSize = protocol.prepareStatementCache().size();
         connection.prepareStatement("INSERT INTO ServerPrepareStatementTestCache(test) VALUES (?)");
         assertTrue(cacheSize + 1 == protocol.prepareStatementCache().size());
         connection.prepareStatement("INSERT INTO ServerPrepareStatementTestCache(test) VALUES (?)");
@@ -93,20 +88,20 @@ public class ServerPrepareStatementTest extends BaseTest {
 
         ResultSet rs = statement.executeQuery("show global status like 'Prepared_stmt_count'");
         rs.next();
-        int prepareServerStatement =  rs.getInt(2);
+        int prepareServerStatement = rs.getInt(2);
         log.debug("server side : " + prepareServerStatement);
 
         PreparedStatement ps1 = connection2.prepareStatement("INSERT INTO ServerPrepareStatementCacheSize3(test) VALUES (?)");
         rs = statement.executeQuery("show global status like 'Prepared_stmt_count'");
         rs.next();
-        int prepareServerStatement2 =  rs.getInt(2);
+        int prepareServerStatement2 = rs.getInt(2);
         log.debug("server side before closing: " + prepareServerStatement2);
         assertTrue(prepareServerStatement2 == prepareServerStatement + 1);
         connection2.close();
 
         rs = statement.executeQuery("show global status like 'Prepared_stmt_count'");
         rs.next();
-        int prepareServerStatement3 =  rs.getInt(2);
+        int prepareServerStatement3 = rs.getInt(2);
         log.debug("server side after closing: " + prepareServerStatement3);
 
         assertTrue(prepareServerStatement3 == prepareServerStatement);
@@ -121,8 +116,8 @@ public class ServerPrepareStatementTest extends BaseTest {
         statement.execute("create table ServerPrepareStatementCacheSize (id int not null primary key auto_increment, test int)");
 
         PreparedStatement[] sts = new PreparedStatement[20];
-        for (int i=0; i< 20; i++) {
-            String sql = "INSERT INTO ServerPrepareStatementCacheSize(id, test) VALUES ("+(i+1)+",?)";
+        for (int i = 0; i < 20; i++) {
+            String sql = "INSERT INTO ServerPrepareStatementCacheSize(id, test) VALUES (" + (i + 1) + ",?)";
             log.debug(sql);
             sts[i] = connection.prepareStatement(sql);
         }
@@ -131,13 +126,13 @@ public class ServerPrepareStatementTest extends BaseTest {
         assertTrue(protocol.prepareStatementCache().size() == 10);
 
         //check all prepared statement worked even if not cached
-        for (int i=0; i< 20; i++) {
+        for (int i = 0; i < 20; i++) {
             sts[i].setInt(1, i);
             sts[i].addBatch();
             sts[i].execute();
         }
         assertTrue(protocol.prepareStatementCache().size() == 10);
-        for (int i=0; i< 20; i++) {
+        for (int i = 0; i < 20; i++) {
             sts[i].close();
         }
         assertTrue(protocol.prepareStatementCache().size() == 0);
@@ -205,7 +200,7 @@ public class ServerPrepareStatementTest extends BaseTest {
                 "varchar0 VARCHAR(1) default '1'," +
                 "varchar_binary VARCHAR(10) BINARY default 0x1," +
                 "binary0 BINARY(10) default 0x1," +
-                "varbinary0 VARBINARY(10) default 0x1"+
+                "varbinary0 VARBINARY(10) default 0x1" +
                 ")");
 
         boolean bit1 = Boolean.FALSE;
@@ -320,7 +315,6 @@ public class ServerPrepareStatementTest extends BaseTest {
     }
 
 
-
     @Test
     public void checkReusability() throws Throwable {
         setConnection("&prepStmtCacheSize=10");
@@ -340,52 +334,6 @@ public class ServerPrepareStatementTest extends BaseTest {
         } catch (InterruptedException e) {
         }
     }
-
-    protected class CreatePrepareDouble implements Runnable {
-        String sql;
-        Connection connection;
-        long firstWaitTime;
-        long secondWaitTime;
-
-
-        public CreatePrepareDouble(String sql, Connection connection, long firstWaitTime, long secondWaitTime) {
-            this.sql = sql;
-            this.connection = connection;
-            this.firstWaitTime = firstWaitTime;
-            this.secondWaitTime = secondWaitTime;
-        }
-
-        public void run() {
-            try {
-                Protocol protocol = getProtocolFromConnection(connection);
-                log.debug("before : contain key : " + protocol.prepareStatementCache().containsKey(sql));
-                if (protocol.prepareStatementCache().containsKey(sql)) {
-                    PrepareResult ps = protocol.prepareStatementCache().get(sql);
-                    log.debug("before : ps : " + ps.getUseTime());
-                }
-                PreparedStatement ps = connection.prepareStatement(sql);
-                log.debug("after : contain key : " + protocol.prepareStatementCache().containsKey(sql));
-                if (protocol.prepareStatementCache().containsKey(sql)) {
-                    PrepareResult ps2 = protocol.prepareStatementCache().get(sql);
-                    log.debug("after : ps : " + ps2.getUseTime());
-                }
-                Thread.sleep(firstWaitTime);
-                ps.setBoolean(1, true);
-                ps.addBatch();
-                ps.executeBatch();
-                Thread.sleep(secondWaitTime);
-                ps.close();
-                log.debug("after close : contain key : " + protocol.prepareStatementCache().containsKey(sql));
-                if (protocol.prepareStatementCache().containsKey(sql)) {
-                    PrepareResult ps2 = protocol.prepareStatementCache().get(sql);
-                    log.debug("after close : ps : " + ps2.getUseTime());
-                }
-            } catch (Throwable e) {
-                fail();
-            }
-        }
-    }
-
 
     @Test
     public void blobTest() throws Throwable {
@@ -425,7 +373,7 @@ public class ServerPrepareStatementTest extends BaseTest {
         ps.executeBatch();
     }
 
-    @Test(expected = SQLException.class )
+    @Test(expected = SQLException.class)
     public void parametersNotSetTest() throws Throwable {
         Statement statement = connection.createStatement();
         statement.execute("drop table if exists ServerPrepareStatementParameters");
@@ -454,7 +402,6 @@ public class ServerPrepareStatementTest extends BaseTest {
         ps.execute();
     }
 
-
     @Test
     public void blobMultipleSizeTest() throws Throwable {
         Assume.assumeTrue(checkMaxAllowedPacketMore40m("blobMultipleSizeTest"));
@@ -464,11 +411,11 @@ public class ServerPrepareStatementTest extends BaseTest {
         statement.execute("create table ServerPrepareStatementCacheSize4 (id int not null primary key auto_increment, test LONGBLOB) ROW_FORMAT=COMPRESSED ENGINE=INNODB");
 
         PreparedStatement ps = connection.prepareStatement("INSERT INTO ServerPrepareStatementCacheSize4(test) VALUES (?)");
-        byte [] arr = new byte[20000000];
+        byte[] arr = new byte[20000000];
         Arrays.fill(arr, (byte) 'b');
-        InputStream input =  new ByteArrayInputStream(arr);
-        InputStream input2 =  new ByteArrayInputStream(arr);
-        InputStream input3 =  new ByteArrayInputStream(arr);
+        InputStream input = new ByteArrayInputStream(arr);
+        InputStream input2 = new ByteArrayInputStream(arr);
+        InputStream input3 = new ByteArrayInputStream(arr);
 
         ps.setBlob(1, input);
         ps.addBatch();
@@ -480,9 +427,9 @@ public class ServerPrepareStatementTest extends BaseTest {
 
         ResultSet rs = statement.executeQuery("select * from ServerPrepareStatementCacheSize4");
         rs.next();
-        byte [] newBytes = rs.getBytes(2);
+        byte[] newBytes = rs.getBytes(2);
         assertEquals(arr.length, newBytes.length);
-        for(int i = 0; i<arr.length; i++) {
+        for (int i = 0; i < arr.length; i++) {
             assertEquals(arr[i], newBytes[i]);
         }
     }
@@ -505,7 +452,7 @@ public class ServerPrepareStatementTest extends BaseTest {
         Assert.assertEquals(rs.getInt(1), 3);
     }
 
-    private PreparedStatement prepareInsert()  throws Throwable{
+    private PreparedStatement prepareInsert() throws Throwable {
         Statement statement = connection.createStatement();
         statement.execute("drop table if exists ServerPrepareStatementParameters");
         statement.execute("create table ServerPrepareStatementParameters (id int, id2 int)");
@@ -536,26 +483,26 @@ public class ServerPrepareStatementTest extends BaseTest {
         Assert.assertEquals(rs.getInt(1), 1);
     }
 
-@Test
-public void directExecuteNumber2() throws Throwable {
-    connection.createStatement().execute("drop table if exists streamtest2");
-    connection.createStatement().execute("create table streamtest2 (id int primary key not null, strm text)");
-    PreparedStatement stmt = connection.prepareStatement("insert into streamtest2 (id, strm) values (?,?)");
-    stmt.setInt(1, 2);
-    String toInsert = "\u00D8abcdefgh\njklmn\"";
-    Reader reader = new StringReader(toInsert);
-    stmt.setCharacterStream(2, reader);
-    stmt.execute();
-    ResultSet rs = connection.createStatement().executeQuery("select * from streamtest2");
-    rs.next();
-    Reader rdr = rs.getCharacterStream("strm");
-    StringBuilder sb = new StringBuilder();
-    int ch;
-    while ((ch = rdr.read()) != -1) {
-        sb.append((char) ch);
+    @Test
+    public void directExecuteNumber2() throws Throwable {
+        connection.createStatement().execute("drop table if exists streamtest2");
+        connection.createStatement().execute("create table streamtest2 (id int primary key not null, strm text)");
+        PreparedStatement stmt = connection.prepareStatement("insert into streamtest2 (id, strm) values (?,?)");
+        stmt.setInt(1, 2);
+        String toInsert = "\u00D8abcdefgh\njklmn\"";
+        Reader reader = new StringReader(toInsert);
+        stmt.setCharacterStream(2, reader);
+        stmt.execute();
+        ResultSet rs = connection.createStatement().executeQuery("select * from streamtest2");
+        rs.next();
+        Reader rdr = rs.getCharacterStream("strm");
+        StringBuilder sb = new StringBuilder();
+        int ch;
+        while ((ch = rdr.read()) != -1) {
+            sb.append((char) ch);
+        }
+        assertEquals(toInsert, sb.toString());
     }
-    assertEquals(toInsert, sb.toString());
-}
 
     @Test
     public void dataConformityTest2() throws SQLException {
@@ -592,7 +539,7 @@ public void directExecuteNumber2() throws Throwable {
                 "varchar0 VARCHAR(1) default '1'," +
                 "varchar_binary VARCHAR(10) BINARY default 0x1," +
                 "binary0 BINARY(10) default 0x1," +
-                "varbinary0 VARBINARY(10) default 0x1"+
+                "varbinary0 VARBINARY(10) default 0x1" +
                 ")");
 
         boolean bit1 = Boolean.FALSE;
@@ -706,5 +653,50 @@ public void directExecuteNumber2() throws Throwable {
         assertEquals(new String(rs.getBytes(30), StandardCharsets.UTF_8), new String(binary0, StandardCharsets.UTF_8));
         assertEquals(new String(rs.getBytes(31), StandardCharsets.UTF_8), new String(varbinary0, StandardCharsets.UTF_8));
 
+    }
+
+    protected class CreatePrepareDouble implements Runnable {
+        String sql;
+        Connection connection;
+        long firstWaitTime;
+        long secondWaitTime;
+
+
+        public CreatePrepareDouble(String sql, Connection connection, long firstWaitTime, long secondWaitTime) {
+            this.sql = sql;
+            this.connection = connection;
+            this.firstWaitTime = firstWaitTime;
+            this.secondWaitTime = secondWaitTime;
+        }
+
+        public void run() {
+            try {
+                Protocol protocol = getProtocolFromConnection(connection);
+                log.debug("before : contain key : " + protocol.prepareStatementCache().containsKey(sql));
+                if (protocol.prepareStatementCache().containsKey(sql)) {
+                    PrepareResult ps = protocol.prepareStatementCache().get(sql);
+                    log.debug("before : ps : " + ps.getUseTime());
+                }
+                PreparedStatement ps = connection.prepareStatement(sql);
+                log.debug("after : contain key : " + protocol.prepareStatementCache().containsKey(sql));
+                if (protocol.prepareStatementCache().containsKey(sql)) {
+                    PrepareResult ps2 = protocol.prepareStatementCache().get(sql);
+                    log.debug("after : ps : " + ps2.getUseTime());
+                }
+                Thread.sleep(firstWaitTime);
+                ps.setBoolean(1, true);
+                ps.addBatch();
+                ps.executeBatch();
+                Thread.sleep(secondWaitTime);
+                ps.close();
+                log.debug("after close : contain key : " + protocol.prepareStatementCache().containsKey(sql));
+                if (protocol.prepareStatementCache().containsKey(sql)) {
+                    PrepareResult ps2 = protocol.prepareStatementCache().get(sql);
+                    log.debug("after close : ps : " + ps2.getUseTime());
+                }
+            } catch (Throwable e) {
+                fail();
+            }
+        }
     }
 }

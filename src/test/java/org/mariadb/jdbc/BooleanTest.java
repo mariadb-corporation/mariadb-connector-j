@@ -3,12 +3,15 @@ package org.mariadb.jdbc;
 
 import org.junit.Test;
 
-import java.sql.*;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 
-public class BooleanTest extends BaseTest{
+public class BooleanTest extends BaseTest {
     @Test
     public void testBoolean() throws SQLException {
         Statement stmt = connection.createStatement();

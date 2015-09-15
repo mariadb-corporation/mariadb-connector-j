@@ -55,17 +55,14 @@ import org.mariadb.jdbc.internal.common.DefaultOptions;
 import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.common.UrlHAMode;
 import org.mariadb.jdbc.internal.common.Utils;
-import org.mariadb.jdbc.internal.mysql.*;
+import org.mariadb.jdbc.internal.mysql.Protocol;
 
 import javax.sql.*;
-
 import java.io.PrintWriter;
-import java.lang.reflect.Proxy;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.ArrayList;
-import java.util.Properties;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Logger;
 
@@ -79,7 +76,7 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XA
         jdbcUrl = new JDBCUrl(database, hostAddresses, DefaultOptions.defaultValues(UrlHAMode.NONE), UrlHAMode.NONE);
     }
 
-    public MySQLDataSource(String url) throws SQLException  {
+    public MySQLDataSource(String url) throws SQLException {
         this.jdbcUrl = JDBCUrl.parse(url);
     }
 
@@ -96,16 +93,6 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XA
     }
 
     /**
-     * Sets the database name.
-     *
-     * @param dbName
-     *            the name of the database
-     */
-    public void setDatabaseName(String dbName) {
-        jdbcUrl.setDatabase(dbName);
-    }
-
-    /**
      * Gets the name of the database
      *
      * @return the name of the database for this data source
@@ -115,13 +102,12 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XA
     }
 
     /**
-     * Sets the username
+     * Sets the database name.
      *
-     * @param userName
-     *            the username
+     * @param dbName the name of the database
      */
-    public void setUser(String userName) {
-        setUserName(userName);
+    public void setDatabaseName(String dbName) {
+        jdbcUrl.setDatabase(dbName);
     }
 
     /**
@@ -136,11 +122,10 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XA
     /**
      * Sets the username
      *
-     * @param userName
-     *            the username
+     * @param userName the username
      */
-    public void setUserName(String userName) {
-        jdbcUrl.setUsername(userName);
+    public void setUser(String userName) {
+        setUserName(userName);
     }
 
     /**
@@ -152,25 +137,22 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XA
         return jdbcUrl.getUsername();
     }
 
+    /**
+     * Sets the username
+     *
+     * @param userName the username
+     */
+    public void setUserName(String userName) {
+        jdbcUrl.setUsername(userName);
+    }
 
     /**
      * Sets the password
      *
-     * @param pass
-     *            the password
+     * @param pass the password
      */
     public void setPassword(String pass) {
         jdbcUrl.setPassword(pass);
-    }
-
-    /**
-     * Sets the database port.
-     *
-     * @param p
-     *            the port
-     */
-    public void setPort(int p) {
-        jdbcUrl.getHostAddresses().get(0).port = p;
     }
 
     /**
@@ -183,17 +165,12 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XA
     }
 
     /**
-     * Sets the port number
+     * Sets the database port.
      *
-     * @param p
-     *            the port
-     *
-     * @see #setPort
+     * @param p the port
      */
-    public void setPortNumber(int p) {
-        if (p > 0) {
-            setPort(p);
-        }
+    public void setPort(int p) {
+        jdbcUrl.getHostAddresses().get(0).port = p;
     }
 
     /**
@@ -206,14 +183,14 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XA
     }
 
     /**
-     * Sets the server name.
+     * Sets the port number
      *
-     * @param serverName
-     *            the server name
+     * @param p the port
+     * @see #setPort
      */
-    public void setServerName(String serverName) {
-        if (serverName != null && !serverName.isEmpty()) {
-            jdbcUrl.getHostAddresses().get(0).host = serverName;
+    public void setPortNumber(int p) {
+        if (p > 0) {
+            setPort(p);
         }
     }
 
@@ -233,6 +210,7 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XA
 
     /**
      * Sets the connection string URL.
+     *
      * @param s the connection string
      * @throws SQLException if error in URL
      */
@@ -247,6 +225,17 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XA
      */
     public String getServerName() {
         return (this.jdbcUrl.getHostAddresses().get(0).host != null) ? this.jdbcUrl.getHostAddresses().get(0).host : "";
+    }
+
+    /**
+     * Sets the server name.
+     *
+     * @param serverName the server name
+     */
+    public void setServerName(String serverName) {
+        if (serverName != null && !serverName.isEmpty()) {
+            jdbcUrl.getHostAddresses().get(0).host = serverName;
+        }
     }
 
     /**
@@ -284,7 +273,7 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XA
 
     /**
      * Retrieves the log writer for this <code>DataSource</code> object.
-     *
+     * <p/>
      * The log writer is a character output stream to which all logging and tracing messages for this data source
      * will be printed.  This includes messages printed by the methods of this object, messages printed by methods of
      * other objects manufactured by this object, and so on.  Messages printed to a data source specific log writer are
@@ -304,7 +293,7 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XA
     /**
      * Sets the log writer for this <code>DataSource</code> object to the given <code>java.io.PrintWriter</code>
      * object.
-     *
+     * <p/>
      * The log writer is a character output stream to which all logging and tracing messages for this data source
      * will be printed.  This includes messages printed by the methods of this object, messages printed by methods of
      * other objects manufactured by this object, and so on.  Messages printed to a data source- specific log writer are
@@ -318,20 +307,6 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XA
      * @since 1.4
      */
     public void setLogWriter(final PrintWriter out) throws SQLException {
-
-    }
-
-    /**
-     * Sets the maximum time in seconds that this data source will wait while attempting to connect to a database.  A
-     * value of zero specifies that the timeout is the default system timeout if there is one; otherwise, it specifies
-     * that there is no timeout. When a <code>DataSource</code> object is created, the login timeout is initially zero.
-     *
-     * @param seconds the data source login time limit
-     * @throws java.sql.SQLException if a database access error occurs.
-     * @see #getLoginTimeout
-     * @since 1.4
-     */
-    public void setLoginTimeout(final int seconds) throws SQLException {
 
     }
 
@@ -350,9 +325,23 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XA
     }
 
     /**
+     * Sets the maximum time in seconds that this data source will wait while attempting to connect to a database.  A
+     * value of zero specifies that the timeout is the default system timeout if there is one; otherwise, it specifies
+     * that there is no timeout. When a <code>DataSource</code> object is created, the login timeout is initially zero.
+     *
+     * @param seconds the data source login time limit
+     * @throws java.sql.SQLException if a database access error occurs.
+     * @see #getLoginTimeout
+     * @since 1.4
+     */
+    public void setLoginTimeout(final int seconds) throws SQLException {
+
+    }
+
+    /**
      * Returns an object that implements the given interface to allow access to non-standard methods, or standard
      * methods not exposed by the proxy.
-     *
+     * <p/>
      * If the receiver implements the interface then the result is the receiver or a proxy for the receiver. If the
      * receiver is a wrapper and the wrapped object implements the interface then the result is the wrapped object or a
      * proxy for the wrapped object. Otherwise return the the result of calling <code>unwrap</code> recursively on the
@@ -392,15 +381,15 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XA
      * be used as a pooled connection.
      *
      * @return a <code>PooledConnection</code> object that is a physical
-     *         connection to the database that this
-     *         <code>ConnectionPoolDataSource</code> object represents
+     * connection to the database that this
+     * <code>ConnectionPoolDataSource</code> object represents
      * @throws java.sql.SQLException if a database access error occurs
      *                               if the JDBC driver does not support
      *                               this method
      * @since 1.4
      */
     public PooledConnection getPooledConnection() throws SQLException {
-        return new MySQLPooledConnection((MySQLConnection)getConnection());
+        return new MySQLPooledConnection((MySQLConnection) getConnection());
     }
 
     /**
@@ -410,20 +399,21 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XA
      * @param user     the database user on whose behalf the connection is being made
      * @param password the user's password
      * @return a <code>PooledConnection</code> object that is a physical
-     *         connection to the database that this
-     *         <code>ConnectionPoolDataSource</code> object represents
+     * connection to the database that this
+     * <code>ConnectionPoolDataSource</code> object represents
      * @throws java.sql.SQLException if a database access error occurs
      * @since 1.4
      */
     public PooledConnection getPooledConnection(String user, String password) throws SQLException {
-        return new MySQLPooledConnection((MySQLConnection)getConnection(user,password));
+        return new MySQLPooledConnection((MySQLConnection) getConnection(user, password));
     }
 
     public XAConnection getXAConnection() throws SQLException {
-        return new MySQLXAConnection((MySQLConnection)getConnection());
+        return new MySQLXAConnection((MySQLConnection) getConnection());
     }
+
     public XAConnection getXAConnection(String user, String password) throws SQLException {
-        return new MySQLXAConnection((MySQLConnection)getConnection(user,password));
+        return new MySQLXAConnection((MySQLConnection) getConnection(user, password));
     }
 
     public Logger getParentLogger() throws SQLFeatureNotSupportedException {

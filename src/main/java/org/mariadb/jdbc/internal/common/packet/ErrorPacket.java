@@ -61,7 +61,7 @@ public class ErrorPacket extends ResultPacket {
     private final String message;
 
 
-    public ErrorPacket(final RawPacket rawPacket){
+    public ErrorPacket(final RawPacket rawPacket) {
         final Reader reader = new Reader(rawPacket);
         reader.readByte();
         this.errorNumber = reader.readShort();
@@ -69,15 +69,14 @@ public class ErrorPacket extends ResultPacket {
         if (sqlStateMarker == '#') {
             this.sqlState = reader.readRawBytes(5);
             this.message = reader.readString("UTF-8");
-        }
-        else {
+        } else {
             // Pre-4.1 message, still can be output in newer versions (e.g with 'Too many connections')
-            byte[] msgBuf = new byte[reader.getRemainingSize()+1];
+            byte[] msgBuf = new byte[reader.getRemainingSize() + 1];
             msgBuf[0] = sqlStateMarker;
             int cnt = 1;
-            while(reader.getRemainingSize() > 0) {
+            while (reader.getRemainingSize() > 0) {
                 byte b = reader.readByte();
-                if(b == 0)
+                if (b == 0)
                     break;
                 msgBuf[cnt++] = b;
             }

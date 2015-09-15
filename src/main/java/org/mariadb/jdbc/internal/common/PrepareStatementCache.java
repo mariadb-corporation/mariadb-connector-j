@@ -50,11 +50,13 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.common;
 
 import org.mariadb.jdbc.internal.common.queryresults.PrepareResult;
+
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class PrepareStatementCache extends LinkedHashMap<String, PrepareResult> {
     private int maxSize;
+
     private PrepareStatementCache(int size) {
         super(size, .75f, true);
         maxSize = size;

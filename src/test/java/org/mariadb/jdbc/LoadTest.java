@@ -4,31 +4,29 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import java.sql.*;
-import java.sql.Connection;
-import java.sql.Statement;
 
 
 @Ignore
 public class LoadTest extends BaseTest {
-	
-    @Test    
+
+    @Test
     public void tm() throws SQLException {
         Connection drizConnection = openNewConnection(connU);
         setConnection();
-              
+
         long sum = 0;
         int i;
-        for(i=0;i<10;i++) {
-          sum+=this.loadTest(drizConnection);
+        for (i = 0; i < 10; i++) {
+            sum += this.loadTest(drizConnection);
             log.trace(String.valueOf(i));
         }
         log.trace(String.valueOf(sum / i));
         sum = 0;
-        for(i = 0;i<10;i++) {
-          sum+=this.loadTest(connection);
+        for (i = 0; i < 10; i++) {
+            sum += this.loadTest(connection);
             log.trace(String.valueOf(i));
         }
-        log.trace(String.valueOf(sum/i));
+        log.trace(String.valueOf(sum / i));
     }
 
     public long loadTest(Connection connection) throws SQLException {
@@ -36,16 +34,16 @@ public class LoadTest extends BaseTest {
         stmt.executeUpdate("drop table if exists loadsofdata");
         stmt.executeUpdate("create table loadsofdata (id int not null primary key auto_increment, data varchar(250)) engine=innodb");
         stmt.close();
-        long startTime=System.currentTimeMillis();
-        for(int i=0;i<100;i++) {
-            stmt=connection.createStatement();
-            stmt.executeUpdate("insert into loadsofdata (data) values ('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"+i+"')");
+        long startTime = System.currentTimeMillis();
+        for (int i = 0; i < 100; i++) {
+            stmt = connection.createStatement();
+            stmt.executeUpdate("insert into loadsofdata (data) values ('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" + i + "')");
             stmt.close();
         }
-        for(int i=0;i<100;i++){
-            stmt=connection.createStatement();
+        for (int i = 0; i < 100; i++) {
+            stmt = connection.createStatement();
             ResultSet rs = stmt.executeQuery("select * from loadsofdata ");
-            while(rs.next()) {
+            while (rs.next()) {
                 rs.getInt("id");
                 rs.getString("data");
                 rs.getInt(1);
@@ -54,8 +52,9 @@ public class LoadTest extends BaseTest {
             rs.close();
             stmt.close();
         }
-        return System.currentTimeMillis()-startTime;
+        return System.currentTimeMillis() - startTime;
     }
+
     @Test
     public void prepareTest() throws SQLException {
         Connection drizConnection = openNewConnection(connU);
@@ -63,16 +62,16 @@ public class LoadTest extends BaseTest {
         Statement stmt = drizConnection.createStatement();
         stmt.executeUpdate("drop table if exists loadsofdata2");
         stmt.executeUpdate("create table loadsofdata2 (id int not null primary key auto_increment, data blob) engine=innodb");
-        byte [] theBytes = new byte[500];
-        for(int i=0;i<500; i++) {
-            theBytes[i]= (byte) i;
+        byte[] theBytes = new byte[500];
+        for (int i = 0; i < 500; i++) {
+            theBytes[i] = (byte) i;
         }
-        long startTime=System.currentTimeMillis();
+        long startTime = System.currentTimeMillis();
 
-        for(int i=1; i<10000; i++) {
+        for (int i = 1; i < 10000; i++) {
             PreparedStatement ps = drizConnection.prepareStatement("insert into loadsofdata2 (id,data) values (?,?)");
-            ps.setInt(1,i);
-            ps.setBytes(2,theBytes);
+            ps.setInt(1, i);
+            ps.setBytes(2, theBytes);
             ps.execute();
             ps.close();
         }
@@ -81,20 +80,20 @@ public class LoadTest extends BaseTest {
         stmt.executeUpdate("drop table if exists loadsofdata2");
         stmt.executeUpdate("create table loadsofdata2 (id int not null primary key auto_increment, data blob) engine=innodb");
 
-        startTime=System.currentTimeMillis();
-        for(int i=1; i<10000; i++) {
+        startTime = System.currentTimeMillis();
+        for (int i = 1; i < 10000; i++) {
             PreparedStatement ps = connection.prepareStatement("insert into loadsofdata2 (id,data) values (?,?)");
-            ps.setInt(1,i);
-            ps.setBytes(2,theBytes);
+            ps.setInt(1, i);
+            ps.setBytes(2, theBytes);
             ps.execute();
             ps.close();
         }
         log.debug(String.valueOf(System.currentTimeMillis() - startTime));
-        startTime=System.currentTimeMillis();
+        startTime = System.currentTimeMillis();
 
-        for(int i=1; i<10000; i++) {
+        for (int i = 1; i < 10000; i++) {
             PreparedStatement ps = drizConnection.prepareStatement("select * from loadsofdata2 where id = ?");
-            ps.setInt(1,i);
+            ps.setInt(1, i);
             ResultSet rs = ps.executeQuery();
             rs.next();
             rs.getBytes(2);
@@ -102,11 +101,11 @@ public class LoadTest extends BaseTest {
         }
         log.debug(String.valueOf(System.currentTimeMillis() - startTime));
 
-        startTime=System.currentTimeMillis();
+        startTime = System.currentTimeMillis();
 
-        for(int i=1; i<10000; i++) {
+        for (int i = 1; i < 10000; i++) {
             PreparedStatement ps = connection.prepareStatement("select * from loadsofdata2 where id = ?");
-            ps.setInt(1,i);
+            ps.setInt(1, i);
             ResultSet rs = ps.executeQuery();
             rs.next();
             rs.getBytes(2);
@@ -125,35 +124,35 @@ public class LoadTest extends BaseTest {
         Statement stmt = drizConnection.createStatement();
         stmt.executeUpdate("drop table if exists loadsofdata3");
         StringBuilder sb = new StringBuilder("d0 int");
-        for(int i=1; i<500; i++) {
+        for (int i = 1; i < 500; i++) {
 
             sb.append(", d").append(i).append(" int");
         }
-        stmt.executeUpdate("create table loadsofdata3 (id int not null primary key auto_increment,"+sb.toString()+") engine=innodb");
+        stmt.executeUpdate("create table loadsofdata3 (id int not null primary key auto_increment," + sb.toString() + ") engine=innodb");
         StringBuilder qb = new StringBuilder("?");
-        for(int i=1; i<500; i++) {
+        for (int i = 1; i < 500; i++) {
             qb.append(", ?");
         }
 
-        String query = "insert into loadsofdata3 values(?, "+qb.toString()+")";
-        long startTime=System.currentTimeMillis();
-        for(int i=0; i < 10000; i++) {
+        String query = "insert into loadsofdata3 values(?, " + qb.toString() + ")";
+        long startTime = System.currentTimeMillis();
+        for (int i = 0; i < 10000; i++) {
             PreparedStatement ps = drizConnection.prepareStatement(query);
-            ps.setInt(1, i+1);
-            for(int k=2; k<502; k++) {
+            ps.setInt(1, i + 1);
+            for (int k = 2; k < 502; k++) {
                 ps.setInt(k, i);
             }
             ps.execute();
         }
         log.debug(String.valueOf(System.currentTimeMillis() - startTime));
         stmt.executeUpdate("drop table if exists loadsofdata3");
-        stmt.executeUpdate("create table loadsofdata3 (id int not null primary key auto_increment,"+sb.toString()+") engine=innodb");
-        
-        startTime=System.currentTimeMillis();
-        for(int i=0; i < 10000; i++) {
+        stmt.executeUpdate("create table loadsofdata3 (id int not null primary key auto_increment," + sb.toString() + ") engine=innodb");
+
+        startTime = System.currentTimeMillis();
+        for (int i = 0; i < 10000; i++) {
             PreparedStatement ps = connection.prepareStatement(query);
-            ps.setInt(1, i+1);
-            for(int k=2; k<502; k++) {
+            ps.setInt(1, i + 1);
+            for (int k = 2; k < 502; k++) {
                 ps.setInt(k, i);
             }
             ps.execute();
@@ -162,15 +161,16 @@ public class LoadTest extends BaseTest {
         log.debug(String.valueOf(System.currentTimeMillis() - startTime));
 
     }
+
     @Test
     public void benchPrepare() throws SQLException {
         Connection drizConnection = openNewConnection(connU);
-        long startTime=System.nanoTime();
+        long startTime = System.nanoTime();
         long x = 1000000;
-        for(int i=0; i<x; i++ ) {
+        for (int i = 0; i < x; i++) {
             drizConnection.prepareStatement("SELECT * FROM EH WHERE EH=? and UU=? and GG=?");
         }
-        log.debug(String.valueOf((System.nanoTime() - startTime)/x));
+        log.debug(String.valueOf((System.nanoTime() - startTime) / x));
     }
 
 

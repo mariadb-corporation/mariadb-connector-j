@@ -52,11 +52,11 @@ import org.mariadb.jdbc.internal.mysql.MySQLColumnInformation;
 
 public class PrepareResult {
     public int statementId;
-    private int useTime = 1;
     public MySQLColumnInformation[] columns;
     public MySQLColumnInformation[] parameters;
+    private int useTime = 1;
 
-    public PrepareResult(int statementId, MySQLColumnInformation[] columns,  MySQLColumnInformation parameters[]) {
+    public PrepareResult(int statementId, MySQLColumnInformation[] columns, MySQLColumnInformation parameters[]) {
         this.statementId = statementId;
         this.columns = columns;
         this.parameters = parameters;
@@ -65,12 +65,15 @@ public class PrepareResult {
     public synchronized void addUse() {
         useTime++;
     }
+
     public synchronized void removeUse() {
         useTime--;
     }
+
     public synchronized boolean hasToBeClose() {
         return useTime <= 0;
     }
+
     //for test unit
     public synchronized int getUseTime() {
         return useTime;

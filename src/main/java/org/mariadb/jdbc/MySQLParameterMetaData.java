@@ -50,14 +50,11 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.SQLExceptionMapper;
-import org.mariadb.jdbc.internal.common.query.ParameterizedQuery;
 import org.mariadb.jdbc.internal.common.queryresults.ColumnFlags;
 import org.mariadb.jdbc.internal.mysql.MySQLColumnInformation;
 import org.mariadb.jdbc.internal.mysql.MySQLType;
 
 import java.sql.ParameterMetaData;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 
 /**
@@ -79,7 +76,7 @@ public class MySQLParameterMetaData implements ParameterMetaData {
         if (column >= 1 && column <= columnInformations.length) {
             return columnInformations[column - 1];
         }
-        throw new SQLException("Parameter metadata out of range : param was "+column+" and must be 1 <= param <="+columnInformations.length, "22003");
+        throw new SQLException("Parameter metadata out of range : param was " + column + " and must be 1 <= param <=" + columnInformations.length, "22003");
     }
 
     @Override
@@ -100,7 +97,7 @@ public class MySQLParameterMetaData implements ParameterMetaData {
     public int getPrecision(int param) throws SQLException {
         //TODO check real length (with numeric)
         long length = getColumnInformation(param).getLength();
-        return (length > Integer.MAX_VALUE)?Integer.MAX_VALUE:(int)length;
+        return (length > Integer.MAX_VALUE) ? Integer.MAX_VALUE : (int) length;
     }
 
     @Override

@@ -60,6 +60,7 @@ import java.nio.charset.Charset;
 public class SelectDBPacket implements CommandPacket {
 
     String database;
+
     public SelectDBPacket(final String database) {
         this.database = database;
     }

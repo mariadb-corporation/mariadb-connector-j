@@ -1,4 +1,5 @@
 package org.mariadb.jdbc.internal.common;
+
 /*
 MariaDB Client for Java
 

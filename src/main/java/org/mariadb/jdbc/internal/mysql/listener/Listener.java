@@ -62,27 +62,49 @@ import java.sql.SQLException;
 import java.util.Map;
 
 public interface Listener {
-    void setProxy(FailoverProxy proxy);
     FailoverProxy getProxy();
+
+    void setProxy(FailoverProxy proxy);
+
     void initializeConnection() throws QueryException;
+
     void preExecute() throws QueryException;
+
     void preClose() throws SQLException;
+
     boolean shouldReconnect();
+
     void reconnectFailedConnection(SearchFilter filter) throws QueryException;
-    void switchReadOnlyConnection(Boolean readonly) throws QueryException ;
+
+    void switchReadOnlyConnection(Boolean readonly) throws QueryException;
+
     HandleErrorResult primaryFail(Method method, Object[] args) throws Throwable;
+
     Object invoke(Method method, Object[] args) throws Throwable;
+
     HandleErrorResult handleFailover(Method method, Object[] args) throws Throwable;
+
     void foundActiveMaster(Protocol protocol) throws QueryException;
+
     Map<HostAddress, Long> getBlacklist();
+
     void syncConnection(Protocol from, Protocol to) throws QueryException;
+
     JDBCUrl getJdbcUrl();
+
     void throwFailoverMessage(QueryException queryException, boolean reconnected) throws QueryException;
+
     boolean isAutoReconnect();
+
     int getRetriesAllDown();
+
     boolean isExplicitClosed();
+
     void setExplicitClosed(boolean explicitClosed);
+
     void reconnect() throws QueryException;
+
     boolean isReadOnly();
+
     boolean isClosed();
 }

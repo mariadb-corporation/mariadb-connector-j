@@ -1,4 +1,3 @@
-
 /*
 MariaDB Client for Java
 

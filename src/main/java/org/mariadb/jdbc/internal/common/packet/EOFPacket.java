@@ -55,7 +55,7 @@ import java.io.IOException;
 
 
 public class EOFPacket extends ResultPacket {
- 
+
     private final byte packetSeq;
     private final short warningCount;
     private final short statusFlags;
