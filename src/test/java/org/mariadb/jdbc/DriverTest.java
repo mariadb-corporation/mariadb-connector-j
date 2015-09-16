@@ -725,6 +725,7 @@ public class DriverTest extends BaseTest {
         assertEquals(true, rs.next());
         byte[] buf2 = rs.getBytes(1);
         for (int i = 0; i < 1000000; i++) {
+            System.out.println(" i="+(((byte) i))+" buf2[i]="+buf2[i]);
             assertEquals((byte) i, buf2[i]);
         }
 

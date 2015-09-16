@@ -63,8 +63,6 @@ public class BlobTest extends BaseTest {
         connection.createStatement().execute("drop table if exists streamtest2");
         connection.createStatement().execute("create table streamtest2 (id int primary key not null, strm text)");
         PreparedStatement stmt = connection.prepareStatement("insert into streamtest2 (id, strm) values (?,?)");
-        MySQLProtocol protocol = (MySQLProtocol) getProtocolFromConnection(connection);
-        protocol.writer.logPacket = true;
         stmt.setInt(1, 2);
         String toInsert = "\u00D8abcdefgh\njklmn\"";
         Reader reader = new StringReader(toInsert);
@@ -78,7 +76,6 @@ public class BlobTest extends BaseTest {
         while ((ch = rdr.read()) != -1) {
             sb.append((char) ch);
         }
-        protocol.writer.logPacket = false;
         assertEquals(toInsert.substring(0, 5), sb.toString());
     }
 
@@ -87,8 +84,6 @@ public class BlobTest extends BaseTest {
         connection.createStatement().execute("drop table if exists streamtest2");
         connection.createStatement().execute("create table streamtest2 (id int primary key not null, strm text)");
         PreparedStatement stmt = connection.prepareStatement("insert into streamtest2 (id, strm) values (?,?)");
-        MySQLProtocol protocol = (MySQLProtocol) getProtocolFromConnection(connection);
-        protocol.writer.logPacket = true;
         stmt.setInt(1, 2);
         String toInsert = "\u00D8abcdefgh\njklmn\"";
         Reader reader = new StringReader(toInsert);
@@ -102,7 +97,6 @@ public class BlobTest extends BaseTest {
         while ((ch = rdr.read()) != -1) {
             sb.append((char) ch);
         }
-        protocol.writer.logPacket = false;
         assertEquals(toInsert, sb.toString());
     }
 
