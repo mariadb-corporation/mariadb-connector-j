@@ -97,11 +97,6 @@ public class MySQLValueObject implements ValueObject {
         }
         if (columnInfo.getType() == MySQLType.BIT && columnInfo.getLength() == 1)
             return (rawBytes[0] == 0) ? "0" : "1";
-
-        if (dataType.getSqlType() == 12 && rawBytes.length > 1 && rawBytes[0] == -61) {
-        System.out.println("dataType.getSqlType() ="+dataType.getSqlType());
-            for (int i=0;i<rawBytes.length;i++) System.out.println("byte : i="+i+" value"+rawBytes[i]);
-        }
         return new String(rawBytes, StandardCharsets.UTF_8);
     }
 

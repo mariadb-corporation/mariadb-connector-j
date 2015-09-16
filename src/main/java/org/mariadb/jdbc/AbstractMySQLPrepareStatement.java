@@ -154,9 +154,8 @@ public abstract class AbstractMySQLPrepareStatement extends MySQLStatement imple
             setNull(parameterIndex, MySQLType.BLOB);
             return;
         }
-        StreamParameter stream = new StreamParameter(x.getAsciiStream(), isNoBackslashEscapes());
-        stream.setText(true);
-        setParameter(parameterIndex, stream);
+
+        setParameter(parameterIndex, new ReaderParameter(x.getCharacterStream(), x.length(), isNoBackslashEscapes()));
     }
 
     /**

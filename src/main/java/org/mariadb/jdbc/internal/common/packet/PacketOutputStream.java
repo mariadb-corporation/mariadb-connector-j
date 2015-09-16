@@ -23,7 +23,6 @@ public class PacketOutputStream extends OutputStream {
     private float increasing = 1.5f;
     private ByteBuffer buffer;
     private OutputStream outputStream;
-    public boolean logPacket;
 
     int seqNo;
     int maxAllowedPacket;
@@ -205,9 +204,6 @@ public class PacketOutputStream extends OutputStream {
                     buffer.get(bufferBytes, notCompressPosition, length);
                     notCompressPosition += length;
                 } else {
-                    if (logPacket) {
-                        for (int i=0;i<Math.min(buffer.limit(), 15); i++) System.out.println("write i="+i+" "+buffer.get(i));
-                    }
                     if (buffer.hasArray()) {
                         outputStream.write(buffer.array(), buffer.position(), length);
                         buffer.position(buffer.position() + length);
