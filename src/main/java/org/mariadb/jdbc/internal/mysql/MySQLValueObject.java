@@ -91,21 +91,23 @@ public class MySQLValueObject implements ValueObject {
 
 
     public String getString() {
-        byte[] bytes = getBytes();
-        if (bytes == null)
-            return null;
-        if (columnInfo.getType() == MySQLType.BIT && columnInfo.getLength() == 1)
-            return (bytes[0] == 0) ? "0" : "1";
-
         if (rawBytes == null) {
             return null;
         }
+        if (columnInfo.getType() == MySQLType.BIT && columnInfo.getLength() == 1)
+            return (rawBytes[0] == 0) ? "0" : "1";
+
         try {
+            if (dataType.getSqlType() == 12 && rawBytes.length > 1 && rawBytes[0] == -61) {
+            System.out.println("dataType.getSqlType() ="+dataType.getSqlType());
+                for (int i=0;i<rawBytes.length;i++) System.out.println("byte : i="+i+" value"+rawBytes[i]);
+            }
             return new String(rawBytes, "UTF-8");
         } catch (UnsupportedEncodingException e) {
             throw new RuntimeException("Unsupported encoding: " + e.getMessage(), e);
         }
     }
+
 
     public byte getByte() {
         if (rawBytes == null) return 0;

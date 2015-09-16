@@ -259,7 +259,6 @@ public abstract class AbstractMastersListener implements Listener {
             proxy.lock.writeLock().lock();
 
             try {
-                to.setMaxAllowedPacket(from.getMaxAllowedPacket());
                 to.setMaxRows(from.getMaxRows());
                 to.setInternalMaxRows(from.getMaxRows());
                 if (from.getTransactionIsolationLevel() != 0) {

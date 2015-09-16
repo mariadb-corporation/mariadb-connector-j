@@ -158,10 +158,6 @@ public interface Protocol {
 
     void setLocalInfileInputStream(InputStream inputStream);
 
-    int getMaxAllowedPacket();
-
-    void setMaxAllowedPacket(int maxAllowedPacket);
-
     int getTimeout() throws SocketException;
 
     void setTimeout(int timeout) throws SocketException;

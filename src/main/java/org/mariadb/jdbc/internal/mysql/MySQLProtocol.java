@@ -175,10 +175,10 @@ public class MySQLProtocol implements Protocol {
     private int majorVersion;
     private int minorVersion;
     private int patchVersion;
-    private int maxAllowedPacket;
     private byte serverLanguage;
     private int transactionIsolationLevel = 0;
     private PrepareStatementCache prepareStatementCache = null;
+    private  Map<String, String> serverData;
 
     private InputStream localInfileInputStream;
 
@@ -497,18 +497,13 @@ public class MySQLProtocol implements Protocol {
             if ((serverStatus & ServerStatus.AUTOCOMMIT) == 0) {
                 executeQuery(new MySQLQuery("set autocommit=1"));
             }
-            SelectQueryResult qr = null;
-            try {
-                qr = (SelectQueryResult) executeQuery(new MySQLQuery("show variables like 'max_allowed_packet'"));
-                if (qr.next()) {
-                    setMaxAllowedPacket(qr.getValueObject(1).getInt());
-                }
-            } finally {
-                if (qr != null) qr.close();
-            }
 
             if (jdbcUrl.getOptions().sessionVariables != null)
                 executeQuery(new MySQLQuery("set session " + jdbcUrl.getOptions().sessionVariables));
+
+            loadServerData();
+
+            writer.setMaxAllowedPacket(Integer.parseInt(serverData.get("max_allowed_packet")));
 
             // At this point, the driver is connected to the database, if createDB is true,
             // then just try to create the database and to use it
@@ -535,6 +530,28 @@ public class MySQLProtocol implements Protocol {
         }
 
     }
+
+    private void loadServerData() throws QueryException, IOException {
+        serverData = new TreeMap<>();
+        SelectQueryResult qr = null;
+        try {
+            qr = (SelectQueryResult) executeQuery(new MySQLQuery("SELECT " +
+                    "@@character_set_client, " +
+                    "@@character_set_server, " +
+                    "@@max_allowed_packet"));
+            if (qr.next()) {
+                serverData.put("character_set_client", qr.getValueObject(0).getString());
+                serverData.put("character_set_server", qr.getValueObject(1).getString());
+                serverData.put("max_allowed_packet", qr.getValueObject(2).getString());
+                System.out.println("character_set_client : " + serverData.get("character_set_client"));
+                System.out.println("character_set_server : " + serverData.get("character_set_server"));
+                System.out.println("max_allowed_packet : " + serverData.get("max_allowed_packet"));
+            }
+        } finally {
+            if (qr != null) qr.close();
+        }
+    }
+
 
     public boolean checkIfMaster() throws QueryException {
         return isMasterConnection();
@@ -1273,15 +1290,6 @@ public class MySQLProtocol implements Protocol {
     @Override
     public void setLocalInfileInputStream(InputStream inputStream) {
         this.localInfileInputStream = inputStream;
-    }
-
-    public int getMaxAllowedPacket() {
-        return this.maxAllowedPacket;
-    }
-
-    public void setMaxAllowedPacket(int maxAllowedPacket) {
-        this.maxAllowedPacket = maxAllowedPacket;
-        writer.setMaxAllowedPacket(maxAllowedPacket);
     }
 
     /**
