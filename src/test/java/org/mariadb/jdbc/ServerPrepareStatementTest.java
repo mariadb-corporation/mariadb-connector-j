@@ -14,6 +14,7 @@ import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.TimeZone;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -221,7 +222,9 @@ public class ServerPrepareStatementTest extends BaseTest {
         BigDecimal decimal0 = new BigDecimal("3147483647");
         BigDecimal decimal1 = new BigDecimal("3147483647.9527");
         System.out.println(System.currentTimeMillis());
-        Date date0 = new Date(1441317600000l);
+        TimeZone.setDefault(TimeZone.getTimeZone("GMT+00:00"));
+        Date date0 = new Date(1441238400000l);
+
         Timestamp datetime0 = new Timestamp(-2124690212000l);
         datetime0.setNanos(392005000);
         Timestamp timestamp0 = new Timestamp(1441290349000l);
@@ -559,7 +562,8 @@ public class ServerPrepareStatementTest extends BaseTest {
         double double0 = 3147483647.8527D;
         BigDecimal decimal0 = new BigDecimal("3147483647");
         BigDecimal decimal1 = new BigDecimal("3147483647.9527");
-        Date date0 = new Date(1441317600000l);
+        TimeZone.setDefault(TimeZone.getTimeZone("GMT+00:00"));
+        Date date0 = new Date(1441238400000l);
         Timestamp datetime0 = new Timestamp(-2124690212000l);
         datetime0.setNanos(392005000);
         Timestamp timestamp0 = new Timestamp(1441290349000l);

@@ -37,11 +37,11 @@ public class BaseTest {
     @Rule
     public TestRule watcher = new TestWatcher() {
         protected void starting(Description description) {
-            log.debug("Starting test: " + description.getMethodName());
+            log.trace("Starting test: " + description.getMethodName());
         }
 
         protected void finished(Description description) {
-            log.debug("finished test: " + description.getMethodName());
+            log.trace("finished test: " + description.getMethodName());
         }
     };
     protected Connection connection;
