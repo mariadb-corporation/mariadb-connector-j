@@ -55,6 +55,7 @@ import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 
 public class SelectDBPacket implements CommandPacket {
@@ -69,7 +70,7 @@ public class SelectDBPacket implements CommandPacket {
         PacketOutputStream pos = (PacketOutputStream) outputStream;
         pos.startPacket(0);
         pos.write(0x02);
-        pos.write(database.getBytes(Charset.forName("UTF-8")));
+        pos.write(database.getBytes(StandardCharsets.UTF_8));
         pos.finishPacket();
         return 0;
     }

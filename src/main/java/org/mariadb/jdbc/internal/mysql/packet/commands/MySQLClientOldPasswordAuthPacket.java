@@ -52,27 +52,24 @@ package org.mariadb.jdbc.internal.mysql.packet.commands;
 import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.common.packet.CommandPacket;
 import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
-import org.mariadb.jdbc.internal.common.packet.buffer.WriteBuffer;
 
 import java.io.IOException;
 import java.io.OutputStream;
 
 public class MySQLClientOldPasswordAuthPacket implements CommandPacket {
-    private final WriteBuffer writeBuffer;
+
     private int packSeq = 0;
+    private byte[] oldPassword;
 
     public MySQLClientOldPasswordAuthPacket(String password, byte[] seed, int packSeq) {
-        writeBuffer = new WriteBuffer();
         this.packSeq = packSeq;
-
-        byte[] oldPassword = cryptOldFormatPassword(password, new String(seed));
-        writeBuffer.writeByteArray(oldPassword).writeByte((byte) 0x00);
+        this.oldPassword = cryptOldFormatPassword(password, new String(seed));
     }
 
     public int send(OutputStream os) throws IOException, QueryException {
         PacketOutputStream pos = (PacketOutputStream) os;
         pos.startPacket(packSeq);
-        pos.write(writeBuffer.getBuffer(), 0, writeBuffer.getLength());
+        pos.writeByteArray(oldPassword).writeByte((byte) 0x00);
         pos.finishPacket();
         return packSeq;
     }

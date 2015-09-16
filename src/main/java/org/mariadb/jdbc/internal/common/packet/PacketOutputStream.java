@@ -5,6 +5,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.WritableByteChannel;
+import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.zip.DeflaterOutputStream;
@@ -19,6 +20,7 @@ public class PacketOutputStream extends OutputStream {
     private float increasing = 1.5f;
     private ByteBuffer buffer;
     private OutputStream outputStream;
+    public boolean logPacket;
 
     int seqNo;
     int maxAllowedPacket;
@@ -107,7 +109,7 @@ public class PacketOutputStream extends OutputStream {
         char[] buffer = new char[8192];
         int len;
         while ((len = reader.read(buffer)) > 0) {
-            byte[] s = new String(buffer, 0, len).getBytes("UTF-8");
+            byte[] s = new String(buffer, 0, len).getBytes(StandardCharsets.UTF_8);
             write(s, 0, s.length);
         }
     }
@@ -116,7 +118,7 @@ public class PacketOutputStream extends OutputStream {
         char[] buffer = new char[8192];
         int len;
         while ((len = reader.read(buffer, 0, (int) readLength)) > 0) {
-            byte[] s = new String(buffer, 0, len).getBytes("UTF-8");
+            byte[] s = new String(buffer, 0, len).getBytes(StandardCharsets.UTF_8);
             write(s, 0, s.length);
             if (len >= readLength) return;
         }
@@ -200,6 +202,9 @@ public class PacketOutputStream extends OutputStream {
                     buffer.get(bufferBytes, notCompressPosition, length);
                     notCompressPosition += length;
                 } else {
+                    if (logPacket) {
+                        for (int i=0;i<Math.min(buffer.capacity(), 15); i++) System.out.println("write i="+i+" "+buffer.get(i));
+                    }
                     if (buffer.hasArray()) {
                         outputStream.write(buffer.array(), buffer.position(), length);
                         buffer.position(buffer.position() + length);
@@ -328,11 +333,7 @@ public class PacketOutputStream extends OutputStream {
 
     public PacketOutputStream writeString(final String str) {
         final byte[] strBytes;
-        try {
-            strBytes = str.getBytes("UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException("UTF-8 not supported", e);
-        }
+        strBytes = str.getBytes(StandardCharsets.UTF_8);
         return writeByteArray(strBytes);
 
     }
@@ -379,12 +380,7 @@ public class PacketOutputStream extends OutputStream {
 
 
     public PacketOutputStream writeStringLength(final String str) {
-        final byte[] strBytes;
-        try {
-            strBytes = str.getBytes("UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException("UTF-8 not supported", e);
-        }
+        final byte[] strBytes = str.getBytes(StandardCharsets.UTF_8);
         assureBufferCapacity(strBytes.length + 9);
         writeFieldLength(strBytes.length);
         buffer.put(strBytes);

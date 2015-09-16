@@ -52,6 +52,7 @@ package org.mariadb.jdbc.internal.common.packet;
 import org.mariadb.jdbc.internal.common.packet.buffer.Reader;
 
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 
 
 public class ErrorPacket extends ResultPacket {
@@ -68,7 +69,7 @@ public class ErrorPacket extends ResultPacket {
         this.sqlStateMarker = reader.readByte();
         if (sqlStateMarker == '#') {
             this.sqlState = reader.readRawBytes(5);
-            this.message = reader.readString("UTF-8");
+            this.message = reader.readString(StandardCharsets.UTF_8);
         } else {
             // Pre-4.1 message, still can be output in newer versions (e.g with 'Too many connections')
             byte[] msgBuf = new byte[reader.getRemainingSize() + 1];
@@ -80,11 +81,7 @@ public class ErrorPacket extends ResultPacket {
                     break;
                 msgBuf[cnt++] = b;
             }
-            try {
-                this.message = new String(msgBuf, "UTF-8");
-            } catch (UnsupportedEncodingException uee) {
-                throw new AssertionError("UTF8 not supported");
-            }
+            this.message = new String(msgBuf, StandardCharsets.UTF_8);
             this.sqlState = "HY000".getBytes();
         }
     }

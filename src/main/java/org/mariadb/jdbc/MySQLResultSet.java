@@ -65,6 +65,7 @@ import java.io.StringReader;
 import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.sql.Date;
 import java.text.ParseException;
@@ -137,11 +138,7 @@ public class MySQLResultSet implements ResultSet {
                 } else if (columnTypes[i] == MySQLType.BIT) {
                     bytes = rowData[i].equals("0") ? BOOL_FALSE : BOOL_TRUE;
                 } else {
-                    try {
-                        bytes = rowData[i].getBytes("UTF-8");
-                    } catch (Exception e) {
-                        throw new RuntimeException("No UTF-8");
-                    }
+                    bytes = rowData[i].getBytes(StandardCharsets.UTF_8);
                 }
                 row[i] = new MySQLValueObject(bytes, columns[i]);
             }
@@ -206,11 +203,7 @@ public class MySQLResultSet implements ResultSet {
                 } else if (columns[i].getType() == MySQLType.BIT) {
                     bytes = rowData[i].equals("0") ? BOOL_FALSE : BOOL_TRUE;
                 } else {
-                    try {
-                        bytes = rowData[i].getBytes("UTF-8");
-                    } catch (Exception e) {
-                        throw new RuntimeException("No UTF-8");
-                    }
+                    bytes = rowData[i].getBytes(StandardCharsets.UTF_8);
                 }
                 row[i] = new MySQLValueObject(bytes, columns[i]);
             }

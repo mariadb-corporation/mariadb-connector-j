@@ -160,7 +160,7 @@ public class MySQLProtocol implements Protocol {
     public int datatypeMappingFlags;
     public short serverStatus;
     protected Socket socket;
-    protected PacketOutputStream writer;
+    public PacketOutputStream writer;
     protected boolean readOnly = false;
     protected SyncPacketFetcher packetFetcher;
     protected HostAddress currentHost;
@@ -543,9 +543,6 @@ public class MySQLProtocol implements Protocol {
                 serverData.put("character_set_client", qr.getValueObject(0).getString());
                 serverData.put("character_set_server", qr.getValueObject(1).getString());
                 serverData.put("max_allowed_packet", qr.getValueObject(2).getString());
-                System.out.println("character_set_client : " + serverData.get("character_set_client"));
-                System.out.println("character_set_server : " + serverData.get("character_set_server"));
-                System.out.println("max_allowed_packet : " + serverData.get("max_allowed_packet"));
             }
         } finally {
             if (qr != null) qr.close();

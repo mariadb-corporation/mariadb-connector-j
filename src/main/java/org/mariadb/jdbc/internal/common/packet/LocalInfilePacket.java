@@ -4,6 +4,7 @@ package org.mariadb.jdbc.internal.common.packet;
 import org.mariadb.jdbc.internal.common.packet.buffer.Reader;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 public class LocalInfilePacket extends ResultPacket {
     private long fieldCount;
@@ -14,7 +15,7 @@ public class LocalInfilePacket extends ResultPacket {
         fieldCount = reader.getLengthEncodedBinary();
         if (fieldCount != -1)
             throw new AssertionError("field count must be -1");
-        fileName = reader.readString("UTF-8");
+        fileName = reader.readString(StandardCharsets.UTF_8);
     }
 
     public String getFileName() {

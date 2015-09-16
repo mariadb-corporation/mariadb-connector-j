@@ -55,7 +55,9 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.channels.Channels;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 
 public class Reader {
@@ -74,14 +76,14 @@ public class Reader {
      * @param charset the charset to use, for example ASCII
      * @return the read string
      */
-    public String readString(final String charset) {
+    public String readString(final Charset charset) {
         byte ch;
         int cnt = 0;
         final byte[] byteArrBuff = new byte[byteBuffer.remaining()];
         while (byteBuffer.remaining() > 0 && ((ch = byteBuffer.get()) != 0)) {
             byteArrBuff[cnt++] = ch;
         }
-        return new String(byteArrBuff, 0, cnt, Charset.forName(charset));
+        return new String(byteArrBuff, 0, cnt, charset);
     }
 
     /**
@@ -185,11 +187,7 @@ public class Reader {
         }
         final byte[] tmpBuf = new byte[(int) encLength];
         byteBuffer.get(tmpBuf);
-        try {
-            return new String(tmpBuf, "UTF-8");
-        } catch (UnsupportedEncodingException uee) {
-            throw new AssertionError("UTF-8 not supported");
-        }
+        return new String(tmpBuf, StandardCharsets.UTF_8);
     }
 
     public byte[] getLengthEncodedBytes() throws IOException {

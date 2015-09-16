@@ -51,7 +51,6 @@ package org.mariadb.jdbc.internal.mysql.packet.commands;
 
 import org.mariadb.jdbc.internal.common.packet.CommandPacket;
 import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
-import org.mariadb.jdbc.internal.common.packet.buffer.WriteBuffer;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -60,18 +59,17 @@ import java.io.OutputStream;
  * used for starting ssl connections!
  */
 public class AbbreviatedMySQLClientAuthPacket implements CommandPacket {
-    private final WriteBuffer writeBuffer;
+    private final int serverCapabilities;
 
     public AbbreviatedMySQLClientAuthPacket(int serverCapabilities) {
-        writeBuffer = new WriteBuffer();
-        writeBuffer.writeInt(serverCapabilities);
+        this.serverCapabilities = serverCapabilities;
     }
 
 
     public int send(final OutputStream os) throws IOException {
         PacketOutputStream pos = (PacketOutputStream) os;
         pos.startPacket(1);
-        pos.write(writeBuffer.getBuffer(), 0, writeBuffer.getLength());
+        pos.writeInt(this.serverCapabilities);
         pos.finishPacket();
         return 1;
     }

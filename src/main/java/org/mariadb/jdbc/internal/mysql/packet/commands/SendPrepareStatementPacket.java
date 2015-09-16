@@ -54,6 +54,7 @@ import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 
 public class SendPrepareStatementPacket implements CommandPacket {
 
@@ -67,7 +68,7 @@ public class SendPrepareStatementPacket implements CommandPacket {
         PacketOutputStream pos = (PacketOutputStream) os;
         pos.startPacket(0);
         pos.write(0x16);
-        pos.write(sql.getBytes("UTF8"));
+        pos.write(sql.getBytes(StandardCharsets.UTF_8));
         pos.finishPacket();
         return 0;
     }

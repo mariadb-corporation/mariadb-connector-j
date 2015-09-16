@@ -58,6 +58,7 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -97,15 +98,11 @@ public class MySQLValueObject implements ValueObject {
         if (columnInfo.getType() == MySQLType.BIT && columnInfo.getLength() == 1)
             return (rawBytes[0] == 0) ? "0" : "1";
 
-        try {
-            if (dataType.getSqlType() == 12 && rawBytes.length > 1 && rawBytes[0] == -61) {
-            System.out.println("dataType.getSqlType() ="+dataType.getSqlType());
-                for (int i=0;i<rawBytes.length;i++) System.out.println("byte : i="+i+" value"+rawBytes[i]);
-            }
-            return new String(rawBytes, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException("Unsupported encoding: " + e.getMessage(), e);
+        if (dataType.getSqlType() == 12 && rawBytes.length > 1 && rawBytes[0] == -61) {
+        System.out.println("dataType.getSqlType() ="+dataType.getSqlType());
+            for (int i=0;i<rawBytes.length;i++) System.out.println("byte : i="+i+" value"+rawBytes[i]);
         }
+        return new String(rawBytes, StandardCharsets.UTF_8);
     }
 
 

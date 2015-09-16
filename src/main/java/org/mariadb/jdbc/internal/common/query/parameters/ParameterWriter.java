@@ -3,6 +3,7 @@ package org.mariadb.jdbc.internal.common.query.parameters;
 import java.io.*;
 import java.math.BigDecimal;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
@@ -13,7 +14,6 @@ import java.util.Calendar;
  */
 public class ParameterWriter {
     static final byte[] BINARY_INTRODUCER = {'_', 'b', 'i', 'n', 'a', 'r', 'y', ' ', '\''};
-    static final Charset UTF8 = Charset.forName("UTF-8");
     static final byte[] QUOTE = {'\''};
 
     private static void writeBytesEscaped(OutputStream out, byte[] bytes, int count, boolean noBackslashEscapes)
@@ -59,7 +59,7 @@ public class ParameterWriter {
     }
 
     public static void write(OutputStream out, String s, boolean noBackslashEscapes) throws IOException {
-        byte[] bytes = s.getBytes(UTF8);
+        byte[] bytes = s.getBytes(StandardCharsets.UTF_8);
         out.write(QUOTE);
         writeBytesEscaped(out, bytes, noBackslashEscapes);
         out.write(QUOTE);
@@ -107,7 +107,7 @@ public class ParameterWriter {
         char[] buffer = new char[1024];
         int len;
         while ((len = reader.read(buffer)) >= 0) {
-            writeBytesEscaped(out, new String(buffer, 0, len).getBytes(UTF8), noBackslashEscapes);
+            writeBytesEscaped(out, new String(buffer, 0, len).getBytes(StandardCharsets.UTF_8), noBackslashEscapes);
         }
         out.write(QUOTE);
     }
@@ -126,7 +126,7 @@ public class ParameterWriter {
             len = reader.read(buffer, 0, charsToRead);
             if (len <= 0)
                 break;
-            byte[] bytes = new String(buffer, 0, len).getBytes(UTF8);
+            byte[] bytes = new String(buffer, 0, len).getBytes(StandardCharsets.UTF_8);
             writeBytesEscaped(out, bytes, bytes.length, noBackslashEscapes);
             charsLeft -= len;
         }

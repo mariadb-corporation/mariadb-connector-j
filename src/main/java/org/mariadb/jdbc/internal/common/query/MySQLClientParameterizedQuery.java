@@ -54,6 +54,7 @@ import org.mariadb.jdbc.internal.common.query.parameters.ParameterHolder;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import static org.mariadb.jdbc.internal.common.Utils.createQueryParts;
@@ -75,22 +76,14 @@ public class MySQLClientParameterizedQuery implements ParameterizedQuery {
         this.query = query;
         List<String> queryParts = createQueryParts(query, noBackslashEscapes);
         if (rewriteOffset != -1) {
-            try {
-                rewriteFirstPart = queryParts.get(0).substring(rewriteOffset + 1).getBytes("UTF-8");
-                String lastPart = queryParts.get(queryParts.size() - 1);
-                rewriteRepeatLastPart = lastPart.substring(0, lastPart.indexOf(")")).getBytes("UTF-8");
-                rewriteNotRepeatLastPart = lastPart.substring(lastPart.indexOf(")") + 1).getBytes("UTF-8");
-            } catch (UnsupportedEncodingException e) {
-                throw new RuntimeException("UTF-8 not supported", e);
-            }
+            rewriteFirstPart = queryParts.get(0).substring(rewriteOffset + 1).getBytes(StandardCharsets.UTF_8);
+            String lastPart = queryParts.get(queryParts.size() - 1);
+            rewriteRepeatLastPart = lastPart.substring(0, lastPart.indexOf(")")).getBytes(StandardCharsets.UTF_8);
+            rewriteNotRepeatLastPart = lastPart.substring(lastPart.indexOf(")") + 1).getBytes(StandardCharsets.UTF_8);
         }
         queryPartsArray = new byte[queryParts.size()][];
         for (int i = 0; i < queryParts.size(); i++) {
-            try {
-                queryPartsArray[i] = queryParts.get(i).getBytes("UTF-8");
-            } catch (UnsupportedEncodingException e) {
-                throw new RuntimeException("UTF-8 not supported", e);
-            }
+            queryPartsArray[i] = queryParts.get(i).getBytes(StandardCharsets.UTF_8);
         }
         paramCount = queryParts.size() - 1;
         parameters = new ParameterHolder[paramCount];

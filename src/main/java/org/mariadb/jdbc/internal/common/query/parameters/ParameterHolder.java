@@ -55,6 +55,7 @@ import org.mariadb.jdbc.internal.mysql.MySQLType;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 
 
 public abstract class ParameterHolder implements Cloneable {
@@ -73,10 +74,10 @@ public abstract class ParameterHolder implements Cloneable {
             writeTo(baos);
             byte[] a = baos.toByteArray();
             if (a.length < 1024) {
-                return new String(a, "UTF8");
+                return new String(a, StandardCharsets.UTF_8);
             } else {
                 // cut overlong strings.
-                return new String(a, 0, 1024, "UTF8") + "<cut>...'";
+                return new String(a, 0, 1024, StandardCharsets.UTF_8) + "<cut>...'";
             }
         } catch (Exception e) {
             return "";

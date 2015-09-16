@@ -2,6 +2,7 @@ package org.mariadb.jdbc;
 
 import java.io.*;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.sql.Clob;
 import java.sql.NClob;
 import java.sql.SQLException;
@@ -19,7 +20,7 @@ public class MySQLClob extends MySQLBlob implements Clob, NClob, Serializable {
 
     public String toString() {
         try {
-            return new String(blobContent, "UTF-8");
+            return new String(blobContent, StandardCharsets.UTF_8);
         } catch (Exception e) {
             throw new AssertionError(e);
         }
@@ -78,7 +79,7 @@ public class MySQLClob extends MySQLBlob implements Clob, NClob, Serializable {
 
     public int setString(long pos, String str) throws SQLException {
         int bytePosition = UTF8position((int) pos - 1);
-        super.setBytes(bytePosition + 1, str.getBytes(Charset.forName("UTF-8")));
+        super.setBytes(bytePosition + 1, str.getBytes(StandardCharsets.UTF_8));
         return str.length();
     }
 
@@ -93,7 +94,7 @@ public class MySQLClob extends MySQLBlob implements Clob, NClob, Serializable {
     public Writer setCharacterStream(long pos) throws SQLException {
         int bytePosition = UTF8position((int) pos - 1);
         OutputStream stream = setBinaryStream(bytePosition + 1);
-        return new OutputStreamWriter(stream, Charset.forName("UTF-8"));
+        return new OutputStreamWriter(stream, StandardCharsets.UTF_8);
     }
 
 

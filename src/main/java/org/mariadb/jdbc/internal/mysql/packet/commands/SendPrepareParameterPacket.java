@@ -51,29 +51,29 @@ package org.mariadb.jdbc.internal.mysql.packet.commands;
 
 import org.mariadb.jdbc.internal.common.packet.CommandPacket;
 import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
-import org.mariadb.jdbc.internal.common.packet.buffer.WriteBuffer;
 import org.mariadb.jdbc.internal.common.query.parameters.LongDataParameterHolder;
 
 import java.io.IOException;
 import java.io.OutputStream;
 
 public class SendPrepareParameterPacket implements CommandPacket {
-    private final WriteBuffer writeBuffer;
+
     LongDataParameterHolder parameter;
+    int statementId;
+    int parameterIndex;
 
     public SendPrepareParameterPacket(int parameterIndex, LongDataParameterHolder parameter, int statementId) {
         this.parameter = parameter;
-        writeBuffer = new WriteBuffer();
-        writeBuffer.writeByte((byte) 0x18);
-        writeBuffer.writeInt(statementId);
-        writeBuffer.writeShort((short) parameterIndex);
-
+        this.statementId = statementId;
+        this.parameterIndex = parameterIndex;
     }
 
     public int send(final OutputStream os) throws IOException {
         PacketOutputStream pos = (PacketOutputStream) os;
         pos.startPacket(0);
-        os.write(writeBuffer.getBuffer(), 0, writeBuffer.getLength());
+        pos.writeByte((byte) 0x18);
+        pos.writeInt(statementId);
+        pos.writeShort((short) parameterIndex);
 
         parameter.writeBinary(((PacketOutputStream) os));
         pos.finishPacket();
