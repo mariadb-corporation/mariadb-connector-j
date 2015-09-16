@@ -49,14 +49,18 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.common.query.parameters;
 
+import org.mariadb.jdbc.internal.common.MySQLCharset;
 import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
 
 import java.io.IOException;
 
 
 public abstract class LongDataParameterHolder extends ParameterHolder {
+    public MySQLCharset mySQLServerCharset;
     public abstract void writeBinary(PacketOutputStream writeBuffer) throws IOException;
-
+    public void setMySQLServerCharset(MySQLCharset mySQLServerCharset) {
+        this.mySQLServerCharset = mySQLServerCharset;
+    }
     public boolean isLongData() {
         return true;
     }

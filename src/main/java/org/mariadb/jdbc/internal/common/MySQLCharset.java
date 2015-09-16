@@ -46,61 +46,24 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWIS
 ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
 OF SUCH DAMAGE.
 */
+package org.mariadb.jdbc.internal.common;
 
-package org.mariadb.jdbc.internal.common.query.parameters;
+public enum MySQLCharset {
+    BIG5(1, "big5", "Big5", "Big5"),
+    ISO8859_2(2, "latin2", "ISO8859_2", "ISO-8859-2"),
+    CP1252(3, "dec8", "Cp1252", "windows-1252"),
+    UTF8(33, "utf8", "UTF8", "UTF-8"),
+    LATIN1(8, "latin1", "ISO8859_1", "ISO-8859-1");
 
-import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
-import org.mariadb.jdbc.internal.mysql.MySQLType;
+    public final int defaultId;
+    public final String mysqlCharsetName;
+    public final String javaIoCharsetName;
+    public final String javaNioCharsetName;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-
-
-public class StreamParameter extends LongDataParameterHolder {
-    InputStream is;
-    long length;
-    boolean noBackslashEscapes;
-    boolean isText;
-
-    public StreamParameter(InputStream is, long length, boolean noBackslashEscapes) {
-        this.is = is;
-        this.length = length;
-        this.noBackslashEscapes = noBackslashEscapes;
+    MySQLCharset(int defaultId, String mysqlCharsetName, String javaIoCharsetName, String javaNioCharsetName) {
+        this.defaultId = defaultId;
+        this.mysqlCharsetName = mysqlCharsetName;
+        this.javaIoCharsetName = javaIoCharsetName;
+        this.javaNioCharsetName = javaNioCharsetName;
     }
-
-    public StreamParameter(InputStream is, boolean noBackSlashEscapes) {
-        this(is, Long.MAX_VALUE, noBackSlashEscapes);
-    }
-
-    public void setText(boolean b) {
-        isText = b;
-    }
-
-    public void writeTo(final OutputStream os) throws IOException {
-        if (length == Long.MAX_VALUE) {
-            ParameterWriter.write(os, is, noBackslashEscapes, isText);
-        } else {
-            ParameterWriter.write(os, is, length, noBackslashEscapes, isText);
-        }
-    }
-
-    public void writeBinary(PacketOutputStream os) throws IOException {
-        if (length == Long.MAX_VALUE) {
-            os.sendStream(is, mySQLServerCharset);
-        } else {
-            os.sendStream(is, length, mySQLServerCharset);
-        }
-
-    }
-
-
-    public String toString() {
-        return "<Stream> " + is;
-    }
-
-    public MySQLType getMySQLType() {
-        return MySQLType.BLOB;
-    }
-
 }

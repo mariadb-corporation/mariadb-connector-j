@@ -176,6 +176,7 @@ public class MySQLProtocol implements Protocol {
     private int minorVersion;
     private int patchVersion;
     private byte serverLanguage;
+    private MySQLCharset mySQLServerCharset;
     private int transactionIsolationLevel = 0;
     private PrepareStatementCache prepareStatementCache = null;
     private  Map<String, String> serverData;
@@ -413,7 +414,7 @@ public class MySQLProtocol implements Protocol {
             final MySQLGreetingReadPacket greetingPacket = new MySQLGreetingReadPacket(packet);
             this.serverThreadId = greetingPacket.getServerThreadID();
             this.serverLanguage = greetingPacket.getServerLanguage();
-
+            this.mySQLServerCharset = CharsetUtils.getServerCharset(serverLanguage);
             this.version = greetingPacket.getServerVersion();
             parseVersion();
             byte packetSeq = 1;
@@ -1127,7 +1128,7 @@ public class MySQLProtocol implements Protocol {
             //send binary data in a separate packet
             for (int i = 0; i < parameterCount; i++) {
                 if (parameters[i].isLongData()) {
-                    SendPrepareParameterPacket sendPrepareParameterPacket = new SendPrepareParameterPacket(i, (LongDataParameterHolder) parameters[i], prepareResult.statementId);
+                    SendPrepareParameterPacket sendPrepareParameterPacket = new SendPrepareParameterPacket(i, (LongDataParameterHolder) parameters[i], prepareResult.statementId, mySQLServerCharset);
                     sendPrepareParameterPacket.send(writer);
                 }
 

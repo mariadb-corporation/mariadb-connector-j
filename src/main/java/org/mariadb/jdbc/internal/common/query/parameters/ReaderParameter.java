@@ -81,9 +81,9 @@ public class ReaderParameter extends LongDataParameterHolder {
 
     public void writeBinary(PacketOutputStream os) throws IOException {
         if (length == Long.MAX_VALUE)
-            os.sendStream(reader);
+            os.sendStream(reader, mySQLServerCharset);
         else
-            os.sendStream(reader, length);
+            os.sendStream(reader, length, mySQLServerCharset);
     }
 
     public MySQLType getMySQLType() {

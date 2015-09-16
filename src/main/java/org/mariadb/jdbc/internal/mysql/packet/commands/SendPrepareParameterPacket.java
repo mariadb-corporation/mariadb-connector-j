@@ -49,6 +49,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.mysql.packet.commands;
 
+import org.mariadb.jdbc.internal.common.MySQLCharset;
 import org.mariadb.jdbc.internal.common.packet.CommandPacket;
 import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
 import org.mariadb.jdbc.internal.common.query.parameters.LongDataParameterHolder;
@@ -62,10 +63,12 @@ public class SendPrepareParameterPacket implements CommandPacket {
     int statementId;
     int parameterIndex;
 
-    public SendPrepareParameterPacket(int parameterIndex, LongDataParameterHolder parameter, int statementId) {
+    public SendPrepareParameterPacket(int parameterIndex, LongDataParameterHolder parameter, int statementId, MySQLCharset mySQLCharset) {
         this.parameter = parameter;
         this.statementId = statementId;
         this.parameterIndex = parameterIndex;
+        this.parameter.setMySQLServerCharset(mySQLCharset);
+
     }
 
     public int send(final OutputStream os) throws IOException {

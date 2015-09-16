@@ -1,10 +1,13 @@
 package org.mariadb.jdbc.internal.common.packet;
 
+import org.mariadb.jdbc.internal.common.MySQLCharset;
+
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.WritableByteChannel;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.util.Calendar;
@@ -88,7 +91,7 @@ public class PacketOutputStream extends OutputStream {
         writeEmptyPacket(seq);
     }
 
-    public void sendStream(InputStream is) throws IOException {
+    public void sendStream(InputStream is, MySQLCharset charset) throws IOException {
         byte[] buffer = new byte[8192];
         int len;
         while ((len = is.read(buffer)) > 0) {
@@ -96,7 +99,7 @@ public class PacketOutputStream extends OutputStream {
         }
     }
 
-    public void sendStream(InputStream is, long readLength) throws IOException {
+    public void sendStream(InputStream is, long readLength, MySQLCharset charset) throws IOException {
         byte[] buffer = new byte[(int) readLength];
         int len;
         while ((len = is.read(buffer, 0, (int) readLength)) > 0) {
@@ -105,20 +108,20 @@ public class PacketOutputStream extends OutputStream {
         }
     }
 
-    public void sendStream(java.io.Reader reader) throws IOException {
+    public void sendStream(java.io.Reader reader, MySQLCharset charset) throws IOException {
         char[] buffer = new char[8192];
         int len;
         while ((len = reader.read(buffer)) > 0) {
-            byte[] s = new String(buffer, 0, len).getBytes(StandardCharsets.UTF_8);
+            byte[] s = new String(buffer, 0, len).getBytes(charset.javaIoCharsetName);
             write(s, 0, s.length);
         }
     }
 
-    public void sendStream(java.io.Reader reader, long readLength) throws IOException {
+    public void sendStream(java.io.Reader reader, long readLength, MySQLCharset charset) throws IOException {
         char[] buffer = new char[8192];
         int len;
         while ((len = reader.read(buffer, 0, (int) readLength)) > 0) {
-            byte[] s = new String(buffer, 0, len).getBytes(StandardCharsets.UTF_8);
+            byte[] s = new String(buffer, 0, len).getBytes(charset.javaIoCharsetName);
             write(s, 0, s.length);
             if (len >= readLength) return;
         }
