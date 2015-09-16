@@ -71,12 +71,9 @@ public enum MySQLCharset {
     CP1256(56,"cp1256","Cp1256","windows-1256"),
     CP1257(59,"cp1257","Cp1257","windows-1257"),
     BINARY(63,"binary",null,null),
-
     GEOSTD8(92,"geostd8","Cp942","x-IBM942"),
     CP932(95,"cp932","Cp942","x-IBM942"),
-    EUCJPMS(97,"eucjpms","EUC_JP_Solaris","x-eucJP-Open")
-
-    ;
+    EUCJPMS(97,"eucjpms","EUC_JP_Solaris","x-eucJP-Open");
 
 
     public final int defaultId;
@@ -90,6 +87,9 @@ public enum MySQLCharset {
         this.mysqlCharsetName = mysqlCharsetName;
         this.javaIoCharsetName = javaIoCharsetName;
         this.javaNioCharsetName = javaNioCharsetName;
-        this.nioCharset = Charset.forName(javaIoCharsetName);
+        if (javaIoCharsetName == null) {
+            this.nioCharset = null;
+        } else  this.nioCharset = Charset.forName(javaIoCharsetName);
     }
+
 }

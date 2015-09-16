@@ -54,8 +54,8 @@ import org.mariadb.jdbc.internal.mysql.MySQLType;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.sql.Date;
 import java.util.Calendar;
-import java.util.Date;
 
 public class DateParameter extends NotLongDataParameterHolder {
     Date date;
@@ -81,7 +81,7 @@ public class DateParameter extends NotLongDataParameterHolder {
     }
 
     public void writeBinary(PacketOutputStream writeBuffer) {
-        calendar.setTime(date);
+        calendar.setTimeInMillis(date.getTime());
         writeBuffer.writeDateLength(calendar);
     }
 

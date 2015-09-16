@@ -168,7 +168,7 @@ public class CharsetUtils {
             case 98:
                 return MySQLCharset.EUCJPMS;
             default:
-                return null;
+                return MySQLCharset.BINARY;
 
         }
     }
