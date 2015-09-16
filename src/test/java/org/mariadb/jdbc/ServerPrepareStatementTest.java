@@ -349,9 +349,6 @@ public class ServerPrepareStatementTest extends BaseTest {
 
         PreparedStatement ps = connection.prepareStatement("INSERT INTO ServerPrepareStatementCacheSize3(test) VALUES (?)");
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-        for (URL root : Collections.list(Thread.currentThread().getContextClassLoader().getResources(""))) {
-            System.out.println(root);
-        }
         InputStream input = classLoader.getResourceAsStream("logback.xml");
 
         ps.setBlob(1, input);

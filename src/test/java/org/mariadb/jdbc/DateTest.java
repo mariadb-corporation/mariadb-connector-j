@@ -116,9 +116,7 @@ public class DateTest extends BaseTest {
         Date[] data2 = new Date[]{null, Date.valueOf("1970-01-01"), Date.valueOf("2000-01-01"), Date.valueOf("1969-01-01")};
         int count = 0;
         while (rs.next()) {
-            System.out.println("d1 " + data1[count] + " / " + rs.getObject(1));
             assertEquals(data1[count], rs.getObject(1));
-            System.out.println("d2 " + data2[count] + " / " + rs.getObject(2));
             assertEquals(data2[count], rs.getObject(2));
             count++;
         }
