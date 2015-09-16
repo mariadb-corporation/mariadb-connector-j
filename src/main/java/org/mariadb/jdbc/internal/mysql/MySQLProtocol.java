@@ -160,7 +160,7 @@ public class MySQLProtocol implements Protocol {
     public int datatypeMappingFlags;
     public short serverStatus;
     protected Socket socket;
-    protected PacketOutputStream writer;
+    public PacketOutputStream writer;
     protected boolean readOnly = false;
     protected SyncPacketFetcher packetFetcher;
     protected HostAddress currentHost;

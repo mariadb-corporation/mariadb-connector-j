@@ -21,6 +21,7 @@ public class PacketOutputStream extends OutputStream {
     private float increasing = 1.5f;
     private ByteBuffer buffer;
     private OutputStream outputStream;
+    public boolean printDebugBits=false;
 
 
     public PacketOutputStream(OutputStream outputStream) {
@@ -34,7 +35,7 @@ public class PacketOutputStream extends OutputStream {
         buffer.limit(buffer.position());
         buffer.rewind();
 
-        ByteBuffer newBuffer = ByteBuffer.allocateDirect(newCapacity);
+        ByteBuffer newBuffer = ByteBuffer.allocate(newCapacity);
 
         newBuffer.put(buffer);
         buffer.clear();
@@ -189,6 +190,7 @@ public class PacketOutputStream extends OutputStream {
                 header[1] = (byte) (length >>> 8);
                 header[2] = (byte) (length >>> 16);
                 header[3] = (byte) seqNo++;
+
                 outputStream.write(header);
                 notCompressPosition += 4;
             }
@@ -199,6 +201,9 @@ public class PacketOutputStream extends OutputStream {
                     notCompressPosition += length;
                 } else {
                     if (buffer.hasArray()) {
+                        if (printDebugBits) {
+                            for (int i=0;i<Math.min(30, buffer.remaining());i++) System.out.println("byte "+i+" : "+buffer.get(i));
+                        }
                         outputStream.write(buffer.array(), buffer.position(), length);
                         buffer.position(buffer.position() + length);
                     } else {
