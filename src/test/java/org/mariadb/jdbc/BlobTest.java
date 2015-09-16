@@ -2,7 +2,6 @@ package org.mariadb.jdbc;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.mariadb.jdbc.internal.mysql.MySQLProtocol;
 
 import java.io.*;
 import java.sql.*;
@@ -59,13 +58,10 @@ public class BlobTest extends BaseTest {
 
 
     @Test
-    public void testCharacterStreamWithMultibyteCharacterAndLength() throws Throwable {
+    public void testCharacterStreamWithMultibyteCharacterAndLength() throws Exception {
         connection.createStatement().execute("drop table if exists streamtest2");
         connection.createStatement().execute("create table streamtest2 (id int primary key not null, strm text)");
         PreparedStatement stmt = connection.prepareStatement("insert into streamtest2 (id, strm) values (?,?)");
-
-        MySQLProtocol protocol = (MySQLProtocol) getProtocolFromConnection(connection);
-        protocol.writer.printDebugBits = true;
         stmt.setInt(1, 2);
         String toInsert = "\u00D8abcdefgh\njklmn\"";
         Reader reader = new StringReader(toInsert);
@@ -80,7 +76,6 @@ public class BlobTest extends BaseTest {
             sb.append((char) ch);
         }
         assertEquals(toInsert.substring(0, 5), sb.toString());
-        protocol.writer.printDebugBits = false;
     }
 
     @Test

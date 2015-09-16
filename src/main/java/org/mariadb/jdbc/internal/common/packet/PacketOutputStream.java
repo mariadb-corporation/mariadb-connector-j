@@ -3,6 +3,8 @@ package org.mariadb.jdbc.internal.common.packet;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.channels.SocketChannel;
+import java.nio.channels.WritableByteChannel;
 import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.zip.DeflaterOutputStream;
@@ -10,26 +12,19 @@ import java.util.zip.DeflaterOutputStream;
 
 public class PacketOutputStream extends OutputStream {
     //private final static Logger log = LoggerFactory.getLogger(PacketOutputStream.class);
-    private static final int MIN_COMPRESSION_SIZE = 16 * 1024;
-    private static final float MIN_COMPRESSION_RATIO = 0.9f;
+    private static final int MIN_COMPRESSION_SIZE = 16*1024;
+    private static final float MIN_COMPRESSION_RATIO =0.9f;
     private static final int MAX_PACKET_LENGTH = 0x00ffffff;
     private static final int HEADER_LENGTH = 4;
+    private float increasing = 1.5f;
+    private ByteBuffer buffer;
+    private OutputStream outputStream;
+
     int seqNo;
     int maxAllowedPacket;
     boolean checkPacketLength;
     boolean useCompression;
-    private float increasing = 1.5f;
-    private ByteBuffer buffer;
-    private OutputStream outputStream;
-    public boolean printDebugBits=false;
 
-
-    public PacketOutputStream(OutputStream outputStream) {
-        this.outputStream = outputStream;
-        buffer = ByteBuffer.allocate(1024).order(ByteOrder.LITTLE_ENDIAN);
-        this.seqNo = -1;
-        useCompression = false;
-    }
 
     protected void increase(int newCapacity) {
         buffer.limit(buffer.position());
@@ -41,6 +36,13 @@ public class PacketOutputStream extends OutputStream {
         buffer.clear();
         buffer = newBuffer;
         buffer.order(ByteOrder.LITTLE_ENDIAN);
+    }
+
+    public PacketOutputStream(OutputStream outputStream) {
+        this.outputStream = outputStream;
+        buffer = ByteBuffer.allocate(1024).order(ByteOrder.LITTLE_ENDIAN);
+        this.seqNo = -1;
+        useCompression = false;
     }
 
     public void setUseCompression(boolean useCompression) {
@@ -141,8 +143,8 @@ public class PacketOutputStream extends OutputStream {
     public void write(byte[] b, int off, int len) throws IOException {
         if (this.seqNo == -1) throw new AssertionError("Use PacketOutputStream.startPacket() before write()");
 
-        while (len > buffer.remaining()) {
-            int newCapacity = Math.max(len + buffer.position(), (int) (buffer.capacity() * increasing));
+        while (len > buffer.remaining()){
+            int newCapacity = Math.max(len + buffer.position(), (int)(buffer.capacity() * increasing));
             increase(newCapacity);
         }
         buffer.put(b, 0, len);
@@ -161,7 +163,6 @@ public class PacketOutputStream extends OutputStream {
         }
         buffer.clear();
     }
-
     private void splitPacket() throws IOException {
         int maxPacketSize = maxPacketSize();
         if (checkPacketLength
@@ -190,9 +191,8 @@ public class PacketOutputStream extends OutputStream {
                 header[1] = (byte) (length >>> 8);
                 header[2] = (byte) (length >>> 16);
                 header[3] = (byte) seqNo++;
-
                 outputStream.write(header);
-                notCompressPosition += 4;
+                notCompressPosition+=4;
             }
 
             if (length > 0) {
@@ -201,9 +201,6 @@ public class PacketOutputStream extends OutputStream {
                     notCompressPosition += length;
                 } else {
                     if (buffer.hasArray()) {
-                        if (printDebugBits) {
-                            for (int i=0;i<Math.min(30, buffer.remaining());i++) System.out.println("byte "+i+" : "+buffer.get(i));
-                        }
                         outputStream.write(buffer.array(), buffer.position(), length);
                         buffer.position(buffer.position() + length);
                     } else {
@@ -211,7 +208,7 @@ public class PacketOutputStream extends OutputStream {
                         buffer.get(bufferBytes, 0, length);
                         outputStream.write(bufferBytes, 0, length);
                     }
-                    notCompressPosition += length;
+                    notCompressPosition+=length;
                     outputStream.flush();
                 }
             }
@@ -220,7 +217,7 @@ public class PacketOutputStream extends OutputStream {
 
         if (useCompression) {
             //now bufferBytes in filled with uncompressed data
-            this.seqNo = 0;
+            this.seqNo=0;
             int position = 0;
             int packetLength;
 
@@ -239,7 +236,7 @@ public class PacketOutputStream extends OutputStream {
                     byte[] compressedBytes = baos.toByteArray();
                     baos.close();
 
-                    if (compressedBytes.length < (int) (MIN_COMPRESSION_RATIO * packetLength)) {
+                    if (compressedBytes.length < (int)(MIN_COMPRESSION_RATIO * packetLength)) {
 
                         int compressedLength = compressedBytes.length;
                         writeCompressedHeader(compressedLength, packetLength, outputStream);
@@ -253,7 +250,7 @@ public class PacketOutputStream extends OutputStream {
                     outputStream.write(bufferBytes, position, packetLength);
                 }
 
-                position += packetLength;
+                position+=packetLength;
                 outputStream.flush();
             }
         }
@@ -262,13 +259,13 @@ public class PacketOutputStream extends OutputStream {
 
     private void writeCompressedHeader(int packetLength, int initialLength, OutputStream outputStream) throws IOException {
         byte header[] = new byte[7];
-        header[0] = (byte) (packetLength & 0xff);
-        header[1] = (byte) ((packetLength >> 8) & 0xff);
-        header[2] = (byte) ((packetLength >> 16) & 0xff);
+        header[0] = (byte)(packetLength & 0xff);
+        header[1] = (byte)((packetLength >> 8) & 0xff);
+        header[2] = (byte)((packetLength >> 16) & 0xff);
         header[3] = (byte) seqNo++;
-        header[4] = (byte) (initialLength & 0xff);
-        header[5] = (byte) ((initialLength >> 8) & 0xff);
-        header[6] = (byte) ((initialLength >> 16) & 0xff);
+        header[4] = (byte)(initialLength & 0xff);
+        header[5] = (byte)((initialLength >> 8) & 0xff);
+        header[6] = (byte)((initialLength >> 16) & 0xff);
         outputStream.write(header);
     }
 
@@ -294,8 +291,8 @@ public class PacketOutputStream extends OutputStream {
     }
 
     public PacketOutputStream assureBufferCapacity(final int len) {
-        while (len > buffer.remaining()) {
-            int newCapacity = Math.max(len + buffer.position(), (int) (buffer.capacity() * increasing));
+        while (len > buffer.remaining()){
+            int newCapacity = Math.max(len +  buffer.position() , (int)(buffer.capacity() * increasing));
             increase(newCapacity);
         }
         return this;
@@ -368,9 +365,9 @@ public class PacketOutputStream extends OutputStream {
             buffer.putShort((short) length);
         } else if (length < 16777216) {
             assureBufferCapacity(4);
-            buffer.put((byte) 0xfd);
-            buffer.put((byte) (length & 0xff));
-            buffer.put((byte) (length >>> 8));
+            buffer.put((byte)0xfd);
+            buffer.put((byte) (length & 0xff) );
+            buffer.put((byte) (length >>> 8) );
             buffer.put((byte) (length >>> 16));
         } else {
             assureBufferCapacity(9);
