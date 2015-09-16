@@ -146,11 +146,28 @@ public class UnixDomainSocket extends Socket {
     }
 
     class UnixSocketInputStream extends InputStream {
+
         @Override
         public int read(byte[] b, int off, int len) throws IOException {
             try {
-                int size = recv(fd, b, len, 0);
-                return size;
+                if (off > 0) {
+                    int bytes = 0;
+                    int size = (len < 10240) ? len : 10240;
+                    byte[] data = new byte[size];
+                    do {
+                        size = (len < 10240) ? len : 10240;
+                        size = recv(fd, data, size, 0);
+                        if (size > 0) {
+                            System.arraycopy(data, 0, b, off, size);
+                            bytes += size;
+                            off += size;
+                            len -= size;
+                        }
+                    } while ((len > 0) && (size > 0));
+                    return bytes;
+                } else {
+                    return recv(fd, b, len, 0);
+                }
             } catch (LastErrorException lee) {
                 throw new IOException("native read() failed : " + formatError(lee));
             }
@@ -160,9 +177,7 @@ public class UnixDomainSocket extends Socket {
         public int read() throws IOException {
             byte[] b = new byte[1];
             int bytesRead = read(b);
-            if (bytesRead == 0) {
-                return -1;
-            }
+            if (bytesRead == 0) return -1;
             return b[0] & 0xff;
         }
 
@@ -173,13 +188,28 @@ public class UnixDomainSocket extends Socket {
     }
 
     class UnixSocketOutputStream extends OutputStream {
+
         @Override
         public void write(byte[] b, int off, int len) throws IOException {
+            int bytes = 0;
             try {
-                int size = send(fd, b, len, 0);
-                if (size != len) {
-                    throw new IOException("can't write " + len + "bytes");
+                if (off > 0) {
+                    int size = (len < 10240) ? len : 10240;
+                    byte[] data = new byte[size];
+                    do {
+                        size = (len < 10240) ? len : 10240;
+                        System.arraycopy(b, off, data, 0, size);
+                        bytes = send(fd, data, size, 0);
+                        if (bytes > 0) {
+                            off += bytes;
+                            len -= bytes;
+                        }
+                    } while ((len > 0) && (bytes > 0));
+                } else {
+                    bytes = send(fd, b, len, 0);
                 }
+
+                if (bytes != len) throw new IOException("can't write " + len + "bytes");
             } catch (LastErrorException lee) {
                 throw new IOException("native write() failed : " + formatError(lee));
             }
