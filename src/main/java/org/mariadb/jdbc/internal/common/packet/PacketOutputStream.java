@@ -203,7 +203,7 @@ public class PacketOutputStream extends OutputStream {
                     notCompressPosition += length;
                 } else {
                     if (logPacket) {
-                        for (int i=0;i<Math.min(buffer.capacity(), 15); i++) System.out.println("write i="+i+" "+buffer.get(i));
+                        for (int i=0;i<Math.min(buffer.limit(), 15); i++) System.out.println("write i="+i+" "+buffer.get(i));
                     }
                     if (buffer.hasArray()) {
                         outputStream.write(buffer.array(), buffer.position(), length);

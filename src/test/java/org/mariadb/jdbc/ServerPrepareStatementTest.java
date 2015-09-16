@@ -220,6 +220,7 @@ public class ServerPrepareStatementTest extends BaseTest {
         double double0 = 3147483647.8527D;
         BigDecimal decimal0 = new BigDecimal("3147483647");
         BigDecimal decimal1 = new BigDecimal("3147483647.9527");
+        System.out.println(System.currentTimeMillis());
         Date date0 = new Date(1441317600000l);
         Timestamp datetime0 = new Timestamp(-2124690212000l);
         datetime0.setNanos(392005000);
@@ -295,6 +296,8 @@ public class ServerPrepareStatementTest extends BaseTest {
         assertEquals(rs.getDouble(15), double0, 10000);
         assertEquals(rs.getBigDecimal(16), decimal0);
         assertEquals(rs.getBigDecimal(17), decimal1);
+        System.out.println("date0 : " + date0.getTime());
+        System.out.println("rs.getDate(18) : " + rs.getDate(18).getTime());
         assertEquals(rs.getDate(18), date0);
         assertEquals(rs.getTimestamp(19), datetime0);
         assertEquals(rs.getTimestamp(20), timestamp0);
