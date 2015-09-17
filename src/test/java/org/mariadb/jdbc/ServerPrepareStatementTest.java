@@ -562,7 +562,7 @@ public class ServerPrepareStatementTest extends BaseTest {
         double double0 = 3147483647.8527D;
         BigDecimal decimal0 = new BigDecimal("3147483647");
         BigDecimal decimal1 = new BigDecimal("3147483647.9527");
-        TimeZone.setDefault(TimeZone.getTimeZone("GMT+00:00"));
+
         Date date0 = new Date(1441238400000l);
         Timestamp datetime0 = new Timestamp(-2124690212000l);
         datetime0.setNanos(392005000);

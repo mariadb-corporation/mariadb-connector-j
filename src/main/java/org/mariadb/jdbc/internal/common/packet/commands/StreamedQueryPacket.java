@@ -95,6 +95,7 @@ public class StreamedQueryPacket implements CommandPacket {
                 }
                 queries.get(0).writeLastRewritePart(ostream);
             }
+
             pos.finishPacket();
         }
         return 0;

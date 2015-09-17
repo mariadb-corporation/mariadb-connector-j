@@ -178,7 +178,7 @@ public class MySQLProtocol implements Protocol {
     private byte serverLanguage;
     private MySQLCharset mySQLServerCharset;
     private int transactionIsolationLevel = 0;
-    private PrepareStatementCache prepareStatementCache = null;
+    private PrepareStatementCache prepareStatementCache;
     private  Map<String, String> serverData;
 
     private InputStream localInfileInputStream;
@@ -198,8 +198,7 @@ public class MySQLProtocol implements Protocol {
         this.password = (jdbcUrl.getPassword() == null ? "" : jdbcUrl.getPassword());
         if (jdbcUrl.getOptions().cachePrepStmts) {
             lock.writeLock().lock();
-            if (prepareStatementCache == null)
-                prepareStatementCache = PrepareStatementCache.newInstance(jdbcUrl.getOptions().prepStmtCacheSize);
+            prepareStatementCache = PrepareStatementCache.newInstance(jdbcUrl.getOptions().prepStmtCacheSize);
             lock.writeLock().unlock();
         }
 
@@ -635,9 +634,7 @@ public class MySQLProtocol implements Protocol {
                 }
                 PrepareResult prepareResult = new PrepareResult(statementId, columns, params);
                 if (jdbcUrl.getOptions().cachePrepStmts) {
-                    if (sql != null
-                            && sql.length() < jdbcUrl.getOptions().prepStmtCacheSqlLimit
-                            && prepareStatementCache != null)
+                    if (sql != null && sql.length() < jdbcUrl.getOptions().prepStmtCacheSqlLimit)
                         prepareStatementCache.putIfAbsent(sql, prepareResult);
                 }
 //                if (log.isDebugEnabled()) log.debug("prepare statementId : " + prepareResult.statementId);
@@ -803,7 +800,9 @@ public class MySQLProtocol implements Protocol {
         }
         try {
 //            if (log.isTraceEnabled()) log.trace("Closing connection  " + currentHost);
-            prepareStatementCache.clear();
+            if (jdbcUrl.getOptions().cachePrepStmts) {
+                prepareStatementCache.clear();
+            }
             close(packetFetcher, writer, socket);
         } catch (Exception e) {
             // socket is closed, so it is ok to ignore exception

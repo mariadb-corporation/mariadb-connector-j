@@ -38,7 +38,12 @@ public class TimeoutTest extends BaseTest {
      */
     @Test
     public void resultSetAfterSocketTimeoutTest() throws SQLException {
-        setConnection("&connectTimeout=5&socketTimeout=5");
+        try {
+            setConnection("&connectTimeout=5&socketTimeout=5");
+        } catch (SQLException e) {
+            //depending on systems, 5 millisecond can be not enougth
+            setConnection("&connectTimeout=50&socketTimeout=50");
+        }
         boolean bugReproduced = false;
         int exc = 0;
         int went = 0;
@@ -57,7 +62,7 @@ public class TimeoutTest extends BaseTest {
             }
         }
         System.out.println("exception="+exc);
-        System.out.println("well="+went);
+        System.out.println("well=" + went);
         assertFalse(bugReproduced); // either Exception or fine
         assertTrue(went > 0);
         assertTrue(went + exc == 10000);

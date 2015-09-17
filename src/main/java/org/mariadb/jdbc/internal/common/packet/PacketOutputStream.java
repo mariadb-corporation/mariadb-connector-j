@@ -21,7 +21,7 @@ public class PacketOutputStream extends OutputStream {
     private static final int MAX_PACKET_LENGTH = 0x00ffffff;
     private static final int HEADER_LENGTH = 4;
     private float increasing = 1.5f;
-    private ByteBuffer buffer;
+    public ByteBuffer buffer;
     private OutputStream outputStream;
 
     int seqNo;

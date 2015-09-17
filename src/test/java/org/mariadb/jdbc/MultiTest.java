@@ -41,6 +41,42 @@ public class MultiTest extends BaseTest {
         st.execute("insert into t5 values(1,'a'),(2,'a'),(2,'b')");
     }
 
+
+
+    @Test
+    public void rewriteSelectQuery() throws Throwable {
+        Statement st = connection.createStatement();
+        st.execute("drop table if exists tselect1");
+        st.execute("drop table if exists tselect2");
+        st.execute("create table tselect1 (LAST_UPDATE_DATETIME TIMESTAMP , nn int)");
+        st.execute("create table tselect2 (nn int)");
+        st.execute("INSERT INTO tselect2 VALUES (1)");
+        PreparedStatement ps = connection.prepareStatement("/*CLIENT*/ insert into tselect1 (LAST_UPDATE_DATETIME, nn) select ?, nn from tselect2");
+        ps.setTimestamp(1, new java.sql.Timestamp(System.currentTimeMillis()));
+        ps.executeUpdate();
+
+        ResultSet rs = st.executeQuery("SELECT * FROM tselect1");
+        rs.next();
+        Assert.assertEquals(rs.getInt(2), 1);
+    }
+
+    @Test
+    public void rewriteSelectQueryServerPrepared() throws Throwable {
+        Statement st = connection.createStatement();
+        st.execute("drop table if exists tselect1");
+        st.execute("drop table if exists tselect2");
+        st.execute("create table tselect1 (LAST_UPDATE_DATETIME TIMESTAMP , nn int)");
+        st.execute("create table tselect2 (nn int)");
+        st.execute("INSERT INTO tselect2 VALUES (1)");
+        PreparedStatement ps = connection.prepareStatement("insert into tselect1 (LAST_UPDATE_DATETIME, nn) select ?, nn from tselect2");
+        ps.setTimestamp(1, new java.sql.Timestamp(System.currentTimeMillis()));
+        ps.executeUpdate();
+
+        ResultSet rs = st.executeQuery("SELECT * FROM tselect1");
+        rs.next();
+        Assert.assertEquals(rs.getInt(2), 1);
+    }
+
     @AfterClass
     public static void afterClass() throws SQLException {
         try {

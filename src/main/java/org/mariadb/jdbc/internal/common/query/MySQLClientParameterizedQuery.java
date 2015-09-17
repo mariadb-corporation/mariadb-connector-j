@@ -78,8 +78,13 @@ public class MySQLClientParameterizedQuery implements ParameterizedQuery {
         if (rewriteOffset != -1) {
             rewriteFirstPart = queryParts.get(0).substring(rewriteOffset + 1).getBytes(StandardCharsets.UTF_8);
             String lastPart = queryParts.get(queryParts.size() - 1);
-            rewriteRepeatLastPart = lastPart.substring(0, lastPart.indexOf(")")).getBytes(StandardCharsets.UTF_8);
-            rewriteNotRepeatLastPart = lastPart.substring(lastPart.indexOf(")") + 1).getBytes(StandardCharsets.UTF_8);
+            if (lastPart.indexOf(")") != -1) {
+                rewriteRepeatLastPart = lastPart.substring(0, lastPart.indexOf(")")).getBytes(StandardCharsets.UTF_8);
+                rewriteNotRepeatLastPart = lastPart.substring(lastPart.indexOf(")") + 1).getBytes(StandardCharsets.UTF_8);
+            } else {
+                rewriteRepeatLastPart = lastPart.getBytes(StandardCharsets.UTF_8);
+                rewriteNotRepeatLastPart = new byte[0];
+            }
         }
         queryPartsArray = new byte[queryParts.size()][];
         for (int i = 0; i < queryParts.size(); i++) {
