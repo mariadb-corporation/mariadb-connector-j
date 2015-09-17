@@ -195,7 +195,7 @@ public abstract class AbstractMySQLPrepareStatement extends MySQLStatement imple
             setNull(parameterIndex, Types.DATE);
             return;
         }
-        setParameter(parameterIndex, new DateParameter(date, cal));
+        setParameter(parameterIndex, new DateParameter(date));
     }
 
     /**

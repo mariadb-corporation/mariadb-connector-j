@@ -497,8 +497,7 @@ public class MySQLValueObject implements ValueObject {
             java.util.Date utilDate = sdf.parse(rawValue);
             return new Date(utilDate.getTime());
         } else {
-            Timestamp tt = binaryTimestamp(cal);
-            return new Date(tt.getTime());
+            return binaryDate();
         }
     }
 
@@ -530,6 +529,19 @@ public class MySQLValueObject implements ValueObject {
             return new Time(tt.getTime());
 
         }
+    }
+
+    private Date binaryDate() {
+        if (rawBytes.length == 0) return null;
+        int offset = (dataType == MySQLType.TIME) ? 1 : 0; //negative byte for binary time. (not used, because java don't permit negative time
+        int year = ((rawBytes[0 + offset] & 0xff) | (rawBytes[1 + offset] & 0xff) << 8);
+        int month = rawBytes[2 + offset];
+        int day = rawBytes[3 + offset];
+
+        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        cal.set(year, month - 1, day, 0, 0, 0);
+        cal.set(Calendar.MILLISECOND, 0);
+        return new Date(cal.getTime().getTime());
     }
 
     private Timestamp binaryTimestamp(Calendar cal) {

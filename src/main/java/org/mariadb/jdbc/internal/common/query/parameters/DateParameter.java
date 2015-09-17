@@ -56,10 +56,12 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.sql.Date;
 import java.util.Calendar;
+import java.util.GregorianCalendar;
+import java.util.TimeZone;
 
 public class DateParameter extends NotLongDataParameterHolder {
     Date date;
-    Calendar calendar;
+    Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));;
 
     /**
      * Represents a timestamp, constructed with time in millis since epoch
@@ -67,20 +69,15 @@ public class DateParameter extends NotLongDataParameterHolder {
      * @param date the date
      */
     public DateParameter(Date date) {
-        this(date, null);
-    }
-
-    public DateParameter(Date date, Calendar cal) {
         this.date = date;
-        this.calendar = cal;
     }
-
 
     public void writeTo(OutputStream os) throws IOException {
-        ParameterWriter.writeDate(os, date, calendar);
+        ParameterWriter.writeDate(os, date);
     }
 
     public void writeBinary(PacketOutputStream writeBuffer) {
+        Calendar calendar = new GregorianCalendar(TimeZone.getDefault());
         calendar.setTimeInMillis(date.getTime());
         writeBuffer.writeDateLength(calendar);
     }

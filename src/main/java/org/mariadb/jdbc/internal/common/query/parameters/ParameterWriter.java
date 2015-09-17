@@ -149,15 +149,9 @@ public class ParameterWriter {
         out.write(bd.toPlainString().getBytes());
     }
 
-    public static void writeDate(OutputStream out, java.util.Date date, Calendar calendar) throws IOException {
+    public static void writeDate(OutputStream out, java.sql.Date date) throws IOException {
         out.write(QUOTE);
-        String dateString;
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-        if (calendar != null) {
-            sdf.setCalendar(calendar);
-        }
-        dateString = sdf.format(date);
-        out.write(dateString.getBytes());
+        out.write(date.toString().getBytes());
         out.write(QUOTE);
     }
 

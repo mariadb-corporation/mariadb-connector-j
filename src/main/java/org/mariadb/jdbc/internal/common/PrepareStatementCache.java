@@ -66,6 +66,12 @@ public class PrepareStatementCache extends LinkedHashMap<String, PrepareResult> 
         return new PrepareStatementCache(size);
     }
 
+
+    public PrepareResult putIfNone(String key, PrepareResult value) {
+        if (!containsKey(key)) put(key, value);
+        return value;
+    }
+
     @Override
     protected boolean removeEldestEntry(Map.Entry<String, PrepareResult> eldest) {
         return this.size() > maxSize;
