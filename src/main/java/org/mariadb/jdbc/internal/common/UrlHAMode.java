@@ -49,5 +49,5 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.common;
 
 public enum UrlHAMode {
-    AURORA, REPLICATION, FAILOVER, NONE
+    AURORA, REPLICATION, FAILOVER, LOADBALANCE, NONE
 }

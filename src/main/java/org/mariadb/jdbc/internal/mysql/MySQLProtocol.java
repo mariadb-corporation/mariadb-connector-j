@@ -720,18 +720,22 @@ public class MySQLProtocol implements Protocol {
         if (!isClosed()) {
             close();
         }
-
+        Random rand = new Random();
         List<HostAddress> addrs = jdbcUrl.getHostAddresses();
+        List<HostAddress> hosts = new LinkedList<>(addrs);
 
         // There could be several addresses given in the URL spec, try all of them, and throw exception if all hosts
         // fail.
-        for (int i = 0; i < addrs.size(); i++) {
-            currentHost = addrs.get(i);
+        while (!hosts.isEmpty()) {
+            if (jdbcUrl.getHaMode().equals(UrlHAMode.LOADBALANCE)) {
+                currentHost = hosts.get(rand.nextInt(hosts.size()));
+            } else currentHost = hosts.get(0);
+            hosts.remove(currentHost);
             try {
                 connect(currentHost.host, currentHost.port);
                 return;
             } catch (IOException e) {
-                if (i == addrs.size() - 1) {
+                if (hosts.isEmpty()) {
                     throw new QueryException("Could not connect to " + HostAddress.toString(addrs) +
                             " : " + e.getMessage(), -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), e);
                 }
