@@ -41,13 +41,21 @@ public class TimeoutTest extends BaseTest {
         try {
             setConnection("&connectTimeout=5&socketTimeout=5");
         } catch (SQLException e) {
-            //depending on systems, 5 millisecond can be not enougth
-            setConnection("&connectTimeout=50&socketTimeout=50");
+            try {
+                //depending on systems, 5 millisecond can be not enougth
+                setConnection("&connectTimeout=50&socketTimeout=50");
+            } catch (SQLException ee) {
+                try {
+                    setConnection("&connectTimeout=5000&socketTimeout=5000");
+                } catch (SQLException ees) {
+                    setConnection("&connectTimeout=50000&socketTimeout=50000");
+                }
+            }
         }
         boolean bugReproduced = false;
         int exc = 0;
         int went = 0;
-        for (int i = 0; i < 10000; i++) {
+        for (int i = 0; i < 1000; i++) {
             try {
                 int v1 = selectValue(connection, 1);
                 int v2 = selectValue(connection, 2);
@@ -55,17 +63,19 @@ public class TimeoutTest extends BaseTest {
                     bugReproduced = true;
                     break;
                 }
+                if (i % 100 == 0) System.out.println("->"+i);
                 assertTrue(v1 == 1 && v2 == 2);
                 went++;
             } catch (Exception e) {
+                System.out.println("exception");
                 exc++;
             }
         }
-        System.out.println("exception="+exc);
+        System.out.println("exception=" + exc);
         System.out.println("well=" + went);
         assertFalse(bugReproduced); // either Exception or fine
         assertTrue(went > 0);
-        assertTrue(went + exc == 10000);
+        assertTrue(went + exc == 1000);
     }
 
     /**

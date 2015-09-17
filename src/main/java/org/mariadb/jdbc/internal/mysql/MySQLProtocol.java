@@ -192,15 +192,15 @@ public class MySQLProtocol implements Protocol {
 
     public MySQLProtocol(final JDBCUrl jdbcUrl, final ReentrantReadWriteLock lock) {
         this.lock = lock;
+        lock.writeLock().lock();
         this.jdbcUrl = jdbcUrl;
         this.database = (jdbcUrl.getDatabase() == null ? "" : jdbcUrl.getDatabase());
         this.username = (jdbcUrl.getUsername() == null ? "" : jdbcUrl.getUsername());
         this.password = (jdbcUrl.getPassword() == null ? "" : jdbcUrl.getPassword());
         if (jdbcUrl.getOptions().cachePrepStmts) {
-            lock.writeLock().lock();
             prepareStatementCache = PrepareStatementCache.newInstance(jdbcUrl.getOptions().prepStmtCacheSize);
-            lock.writeLock().unlock();
         }
+        lock.writeLock().unlock();
 
         setDatatypeMappingFlags();
     }
@@ -335,7 +335,7 @@ public class MySQLProtocol implements Protocol {
      */
     private void connect(String host, int port) throws QueryException, IOException {
 
-        SocketFactory socketFactory = null;
+        SocketFactory socketFactory;
         String socketFactoryName = jdbcUrl.getOptions().socketFactory;
         if (socketFactoryName != null) {
             try {
