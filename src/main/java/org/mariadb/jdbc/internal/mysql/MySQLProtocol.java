@@ -635,7 +635,9 @@ public class MySQLProtocol implements Protocol {
                 }
                 PrepareResult prepareResult = new PrepareResult(statementId, columns, params);
                 if (jdbcUrl.getOptions().cachePrepStmts) {
-                    if (sql.length() < jdbcUrl.getOptions().prepStmtCacheSqlLimit)
+                    if (sql != null
+                            && sql.length() < jdbcUrl.getOptions().prepStmtCacheSqlLimit
+                            && prepareStatementCache != null)
                         prepareStatementCache.putIfAbsent(sql, prepareResult);
                 }
 //                if (log.isDebugEnabled()) log.debug("prepare statementId : " + prepareResult.statementId);

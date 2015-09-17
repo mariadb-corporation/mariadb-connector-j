@@ -647,7 +647,14 @@ public class ServerPrepareStatementTest extends BaseTest {
         assertEquals(rs.getTimestamp(21), timestamp1);
         assertNull(rs.getTimestamp(22));
         assertEquals(rs.getTime(23), time0);
-        assertEquals(rs.getInt(24), year2);
+        if ( isMariadbServer() ) {
+            assertEquals(rs.getInt(24), year2);
+        } else {
+            if (minVersion(5,6)) {
+                //year on 2 bytes is deprecated since 5.5.27
+                assertEquals(rs.getInt(24), 2030);
+            } else assertEquals(rs.getInt(24), 30);
+        }
         assertEquals(rs.getInt(25), year4);
         assertEquals(rs.getString(26), char0);
         assertEquals(rs.getString(27), char_binary);

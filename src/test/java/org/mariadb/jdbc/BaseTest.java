@@ -286,12 +286,16 @@ public class BaseTest {
         }
     }
 
-    void requireMinimumVersion(int major, int minor) throws SQLException {
+    public boolean minVersion(int major, int minor) throws SQLException {
         DatabaseMetaData md = connection.getMetaData();
         int dbMajor = md.getDatabaseMajorVersion();
         int dbMinor = md.getDatabaseMinorVersion();
-        org.junit.Assume.assumeTrue(dbMajor > major ||
+        return (dbMajor > major ||
                 (dbMajor == major && dbMinor >= minor));
+
+    }
+    void requireMinimumVersion(int major, int minor) throws SQLException {
+        org.junit.Assume.assumeTrue(minVersion(major,minor));
 
     }
 

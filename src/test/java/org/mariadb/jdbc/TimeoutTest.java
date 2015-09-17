@@ -38,7 +38,7 @@ public class TimeoutTest extends BaseTest {
      */
     @Test
     public void resultSetAfterSocketTimeoutTest() throws SQLException {
-        setConnection("&connectTimeout=10&socketTimeout=10");
+        setConnection("&connectTimeout=50&socketTimeout=50");
         boolean bugReproduced = false;
         int exc = 0;
         int went = 0;

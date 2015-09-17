@@ -61,13 +61,16 @@ public class BlobTest extends BaseTest {
     @Test
     public void testCharacterStreamWithMultibyteCharacterAndLength() throws Throwable {
         connection.createStatement().execute("drop table if exists streamtest2");
-        connection.createStatement().execute("create table streamtest2 (id int primary key not null, strm text)");
-        PreparedStatement stmt = connection.prepareStatement("insert into streamtest2 (id, strm) values (?,?)");
+        connection.createStatement().execute("create table streamtest2 (id int primary key not null, st varchar(20), strm text)");
+        String toInsert1 = "\u00D8bbcdefgh\njklmn\"";
+        String toInsert2 = "\u00D8abcdefgh\njklmn\"";
+        PreparedStatement stmt = connection.prepareStatement("insert into streamtest2 (id, st, strm) values (?,?,?)");
         stmt.setInt(1, 2);
-        String toInsert = "\u00D8abcdefgh\njklmn\"";
-        Reader reader = new StringReader(toInsert);
-        stmt.setCharacterStream(2, reader, 5);
+        stmt.setString(2, toInsert1);
+        Reader reader = new StringReader(toInsert2);
+        stmt.setCharacterStream(3, reader, 5);
         stmt.execute();
+
         ResultSet rs = connection.createStatement().executeQuery("select * from streamtest2");
         rs.next();
         Reader rdr = rs.getCharacterStream("strm");
@@ -76,7 +79,8 @@ public class BlobTest extends BaseTest {
         while ((ch = rdr.read()) != -1) {
             sb.append((char) ch);
         }
-        assertEquals(toInsert.substring(0, 5), sb.toString());
+        assertEquals(toInsert1, rs.getString(2));
+        assertEquals(toInsert2.substring(0, 5), sb.toString());
     }
 
     @Test
