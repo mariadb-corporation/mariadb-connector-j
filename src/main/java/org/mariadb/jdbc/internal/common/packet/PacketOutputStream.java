@@ -138,7 +138,7 @@ public class PacketOutputStream extends OutputStream {
 
     private int maxPacketSize() {
         if (maxAllowedPacket > 0)
-            return Math.min(maxAllowedPacket - HEADER_LENGTH, MAX_PACKET_LENGTH);
+            return Math.min(maxAllowedPacket - 1, MAX_PACKET_LENGTH);
         else return MAX_PACKET_LENGTH;
     }
 
@@ -171,9 +171,9 @@ public class PacketOutputStream extends OutputStream {
         int maxPacketSize = maxPacketSize();
         if (checkPacketLength
                 && maxAllowedPacket > 0
-                && (buffer.limit() + HEADER_LENGTH * ((buffer.limit() / maxPacketSize) + 1)) > maxAllowedPacket) {
+                && buffer.limit() > (maxAllowedPacket - 1)) {
             this.seqNo = -1;
-            throw new MaxAllowedPacketException("max_allowed_packet exceeded. packet size " + (buffer.limit() + HEADER_LENGTH * ((buffer.limit() / maxPacketSize) + 1)) + " is > to max_allowed_packet = " + maxAllowedPacket, this.seqNo != 0);
+            throw new MaxAllowedPacketException("max_allowed_packet exceeded. packet size " + buffer.limit() + " is > to max_allowed_packet = " + (maxAllowedPacket - 1), this.seqNo != 0);
         }
 
         byte[] bufferBytes = new byte[0];
