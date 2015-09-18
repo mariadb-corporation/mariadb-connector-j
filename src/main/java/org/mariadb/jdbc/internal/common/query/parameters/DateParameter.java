@@ -55,13 +55,14 @@ import org.mariadb.jdbc.internal.mysql.MySQLType;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.sql.Date;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.TimeZone;
 
 public class DateParameter extends NotLongDataParameterHolder {
     Date date;
-    Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));;
 
     /**
      * Represents a timestamp, constructed with time in millis since epoch
@@ -72,14 +73,18 @@ public class DateParameter extends NotLongDataParameterHolder {
         this.date = date;
     }
 
+
     public void writeTo(OutputStream os) throws IOException {
         ParameterWriter.writeDate(os, date);
     }
 
+    /**
+     * java.sql.Date has no timeZone, but calendar has.
+     * so Date timemillis must be convert into calendar timeZone (UTC) to have the good date.
+     * @param writeBuffer
+     */
     public void writeBinary(PacketOutputStream writeBuffer) {
-        Calendar calendar = new GregorianCalendar(TimeZone.getDefault());
-        calendar.setTimeInMillis(date.getTime());
-        writeBuffer.writeDateLength(calendar);
+        writeBuffer.writeDateLength(date);
     }
 
     public void writeToLittleEndian(final OutputStream os) throws IOException {

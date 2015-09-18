@@ -36,12 +36,14 @@ public class BaseMultiHostTest {
     protected static String initialGaleraUrl;
     protected static String initialAuroraUrl;
     protected static String initialReplicationUrl;
+    protected static String initialLoadbalanceUrl;
     protected static String initialUrl;
 
 
     protected static String proxyGaleraUrl;
     protected static String proxyAuroraUrl;
     protected static String proxyReplicationUrl;
+    protected static String proxyLoadbalanceUrl;
     protected static String proxyUrl;
 
     protected static String username;
@@ -66,11 +68,12 @@ public class BaseMultiHostTest {
         initialUrl = System.getProperty("dbUrl");
         initialGaleraUrl = System.getProperty("defaultGaleraUrl");
         initialReplicationUrl = System.getProperty("defaultReplicationUrl");
+        initialLoadbalanceUrl = System.getProperty("defaultLoadbalanceUrl");
         initialAuroraUrl = System.getProperty("defaultAuroraUrl");
 
         if (initialUrl != null) proxyUrl = createProxies(initialUrl, TestType.NONE);
-        if (initialReplicationUrl != null)
-            proxyReplicationUrl = createProxies(initialReplicationUrl, TestType.REPLICATION);
+        if (initialReplicationUrl != null) proxyReplicationUrl = createProxies(initialReplicationUrl, TestType.REPLICATION);
+        if (initialLoadbalanceUrl != null) proxyLoadbalanceUrl = createProxies(initialLoadbalanceUrl, TestType.LOADBALANCE);
         if (initialGaleraUrl != null) proxyGaleraUrl = createProxies(initialGaleraUrl, TestType.GALERA);
         if (initialAuroraUrl != null) proxyAuroraUrl = createProxies(initialAuroraUrl, TestType.AURORA);
     }
@@ -235,6 +238,6 @@ public class BaseMultiHostTest {
     }
 
     public enum TestType {
-        AURORA, REPLICATION, GALERA, NONE
+        AURORA, REPLICATION, LOADBALANCE, GALERA, NONE
     }
 }

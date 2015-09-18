@@ -9,6 +9,7 @@ import java.nio.channels.SocketChannel;
 import java.nio.channels.WritableByteChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.zip.DeflaterOutputStream;
@@ -401,13 +402,13 @@ public class PacketOutputStream extends OutputStream {
         return this;
     }
 
-    public PacketOutputStream writeDateLength(final Calendar calendar) {
+    public PacketOutputStream writeDateLength(final Date date) {
         assureBufferCapacity(8);
         buffer.put((byte) 7);//length
-
-        buffer.putShort((short) calendar.get(Calendar.YEAR));
-        buffer.put((byte) ((calendar.get(Calendar.MONTH) + 1) & 0xff));
-        buffer.put((byte) (calendar.get(Calendar.DAY_OF_MONTH) & 0xff));
+        String dt = date.toString(); //"yyyy-mm-dd"
+        buffer.putShort(Short.parseShort(dt.substring(0, 4)));
+        buffer.put(Byte.parseByte(dt.substring(5, 7)));
+        buffer.put(Byte.parseByte(dt.substring(8, 10)));
         buffer.put((byte) 0);
         buffer.put((byte) 0);
         buffer.put((byte) 0);

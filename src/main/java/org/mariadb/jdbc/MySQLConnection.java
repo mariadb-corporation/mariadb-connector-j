@@ -1380,4 +1380,7 @@ public final class MySQLConnection implements Connection {
         }
     }
 
+    protected String getServerTimezone() {
+        return options.serverTimezone;
+    }
 }

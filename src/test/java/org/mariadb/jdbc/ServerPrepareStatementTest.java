@@ -12,9 +12,8 @@ import java.math.BigInteger;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.TimeZone;
+import java.sql.Date;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -299,8 +298,11 @@ public class ServerPrepareStatementTest extends BaseTest {
         assertEquals(rs.getDouble(15), double0, 10000);
         assertEquals(rs.getBigDecimal(16), decimal0);
         assertEquals(rs.getBigDecimal(17), decimal1);
-        System.out.println("date0 : " + date0.getTime());
-        System.out.println("rs.getDate(18) : " + rs.getDate(18).getTime());
+        Calendar cc = new GregorianCalendar();
+        cc.setTimeInMillis(date0.getTime());
+        System.out.println("date0 : " + date0.getTime() + " " + cc.get(Calendar.DAY_OF_MONTH) + " " + " " + cc.get(Calendar.HOUR_OF_DAY));
+        cc.setTimeInMillis(date0.getTime());
+        System.out.println("rs.getDate(18) : " + rs.getDate(18).getTime() +" " + cc.get(Calendar.DAY_OF_MONTH) +" "+" " + cc.get(Calendar.HOUR_OF_DAY));
         assertEquals(rs.getDate(18), date0);
         assertEquals(rs.getTimestamp(19), datetime0);
         assertEquals(rs.getTimestamp(20), timestamp0);
@@ -570,7 +572,7 @@ public class ServerPrepareStatementTest extends BaseTest {
         BigDecimal decimal0 = new BigDecimal("3147483647");
         BigDecimal decimal1 = new BigDecimal("3147483647.9527");
 
-        Date date0 = new Date(1441238400000l);
+        Date date0 = java.sql.Date.valueOf("2016-02-01");
         Timestamp datetime0 = new Timestamp(-2124690212000l);
         datetime0.setNanos(392005000);
         Timestamp timestamp0 = new Timestamp(1441290349000l);

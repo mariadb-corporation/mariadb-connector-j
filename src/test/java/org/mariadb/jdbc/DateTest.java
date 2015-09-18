@@ -304,4 +304,50 @@ public class DateTest extends BaseTest {
             assertEquals(writeTs, writeTsWithoutMilliSec);
         }
     }
+
+    @Test
+    public void dateTestWhenServerDifference() throws Throwable {
+        setConnection("&serverTimezone=UTC");
+
+        Statement st = connection.createStatement();
+        st.execute("drop table if exists date_test");
+        st.execute("create table date_test ( x date )");
+
+        PreparedStatement pst = connection.prepareStatement("insert into date_test values (?)");
+        java.sql.Date date = java.sql.Date.valueOf("2013-02-01");
+        pst.setDate(1, date);
+        pst.execute();
+
+        pst = connection.prepareStatement("select x from date_test WHERE x = ?");
+        pst.setDate(1, date);
+        ResultSet rs = pst.executeQuery();
+        rs.next();
+        Date dd = rs.getDate(1);
+        assertEquals(dd, date);
+    }
+
+
+    @Test
+    public void dateTestWhenServerDifferenceClient() throws Throwable {
+        setConnection("&serverTimezone=UTC");
+
+        Statement st = connection.createStatement();
+        st.execute("drop table if exists date_test");
+        st.execute("create table date_test ( x date )");
+
+        PreparedStatement pst = connection.prepareStatement("/*CLIENT*/insert into date_test values (?)");
+        java.sql.Date date = java.sql.Date.valueOf("2013-02-01");
+        pst.setDate(1, date);
+        pst.execute();
+
+        pst = connection.prepareStatement("/*CLIENT*/ select x from date_test WHERE x = ?");
+        pst.setDate(1, date);
+        ResultSet rs = pst.executeQuery();
+        rs.next();
+        Date dd = rs.getDate(1);
+        assertEquals(dd, date);
+    }
+
+
+
 }

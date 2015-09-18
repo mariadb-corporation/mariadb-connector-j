@@ -482,18 +482,26 @@ public class MySQLValueObject implements ValueObject {
 
         if (!this.isBinaryEncoded) {
             SimpleDateFormat sdf;
-            if (dataType == MySQLType.YEAR) {
-                if (rawBytes.length == 2) {
-                    sdf = new SimpleDateFormat("yy");
-                } else {
-                    sdf = new SimpleDateFormat("yyyy");
-                }
-            } else {
-                sdf = new SimpleDateFormat("yyyy-MM-dd");
+            switch (dataType) {
+                case YEAR:
+                    if (rawBytes.length == 2) {
+                        sdf = new SimpleDateFormat("yy");
+                    } else {
+                        sdf = new SimpleDateFormat("yyyy");
+                    }
+                    if (cal != null) sdf.setCalendar(cal);
+                    break;
+                case DATE:
+                    return new Date(
+                            Integer.parseInt(rawValue.substring(0, 4))  - 1900,
+                            Integer.parseInt(rawValue.substring(5, 7))  - 1,
+                            Integer.parseInt(rawValue.substring(8, 10))
+                            );
+                default:
+                    sdf = new SimpleDateFormat("yyyy-MM-dd");
+                    if (cal != null) sdf.setCalendar(cal);
             }
-            if (cal != null) {
-                sdf.setCalendar(cal);
-            }
+
             java.util.Date utilDate = sdf.parse(rawValue);
             return new Date(utilDate.getTime());
         } else {
@@ -537,11 +545,7 @@ public class MySQLValueObject implements ValueObject {
         int year = ((rawBytes[0 + offset] & 0xff) | (rawBytes[1 + offset] & 0xff) << 8);
         int month = rawBytes[2 + offset];
         int day = rawBytes[3 + offset];
-
-        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        cal.set(year, month - 1, day, 0, 0, 0);
-        cal.set(Calendar.MILLISECOND, 0);
-        return new Date(cal.getTime().getTime());
+        return new Date(year - 1900, month - 1, day);
     }
 
     private Timestamp binaryTimestamp(Calendar cal) {
@@ -635,6 +639,7 @@ public class MySQLValueObject implements ValueObject {
             } else {
                 sdf = new SimpleDateFormat("yyyy-MM-dd");
             }
+            sdf.setTimeZone(cal.getTimeZone());
             sdf.setLenient(false);
             if (cal != null) {
                 sdf.setCalendar(cal);

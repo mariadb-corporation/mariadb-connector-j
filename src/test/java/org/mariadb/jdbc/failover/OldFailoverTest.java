@@ -32,6 +32,9 @@ public class OldFailoverTest extends BaseTest {
         }
     }
 
+
+
+
     @Test
     public void errorUrl() throws Exception {
         String falseUrl = "jdbc:mysql://localhost:1111/test";
