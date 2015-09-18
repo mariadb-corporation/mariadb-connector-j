@@ -65,7 +65,7 @@ public class CharsetUtils {
             case 21:
             case 27:
             case 77:
-                return MySQLCharset.ISO8859_2;
+                return MySQLCharset.LATIN2;
             case 3:
             case 69:
                 return MySQLCharset.CP1252;
@@ -81,11 +81,26 @@ public class CharsetUtils {
             case 49:
             case 94:
                 return MySQLCharset.LATIN1;
+            case 6:
+            case 72:
+                return MySQLCharset.HP8;
+            case 7:
+            case 74:
+                return MySQLCharset.KOI8R;
+            case 10:
+            case 82:
+                return MySQLCharset.SWE7;
             case 11:
             case 65:
             case 92:
             case 93:
                 return MySQLCharset.ASCII;
+            case 12:
+            case 91:
+                return MySQLCharset.UJIS;
+            case 13:
+            case 88:
+                return MySQLCharset.SJIS;
             case 14:
             case 23:
             case 50:
@@ -95,9 +110,20 @@ public class CharsetUtils {
             case 16:
             case 71:
                 return MySQLCharset.HEBREW;
+            case 18:
+            case 89:
+                return MySQLCharset.TIS620;
             case 19:
             case 85:
                 return MySQLCharset.EUCKR;
+            case 20:
+            case 41:
+            case 42:
+            case 79:
+                return MySQLCharset.LATIN7;
+            case 22:
+            case 75:
+                return MySQLCharset.KOI8U;
             case 24:
             case 86:
                 return MySQLCharset.GB2312;
@@ -117,12 +143,54 @@ public class CharsetUtils {
             case 58:
             case 59:
                 return MySQLCharset.CP1257;
+            case 30:
+            case 78:
+                return MySQLCharset.LATIN5;
             case 32:
             case 64:
                 return MySQLCharset.ARMSCII8;
+            case 35:
+            case 90:
+            case 128:
+            case 129:
+            case 130:
+            case 131:
+            case 132:
+            case 133:
+            case 134:
+            case 135:
+            case 136:
+            case 137:
+            case 138:
+            case 139:
+            case 140:
+            case 141:
+            case 142:
+            case 143:
+            case 144:
+            case 145:
+            case 146:
+            case 147:
+            case 148:
+            case 149:
+            case 150:
+            case 151:
+            case 159:
+            case 640:
+            case 641:
+                return MySQLCharset.UCS2;
             case 36:
             case 68:
                 return MySQLCharset.CP866;
+            case 37:
+            case 73:
+                return MySQLCharset.KEYBCS2;
+            case 38:
+            case 43:
+                return MySQLCharset.MACCE;
+            case 39:
+            case 53:
+                return MySQLCharset.MACROMAN;
             case 40:
             case 81:
                 return MySQLCharset.CP852;
@@ -156,9 +224,98 @@ public class CharsetUtils {
             case 576:
             case 577:
                 return MySQLCharset.UTF8;
+            case 45:
+            case 46:
+            case 224:
+            case 225:
+            case 226:
+            case 227:
+            case 228:
+            case 229:
+            case 230:
+            case 231:
+            case 232:
+            case 233:
+            case 234:
+            case 235:
+            case 236:
+            case 237:
+            case 238:
+            case 239:
+            case 240:
+            case 241:
+            case 242:
+            case 243:
+            case 244:
+            case 245:
+            case 246:
+            case 247:
+            case 608:
+            case 609:
+                return MySQLCharset.UTF8MB4;
+            case 54:
+            case 55:
+            case 101:
+            case 102:
+            case 103:
+            case 104:
+            case 105:
+            case 106:
+            case 107:
+            case 108:
+            case 109:
+            case 110:
+            case 111:
+            case 112:
+            case 113:
+            case 114:
+            case 115:
+            case 116:
+            case 117:
+            case 118:
+            case 119:
+            case 121:
+            case 122:
+            case 123:
+            case 124:
+            case 672:
+            case 673:
+                return MySQLCharset.UTF16;
+            case 56:
+            case 62:
+                return MySQLCharset.UTF16LE;
             case 57:
             case 67:
                 return MySQLCharset.CP1256;
+            case 60:
+            case 61:
+            case 160:
+            case 161:
+            case 162:
+            case 163:
+            case 164:
+            case 165:
+            case 166:
+            case 167:
+            case 168:
+            case 169:
+            case 170:
+            case 171:
+            case 172:
+            case 173:
+            case 174:
+            case 175:
+            case 176:
+            case 177:
+            case 178:
+            case 179:
+            case 180:
+            case 181:
+            case 182:
+            case 183:
+            case 736:
+            case 737:
+                return MySQLCharset.UTF32;
             case 63:
                 return MySQLCharset.BINARY;
             case 95:
