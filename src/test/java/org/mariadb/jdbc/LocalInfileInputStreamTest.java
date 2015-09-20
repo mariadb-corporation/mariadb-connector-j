@@ -5,6 +5,7 @@ import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -41,6 +42,30 @@ public class LocalInfileInputStreamTest extends BaseTest {
         st.close();
     }
 
+
+
+    @Test
+    public void testPrepareLocalInfileWithoutInputStream() throws SQLException {
+        PreparedStatement stmt = null;
+        Exception ex = null;
+        try {
+            stmt = connection.prepareStatement("LOAD DATA LOCAL INFILE 'dummy.tsv' INTO TABLE t (id, test)");
+            //stmt.executeUpdate("LOAD DATA LOCAL INFILE 'dummy.tsv' INTO TABLE t (id, test)");
+            stmt.execute();
+        } catch (Exception e) {
+            ex = e;
+        } finally {
+            try {
+                stmt.close();
+            } catch (Exception ignore) {
+            }
+        }
+
+        Assert.assertNotNull("Expected an exception to be thrown", ex);
+        String message = ex.getMessage();
+        String expectedMessage = "Usage of LOCAL INFILE is disabled. To use it enable it via the connection property allowLocalInfile=true";
+        Assert.assertEquals(message, expectedMessage);
+    }
     private void validateRecord(ResultSet rs, int expectedId, String expectedTest) throws SQLException {
         boolean next = rs.next();
         Assert.assertTrue(next);

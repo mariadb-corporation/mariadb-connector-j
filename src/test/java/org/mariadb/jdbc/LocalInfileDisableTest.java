@@ -41,26 +41,4 @@ public class LocalInfileDisableTest extends BaseTest {
     }
 
 
-    @Test
-    public void testPrepareLocalInfileWithoutInputStream() throws SQLException {
-        PreparedStatement stmt = null;
-        Exception ex = null;
-        try {
-            stmt = connection.prepareStatement("LOAD DATA LOCAL INFILE 'dummy.tsv' INTO TABLE t (id, test)");
-            //stmt.executeUpdate("LOAD DATA LOCAL INFILE 'dummy.tsv' INTO TABLE t (id, test)");
-            stmt.execute();
-        } catch (Exception e) {
-            ex = e;
-        } finally {
-            try {
-                stmt.close();
-            } catch (Exception ignore) {
-            }
-        }
-
-        Assert.assertNotNull("Expected an exception to be thrown", ex);
-        String message = ex.getMessage();
-        String expectedMessage = "Usage of LOCAL INFILE is disabled. To use it enable it via the connection property allowLocalInfile=true";
-        Assert.assertEquals(message, expectedMessage);
-    }
 }
