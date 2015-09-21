@@ -1,17 +1,18 @@
 package org.mariadb.jdbc;
 
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.InputStream;
 import java.sql.*;
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
+import java.util.*;
 import java.util.Date;
-import java.util.Locale;
-import java.util.TimeZone;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class TimezoneDaylightSavingTimeTest extends BaseTest {
@@ -22,9 +23,33 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
     private SimpleDateFormat utcDateFormatISO8601;
     private SimpleDateFormat utcDateFormatSimple;
     private TimeZone istanbulTimeZone;
+    private TimeZone parisTimeZone;
 
     @Before
     public void setUp() throws SQLException {
+
+        Statement st = null;
+        try {
+            st = connection.createStatement();
+            ResultSet rs = st.executeQuery("SELECT count(*) from mysql.time_zone");
+            rs.next();
+            if (rs.getInt(1) == 0) {
+                ResultSet rs2 = st.executeQuery("SELECT DATABASE()");
+                rs2.next();
+                String currentDatabase = rs2.getString(1);
+                st.execute("USE mysql");
+
+                ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+                importSQL(connection, classLoader.getResourceAsStream("timezone_posix.sql"));
+                st.execute("USE " + currentDatabase);
+            }
+            st.execute("drop table if exists timestamptest");
+            st.execute("create table timestamptest (id int not null primary key auto_increment, tm timestamp)");
+
+        } finally {
+            if (st != null) st.close();
+        }
+
         //Save the previous FORMAT locate so we can restore it later
         previousFormatLocale = Locale.getDefault();
         //Save the previous timezone so we can restore it later
@@ -37,6 +62,8 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
         istanbulTimeZone = TimeZone.getTimeZone("Europe/Istanbul");
         TimeZone.setDefault(istanbulTimeZone);
 
+        parisTimeZone = TimeZone.getTimeZone("Europe/Paris");
+
         //Use a date formatter for UTC timezone in ISO 8601 so users in different
         //timezones can compare the test results easier.
         utcDateFormatISO8601 = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
@@ -45,9 +72,27 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
         utcDateFormatSimple = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         utcDateFormatSimple.setTimeZone(utcTimeZone);
 
-        Statement statement = connection.createStatement();
-        statement.execute("drop table if exists timestamptest");
-        statement.execute("create table timestamptest (id int not null primary key auto_increment, tm timestamp)");
+    }
+
+
+
+    public static void importSQL(Connection conn, InputStream in) throws SQLException {
+        Scanner s = new Scanner(in);
+        s.useDelimiter("(;(\r)?\n)|(--\n)");
+        Statement st = null;
+        try {
+            st = conn.createStatement();
+            while (s.hasNext()) {
+                String line = s.next();
+                if (line.startsWith("/*!") && line.endsWith("*/")) {
+                    int i = line.indexOf(' ');
+                    line = line.substring(i + 1, line.length() - " */".length());
+                }
+                if (line.trim().length() > 0) st.execute(line);
+            }
+        } finally {
+            if (st != null) st.close();
+        }
     }
 
     @After
@@ -179,5 +224,159 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
         setSessionTimeZone(connection, offsetString);
     }
+
+
+    @Test
+    public void testTimeStamp() throws SQLException {
+        TimeZone.setDefault(parisTimeZone);
+        setSessionTimeZone(connection, "Europe/Paris");
+        Timestamp currentTimeParis = new Timestamp(System.currentTimeMillis()); //timestamp timezone to parisTimeZone like server
+        PreparedStatement st = connection.prepareStatement("SELECT ?");
+        st.setTimestamp(1, currentTimeParis);
+        ResultSet rs = st.executeQuery();
+        rs.next();
+        assertEquals(rs.getTimestamp(1), currentTimeParis);
+    }
+
+    @Test
+    public void testTimeStampUTC() throws SQLException {
+        TimeZone.setDefault(parisTimeZone);
+        setSessionTimeZone(connection, "+00:00");
+        Timestamp currentTimeParis = new Timestamp(System.currentTimeMillis()); //timestamp timezone to parisTimeZone like server
+        PreparedStatement st = connection.prepareStatement("SELECT ?");
+        st.setTimestamp(1, currentTimeParis);
+        ResultSet rs = st.executeQuery();
+        rs.next();
+        assertEquals(rs.getTimestamp(1), currentTimeParis);
+    }
+
+    @Test
+    public void testTimeStampUTCNow() throws SQLException {
+        TimeZone.setDefault(parisTimeZone);
+        setSessionTimeZone(connection, "+00:00");
+        Timestamp currentTimeParis = new Timestamp(System.currentTimeMillis()); //timestamp timezone to parisTimeZone like server
+        PreparedStatement st = connection.prepareStatement("SELECT NOW()");
+        ResultSet rs = st.executeQuery();
+        rs.next();
+        int offset = parisTimeZone.getOffset(System.currentTimeMillis());
+        long timeDifference = currentTimeParis.getTime() - offset - rs.getTimestamp(1).getTime();
+
+        assertTrue(timeDifference < 1000); // must have less than one second difference
+    }
+
+
+    @Test
+    public void testTimeStampOffsetNowUseServer() throws SQLException {
+        TimeZone.setDefault(parisTimeZone);
+        setConnection("&serverTimezone=Europe/Paris");
+        Timestamp currentTimeParis = new Timestamp(System.currentTimeMillis()); //timestamp timezone to parisTimeZone like server
+        PreparedStatement st = connection.prepareStatement("SELECT NOW()");
+        ResultSet rs = st.executeQuery();
+        rs.next();
+        int offset = parisTimeZone.getOffset(System.currentTimeMillis());
+        long timeDifference = currentTimeParis.getTime() - offset - rs.getTimestamp(1).getTime();
+        assertTrue(timeDifference < 1000); // must have less than one second difference
+    }
+
+    @Test
+    public void testDayLight() throws SQLException {
+        TimeZone.setDefault(parisTimeZone);
+        setConnection("&serverTimezone=Europe/Paris");
+        Statement st = connection.createStatement();
+        st.executeQuery("DROP TABLE IF EXISTS daylight");
+        st.executeQuery("CREATE TABLE daylight(id int, tt TIMESTAMP(6))");
+
+        Calendar quarterBeforeChangingHour = Calendar.getInstance(TimeZone.getTimeZone("utc"));
+        quarterBeforeChangingHour.clear();
+        quarterBeforeChangingHour.set(2015, 2, 29, 0, 45, 0);
+        int offsetBefore = parisTimeZone.getOffset(quarterBeforeChangingHour.getTimeInMillis());
+        Assert.assertEquals(offsetBefore, 3600000);
+
+        Calendar quarterAfterChangingHour = Calendar.getInstance(TimeZone.getTimeZone("utc"));
+        quarterAfterChangingHour.clear();
+        quarterAfterChangingHour.set(2015, 2, 29, 1, 15, 0);
+        int offsetAfter = parisTimeZone.getOffset(quarterAfterChangingHour.getTimeInMillis());
+        Assert.assertEquals(offsetAfter, 7200000);
+
+
+        PreparedStatement pst = connection.prepareStatement("INSERT INTO daylight VALUES (?, ?)");
+        pst.setInt(1, 1);
+        pst.setTimestamp(2, new Timestamp(quarterBeforeChangingHour.getTimeInMillis()));
+        pst.addBatch();
+        pst.setInt(1, 2);
+        pst.setTimestamp(2, new Timestamp(quarterAfterChangingHour.getTimeInMillis()));
+        pst.addBatch();
+        pst.setInt(1, 3);
+        pst.setString(2, "2015-03-29 02:15:00");
+        pst.addBatch();
+        try {
+            pst.executeBatch();
+        } catch (SQLException e) {
+            assertTrue(e.getMessage().startsWith("Incorrect datetime value"));
+        }
+
+        ResultSet rs = st.executeQuery("SELECT * from daylight");
+        rs.next();
+        assertEquals(rs.getTimestamp(2).getTime(), quarterBeforeChangingHour.getTimeInMillis());
+        rs.next();
+        assertEquals(rs.getTimestamp(2).getTime(), quarterAfterChangingHour.getTimeInMillis());
+        assertFalse(rs.next());
+    }
+
+    @Test
+    public void testDayLightWithClientTimeZoneDifferent() throws SQLException {
+        TimeZone.setDefault(parisTimeZone);
+        setConnection("&serverTimezone=UTC");
+        Statement st = connection.createStatement();
+        st.executeQuery("DROP TABLE IF EXISTS daylight");
+        st.executeQuery("CREATE TABLE daylight(id int, tt TIMESTAMP(6))");
+
+        Calendar quarterBeforeChangingHour = Calendar.getInstance(TimeZone.getTimeZone("utc"));
+        quarterBeforeChangingHour.clear();
+        quarterBeforeChangingHour.set(2015, 2, 29, 0, 45, 0);
+        int offsetBefore = parisTimeZone.getOffset(quarterBeforeChangingHour.getTimeInMillis());
+        Assert.assertEquals(offsetBefore, 3600000);
+
+        Calendar quarterAfterChangingHour = Calendar.getInstance(TimeZone.getTimeZone("utc"));
+        quarterAfterChangingHour.clear();
+        quarterAfterChangingHour.set(2015, 2, 29, 1, 15, 0);
+        int offsetAfter = parisTimeZone.getOffset(quarterAfterChangingHour.getTimeInMillis());
+        Assert.assertEquals(offsetAfter, 7200000);
+
+        PreparedStatement pst = connection.prepareStatement("INSERT INTO daylight VALUES (?, ?)");
+        pst.setInt(1, 1);
+        pst.setTimestamp(2, new Timestamp(quarterBeforeChangingHour.getTimeInMillis()));
+        pst.addBatch();
+        pst.setInt(1, 2);
+        pst.setTimestamp(2, new Timestamp(quarterAfterChangingHour.getTimeInMillis()));
+        pst.addBatch();
+        pst.executeBatch();
+
+        //test with text protocol
+        ResultSet rs = st.executeQuery("SELECT * from daylight");
+        rs.next();
+        Timestamp tBefore = rs.getTimestamp(2);
+        assertEquals(tBefore.toString(), "2015-03-29 01:45:00.0");
+        rs.next();
+        Timestamp tAfter = rs.getTimestamp(2);
+        assertEquals(tAfter.toString(), "2015-03-29 03:15:00.0");
+
+        //test with binary protocol
+        pst = connection.prepareStatement("SELECT * from daylight where id = ?");
+        pst.setInt(1, 1);
+        pst.addBatch();
+        rs = pst.executeQuery();
+        rs.next();
+        tBefore = rs.getTimestamp(2);
+        assertEquals(tBefore.toString(), "2015-03-29 01:45:00.0");
+
+        pst.setInt(1, 2);
+        pst.addBatch();
+        rs = pst.executeQuery();
+        rs.next();
+        tAfter = rs.getTimestamp(2);
+        assertEquals(tAfter.toString(), "2015-03-29 03:15:00.0");
+    }
+
 
 }

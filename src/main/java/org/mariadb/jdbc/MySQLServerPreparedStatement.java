@@ -249,6 +249,7 @@ public class MySQLServerPreparedStatement extends AbstractMySQLPrepareStatement 
                     }
                 }
             } catch (SQLException sqle) {
+                clearBatch();
                 throw new BatchUpdateException(sqle.getMessage(), sqle.getSQLState(), sqle.getErrorCode(), Arrays.copyOf(ret, i), sqle);
             } finally {
                 connection.lock.writeLock().unlock();
