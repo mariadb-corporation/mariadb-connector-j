@@ -90,6 +90,7 @@ public class Options {
     public Integer prepStmtCacheSqlLimit;
 
     //HA options
+    public boolean assureReadOnly;
     public boolean autoReconnect;
     public boolean failOnReadOnly;
     public int secondsBeforeRetryMaster;
@@ -103,6 +104,7 @@ public class Options {
     public String toString() {
         return "Options{" +
                 "user='" + user + '\'' +
+                ", assureReadOnly="+assureReadOnly+
                 ", password='" + password + '\'' +
                 ", trustServerCertificate=" + trustServerCertificate +
                 ", serverSslCert='" + serverSslCert + '\'' +

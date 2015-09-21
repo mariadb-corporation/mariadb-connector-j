@@ -224,6 +224,8 @@ public final class MySQLConnection implements Connection {
                 || cleanSql.startsWith("FETCH")
                 || cleanSql.startsWith("IF")
                 || cleanSql.startsWith("ITERATE")
+                || cleanSql.startsWith("ITERATE")
+                || cleanSql.startsWith("LOAD")
                 || cleanSql.startsWith("LEAVE")
                 || cleanSql.startsWith("LOOP")
                 || cleanSql.startsWith("OPEN")

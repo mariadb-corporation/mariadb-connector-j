@@ -273,7 +273,14 @@ public enum DefaultOptions {
      * This is the maximum length of a prepared SQL statement that the driver will cache  if "cachePrepStmts" is enabled.
      * default to 2048.
      */
-    PREPSTMTCACHESQLLIMIT("prepStmtCacheSqlLimit", new Integer(2048), new Integer(0), Integer.MAX_VALUE, "1.2.1");
+    PREPSTMTCACHESQLLIMIT("prepStmtCacheSqlLimit", new Integer(2048), new Integer(0), Integer.MAX_VALUE, "1.2.1"),
+
+    /**
+     * when in high availalability, and switching to a read-only host, assure that this host is in read-only mode by
+     * setting session read-only.
+     * default to false
+     */
+    ASSUREREADONLY("assureReadOnly", Boolean.FALSE, "1.3.0");
 
     protected final String name;
     protected final Object objType;

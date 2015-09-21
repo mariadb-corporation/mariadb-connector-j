@@ -153,7 +153,7 @@ public class MastersSlavesProtocol extends MySQLProtocol {
         return false;
     }
 
-    private static boolean foundSecondary(MastersSlavesListener listener, MastersSlavesProtocol protocol, SearchFilter searchFilter) {
+    private static boolean foundSecondary(MastersSlavesListener listener, MastersSlavesProtocol protocol, SearchFilter searchFilter) throws QueryException {
         searchFilter.setSearchForSlave(false);
         protocol.setMustBeMasterConnection(false);
         listener.foundActiveSecondary(protocol);

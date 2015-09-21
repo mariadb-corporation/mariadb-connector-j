@@ -144,6 +144,6 @@ public abstract class AbstractMastersSlavesListener extends AbstractMastersListe
 
     public abstract HandleErrorResult secondaryFail(Method method, Object[] args) throws Throwable;
 
-    public abstract void foundActiveSecondary(Protocol newSecondaryProtocol);
+    public abstract void foundActiveSecondary(Protocol newSecondaryProtocol) throws QueryException;
 
 }

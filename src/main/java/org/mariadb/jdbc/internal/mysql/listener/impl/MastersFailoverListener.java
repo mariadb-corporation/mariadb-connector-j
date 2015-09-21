@@ -203,8 +203,8 @@ public class MastersFailoverListener extends AbstractMastersListener {
 
 
     public void switchReadOnlyConnection(Boolean mustBeReadOnly) throws QueryException {
-        if (currentReadOnlyAsked.compareAndSet(!mustBeReadOnly, mustBeReadOnly)) {
-            setSessionReadOnly(mustBeReadOnly);
+        if (jdbcUrl.getOptions().assureReadOnly && currentReadOnlyAsked.compareAndSet(!mustBeReadOnly, mustBeReadOnly)) {
+            setSessionReadOnly(mustBeReadOnly, currentProtocol);
         }
     }
 
@@ -231,10 +231,6 @@ public class MastersFailoverListener extends AbstractMastersListener {
             currentProtocol = protocol;
         } finally {
             proxy.lock.writeLock().unlock();
-        }
-
-        if (currentReadOnlyAsked.get()) {
-            setSessionReadOnly(true);
         }
 
 //        if (log.isDebugEnabled()) {

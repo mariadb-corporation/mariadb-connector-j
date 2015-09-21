@@ -191,7 +191,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
         return false;
     }
 
-    private static boolean foundSecondary(AuroraListener listener, AuroraProtocol protocol, SearchFilter searchFilter) {
+    private static boolean foundSecondary(AuroraListener listener, AuroraProtocol protocol, SearchFilter searchFilter) throws QueryException {
         searchFilter.setSearchForSlave(false);
         protocol.setMustBeMasterConnection(false);
         listener.foundActiveSecondary(protocol);

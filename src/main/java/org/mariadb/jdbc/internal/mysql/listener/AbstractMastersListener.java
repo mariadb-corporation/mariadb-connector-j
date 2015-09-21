@@ -152,9 +152,9 @@ public abstract class AbstractMastersListener implements Listener {
         if (masterHostFail.compareAndSet(true, false)) masterHostFailTimestamp.set(0);
     }
 
-    protected void setSessionReadOnly(boolean readOnly) throws QueryException {
-        if (this.currentProtocol.versionGreaterOrEqual(10, 0, 0)) {
-            this.currentProtocol.executeQuery(new MySQLQuery("SET SESSION TRANSACTION " + (readOnly ? "READ ONLY" : "READ WRITE")));
+    protected void setSessionReadOnly(boolean readOnly, Protocol protocol) throws QueryException {
+        if (protocol.versionGreaterOrEqual(10, 0, 0)) {
+            protocol.executeQuery(new MySQLQuery("SET SESSION TRANSACTION " + (readOnly ? "READ ONLY" : "READ WRITE")));
         }
     }
 

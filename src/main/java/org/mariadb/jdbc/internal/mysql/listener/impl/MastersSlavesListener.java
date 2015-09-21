@@ -268,7 +268,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
      *
      * @param newSecondaryProtocol the new active connection
      */
-    public void foundActiveSecondary(Protocol newSecondaryProtocol) {
+    public void foundActiveSecondary(Protocol newSecondaryProtocol) throws QueryException {
         if (isExplicitClosed()) {
             newSecondaryProtocol.close();
             return;
@@ -289,6 +289,9 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
 //                    log.debug("Some error append during connection parameter synchronisation : ", e);
                 }
                 currentProtocol = this.secondaryProtocol;
+            }
+            if (jdbcUrl.getOptions().assureReadOnly) {
+                setSessionReadOnly(true, this.secondaryProtocol);
             }
 
 //            if (log.isDebugEnabled()) {
@@ -314,7 +317,6 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
     @Override
     public void switchReadOnlyConnection(Boolean mustBeReadOnly) throws QueryException {
 //        if (log.isTraceEnabled()) log.trace("switching to mustBeReadOnly = " + mustBeReadOnly + " mode");
-
         if (mustBeReadOnly != currentReadOnlyAsked.get() && currentProtocol.inTransaction()) {
             throw new QueryException("Trying to set to read-only mode during a transaction");
         }
@@ -325,12 +327,9 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                     if (!isSecondaryHostFail()) {
                         proxy.lock.writeLock().lock();
                         try {
-
 //                            log.trace("switching to secondary connection");
                             syncConnection(this.masterProtocol, this.secondaryProtocol);
-
                             currentProtocol = this.secondaryProtocol;
-
 //                            log.trace("current connection is now secondary");
                             return;
                         } catch (QueryException e) {
@@ -353,10 +352,8 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                         proxy.lock.writeLock().lock();
                         try {
 //                            log.trace("switching to master connection");
-
                             syncConnection(this.secondaryProtocol, this.masterProtocol);
                             currentProtocol = this.masterProtocol;
-
 //                            log.debug("current connection is now master");
                             return;
                         } catch (QueryException e) {

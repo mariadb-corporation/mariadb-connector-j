@@ -46,7 +46,7 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
 
     @Test
     public void testErrorWriteOnSlave() throws SQLException {
-        connection = getNewConnection(false);
+        connection = getNewConnection("&assureReadOnly=true",false);
         connection.setReadOnly(true);
         Statement stmt = connection.createStatement();
         assertTrue(connection.isReadOnly());
