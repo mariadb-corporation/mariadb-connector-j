@@ -63,7 +63,7 @@ import java.util.Properties;
  *
  *
  * <p>basic syntax :<br>
- * {@code jdbc:(mysql|mariadb):[replication:|loadbalance:|aurora:]//<hostDescription>[,<hostDescription>]/[database>][?<key1>=<value1>[&<key2>=<value2>]] }
+ * {@code jdbc:(mysql|mariadb):[replication:|failover|loadbalance:|aurora:]//<hostDescription>[,<hostDescription>]/[database>][?<key1>=<value1>[&<key2>=<value2>]] }
  * </p>
  * <p>
  * hostDescription:<br>

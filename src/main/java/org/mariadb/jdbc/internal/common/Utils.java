@@ -495,7 +495,7 @@ public class Utils {
                     MastersSlavesProtocol.class.getClassLoader(),
                     new Class[]{Protocol.class},
                     new FailoverProxy(new MastersSlavesListener(jdbcUrl), lock));
-        } else if (jdbcUrl.getHaMode().equals(UrlHAMode.FAILOVER)) {
+        } else if (jdbcUrl.getHaMode().equals(UrlHAMode.FAILOVER) || jdbcUrl.getHaMode().equals(UrlHAMode.SEQUENTIAL)) {
             return (Protocol) Proxy.newProxyInstance(
                     MySQLProtocol.class.getClassLoader(),
                     new Class[]{Protocol.class},

@@ -98,7 +98,7 @@ public enum DefaultOptions {
      * Defined the network socket timeout (SO_TIMEOUT) in milliseconds.
      * 0 (default) disable this timeout
      */
-    SOCKET_TIMEOUT("socketTimeout", new Integer[]{10000, null, null, null, null}, new Integer(0), Integer.MAX_VALUE, "1.1.8"),
+    SOCKET_TIMEOUT("socketTimeout", new Integer[]{10000, null, null, null, null, null}, new Integer(0), Integer.MAX_VALUE, "1.1.8"),
 
     /**
      * Session timeout is defined by the wait_timeout server variable.
