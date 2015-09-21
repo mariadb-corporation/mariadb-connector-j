@@ -44,28 +44,12 @@ public class LocalInfileInputStreamTest extends BaseTest {
 
 
 
-    @Test
+    @Test(expected = SQLException.class)
     public void testPrepareLocalInfileWithoutInputStream() throws SQLException {
-        PreparedStatement stmt = null;
-        Exception ex = null;
-        try {
-            stmt = connection.prepareStatement("LOAD DATA LOCAL INFILE 'dummy.tsv' INTO TABLE t (id, test)");
-            //stmt.executeUpdate("LOAD DATA LOCAL INFILE 'dummy.tsv' INTO TABLE t (id, test)");
-            stmt.execute();
-        } catch (Exception e) {
-            ex = e;
-        } finally {
-            try {
-                stmt.close();
-            } catch (Exception ignore) {
-            }
-        }
-
-        Assert.assertNotNull("Expected an exception to be thrown", ex);
-        String message = ex.getMessage();
-        String expectedMessage = "Usage of LOCAL INFILE is disabled. To use it enable it via the connection property allowLocalInfile=true";
-        Assert.assertEquals(message, expectedMessage);
+        PreparedStatement st = connection.prepareStatement("LOAD DATA LOCAL INFILE 'dummy.tsv' INTO TABLE t (id, test)");
+        st.execute();
     }
+
     private void validateRecord(ResultSet rs, int expectedId, String expectedTest) throws SQLException {
         boolean next = rs.next();
         Assert.assertTrue(next);
