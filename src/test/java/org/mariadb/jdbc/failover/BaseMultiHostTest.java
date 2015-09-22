@@ -36,11 +36,13 @@ public class BaseMultiHostTest {
     protected static String initialGaleraUrl;
     protected static String initialAuroraUrl;
     protected static String initialReplicationUrl;
+    protected static String initialSequentialUrl;
     protected static String initialLoadbalanceUrl;
     protected static String initialUrl;
 
 
     protected static String proxyGaleraUrl;
+    protected static String proxySequentialUrl;
     protected static String proxyAuroraUrl;
     protected static String proxyReplicationUrl;
     protected static String proxyLoadbalanceUrl;
@@ -49,8 +51,8 @@ public class BaseMultiHostTest {
     protected static String username;
     private static String hostname;
     //hosts
-    private static HashMap<TestType, TcpProxy[]> proxySet = new HashMap<>();
-    public TestType currentType;
+    private static HashMap<UrlHAMode, TcpProxy[]> proxySet = new HashMap<>();
+    public UrlHAMode currentType;
     @Rule
     public TestRule watcher = new TestWatcher() {
         protected void starting(Description description) {
@@ -71,11 +73,12 @@ public class BaseMultiHostTest {
         initialLoadbalanceUrl = System.getProperty("defaultLoadbalanceUrl");
         initialAuroraUrl = System.getProperty("defaultAuroraUrl");
 
-        if (initialUrl != null) proxyUrl = createProxies(initialUrl, TestType.NONE);
-        if (initialReplicationUrl != null) proxyReplicationUrl = createProxies(initialReplicationUrl, TestType.REPLICATION);
-        if (initialLoadbalanceUrl != null) proxyLoadbalanceUrl = createProxies(initialLoadbalanceUrl, TestType.LOADBALANCE);
-        if (initialGaleraUrl != null) proxyGaleraUrl = createProxies(initialGaleraUrl, TestType.GALERA);
-        if (initialAuroraUrl != null) proxyAuroraUrl = createProxies(initialAuroraUrl, TestType.AURORA);
+        if (initialUrl != null) proxyUrl = createProxies(initialUrl, UrlHAMode.NONE);
+        if (initialReplicationUrl != null) proxyReplicationUrl = createProxies(initialReplicationUrl, UrlHAMode.REPLICATION);
+        if (initialLoadbalanceUrl != null) proxyLoadbalanceUrl = createProxies(initialLoadbalanceUrl, UrlHAMode.LOADBALANCE);
+        if (initialGaleraUrl != null) proxyGaleraUrl = createProxies(initialGaleraUrl, UrlHAMode.FAILOVER);
+        if (initialSequentialUrl != null) proxySequentialUrl = createProxies(initialGaleraUrl, UrlHAMode.SEQUENTIAL);
+        if (initialAuroraUrl != null) proxyAuroraUrl = createProxies(initialAuroraUrl, UrlHAMode.AURORA);
     }
 
     public static boolean requireMinimumVersion(Connection connection, int major, int minor) throws SQLException {
@@ -86,7 +89,7 @@ public class BaseMultiHostTest {
                 (dbMajor == major && dbMinor >= minor));
     }
 
-    private static String createProxies(String tmpUrl, TestType proxyType) throws SQLException {
+    private static String createProxies(String tmpUrl, UrlHAMode proxyType) throws SQLException {
         JDBCUrl tmpJdbcUrl = JDBCUrl.parse(tmpUrl);
         TcpProxy[] tcpProxies = new TcpProxy[tmpJdbcUrl.getHostAddresses().size()];
         username = tmpJdbcUrl.getUsername();
@@ -235,9 +238,5 @@ public class BaseMultiHostTest {
     boolean isMariadbServer(Connection connection) throws SQLException {
         DatabaseMetaData md = connection.getMetaData();
         return md.getDatabaseProductVersion().indexOf("MariaDB") != -1;
-    }
-
-    public enum TestType {
-        AURORA, REPLICATION, LOADBALANCE, GALERA, NONE
     }
 }

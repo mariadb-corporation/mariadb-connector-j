@@ -1,6 +1,7 @@
 package org.mariadb.jdbc.failover;
 
 import org.junit.*;
+import org.mariadb.jdbc.internal.common.UrlHAMode;
 
 import java.sql.*;
 import java.util.HashMap;
@@ -16,7 +17,7 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
     public void init() throws SQLException {
         initialUrl = initialAuroraUrl;
         proxyUrl = proxyAuroraUrl;
-        currentType = TestType.AURORA;
+        currentType = UrlHAMode.AURORA;
         testBeginTime = System.currentTimeMillis();
         Assume.assumeTrue(initialAuroraUrl != null);
         connection = null;

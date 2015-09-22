@@ -253,7 +253,7 @@ public class DateTest extends BaseTest {
         long differenceToGMT = ts.getTime() - now.getTime();
         long diff = Math.abs(differenceToGMT - offset);
         log.trace("diff : " + diff);
-        assertTrue(diff < 5000); /* query take less than a second but taking in accout server and client time second diff ... */
+        assertTrue(diff < 5000); /* query take less than a second but taking in account server and client time second diff ... */
 
         ps = connection.prepareStatement("select utc_timestamp(), ?");
         ps.setObject(1, now);

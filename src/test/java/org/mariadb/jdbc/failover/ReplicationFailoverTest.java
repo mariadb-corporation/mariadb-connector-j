@@ -4,6 +4,7 @@ import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
+import org.mariadb.jdbc.internal.common.UrlHAMode;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -23,7 +24,7 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
         proxyUrl = proxyReplicationUrl;
         Assume.assumeTrue(initialReplicationUrl != null);
         connection = null;
-        currentType = TestType.REPLICATION;
+        currentType = UrlHAMode.REPLICATION;
         testBeginTime = System.currentTimeMillis();
     }
 

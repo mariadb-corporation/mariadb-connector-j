@@ -4,6 +4,7 @@ import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
+import org.mariadb.jdbc.internal.common.UrlHAMode;
 
 import java.sql.*;
 
@@ -14,7 +15,7 @@ public class CancelTest extends BaseMultiHostTest {
 
     @Before
     public void init() throws SQLException {
-        currentType = BaseMultiHostTest.TestType.GALERA;
+        currentType = UrlHAMode.FAILOVER;
         initialUrl = initialGaleraUrl;
         proxyUrl = proxyGaleraUrl;
         Assume.assumeTrue(initialGaleraUrl != null);

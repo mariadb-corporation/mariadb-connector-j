@@ -3,6 +3,7 @@ package org.mariadb.jdbc.failover;
 import org.junit.*;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.JDBCUrl;
+import org.mariadb.jdbc.internal.common.UrlHAMode;
 import org.mariadb.jdbc.internal.mysql.Protocol;
 
 import java.sql.*;
@@ -12,6 +13,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -22,7 +24,7 @@ public class LoadBalanceFailoverTest extends BaseMultiHostTest {
 
     @Before
     public void init() throws SQLException {
-        currentType = TestType.LOADBALANCE;
+        currentType = UrlHAMode.LOADBALANCE;
         initialUrl = initialLoadbalanceUrl;
         proxyUrl = proxyLoadbalanceUrl;
         Assume.assumeTrue(initialLoadbalanceUrl != null);
@@ -35,6 +37,16 @@ public class LoadBalanceFailoverTest extends BaseMultiHostTest {
         assureBlackList(connection);
         if (connection != null) connection.close();
     }
+
+
+    @Test(expected = SQLException.class)
+    public void failover() throws Throwable {
+        connection = getNewConnection("&autoReconnect=true&retriesAllDown=1", true);
+        int master1ServerId = getServerId(connection);
+        stopProxy(master1ServerId);
+        connection.createStatement().execute("SELECT 1");
+    }
+
 
     @Test
     public void randomConnection() throws Throwable {
@@ -62,6 +74,15 @@ public class LoadBalanceFailoverTest extends BaseMultiHostTest {
         log.debug("randomConnection OK");
     }
 
+
+    @Test
+    public void testReadonly() throws SQLException {
+        connection = getNewConnection(false);
+        connection.setReadOnly(true);
+        Statement stmt = connection.createStatement();
+        stmt.execute("drop table  if exists multinode");
+        stmt.execute("create table multinode (id int not null primary key auto_increment, test VARCHAR(10))");
+    }
 
     class MutableInt {
         int value = 1; // note that we start at 1 since we're counting

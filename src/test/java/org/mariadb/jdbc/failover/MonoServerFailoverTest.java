@@ -1,6 +1,7 @@
 package org.mariadb.jdbc.failover;
 
 import org.junit.*;
+import org.mariadb.jdbc.internal.common.UrlHAMode;
 import org.mariadb.jdbc.internal.mysql.Protocol;
 
 import java.sql.Connection;
@@ -16,7 +17,7 @@ public class MonoServerFailoverTest extends BaseMultiHostTest {
     @Before
     public void init() throws SQLException {
         Assume.assumeTrue(initialUrl != null);
-        currentType = TestType.NONE;
+        currentType = UrlHAMode.NONE;
     }
 
     @After

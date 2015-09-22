@@ -105,7 +105,7 @@ public class DataSourceTest extends BaseTest {
         assureBlackList(connection2);
         connection2.close();
 
-        ds.setPort(3307);
+        ds.setPort(3407);
 
         //must throw SQLException
         try {
