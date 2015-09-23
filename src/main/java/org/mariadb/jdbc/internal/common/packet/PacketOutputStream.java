@@ -26,6 +26,7 @@ public class PacketOutputStream extends OutputStream {
     private OutputStream outputStream;
 
     int seqNo;
+    int lastSeq;
     int maxAllowedPacket;
     boolean checkPacketLength;
     boolean useCompression;
@@ -78,14 +79,16 @@ public class PacketOutputStream extends OutputStream {
 
     /* Used by LOAD DATA INFILE. End of data is indicated by packet of length 0. */
     public void sendFile(InputStream is, int seq) throws IOException {
-        startPacket(seq++, false);
+        this.seqNo = seq;
+        buffer.clear();
+        this.checkPacketLength=false;
         byte[] buffer = new byte[8192];
         int len;
         while ((len = is.read(buffer)) > 0) {
             write(buffer, 0, len);
         }
         finishPacket();
-        writeEmptyPacket(seq);
+        writeEmptyPacket(lastSeq);
     }
 
     public void sendStream(InputStream is, MySQLCharset charset) throws IOException {
@@ -131,6 +134,7 @@ public class PacketOutputStream extends OutputStream {
         }
         internalFlush();
         buffer = ByteBuffer.allocate(1024).order(ByteOrder.LITTLE_ENDIAN);
+        this.lastSeq = this.seqNo;
         this.seqNo = -1;
     }
 
