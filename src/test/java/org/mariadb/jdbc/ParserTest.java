@@ -54,15 +54,10 @@ public class ParserTest extends BaseTest {
     public void libreOfficeBase() {
         String sql;
         try {
-            sql = "DROP TABLE IF EXISTS table1";
-            statement.execute(sql);
-            sql = "DROP TABLE IF EXISTS table2";
-            statement.execute(sql);
-            sql = "CREATE TABLE table1 (id1 int auto_increment primary key)";
-            statement.execute(sql);
+            createTestTable("table1", "id1 int auto_increment primary key");
+            createTestTable("table2", "id2 int auto_increment primary key");
+
             sql = "INSERT INTO table1 VALUES (1),(2),(3),(4),(5),(6)";
-            statement.execute(sql);
-            sql = "CREATE TABLE table2 (id2 int auto_increment primary key)";
             statement.execute(sql);
             sql = "INSERT INTO table2 VALUES (1),(2),(3),(4),(5),(6)";
             statement.execute(sql);

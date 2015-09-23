@@ -1,5 +1,6 @@
 package org.mariadb.jdbc;
 
+import org.junit.After;
 import org.junit.Test;
 
 import java.math.BigDecimal;
@@ -62,8 +63,7 @@ public class DatatypeCompatibilityTest extends BaseTest {
         assertSame("bad test spec: ", expectedClass, expectedObjectValue.getClass());
         Statement statement = connection.createStatement();
         try {
-            statement.execute("DROP TABLE IF EXISTS my_table");
-            statement.execute("CREATE TABLE my_table (my_col " + columnType + ")");
+            createTestTable("my_table", "my_col " + columnType);
             statement.execute("INSERT INTO my_table(my_col) VALUES (" + strValue + ")");
             statement.execute("SELECT * FROM my_table");
             ResultSet resultSet = statement.getResultSet();

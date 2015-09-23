@@ -1,5 +1,6 @@
 package org.mariadb.jdbc;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -12,11 +13,11 @@ public class GeneratedKeysTest extends BaseTest {
     private Statement statement;
     private PreparedStatement preparedStatement;
 
+
     @Before
     public void setUp() throws SQLException {
         statement = connection.createStatement();
-        statement.execute("DROP TABLE IF EXISTS gen_key_test");
-        statement.execute("CREATE TABLE gen_key_test (id INTEGER NOT NULL AUTO_INCREMENT, name VARCHAR(100), PRIMARY KEY (id))");
+        createTestTable("gen_key_test", "id INTEGER NOT NULL AUTO_INCREMENT, name VARCHAR(100), PRIMARY KEY (id)");
     }
 
     @Test

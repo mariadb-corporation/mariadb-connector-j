@@ -20,8 +20,7 @@ public class BigQueryTest extends BaseTest {
         Assume.assumeTrue(checkMaxAllowedPacketMore40m("sendBigQuery2"));
 
         Statement stmt = connection.createStatement();
-        stmt.execute("drop table  if exists bigblob");
-        stmt.execute("create table bigblob (id int not null primary key auto_increment, test longblob)");
+        createTestTable("bigblob","id int not null primary key auto_increment, test longblob");
 
 
         char[] arr = new char[20000000];
@@ -50,8 +49,7 @@ public class BigQueryTest extends BaseTest {
         Assume.assumeTrue(checkMaxAllowedPacketMore40m("sendBigPreparedQuery"));
 
         Statement stmt = connection.createStatement();
-        stmt.execute("drop table  if exists bigblob2");
-        stmt.execute("create table bigblob2 (id int not null primary key auto_increment, test longblob, test2 longblob)");
+        createTestTable("bigblob2","id int not null primary key auto_increment, test longblob, test2 longblob");
 
         byte[] arr = new byte[20000000];
         Arrays.fill(arr, (byte) 'a');

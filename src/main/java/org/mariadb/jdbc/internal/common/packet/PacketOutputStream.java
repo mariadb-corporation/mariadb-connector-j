@@ -79,9 +79,7 @@ public class PacketOutputStream extends OutputStream {
     /* Used by LOAD DATA INFILE. End of data is indicated by packet of length 0. */
     public void sendFile(InputStream is, int seq) throws IOException {
 
-        int bufferSize = this.maxAllowedPacket > 0 ? Math.min(this.maxAllowedPacket - HEADER_LENGTH, MAX_PACKET_LENGTH) : 1024;
-        bufferSize -= HEADER_LENGTH;
-        byte[] buffer = new byte[bufferSize];
+        byte[] buffer = new byte[8192];
         int len;
         while ((len = is.read(buffer)) > 0) {
             startPacket(seq++, false);

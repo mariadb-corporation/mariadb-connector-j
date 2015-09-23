@@ -25,8 +25,7 @@ public class ServerPrepareStatementTest extends BaseTest {
     @Test
     public void ServerExecutionTest() throws SQLException {
         Statement statement = connection.createStatement();
-        statement.execute("drop table if exists ServerPrepareStatementTest");
-        statement.execute("create table ServerPrepareStatementTest (id int not null primary key auto_increment, test boolean)");
+        createTestTable("ServerPrepareStatementTest","id int not null primary key auto_increment, test boolean");
         ResultSet rs = statement.executeQuery("show global status like 'Prepared_stmt_count'");
         int nbStatementCount = 0;
         rs.next();
@@ -45,8 +44,7 @@ public class ServerPrepareStatementTest extends BaseTest {
     @Test
     public void withoutParameterClientExecutionTest() throws SQLException {
         Statement statement = connection.createStatement();
-        statement.execute("drop table if exists ServerPrepareStatementTest");
-        statement.execute("create table ServerPrepareStatementTest (id int not null primary key auto_increment, test boolean)");
+        createTestTable("ServerPrepareStatementTest","id int not null primary key auto_increment, test boolean");
         ResultSet rs = statement.executeQuery("show global status like 'Prepared_stmt_count'");
         int nbStatementCount = 0;
         rs.next();
@@ -63,10 +61,7 @@ public class ServerPrepareStatementTest extends BaseTest {
 
     @Test
     public void serverCacheStatementTest() throws Throwable {
-        Statement statement = connection.createStatement();
-        statement.execute("drop table if exists ServerPrepareStatementTestCache");
-        statement.execute("create table ServerPrepareStatementTestCache (id int not null primary key auto_increment, test boolean)");
-
+        createTestTable("ServerPrepareStatementTestCache","id int not null primary key auto_increment, test boolean");
         Protocol protocol = getProtocolFromConnection(connection);
         int cacheSize = protocol.prepareStatementCache().size();
         connection.prepareStatement("INSERT INTO ServerPrepareStatementTestCache(test) VALUES (?)");
@@ -83,8 +78,7 @@ public class ServerPrepareStatementTest extends BaseTest {
         setConnection("&prepStmtCacheSize=10");
 
         Statement statement = connection.createStatement();
-        statement.execute("drop table if exists ServerPrepareStatementCacheSize3");
-        statement.execute("create table ServerPrepareStatementCacheSize3 (id int not null primary key auto_increment, test boolean)");
+        createTestTable("ServerPrepareStatementCacheSize3","id int not null primary key auto_increment, test boolean");
 
         ResultSet rs = statement.executeQuery("show global status like 'Prepared_stmt_count'");
         rs.next();
@@ -112,8 +106,7 @@ public class ServerPrepareStatementTest extends BaseTest {
     public void prepStmtCacheSizeTest() throws Throwable {
         setConnection("&prepStmtCacheSize=10");
         Statement statement = connection.createStatement();
-        statement.execute("drop table if exists ServerPrepareStatementCacheSize");
-        statement.execute("create table ServerPrepareStatementCacheSize (id int not null primary key auto_increment, test int)");
+        createTestTable("ServerPrepareStatementCacheSize","id int not null primary key auto_increment, test int");
 
         PreparedStatement[] sts = new PreparedStatement[20];
         for (int i = 0; i < 20; i++) {
@@ -143,8 +136,7 @@ public class ServerPrepareStatementTest extends BaseTest {
     public void timeFractionnalSecondTest() throws SQLException {
         setConnection("&useFractionalSeconds=false");
         Statement statement = connection.createStatement();
-        statement.execute("drop table if exists preparetestFactionnal");
-        statement.execute("CREATE TABLE preparetestFactionnal (time0 TIME(6) default '22:11:00')");
+        createTestTable("preparetestFactionnal","time0 TIME(6) default '22:11:00'");
 
         Time time0 = new Time(55549392);
         Time time1 = new Time(55549000);
@@ -168,40 +160,39 @@ public class ServerPrepareStatementTest extends BaseTest {
     @Test
     public void dataConformityTest() throws SQLException {
         Statement statement = connection.createStatement();
-        statement.execute("drop table if exists preparetest");
-        statement.execute("CREATE TABLE preparetest (" +
+        createTestTable("preparetest",
                 "bit1 BIT(1)," +
-                "bit2 BIT(2)," +
-                "tinyint1 TINYINT(1)," +
-                "tinyint2 TINYINT(2)," +
-                "bool0 BOOL default 1," +
-                "smallint0 SMALLINT default 1," +
-                "smallint_unsigned SMALLINT UNSIGNED default 0," +
-                "mediumint0 MEDIUMINT default 1," +
-                "mediumint_unsigned MEDIUMINT UNSIGNED default 0," +
-                "int0 INT default 1," +
-                "int_unsigned INT UNSIGNED default 0," +
-                "bigint0 BIGINT default 1," +
-                "bigint_unsigned BIGINT UNSIGNED default 0," +
-                "float0 FLOAT default 0," +
-                "double0 DOUBLE default 1," +
-                "decimal0 DECIMAL default 0," +
-                "decimal1 DECIMAL(15,4) default 0," +
-                "date0 DATE default '2001-01-01'," +
-                "datetime0 DATETIME(6) default '2001-01-01 00:00:00'," +
-                "timestamp0 TIMESTAMP(6) default  '2001-01-01 00:00:00'," +
-                "timestamp1 TIMESTAMP(0) default  '2001-01-01 00:00:00'," +
-                "timestamp_zero TIMESTAMP  null, " +
-                "time0 TIME(6) default '22:11:00'," +
-                "year2 YEAR(2) default 99," +
-                "year4 YEAR(4) default 2011," +
-                "char0 CHAR(1) default '0'," +
-                "char_binary CHAR (1) binary default '0'," +
-                "varchar0 VARCHAR(1) default '1'," +
-                "varchar_binary VARCHAR(10) BINARY default 0x1," +
-                "binary0 BINARY(10) default 0x1," +
-                "varbinary0 VARBINARY(10) default 0x1" +
-                ")");
+                        "bit2 BIT(2)," +
+                        "tinyint1 TINYINT(1)," +
+                        "tinyint2 TINYINT(2)," +
+                        "bool0 BOOL default 1," +
+                        "smallint0 SMALLINT default 1," +
+                        "smallint_unsigned SMALLINT UNSIGNED default 0," +
+                        "mediumint0 MEDIUMINT default 1," +
+                        "mediumint_unsigned MEDIUMINT UNSIGNED default 0," +
+                        "int0 INT default 1," +
+                        "int_unsigned INT UNSIGNED default 0," +
+                        "bigint0 BIGINT default 1," +
+                        "bigint_unsigned BIGINT UNSIGNED default 0," +
+                        "float0 FLOAT default 0," +
+                        "double0 DOUBLE default 1," +
+                        "decimal0 DECIMAL default 0," +
+                        "decimal1 DECIMAL(15,4) default 0," +
+                        "date0 DATE default '2001-01-01'," +
+                        "datetime0 DATETIME(6) default '2001-01-01 00:00:00'," +
+                        "timestamp0 TIMESTAMP(6) default  '2001-01-01 00:00:00'," +
+                        "timestamp1 TIMESTAMP(0) default  '2001-01-01 00:00:00'," +
+                        "timestamp_zero TIMESTAMP  null, " +
+                        "time0 TIME(6) default '22:11:00'," +
+                        "year2 YEAR(2) default 99," +
+                        "year4 YEAR(4) default 2011," +
+                        "char0 CHAR(1) default '0'," +
+                        "char_binary CHAR (1) binary default '0'," +
+                        "varchar0 VARCHAR(1) default '1'," +
+                        "varchar_binary VARCHAR(10) BINARY default 0x1," +
+                        "binary0 BINARY(10) default 0x1," +
+                        "varbinary0 VARBINARY(10) default 0x1"
+        );
 
         boolean bit1 = Boolean.FALSE;
         byte bit2 = (byte) 3;
@@ -333,9 +324,7 @@ public class ServerPrepareStatementTest extends BaseTest {
     @Test
     public void checkReusability() throws Throwable {
         setConnection("&prepStmtCacheSize=10");
-        Statement statement = connection.createStatement();
-        statement.execute("drop table if exists ServerPrepareStatementCacheSize2");
-        statement.execute("create table ServerPrepareStatementCacheSize2 (id int not null primary key auto_increment, test boolean)");
+        createTestTable("ServerPrepareStatementCacheSize2","id int not null primary key auto_increment, test boolean");
 
         ExecutorService exec = Executors.newFixedThreadPool(2);
 
@@ -354,10 +343,7 @@ public class ServerPrepareStatementTest extends BaseTest {
     public void blobTest() throws Throwable {
         BaseTest baseTest = new BaseTest();
         baseTest.setConnection("&prepStmtCacheSize=10");
-
-        Statement statement = connection.createStatement();
-        statement.execute("drop table if exists ServerPrepareStatementCacheSize3");
-        statement.execute("create table ServerPrepareStatementCacheSize3 (id int not null primary key auto_increment, test blob)");
+        createTestTable("ServerPrepareStatementCacheSize3","id int not null primary key auto_increment, test blob");
 
         PreparedStatement ps = connection.prepareStatement("INSERT INTO ServerPrepareStatementCacheSize3(test) VALUES (?)");
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
@@ -374,8 +360,7 @@ public class ServerPrepareStatementTest extends BaseTest {
         baseTest.setConnection("&prepStmtCacheSize=10");
 
         Statement statement = connection.createStatement();
-        statement.execute("drop table if exists ServerPrepareStatementCacheSize3");
-        statement.execute("create table ServerPrepareStatementCacheSize3 (id int not null primary key auto_increment, test blob)");
+        createTestTable("ServerPrepareStatementCacheSize3","id int not null primary key auto_increment, test blob");
 
         PreparedStatement ps = connection.prepareStatement("INSERT INTO ServerPrepareStatementCacheSize3(test) VALUES (?)");
         Reader reader = new BufferedReader(new InputStreamReader(ClassLoader.getSystemResourceAsStream("logback.xml")));
@@ -388,8 +373,7 @@ public class ServerPrepareStatementTest extends BaseTest {
     @Test(expected = SQLException.class)
     public void parametersNotSetTest() throws Throwable {
         Statement statement = connection.createStatement();
-        statement.execute("drop table if exists ServerPrepareStatementParameters");
-        statement.execute("create table ServerPrepareStatementParameters (id int, id2 int)");
+        createTestTable("ServerPrepareStatementParameters","id int, id2 int");
 
         PreparedStatement ps = connection.prepareStatement("INSERT INTO ServerPrepareStatementParameters(id, id2) VALUES (?,?)");
         ps.setInt(1, 1);
@@ -399,8 +383,7 @@ public class ServerPrepareStatementTest extends BaseTest {
     @Test
     public void checkSendDifferentParameterTypeTest() throws Throwable {
         Statement statement = connection.createStatement();
-        statement.execute("drop table if exists ServerPrepareStatementParameters");
-        statement.execute("create table ServerPrepareStatementParameters (id int, id2 int)");
+        createTestTable("ServerPrepareStatementParameters","id int, id2 int");
         PreparedStatement ps = connection.prepareStatement("INSERT INTO ServerPrepareStatementParameters(id, id2) VALUES (?,?)");
         ps.setByte(1, (byte) 1);
         ps.setShort(2, (short) 1);
@@ -419,8 +402,7 @@ public class ServerPrepareStatementTest extends BaseTest {
         Assume.assumeTrue(checkMaxAllowedPacketMore40m("blobMultipleSizeTest"));
 
         Statement statement = connection.createStatement();
-        statement.execute("drop table if exists ServerPrepareStatementCacheSize4");
-        statement.execute("create table ServerPrepareStatementCacheSize4 (id int not null primary key auto_increment, test LONGBLOB) ROW_FORMAT=COMPRESSED ENGINE=INNODB");
+        createTestTable("ServerPrepareStatementCacheSize4","id int not null primary key auto_increment, test LONGBLOB","ROW_FORMAT=COMPRESSED ENGINE=INNODB");
 
         PreparedStatement ps = connection.prepareStatement("INSERT INTO ServerPrepareStatementCacheSize4(test) VALUES (?)");
         byte[] arr = new byte[20000000];
@@ -466,8 +448,7 @@ public class ServerPrepareStatementTest extends BaseTest {
 
     private PreparedStatement prepareInsert() throws Throwable {
         Statement statement = connection.createStatement();
-        statement.execute("drop table if exists ServerPrepareStatementParameters");
-        statement.execute("create table ServerPrepareStatementParameters (id int, id2 int)");
+        createTestTable("ServerPrepareStatementParameters","id int, id2 int");
         PreparedStatement ps = connection.prepareStatement("INSERT INTO ServerPrepareStatementParameters(id, id2) VALUES (?,?)");
         ps.setByte(1, (byte) 1);
         ps.setShort(2, (short) 1);
@@ -483,9 +464,7 @@ public class ServerPrepareStatementTest extends BaseTest {
 
     @Test
     public void directExecuteNumber() throws Throwable {
-        Statement statement = connection.createStatement();
-        statement.execute("drop table if exists ServerPrepareStatementParameters");
-        statement.execute("create table ServerPrepareStatementParameters (id int, id2 int)");
+        createTestTable("ServerPrepareStatementParameters","id int, id2 int");
         PreparedStatement ps = connection.prepareStatement("INSERT INTO ServerPrepareStatementParameters(id, id2) VALUES (?,?)");
         ps.setByte(1, (byte) 1);
         ps.setShort(2, (short) 1);
@@ -497,8 +476,7 @@ public class ServerPrepareStatementTest extends BaseTest {
 
     @Test
     public void directExecuteNumber2() throws Throwable {
-        connection.createStatement().execute("drop table if exists streamtest2");
-        connection.createStatement().execute("create table streamtest2 (id int primary key not null, strm text)");
+        createTestTable("streamtest2","id int primary key not null, strm text");
         PreparedStatement stmt = connection.prepareStatement("insert into streamtest2 (id, strm) values (?,?)");
         stmt.setInt(1, 2);
         String toInsert = "\u00D8abcdefgh\njklmn\"";
@@ -519,40 +497,38 @@ public class ServerPrepareStatementTest extends BaseTest {
     @Test
     public void dataConformityTest2() throws SQLException {
         Statement statement = connection.createStatement();
-        statement.execute("drop table if exists preparetest");
-        statement.execute("CREATE TABLE preparetest (" +
+        createTestTable("preparetest",
                 "bit1 BIT(1)," +
                 "bit2 BIT(2)," +
                 "tinyint1 TINYINT(1)," +
-                "tinyint2 TINYINT(2)," +
-                "bool0 BOOL default 1," +
-                "smallint0 SMALLINT default 1," +
-                "smallint_unsigned SMALLINT UNSIGNED default 0," +
-                "mediumint0 MEDIUMINT default 1," +
-                "mediumint_unsigned MEDIUMINT UNSIGNED default 0," +
-                "int0 INT default 1," +
-                "int_unsigned INT UNSIGNED default 0," +
-                "bigint0 BIGINT default 1," +
-                "bigint_unsigned BIGINT UNSIGNED default 0," +
-                "float0 FLOAT default 0," +
-                "double0 DOUBLE default 1," +
-                "decimal0 DECIMAL default 0," +
-                "decimal1 DECIMAL(15,4) default 0," +
-                "date0 DATE default '2001-01-01'," +
-                "datetime0 DATETIME(6) default '2001-01-01 00:00:00'," +
-                "timestamp0 TIMESTAMP(6) default  '2001-01-01 00:00:00'," +
-                "timestamp1 TIMESTAMP(0) default  '2001-01-01 00:00:00'," +
-                "timestamp_zero TIMESTAMP  null, " +
-                "time0 TIME(6) default '22:11:00'," +
-                "year2 YEAR(2) default 99," +
-                "year4 YEAR(4) default 2011," +
-                "char0 CHAR(1) default '0'," +
-                "char_binary CHAR (1) binary default '0'," +
-                "varchar0 VARCHAR(1) default '1'," +
-                "varchar_binary VARCHAR(10) BINARY default 0x1," +
-                "binary0 BINARY(10) default 0x1," +
-                "varbinary0 VARBINARY(10) default 0x1" +
-                ")");
+                        "tinyint2 TINYINT(2)," +
+                        "bool0 BOOL default 1," +
+                        "smallint0 SMALLINT default 1," +
+                        "smallint_unsigned SMALLINT UNSIGNED default 0," +
+                        "mediumint0 MEDIUMINT default 1," +
+                        "mediumint_unsigned MEDIUMINT UNSIGNED default 0," +
+                        "int0 INT default 1," +
+                        "int_unsigned INT UNSIGNED default 0," +
+                        "bigint0 BIGINT default 1," +
+                        "bigint_unsigned BIGINT UNSIGNED default 0," +
+                        "float0 FLOAT default 0," +
+                        "double0 DOUBLE default 1," +
+                        "decimal0 DECIMAL default 0," +
+                        "decimal1 DECIMAL(15,4) default 0," +
+                        "date0 DATE default '2001-01-01'," +
+                        "datetime0 DATETIME(6) default '2001-01-01 00:00:00'," +
+                        "timestamp0 TIMESTAMP(6) default  '2001-01-01 00:00:00'," +
+                        "timestamp1 TIMESTAMP(0) default  '2001-01-01 00:00:00'," +
+                        "timestamp_zero TIMESTAMP  null, " +
+                        "time0 TIME(6) default '22:11:00'," +
+                        "year2 YEAR(2) default 99," +
+                        "year4 YEAR(4) default 2011," +
+                        "char0 CHAR(1) default '0'," +
+                        "char_binary CHAR (1) binary default '0'," +
+                        "varchar0 VARCHAR(1) default '1'," +
+                        "varchar_binary VARCHAR(10) BINARY default 0x1," +
+                        "binary0 BINARY(10) default 0x1," +
+                        "varbinary0 VARBINARY(10) default 0x1");
 
         boolean bit1 = Boolean.FALSE;
         byte bit2 = (byte) 3;

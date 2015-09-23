@@ -1,9 +1,6 @@
 package org.mariadb.jdbc;
 
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
 
 import java.sql.*;
 import java.util.Calendar;
@@ -21,15 +18,13 @@ public class DateTest extends BaseTest {
 
     @Before
     public void beforeDateTest() throws SQLException {
-        connection.createStatement().execute("drop table if exists dtest");
-        connection.createStatement().execute("create table dtest (d date)");
+        createTestTable("dtest", "d date");
     }
 
     @Test
     public void dateTest() throws SQLException {
         Statement stmt = connection.createStatement();
-        stmt.executeUpdate("drop table if exists date_test");
-        stmt.executeUpdate("create table date_test (id int not null primary key auto_increment, d_test date,dt_test datetime, t_test time)");
+        createTestTable("date_test", "id int not null primary key auto_increment, d_test date,dt_test datetime, t_test time");
         Date date = Date.valueOf("2009-01-17");
         Timestamp timestamp = Timestamp.valueOf("2009-01-17 15:41:01");
         Time time = Time.valueOf("23:59:59");
@@ -58,8 +53,7 @@ public class DateTest extends BaseTest {
     @Test
     public void dateRangeTest() throws SQLException {
         Statement stmt = connection.createStatement();
-        stmt.executeUpdate("drop table if exists date_test");
-        stmt.executeUpdate("create table date_test (id int not null primary key auto_increment, d_from datetime ,d_to datetime)");
+        createTestTable("date_test","id int not null primary key auto_increment, d_from datetime ,d_to datetime");
         Timestamp timestamp1 = Timestamp.valueOf("2009-01-17 15:41:01");
         Timestamp timestamp2 = Timestamp.valueOf("2015-01-17 15:41:01");
         Timestamp timestamp3 = Timestamp.valueOf("2014-01-17 15:41:01");
@@ -106,8 +100,7 @@ public class DateTest extends BaseTest {
     @Test
     public void yearTest() throws SQLException {
         Assume.assumeTrue(isMariadbServer());
-        connection.createStatement().execute("drop table if exists yeartest");
-        connection.createStatement().execute("create table yeartest (y1 year, y2 year(2))");
+        createTestTable("yeartest","y1 year, y2 year(2)");
         connection.createStatement().execute("insert into yeartest values (null, null), (1901, 70), (0, 0), (2155, 69)");
         Statement stmt = connection.createStatement();
         ResultSet rs = stmt.executeQuery("select * from yeartest");
@@ -124,8 +117,7 @@ public class DateTest extends BaseTest {
 
     @Test
     public void timeTest() throws SQLException {
-        connection.createStatement().execute("drop table if exists timetest");
-        connection.createStatement().execute("create table timetest (t time)");
+        createTestTable("timetest","t time");
         connection.createStatement().execute("insert into timetest values (null), ('-838:59:59'), ('00:00:00'), ('838:59:59')");
         Statement stmt = connection.createStatement();
         ResultSet rs = stmt.executeQuery("select * from timetest");
@@ -145,8 +137,7 @@ public class DateTest extends BaseTest {
 
     @Test
     public void timestampZeroTest() throws SQLException {
-        connection.createStatement().execute("drop table if exists timestampzerotest");
-        connection.createStatement().execute("create table timestampzerotest (ts timestamp, dt datetime, dd date)");
+        createTestTable("timestampzerotest","ts timestamp, dt datetime, dd date");
         String timestampZero = "0000-00-00 00:00:00";
         String dateZero = "0000-00-00";
         connection.createStatement().execute("insert into timestampzerotest values ('"
@@ -173,8 +164,7 @@ public class DateTest extends BaseTest {
 
     @Test
     public void javaUtilDateInPreparedStatementAsTimeStamp() throws Exception {
-        connection.createStatement().execute("drop table if exists dtest");
-        connection.createStatement().execute("create table dtest (d datetime)");
+        createTestTable("dtest","d datetime");
         java.util.Date d = Calendar.getInstance(TimeZone.getDefault()).getTime();
         PreparedStatement ps = connection.prepareStatement("insert into dtest values(?)");
         ps.setObject(1, d, Types.TIMESTAMP);
@@ -187,8 +177,7 @@ public class DateTest extends BaseTest {
 
     @Test
     public void nullTimestampTest() throws SQLException {
-        connection.createStatement().execute("drop table if exists dtest");
-        connection.createStatement().execute("create table dtest (d date)");
+        createTestTable("dtest","d date");
         PreparedStatement ps = connection.prepareStatement("insert into dtest values(null)");
         ps.executeUpdate();
         ResultSet rs = connection.createStatement().executeQuery("select * from dtest where d is null");
@@ -200,8 +189,7 @@ public class DateTest extends BaseTest {
     @SuppressWarnings("deprecation")
     @Test
     public void javaUtilDateInPreparedStatementAsDate() throws Exception {
-        connection.createStatement().execute("drop table if exists dtest");
-        connection.createStatement().execute("create table dtest (d date)");
+        createTestTable("dtest","d date");
         java.util.Date d = Calendar.getInstance(TimeZone.getDefault()).getTime();
         PreparedStatement ps = connection.prepareStatement("insert into dtest values(?)");
         ps.setObject(1, d, Types.DATE);
@@ -217,8 +205,7 @@ public class DateTest extends BaseTest {
     @SuppressWarnings("deprecation")
     @Test
     public void javaUtilDateInPreparedStatementAsTime() throws Exception {
-        connection.createStatement().execute("drop table if exists dtest");
-        connection.createStatement().execute("create table dtest (d  time)");
+        createTestTable("dtest","d  time");
         java.util.Date d = Calendar.getInstance(TimeZone.getDefault()).getTime();
         PreparedStatement ps = connection.prepareStatement("insert into dtest values(?)");
         ps.setObject(1, d, Types.TIME);
@@ -241,7 +228,6 @@ public class DateTest extends BaseTest {
     @Test
     public void serverTimezone() throws Exception {
         TimeZone tz = TimeZone.getDefault();
-        //TimeZone gmt = TimeZone.getTimeZone("GMT");
         long offset = tz.getRawOffset();
         setConnection("&serverTimezone=GMT");
         java.util.Date now = new java.util.Date();
@@ -273,14 +259,13 @@ public class DateTest extends BaseTest {
     @Test
     public void timestampMillisecondsTest() throws SQLException {
         Statement statement = connection.createStatement();
-        statement.execute("DROP TABLE IF EXISTS tt");
 
         boolean isMariadbServer = isMariadbServer();
         if (isMariadbServer) {
-            statement.execute("CREATE TABLE tt (id decimal(10), create_time datetime(6) default 0)");
+            createTestTable("tt", "id decimal(10), create_time datetime(6) default 0");
             statement.execute("INSERT INTO tt (id, create_time) VALUES (1,'2013-07-18 13:44:22.123456')");
         } else {
-            statement.execute("CREATE TABLE tt (id decimal(10), create_time datetime default 0)");
+            createTestTable("tt", "id decimal(10), create_time datetime default 0");
             statement.execute("INSERT INTO tt (id, create_time) VALUES (1,'2013-07-18 13:44:22')");
         }
         PreparedStatement ps = connection.prepareStatement("insert into tt (id, create_time) values (?,?)");
@@ -308,10 +293,7 @@ public class DateTest extends BaseTest {
     @Test
     public void dateTestWhenServerDifference() throws Throwable {
         setConnection("&serverTimezone=UTC");
-
-        Statement st = connection.createStatement();
-        st.execute("drop table if exists date_test");
-        st.execute("create table date_test ( x date )");
+        createTestTable("date_test"," x date");
 
         PreparedStatement pst = connection.prepareStatement("insert into date_test values (?)");
         java.sql.Date date = java.sql.Date.valueOf("2013-02-01");
@@ -330,10 +312,7 @@ public class DateTest extends BaseTest {
     @Test
     public void dateTestWhenServerDifferenceClient() throws Throwable {
         setConnection("&serverTimezone=UTC");
-
-        Statement st = connection.createStatement();
-        st.execute("drop table if exists date_test");
-        st.execute("create table date_test ( x date )");
+        createTestTable("date_test","x date");
 
         PreparedStatement pst = connection.prepareStatement("/*CLIENT*/insert into date_test values (?)");
         java.sql.Date date = java.sql.Date.valueOf("2013-02-01");

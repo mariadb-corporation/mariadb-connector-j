@@ -12,10 +12,7 @@ public class LocalInfileDisableTest extends BaseTest {
     @Before
     public void setup() throws SQLException {
         setConnection("&allowLocalInfile=false");
-        Statement stmt = connection.createStatement();
-        stmt.executeUpdate("DROP TABLE IF EXISTS t");
-        stmt.executeUpdate("CREATE TABLE t(id int, test varchar(100))");
-        stmt.close();
+        createTestTable("t","id int, test varchar(100)");
     }
 
     @Test

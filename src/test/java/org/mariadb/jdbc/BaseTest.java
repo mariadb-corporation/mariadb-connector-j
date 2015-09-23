@@ -13,6 +13,8 @@ import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -34,6 +36,8 @@ public class BaseTest {
     protected static String password;
     protected static String parameters;
     protected static boolean testSingleHost;
+    private static List<String> tempTableList = new ArrayList<>();
+
     @Rule
     public TestRule watcher = new TestWatcher() {
         protected void starting(Description description) {
@@ -102,9 +106,22 @@ public class BaseTest {
 
     @After
     public void after() throws SQLException {
-        try {
-            connection.close();
-        } catch (Exception e) {
+        if (connection != null) {
+            if (!connection.isClosed()) {
+                Statement stmt = connection.createStatement();
+                stmt.execute("SET foreign_key_checks = 0");
+                for (String tableName : tempTableList) {
+                    try {
+                        stmt.execute("DROP TABLE IF EXISTS " + tableName);
+                    } catch (SQLException e) {
+                    }
+                }
+                stmt.execute("SET foreign_key_checks = 1");
+            }
+            try {
+                connection.close();
+            } catch (Exception e) {
+            }
         }
     }
 
@@ -295,13 +312,25 @@ public class BaseTest {
 
     }
     void requireMinimumVersion(int major, int minor) throws SQLException {
-        org.junit.Assume.assumeTrue(minVersion(major,minor));
+        org.junit.Assume.assumeTrue(minVersion(major, minor));
 
     }
 
     boolean isMariadbServer() throws SQLException {
         DatabaseMetaData md = connection.getMetaData();
         return md.getDatabaseProductVersion().indexOf("MariaDB") != -1;
+    }
+    public void createTestTable(String tableName, String tableColumns) throws SQLException {
+        createTestTable(tableName, tableColumns, null);
+    }
+
+    public void createTestTable(String tableName, String tableColumns, String engine) throws SQLException {
+        Statement stmt = connection.createStatement();
+        stmt.execute("SET foreign_key_checks = 0");
+        stmt.execute("drop table  if exists " + tableName);
+        stmt.execute("create table " + tableName + " (" + tableColumns + ") "+((engine!=null)?engine:""));
+        stmt.execute("SET foreign_key_checks = 1");
+        tempTableList.add(tableName);
     }
 
 }

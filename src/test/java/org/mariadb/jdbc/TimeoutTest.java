@@ -165,8 +165,7 @@ public class TimeoutTest extends BaseTest {
     @Test
     public void lastPacketFailedTest() throws SQLException {
         Statement stmt = connection.createStatement();
-        stmt.execute("DROP TABLE IF EXISTS `pages_txt`");
-        stmt.execute("CREATE TABLE `pages_txt` (`id` INT(10) UNSIGNED NOT NULL, `title` TEXT NOT NULL, `txt` MEDIUMTEXT NOT NULL, PRIMARY KEY (`id`)) COLLATE='utf8_general_ci' ENGINE=MyISAM;");
+        createTestTable("`pages_txt`","`id` INT(10) UNSIGNED NOT NULL, `title` TEXT NOT NULL, `txt` MEDIUMTEXT NOT NULL, PRIMARY KEY (`id`)","COLLATE='utf8_general_ci' ENGINE=MyISAM");
 
         //create arbitrary long strings
         String chars = "0123456789abcdefghijklmnopqrstuvwxyzåäöABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖ,;.:-_*¨^+?!<>#€%&/()=";

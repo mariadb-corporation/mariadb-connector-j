@@ -71,8 +71,7 @@ public class MySQLDriverTest extends BaseTest {
 
     @Test
     public void testBit() throws SQLException {
-        connection.createStatement().execute("drop table if exists bittest");
-        connection.createStatement().execute("create table bittest (a bit(1), b bit(3))");
+        createTestTable("bittest","a bit(1), b bit(3)");
         connection.createStatement().execute("insert into bittest values (null, null), (0, 0), (1, 1), (0, 2), (1, 3);");
         byte[] bytes = new byte[]{0, 0, 1, 0, 1};
         ResultSet rs = connection.createStatement().executeQuery("select * from bittest");
@@ -88,8 +87,7 @@ public class MySQLDriverTest extends BaseTest {
     @Test
     public void testSmallint() throws SQLException {
 
-        connection.createStatement().execute("drop table if exists smallinttest");
-        connection.createStatement().execute("create table smallinttest (i1 smallint, i2 smallint unsigned)");
+        createTestTable("smallinttest","i1 smallint, i2 smallint unsigned");
         connection.createStatement().execute("insert into smallinttest values (null, null), (0, 0), (-1, 1), (-32768, 32767), (32767, 65535)");
         Integer[] ints = new Integer[]{null, 0, 1, 32767, 65535};
         ResultSet rs = connection.createStatement().executeQuery("select * from smallinttest");
@@ -104,9 +102,7 @@ public class MySQLDriverTest extends BaseTest {
 
     @Test
     public void testMediumint() throws SQLException {
-
-        connection.createStatement().execute("drop table if exists mediuminttest");
-        connection.createStatement().execute("create table mediuminttest (i1 mediumint, i2 mediumint unsigned)");
+        createTestTable("mediuminttest","i1 mediumint, i2 mediumint unsigned");
         connection.createStatement().execute("insert into mediuminttest values (null, null), (0, 0), (-1, 1), (-8388608, 8388607), (8388607, 16777215)");
         ResultSet rs = connection.createStatement().executeQuery("select * from mediuminttest");
         Integer[] ints = new Integer[]{null, 0, 1, 8388607, 16777215};
@@ -121,9 +117,7 @@ public class MySQLDriverTest extends BaseTest {
 
     @Test
     public void testTimestamp() throws SQLException {
-
-        connection.createStatement().execute("drop table if exists t");
-        connection.createStatement().execute("create table t (t timestamp)");
+        createTestTable("t","t timestamp");
         connection.createStatement().execute("insert into t values  ('1971-01-01 01:01:01'), ('2007-12-03 15:50:18'), ('2037-12-31 23:59:59')");
         ResultSet rs = connection.createStatement().executeQuery("select * from t");
         String[] data = new String[]{"1971-01-01 01:01:01.0", "2007-12-03 15:50:18.0", "2037-12-31 23:59:59.0"};
@@ -135,9 +129,7 @@ public class MySQLDriverTest extends BaseTest {
 
     @Test
     public void testDatetime() throws SQLException {
-
-        connection.createStatement().execute("drop table if exists t");
-        connection.createStatement().execute("create table t (t datetime)");
+        createTestTable("t","t datetime");
         connection.createStatement().execute("insert into t values (null), ('1000-01-01 00:00:00'), ('2007-12-03 15:47:32'), ('9999-12-31 23:59:59')");
         ResultSet rs = connection.createStatement().executeQuery("select * from t");
         Timestamp[] data = new Timestamp[]{null, Timestamp.valueOf("1000-01-01 00:00:00"), Timestamp.valueOf("2007-12-03 15:47:32"), Timestamp.valueOf("9999-12-31 23:59:59")};
@@ -149,9 +141,7 @@ public class MySQLDriverTest extends BaseTest {
 
     @Test
     public void testFloat() throws SQLException {
-
-        connection.createStatement().execute("drop table if exists t");
-        connection.createStatement().execute("create table t (f float)");
+        createTestTable("t","f float");
         connection.createStatement().execute("insert into t values (null), (-3.402823466E+38), (-1.175494351E-38), (0), (1.175494351E-38), (3.402823466E+38)");
         ResultSet rs = connection.createStatement().executeQuery("select * from t");
         Float[] data = new Float[]{null, -3.40282E+38F, -1.17549E-38F, 0F, 1.17549E-38F, 3.40282E+38F};
@@ -167,9 +157,7 @@ public class MySQLDriverTest extends BaseTest {
 
     @Test
     public void testDouble() throws SQLException {
-
-        connection.createStatement().execute("drop table if exists t");
-        connection.createStatement().execute("create table t (d double)");
+        createTestTable("t","d double");
         connection.createStatement().execute("insert into t values (null), (-1.7976931348623157E+308), (-2.2250738585072014E-308), (0), (2.2250738585072014E-308), (1.7976931348623157E+308)");
         ResultSet rs = connection.createStatement().executeQuery("select * from t");
         Double[] data = new Double[]{null, -1.7976931348623157E+308, -2.2250738585072014E-308, 0D, 2.2250738585072014E-308, 1.7976931348623157E+308};
@@ -185,9 +173,7 @@ public class MySQLDriverTest extends BaseTest {
 
     @Test
     public void bigintTest() throws SQLException {
-        connection.createStatement().execute("drop table if exists biginttest");
-        connection.createStatement().execute(
-                "create table biginttest (i1 bigint, i2 bigint unsigned)");
+        createTestTable("biginttest","i1 bigint, i2 bigint unsigned");
         connection.createStatement().execute("insert into biginttest values (null, null), (0, 0), (-1, 1), (-9223372036854775808, 9223372036854775807), (9223372036854775807, 18446744073709551615)");
         ResultSet rs = connection.createStatement().executeQuery("select * from biginttest");
         assertTrue(rs.next());
@@ -368,7 +354,7 @@ public class MySQLDriverTest extends BaseTest {
 
         /* To throw warnings rather than errors, we need a non-strict sql_mode */
         st.execute("set sql_mode=''");
-        st.execute("create table if not exists warnings_test(c char(2)) ");
+        createTestTable("warnings_test","c char(2)");
         st.executeUpdate("insert into warnings_test values('123'),('124')");
         SQLWarning w = st.getWarnings();
         assertEquals(w.getMessage(), "Data truncated for column 'c' at row 1");
@@ -385,7 +371,7 @@ public class MySQLDriverTest extends BaseTest {
     @Test
     public void testUpdateCount() throws SQLException {
         Statement st = connection.createStatement();
-        st.execute("CREATE TABLE IF NOT EXISTS t_update_count(flag int, k varchar(10),name varchar(10))");
+        createTestTable("t_update_count","flag int, k varchar(10),name varchar(10)");
         try {
             int cnt = st.executeUpdate("INSERT into t_update_count values(1, '5', 'name1'), (1,'5','name2')");
             assertEquals(cnt, 2);
@@ -416,8 +402,7 @@ public class MySQLDriverTest extends BaseTest {
                 out.write("aString\n");
             out.close();
             Statement st = connection.createStatement();
-            st.execute("DROP TABLE IF EXISTS ldinfile");
-            st.execute("CREATE TABLE  ldinfile(a varchar(10))");
+            createTestTable("ldinfile","a varchar(10)");
             st.execute("LOAD DATA LOCAL INFILE '" + temp.getAbsolutePath().replace('\\', '/') + "' INTO TABLE ldinfile");
             ResultSet rs = st.executeQuery("SELECT * FROM ldinfile");
             rs.next();
@@ -435,8 +420,7 @@ public class MySQLDriverTest extends BaseTest {
 
         try {
             Statement st = connection.createStatement();
-            st.execute("DROP TABLE IF EXISTS ldinfile");
-            st.execute("CREATE TABLE  ldinfile(a varchar(10))");
+            createTestTable("ldinfile","a varchar(10)");
             st.execute("LOAD DATA LOCAL INFILE '" + temp.getAbsolutePath().replace('\\', '/') + "' INTO TABLE ldinfile");
             ResultSet rs = st.executeQuery("SELECT * FROM ldinfile");
             assertFalse(rs.next());
@@ -537,8 +521,7 @@ public class MySQLDriverTest extends BaseTest {
     public void UpdateCachedRowSet() throws Exception {
         Statement st = connection.createStatement();
         connection.setAutoCommit(false);
-        st.execute("DROP TABLE IF EXISTS updatable");
-        st.execute("CREATE TABLE updatable(i int primary key, a varchar(10))");
+        createTestTable("updatable","i int primary key, a varchar(10)");
         st.execute("INSERT INTO updatable values(1,'a')");
         st.setFetchSize(Integer.MIN_VALUE);
         ResultSet rs = st.executeQuery("SELECT * FROM updatable");

@@ -43,8 +43,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
                 importSQL(connection, classLoader.getResourceAsStream("timezoneTest.sql"));
                 st.execute("USE " + currentDatabase);
             }
-            st.execute("drop table if exists timestamptest");
-            st.execute("create table timestamptest (id int not null primary key auto_increment, tm timestamp)");
+            createTestTable("timestamptest","id int not null primary key auto_increment, tm timestamp");
 
         } finally {
             if (st != null) st.close();
@@ -239,10 +238,10 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
     @Test
     public void testDayLight() throws SQLException {
+        TimeZone.setDefault(parisTimeZone);
         setConnection("&serverTimezone=Europe/Paris");
         Statement st = connection.createStatement();
-        st.executeQuery("DROP TABLE IF EXISTS daylight");
-        st.executeQuery("CREATE TABLE daylight(id int, tt TIMESTAMP(6))");
+        createTestTable("daylight","id int, tt TIMESTAMP(6)");
 
         Calendar quarterBeforeChangingHour = Calendar.getInstance(TimeZone.getTimeZone("utc"));
         quarterBeforeChangingHour.clear();
@@ -287,10 +286,10 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
     @Test
     public void testDayLightnotUtC() throws SQLException {
+        TimeZone.setDefault(parisTimeZone);
         setConnection("&serverTimezone=Canada/Atlantic");
         Statement st = connection.createStatement();
-        st.executeQuery("DROP TABLE IF EXISTS daylightCanada");
-        st.executeQuery("CREATE TABLE daylightCanada(id int, tt TIMESTAMP(6))");
+        createTestTable("daylightCanada","id int, tt TIMESTAMP(6)");
 
         Calendar quarterBeforeChangingHour = Calendar.getInstance(TimeZone.getTimeZone("Canada/Atlantic"));
         quarterBeforeChangingHour.clear();
@@ -315,7 +314,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
         pst.setTimestamp(2, new Timestamp(quarterAfterChangingHour.getTimeInMillis()));
         pst.addBatch();
         pst.setInt(1, 3);
-        pst.setString(2, "2015-03-29 02:15:00");
+        pst.setString(2, "2015-03-28 02:15:00");
         pst.addBatch();
         try {
             pst.executeBatch();
@@ -337,10 +336,10 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
     @Test
     public void testDayLightWithClientTimeZoneDifferent() throws SQLException {
+        TimeZone.setDefault(parisTimeZone);
         setConnection("&serverTimezone=UTC");
         Statement st = connection.createStatement();
-        st.executeQuery("DROP TABLE IF EXISTS daylight");
-        st.executeQuery("CREATE TABLE daylight(id int, tt TIMESTAMP(6))");
+        createTestTable("daylight","id int, tt TIMESTAMP(6)");
 
         Calendar quarterBeforeChangingHour = Calendar.getInstance(TimeZone.getTimeZone("utc"));
         quarterBeforeChangingHour.clear();

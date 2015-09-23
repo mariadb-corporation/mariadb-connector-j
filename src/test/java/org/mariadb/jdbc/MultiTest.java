@@ -1,9 +1,6 @@
 package org.mariadb.jdbc;
 
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 
 import java.sql.*;
 import java.util.Properties;
@@ -17,24 +14,18 @@ public class MultiTest extends BaseTest {
     public MultiTest() throws SQLException {
     }
 
-    @BeforeClass
-    public static void beforeClassMultiTest() throws SQLException {
+    @Before
+    public void setupMultiTest() throws SQLException {
         BaseTest baseTest = new BaseTest();
         baseTest.setConnection("&allowMultiQueries=true");
         connectionMulti = baseTest.connection;
         Statement st = connectionMulti.createStatement();
-        st.executeUpdate("drop table if exists t1");
-        st.executeUpdate("drop table if exists t2");
-        st.executeUpdate("drop table if exists t3");
-        st.executeUpdate("drop table if exists t4");
-        st.executeUpdate("drop table if exists t5");
-        st.executeUpdate("drop table if exists reWriteDuplicateTestTable");
-        st.executeUpdate("create table t1(id int, test varchar(100))");
-        st.executeUpdate("create table t2(id int, test varchar(100))");
-        st.executeUpdate("create table t3(message text)");
-        st.executeUpdate("create table t4(id int, test varchar(100), PRIMARY KEY (`id`))");
-        st.executeUpdate("create table t5(id int, test varchar(100))");
-        st.executeUpdate("create table reWriteDuplicateTestTable(id int, name varchar(100), PRIMARY KEY (`id`))");
+        createTestTable("t1","id int, test varchar(100)");
+        createTestTable("t2","id int, test varchar(100)");
+        createTestTable("t3","message text");
+        createTestTable("t4","id int, test varchar(100), PRIMARY KEY (`id`)");
+        createTestTable("t5","id int, test varchar(100)");
+        createTestTable("reWriteDuplicateTestTable", "id int, name varchar(100), PRIMARY KEY (`id`)");
         st.execute("insert into t1 values(1,'a'),(2,'a')");
         st.execute("insert into t2 values(1,'a'),(2,'a')");
         st.execute("insert into t3 values('hello')");
@@ -46,10 +37,8 @@ public class MultiTest extends BaseTest {
     @Test
     public void rewriteSelectQuery() throws Throwable {
         Statement st = connection.createStatement();
-        st.execute("drop table if exists tselect1");
-        st.execute("drop table if exists tselect2");
-        st.execute("create table tselect1 (LAST_UPDATE_DATETIME TIMESTAMP , nn int)");
-        st.execute("create table tselect2 (nn int)");
+        createTestTable("tselect1","LAST_UPDATE_DATETIME TIMESTAMP , nn int");
+        createTestTable("tselect2","nn int");
         st.execute("INSERT INTO tselect2 VALUES (1)");
         PreparedStatement ps = connection.prepareStatement("/*CLIENT*/ insert into tselect1 (LAST_UPDATE_DATETIME, nn) select ?, nn from tselect2");
         ps.setTimestamp(1, new java.sql.Timestamp(System.currentTimeMillis()));
@@ -63,10 +52,8 @@ public class MultiTest extends BaseTest {
     @Test
     public void rewriteSelectQueryServerPrepared() throws Throwable {
         Statement st = connection.createStatement();
-        st.execute("drop table if exists tselect1");
-        st.execute("drop table if exists tselect2");
-        st.execute("create table tselect1 (LAST_UPDATE_DATETIME TIMESTAMP , nn int)");
-        st.execute("create table tselect2 (nn int)");
+        createTestTable("tselect1","LAST_UPDATE_DATETIME TIMESTAMP , nn int");
+        createTestTable("tselect2","nn int");
         st.execute("INSERT INTO tselect2 VALUES (1)");
         PreparedStatement ps = connection.prepareStatement("insert into tselect1 (LAST_UPDATE_DATETIME, nn) select ?, nn from tselect2");
         ps.setTimestamp(1, new java.sql.Timestamp(System.currentTimeMillis()));
@@ -76,26 +63,6 @@ public class MultiTest extends BaseTest {
         rs.next();
         Assert.assertEquals(rs.getInt(2), 1);
     }
-
-    @AfterClass
-    public static void afterClass() throws SQLException {
-        try {
-            Statement st = connectionMulti.createStatement();
-            st.executeUpdate("drop table if exists t1");
-            st.executeUpdate("drop table if exists t2");
-            st.executeUpdate("drop table if exists t3");
-            st.executeUpdate("drop table if exists reWriteDuplicateTestTable");
-        } catch (Exception e) {
-            // eat
-        } finally {
-            try {
-                connectionMulti.close();
-            } catch (Exception e) {
-
-            }
-        }
-    }
-
 
     @Test
     public void basicTest() throws SQLException {
@@ -287,9 +254,7 @@ public class MultiTest extends BaseTest {
         Connection tmpConnection = null;
         try {
             tmpConnection = openNewConnection(connURI, props);
-            Statement st = tmpConnection.createStatement();
-            st.executeUpdate("drop table if exists t3_dupp");
-            st.executeUpdate("create table t3_dupp(col1 int, pkey int NOT NULL, col2 int, col3 int, col4 int, PRIMARY KEY (`pkey`))");
+            createTestTable("t3_dupp","col1 int, pkey int NOT NULL, col2 int, col3 int, col4 int, PRIMARY KEY (`pkey`)");
 
             PreparedStatement sqlInsert = connection.prepareStatement("INSERT INTO t3_dupp(col1, pkey,col2,col3,col4) VALUES (9, ?, 5, ?, 8) ON DUPLICATE KEY UPDATE pkey=pkey+10");
             sqlInsert.setInt(1, 1);
@@ -570,9 +535,7 @@ public class MultiTest extends BaseTest {
         Connection tmpConnection = null;
         try {
             tmpConnection = openNewConnection(connURI, props);
-            Statement stmt = tmpConnection.createStatement();
-            stmt.executeUpdate("DROP TABLE IF EXISTS test_table");
-            stmt.executeUpdate("CREATE TABLE IF NOT EXISTS test_table(col1 VARCHAR(32), col2 VARCHAR(32), col3 VARCHAR(32), col4 VARCHAR(32), col5 VARCHAR(32))");
+            createTestTable("test_table","col1 VARCHAR(32), col2 VARCHAR(32), col3 VARCHAR(32), col4 VARCHAR(32), col5 VARCHAR(32)");
             PreparedStatement insertStmt = tmpConnection.prepareStatement("INSERT INTO test_table (col1, col2, col3, col4, col5) values('some value', ?, 'other value', ?, 'third value')");
             insertStmt.setString(1, "a1");
             insertStmt.setString(2, "a2");
@@ -595,9 +558,7 @@ public class MultiTest extends BaseTest {
         Connection tmpConnection = null;
         try {
             tmpConnection = openNewConnection(connURI, props);
-            Statement stmt = tmpConnection.createStatement();
-            stmt.executeUpdate("DROP TABLE IF EXISTS test_table");
-            stmt.executeUpdate("CREATE TABLE IF NOT EXISTS test_table(col1 VARCHAR(32), col2 VARCHAR(32), col3 VARCHAR(32), col4 VARCHAR(32), col5 VARCHAR(32))");
+            createTestTable("test_table","col1 VARCHAR(32), col2 VARCHAR(32), col3 VARCHAR(32), col4 VARCHAR(32), col5 VARCHAR(32)");
             PreparedStatement insertStmt = tmpConnection.prepareStatement("INSERT INTO test_table (col2, col3, col4, col5) values(?, 'other value', ?, 'third value')");
             insertStmt.setString(1, "a1");
             insertStmt.setString(2, "a2");

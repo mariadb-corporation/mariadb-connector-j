@@ -31,8 +31,7 @@ public class LoadTest extends BaseTest {
 
     public long loadTest(Connection connection) throws SQLException {
         Statement stmt = connection.createStatement();
-        stmt.executeUpdate("drop table if exists loadsofdata");
-        stmt.executeUpdate("create table loadsofdata (id int not null primary key auto_increment, data varchar(250)) engine=innodb");
+        createTestTable("loadsofdata","id int not null primary key auto_increment, data varchar(250)","engine=innodb");
         stmt.close();
         long startTime = System.currentTimeMillis();
         for (int i = 0; i < 100; i++) {
@@ -60,8 +59,7 @@ public class LoadTest extends BaseTest {
         Connection drizConnection = openNewConnection(connU);
         setConnection();
         Statement stmt = drizConnection.createStatement();
-        stmt.executeUpdate("drop table if exists loadsofdata2");
-        stmt.executeUpdate("create table loadsofdata2 (id int not null primary key auto_increment, data blob) engine=innodb");
+        createTestTable("loadsofdata2","id int not null primary key auto_increment, data blob","engine=innodb");
         byte[] theBytes = new byte[500];
         for (int i = 0; i < 500; i++) {
             theBytes[i] = (byte) i;
@@ -77,8 +75,7 @@ public class LoadTest extends BaseTest {
         }
         log.debug(String.valueOf(System.currentTimeMillis() - startTime));
 
-        stmt.executeUpdate("drop table if exists loadsofdata2");
-        stmt.executeUpdate("create table loadsofdata2 (id int not null primary key auto_increment, data blob) engine=innodb");
+        createTestTable("loadsofdata2", "id int not null primary key auto_increment, data blob", "engine=innodb");
 
         startTime = System.currentTimeMillis();
         for (int i = 1; i < 10000; i++) {
@@ -122,13 +119,13 @@ public class LoadTest extends BaseTest {
         Connection drizConnection = openNewConnection(connU);
         setConnection();
         Statement stmt = drizConnection.createStatement();
-        stmt.executeUpdate("drop table if exists loadsofdata3");
+
         StringBuilder sb = new StringBuilder("d0 int");
         for (int i = 1; i < 500; i++) {
 
             sb.append(", d").append(i).append(" int");
         }
-        stmt.executeUpdate("create table loadsofdata3 (id int not null primary key auto_increment," + sb.toString() + ") engine=innodb");
+        createTestTable("loadsofdata3","id int not null primary key auto_increment," + sb.toString(), "engine=innodb");
         StringBuilder qb = new StringBuilder("?");
         for (int i = 1; i < 500; i++) {
             qb.append(", ?");
@@ -145,8 +142,7 @@ public class LoadTest extends BaseTest {
             ps.execute();
         }
         log.debug(String.valueOf(System.currentTimeMillis() - startTime));
-        stmt.executeUpdate("drop table if exists loadsofdata3");
-        stmt.executeUpdate("create table loadsofdata3 (id int not null primary key auto_increment," + sb.toString() + ") engine=innodb");
+        createTestTable("loadsofdata3","id int not null primary key auto_increment," + sb.toString(), "engine=innodb");
 
         startTime = System.currentTimeMillis();
         for (int i = 0; i < 10000; i++) {

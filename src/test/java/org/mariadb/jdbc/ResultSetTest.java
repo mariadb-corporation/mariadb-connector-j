@@ -15,8 +15,7 @@ public class ResultSetTest extends BaseTest {
     @Before
     public void setUp() throws SQLException {
         statement = connection.createStatement();
-        statement.execute("drop table if exists result_set_test");
-        statement.execute("create table result_set_test (id int not null primary key auto_increment, name char(20))");
+        createTestTable("result_set_test","id int not null primary key auto_increment, name char(20)");
     }
 
     @Test

@@ -49,8 +49,7 @@ public class XA extends BaseTest {
      */
     void test2PC(boolean doCommit) throws Exception {
 
-        connection.createStatement().execute("DROP TABLE IF EXISTS xatable");
-        connection.createStatement().execute("CREATE TABLE xatable (i int) ENGINE=InnoDB");
+        createTestTable("xatable","i int","ENGINE=InnoDB");
 
         int N = 1;
 

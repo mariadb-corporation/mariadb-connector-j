@@ -84,8 +84,7 @@ public class StatementTest extends BaseTest {
 
     @Test
     public void testColumnsDoNotExist() throws SQLException {
-        statement.execute("drop table if exists vendor_code_test");
-        statement.execute("create table vendor_code_test (id int not null primary key auto_increment, test boolean)");
+        createTestTable("vendor_code_test","id int not null primary key auto_increment, test boolean");
 
         try {
             statement.executeQuery("select * from vendor_code_test where crazy_column_that_does_not_exist = 1");
@@ -98,8 +97,7 @@ public class StatementTest extends BaseTest {
 
     @Test
     public void testNonInsertableTable() throws SQLException {
-        statement.execute("drop table if exists vendor_code_test");
-        statement.execute("create table vendor_code_test (id int not null primary key auto_increment, test boolean)");
+        createTestTable("vendor_code_test","id int not null primary key auto_increment, test boolean");
         statement.execute("create or replace view vendor_code_test_view as select id as id1, id as id2, test from vendor_code_test");
 
         try {
@@ -138,8 +136,7 @@ public class StatementTest extends BaseTest {
 
     @Test
     public void testNonUpdateableColumn() throws SQLException {
-        statement.execute("drop table if exists vendor_code_test");
-        statement.execute("create table vendor_code_test (id int not null primary key auto_increment, test boolean)");
+        createTestTable("vendor_code_test", "id int not null primary key auto_increment, test boolean");
         statement.execute("create or replace view vendor_code_test_view as select *, 1 as derived_column_that_does_no_exist from vendor_code_test");
 
         try {
@@ -164,8 +161,7 @@ public class StatementTest extends BaseTest {
 
     @Test
     public void testAddPartitionNoNewPartition() throws SQLException {
-        statement.execute("drop table if exists vendor_code_test");
-        statement.execute("CREATE TABLE vendor_code_test (a INT) PARTITION BY KEY (a) (PARTITION x0, PARTITION x1)");
+        createTestTable("vendor_code_test","a INT","PARTITION BY KEY (a) (PARTITION x0, PARTITION x1)");
         try {
             statement.execute("ALTER TABLE vendor_code_test ADD PARTITION PARTITIONS 0");
             fail("The above statement should result in an exception");
@@ -177,8 +173,7 @@ public class StatementTest extends BaseTest {
 
     @Test
     public void testNoPartitionForGivenValue() throws SQLException {
-        statement.execute("drop table if exists vendor_code_test");
-        statement.execute("CREATE TABLE vendor_code_test (a INT) PARTITION BY LIST(a) (PARTITION p0 VALUES IN (1))");
+        createTestTable("vendor_code_test","a INT","PARTITION BY LIST(a) (PARTITION p0 VALUES IN (1))");
         statement.execute("INSERT INTO vendor_code_test VALUES (1)");
         try {
             statement.execute("INSERT INTO vendor_code_test VALUES (2)");
@@ -192,8 +187,7 @@ public class StatementTest extends BaseTest {
     @Test
     public void testLoadDataInvalidColumn() throws SQLException, UnsupportedEncodingException {
         statement.execute("drop view if exists v2");
-        statement.execute("drop table if exists t1");
-        statement.execute("CREATE TABLE t1(c1 INT, c2 VARCHAR(255));");
+        createTestTable("t1", "c1 INT, c2 VARCHAR(255)");
         statement.execute("CREATE VIEW v2 AS SELECT 1 + 2 AS c0, c1, c2 FROM t1;");
 
         MySQLStatement mysqlStatement;

@@ -32,8 +32,7 @@ public class CollationTest extends BaseTest {
         } else {
             connection.createStatement().execute("SET NAMES utf8mb4");
         }
-        connection.createStatement().execute("DROP TABLE IF EXISTS emojiTest");
-        connection.createStatement().execute("CREATE TABLE emojiTest (id int unsigned, field longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci)");
+        createTestTable("emojiTest", "id int unsigned, field longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
         PreparedStatement ps = connection.prepareStatement("INSERT INTO emojiTest (id, field) VALUES (1, ?)");
         byte[] emoji = new byte[]{(byte) 0xF0, (byte) 0x9F, (byte) 0x98, (byte) 0x84};
         ps.setBytes(1, emoji);

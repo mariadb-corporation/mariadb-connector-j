@@ -13,9 +13,8 @@ public class ResultSetMetaDataTest extends BaseTest {
     public void metaDataTest() throws SQLException {
         requireMinimumVersion(5, 0);
         Statement stmt = connection.createStatement();
-        stmt.execute("drop table if exists test_rsmd");
-        stmt.execute("create table test_rsmd (id_col int not null primary key auto_increment, "
-                + "nullable_col varchar(20),unikey_col int unique, char_col char(10), us  smallint unsigned)");
+        createTestTable("test_rsmd","id_col int not null primary key auto_increment, "
+                + "nullable_col varchar(20),unikey_col int unique, char_col char(10), us  smallint unsigned");
         stmt.execute("insert into test_rsmd (id_col,nullable_col,unikey_col) values (null, 'hej', 9)");
         ResultSet rs = stmt
                 .executeQuery("select id_col, nullable_col, unikey_col as something, char_col,us from test_rsmd");
@@ -66,10 +65,8 @@ public class ResultSetMetaDataTest extends BaseTest {
         requireMinimumVersion(5, 0);
         Statement stmt = connection.createStatement();
 
-        stmt.execute("DROP TABLE IF EXISTS t1");
-        stmt.execute("DROP TABLE IF EXISTS t2");
-        stmt.execute("CREATE TABLE t1 (id int, name varchar(20))");
-        stmt.execute("CREATE TABLE t2 (id int, name varchar(20))");
+        createTestTable("t1","id int, name varchar(20)");
+        createTestTable("t2","id int, name varchar(20)");
         stmt.execute("INSERT INTO t1 VALUES (1, 'foo')");
         stmt.execute("INSERT INTO t2 VALUES (2, 'bar')");
         ResultSet rs = connection.createStatement().executeQuery(
@@ -90,12 +87,7 @@ public class ResultSetMetaDataTest extends BaseTest {
      */
     @Test
     public void tableNameTest() throws Exception {
-
-        Statement stmt = connection.createStatement();
-
-        stmt.execute("DROP TABLE IF EXISTS t1");
-        stmt.execute("CREATE TABLE t1 (id int, name varchar(20))");
-
+        createTestTable("t1","id int, name varchar(20)");
         ResultSet rs = connection.createStatement().executeQuery(
                 "SELECT id AS id_alias FROM t1 AS t1_alias");
         ResultSetMetaData rsmd = rs.getMetaData();

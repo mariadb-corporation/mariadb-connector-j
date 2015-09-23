@@ -1,5 +1,6 @@
 package org.mariadb.jdbc;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -20,11 +21,12 @@ public class DatabaseMetadataTest extends BaseTest {
         requireMinimumVersion(5, 1);
     }
 
+
+
+
     @Test
     public void primaryKeysTest() throws SQLException {
-        Statement stmt = connection.createStatement();
-        stmt.execute("drop table if exists pk_test");
-        stmt.execute("create table pk_test (val varchar(20), id1 int not null, id2 int not null,primary key(id1, id2)) engine=innodb");
+        createTestTable("pk_test", "val varchar(20), id1 int not null, id2 int not null,primary key(id1, id2)", "engine=innodb");
         DatabaseMetaData dbmd = connection.getMetaData();
         ResultSet rs = dbmd.getPrimaryKeys("test", null, "pk_test");
         int i = 0;
@@ -41,12 +43,8 @@ public class DatabaseMetadataTest extends BaseTest {
 
     @Test
     public void primaryKeyTest2() throws SQLException {
-        Statement stmt = connection.createStatement();
-        stmt.execute("drop table if exists t2");
-        stmt.execute("drop table if exists t1");
-        stmt.execute("CREATE TABLE t1 ( id1 integer, constraint pk primary key(id1))");
-        stmt.execute("CREATE TABLE t2 (id2a integer, id2b integer, constraint pk primary key(id2a, id2b), constraint fk1 foreign key(id2a) references t1(id1),  constraint fk2 foreign key(id2b) references t1(id1))");
-
+        createTestTable("t2", "id2a integer, id2b integer, constraint pk primary key(id2a, id2b), constraint fk1 foreign key(id2a) references t1(id1),  constraint fk2 foreign key(id2b) references t1(id1)");
+        createTestTable("t1","id1 integer, constraint pk primary key(id1)");
         DatabaseMetaData dbmd = connection.getMetaData();
         ResultSet rs = dbmd.getPrimaryKeys("test", null, "t2");
         int i = 0;
@@ -58,15 +56,12 @@ public class DatabaseMetadataTest extends BaseTest {
             assertEquals(i, rs.getShort("key_seq"));
         }
         assertEquals(2, i);
-        stmt.execute("drop table if exists t2");
-        stmt.execute("drop table if exists t1");
     }
 
     @Test
     public void datetimeTest() throws SQLException {
         Statement stmt = connection.createStatement();
-        stmt.execute("drop table if exists datetime_test");
-        stmt.execute("create table datetime_test (dt datetime)");
+        createTestTable("datetime_test", "dt datetime");
         ResultSet rs = stmt.executeQuery("select * from datetime_test");
         assertEquals(93, rs.getMetaData().getColumnType(1));
 
@@ -114,44 +109,23 @@ public class DatabaseMetadataTest extends BaseTest {
     @Test
     public void getImportedKeys() throws Exception {
         Statement st = connection.createStatement();
-
-        st.execute("DROP TABLE IF EXISTS product_order");
-        st.execute("DROP TABLE IF EXISTS t1.product ");
-        st.execute("DROP TABLE IF EXISTS `cus``tomer`");
-        st.execute("DROP DATABASE IF EXISTS test1");
-
         st.execute("CREATE DATABASE IF NOT EXISTS t1");
+        createTestTable("product_order",
+                "    no INT NOT NULL AUTO_INCREMENT," +
+                        "    product_category INT NOT NULL," +
+                        "    product_id INT NOT NULL," +
+                        "    customer_id INT NOT NULL," +
+                        "    PRIMARY KEY(no)," +
+                        "    INDEX (product_category, product_id)," +
+                        "    INDEX (customer_id)," +
+                        "    FOREIGN KEY (product_category, product_id)" +
+                        "      REFERENCES t1.product(category, id)" +
+                        "      ON UPDATE CASCADE ON DELETE RESTRICT," +
+                        "    FOREIGN KEY (customer_id)" +
+                        "      REFERENCES `cus``tomer`(id)", "ENGINE=INNODB");
 
-        st.execute("CREATE TABLE t1.product (\n" +
-                "    category INT NOT NULL, id INT NOT NULL,\n" +
-                "    price DECIMAL,\n" +
-                "    PRIMARY KEY(category, id)\n" +
-                ")   ENGINE=INNODB");
-
-        st.execute("CREATE TABLE `cus``tomer` (\n" +
-                "    id INT NOT NULL,\n" +
-                "    PRIMARY KEY (id)\n" +
-                ")   ENGINE=INNODB");
-
-        st.execute("CREATE TABLE product_order (\n" +
-                        "    no INT NOT NULL AUTO_INCREMENT,\n" +
-                        "    product_category INT NOT NULL,\n" +
-                        "    product_id INT NOT NULL,\n" +
-                        "    customer_id INT NOT NULL,\n" +
-                        "\n" +
-                        "    PRIMARY KEY(no),\n" +
-                        "    INDEX (product_category, product_id),\n" +
-                        "    INDEX (customer_id),\n" +
-                        "\n" +
-                        "    FOREIGN KEY (product_category, product_id)\n" +
-                        "      REFERENCES t1.product(category, id)\n" +
-                        "      ON UPDATE CASCADE ON DELETE RESTRICT,\n" +
-                        "\n" +
-                        "    FOREIGN KEY (customer_id)\n" +
-                        "      REFERENCES `cus``tomer`(id)\n" +
-                        ")   ENGINE=INNODB;"
-        );
-
+        createTestTable("`cus``tomer`", "id INT NOT NULL, PRIMARY KEY (id)", "ENGINE=INNODB");
+        createTestTable("t1.product ", "category INT NOT NULL, id INT NOT NULL,price DECIMAL,PRIMARY KEY(category, id)", "ENGINE=INNODB");
 
            /*
             Test that I_S implementation is equivalent to parsing "show create table" .
@@ -188,20 +162,9 @@ public class DatabaseMetadataTest extends BaseTest {
 
     @Test
     public void exportedKeysTest() throws SQLException {
-        Statement stmt = connection.createStatement();
-        stmt.execute("drop table if exists fore_key0");
-        stmt.execute("drop table if exists fore_key1");
-        stmt.execute("drop table if exists prim_key");
-
-
-        stmt.execute("create table prim_key (id int not null primary key, " +
-                "val varchar(20)) engine=innodb");
-        stmt.execute("create table fore_key0 (id int not null primary key, " +
-                "id_ref0 int, foreign key (id_ref0) references prim_key(id)) engine=innodb");
-        stmt.execute("create table fore_key1 (id int not null primary key, " +
-                "id_ref1 int, foreign key (id_ref1) references prim_key(id) on update cascade) engine=innodb");
-
-
+        createTestTable("fore_key0", "id int not null primary key, id_ref0 int, foreign key (id_ref0) references prim_key(id)", "engine=innodb");
+        createTestTable("fore_key1", "id int not null primary key, id_ref1 int, foreign key (id_ref1) references prim_key(id) on update cascade", "engine=innodb");
+        createTestTable("prim_key", "id int not null primary key, val varchar(20)", "engine=innodb");
         DatabaseMetaData dbmd = connection.getMetaData();
         ResultSet rs = dbmd.getExportedKeys("test", null, "prim_key");
         int i = 0;
@@ -217,17 +180,9 @@ public class DatabaseMetadataTest extends BaseTest {
 
     @Test
     public void importedKeysTest() throws SQLException {
-        Statement stmt = connection.createStatement();
-        stmt.execute("drop table if exists fore_key0");
-        stmt.execute("drop table if exists fore_key1");
-        stmt.execute("drop table if exists prim_key");
-
-        stmt.execute("create table prim_key (id int not null primary key, " +
-                "val varchar(20)) engine=innodb");
-        stmt.execute("create table fore_key0 (id int not null primary key, " +
-                "id_ref0 int, foreign key (id_ref0) references prim_key(id)) engine=innodb");
-        stmt.execute("create table fore_key1 (id int not null primary key, " +
-                "id_ref1 int, foreign key (id_ref1) references prim_key(id) on update cascade) engine=innodb");
+        createTestTable("fore_key0", "id int not null primary key, id_ref0 int, foreign key (id_ref0) references prim_key(id)", "engine=innodb");
+        createTestTable("fore_key1", "id int not null primary key, id_ref1 int, foreign key (id_ref1) references prim_key(id) on update cascade", "engine=innodb");
+        createTestTable("prim_key", "id int not null primary key, val varchar(20)", "engine=innodb");
 
         DatabaseMetaData dbmd = connection.getMetaData();
         ResultSet rs = dbmd.getImportedKeys(connection.getCatalog(), null, "fore_key0");
@@ -261,18 +216,10 @@ public class DatabaseMetadataTest extends BaseTest {
 
     @Test
     public void testGetTables() throws SQLException {
-        Statement stmt = connection.createStatement();
-        stmt.execute("drop table if exists fore_key0");
-        stmt.execute("drop table if exists fore_key1");
-        stmt.execute("drop table if exists prim_key");
 
-
-        stmt.execute("create table prim_key (id int not null primary key, " +
-                "val varchar(20)) engine=innodb");
-        stmt.execute("create table fore_key0 (id int not null primary key, " +
-                "id_ref0 int, foreign key (id_ref0) references prim_key(id)) engine=innodb");
-        stmt.execute("create table fore_key1 (id int not null primary key, " +
-                "id_ref1 int, foreign key (id_ref1) references prim_key(id) on update cascade) engine=innodb");
+        createTestTable("prim_key", "id int not null primary key, val varchar(20)", "engine=innodb");
+        createTestTable("fore_key0", "id int not null primary key, id_ref0 int, foreign key (id_ref0) references prim_key(id)", "engine=innodb");
+        createTestTable("fore_key1", "id int not null primary key, id_ref1 int, foreign key (id_ref1) references prim_key(id) on update cascade", "engine=innodb");
 
         DatabaseMetaData dbmd = connection.getMetaData();
         ResultSet rs = dbmd.getTables(null, null, "prim_key", null);
@@ -354,12 +301,10 @@ public class DatabaseMetadataTest extends BaseTest {
 
     @Test
     public void identifierCaseSensitivity() throws Exception {
-        connection.createStatement().execute("drop table if exists aB");
-        connection.createStatement().execute("drop table if exists AB");
         if (connection.getMetaData().supportsMixedCaseIdentifiers()) {
             /* Case-sensitive identifier handling, we can create both t1 and T1 */
-            connection.createStatement().execute("create table aB(i int)");
-            connection.createStatement().execute("create table AB(i int)");
+            createTestTable("aB", "i int");
+            createTestTable("AB", "i int");
             /* Check there is an entry for both T1 and t1 in getTables */
             ResultSet rs = connection.getMetaData().getTables(null, null, "aB", null);
             assertTrue(rs.next());
@@ -371,9 +316,9 @@ public class DatabaseMetadataTest extends BaseTest {
 
         if (connection.getMetaData().storesMixedCaseIdentifiers()) {
             /* Case-insensitive, case-preserving */
-            connection.createStatement().execute("create table aB(i int)");
+            createTestTable("aB", "i int");
             try {
-                connection.createStatement().execute("create table AB(i int)");
+                createTestTable("AB", "i int");
                 fail("should not get there, since names are case-insensitive");
             } catch (SQLException e) {
             }
@@ -395,7 +340,7 @@ public class DatabaseMetadataTest extends BaseTest {
         if (connection.getMetaData().storesLowerCaseIdentifiers()) {
             /* case-insensitive, identifiers converted to lowercase */
               /* Case-insensitive, case-preserving */
-            connection.createStatement().execute("create table aB(i int)");
+            createTestTable("aB", "i int");
             try {
                 connection.createStatement().execute("create table AB(i int)");
                 fail("should not get there, since names are case-insensitive");
@@ -620,9 +565,8 @@ public class DatabaseMetadataTest extends BaseTest {
 
     @Test
     public void getColumnsTest() throws SQLException {
-        connection.createStatement().execute(
-                "CREATE TABLE  IF NOT EXISTS `manycols` (\n" +
-                        "  `tiny` tinyint(4) DEFAULT NULL,\n" +
+        createTestTable("`manycols`",
+                "  `tiny` tinyint(4) DEFAULT NULL,\n" +
                         "  `tiny_uns` tinyint(3) unsigned DEFAULT NULL,\n" +
                         "  `small` smallint(6) DEFAULT NULL,\n" +
                         "  `small_uns` smallint(5) unsigned DEFAULT NULL,\n" +
@@ -653,8 +597,7 @@ public class DatabaseMetadataTest extends BaseTest {
                         "  `longblob_col` longblob,\n" +
                         "  `text_col` text,\n" +
                         "  `mediumtext_col` mediumtext,\n" +
-                        "  `longtext_col` longtext\n" +
-                        ")"
+                        "  `longtext_col` longtext"
         );
         DatabaseMetaData dmd = connection.getMetaData();
         ResultSet rs = dmd.getColumns(connection.getCatalog(), null, "manycols", null);
@@ -703,7 +646,7 @@ public class DatabaseMetadataTest extends BaseTest {
     public void yearIsShortType() throws Exception {
         setConnection("&yearIsDateType=false");
         try {
-            connection.createStatement().execute("CREATE TABLE  IF NOT EXISTS ytab (y year)");
+            createTestTable("ytab", "y year");
             connection.createStatement().execute("insert into ytab values(72)");
             ResultSet rs = connection.getMetaData().getColumns(connection.getCatalog(), null, "ytab", null);
             assertTrue(rs.next());
@@ -720,7 +663,7 @@ public class DatabaseMetadataTest extends BaseTest {
     /* CONJ-15 */
     @Test
     public void maxCharLengthUTF8() throws Exception {
-        connection.createStatement().execute("CREATE TABLE  IF NOT EXISTS maxcharlength (maxcharlength char(1)) character set utf8");
+        createTestTable("maxcharlength", "maxcharlength char(1)", "character set utf8");
         DatabaseMetaData dmd = connection.getMetaData();
         ResultSet rs = dmd.getColumns(connection.getCatalog(), null, "maxcharlength", null);
         assertTrue(rs.next());
@@ -731,7 +674,7 @@ public class DatabaseMetadataTest extends BaseTest {
     public void conj72() throws Exception {
         setConnection("&tinyInt1isBit=true");
         try {
-            connection.createStatement().execute("CREATE TABLE  IF NOT EXISTS conj72 (t tinyint(1))");
+            createTestTable("conj72", "t tinyint(1)");
             connection.createStatement().execute("insert into conj72 values(1)");
             ResultSet rs = connection.getMetaData().getColumns(connection.getCatalog(), null, "conj72", null);
             assertTrue(rs.next());

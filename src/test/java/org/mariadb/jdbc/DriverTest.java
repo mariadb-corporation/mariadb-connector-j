@@ -1,5 +1,6 @@
 package org.mariadb.jdbc;
 
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Test;
@@ -40,8 +41,7 @@ public class DriverTest extends BaseTest {
     }
 
     private void createTablet1(Statement stmt) throws SQLException {
-        stmt.execute("drop table if exists t1");
-        stmt.execute("create table t1 (id int not null primary key auto_increment, test varchar(20))");
+        createTestTable("t1","id int not null primary key auto_increment, test varchar(20)");
     }
 
     @Test(expected = SQLException.class)
@@ -75,16 +75,8 @@ public class DriverTest extends BaseTest {
     /* Accessing result set using  table.column */
     public void tableDotColumnInResultSet() throws SQLException {
         Statement stmt = connection.createStatement();
-        try {
-            stmt.execute("drop table tt1");
-        } catch (Exception e) {
-        }
-        try {
-            stmt.execute("drop table tt2");
-        } catch (Exception e) {
-        }
-        stmt.execute("create table tt1 (id int , name varchar(20))");
-        stmt.execute("create table tt2 (id int , name varchar(20))");
+        createTestTable("tt1","id int , name varchar(20)");
+        createTestTable("tt2","id int , name varchar(20)");
         stmt.execute("insert into tt1 values(1, 'one')");
         stmt.execute("insert into tt2 values(1, 'two')");
         ResultSet rs = stmt.executeQuery("select tt1.*, tt2.* from tt1, tt2 where tt1.id = tt2.id");
@@ -105,6 +97,7 @@ public class DriverTest extends BaseTest {
     public void preparedTest() throws SQLException {
         Statement stmt = connection.createStatement();
         createTablet1(stmt);
+
         stmt.execute("insert into t1 (test) values ('hej1')");
         stmt.close();
 
@@ -165,8 +158,7 @@ public class DriverTest extends BaseTest {
     @Test
     public void ralfTest() throws SQLException {
         Statement stmt = connection.createStatement();
-        stmt.execute("DROP TABLE IF EXISTS t2");
-        stmt.execute("CREATE TABLE t2 (id int not null primary key auto_increment, test varchar(10))");
+        createTestTable("t2", "id int not null primary key auto_increment, test varchar(10)");
         for (int i = 0; i < 10; i++) stmt.execute("INSERT INTO t2 (test) VALUES ('aßa" + i + "')");
         PreparedStatement ps = connection.prepareStatement("SELECT * FROM t2 where test like'%ß%' limit ?");
         ps.setInt(1, 5);
@@ -179,10 +171,8 @@ public class DriverTest extends BaseTest {
 
     @Test
     public void autoIncTest() throws SQLException {
-        String query = "CREATE TABLE t2 (id int not null primary key auto_increment, test varchar(10))";
         Statement stmt = connection.createStatement();
-        stmt.execute("DROP TABLE IF EXISTS t2");
-        stmt.execute(query);
+        createTestTable("t2", "id int not null primary key auto_increment, test varchar(10)");
         stmt.execute("INSERT INTO t2 (test) VALUES ('aa')");
         ResultSet rs = stmt.getGeneratedKeys();
         assertTrue(rs.next());
@@ -222,8 +212,7 @@ public class DriverTest extends BaseTest {
     @Test
     public void transactionTest() throws SQLException {
         Statement stmt = connection.createStatement();
-        stmt.execute("DROP TABLE IF EXISTS t3");
-        stmt.execute("CREATE TABLE t3 (id int not null primary key auto_increment, test varchar(20)) engine=innodb");
+        createTestTable("t3", "id int not null primary key auto_increment, test varchar(20)", "engine=innodb");
         connection.setAutoCommit(false);
         stmt.executeUpdate("INSERT INTO t3 (test) VALUES ('heja')");
         stmt.executeUpdate("INSERT INTO t3 (test) VALUES ('japp')");
@@ -246,8 +235,7 @@ public class DriverTest extends BaseTest {
     @Test
     public void savepointTest() throws SQLException {
         Statement stmt = connection.createStatement();
-        stmt.executeUpdate("drop table if exists t4");
-        stmt.executeUpdate("create table t4 (id int not null primary key auto_increment, test varchar(20)) engine=innodb");
+        createTestTable("t4","id int not null primary key auto_increment, test varchar(20)","engine=innodb");
         connection.setAutoCommit(false);
         stmt.executeUpdate("INSERT INTO t4 (test) values('hej1')");
         stmt.executeUpdate("INSERT INTO t4 (test) values('hej2')");
@@ -348,8 +336,7 @@ public class DriverTest extends BaseTest {
 
     @Test
     public void batchTest() throws SQLException {
-        connection.createStatement().execute("drop table if exists test_batch");
-        connection.createStatement().execute("create table test_batch (id int not null primary key auto_increment, test varchar(10))");
+        createTestTable("test_batch","id int not null primary key auto_increment, test varchar(10)");
         PreparedStatement ps = connection.prepareStatement("insert into test_batch values (null, ?)");
         ps.setString(1, "aaa");
         ps.addBatch();
@@ -387,8 +374,7 @@ public class DriverTest extends BaseTest {
 
     @Test
     public void batchTestStmt() throws SQLException {
-        connection.createStatement().execute("drop table if exists test_batch2");
-        connection.createStatement().execute("create table test_batch2 (id int not null primary key auto_increment, test varchar(10))");
+        createTestTable("test_batch2","id int not null primary key auto_increment, test varchar(10)");
         Statement stmt = connection.createStatement();
         stmt.addBatch("insert into test_batch2 values (null, 'hej1')");
         stmt.addBatch("insert into test_batch2 values (null, 'hej2')");
@@ -407,8 +393,7 @@ public class DriverTest extends BaseTest {
 
     @Test
     public void floatingNumbersTest() throws SQLException {
-        connection.createStatement().execute("drop table if exists test_float");
-        connection.createStatement().execute("create table test_float (id int not null primary key auto_increment, a float )");
+        createTestTable("test_float","id int not null primary key auto_increment, a float");
 
         PreparedStatement ps = connection.prepareStatement("insert into test_float (a) values (?)");
         ps.setDouble(1, 3.99);
@@ -450,8 +435,7 @@ public class DriverTest extends BaseTest {
     @Test
     public void bigAutoIncTest() throws SQLException {
         Statement stmt = connection.createStatement();
-        stmt.execute("drop table if exists test_big_autoinc2");
-        stmt.execute("create table test_big_autoinc2 (id int not null primary key auto_increment, test varchar(10))");
+        createTestTable("test_big_autoinc2","id int not null primary key auto_increment, test varchar(10)");
         stmt.execute("alter table test_big_autoinc2 auto_increment = 1000");
         stmt.execute("insert into test_big_autoinc2 values (null, 'hej')");
         ResultSet rsGen = stmt.getGeneratedKeys();
@@ -472,8 +456,7 @@ public class DriverTest extends BaseTest {
     @Test
     public void bigUpdateCountTest() throws SQLException {
         Statement stmt = connection.createStatement();
-        stmt.execute("drop table if exists test_big_update");
-        stmt.execute("create table test_big_update (id int primary key not null, updateme int)");
+        createTestTable("test_big_update","id int primary key not null, updateme int");
         for (int i = 0; i < 4000; i++) {
             stmt.execute("insert into test_big_update values (" + i + "," + i + ")");
         }
@@ -488,8 +471,7 @@ public class DriverTest extends BaseTest {
     @SuppressWarnings("deprecation")
     @Test
     public void testCharacterStreams() throws SQLException, IOException {
-        connection.createStatement().execute("drop table if exists streamtest");
-        connection.createStatement().execute("create table streamtest (id int not null primary key, strm text)");
+        createTestTable("streamtest","id int not null primary key, strm text");
         PreparedStatement stmt = connection.prepareStatement("insert into streamtest (id, strm) values (?,?)");
         stmt.setInt(1, 2);
         String toInsert = "abcdefgh\njklmn\"";
@@ -530,8 +512,7 @@ public class DriverTest extends BaseTest {
 
     @Test
     public void testCharacterStreamWithLength() throws SQLException, IOException {
-        connection.createStatement().execute("drop table if exists streamtest2");
-        connection.createStatement().execute("create table streamtest2 (id int primary key not null, strm text)");
+        createTestTable("streamtest2","id int primary key not null, strm text");
         PreparedStatement stmt = connection.prepareStatement("insert into streamtest2 (id, strm) values (?,?)");
         stmt.setInt(1, 2);
         String toInsert = "abcdefgh\njklmn\"";
@@ -552,8 +533,7 @@ public class DriverTest extends BaseTest {
 
     @Test
     public void testEmptyResultSet() throws SQLException {
-        connection.createStatement().execute("drop table if exists emptytest");
-        connection.createStatement().execute("create table emptytest (id int)");
+        createTestTable("emptytest","id int");
         Statement stmt = connection.createStatement();
         assertEquals(true, stmt.execute("SELECT * FROM emptytest"));
         assertEquals(false, stmt.getResultSet().next());
@@ -561,13 +541,12 @@ public class DriverTest extends BaseTest {
 
     @Test
     public void testLongColName() throws SQLException {
-        connection.createStatement().execute("drop table if exists longcol");
         DatabaseMetaData dbmd = connection.getMetaData();
         String str = "";
         for (int i = 0; i < dbmd.getMaxColumnNameLength(); i++) {
             str += "x";
         }
-        connection.createStatement().execute("create table longcol (" + str + " int not null primary key)");
+        createTestTable("longcol",str + " int not null primary key");
         connection.createStatement().execute("insert into longcol values (1)");
         ResultSet rs = connection.createStatement().executeQuery("select * from longcol");
         assertEquals(true, rs.next());
@@ -584,9 +563,7 @@ public class DriverTest extends BaseTest {
 
     @Test
     public void setobjectTest() throws SQLException, IOException, ClassNotFoundException {
-        connection.createStatement().execute("drop table if exists objecttest");
-        connection.createStatement().execute(
-                "create table objecttest (int_test int primary key not null, string_test varchar(30), timestamp_test timestamp, serial_test blob)");
+        createTestTable("objecttest","int_test int primary key not null, string_test varchar(30), timestamp_test timestamp, serial_test blob");
         PreparedStatement ps = connection.prepareStatement("insert into objecttest values (?,?,?,?)");
         ps.setObject(1, 5);
         ps.setObject(2, "aaa");
@@ -625,9 +602,7 @@ public class DriverTest extends BaseTest {
 
     @Test
     public void binTest() throws SQLException, IOException {
-        connection.createStatement().execute("drop table if exists bintest");
-        connection.createStatement().execute(
-                "create table bintest (id int not null primary key auto_increment, bin1 varbinary(300), bin2 varbinary(300))");
+        createTestTable("bintest","id int not null primary key auto_increment, bin1 varbinary(300), bin2 varbinary(300)");
         byte[] allBytes = new byte[256];
         for (int i = 0; i < 256; i++) {
             allBytes[i] = (byte) (i & 0xff);
@@ -663,12 +638,7 @@ public class DriverTest extends BaseTest {
     */
     @Test
     public void generatedKeys() throws Exception {
-        connection.createStatement().execute("drop table if exists genkeys");
-        connection.createStatement().execute(
-                "CREATE TABLE genkeys ("
-                        + "priKey INT NOT NULL AUTO_INCREMENT, "
-                        + "dataField VARCHAR(64), PRIMARY KEY (priKey))");
-
+        createTestTable("genkeys","priKey INT NOT NULL AUTO_INCREMENT, dataField VARCHAR(64), PRIMARY KEY (priKey)");
         Statement st = connection.createStatement();
         st.executeUpdate("insert into genkeys(dataField) values('a')", Statement.RETURN_GENERATED_KEYS);
         ResultSet rs = st.getGeneratedKeys();
@@ -699,14 +669,12 @@ public class DriverTest extends BaseTest {
 
     @Test
     public void binTest2() throws SQLException, IOException {
-        connection.createStatement().execute("drop table if exists bintest2");
+
 
         if (connection.getMetaData().getDatabaseProductName().toLowerCase().equals("mysql")) {
-            connection.createStatement().execute(
-                    "create table bintest2 (bin1 longblob) engine=innodb");
+            createTestTable("bintest2","bin1 longblob","engine=innodb");
         } else {
-            connection.createStatement().execute(
-                    "create table bintest2 (id int not null primary key auto_increment, bin1 blob)");
+            createTestTable("bintest2","id int not null primary key auto_increment, bin1 blob");
         }
 
         byte[] buf = new byte[1000000];
@@ -738,9 +706,7 @@ public class DriverTest extends BaseTest {
 
     @Test(expected = SQLIntegrityConstraintViolationException.class)
     public void testException1() throws SQLException {
-        connection.createStatement().execute("drop table if exists extest");
-        connection.createStatement().execute(
-                "create table extest (id int not null primary key)");
+        createTestTable("extest","id int not null primary key");
         connection.createStatement().execute("insert into extest values (1)");
         connection.createStatement().execute("insert into extest values (1)");
     }
@@ -759,9 +725,7 @@ public class DriverTest extends BaseTest {
 
     @Test
     public void testBatchLoop() throws SQLException {
-        connection.createStatement().execute("drop table if exists rewritetest");
-        connection.createStatement().execute(
-                "create table rewritetest (id int not null primary key, a varchar(10), b int) engine=innodb");
+        createTestTable("rewritetest","id int not null primary key, a varchar(10), b int","engine=innodb");
         PreparedStatement ps = connection.prepareStatement("insert into rewritetest values (?,?,?)");
         for (int i = 0; i < 10; i++) {
             ps.setInt(1, i);
@@ -780,9 +744,7 @@ public class DriverTest extends BaseTest {
 
     @Test
     public void testBatchLoopWithDupKey() throws SQLException {
-        connection.createStatement().execute("drop table if exists rewritetest2");
-        connection.createStatement().execute(
-                "create table rewritetest2 (id int not null primary key, a varchar(10), b int) engine=innodb");
+        createTestTable("rewritetest2","id int not null primary key, a varchar(10), b int","engine=innodb");
 
         PreparedStatement ps = connection.prepareStatement("insert into rewritetest2 values (?,?,?) on duplicate key update a=values(a)");
         for (int i = 0; i < 2; i++) {
@@ -803,10 +765,7 @@ public class DriverTest extends BaseTest {
 
     @Test
     public void testPreparedStatementsWithComments() throws SQLException {
-        connection.createStatement().execute("drop table if exists commentPreparedStatements");
-        connection.createStatement().execute(
-                "create table commentPreparedStatements (id int not null primary key auto_increment, a varchar(10))");
-
+        createTestTable("commentPreparedStatements","id int not null primary key auto_increment, a varchar(10)");
         String query = "INSERT INTO commentPreparedStatements (a) VALUES (?) # ?";
         PreparedStatement pstmt = connection.prepareStatement(query);
         pstmt.setString(1, "yeah");
@@ -815,10 +774,7 @@ public class DriverTest extends BaseTest {
 
     @Test
     public void testPreparedStatementsWithQuotes() throws SQLException {
-        connection.createStatement().execute("drop table if exists quotesPreparedStatements");
-        connection.createStatement().execute(
-                "create table quotesPreparedStatements (id int not null primary key auto_increment, a varchar(10) , b varchar(10))");
-
+        createTestTable("quotesPreparedStatements","id int not null primary key auto_increment, a varchar(10) , b varchar(10)");
         String query = "INSERT INTO quotesPreparedStatements (a,b) VALUES ('hellooo?', ?) # ?";
         PreparedStatement pstmt = connection.prepareStatement(query);
         pstmt.setString(1, "ff");
@@ -829,9 +785,7 @@ public class DriverTest extends BaseTest {
     public void bigDecimalTest() throws SQLException {
         requireMinimumVersion(5, 0);
         BigDecimal bd = BigDecimal.TEN;
-        connection.createStatement().execute("drop table if exists bigdectest");
-        connection.createStatement().execute(
-                "create table bigdectest (id int not null primary key auto_increment, bd decimal) engine=innodb");
+        createTestTable("bigdectest","id int not null primary key auto_increment, bd decimal","engine=innodb");
         PreparedStatement ps = connection.prepareStatement("insert into bigdectest (bd) values (?)");
         ps.setBigDecimal(1, bd);
         ps.execute();
@@ -851,9 +805,7 @@ public class DriverTest extends BaseTest {
 
     @Test
     public void byteTest() throws SQLException {
-        connection.createStatement().execute("drop table if exists bytetest");
-        connection.createStatement().execute(
-                "create table bytetest (id int not null primary key auto_increment, a int) engine=innodb");
+        createTestTable("bytetest","id int not null primary key auto_increment, a int","engine=innodb");
         PreparedStatement ps = connection.prepareStatement("insert into bytetest (a) values (?)");
         ps.setByte(1, Byte.MAX_VALUE);
         ps.execute();
@@ -872,9 +824,7 @@ public class DriverTest extends BaseTest {
 
     @Test
     public void shortTest() throws SQLException {
-        connection.createStatement().execute("drop table if exists shorttest");
-        connection.createStatement().execute(
-                "create table shorttest (id int not null primary key auto_increment,a int) engine=innodb");
+        createTestTable("shorttest","id int not null primary key auto_increment,a int","engine=innodb");
         PreparedStatement ps = connection.prepareStatement("insert into shorttest (a) values (?)");
         ps.setShort(1, Short.MAX_VALUE);
         ps.execute();
@@ -892,9 +842,7 @@ public class DriverTest extends BaseTest {
 
     @Test
     public void doubleTest() throws SQLException {
-        connection.createStatement().execute("drop table if exists doubletest");
-        connection.createStatement().execute(
-                "create table doubletest (id int not null primary key auto_increment,a double) engine=innodb");
+        createTestTable("doubletest","id int not null primary key auto_increment,a double","engine=innodb");
         PreparedStatement ps = connection.prepareStatement("insert into doubletest (a) values (?)");
         double d = 1.5;
         ps.setDouble(1, d);
@@ -915,9 +863,7 @@ public class DriverTest extends BaseTest {
 
     @Test
     public void testResultSetPositions() throws SQLException {
-        connection.createStatement().execute("drop table if exists ressetpos");
-        connection.createStatement().execute(
-                "create table ressetpos (i int not null primary key) engine=innodb");
+        createTestTable("ressetpos","i int not null primary key","engine=innodb");
         connection.createStatement().execute("insert into ressetpos values (1),(2),(3),(4)");
 
         ResultSet rs = connection.createStatement().executeQuery("select * from ressetpos");
@@ -1001,20 +947,14 @@ public class DriverTest extends BaseTest {
 
     @Test
     public void setNull() throws SQLException {
-        Statement stmt = connection.createStatement();
-        stmt.executeUpdate("drop table if exists blabla");
-        stmt.executeUpdate("CREATE TABLE blabla (valsue varchar(20))");
-
+        createTestTable("blabla","valsue varchar(20)");
         PreparedStatement ps = connection.prepareStatement("insert blabla VALUE (?)");
         ps.setString(1, null);
     }
 
     @Test
     public void testBug501452() throws SQLException {
-        Statement stmt = connection.createStatement();
-        stmt.executeUpdate("drop table if exists bug501452");
-        stmt.executeUpdate("CREATE TABLE bug501452 (id int not null primary key, value varchar(20))");
-        stmt.close();
+        createTestTable("bug501452", "id int not null primary key, value varchar(20)");
         PreparedStatement ps = connection.prepareStatement("insert into bug501452 (id,value) values (?,?)");
         ps.setObject(1, 1);
         ps.setObject(2, "value for 1");
@@ -1092,10 +1032,7 @@ public class DriverTest extends BaseTest {
 
     @Test
     public void testSetObject() throws SQLException {
-        Statement stmt = connection.createStatement();
-        stmt.executeUpdate("drop table if exists test_setobjectconv");
-        stmt.executeUpdate("CREATE TABLE test_setobjectconv (id int not null primary key auto_increment, v1 varchar(40), v2 varchar(40))");
-        stmt.close();
+        createTestTable("test_setobjectconv", "id int not null primary key auto_increment, v1 varchar(40), v2 varchar(40)");
         PreparedStatement ps = connection.prepareStatement("insert into test_setobjectconv values (null, ?, ?)");
         ps.setObject(1, "2009-01-01 00:00:00", Types.TIMESTAMP);
         ps.setObject(2, "33", Types.DOUBLE);
@@ -1104,8 +1041,7 @@ public class DriverTest extends BaseTest {
 
     @Test
     public void testBit() throws SQLException {
-        connection.createStatement().execute("drop table if exists bittest");
-        connection.createStatement().execute("create table bittest(id int not null primary key auto_increment, b int)");
+        createTestTable("bittest","id int not null primary key auto_increment, b int");
         PreparedStatement stmt = connection.prepareStatement("insert into bittest values(null, ?)");
         stmt.setBoolean(1, true);
         stmt.execute();
@@ -1172,9 +1108,7 @@ public class DriverTest extends BaseTest {
     @Test
     public void StreamingResult() throws SQLException {
         Statement st = connection.createStatement();
-
-        st.execute("drop table if exists streamingtest");
-        st.execute("create table streamingtest(val varchar(20))");
+        createTestTable("streamingtest","val varchar(20)");
 
         for (int i = 0; i < 100; i++) {
             st.execute("insert into streamingtest values('aaaaaaaaaaaaaaaaaa')");
@@ -1204,8 +1138,7 @@ public class DriverTest extends BaseTest {
         st.execute("set @@global.sql_mode = '" + originalSqlMode + ",NO_BACKSLASH_ESCAPES'");
 
         try {
-            st.execute("drop table if exists testBlob2");
-            st.execute("create table testBlob2(a blob)");
+            createTestTable("testBlob2","a blob");
             Connection newConnection = openNewConnection();
             try {
                 PreparedStatement preparedStatement =
@@ -1241,8 +1174,7 @@ public class DriverTest extends BaseTest {
         st.execute("set @@global.sql_mode = '" + originalSqlMode + ",NO_BACKSLASH_ESCAPES'");
 
         try {
-            st.execute("drop table if exists testString2");
-            st.execute("create table testString2(a varchar(10))");
+            createTestTable("testString2", "a varchar(10)");
             Connection newConnection = openNewConnection();
             try {
                 PreparedStatement preparedStatement =
@@ -1284,8 +1216,7 @@ public class DriverTest extends BaseTest {
         st.execute("set @@global.sql_mode = '" + originalSqlMode + ",ANSI_QUOTES'");
 
         try {
-            st.execute("drop table if exists testBlob2");
-            st.execute("create table testBlob2(a blob)");
+            createTestTable("testBlob2","a blob");
 
             Connection newConnection = openNewConnection();
             try {
@@ -1310,8 +1241,7 @@ public class DriverTest extends BaseTest {
     @Test
     public void unsignedTest() throws Exception {
         Statement st = connection.createStatement();
-        st.execute("drop table if exists unsignedtest");
-        st.execute("create table unsignedtest(a int unsigned)");
+        createTestTable("unsignedtest","a int unsigned");
         st.execute("insert into unsignedtest values(4294967295)");
         ResultSet rs = st.executeQuery("select * from unsignedtest");
         rs.next();
@@ -1467,8 +1397,7 @@ public class DriverTest extends BaseTest {
     public void conj25() throws Exception {
         Statement stmt;
         stmt = connection.createStatement();
-        stmt.execute("DROP TABLE IF EXISTS t1");
-        stmt.execute("CREATE TABLE t1 (a VARCHAR(1024))");
+        createTestTable("t1", "a VARCHAR(1024)");
         String st = "INSERT INTO t1 VALUES (REPEAT('a',1024))";
         for (int i = 1; i <= 100; i++) {
             st = st + ",(REPEAT('a',1024))";
@@ -1508,9 +1437,7 @@ public class DriverTest extends BaseTest {
     @Test
     public void batchUpdateException() throws Exception {
         Statement st = connection.createStatement();
-        st.execute("DROP TABLE IF EXISTS t1");
-        st.execute("CREATE TABLE t1(i int,PRIMARY KEY (i))");
-
+        createTestTable("t1", "i int,PRIMARY KEY (i)");
         st.addBatch("insert into t1 values(1)");
         st.addBatch("insert into t1 values(2)");
         st.addBatch("insert into t1 values(1)"); // will fail, duplicate primary key

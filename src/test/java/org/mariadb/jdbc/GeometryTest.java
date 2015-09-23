@@ -1,5 +1,6 @@
 package org.mariadb.jdbc;
 
+import org.junit.After;
 import org.junit.Test;
 
 import javax.xml.bind.DatatypeConverter;
@@ -13,11 +14,9 @@ import static org.junit.Assert.assertTrue;
 
 public class GeometryTest extends BaseTest {
 
-
     private void geometryTest(String geometryString, String geometryBinary) throws SQLException {
         Statement stmt = connection.createStatement();
-        stmt.execute("DROP TABLE IF EXISTS geom_test");
-        stmt.execute("CREATE TABLE geom_test (g geometry)");
+        createTestTable("geom_test", "g geometry");
         ResultSet rs;
         if (geometryBinary == null) {
             rs = stmt.executeQuery("SELECT AsWKB(GeomFromText('" + geometryString + "'))");

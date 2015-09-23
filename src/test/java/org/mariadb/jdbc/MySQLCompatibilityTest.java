@@ -17,8 +17,7 @@ public class MySQLCompatibilityTest extends BaseTest {
     @Test
     public void datatypesTest() throws SQLException {
         Statement stmt = connection.createStatement();
-        stmt.execute("DROP TABLE IF EXISTS datatypesTest");
-        stmt.execute("CREATE TABLE datatypesTest (type_longvarchar TEXT NULL)");
+        createTestTable("datatypesTest","type_longvarchar TEXT NULL");
         PreparedStatement preparedStmt = connection.prepareStatement("INSERT INTO `datatypesTest` (`type_longvarchar`) VALUES ( ? )");
         preparedStmt.setObject(1, "longvarcharTest", Types.LONGVARCHAR);
         preparedStmt.executeUpdate();
@@ -38,8 +37,7 @@ public class MySQLCompatibilityTest extends BaseTest {
     @Test
     public void testBitConj102() throws SQLException {
         Statement stmt = connection.createStatement();
-        stmt.execute("drop table  if exists mysqlcompatibilitytest");
-        stmt.execute("create table mysqlcompatibilitytest (id int not null primary key auto_increment, test bit(1))");
+        createTestTable("mysqlcompatibilitytest","id int not null primary key auto_increment, test bit(1)");
         stmt.execute("insert into mysqlcompatibilitytest values(null, b'0')");
         stmt.execute("insert into mysqlcompatibilitytest values(null, b'1')");
         ResultSet rs = stmt.executeQuery("select * from mysqlcompatibilitytest");

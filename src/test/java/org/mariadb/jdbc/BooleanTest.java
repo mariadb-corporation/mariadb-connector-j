@@ -15,8 +15,7 @@ public class BooleanTest extends BaseTest {
     @Test
     public void testBoolean() throws SQLException {
         Statement stmt = connection.createStatement();
-        stmt.execute("drop table  if exists booleantest");
-        stmt.execute("create table booleantest (id int not null primary key auto_increment, test boolean)");
+        createTestTable("booleantest","id int not null primary key auto_increment, test boolean");
         stmt.execute("insert into booleantest values(null, true)");
         stmt.execute("insert into booleantest values(null, false)");
         ResultSet rs = stmt.executeQuery("select * from booleantest");

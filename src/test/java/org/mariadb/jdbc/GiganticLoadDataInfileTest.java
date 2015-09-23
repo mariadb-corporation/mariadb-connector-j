@@ -24,14 +24,7 @@ public class GiganticLoadDataInfileTest extends BaseTest {
         if (statement == null) {
             statement = connection.createStatement();
         }
-        statement.execute("drop table if exists gigantic_load_data_infile");
-        statement.execute("create table gigantic_load_data_infile (id int not null primary key auto_increment, name char(20)) ENGINE=myisam");
-    }
-
-    @After
-    public void cleanup() throws SQLException {
-        statement.execute("DROP TABLE IF EXISTS gigantic_load_data_infile");
-        super.after();
+        createTestTable("gigantic_load_data_infile", "id int not null primary key auto_increment, name char(20)", "ENGINE=myisam");
     }
 
     @Ignore

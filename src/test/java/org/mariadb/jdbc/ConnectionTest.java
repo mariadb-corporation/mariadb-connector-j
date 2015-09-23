@@ -29,6 +29,7 @@ public class ConnectionTest extends BaseTest {
         } catch (SQLException e) {
             Assert.assertTrue("28000".equals(e.getSQLState()));
             Assert.assertTrue(1045 == e.getErrorCode());
+            setConnection();
         }
     }
 
@@ -162,8 +163,7 @@ public class ConnectionTest extends BaseTest {
     @Test
     public void checkMaxAllowedPacket() throws Throwable, SQLException, UnsupportedEncodingException {
         Statement statement = connection.createStatement();
-        statement.execute("DROP TABLE IF EXISTS dummy");
-        statement.execute("CREATE TABLE dummy (a BLOB)");
+        createTestTable("dummy", "a BLOB");
         ResultSet rs = statement.executeQuery("show variables like 'max_allowed_packet'");
         rs.next();
         int maxAllowedPacket = rs.getInt(2);
@@ -248,6 +248,7 @@ public class ConnectionTest extends BaseTest {
         boolean isValid = connection.isValid(0);
         assertFalse(isValid);
         statement.close();
+        setConnection();
     }
 
 }

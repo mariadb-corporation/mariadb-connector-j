@@ -59,7 +59,7 @@ public class PreparedStatementTest extends BaseTest {
     @Test(expected = SQLException.class)
     public void testNoSuchTableBatchUpdateServer() throws SQLException, UnsupportedEncodingException {
         statement.execute("drop table if exists vendor_code_test");
-        PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO vendor_code_test VALUES(?)");
+        connection.prepareStatement("INSERT INTO vendor_code_test VALUES(?)");
     }
 
     /**
@@ -70,8 +70,7 @@ public class PreparedStatementTest extends BaseTest {
     @Test
     public void testBigInt() throws SQLException {
         Statement st = connection.createStatement();
-        st.execute("DROP TABLE IF EXISTS `testBigintTable`");
-        st.execute("CREATE TABLE `testBigintTable` (`id` bigint(20) unsigned NOT NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8;");
+        createTestTable("`testBigintTable`","`id` bigint(20) unsigned NOT NULL, PRIMARY KEY (`id`)","ENGINE=InnoDB DEFAULT CHARSET=utf8");
         st.execute("INSERT INTO `testBigintTable` (`id`) VALUES (0)");
         PreparedStatement stmt = connection.prepareStatement("UPDATE `testBigintTable` SET `id` = ?");
         BigInteger bigT = BigInteger.valueOf(System.currentTimeMillis());
@@ -82,20 +81,17 @@ public class PreparedStatementTest extends BaseTest {
         ResultSet rs = stmt.executeQuery();
         assertTrue(rs.next());
         assertEquals(0, rs.getBigDecimal(1).toBigInteger().compareTo(bigT));
-        st.execute("DROP TABLE IF EXISTS `testBigintTable`");
     }
 
     @Test
     public void testPreparedStatementsWithQuotes() throws SQLException {
-        connection.createStatement().execute("DROP TABLE IF EXISTS backTicksPreparedStatements");
-        connection.createStatement().execute(
-                "CREATE TABLE IF NOT EXISTS `backTicksPreparedStatements` ("
-                        + "`id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,"
+        createTestTable("`backTicksPreparedStatements`",
+                          "`id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,"
                         + "`SLIndex#orBV#` text,"
                         + "`isM&M'sTasty?` bit(1) DEFAULT NULL,"
                         + "`Seems:LikeParam?` bit(1) DEFAULT NULL,"
                         + "`Webinar10-TM/ProjComp` text"
-                        + ") ENGINE=InnoDB DEFAULT CHARSET=utf8");
+                        ,"ENGINE=InnoDB DEFAULT CHARSET=utf8");
 
         String query = "INSERT INTO backTicksPreparedStatements (`SLIndex#orBV#`,`Seems:LikeParam?`,`Webinar10-TM/ProjComp`,`isM&M'sTasty?`)"
                 + " VALUES (?,?,?,?)";
@@ -111,7 +107,6 @@ public class PreparedStatementTest extends BaseTest {
         assertEquals(false, rs.getBoolean(2));
         assertEquals("webinar10", rs.getString(3));
         assertEquals(true, rs.getBoolean(4));
-        connection.createStatement().execute("DROP TABLE IF EXISTS backTicksPreparedStatements");
     }
 
 }
