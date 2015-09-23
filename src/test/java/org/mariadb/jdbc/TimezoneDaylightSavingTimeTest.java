@@ -24,6 +24,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
     private SimpleDateFormat utcDateFormatISO8601;
     private SimpleDateFormat utcDateFormatSimple;
     private TimeZone parisTimeZone;
+    private TimeZone canadaTimeZone;
 
     @Before
     public void setUp() throws SQLException {
@@ -58,6 +59,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
         utcTimeZone = TimeZone.getTimeZone("UTC");
 
         parisTimeZone = TimeZone.getTimeZone("Europe/Paris");
+        canadaTimeZone = TimeZone.getTimeZone("Canada/Atlantic");
         TimeZone.setDefault(parisTimeZone);
 
 
@@ -286,8 +288,8 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
     @Test
     public void testDayLightnotUtC() throws SQLException {
-        TimeZone.setDefault(parisTimeZone);
-        setConnection("&serverTimezone=Canada/Atlantic");
+        TimeZone.setDefault(canadaTimeZone);
+        setConnection("&serverTimezone=Europe/Paris");
         Statement st = connection.createStatement();
         createTestTable("daylightCanada","id int, tt TIMESTAMP(6)");
 
@@ -298,6 +300,9 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
         int offsetBefore = parisTimeZone.getOffset(quarterBeforeChangingHour.getTimeInMillis());
         Assert.assertEquals(offsetBefore, 3600000);
 
+        int offsetBeforeCanada = canadaTimeZone.getOffset(quarterBeforeChangingHour.getTimeInMillis());
+        Assert.assertEquals(offsetBeforeCanada, -10800000);
+
         Calendar quarterAfterChangingHour = Calendar.getInstance(TimeZone.getTimeZone("Canada/Atlantic"));
         quarterAfterChangingHour.clear();
         quarterAfterChangingHour.set(2015, 2, 28, 22, 15, 0);
@@ -305,6 +310,8 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
         int offsetAfter = parisTimeZone.getOffset(quarterAfterChangingHour.getTimeInMillis());
         Assert.assertEquals(offsetAfter, 7200000);
 
+        int offsetAfterCanada = canadaTimeZone.getOffset(quarterAfterChangingHour.getTimeInMillis());
+        Assert.assertEquals(offsetAfterCanada, -10800000);
 
         PreparedStatement pst = connection.prepareStatement("INSERT INTO daylightCanada VALUES (?, ?)");
         pst.setInt(1, 1);
@@ -314,7 +321,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
         pst.setTimestamp(2, new Timestamp(quarterAfterChangingHour.getTimeInMillis()));
         pst.addBatch();
         pst.setInt(1, 3);
-        pst.setString(2, "2015-03-28 02:15:00");
+        pst.setString(2, "2015-03-29 02:15:00");
         pst.addBatch();
         try {
             pst.executeBatch();

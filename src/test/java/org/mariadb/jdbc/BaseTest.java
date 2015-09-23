@@ -108,15 +108,17 @@ public class BaseTest {
     public void after() throws SQLException {
         if (connection != null) {
             if (!connection.isClosed()) {
-                Statement stmt = connection.createStatement();
-                stmt.execute("SET foreign_key_checks = 0");
-                for (String tableName : tempTableList) {
-                    try {
-                        stmt.execute("DROP TABLE IF EXISTS " + tableName);
-                    } catch (SQLException e) {
+                if (!tempTableList.isEmpty()) {
+                    Statement stmt = connection.createStatement();
+                    stmt.execute("SET foreign_key_checks = 0");
+                    for (String tableName : tempTableList) {
+                        try {
+                            stmt.execute("DROP TABLE IF EXISTS " + tableName);
+                        } catch (SQLException e) {
+                        }
                     }
+                    stmt.execute("SET foreign_key_checks = 1");
                 }
-                stmt.execute("SET foreign_key_checks = 1");
             }
             try {
                 connection.close();

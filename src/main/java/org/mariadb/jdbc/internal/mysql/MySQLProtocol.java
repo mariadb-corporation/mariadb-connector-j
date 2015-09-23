@@ -977,6 +977,8 @@ public class MySQLProtocol implements Protocol {
                 InputStream is;
                 if (localInfileInputStream == null) {
                     if (!getJdbcUrl().getOptions().allowLocalInfile) {
+
+                        writer.writeEmptyPacket(rawPacket.getPacketSeq() + 1);
                         throw new QueryException(
                                 "Usage of LOCAL INFILE is disabled. To use it enable it via the connection property allowLocalInfile=true",
                                 -1,

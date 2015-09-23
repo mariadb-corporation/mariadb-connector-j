@@ -67,7 +67,7 @@ public class PacketOutputStream extends OutputStream {
         startPacket(seqNo, true);
     }
 
-    private void writeEmptyPacket(int seqNo) throws IOException {
+    public void writeEmptyPacket(int seqNo) throws IOException {
         byte[] buf = new byte[4];
         buf[0] = ((byte) 0);
         buf[1] = ((byte) 0);
@@ -78,14 +78,13 @@ public class PacketOutputStream extends OutputStream {
 
     /* Used by LOAD DATA INFILE. End of data is indicated by packet of length 0. */
     public void sendFile(InputStream is, int seq) throws IOException {
-
+        startPacket(seq++, false);
         byte[] buffer = new byte[8192];
         int len;
         while ((len = is.read(buffer)) > 0) {
-            startPacket(seq++, false);
             write(buffer, 0, len);
-            finishPacket();
         }
+        finishPacket();
         writeEmptyPacket(seq);
     }
 
