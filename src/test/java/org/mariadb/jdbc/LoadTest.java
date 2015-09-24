@@ -1,5 +1,6 @@
 package org.mariadb.jdbc;
 
+import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -8,30 +9,28 @@ import java.sql.*;
 
 @Ignore
 public class LoadTest extends BaseTest {
+    /*@BeforeClass()
+    public static void initClass() throws SQLException {
+        //createTable("loadsofdata","id int not null primary key auto_increment, data varchar(250)","engine=innodb");
+    }
 
     @Test
     public void tm() throws SQLException {
         Connection drizConnection = openNewConnection(connU);
-        setConnection();
 
         long sum = 0;
         int i;
         for (i = 0; i < 10; i++) {
             sum += this.loadTest(drizConnection);
-            log.trace(String.valueOf(i));
         }
-        log.trace(String.valueOf(sum / i));
         sum = 0;
         for (i = 0; i < 10; i++) {
-            sum += this.loadTest(connection);
-            log.trace(String.valueOf(i));
+            sum += this.loadTest(sharedConnection);
         }
-        log.trace(String.valueOf(sum / i));
     }
 
     public long loadTest(Connection connection) throws SQLException {
         Statement stmt = connection.createStatement();
-        createTestTable("loadsofdata","id int not null primary key auto_increment, data varchar(250)","engine=innodb");
         stmt.close();
         long startTime = System.currentTimeMillis();
         for (int i = 0; i < 100; i++) {
@@ -168,7 +167,7 @@ public class LoadTest extends BaseTest {
         }
         log.debug(String.valueOf((System.nanoTime() - startTime) / x));
     }
-
+*/
 
 }
 

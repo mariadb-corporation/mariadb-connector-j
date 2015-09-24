@@ -2,6 +2,7 @@ package org.mariadb.jdbc;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.sql.*;
@@ -10,6 +11,49 @@ import static org.junit.Assert.*;
 
 
 public class DatabaseMetadataTest extends BaseTest {
+
+    @BeforeClass()
+    public static void initClass() throws SQLException {
+        createTable("dbpk_test", "val varchar(20), id1 int not null, id2 int not null,primary key(id1, id2)", "engine=innodb");
+        createTable("datetime_test", "dt datetime");
+        createTable("`manycols`",
+                "  `tiny` tinyint(4) DEFAULT NULL,\n" +
+                        "  `tiny_uns` tinyint(3) unsigned DEFAULT NULL,\n" +
+                        "  `small` smallint(6) DEFAULT NULL,\n" +
+                        "  `small_uns` smallint(5) unsigned DEFAULT NULL,\n" +
+                        "  `medium` mediumint(9) DEFAULT NULL,\n" +
+                        "  `medium_uns` mediumint(8) unsigned DEFAULT NULL,\n" +
+                        "  `int_col` int(11) DEFAULT NULL,\n" +
+                        "  `int_col_uns` int(10) unsigned DEFAULT NULL,\n" +
+                        "  `big` bigint(20) DEFAULT NULL,\n" +
+                        "  `big_uns` bigint(20) unsigned DEFAULT NULL,\n" +
+                        "  `decimal_col` decimal(10,5) DEFAULT NULL,\n" +
+                        "  `fcol` float DEFAULT NULL,\n" +
+                        "  `fcol_uns` float unsigned DEFAULT NULL,\n" +
+                        "  `dcol` double DEFAULT NULL,\n" +
+                        "  `dcol_uns` double unsigned DEFAULT NULL,\n" +
+                        "  `date_col` date DEFAULT NULL,\n" +
+                        "  `time_col` time DEFAULT NULL,\n" +
+                        "  `timestamp_col` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE\n" +
+                        "CURRENT_TIMESTAMP,\n" +
+                        "  `year_col` year(4) DEFAULT NULL,\n" +
+                        "  `bit_col` bit(5) DEFAULT NULL,\n" +
+                        "  `char_col` char(5) DEFAULT NULL,\n" +
+                        "  `varchar_col` varchar(10) DEFAULT NULL,\n" +
+                        "  `binary_col` binary(10) DEFAULT NULL,\n" +
+                        "  `varbinary_col` varbinary(10) DEFAULT NULL,\n" +
+                        "  `tinyblob_col` tinyblob,\n" +
+                        "  `blob_col` blob,\n" +
+                        "  `mediumblob_col` mediumblob,\n" +
+                        "  `longblob_col` longblob,\n" +
+                        "  `text_col` text,\n" +
+                        "  `mediumtext_col` mediumtext,\n" +
+                        "  `longtext_col` longtext"
+        );
+        createTable("ytab", "y year");
+        createTable("maxcharlength", "maxcharlength char(1)", "character set utf8");
+        createTable("conj72", "t tinyint(1)");
+    }
 
     static void checkType(String name, int actualType, String colName, int expectedType) {
         if (name.equals(colName))
@@ -26,15 +70,14 @@ public class DatabaseMetadataTest extends BaseTest {
 
     @Test
     public void primaryKeysTest() throws SQLException {
-        createTestTable("pk_test", "val varchar(20), id1 int not null, id2 int not null,primary key(id1, id2)", "engine=innodb");
-        DatabaseMetaData dbmd = connection.getMetaData();
-        ResultSet rs = dbmd.getPrimaryKeys("test", null, "pk_test");
+        DatabaseMetaData dbmd = sharedConnection.getMetaData();
+        ResultSet rs = dbmd.getPrimaryKeys("test", null, "dbpk_test");
         int i = 0;
         while (rs.next()) {
             i++;
             assertEquals("test", rs.getString("table_cat"));
             assertEquals(null, rs.getString("table_schem"));
-            assertEquals("pk_test", rs.getString("table_name"));
+            assertEquals("dbpk_test", rs.getString("table_name"));
             assertEquals("id" + i, rs.getString("column_name"));
             assertEquals(i, rs.getShort("key_seq"));
         }
@@ -43,9 +86,13 @@ public class DatabaseMetadataTest extends BaseTest {
 
     @Test
     public void primaryKeyTest2() throws SQLException {
-        createTestTable("t2", "id2a integer, id2b integer, constraint pk primary key(id2a, id2b), constraint fk1 foreign key(id2a) references t1(id1),  constraint fk2 foreign key(id2b) references t1(id1)");
-        createTestTable("t1","id1 integer, constraint pk primary key(id1)");
-        DatabaseMetaData dbmd = connection.getMetaData();
+        Statement stmt = sharedConnection.createStatement();
+        stmt.execute("drop table if exists t2");
+        stmt.execute("drop table if exists t1");
+        stmt.execute("CREATE TABLE t1 ( id1 integer, constraint pk primary key(id1))");
+        stmt.execute("CREATE TABLE t2 (id2a integer, id2b integer, constraint pk primary key(id2a, id2b), constraint fk1 foreign key(id2a) references t1(id1),  constraint fk2 foreign key(id2b) references t1(id1))");
+
+        DatabaseMetaData dbmd = sharedConnection.getMetaData();
         ResultSet rs = dbmd.getPrimaryKeys("test", null, "t2");
         int i = 0;
         while (rs.next()) {
@@ -56,12 +103,13 @@ public class DatabaseMetadataTest extends BaseTest {
             assertEquals(i, rs.getShort("key_seq"));
         }
         assertEquals(2, i);
+        stmt.execute("drop table if exists t2");
+        stmt.execute("drop table if exists t1");
     }
 
     @Test
     public void datetimeTest() throws SQLException {
-        Statement stmt = connection.createStatement();
-        createTestTable("datetime_test", "dt datetime");
+        Statement stmt = sharedConnection.createStatement();
         ResultSet rs = stmt.executeQuery("select * from datetime_test");
         assertEquals(93, rs.getMetaData().getColumnType(1));
 
@@ -69,8 +117,8 @@ public class DatabaseMetadataTest extends BaseTest {
 
     @Test
     public void functionColumns() throws SQLException {
-        Statement stmt = connection.createStatement();
-        DatabaseMetaData md = connection.getMetaData();
+        Statement stmt = sharedConnection.createStatement();
+        DatabaseMetaData md = sharedConnection.getMetaData();
 
         if (md.getDatabaseMajorVersion() < 5)
             return;
@@ -79,11 +127,11 @@ public class DatabaseMetadataTest extends BaseTest {
 
         stmt.execute("DROP FUNCTION IF EXISTS hello");
         stmt.execute("CREATE FUNCTION hello (s CHAR(20), i int) RETURNS CHAR(50) DETERMINISTIC  RETURN CONCAT('Hello, ',s,'!')");
-        ResultSet rs = connection.getMetaData().getFunctionColumns(null, null, "hello", null);
+        ResultSet rs = sharedConnection.getMetaData().getFunctionColumns(null, null, "hello", null);
 
         rs.next();
       /* First row is for return value */
-        assertEquals(rs.getString("FUNCTION_CAT"), connection.getCatalog());
+        assertEquals(rs.getString("FUNCTION_CAT"), sharedConnection.getCatalog());
         assertEquals(rs.getString("FUNCTION_SCHEM"), null);
         assertEquals(rs.getString("COLUMN_NAME"), null); /* No name, since it is return value */
         assertEquals(rs.getInt("COLUMN_TYPE"), DatabaseMetaData.functionReturn);
@@ -101,38 +149,59 @@ public class DatabaseMetadataTest extends BaseTest {
         assertEquals(rs.getInt("COLUMN_TYPE"), DatabaseMetaData.functionColumnIn);
         assertEquals(rs.getInt("DATA_TYPE"), java.sql.Types.INTEGER);
         assertEquals(rs.getString("TYPE_NAME"), "int");
+        stmt.execute("DROP FUNCTION IF EXISTS hello");
     }
 
-    /**
-     * Same as getImportedKeys, with one foreign key in a table in another catalog
-     */
-    @Test
-    public void getImportedKeys() throws Exception {
-        Statement st = connection.createStatement();
-        st.execute("CREATE DATABASE IF NOT EXISTS t1");
-        createTestTable("product_order",
-                "    no INT NOT NULL AUTO_INCREMENT," +
-                        "    product_category INT NOT NULL," +
-                        "    product_id INT NOT NULL," +
-                        "    customer_id INT NOT NULL," +
-                        "    PRIMARY KEY(no)," +
-                        "    INDEX (product_category, product_id)," +
-                        "    INDEX (customer_id)," +
-                        "    FOREIGN KEY (product_category, product_id)" +
-                        "      REFERENCES t1.product(category, id)" +
-                        "      ON UPDATE CASCADE ON DELETE RESTRICT," +
-                        "    FOREIGN KEY (customer_id)" +
-                        "      REFERENCES `cus``tomer`(id)", "ENGINE=INNODB");
 
-        createTestTable("`cus``tomer`", "id INT NOT NULL, PRIMARY KEY (id)", "ENGINE=INNODB");
-        createTestTable("t1.product ", "category INT NOT NULL, id INT NOT NULL,price DECIMAL,PRIMARY KEY(category, id)", "ENGINE=INNODB");
+     /** Same as getImportedKeys, with one foreign key in a table in another catalog */
+     @Test
+     public void getImportedKeys() throws Exception{
+           Statement st  = sharedConnection.createStatement();
+
+           st.execute("DROP TABLE IF EXISTS product_order");
+           st.execute("DROP TABLE IF EXISTS t1.product ");
+           st.execute("DROP TABLE IF EXISTS `cus``tomer`");
+           st.execute("DROP DATABASE IF EXISTS test1");
+
+           st.execute("CREATE DATABASE IF NOT EXISTS t1");
+
+           st.execute("CREATE TABLE t1.product (\n" +
+                   "    category INT NOT NULL, id INT NOT NULL,\n" +
+                   "    price DECIMAL,\n" +
+                   "    PRIMARY KEY(category, id)\n" +
+                   ")   ENGINE=INNODB");
+
+           st.execute("CREATE TABLE `cus``tomer` (\n" +
+                   "    id INT NOT NULL,\n" +
+                   "    PRIMARY KEY (id)\n" +
+                   ")   ENGINE=INNODB");
+
+           st.execute("CREATE TABLE product_order (\n" +
+                           "    no INT NOT NULL AUTO_INCREMENT,\n" +
+                           "    product_category INT NOT NULL,\n" +
+                           "    product_id INT NOT NULL,\n" +
+                           "    customer_id INT NOT NULL,\n" +
+                           "\n" +
+                           "    PRIMARY KEY(no),\n" +
+                           "    INDEX (product_category, product_id),\n" +
+                           "    INDEX (customer_id),\n" +
+                           "\n" +
+                           "    FOREIGN KEY (product_category, product_id)\n" +
+                           "      REFERENCES t1.product(category, id)\n" +
+                           "      ON UPDATE CASCADE ON DELETE RESTRICT,\n" +
+                           "\n" +
+                           "    FOREIGN KEY (customer_id)\n" +
+                           "      REFERENCES `cus``tomer`(id)\n" +
+                           ")   ENGINE=INNODB;"
+           )   ;
+
 
            /*
             Test that I_S implementation is equivalent to parsing "show create table" .
              Get result sets using either method and compare (ignore minor differences INT vs SMALLINT
            */
-        ResultSet rs1 = ((MySQLDatabaseMetaData) connection.getMetaData()).getImportedKeysUsingShowCreateTable("test", null, "product_order");
-        ResultSet rs2 = ((MySQLDatabaseMetaData) connection.getMetaData()).getImportedKeysUsingInformationSchema("test", null, "product_order");
+        ResultSet rs1 = ((MySQLDatabaseMetaData) sharedConnection.getMetaData()).getImportedKeysUsingShowCreateTable("test", null, "product_order");
+        ResultSet rs2 = ((MySQLDatabaseMetaData) sharedConnection.getMetaData()).getImportedKeysUsingInformationSchema("test", null, "product_order");
         assertEquals(rs1.getMetaData().getColumnCount(), rs2.getMetaData().getColumnCount());
 
 
@@ -158,14 +227,29 @@ public class DatabaseMetadataTest extends BaseTest {
         for (int i = 1; i <= md1.getColumnCount(); i++) {
             assertEquals(md1.getColumnLabel(i), md2.getColumnLabel(i));
         }
+         st.execute("DROP TABLE IF EXISTS product_order");
+         st.execute("DROP TABLE IF EXISTS t1.product ");
+         st.execute("DROP TABLE IF EXISTS `cus``tomer`");
+         st.execute("DROP DATABASE IF EXISTS test1");
     }
 
     @Test
     public void exportedKeysTest() throws SQLException {
-        createTestTable("fore_key0", "id int not null primary key, id_ref0 int, foreign key (id_ref0) references prim_key(id)", "engine=innodb");
-        createTestTable("fore_key1", "id int not null primary key, id_ref1 int, foreign key (id_ref1) references prim_key(id) on update cascade", "engine=innodb");
-        createTestTable("prim_key", "id int not null primary key, val varchar(20)", "engine=innodb");
-        DatabaseMetaData dbmd = connection.getMetaData();
+        Statement stmt = sharedConnection.createStatement();
+        stmt.execute("drop table if exists fore_key0");
+        stmt.execute("drop table if exists fore_key1");
+        stmt.execute("drop table if exists prim_key");
+
+
+        stmt.execute("create table prim_key (id int not null primary key, " +
+                "val varchar(20)) engine=innodb");
+        stmt.execute("create table fore_key0 (id int not null primary key, " +
+                "id_ref0 int, foreign key (id_ref0) references prim_key(id)) engine=innodb");
+        stmt.execute("create table fore_key1 (id int not null primary key, " +
+                "id_ref1 int, foreign key (id_ref1) references prim_key(id) on update cascade) engine=innodb");
+
+
+        DatabaseMetaData dbmd = sharedConnection.getMetaData();
         ResultSet rs = dbmd.getExportedKeys("test", null, "prim_key");
         int i = 0;
         while (rs.next()) {
@@ -176,16 +260,27 @@ public class DatabaseMetadataTest extends BaseTest {
 
         }
         assertEquals(2, i);
+        stmt.execute("drop table if exists fore_key0");
+        stmt.execute("drop table if exists fore_key1");
+        stmt.execute("drop table if exists prim_key");
     }
 
     @Test
     public void importedKeysTest() throws SQLException {
-        createTestTable("fore_key0", "id int not null primary key, id_ref0 int, foreign key (id_ref0) references prim_key(id)", "engine=innodb");
-        createTestTable("fore_key1", "id int not null primary key, id_ref1 int, foreign key (id_ref1) references prim_key(id) on update cascade", "engine=innodb");
-        createTestTable("prim_key", "id int not null primary key, val varchar(20)", "engine=innodb");
+        Statement stmt = sharedConnection.createStatement();
+        stmt.execute("drop table if exists fore_key0");
+        stmt.execute("drop table if exists fore_key1");
+        stmt.execute("drop table if exists prim_key");
 
-        DatabaseMetaData dbmd = connection.getMetaData();
-        ResultSet rs = dbmd.getImportedKeys(connection.getCatalog(), null, "fore_key0");
+        stmt.execute("create table prim_key (id int not null primary key, " +
+                "val varchar(20)) engine=innodb");
+        stmt.execute("create table fore_key0 (id int not null primary key, " +
+                "id_ref0 int, foreign key (id_ref0) references prim_key(id)) engine=innodb");
+        stmt.execute("create table fore_key1 (id int not null primary key, " +
+                "id_ref1 int, foreign key (id_ref1) references prim_key(id) on update cascade) engine=innodb");
+
+        DatabaseMetaData dbmd = sharedConnection.getMetaData();
+        ResultSet rs = dbmd.getImportedKeys(sharedConnection.getCatalog(), null, "fore_key0");
         int i = 0;
         while (rs.next()) {
             assertEquals("id", rs.getString("pkcolumn_name"));
@@ -193,11 +288,14 @@ public class DatabaseMetadataTest extends BaseTest {
             i++;
         }
         assertEquals(1, i);
+        stmt.execute("drop table if exists fore_key0");
+        stmt.execute("drop table if exists fore_key1");
+        stmt.execute("drop table if exists prim_key");
     }
 
     @Test
     public void testGetCatalogs() throws SQLException {
-        DatabaseMetaData dbmd = connection.getMetaData();
+        DatabaseMetaData dbmd = sharedConnection.getMetaData();
 
         ResultSet rs = dbmd.getCatalogs();
         boolean haveMysql = false;
@@ -216,12 +314,20 @@ public class DatabaseMetadataTest extends BaseTest {
 
     @Test
     public void testGetTables() throws SQLException {
+        Statement stmt = sharedConnection.createStatement();
+        stmt.execute("drop table if exists fore_key0");
+        stmt.execute("drop table if exists fore_key1");
+        stmt.execute("drop table if exists prim_key");
 
-        createTestTable("prim_key", "id int not null primary key, val varchar(20)", "engine=innodb");
-        createTestTable("fore_key0", "id int not null primary key, id_ref0 int, foreign key (id_ref0) references prim_key(id)", "engine=innodb");
-        createTestTable("fore_key1", "id int not null primary key, id_ref1 int, foreign key (id_ref1) references prim_key(id) on update cascade", "engine=innodb");
 
-        DatabaseMetaData dbmd = connection.getMetaData();
+        stmt.execute("create table prim_key (id int not null primary key, " +
+                "val varchar(20)) engine=innodb");
+        stmt.execute("create table fore_key0 (id int not null primary key, " +
+                "id_ref0 int, foreign key (id_ref0) references prim_key(id)) engine=innodb");
+        stmt.execute("create table fore_key1 (id int not null primary key, " +
+                "id_ref1 int, foreign key (id_ref1) references prim_key(id) on update cascade) engine=innodb");
+
+        DatabaseMetaData dbmd = sharedConnection.getMetaData();
         ResultSet rs = dbmd.getTables(null, null, "prim_key", null);
 
         /*if (!isMariadbServer()) requireMinimumVersion(5,6);
@@ -234,7 +340,7 @@ public class DatabaseMetadataTest extends BaseTest {
 
     @Test
     public void testGetTables2() throws SQLException {
-        DatabaseMetaData dbmd = connection.getMetaData();
+        DatabaseMetaData dbmd = sharedConnection.getMetaData();
         ResultSet rs =
                 dbmd.getTables("information_schema", null, "TABLE_PRIVILEGES", new String[]{"SYSTEM VIEW"});
         assertEquals(true, rs.next());
@@ -246,7 +352,7 @@ public class DatabaseMetadataTest extends BaseTest {
 
     @Test
     public void testGetColumns() throws SQLException {
-        DatabaseMetaData dbmd = connection.getMetaData();
+        DatabaseMetaData dbmd = sharedConnection.getMetaData();
         ResultSet rs = dbmd.getColumns(null, null, "t1", null);
         while (rs.next()) {
             // System.out.println(rs.getString(3));
@@ -291,7 +397,7 @@ public class DatabaseMetadataTest extends BaseTest {
     @Test
     public void getAttributesBasic() throws Exception {
         testResultSetColumns(
-                connection.getMetaData().getAttributes(null, null, null, null),
+                sharedConnection.getMetaData().getAttributes(null, null, null, null),
                 "TYPE_CAT String,TYPE_SCHEM String,TYPE_NAME String,"
                         + "ATTR_NAME String,DATA_TYPE int,ATTR_TYPE_NAME String,ATTR_SIZE int,DECIMAL_DIGITS int,"
                         + "NUM_PREC_RADIX int,NULLABLE int,REMARKS String,ATTR_DEF String,SQL_DATA_TYPE int,SQL_DATETIME_SUB int,"
@@ -301,30 +407,30 @@ public class DatabaseMetadataTest extends BaseTest {
 
     @Test
     public void identifierCaseSensitivity() throws Exception {
-        if (connection.getMetaData().supportsMixedCaseIdentifiers()) {
+        if (sharedConnection.getMetaData().supportsMixedCaseIdentifiers()) {
             /* Case-sensitive identifier handling, we can create both t1 and T1 */
-            createTestTable("aB", "i int");
-            createTestTable("AB", "i int");
+            createTable("aB", "i int");
+            createTable("AB", "i int");
             /* Check there is an entry for both T1 and t1 in getTables */
-            ResultSet rs = connection.getMetaData().getTables(null, null, "aB", null);
+            ResultSet rs = sharedConnection.getMetaData().getTables(null, null, "aB", null);
             assertTrue(rs.next());
             assertFalse(rs.next());
-            rs = connection.getMetaData().getTables(null, null, "AB", null);
+            rs = sharedConnection.getMetaData().getTables(null, null, "AB", null);
             assertTrue(rs.next());
             assertFalse(rs.next());
         }
 
-        if (connection.getMetaData().storesMixedCaseIdentifiers()) {
+        if (sharedConnection.getMetaData().storesMixedCaseIdentifiers()) {
             /* Case-insensitive, case-preserving */
-            createTestTable("aB", "i int");
+            createTable("aB", "i int");
             try {
-                createTestTable("AB", "i int");
+                createTable("AB", "i int");
                 fail("should not get there, since names are case-insensitive");
             } catch (SQLException e) {
             }
 
             /* Check that table is stored case-preserving */
-            ResultSet rs = connection.getMetaData().getTables(null, null, "aB%", null);
+            ResultSet rs = sharedConnection.getMetaData().getTables(null, null, "aB%", null);
             while (rs.next()) {
                 String tableName = rs.getString("TABLE_NAME");
                 if (tableName.length() == 2) {
@@ -332,23 +438,23 @@ public class DatabaseMetadataTest extends BaseTest {
                 }
             }
 
-            rs = connection.getMetaData().getTables(null, null, "AB", null);
+            rs = sharedConnection.getMetaData().getTables(null, null, "AB", null);
             assertTrue(rs.next());
             assertFalse(rs.next());
         }
 
-        if (connection.getMetaData().storesLowerCaseIdentifiers()) {
+        if (sharedConnection.getMetaData().storesLowerCaseIdentifiers()) {
             /* case-insensitive, identifiers converted to lowercase */
               /* Case-insensitive, case-preserving */
-            createTestTable("aB", "i int");
+            createTable("aB", "i int");
             try {
-                connection.createStatement().execute("create table AB(i int)");
+                sharedConnection.createStatement().execute("create table AB(i int)");
                 fail("should not get there, since names are case-insensitive");
             } catch (SQLException e) {
             }
 
             /* Check that table is stored lowercase */
-            ResultSet rs = connection.getMetaData().getTables(null, null, "aB%", null);
+            ResultSet rs = sharedConnection.getMetaData().getTables(null, null, "aB%", null);
             while (rs.next()) {
                 String tableName = rs.getString("TABLE_NAME");
                 if (tableName.length() == 2) {
@@ -356,17 +462,17 @@ public class DatabaseMetadataTest extends BaseTest {
                 }
             }
 
-            rs = connection.getMetaData().getTables(null, null, "AB", null);
+            rs = sharedConnection.getMetaData().getTables(null, null, "AB", null);
             assertTrue(rs.next());
             assertFalse(rs.next());
         }
-        assertFalse(connection.getMetaData().storesUpperCaseIdentifiers());
+        assertFalse(sharedConnection.getMetaData().storesUpperCaseIdentifiers());
     }
 
     @Test
     public void getBestRowIdentifierBasic() throws SQLException {
         testResultSetColumns(
-                connection.getMetaData().getBestRowIdentifier(null, null, "", 0, true),
+                sharedConnection.getMetaData().getBestRowIdentifier(null, null, "", 0, true),
                 "SCOPE short,COLUMN_NAME String,DATA_TYPE int, TYPE_NAME String,"
                         + "COLUMN_SIZE int,BUFFER_LENGTH int,"
                         + "DECIMAL_DIGITS short,PSEUDO_COLUMN short");
@@ -375,20 +481,20 @@ public class DatabaseMetadataTest extends BaseTest {
     @Test
     public void getClientInfoPropertiesBasic() throws Exception {
         testResultSetColumns(
-                connection.getMetaData().getClientInfoProperties(),
+                sharedConnection.getMetaData().getClientInfoProperties(),
                 "NAME String, MAX_LEN int, DEFAULT_VALUE String, DESCRIPTION String");
     }
 
     @Test
     public void getCatalogsBasic() throws SQLException {
         testResultSetColumns(
-                connection.getMetaData().getCatalogs(),
+                sharedConnection.getMetaData().getCatalogs(),
                 "TABLE_CAT String");
     }
 
     @Test
     public void getColumnsBasic() throws SQLException {
-        testResultSetColumns(connection.getMetaData().getColumns(null, null, null, null),
+        testResultSetColumns(sharedConnection.getMetaData().getColumns(null, null, null, null),
                 "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,COLUMN_NAME String,"
                         + "DATA_TYPE int,TYPE_NAME String,COLUMN_SIZE int,BUFFER_LENGTH int,"
                         + "DECIMAL_DIGITS int,NUM_PREC_RADIX int,NULLABLE int,"
@@ -401,7 +507,7 @@ public class DatabaseMetadataTest extends BaseTest {
 
     @Test
     public void getProcedureColumnsBasic() throws SQLException {
-        testResultSetColumns(connection.getMetaData().getProcedureColumns(null, null, null, null),
+        testResultSetColumns(sharedConnection.getMetaData().getProcedureColumns(null, null, null, null),
                 "PROCEDURE_CAT String,PROCEDURE_SCHEM String,PROCEDURE_NAME String,COLUMN_NAME String ,COLUMN_TYPE short,"
                         + "DATA_TYPE int,TYPE_NAME String,PRECISION int,LENGTH int,SCALE short,RADIX short,NULLABLE short,"
                         + "REMARKS String,COLUMN_DEF String,SQL_DATA_TYPE int,SQL_DATETIME_SUB int ,CHAR_OCTET_LENGTH int,"
@@ -411,7 +517,7 @@ public class DatabaseMetadataTest extends BaseTest {
 
     @Test
     public void getFunctionColumnsBasic() throws SQLException {
-        testResultSetColumns(connection.getMetaData().getFunctionColumns(null, null, null, null),
+        testResultSetColumns(sharedConnection.getMetaData().getFunctionColumns(null, null, null, null),
                 "FUNCTION_CAT String,FUNCTION_SCHEM String,FUNCTION_NAME String,COLUMN_NAME String,COLUMN_TYPE short,"
                         + "DATA_TYPE int,TYPE_NAME String,PRECISION int,LENGTH int,SCALE short,RADIX short,NULLABLE short,REMARKS String,"
                         + "CHAR_OCTET_LENGTH int,ORDINAL_POSITION int,IS_NULLABLE String,SPECIFIC_NAME String");
@@ -421,7 +527,7 @@ public class DatabaseMetadataTest extends BaseTest {
     @Test
     public void getColumnPrivilegesBasic() throws SQLException {
         testResultSetColumns(
-                connection.getMetaData().getColumnPrivileges(null, null, "", null),
+                sharedConnection.getMetaData().getColumnPrivileges(null, null, "", null),
                 "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,COLUMN_NAME String," +
                         "GRANTOR String,GRANTEE String,PRIVILEGE String,IS_GRANTABLE String");
     }
@@ -429,7 +535,7 @@ public class DatabaseMetadataTest extends BaseTest {
     @Test
     public void getTablePrivilegesBasic() throws SQLException {
         testResultSetColumns(
-                connection.getMetaData().getTablePrivileges(null, null, null),
+                sharedConnection.getMetaData().getTablePrivileges(null, null, null),
                 "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,GRANTOR String,"
                         + "GRANTEE String,PRIVILEGE String,IS_GRANTABLE String");
 
@@ -438,7 +544,7 @@ public class DatabaseMetadataTest extends BaseTest {
     @Test
     public void getVersionColumnsBasic() throws SQLException {
         testResultSetColumns(
-                connection.getMetaData().getVersionColumns(null, null, null),
+                sharedConnection.getMetaData().getVersionColumns(null, null, null),
                 "SCOPE short, COLUMN_NAME String,DATA_TYPE int,TYPE_NAME String,"
                         + "COLUMN_SIZE int,BUFFER_LENGTH int,DECIMAL_DIGITS short,"
                         + "PSEUDO_COLUMN short");
@@ -447,7 +553,7 @@ public class DatabaseMetadataTest extends BaseTest {
     @Test
     public void getPrimaryKeysBasic() throws SQLException {
         testResultSetColumns(
-                connection.getMetaData().getPrimaryKeys(null, null, null),
+                sharedConnection.getMetaData().getPrimaryKeys(null, null, null),
                 "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,COLUMN_NAME String,KEY_SEQ short,PK_NAME String"
         );
     }
@@ -455,7 +561,7 @@ public class DatabaseMetadataTest extends BaseTest {
     @Test
     public void getImportedKeysBasic() throws SQLException {
         testResultSetColumns(
-                connection.getMetaData().getImportedKeys(null, null, ""),
+                sharedConnection.getMetaData().getImportedKeys(null, null, ""),
                 "PKTABLE_CAT String,PKTABLE_SCHEM String,PKTABLE_NAME String, PKCOLUMN_NAME String,FKTABLE_CAT String,"
                         + "FKTABLE_SCHEM String,FKTABLE_NAME String,FKCOLUMN_NAME String,KEY_SEQ short,UPDATE_RULE short,"
                         + "DELETE_RULE short,FK_NAME String,PK_NAME String,DEFERRABILITY short");
@@ -465,7 +571,7 @@ public class DatabaseMetadataTest extends BaseTest {
     @Test
     public void getExportedKeysBasic() throws SQLException {
         testResultSetColumns(
-                connection.getMetaData().getExportedKeys(null, null, ""),
+                sharedConnection.getMetaData().getExportedKeys(null, null, ""),
                 "PKTABLE_CAT String,PKTABLE_SCHEM String,PKTABLE_NAME String, PKCOLUMN_NAME String,FKTABLE_CAT String,"
                         + "FKTABLE_SCHEM String,FKTABLE_NAME String,FKCOLUMN_NAME String,KEY_SEQ short,UPDATE_RULE short,"
                         + "DELETE_RULE short,FK_NAME String,PK_NAME String,DEFERRABILITY short");
@@ -475,7 +581,7 @@ public class DatabaseMetadataTest extends BaseTest {
     @Test
     public void getCrossReferenceBasic() throws SQLException {
         testResultSetColumns(
-                connection.getMetaData().getCrossReference(null, null, "", null, null, ""),
+                sharedConnection.getMetaData().getCrossReference(null, null, "", null, null, ""),
                 "PKTABLE_CAT String,PKTABLE_SCHEM String,PKTABLE_NAME String, PKCOLUMN_NAME String,FKTABLE_CAT String,"
                         + "FKTABLE_SCHEM String,FKTABLE_NAME String,FKCOLUMN_NAME String,KEY_SEQ short,UPDATE_RULE short,"
                         + "DELETE_RULE short,FK_NAME String,PK_NAME String,DEFERRABILITY short");
@@ -484,7 +590,7 @@ public class DatabaseMetadataTest extends BaseTest {
     @Test
     public void getUDTsBasic() throws SQLException {
         testResultSetColumns(
-                connection.getMetaData().getUDTs(null, null, null, null),
+                sharedConnection.getMetaData().getUDTs(null, null, null, null),
                 "TYPE_CAT String,TYPE_SCHEM String,TYPE_NAME String,CLASS_NAME String,DATA_TYPE int,"
                         + "REMARKS String,BASE_TYPE short");
     }
@@ -492,7 +598,7 @@ public class DatabaseMetadataTest extends BaseTest {
     @Test
     public void getSuperTypesBasic() throws SQLException {
         testResultSetColumns(
-                connection.getMetaData().getSuperTypes(null, null, null),
+                sharedConnection.getMetaData().getSuperTypes(null, null, null),
                 "TYPE_CAT String,TYPE_SCHEM String,TYPE_NAME String,SUPERTYPE_CAT String,"
                         + "SUPERTYPE_SCHEM String,SUPERTYPE_NAME String");
     }
@@ -500,7 +606,7 @@ public class DatabaseMetadataTest extends BaseTest {
     @Test
     public void getFunctionsBasic() throws SQLException {
         testResultSetColumns(
-                connection.getMetaData().getFunctions(null, null, null),
+                sharedConnection.getMetaData().getFunctions(null, null, null),
                 "FUNCTION_CAT String, FUNCTION_SCHEM String,FUNCTION_NAME String,REMARKS String,FUNCTION_TYPE short, "
                         + "SPECIFIC_NAME String");
     }
@@ -508,13 +614,13 @@ public class DatabaseMetadataTest extends BaseTest {
     @Test
     public void getSuperTablesBasic() throws SQLException {
         testResultSetColumns(
-                connection.getMetaData().getSuperTables(null, null, null),
+                sharedConnection.getMetaData().getSuperTables(null, null, null),
                 "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String, SUPERTABLE_NAME String");
     }
 
     @Test
     public void testGetSchemas2() throws SQLException {
-        DatabaseMetaData dbmd = connection.getMetaData();
+        DatabaseMetaData dbmd = sharedConnection.getMetaData();
         ResultSet rs = dbmd.getCatalogs();
         boolean foundTestUnitsJDBC = false;
         while (rs.next()) {
@@ -527,8 +633,8 @@ public class DatabaseMetadataTest extends BaseTest {
     /* Verify default behavior for nullCatalogMeansCurrent (=true) */
     @Test
     public void nullCatalogMeansCurrent() throws Exception {
-        String catalog = connection.getCatalog();
-        ResultSet rs = connection.getMetaData().getColumns(null, null, null, null);
+        String catalog = sharedConnection.getCatalog();
+        ResultSet rs = sharedConnection.getMetaData().getColumns(null, null, null, null);
         while (rs.next()) {
             assertTrue(rs.getString("TABLE_CAT").equalsIgnoreCase(catalog));
         }
@@ -537,9 +643,10 @@ public class DatabaseMetadataTest extends BaseTest {
     /* Verify that "nullCatalogMeansCurrent=false" works (i.e information_schema columns are returned)*/
     @Test
     public void nullCatalogMeansCurrent2() throws Exception {
-        setConnection("&nullCatalogMeansCurrent=false");
-        boolean haveInformationSchema = false;
+        Connection connection = null;
         try {
+            connection = setConnection("&nullCatalogMeansCurrent=false");
+            boolean haveInformationSchema = false;
             ResultSet rs = connection.getMetaData().getColumns(null, null, null, null);
             while (rs.next()) {
                 if (rs.getString("TABLE_CAT").equalsIgnoreCase("information_schema")) {
@@ -547,15 +654,17 @@ public class DatabaseMetadataTest extends BaseTest {
                     break;
                 }
             }
+            assertTrue(haveInformationSchema);
         } finally {
+            connection.close();
         }
-        assertTrue(haveInformationSchema);
+
     }
 
     @Test
     public void testGetTypeInfoBasic() throws SQLException {
         testResultSetColumns(
-                connection.getMetaData().getTypeInfo(),
+                sharedConnection.getMetaData().getTypeInfo(),
                 "TYPE_NAME String,DATA_TYPE int,PRECISION int,LITERAL_PREFIX String,"
                         + "LITERAL_SUFFIX String,CREATE_PARAMS String, NULLABLE short,CASE_SENSITIVE boolean,"
                         + "SEARCHABLE short,UNSIGNED_ATTRIBUTE boolean,FIXED_PREC_SCALE boolean, AUTO_INCREMENT boolean,"
@@ -565,42 +674,9 @@ public class DatabaseMetadataTest extends BaseTest {
 
     @Test
     public void getColumnsTest() throws SQLException {
-        createTestTable("`manycols`",
-                "  `tiny` tinyint(4) DEFAULT NULL,\n" +
-                        "  `tiny_uns` tinyint(3) unsigned DEFAULT NULL,\n" +
-                        "  `small` smallint(6) DEFAULT NULL,\n" +
-                        "  `small_uns` smallint(5) unsigned DEFAULT NULL,\n" +
-                        "  `medium` mediumint(9) DEFAULT NULL,\n" +
-                        "  `medium_uns` mediumint(8) unsigned DEFAULT NULL,\n" +
-                        "  `int_col` int(11) DEFAULT NULL,\n" +
-                        "  `int_col_uns` int(10) unsigned DEFAULT NULL,\n" +
-                        "  `big` bigint(20) DEFAULT NULL,\n" +
-                        "  `big_uns` bigint(20) unsigned DEFAULT NULL,\n" +
-                        "  `decimal_col` decimal(10,5) DEFAULT NULL,\n" +
-                        "  `fcol` float DEFAULT NULL,\n" +
-                        "  `fcol_uns` float unsigned DEFAULT NULL,\n" +
-                        "  `dcol` double DEFAULT NULL,\n" +
-                        "  `dcol_uns` double unsigned DEFAULT NULL,\n" +
-                        "  `date_col` date DEFAULT NULL,\n" +
-                        "  `time_col` time DEFAULT NULL,\n" +
-                        "  `timestamp_col` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE\n" +
-                        "CURRENT_TIMESTAMP,\n" +
-                        "  `year_col` year(4) DEFAULT NULL,\n" +
-                        "  `bit_col` bit(5) DEFAULT NULL,\n" +
-                        "  `char_col` char(5) DEFAULT NULL,\n" +
-                        "  `varchar_col` varchar(10) DEFAULT NULL,\n" +
-                        "  `binary_col` binary(10) DEFAULT NULL,\n" +
-                        "  `varbinary_col` varbinary(10) DEFAULT NULL,\n" +
-                        "  `tinyblob_col` tinyblob,\n" +
-                        "  `blob_col` blob,\n" +
-                        "  `mediumblob_col` mediumblob,\n" +
-                        "  `longblob_col` longblob,\n" +
-                        "  `text_col` text,\n" +
-                        "  `mediumtext_col` mediumtext,\n" +
-                        "  `longtext_col` longtext"
-        );
-        DatabaseMetaData dmd = connection.getMetaData();
-        ResultSet rs = dmd.getColumns(connection.getCatalog(), null, "manycols", null);
+
+        DatabaseMetaData dmd = sharedConnection.getMetaData();
+        ResultSet rs = dmd.getColumns(sharedConnection.getCatalog(), null, "manycols", null);
         while (rs.next()) {
             String columnName = rs.getString("column_name");
             int type = rs.getInt("data_type");
@@ -644,9 +720,9 @@ public class DatabaseMetadataTest extends BaseTest {
 
     @Test
     public void yearIsShortType() throws Exception {
-        setConnection("&yearIsDateType=false");
+        Connection connection = null;
         try {
-            createTestTable("ytab", "y year");
+            connection = setConnection("&yearIsDateType=false");
             connection.createStatement().execute("insert into ytab values(72)");
             ResultSet rs = connection.getMetaData().getColumns(connection.getCatalog(), null, "ytab", null);
             assertTrue(rs.next());
@@ -657,24 +733,24 @@ public class DatabaseMetadataTest extends BaseTest {
             assertTrue(rs1.getObject(1) instanceof Short);
             assertEquals(rs1.getShort(1), 1972);
         } finally {
+            connection.close();
         }
     }
 
     /* CONJ-15 */
     @Test
     public void maxCharLengthUTF8() throws Exception {
-        createTestTable("maxcharlength", "maxcharlength char(1)", "character set utf8");
-        DatabaseMetaData dmd = connection.getMetaData();
-        ResultSet rs = dmd.getColumns(connection.getCatalog(), null, "maxcharlength", null);
+        DatabaseMetaData dmd = sharedConnection.getMetaData();
+        ResultSet rs = dmd.getColumns(sharedConnection.getCatalog(), null, "maxcharlength", null);
         assertTrue(rs.next());
         assertEquals(rs.getInt("COLUMN_SIZE"), 1);
     }
 
     @Test
     public void conj72() throws Exception {
-        setConnection("&tinyInt1isBit=true");
+        Connection connection = null;
         try {
-            createTestTable("conj72", "t tinyint(1)");
+            connection = setConnection("&tinyInt1isBit=true");
             connection.createStatement().execute("insert into conj72 values(1)");
             ResultSet rs = connection.getMetaData().getColumns(connection.getCatalog(), null, "conj72", null);
             assertTrue(rs.next());
@@ -682,6 +758,7 @@ public class DatabaseMetadataTest extends BaseTest {
             ResultSet rs1 = connection.createStatement().executeQuery("select * from conj72");
             assertEquals(rs1.getMetaData().getColumnType(1), Types.BIT);
         } finally {
+            connection.close();
         }
     }
 }

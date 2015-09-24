@@ -17,8 +17,7 @@ public class ResultSetUnsupportedMethodsTest extends BaseTest {
 
     @Before
     public void before() throws SQLException {
-        super.before();
-        rs = connection.createStatement().executeQuery("select 1");
+        rs = sharedConnection.createStatement().executeQuery("select 1");
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)

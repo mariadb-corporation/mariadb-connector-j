@@ -18,12 +18,11 @@ public class SSLValidationTest extends BaseTest {
 
     @Before
     public void checkSSL() throws SQLException {
-        super.before();
         boolean isJava7 = System.getProperty("java.version").contains("1.7.");
-        org.junit.Assume.assumeTrue(haveSSL());
+        org.junit.Assume.assumeTrue(haveSSL(sharedConnection));
         //Skip SSL test on java 7 since SSL packet size JDK-6521495).
         org.junit.Assume.assumeFalse(isJava7);
-        ResultSet rs = connection.createStatement().executeQuery("select @@ssl_cert");
+        ResultSet rs = sharedConnection.createStatement().executeQuery("select @@ssl_cert");
         rs.next();
         serverCertificatePath = rs.getString(1);
         log.debug("Server certificate path: {}", serverCertificatePath);

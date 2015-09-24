@@ -5,6 +5,7 @@ import org.junit.*;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
+import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.mysql.Protocol;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,6 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Base util class.
@@ -36,7 +38,9 @@ public class BaseTest {
     protected static String password;
     protected static String parameters;
     protected static boolean testSingleHost;
+    protected static Connection sharedConnection;
     private static List<String> tempTableList = new ArrayList<>();
+    private static List<String> tempProcedureList = new ArrayList<>();
 
     @Rule
     public TestRule watcher = new TestWatcher() {
@@ -48,9 +52,8 @@ public class BaseTest {
             log.trace("finished test: " + description.getMethodName());
         }
     };
-    protected Connection connection;
 
-    @BeforeClass
+    @BeforeClass()
     public static void beforeClassBaseTest() throws SQLException {
         String url = System.getProperty("dbUrl", mDefUrl);
         testSingleHost = Boolean.parseBoolean(System.getProperty("testSingleHost", "true"));
@@ -65,13 +68,48 @@ public class BaseTest {
         log.debug("Properties parsed from JDBC URL - hostname: " + hostname + ", port: " + port + ", database: " + database + ", username: " + username + ", password: " + password);
 
         setURI();
+
+        sharedConnection = DriverManager.getConnection(connURI);
     }
+
+
 
     private static void setURI() {
         connU = "jdbc:mysql://" + hostname + ":" + port + "/" + database;
         connURI = connU + "?user=" + username
                 + (password != null && !"".equals(password) ? "&password=" + password : "")
                 + (parameters != null ? parameters : "");
+    }
+
+    @AfterClass
+    public static void afterClassBaseTest() throws SQLException {
+        if (!sharedConnection.isClosed()) {
+            if (!tempTableList.isEmpty()) {
+                Statement stmt = sharedConnection.createStatement();
+                for (String tableName : tempTableList) {
+                    try {
+                        stmt.execute("DROP TABLE IF EXISTS " + tableName);
+                    } catch (SQLException e) {
+                    }
+                }
+                tempTableList.clear();
+            }
+            if (!tempProcedureList.isEmpty()) {
+                Statement stmt = sharedConnection.createStatement();
+                for (String procedureName : tempProcedureList) {
+                    try {
+                        stmt.execute("DROP procedure IF EXISTS " + procedureName);
+                    } catch (SQLException e) {
+                    }
+                }
+                tempTableList.clear();
+            }
+        }
+        try {
+            sharedConnection.close();
+        }catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     // common function for logging information
@@ -99,34 +137,6 @@ public class BaseTest {
         return (Protocol) getProtocol.invoke(conn);
     }
 
-    @Before
-    public void before() throws SQLException {
-        setConnection();
-    }
-
-    @After
-    public void after() throws SQLException {
-        if (connection != null) {
-            if (!connection.isClosed()) {
-                if (!tempTableList.isEmpty()) {
-                    Statement stmt = connection.createStatement();
-                    stmt.execute("SET foreign_key_checks = 0");
-                    for (String tableName : tempTableList) {
-                        try {
-                            stmt.execute("DROP TABLE IF EXISTS " + tableName);
-                        } catch (SQLException e) {
-                        }
-                    }
-                    stmt.execute("SET foreign_key_checks = 1");
-                }
-            }
-            try {
-                connection.close();
-            } catch (Exception e) {
-            }
-        }
-    }
-
     protected void setHostname(String hostname) throws SQLException {
         BaseTest.hostname = hostname;
         setURI();
@@ -141,7 +151,7 @@ public class BaseTest {
 
     protected void setDatabase(String database) throws SQLException {
         BaseTest.database = database;
-        setURI();
+        BaseTest.setURI();
         setConnection();
     }
 
@@ -157,46 +167,45 @@ public class BaseTest {
         setConnection();
     }
 
-    protected void setParameters(String parameters) throws SQLException {
-        BaseTest.parameters = parameters;
-        setURI();
-        setConnection();
+
+
+    protected Connection setConnection() throws SQLException {
+        return openConnection(connURI, null);
     }
 
-    protected void setConnection() throws SQLException {
-        openConnection(connURI, null);
-    }
-
-    protected void setConnection(Map<String, String> props) throws SQLException {
+    protected Connection setConnection(Map<String, String> props) throws SQLException {
         Properties info = new Properties();
         for (String key : props.keySet()) {
             info.setProperty(key, props.get(key));
         }
-        openConnection(connU, info);
+        return openConnection(connU, info);
     }
 
-    protected void setConnection(Properties info) throws SQLException {
-        openConnection(connURI, info);
+    protected Connection setConnection(Properties info) throws SQLException {
+        return openConnection(connURI, info);
     }
 
-    protected void setConnection(String parameters) throws SQLException {
-        openConnection(connURI + parameters, null);
+    protected Connection setConnection(String parameters) throws SQLException {
+        return openConnection(connURI + parameters, null);
+    }
+    protected Connection setConnection(String additionnallParameters, String database) throws SQLException {
+        String connU = "jdbc:mysql://" + hostname + ":" + port + "/" + database;
+        String connURI = connU + "?user=" + username
+                + (password != null && !"".equals(password) ? "&password=" + password : "")
+                + (parameters != null ? parameters : "");
+        return openConnection(connURI + additionnallParameters, null);
     }
 
-    private void openConnection(String URI, Properties info) throws SQLException {
-        try {
-            connection.close();
-        } catch (Exception ex) {
-        }
+    private Connection openConnection(String URI, Properties info) throws SQLException {
         if (info == null) {
-            connection = DriverManager.getConnection(URI);
+            return DriverManager.getConnection(URI);
         } else {
-            connection = DriverManager.getConnection(URI, info);
+            return DriverManager.getConnection(URI, info);
         }
     }
 
     protected Connection openNewConnection() throws SQLException {
-        Properties info = connection.getClientInfo();
+        Properties info = sharedConnection.getClientInfo();
         return openNewConnection(connURI, info);
     }
 
@@ -209,7 +218,7 @@ public class BaseTest {
     }
 
     boolean checkMaxAllowedPacket(String testName) throws SQLException {
-        Statement st = connection.createStatement();
+        Statement st = sharedConnection.createStatement();
         ResultSet rs = st.executeQuery("select @@max_allowed_packet");
         rs.next();
         int max_allowed_packet = rs.getInt(1);
@@ -230,7 +239,7 @@ public class BaseTest {
     }
 
     boolean checkMaxAllowedPacketMore40m(String testName) throws SQLException {
-        Statement st = connection.createStatement();
+        Statement st = sharedConnection.createStatement();
         ResultSet rs = st.executeQuery("select @@max_allowed_packet");
         rs.next();
         int max_allowed_packet = rs.getInt(1);
@@ -255,7 +264,7 @@ public class BaseTest {
     //does the user have super privileges or not?
     boolean hasSuperPrivilege(String testName) throws SQLException {
         boolean superPrivilege = false;
-        Statement st = connection.createStatement();
+        Statement st = sharedConnection.createStatement();
 
         // first test for specific user and host combination
         ResultSet rs = st.executeQuery("SELECT Super_Priv FROM mysql.user WHERE user = '" + username + "' AND host = '" + hostname + "'");
@@ -294,7 +303,7 @@ public class BaseTest {
         return isLocal;
     }
 
-    boolean haveSSL() {
+    boolean haveSSL(Connection connection) {
         try {
             ResultSet rs = connection.createStatement().executeQuery("select @@have_ssl");
             rs.next();
@@ -306,7 +315,7 @@ public class BaseTest {
     }
 
     public boolean minVersion(int major, int minor) throws SQLException {
-        DatabaseMetaData md = connection.getMetaData();
+        DatabaseMetaData md = sharedConnection.getMetaData();
         int dbMajor = md.getDatabaseMajorVersion();
         int dbMinor = md.getDatabaseMinorVersion();
         return (dbMajor > major ||
@@ -319,20 +328,28 @@ public class BaseTest {
     }
 
     boolean isMariadbServer() throws SQLException {
-        DatabaseMetaData md = connection.getMetaData();
+        DatabaseMetaData md = sharedConnection.getMetaData();
         return md.getDatabaseProductVersion().indexOf("MariaDB") != -1;
     }
-    public void createTestTable(String tableName, String tableColumns) throws SQLException {
-        createTestTable(tableName, tableColumns, null);
+
+    public static void createTable(String tableName, String tableColumns) throws SQLException {
+        createTable(tableName, tableColumns, null);
     }
 
-    public void createTestTable(String tableName, String tableColumns, String engine) throws SQLException {
-        Statement stmt = connection.createStatement();
-        stmt.execute("SET foreign_key_checks = 0");
+    public static void createTable(String tableName, String tableColumns, String engine) throws SQLException {
+        Statement stmt = sharedConnection.createStatement();
         stmt.execute("drop table  if exists " + tableName);
         stmt.execute("create table " + tableName + " (" + tableColumns + ") "+((engine!=null)?engine:""));
-        stmt.execute("SET foreign_key_checks = 1");
         tempTableList.add(tableName);
     }
+
+    public static void createProcedure(String name, String body) throws SQLException {
+        Statement stmt = sharedConnection.createStatement();
+        stmt.execute("drop procedure IF EXISTS " + name);
+        stmt.execute("create  procedure " + name + body);
+        tempProcedureList.add(name);
+
+    }
+
 
 }

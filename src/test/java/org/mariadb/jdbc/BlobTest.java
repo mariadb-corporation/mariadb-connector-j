@@ -1,6 +1,7 @@
 package org.mariadb.jdbc;
 
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mariadb.jdbc.internal.mysql.MySQLProtocol;
 
@@ -11,6 +12,23 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class BlobTest extends BaseTest {
+
+    @BeforeClass()
+    public static void initClass() throws SQLException {
+        createTable("bug716378", "id int not null primary key auto_increment, test longblob, test2 blob, test3 text");
+        createTable("BlobTeststreamtest2", "id int primary key not null, st varchar(20), strm text");
+        createTable("BlobTeststreamtest3", "id int primary key not null, strm text");
+        createTable("BlobTestclobtest", "id int not null primary key, strm text");
+        createTable("BlobTestclobtest2", "strm text");
+        createTable("BlobTestclobtest3", "id int not null primary key, strm text");
+        createTable("BlobTestclobtest4", "id int not null primary key, strm text");
+        createTable("BlobTestblobtest", "id int not null primary key, strm blob");
+        createTable("BlobTestblobtest2", "id int not null primary key, strm blob");
+        createTable("conj77_test", "Name VARCHAR(100) NOT NULL,Archive LONGBLOB, PRIMARY KEY (Name)", "Engine=InnoDB DEFAULT CHARSET utf8");
+
+
+    }
+
     @Test
     public void testPosition() throws SQLException {
         byte[] blobContent = new byte[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
@@ -44,8 +62,7 @@ public class BlobTest extends BaseTest {
 
     @Test
     public void testBug716378() throws SQLException {
-        Statement stmt = connection.createStatement();
-        createTestTable("bug716378","id int not null primary key auto_increment, test longblob, test2 blob, test3 text");
+        Statement stmt = sharedConnection.createStatement();
 
         stmt.executeUpdate("insert into bug716378 values(null, 'a','b','c')");
         ResultSet rs = stmt.executeQuery("select * from bug716378");
@@ -59,17 +76,16 @@ public class BlobTest extends BaseTest {
 
     @Test
     public void testCharacterStreamWithMultibyteCharacterAndLength() throws Throwable {
-        createTestTable("streamtest2","id int primary key not null, st varchar(20), strm text");
         String toInsert1 = "\u00D8bbcdefgh\njklmn\"";
         String toInsert2 = "\u00D8abcdefgh\njklmn\"";
-        PreparedStatement stmt = connection.prepareStatement("insert into streamtest2 (id, st, strm) values (?,?,?)");
+        PreparedStatement stmt = sharedConnection.prepareStatement("insert into BlobTeststreamtest2 (id, st, strm) values (?,?,?)");
         stmt.setInt(1, 2);
         stmt.setString(2, toInsert1);
         Reader reader = new StringReader(toInsert2);
         stmt.setCharacterStream(3, reader, 5);
         stmt.execute();
 
-        ResultSet rs = connection.createStatement().executeQuery("select * from streamtest2");
+        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from BlobTeststreamtest2");
         rs.next();
         Reader rdr = rs.getCharacterStream("strm");
         StringBuilder sb = new StringBuilder();
@@ -83,14 +99,13 @@ public class BlobTest extends BaseTest {
 
     @Test
     public void testCharacterStreamWithMultibyteCharacter() throws Throwable {
-        createTestTable("streamtest2","id int primary key not null, strm text");
-        PreparedStatement stmt = connection.prepareStatement("insert into streamtest2 (id, strm) values (?,?)");
+        PreparedStatement stmt = sharedConnection.prepareStatement("insert into BlobTeststreamtest3 (id, strm) values (?,?)");
         stmt.setInt(1, 2);
         String toInsert = "\u00D8abcdefgh\njklmn\"";
         Reader reader = new StringReader(toInsert);
         stmt.setCharacterStream(2, reader);
         stmt.execute();
-        ResultSet rs = connection.createStatement().executeQuery("select * from streamtest2");
+        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from BlobTeststreamtest3");
         rs.next();
         Reader rdr = rs.getCharacterStream("strm");
         StringBuilder sb = new StringBuilder();
@@ -103,13 +118,12 @@ public class BlobTest extends BaseTest {
 
     @Test
     public void testClobWithLengthAndMultibyteCharacter() throws SQLException, IOException {
-        createTestTable("clobtest","id int not null primary key, strm text");
-        PreparedStatement stmt = connection.prepareStatement("insert into clobtest (id, strm) values (?,?)");
+        PreparedStatement stmt = sharedConnection.prepareStatement("insert into BlobTestclobtest (id, strm) values (?,?)");
         String clob = "\u00D8clob";
         stmt.setInt(1, 1);
         stmt.setClob(2, new StringReader(clob));
         stmt.execute();
-        ResultSet rs = connection.createStatement().executeQuery("select * from clobtest");
+        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from BlobTestclobtest");
         rs.next();
         Reader readStuff = rs.getClob("strm").getCharacterStream();
         char[] a = new char[5];
@@ -119,15 +133,14 @@ public class BlobTest extends BaseTest {
 
     @Test
     public void testClob3() throws Exception {
-        createTestTable("clobtest","strm text");
-        PreparedStatement stmt = connection.prepareStatement("insert into clobtest (strm) values (?)");
-        Clob clob = connection.createClob();
+        PreparedStatement stmt = sharedConnection.prepareStatement("insert into BlobTestclobtest2 (strm) values (?)");
+        Clob clob = sharedConnection.createClob();
         Writer writer = clob.setCharacterStream(1);
         writer.write("\u00D8hello", 0, 6);
         writer.flush();
         stmt.setClob(1, clob);
         stmt.execute();
-        ResultSet rs = connection.createStatement().executeQuery("select * from clobtest");
+        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from BlobTestclobtest2");
         rs.next();
         Object o = rs.getObject(1);
         assertTrue(o instanceof String);
@@ -137,14 +150,13 @@ public class BlobTest extends BaseTest {
 
     @Test
     public void testBlob() throws SQLException, IOException {
-        createTestTable("blobtest","id int not null primary key, strm blob");
-        PreparedStatement stmt = connection.prepareStatement("insert into blobtest (id, strm) values (?,?)");
+        PreparedStatement stmt = sharedConnection.prepareStatement("insert into BlobTestblobtest (id, strm) values (?,?)");
         byte[] theBlob = {1, 2, 3, 4, 5, 6};
         InputStream stream = new ByteArrayInputStream(theBlob);
         stmt.setInt(1, 1);
         stmt.setBlob(2, stream);
         stmt.execute();
-        ResultSet rs = connection.createStatement().executeQuery("select * from blobtest");
+        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from BlobTestblobtest");
         rs.next();
         InputStream readStuff = rs.getBlob("strm").getBinaryStream();
         int ch;
@@ -163,14 +175,13 @@ public class BlobTest extends BaseTest {
 
     @Test
     public void testBlobWithLength() throws SQLException, IOException {
-        createTestTable("blobtest","id int not null primary key, strm blob");
-        PreparedStatement stmt = connection.prepareStatement("insert into blobtest (id, strm) values (?,?)");
+        PreparedStatement stmt = sharedConnection.prepareStatement("insert into BlobTestblobtest2 (id, strm) values (?,?)");
         byte[] theBlob = {1, 2, 3, 4, 5, 6};
         InputStream stream = new ByteArrayInputStream(theBlob);
         stmt.setInt(1, 1);
         stmt.setBlob(2, stream, 4);
         stmt.execute();
-        ResultSet rs = connection.createStatement().executeQuery("select * from blobtest");
+        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from BlobTestblobtest2");
         rs.next();
         InputStream readStuff = rs.getBlob("strm").getBinaryStream();
         int ch;
@@ -182,13 +193,12 @@ public class BlobTest extends BaseTest {
 
     @Test
     public void testClobWithLength() throws SQLException, IOException {
-        createTestTable("clobtest","id int not null primary key, strm text");
-        PreparedStatement stmt = connection.prepareStatement("insert into clobtest (id, strm) values (?,?)");
+        PreparedStatement stmt = sharedConnection.prepareStatement("insert into BlobTestclobtest3 (id, strm) values (?,?)");
         String clob = "clob";
         stmt.setInt(1, 1);
         stmt.setClob(2, new StringReader(clob));
         stmt.execute();
-        ResultSet rs = connection.createStatement().executeQuery("select * from clobtest");
+        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from BlobTestclobtest3");
         rs.next();
         Reader readStuff = rs.getClob("strm").getCharacterStream();
         char[] a = new char[4];
@@ -198,16 +208,15 @@ public class BlobTest extends BaseTest {
 
     @Test
     public void testClob2() throws SQLException, IOException {
-        createTestTable("clobtest","id int not null primary key, strm text");
-        PreparedStatement stmt = connection.prepareStatement("insert into clobtest (id, strm) values (?,?)");
-        Clob clob = connection.createClob();
+        PreparedStatement stmt = sharedConnection.prepareStatement("insert into BlobTestclobtest4 (id, strm) values (?,?)");
+        Clob clob = sharedConnection.createClob();
         OutputStream ostream = clob.setAsciiStream(1);
         byte[] bytes = "hello".getBytes();
         ostream.write(bytes);
         stmt.setInt(1, 1);
         stmt.setClob(2, clob);
         stmt.execute();
-        ResultSet rs = connection.createStatement().executeQuery("select * from clobtest");
+        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from BlobTestclobtest4");
         rs.next();
         Object o = rs.getObject(2);
         assertTrue(o instanceof String);
@@ -261,11 +270,10 @@ public class BlobTest extends BaseTest {
 
     @Test
     public void conj77() throws Exception {
-        final Statement sta1 = connection.createStatement();
+        final Statement sta1 = sharedConnection.createStatement();
         try {
-            createTestTable("conj77_test", "Name VARCHAR(100) NOT NULL,Archive LONGBLOB, PRIMARY KEY (Name)", "Engine=InnoDB DEFAULT CHARSET utf8");
 
-            final PreparedStatement pre = connection.prepareStatement("INSERT INTO conj77_test (Name,Archive) VALUES (?,?)");
+            final PreparedStatement pre = sharedConnection.prepareStatement("INSERT INTO conj77_test (Name,Archive) VALUES (?,?)");
             try {
                 pre.setString(1, "Empty String");
                 pre.setBytes(2, "".getBytes());
@@ -288,7 +296,7 @@ public class BlobTest extends BaseTest {
             if (sta1 != null)
                 sta1.close();
         }
-        final Statement sta2 = connection.createStatement();
+        final Statement sta2 = sharedConnection.createStatement();
         try {
             final ResultSet set = sta2.executeQuery("Select name,archive as text FROM conj77_test");
             try {

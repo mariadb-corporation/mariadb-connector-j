@@ -2,6 +2,7 @@ package org.mariadb.jdbc;
 
 import org.junit.Assert;
 import org.junit.Assume;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.UnsupportedEncodingException;
@@ -14,6 +15,10 @@ import static org.junit.Assert.*;
 
 public class ConnectionTest extends BaseTest {
 
+    @BeforeClass()
+    public static void initClass() throws SQLException {
+        createTable("dummy", "a BLOB");
+    }
 
     /**
      * CONJ-166
@@ -41,20 +46,25 @@ public class ConnectionTest extends BaseTest {
     @Test
     public void getPropertiesTest() throws SQLException {
         String params = "&useFractionalSeconds=true&allowMultiQueries=true&useCompression=false";
-        setConnection(params);
-        Properties properties = connection.getClientInfo();
-        assertTrue(properties != null);
-        assertTrue(properties.size() > 0);
-        assertTrue(properties.getProperty("user").equalsIgnoreCase(username));
-        // assertTrue(properties.getProperty("password").equalsIgnoreCase(password));
-        assertTrue(properties.getProperty("useFractionalSeconds").equalsIgnoreCase("true"));
-        assertTrue(properties.getProperty("allowMultiQueries").equalsIgnoreCase("true"));
-        assertTrue(properties.getProperty("useCompression").equalsIgnoreCase("false"));
-        assertEquals(username, connection.getClientInfo("user"));
-        // assertEquals(null, connection.getClientInfo("password"));
-        assertEquals("true", connection.getClientInfo("useFractionalSeconds"));
-        assertEquals("true", connection.getClientInfo("allowMultiQueries"));
-        assertEquals("false", connection.getClientInfo("useCompression"));
+        Connection connection = null;
+        try {
+            connection = setConnection(params);
+            Properties properties = connection.getClientInfo();
+            assertTrue(properties != null);
+            assertTrue(properties.size() > 0);
+            assertTrue(properties.getProperty("user").equalsIgnoreCase(username));
+            // assertTrue(properties.getProperty("password").equalsIgnoreCase(password));
+            assertTrue(properties.getProperty("useFractionalSeconds").equalsIgnoreCase("true"));
+            assertTrue(properties.getProperty("allowMultiQueries").equalsIgnoreCase("true"));
+            assertTrue(properties.getProperty("useCompression").equalsIgnoreCase("false"));
+            assertEquals(username, connection.getClientInfo("user"));
+            // assertEquals(null, connection.getClientInfo("password"));
+            assertEquals("true", connection.getClientInfo("useFractionalSeconds"));
+            assertEquals("true", connection.getClientInfo("allowMultiQueries"));
+            assertEquals("false", connection.getClientInfo("useCompression"));
+        } finally {
+            connection.close();
+        }
     }
 
     /**
@@ -65,33 +75,39 @@ public class ConnectionTest extends BaseTest {
      */
     @Test
     public void abortTest() throws SQLException {
-        Statement stmt = connection.createStatement();
-        SQLPermission sqlPermission = new SQLPermission("callAbort");
-
-        SecurityManager securityManager = System.getSecurityManager();
-        if (securityManager != null && sqlPermission != null) {
-            try {
-                securityManager.checkPermission(sqlPermission);
-            } catch (SecurityException se) {
-                log.info("test 'abortTest' skipped  due to missing policy");
-                return;
-            }
-        }
-        Executor executor = new Executor() {
-            @Override
-            public void execute(Runnable command) {
-                command.run();
-            }
-        };
-        connection.abort(executor);
-        assertTrue(connection.isClosed());
+        Connection connection = null;
         try {
-            stmt.executeQuery("SELECT 1");
-            assertTrue(false);
-        } catch (SQLException sqle) {
-            assertTrue(true);
+            connection = setConnection();
+            Statement stmt = connection.createStatement();
+            SQLPermission sqlPermission = new SQLPermission("callAbort");
+
+            SecurityManager securityManager = System.getSecurityManager();
+            if (securityManager != null && sqlPermission != null) {
+                try {
+                    securityManager.checkPermission(sqlPermission);
+                } catch (SecurityException se) {
+                    log.info("test 'abortTest' skipped  due to missing policy");
+                    return;
+                }
+            }
+            Executor executor = new Executor() {
+                @Override
+                public void execute(Runnable command) {
+                    command.run();
+                }
+            };
+            connection.abort(executor);
+            assertTrue(connection.isClosed());
+            try {
+                stmt.executeQuery("SELECT 1");
+                assertTrue(false);
+            } catch (SQLException sqle) {
+                assertTrue(true);
+            } finally {
+                stmt.close();
+            }
         } finally {
-            stmt.close();
+            connection.close();
         }
     }
 
@@ -102,39 +118,45 @@ public class ConnectionTest extends BaseTest {
      */
     @Test
     public void networkTimeoutTest() throws SQLException {
-        int timeout = 1000;
-        SQLPermission sqlPermission = new SQLPermission("setNetworkTimeout");
-        SecurityManager securityManager = System.getSecurityManager();
-        if (securityManager != null && sqlPermission != null) {
+        Connection connection = null;
+        try {
+            connection = setConnection();
+            int timeout = 1000;
+            SQLPermission sqlPermission = new SQLPermission("setNetworkTimeout");
+            SecurityManager securityManager = System.getSecurityManager();
+            if (securityManager != null && sqlPermission != null) {
+                try {
+                    securityManager.checkPermission(sqlPermission);
+                } catch (SecurityException se) {
+                    log.warn("test 'setNetworkTimeout' skipped  due to missing policy");
+                    return;
+                }
+            }
+            Executor executor = new Executor() {
+                @Override
+                public void execute(Runnable command) {
+                    command.run();
+                }
+            };
             try {
-                securityManager.checkPermission(sqlPermission);
-            } catch (SecurityException se) {
-                log.warn("test 'setNetworkTimeout' skipped  due to missing policy");
-                return;
+                connection.setNetworkTimeout(executor, timeout);
+            } catch (SQLException sqlex) {
+                assertTrue(false);
             }
-        }
-        Executor executor = new Executor() {
-            @Override
-            public void execute(Runnable command) {
-                command.run();
+            try {
+                int networkTimeout = connection.getNetworkTimeout();
+                assertEquals(timeout, networkTimeout);
+            } catch (SQLException sqlex) {
+                assertTrue(false);
             }
-        };
-        try {
-            connection.setNetworkTimeout(executor, timeout);
-        } catch (SQLException sqlex) {
-            assertTrue(false);
-        }
-        try {
-            int networkTimeout = connection.getNetworkTimeout();
-            assertEquals(timeout, networkTimeout);
-        } catch (SQLException sqlex) {
-            assertTrue(false);
-        }
-        try {
-            connection.createStatement().execute("select sleep(2)");
-            fail("Network timeout is " + timeout / 1000 + "sec, but slept for 2sec");
-        } catch (SQLException sqlex) {
-            assertTrue(connection.isClosed());
+            try {
+                connection.createStatement().execute("select sleep(2)");
+                fail("Network timeout is " + timeout / 1000 + "sec, but slept for 2sec");
+            } catch (SQLException sqlex) {
+                assertTrue(connection.isClosed());
+            }
+        } finally {
+            connection.close();
         }
     }
 
@@ -144,10 +166,9 @@ public class ConnectionTest extends BaseTest {
      * @throws SQLException
      */
     @Test
-    public void isValid_shouldThrowExceptionWithNegativeTimeout()
-            throws SQLException {
+    public void isValid_shouldThrowExceptionWithNegativeTimeout() throws SQLException {
         try {
-            connection.isValid(-1);
+            sharedConnection.isValid(-1);
             fail("The above row should have thrown an SQLException");
         } catch (SQLException sqlex) {
             assertTrue(sqlex.getMessage().contains("negative"));
@@ -162,8 +183,7 @@ public class ConnectionTest extends BaseTest {
      */
     @Test
     public void checkMaxAllowedPacket() throws Throwable, SQLException, UnsupportedEncodingException {
-        Statement statement = connection.createStatement();
-        createTestTable("dummy", "a BLOB");
+        Statement statement = sharedConnection.createStatement();
         ResultSet rs = statement.executeQuery("show variables like 'max_allowed_packet'");
         rs.next();
         int maxAllowedPacket = rs.getInt(2);
@@ -194,7 +214,7 @@ public class ConnectionTest extends BaseTest {
         statement.execute("select count(*) from dummy"); //check that the connection is still working
 
         /**added in CONJ-151 to check the 2 differents type of query implementation**/
-        PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO dummy VALUES (?)");
+        PreparedStatement preparedStatement = sharedConnection.prepareStatement("INSERT INTO dummy VALUES (?)");
         try {
             byte[] arr = new byte[maxAllowedPacket + 1000];
             Arrays.fill(arr, (byte) 'a');
@@ -218,7 +238,7 @@ public class ConnectionTest extends BaseTest {
 
     @Test
     public void isValid_testWorkingConnection() throws SQLException {
-        assertTrue(connection.isValid(0));
+        assertTrue(sharedConnection.isValid(0));
     }
 
     /**
@@ -228,9 +248,15 @@ public class ConnectionTest extends BaseTest {
      */
     @Test
     public void isValid_closedConnection() throws SQLException {
-        connection.close();
-        boolean isValid = connection.isValid(0);
-        assertFalse(isValid);
+        Connection connection = null;
+        try {
+            connection = setConnection();
+            connection.close();
+            boolean isValid = connection.isValid(0);
+            assertFalse(isValid);
+        } finally {
+            connection.close();
+        }
     }
 
     /**
@@ -240,15 +266,19 @@ public class ConnectionTest extends BaseTest {
      * @throws InterruptedException
      */
     @Test
-    public void isValid_connectionThatTimesOutByServer() throws SQLException,
-            InterruptedException {
-        Statement statement = connection.createStatement();
-        statement.execute("set session wait_timeout=1");
-        Thread.sleep(3000); // Wait for the server to kill the connection
-        boolean isValid = connection.isValid(0);
-        assertFalse(isValid);
-        statement.close();
-        setConnection();
+    public void isValid_connectionThatTimesOutByServer() throws SQLException, InterruptedException {
+        Connection connection = null;
+        try {
+            connection = setConnection();
+            Statement statement = connection.createStatement();
+            statement.execute("set session wait_timeout=1");
+            Thread.sleep(3000); // Wait for the server to kill the connection
+            boolean isValid = connection.isValid(0);
+            assertFalse(isValid);
+            statement.close();
+        } finally {
+            connection.close();
+        }
     }
 
 }

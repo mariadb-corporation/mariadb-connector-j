@@ -1,5 +1,6 @@
 package org.mariadb.jdbc;
 
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.sql.*;
@@ -8,6 +9,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class MySQLCompatibilityTest extends BaseTest {
+    @BeforeClass()
+    public static void initClass() throws SQLException {
+        createTable("datatypesTest", "type_longvarchar TEXT NULL");
+        createTable("mysqlcompatibilitytest", "id int not null primary key auto_increment, test bit(1)");
+    }
 
     /**
      * CONJ-82: data type LONGVARCHAR not supported in setObject()
@@ -16,9 +22,8 @@ public class MySQLCompatibilityTest extends BaseTest {
      */
     @Test
     public void datatypesTest() throws SQLException {
-        Statement stmt = connection.createStatement();
-        createTestTable("datatypesTest","type_longvarchar TEXT NULL");
-        PreparedStatement preparedStmt = connection.prepareStatement("INSERT INTO `datatypesTest` (`type_longvarchar`) VALUES ( ? )");
+        Statement stmt = sharedConnection.createStatement();
+        PreparedStatement preparedStmt = sharedConnection.prepareStatement("INSERT INTO `datatypesTest` (`type_longvarchar`) VALUES ( ? )");
         preparedStmt.setObject(1, "longvarcharTest", Types.LONGVARCHAR);
         preparedStmt.executeUpdate();
         preparedStmt.close();
@@ -36,8 +41,7 @@ public class MySQLCompatibilityTest extends BaseTest {
      */
     @Test
     public void testBitConj102() throws SQLException {
-        Statement stmt = connection.createStatement();
-        createTestTable("mysqlcompatibilitytest","id int not null primary key auto_increment, test bit(1)");
+        Statement stmt = sharedConnection.createStatement();
         stmt.execute("insert into mysqlcompatibilitytest values(null, b'0')");
         stmt.execute("insert into mysqlcompatibilitytest values(null, b'1')");
         ResultSet rs = stmt.executeQuery("select * from mysqlcompatibilitytest");

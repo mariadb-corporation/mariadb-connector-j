@@ -2,6 +2,7 @@ package org.mariadb.jdbc;
 
 
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import javax.sql.XAConnection;
@@ -16,6 +17,11 @@ import java.util.UUID;
 import static org.junit.Assert.*;
 
 public class XA extends BaseTest {
+
+    @BeforeClass()
+    public static void initClass() throws SQLException {
+        createTable("xatable","i int","ENGINE=InnoDB");
+    }
 
     MySQLDataSource dataSource;
 
@@ -49,7 +55,7 @@ public class XA extends BaseTest {
      */
     void test2PC(boolean doCommit) throws Exception {
 
-        createTestTable("xatable","i int","ENGINE=InnoDB");
+
 
         int N = 1;
 
@@ -93,7 +99,7 @@ public class XA extends BaseTest {
 
 
             // check the completion
-            ResultSet rs = connection.createStatement().executeQuery("SELECT * from xatable order by i");
+            ResultSet rs = sharedConnection.createStatement().executeQuery("SELECT * from xatable order by i");
             if (doCommit) {
                 for (int i = 0; i < N; i++) {
                     rs.next();

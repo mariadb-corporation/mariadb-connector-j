@@ -1,6 +1,7 @@
 package org.mariadb.jdbc;
 
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.sql.*;
@@ -8,13 +9,19 @@ import java.sql.*;
 import static org.junit.Assert.assertEquals;
 
 public class ResultSetMetaDataTest extends BaseTest {
+    @BeforeClass()
+    public static void initClass() throws SQLException {
+        createTable("test_rsmd", "id_col int not null primary key auto_increment, "
+                + "nullable_col varchar(20),unikey_col int unique, char_col char(10), us  smallint unsigned");
+        createTable("t1", "id int, name varchar(20)");
+        createTable("t2", "id int, name varchar(20)");
+        createTable("t3", "id int, name varchar(20)");
+    }
 
     @Test
     public void metaDataTest() throws SQLException {
         requireMinimumVersion(5, 0);
-        Statement stmt = connection.createStatement();
-        createTestTable("test_rsmd","id_col int not null primary key auto_increment, "
-                + "nullable_col varchar(20),unikey_col int unique, char_col char(10), us  smallint unsigned");
+        Statement stmt = sharedConnection.createStatement();
         stmt.execute("insert into test_rsmd (id_col,nullable_col,unikey_col) values (null, 'hej', 9)");
         ResultSet rs = stmt
                 .executeQuery("select id_col, nullable_col, unikey_col as something, char_col,us from test_rsmd");
@@ -35,7 +42,7 @@ public class ResultSetMetaDataTest extends BaseTest {
         assertEquals(Types.CHAR, rsmd.getColumnType(4));
         assertEquals(Types.SMALLINT, rsmd.getColumnType(5));
 
-        DatabaseMetaData md = connection.getMetaData();
+        DatabaseMetaData md = sharedConnection.getMetaData();
         ResultSet cols = md.getColumns(null, null, "test\\_rsmd", null);
         cols.next();
         assertEquals("id_col", cols.getString("COLUMN_NAME"));
@@ -53,7 +60,7 @@ public class ResultSetMetaDataTest extends BaseTest {
     @Test
     public void conj17() throws Exception {
         requireMinimumVersion(5, 0);
-        ResultSet rs = connection.createStatement().executeQuery(
+        ResultSet rs = sharedConnection.createStatement().executeQuery(
                 "select count(*),1 from information_schema.tables");
         rs.next();
         assertEquals(rs.getMetaData().getColumnName(1), "count(*)");
@@ -63,13 +70,11 @@ public class ResultSetMetaDataTest extends BaseTest {
     @Test
     public void conj84() throws Exception {
         requireMinimumVersion(5, 0);
-        Statement stmt = connection.createStatement();
+        Statement stmt = sharedConnection.createStatement();
 
-        createTestTable("t1","id int, name varchar(20)");
-        createTestTable("t2","id int, name varchar(20)");
         stmt.execute("INSERT INTO t1 VALUES (1, 'foo')");
         stmt.execute("INSERT INTO t2 VALUES (2, 'bar')");
-        ResultSet rs = connection.createStatement().executeQuery(
+        ResultSet rs = sharedConnection.createStatement().executeQuery(
                 "select t1.*, t2.* FROM t1 join t2");
         rs.next();
         assertEquals(rs.findColumn("id"), 1);
@@ -87,32 +92,35 @@ public class ResultSetMetaDataTest extends BaseTest {
      */
     @Test
     public void tableNameTest() throws Exception {
-        createTestTable("t1","id int, name varchar(20)");
-        ResultSet rs = connection.createStatement().executeQuery(
-                "SELECT id AS id_alias FROM t1 AS t1_alias");
+        ResultSet rs = sharedConnection.createStatement().executeQuery(
+                "SELECT id AS id_alias FROM t3 AS t1_alias");
         ResultSetMetaData rsmd = rs.getMetaData();
 
         // this should return the original name of the table, not the alias
         logInfo(rsmd.getTableName(1));
-        Assert.assertEquals(rsmd.getTableName(1), "t1");
+        Assert.assertEquals(rsmd.getTableName(1), "t3");
 
         Assert.assertEquals(rsmd.getColumnLabel(1), "id_alias");
         Assert.assertEquals(rsmd.getColumnName(1), "id");
 
         // add useOldAliasMetadataBehavior to get the alias instead of the real
         // table name
-        setConnection("&useOldAliasMetadataBehavior=true");
+        Connection connection = null;
+        try {
+            connection = setConnection("&useOldAliasMetadataBehavior=true");
 
-        rs = connection.createStatement().executeQuery(
-                "SELECT id AS id_alias FROM t1 AS t1_alias");
-        rsmd = rs.getMetaData();
+            rs = connection.createStatement().executeQuery(
+                    "SELECT id AS id_alias FROM t3 AS t1_alias");
+            rsmd = rs.getMetaData();
 
-        // this should return the alias name of the table, i.e. old behavior
-        logInfo(rsmd.getTableName(1));
-        Assert.assertEquals(rsmd.getTableName(1), "t1_alias");
-        Assert.assertEquals(rsmd.getColumnLabel(1), "id_alias");
-        Assert.assertEquals(rsmd.getColumnName(1), "id_alias");
-
+            // this should return the alias name of the table, i.e. old behavior
+            logInfo(rsmd.getTableName(1));
+            Assert.assertEquals(rsmd.getTableName(1), "t1_alias");
+            Assert.assertEquals(rsmd.getColumnLabel(1), "id_alias");
+            Assert.assertEquals(rsmd.getColumnName(1), "id_alias");
+        } finally {
+            connection.close();
+        }
     }
 
 }

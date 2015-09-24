@@ -2,6 +2,7 @@ package org.mariadb.jdbc;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.sql.*;
@@ -9,19 +10,15 @@ import java.sql.*;
 import static org.junit.Assert.*;
 
 public class GeneratedKeysTest extends BaseTest {
-
-    private Statement statement;
-    private PreparedStatement preparedStatement;
-
-
-    @Before
-    public void setUp() throws SQLException {
-        statement = connection.createStatement();
-        createTestTable("gen_key_test", "id INTEGER NOT NULL AUTO_INCREMENT, name VARCHAR(100), PRIMARY KEY (id)");
+    @BeforeClass()
+    public static void initClass() throws SQLException {
+        createTable("gen_key_test", "id INTEGER NOT NULL AUTO_INCREMENT, name VARCHAR(100), PRIMARY KEY (id)");
     }
 
     @Test
     public void testSimpleGeneratedKeys() throws SQLException {
+        Statement statement = sharedConnection.createStatement();
+        statement.execute("truncate gen_key_test");
         statement.executeUpdate("INSERT INTO gen_key_test (id, name) VALUES (null, 'Dave')", Statement.RETURN_GENERATED_KEYS);
 
         ResultSet resultSet = statement.getGeneratedKeys();
@@ -31,7 +28,8 @@ public class GeneratedKeysTest extends BaseTest {
 
     @Test
     public void testSimpleGeneratedKeysWithPreparedStatement() throws SQLException {
-        preparedStatement = connection.prepareStatement(
+        sharedConnection.createStatement().execute("truncate gen_key_test");
+        PreparedStatement preparedStatement = sharedConnection.prepareStatement(
                 "INSERT INTO gen_key_test (id, name) VALUES (null, ?)",
                 Statement.RETURN_GENERATED_KEYS);
 
@@ -45,6 +43,8 @@ public class GeneratedKeysTest extends BaseTest {
 
     @Test
     public void testGeneratedKeysInsertOnDuplicateUpdate() throws SQLException {
+        Statement statement = sharedConnection.createStatement();
+        statement.execute("truncate gen_key_test");
         statement.execute("INSERT INTO gen_key_test (id, name) VALUES (null, 'Dave')");
 
         statement.executeUpdate(

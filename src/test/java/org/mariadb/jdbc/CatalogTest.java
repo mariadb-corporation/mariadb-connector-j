@@ -1,5 +1,6 @@
 package org.mariadb.jdbc;
 
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.sql.SQLException;
@@ -9,32 +10,31 @@ import static org.junit.Assert.assertEquals;
 
 public class CatalogTest extends BaseTest {
 
-    public CatalogTest() {
-    }
 
     @Test
     public void catalogTest() throws SQLException {
-        Statement stmt = connection.createStatement();
+        Statement stmt = sharedConnection.createStatement();
         stmt.executeUpdate("drop database if exists cattest1");
         stmt.executeUpdate("create database cattest1");
-        connection.setCatalog("cattest1");
-        assertEquals("cattest1", connection.getCatalog());
+        sharedConnection.setCatalog("cattest1");
+        assertEquals("cattest1", sharedConnection.getCatalog());
         stmt.executeUpdate("drop database if exists cattest1");
+        sharedConnection.setCatalog(database);
     }
 
     @Test(expected = SQLException.class)
     public void catalogTest2() throws SQLException {
-        connection.setCatalog(null);
+        sharedConnection.setCatalog(null);
     }
 
     @Test(expected = SQLException.class)
     public void catalogTest3() throws SQLException {
-        connection.setCatalog("Non-existent catalog");
+        sharedConnection.setCatalog("Non-existent catalog");
     }
 
     @Test(expected = SQLException.class)
     public void catalogTest4() throws SQLException {
-        connection.setCatalog("");
+        sharedConnection.setCatalog("");
     }
 
     @Test
@@ -44,13 +44,14 @@ public class CatalogTest extends BaseTest {
 
         String[] weirdDbNames = new String[]{"abc 123", "\"", "`"};
         for (String name : weirdDbNames) {
-            Statement stmt = connection.createStatement();
+            Statement stmt = sharedConnection.createStatement();
             stmt.execute("drop database if exists " + MySQLConnection.quoteIdentifier(name));
             stmt.execute("create database " + MySQLConnection.quoteIdentifier(name));
-            connection.setCatalog(name);
-            assertEquals(name, connection.getCatalog());
+            sharedConnection.setCatalog(name);
+            assertEquals(name, sharedConnection.getCatalog());
             stmt.execute("drop database if exists " + MySQLConnection.quoteIdentifier(name));
             stmt.close();
+            sharedConnection.setCatalog(database);
         }
     }
 }

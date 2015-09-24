@@ -2,6 +2,7 @@ package org.mariadb.jdbc;
 
 
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.sql.*;
@@ -11,6 +12,18 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.*;
 
 public class CallableStatementTest extends BaseTest {
+
+    @BeforeClass()
+    public static void initClass() throws SQLException {
+        createProcedure("withResultSet", "(a int) begin select a; end");
+        createProcedure("useParameterName", "(a int) begin select a; end");
+        createProcedure("useWrongParameterName", "(a int) begin select a; end");
+        createProcedure("multiResultSets", "() BEGIN  SELECT 1; SELECT 2; END");
+        createProcedure("inoutParam", "(INOUT p1 INT) begin set p1 = p1 + 1; end\n");
+        createProcedure("testGetProcedures", "(INOUT p1 INT) begin set p1 = p1 + 1; end\n");
+        createProcedure("withStrangeParameter", "(IN a DECIMAL(10,2)) begin select a; end");
+    }
+
     @Before
     public void checkSP() throws SQLException {
         requireMinimumVersion(5, 0);
@@ -18,7 +31,7 @@ public class CallableStatementTest extends BaseTest {
 
     @Test
     public void CallSimple() throws SQLException {
-        CallableStatement st = connection.prepareCall("{?=call pow(?,?)}");
+        CallableStatement st = sharedConnection.prepareCall("{?=call pow(?,?)}");
         st.setInt(2, 2);
         st.setInt(3, 2);
         st.execute();
@@ -27,24 +40,11 @@ public class CallableStatementTest extends BaseTest {
 
     }
 
-    private void create(String objType, String name, String body) throws SQLException {
-        Statement st = connection.createStatement();
-        try {
-            st.execute("drop " + objType + " " + name);
-        } catch (Exception e) {
-            // eat exception
-        }
-        st.execute("create  " + objType + " " + name + body);
-    }
 
-    private void createProcedure(String name, String body) throws SQLException {
-        create("procedure", name, body);
-    }
 
     @Test
     public void withResultSet() throws Exception {
-        createProcedure("withResultSet", "(a int) begin select a; end");
-        CallableStatement stmt = connection.prepareCall("{call withResultSet(?)}");
+        CallableStatement stmt = sharedConnection.prepareCall("{call withResultSet(?)}");
         stmt.setInt(1, 1);
         ResultSet rs = stmt.executeQuery();
         rs.next();
@@ -54,8 +54,7 @@ public class CallableStatementTest extends BaseTest {
 
     @Test
     public void useParameterName() throws Exception {
-        createProcedure("useParameterName", "(a int) begin select a; end");
-        CallableStatement stmt = connection.prepareCall("{call useParameterName(?)}");
+        CallableStatement stmt = sharedConnection.prepareCall("{call useParameterName(?)}");
         stmt.setInt("a", 1);
         ResultSet rs = stmt.executeQuery();
         rs.next();
@@ -65,8 +64,7 @@ public class CallableStatementTest extends BaseTest {
 
     @Test(expected = SQLException.class)
     public void useWrongParameterName() throws Exception {
-        createProcedure("useWrongParameterName", "(a int) begin select a; end");
-        CallableStatement stmt = connection.prepareCall("{call useParameterName(?)}");
+        CallableStatement stmt = sharedConnection.prepareCall("{call useParameterName(?)}");
         stmt.setInt("b", 1);
         fail("must fail");
     }
@@ -74,8 +72,7 @@ public class CallableStatementTest extends BaseTest {
 
     @Test
     public void multiResultSets() throws Exception {
-        createProcedure("multiResultSets", "() BEGIN  SELECT 1; SELECT 2; END");
-        CallableStatement stmt = connection.prepareCall("{call multiResultSets()}");
+        CallableStatement stmt = sharedConnection.prepareCall("{call multiResultSets()}");
         stmt.execute();
         ResultSet rs = stmt.getResultSet();
         assertTrue(rs.next());
@@ -92,10 +89,8 @@ public class CallableStatementTest extends BaseTest {
     public void inoutParam() throws SQLException {
         CallableStatement storedProc = null;
 
-        createProcedure("inoutParam",
-                "(INOUT p1 INT) begin set p1 = p1 + 1; end\n");
 
-        storedProc = connection.prepareCall("{call inOutParam(?)}");
+        storedProc = sharedConnection.prepareCall("{call inOutParam(?)}");
 
         storedProc.setInt(1, 1);
         storedProc.registerOutParameter(1, Types.INTEGER);
@@ -106,10 +101,8 @@ public class CallableStatementTest extends BaseTest {
     @Test
     public void getProcedures() throws SQLException {
 
-        createProcedure("testGetProcedures",
-                "(INOUT p1 INT) begin set p1 = p1 + 1; end\n");
 
-        ResultSet rs = connection.getMetaData().getProcedures(null, null, "testGetProc%");
+        ResultSet rs = sharedConnection.getMetaData().getProcedures(null, null, "testGetProc%");
 
         ResultSetMetaData md = rs.getMetaData();
 
@@ -127,8 +120,7 @@ public class CallableStatementTest extends BaseTest {
 
     @Test
     public void withStrangeParameter() throws SQLException {
-        createProcedure("withStrangeParameter", "(IN a DECIMAL(10,2)) begin select a; end");
-        CallableStatement stmt = connection.prepareCall("{call withStrangeParameter(?)}");
+        CallableStatement stmt = sharedConnection.prepareCall("{call withStrangeParameter(?)}");
         double expected = 5.43;
         stmt.setDouble("a", expected);
         ResultSet rs = stmt.executeQuery();

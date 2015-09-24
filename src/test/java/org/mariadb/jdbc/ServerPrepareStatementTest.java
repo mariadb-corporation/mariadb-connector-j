@@ -2,6 +2,7 @@ package org.mariadb.jdbc;
 
 import org.junit.Assert;
 import org.junit.Assume;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mariadb.jdbc.internal.common.queryresults.PrepareResult;
 import org.mariadb.jdbc.internal.mysql.Protocol;
@@ -21,146 +22,15 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.Assert.*;
 
 public class ServerPrepareStatementTest extends BaseTest {
-
-    @Test
-    public void ServerExecutionTest() throws SQLException {
-        Statement statement = connection.createStatement();
-        createTestTable("ServerPrepareStatementTest","id int not null primary key auto_increment, test boolean");
-        ResultSet rs = statement.executeQuery("show global status like 'Prepared_stmt_count'");
-        int nbStatementCount = 0;
-        rs.next();
-        if (rs.first()) nbStatementCount = rs.getInt(2);
-
-        PreparedStatement ps = connection.prepareStatement("INSERT INTO ServerPrepareStatementTest (test) VALUES (?)");
-        ps.setBoolean(1, true);
-        ps.addBatch();
-        ps.execute();
-
-        rs = statement.executeQuery("show global status like 'Prepared_stmt_count'");
-        rs.next();
-        assertTrue(rs.getInt(2) == nbStatementCount + 1);
-    }
-
-    @Test
-    public void withoutParameterClientExecutionTest() throws SQLException {
-        Statement statement = connection.createStatement();
-        createTestTable("ServerPrepareStatementTest","id int not null primary key auto_increment, test boolean");
-        ResultSet rs = statement.executeQuery("show global status like 'Prepared_stmt_count'");
-        int nbStatementCount = 0;
-        rs.next();
-        if (rs.first()) nbStatementCount = rs.getInt(2);
-
-        PreparedStatement ps = connection.prepareStatement("INSERT INTO ServerPrepareStatementTest (test) VALUES (1)");
-        ps.addBatch();
-        ps.execute();
-
-        rs = statement.executeQuery("show global status like 'Prepared_stmt_count'");
-        rs.next();
-        assertTrue(rs.getInt(2) == nbStatementCount);
-    }
-
-    @Test
-    public void serverCacheStatementTest() throws Throwable {
-        createTestTable("ServerPrepareStatementTestCache","id int not null primary key auto_increment, test boolean");
-        Protocol protocol = getProtocolFromConnection(connection);
-        int cacheSize = protocol.prepareStatementCache().size();
-        connection.prepareStatement("INSERT INTO ServerPrepareStatementTestCache(test) VALUES (?)");
-        assertTrue(cacheSize + 1 == protocol.prepareStatementCache().size());
-        connection.prepareStatement("INSERT INTO ServerPrepareStatementTestCache(test) VALUES (?)");
-        assertTrue(cacheSize + 1 == protocol.prepareStatementCache().size());
-    }
-
-    @Test
-    public void prepStmtCacheSizeTest1() throws Throwable {
-        BaseTest baseTest = new BaseTest();
-        baseTest.setConnection("&prepStmtCacheSize=10");
-        Connection connection2 = baseTest.connection;
-        setConnection("&prepStmtCacheSize=10");
-
-        Statement statement = connection.createStatement();
-        createTestTable("ServerPrepareStatementCacheSize3","id int not null primary key auto_increment, test boolean");
-
-        ResultSet rs = statement.executeQuery("show global status like 'Prepared_stmt_count'");
-        rs.next();
-        int prepareServerStatement = rs.getInt(2);
-        log.debug("server side : " + prepareServerStatement);
-
-        PreparedStatement ps1 = connection2.prepareStatement("INSERT INTO ServerPrepareStatementCacheSize3(test) VALUES (?)");
-        rs = statement.executeQuery("show global status like 'Prepared_stmt_count'");
-        rs.next();
-        int prepareServerStatement2 = rs.getInt(2);
-        log.debug("server side before closing: " + prepareServerStatement2);
-        assertTrue(prepareServerStatement2 == prepareServerStatement + 1);
-        connection2.close();
-
-        rs = statement.executeQuery("show global status like 'Prepared_stmt_count'");
-        rs.next();
-        int prepareServerStatement3 = rs.getInt(2);
-        log.debug("server side after closing: " + prepareServerStatement3);
-
-        assertTrue(prepareServerStatement3 == prepareServerStatement);
-    }
-
-
-    @Test
-    public void prepStmtCacheSizeTest() throws Throwable {
-        setConnection("&prepStmtCacheSize=10");
-        Statement statement = connection.createStatement();
-        createTestTable("ServerPrepareStatementCacheSize","id int not null primary key auto_increment, test int");
-
-        PreparedStatement[] sts = new PreparedStatement[20];
-        for (int i = 0; i < 20; i++) {
-            String sql = "INSERT INTO ServerPrepareStatementCacheSize(id, test) VALUES (" + (i + 1) + ",?)";
-            log.debug(sql);
-            sts[i] = connection.prepareStatement(sql);
-        }
-        //check max cache size
-        Protocol protocol = getProtocolFromConnection(connection);
-        assertTrue(protocol.prepareStatementCache().size() == 10);
-
-        //check all prepared statement worked even if not cached
-        for (int i = 0; i < 20; i++) {
-            sts[i].setInt(1, i);
-            sts[i].addBatch();
-            sts[i].execute();
-        }
-        assertTrue(protocol.prepareStatementCache().size() == 10);
-        for (int i = 0; i < 20; i++) {
-            sts[i].close();
-        }
-        assertTrue(protocol.prepareStatementCache().size() == 0);
-    }
-
-
-    @Test
-    public void timeFractionnalSecondTest() throws SQLException {
-        setConnection("&useFractionalSeconds=false");
-        Statement statement = connection.createStatement();
-        createTestTable("preparetestFactionnal","time0 TIME(6) default '22:11:00'");
-
-        Time time0 = new Time(55549392);
-        Time time1 = new Time(55549000);
-
-        PreparedStatement ps = connection.prepareStatement("INSERT INTO preparetestFactionnal (time0) VALUES (?)");
-        ps.setTime(1, time0);
-        ps.addBatch();
-        ps.setTime(1, time1);
-        ps.addBatch();
-        ps.executeBatch();
-
-        ResultSet rs = connection.createStatement().executeQuery("SELECT * from preparetestFactionnal");
-        rs.next();
-        //must be equal to time1 and not time0
-        assertEquals(rs.getTime(1), time1);
-        rs.next();
-        assertEquals(rs.getTime(1), time1);
-
-    }
-
-    @Test
-    public void dataConformityTest() throws SQLException {
-        Statement statement = connection.createStatement();
-        createTestTable("preparetest",
+    @BeforeClass()
+    public static void initClass() throws SQLException {
+        createTable("ServerPrepareStatementTest", "id int not null primary key auto_increment, test boolean");
+        createTable("ServerPrepareStatementTestt", "id int not null primary key auto_increment, test boolean");
+        createTable("ServerPrepareStatementTestCache", "id int not null primary key auto_increment, test boolean");
+        createTable("ServerPrepareStatementCacheSize3", "id int not null primary key auto_increment, test boolean");
+        createTable("ServerPrepareStatementCacheSize", "id int not null primary key auto_increment, test int");
+        createTable("preparetestFactionnal", "time0 TIME(6) default '22:11:00'");
+        createTable("preparetest",
                 "bit1 BIT(1)," +
                         "bit2 BIT(2)," +
                         "tinyint1 TINYINT(1)," +
@@ -193,7 +63,161 @@ public class ServerPrepareStatementTest extends BaseTest {
                         "binary0 BINARY(10) default 0x1," +
                         "varbinary0 VARBINARY(10) default 0x1"
         );
+        createTable("ServerPrepareStatementCacheSize2", "id int not null primary key auto_increment, test boolean");
+        createTable("ServerPrepareStatementCacheSize3", "id int not null primary key auto_increment, test blob");
+        createTable("ServerPrepareStatementParameters", "id int, id2 int");
+        createTable("ServerPrepareStatementCacheSize4", "id int not null primary key auto_increment, test LONGBLOB", "ROW_FORMAT=COMPRESSED ENGINE=INNODB");
 
+        createTable("streamtest2", "id int primary key not null, strm text");
+
+    }
+    
+
+    @Test
+    public void ServerExecutionTest() throws SQLException {
+        Connection connection = null;
+        try {
+            connection = setConnection();
+            Statement statement = connection.createStatement();
+            ResultSet rs = statement.executeQuery("show global status like 'Prepared_stmt_count'");
+            assertTrue(rs.next());
+            int nbStatementCount = rs.getInt(2);
+
+            PreparedStatement ps = connection.prepareStatement("INSERT INTO ServerPrepareStatementTestt (test) VALUES (?)");
+            ps.setBoolean(1, true);
+            ps.addBatch();
+            ps.execute();
+
+            rs = statement.executeQuery("show global status like 'Prepared_stmt_count'");
+            assertTrue(rs.next());
+            System.out.println("rs.getInt(2) = " + rs.getInt(2));
+            assertTrue(rs.getInt(2) == nbStatementCount + 1);
+        } finally {
+            connection.close();
+        }
+    }
+
+    @Test
+    public void withoutParameterClientExecutionTest() throws SQLException {
+        Connection connection = null;
+        try {
+            connection = setConnection();
+            Statement statement = connection.createStatement();
+            ResultSet rs = statement.executeQuery("show global status like 'Prepared_stmt_count'");
+            assertTrue(rs.next());
+            int nbStatementCount = rs.getInt(2);
+
+            PreparedStatement ps = connection.prepareStatement("INSERT INTO ServerPrepareStatementTest (test) VALUES (1)");
+            ps.addBatch();
+            ps.execute();
+
+            rs = statement.executeQuery("show global status like 'Prepared_stmt_count'");
+            assertTrue(rs.next());
+            System.out.println("client : rs.getInt(2) = " + rs.getInt(2));
+            assertTrue(rs.getInt(2) == nbStatementCount);
+        } finally {
+            connection.close();
+        }
+    }
+
+    @Test
+    public void serverCacheStatementTest() throws Throwable {
+        Protocol protocol = getProtocolFromConnection(sharedConnection);
+        int cacheSize = protocol.prepareStatementCache().size();
+        sharedConnection.prepareStatement("INSERT INTO ServerPrepareStatementTestCache(test) VALUES (?)");
+        assertTrue(cacheSize + 1 == protocol.prepareStatementCache().size());
+        sharedConnection.prepareStatement("INSERT INTO ServerPrepareStatementTestCache(test) VALUES (?)");
+        assertTrue(cacheSize + 1 == protocol.prepareStatementCache().size());
+    }
+
+    @Test
+    public void prepStmtCacheSizeTest1() throws Throwable {
+        Connection connection = null;
+        try {
+            connection = setConnection("&prepStmtCacheSize=10");
+
+            Statement statement = connection.createStatement();
+
+            ResultSet rs = statement.executeQuery("show global status like 'Prepared_stmt_count'");
+            rs.next();
+            int prepareServerStatement = rs.getInt(2);
+            log.debug("server side : " + prepareServerStatement);
+
+            PreparedStatement ps1 = connection.prepareStatement("INSERT INTO ServerPrepareStatementCacheSize3(test) VALUES (?)");
+            rs = statement.executeQuery("show global status like 'Prepared_stmt_count'");
+            rs.next();
+            int prepareServerStatement2 = rs.getInt(2);
+            log.debug("server side before closing: " + prepareServerStatement2);
+            assertTrue(prepareServerStatement2 == prepareServerStatement + 1);
+
+        } finally {
+            connection.close();
+        }
+    }
+
+
+    @Test
+    public void prepStmtCacheSizeTest() throws Throwable {
+        Connection connection = null;
+        try {
+            connection = setConnection("&prepStmtCacheSize=10");
+            PreparedStatement[] sts = new PreparedStatement[20];
+            for (int i = 0; i < 20; i++) {
+                String sql = "INSERT INTO ServerPrepareStatementCacheSize(id, test) VALUES (" + (i + 1) + ",?)";
+                log.debug(sql);
+                sts[i] = connection.prepareStatement(sql);
+            }
+            //check max cache size
+            Protocol protocol = getProtocolFromConnection(connection);
+            assertTrue(protocol.prepareStatementCache().size() == 10);
+
+            //check all prepared statement worked even if not cached
+            for (int i = 0; i < 20; i++) {
+                sts[i].setInt(1, i);
+                sts[i].addBatch();
+                sts[i].execute();
+            }
+            assertTrue(protocol.prepareStatementCache().size() == 10);
+            for (int i = 0; i < 20; i++) {
+                sts[i].close();
+            }
+            assertTrue(protocol.prepareStatementCache().size() == 0);
+        } finally {
+            connection.close();
+        }
+    }
+
+
+    @Test
+    public void timeFractionnalSecondTest() throws SQLException {
+        Connection connection = null;
+        try {
+            connection = setConnection("&useFractionalSeconds=false");
+            Time time0 = new Time(55549392);
+            Time time1 = new Time(55549000);
+
+            PreparedStatement ps = connection.prepareStatement("INSERT INTO preparetestFactionnal (time0) VALUES (?)");
+            ps.setTime(1, time0);
+            ps.addBatch();
+            ps.setTime(1, time1);
+            ps.addBatch();
+            ps.executeBatch();
+
+            ResultSet rs = connection.createStatement().executeQuery("SELECT * from preparetestFactionnal");
+            rs.next();
+            //must be equal to time1 and not time0
+            assertEquals(rs.getTime(1), time1);
+            rs.next();
+            assertEquals(rs.getTime(1), time1);
+        } finally {
+            connection.close();
+        }
+
+    }
+
+    @Test
+    public void dataConformityTest() throws SQLException {
+        sharedConnection.createStatement().execute("truncate preparetest");
         boolean bit1 = Boolean.FALSE;
         byte bit2 = (byte) 3;
         byte tinyint1 = (byte) 127;
@@ -230,7 +254,7 @@ public class ServerPrepareStatementTest extends BaseTest {
         String varchar_binary = "\b";
         byte[] binary0 = "1234567890".getBytes();
         byte[] varbinary0 = "azerty".getBytes();
-        PreparedStatement ps = connection.prepareStatement("INSERT INTO preparetest (bit1,bit2,tinyint1,tinyint2,bool0,smallint0,smallint_unsigned,mediumint0,mediumint_unsigned,int0," +
+        PreparedStatement ps = sharedConnection.prepareStatement("INSERT INTO preparetest (bit1,bit2,tinyint1,tinyint2,bool0,smallint0,smallint_unsigned,mediumint0,mediumint_unsigned,int0," +
                 "int_unsigned,bigint0,bigint_unsigned, float0, double0, decimal0,decimal1, date0,datetime0, timestamp0,timestamp1,timestamp_zero, time0," +
                 "year2,year4,char0, char_binary, varchar0, varchar_binary, binary0, varbinary0)  " +
                 "VALUES (?,?,?,?,?,?,?,?,?,?," +
@@ -270,7 +294,7 @@ public class ServerPrepareStatementTest extends BaseTest {
 
         ps.addBatch();
         ps.executeBatch();
-        ResultSet rs = connection.createStatement().executeQuery("SELECT * from preparetest");
+        ResultSet rs = sharedConnection.createStatement().executeQuery("SELECT * from preparetest");
         rs.next();
         assertEquals(rs.getBoolean(1), bit1);
         assertEquals(rs.getByte(2), bit2);
@@ -313,8 +337,6 @@ public class ServerPrepareStatementTest extends BaseTest {
         assertEquals(rs.getString(27), char_binary);
         assertEquals(rs.getString(28), varchar0);
         assertEquals(rs.getString(29), varchar_binary);
-
-
         assertEquals(new String(rs.getBytes(30), StandardCharsets.UTF_8), new String(binary0, StandardCharsets.UTF_8));
         assertEquals(new String(rs.getBytes(31), StandardCharsets.UTF_8), new String(varbinary0, StandardCharsets.UTF_8));
 
@@ -324,13 +346,12 @@ public class ServerPrepareStatementTest extends BaseTest {
     @Test
     public void checkReusability() throws Throwable {
         setConnection("&prepStmtCacheSize=10");
-        createTestTable("ServerPrepareStatementCacheSize2","id int not null primary key auto_increment, test boolean");
 
         ExecutorService exec = Executors.newFixedThreadPool(2);
 
         //check blacklist shared
-        exec.execute(new CreatePrepareDouble("INSERT INTO ServerPrepareStatementCacheSize2( test) VALUES (?)", connection, 100, 100));
-        exec.execute(new CreatePrepareDouble("INSERT INTO ServerPrepareStatementCacheSize2( test) VALUES (?)", connection, 500, 100));
+        exec.execute(new CreatePrepareDouble("INSERT INTO ServerPrepareStatementCacheSize2( test) VALUES (?)", sharedConnection, 100, 100));
+        exec.execute(new CreatePrepareDouble("INSERT INTO ServerPrepareStatementCacheSize2( test) VALUES (?)", sharedConnection, 500, 100));
         //wait for thread endings
         exec.shutdown();
         try {
@@ -341,50 +362,48 @@ public class ServerPrepareStatementTest extends BaseTest {
 
     @Test
     public void blobTest() throws Throwable {
-        BaseTest baseTest = new BaseTest();
-        baseTest.setConnection("&prepStmtCacheSize=10");
-        createTestTable("ServerPrepareStatementCacheSize3","id int not null primary key auto_increment, test blob");
+        Connection connection = null;
+        try {
+            connection = setConnection("&prepStmtCacheSize=10");
 
-        PreparedStatement ps = connection.prepareStatement("INSERT INTO ServerPrepareStatementCacheSize3(test) VALUES (?)");
-        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-        InputStream input = classLoader.getResourceAsStream("logback.xml");
+            PreparedStatement ps = connection.prepareStatement("INSERT INTO ServerPrepareStatementCacheSize3(test) VALUES (?)");
+            ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+            InputStream input = classLoader.getResourceAsStream("logback.xml");
 
-        ps.setBlob(1, input);
-        ps.addBatch();
-        ps.executeBatch();
+            ps.setBlob(1, input);
+            ps.addBatch();
+            ps.executeBatch();
+        } finally {
+            connection.close();
+        }
     }
 
     @Test
     public void readerTest() throws Throwable {
-        BaseTest baseTest = new BaseTest();
-        baseTest.setConnection("&prepStmtCacheSize=10");
+        Connection connection = null;
+        try {
+            connection = setConnection("&prepStmtCacheSize=10");
+            PreparedStatement ps = connection.prepareStatement("INSERT INTO ServerPrepareStatementCacheSize3(test) VALUES (?)");
+            Reader reader = new BufferedReader(new InputStreamReader(ClassLoader.getSystemResourceAsStream("logback.xml")));
 
-        Statement statement = connection.createStatement();
-        createTestTable("ServerPrepareStatementCacheSize3","id int not null primary key auto_increment, test blob");
-
-        PreparedStatement ps = connection.prepareStatement("INSERT INTO ServerPrepareStatementCacheSize3(test) VALUES (?)");
-        Reader reader = new BufferedReader(new InputStreamReader(ClassLoader.getSystemResourceAsStream("logback.xml")));
-
-        ps.setCharacterStream(1, reader);
-        ps.addBatch();
-        ps.executeBatch();
+            ps.setCharacterStream(1, reader);
+            ps.addBatch();
+            ps.executeBatch();
+        } finally {
+            connection.close();
+        }
     }
 
     @Test(expected = SQLException.class)
     public void parametersNotSetTest() throws Throwable {
-        Statement statement = connection.createStatement();
-        createTestTable("ServerPrepareStatementParameters","id int, id2 int");
-
-        PreparedStatement ps = connection.prepareStatement("INSERT INTO ServerPrepareStatementParameters(id, id2) VALUES (?,?)");
+        PreparedStatement ps = sharedConnection.prepareStatement("INSERT INTO ServerPrepareStatementParameters(id, id2) VALUES (?,?)");
         ps.setInt(1, 1);
         ps.addBatch();
     }
 
     @Test
     public void checkSendDifferentParameterTypeTest() throws Throwable {
-        Statement statement = connection.createStatement();
-        createTestTable("ServerPrepareStatementParameters","id int, id2 int");
-        PreparedStatement ps = connection.prepareStatement("INSERT INTO ServerPrepareStatementParameters(id, id2) VALUES (?,?)");
+        PreparedStatement ps = sharedConnection.prepareStatement("INSERT INTO ServerPrepareStatementParameters(id, id2) VALUES (?,?)");
         ps.setByte(1, (byte) 1);
         ps.setShort(2, (short) 1);
         ps.addBatch();
@@ -401,10 +420,9 @@ public class ServerPrepareStatementTest extends BaseTest {
     public void blobMultipleSizeTest() throws Throwable {
         Assume.assumeTrue(checkMaxAllowedPacketMore40m("blobMultipleSizeTest"));
 
-        Statement statement = connection.createStatement();
-        createTestTable("ServerPrepareStatementCacheSize4","id int not null primary key auto_increment, test LONGBLOB","ROW_FORMAT=COMPRESSED ENGINE=INNODB");
+        Statement statement = sharedConnection.createStatement();
 
-        PreparedStatement ps = connection.prepareStatement("INSERT INTO ServerPrepareStatementCacheSize4(test) VALUES (?)");
+        PreparedStatement ps = sharedConnection.prepareStatement("INSERT INTO ServerPrepareStatementCacheSize4(test) VALUES (?)");
         byte[] arr = new byte[20000000];
         Arrays.fill(arr, (byte) 'b');
         InputStream input = new ByteArrayInputStream(arr);
@@ -447,9 +465,9 @@ public class ServerPrepareStatementTest extends BaseTest {
     }
 
     private PreparedStatement prepareInsert() throws Throwable {
-        Statement statement = connection.createStatement();
-        createTestTable("ServerPrepareStatementParameters","id int, id2 int");
-        PreparedStatement ps = connection.prepareStatement("INSERT INTO ServerPrepareStatementParameters(id, id2) VALUES (?,?)");
+        Statement statement = sharedConnection.createStatement();
+        statement.execute("truncate ServerPrepareStatementParameters");
+        PreparedStatement ps = sharedConnection.prepareStatement("INSERT INTO ServerPrepareStatementParameters(id, id2) VALUES (?,?)");
         ps.setByte(1, (byte) 1);
         ps.setShort(2, (short) 1);
         ps.addBatch();
@@ -464,8 +482,8 @@ public class ServerPrepareStatementTest extends BaseTest {
 
     @Test
     public void directExecuteNumber() throws Throwable {
-        createTestTable("ServerPrepareStatementParameters","id int, id2 int");
-        PreparedStatement ps = connection.prepareStatement("INSERT INTO ServerPrepareStatementParameters(id, id2) VALUES (?,?)");
+        sharedConnection.createStatement().execute("truncate ServerPrepareStatementParameters");
+        PreparedStatement ps = sharedConnection.prepareStatement("INSERT INTO ServerPrepareStatementParameters(id, id2) VALUES (?,?)");
         ps.setByte(1, (byte) 1);
         ps.setShort(2, (short) 1);
         ps.execute();
@@ -476,14 +494,13 @@ public class ServerPrepareStatementTest extends BaseTest {
 
     @Test
     public void directExecuteNumber2() throws Throwable {
-        createTestTable("streamtest2","id int primary key not null, strm text");
-        PreparedStatement stmt = connection.prepareStatement("insert into streamtest2 (id, strm) values (?,?)");
+        PreparedStatement stmt = sharedConnection.prepareStatement("insert into streamtest2 (id, strm) values (?,?)");
         stmt.setInt(1, 2);
         String toInsert = "\u00D8abcdefgh\njklmn\"";
         Reader reader = new StringReader(toInsert);
         stmt.setCharacterStream(2, reader);
         stmt.execute();
-        ResultSet rs = connection.createStatement().executeQuery("select * from streamtest2");
+        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from streamtest2");
         rs.next();
         Reader rdr = rs.getCharacterStream("strm");
         StringBuilder sb = new StringBuilder();
@@ -496,40 +513,7 @@ public class ServerPrepareStatementTest extends BaseTest {
 
     @Test
     public void dataConformityTest2() throws SQLException {
-        Statement statement = connection.createStatement();
-        createTestTable("preparetest",
-                "bit1 BIT(1)," +
-                "bit2 BIT(2)," +
-                "tinyint1 TINYINT(1)," +
-                        "tinyint2 TINYINT(2)," +
-                        "bool0 BOOL default 1," +
-                        "smallint0 SMALLINT default 1," +
-                        "smallint_unsigned SMALLINT UNSIGNED default 0," +
-                        "mediumint0 MEDIUMINT default 1," +
-                        "mediumint_unsigned MEDIUMINT UNSIGNED default 0," +
-                        "int0 INT default 1," +
-                        "int_unsigned INT UNSIGNED default 0," +
-                        "bigint0 BIGINT default 1," +
-                        "bigint_unsigned BIGINT UNSIGNED default 0," +
-                        "float0 FLOAT default 0," +
-                        "double0 DOUBLE default 1," +
-                        "decimal0 DECIMAL default 0," +
-                        "decimal1 DECIMAL(15,4) default 0," +
-                        "date0 DATE default '2001-01-01'," +
-                        "datetime0 DATETIME(6) default '2001-01-01 00:00:00'," +
-                        "timestamp0 TIMESTAMP(6) default  '2001-01-01 00:00:00'," +
-                        "timestamp1 TIMESTAMP(0) default  '2001-01-01 00:00:00'," +
-                        "timestamp_zero TIMESTAMP  null, " +
-                        "time0 TIME(6) default '22:11:00'," +
-                        "year2 YEAR(2) default 99," +
-                        "year4 YEAR(4) default 2011," +
-                        "char0 CHAR(1) default '0'," +
-                        "char_binary CHAR (1) binary default '0'," +
-                        "varchar0 VARCHAR(1) default '1'," +
-                        "varchar_binary VARCHAR(10) BINARY default 0x1," +
-                        "binary0 BINARY(10) default 0x1," +
-                        "varbinary0 VARBINARY(10) default 0x1");
-
+        sharedConnection.createStatement().execute("truncate preparetest");
         boolean bit1 = Boolean.FALSE;
         byte bit2 = (byte) 3;
         byte tinyint1 = (byte) 127;
@@ -564,7 +548,7 @@ public class ServerPrepareStatementTest extends BaseTest {
         String varchar_binary = "\b";
         byte[] binary0 = "1234567890".getBytes();
         byte[] varbinary0 = "azerty".getBytes();
-        PreparedStatement ps = connection.prepareStatement("INSERT INTO preparetest (bit1,bit2,tinyint1,tinyint2,bool0,smallint0,smallint_unsigned,mediumint0,mediumint_unsigned,int0," +
+        PreparedStatement ps = sharedConnection.prepareStatement("INSERT INTO preparetest (bit1,bit2,tinyint1,tinyint2,bool0,smallint0,smallint_unsigned,mediumint0,mediumint_unsigned,int0," +
                 "int_unsigned,bigint0,bigint_unsigned, float0, double0, decimal0,decimal1, date0,datetime0, timestamp0,timestamp1,timestamp_zero, time0," +
                 "year2,year4,char0, char_binary, varchar0, varchar_binary, binary0, varbinary0)  " +
                 "VALUES (?,?,?,?,?,?,?,?,?,?," +
@@ -605,7 +589,7 @@ public class ServerPrepareStatementTest extends BaseTest {
         ps.addBatch();
         ps.executeBatch();
 
-        PreparedStatement prepStmt = connection.prepareStatement("SELECT * from preparetest where bit1 = ?");
+        PreparedStatement prepStmt = sharedConnection.prepareStatement("SELECT * from preparetest where bit1 = ?");
         prepStmt.setBoolean(1, false);
         ResultSet rs = prepStmt.executeQuery();
         rs.next();

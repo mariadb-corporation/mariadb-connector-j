@@ -1,6 +1,7 @@
 package org.mariadb.jdbc;
 
 import org.junit.After;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.math.BigDecimal;
@@ -12,6 +13,47 @@ import static org.junit.Assert.*;
 
 public class DatatypeCompatibilityTest extends BaseTest {
 
+    @BeforeClass()
+    public static void initClass() throws SQLException {
+        createTable("pk_test", "val varchar(20), id1 int not null, id2 int not null,primary key(id1, id2)", "engine=innodb");
+        createTable("datetime_test", "dt datetime");
+        createTable("`manycols`",
+                "  `tiny` tinyint(4) DEFAULT NULL,\n" +
+                        "  `tiny_uns` tinyint(3) unsigned DEFAULT NULL,\n" +
+                        "  `small` smallint(6) DEFAULT NULL,\n" +
+                        "  `small_uns` smallint(5) unsigned DEFAULT NULL,\n" +
+                        "  `medium` mediumint(9) DEFAULT NULL,\n" +
+                        "  `medium_uns` mediumint(8) unsigned DEFAULT NULL,\n" +
+                        "  `int_col` int(11) DEFAULT NULL,\n" +
+                        "  `int_col_uns` int(10) unsigned DEFAULT NULL,\n" +
+                        "  `big` bigint(20) DEFAULT NULL,\n" +
+                        "  `big_uns` bigint(20) unsigned DEFAULT NULL,\n" +
+                        "  `decimal_col` decimal(10,5) DEFAULT NULL,\n" +
+                        "  `fcol` float DEFAULT NULL,\n" +
+                        "  `fcol_uns` float unsigned DEFAULT NULL,\n" +
+                        "  `dcol` double DEFAULT NULL,\n" +
+                        "  `dcol_uns` double unsigned DEFAULT NULL,\n" +
+                        "  `date_col` date DEFAULT NULL,\n" +
+                        "  `time_col` time DEFAULT NULL,\n" +
+                        "  `timestamp_col` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE\n" +
+                        "CURRENT_TIMESTAMP,\n" +
+                        "  `year_col` year(4) DEFAULT NULL,\n" +
+                        "  `bit_col` bit(5) DEFAULT NULL,\n" +
+                        "  `char_col` char(5) DEFAULT NULL,\n" +
+                        "  `varchar_col` varchar(10) DEFAULT NULL,\n" +
+                        "  `binary_col` binary(10) DEFAULT NULL,\n" +
+                        "  `varbinary_col` varbinary(10) DEFAULT NULL,\n" +
+                        "  `tinyblob_col` tinyblob,\n" +
+                        "  `blob_col` blob,\n" +
+                        "  `mediumblob_col` mediumblob,\n" +
+                        "  `longblob_col` longblob,\n" +
+                        "  `text_col` text,\n" +
+                        "  `mediumtext_col` mediumtext,\n" +
+                        "  `longtext_col` longtext"
+        );
+        createTable("ytab", "y year");
+        createTable("maxcharlength", "maxcharlength char(1)", "character set utf8");
+    }
     @Test
     public void testIntegerTypes() throws SQLException {
         assertType("TINYINT", Integer.class, Types.TINYINT, "127", 127);
@@ -61,9 +103,9 @@ public class DatatypeCompatibilityTest extends BaseTest {
     private void assertType(String columnType, Class expectedClass, int expectedJdbcType, String strValue, Object expectedObjectValue) throws SQLException {
         assertNotNull(expectedObjectValue);
         assertSame("bad test spec: ", expectedClass, expectedObjectValue.getClass());
-        Statement statement = connection.createStatement();
+        Statement statement = sharedConnection.createStatement();
         try {
-            createTestTable("my_table", "my_col " + columnType);
+            createTable("my_table", "my_col " + columnType);
             statement.execute("INSERT INTO my_table(my_col) VALUES (" + strValue + ")");
             statement.execute("SELECT * FROM my_table");
             ResultSet resultSet = statement.getResultSet();
@@ -91,7 +133,7 @@ public class DatatypeCompatibilityTest extends BaseTest {
     @Test
     public void timeAsTimestamp() throws Exception {
         java.sql.Time aTime = new java.sql.Time(12, 0, 0);
-        PreparedStatement ps = connection.prepareStatement("SELECT ?");
+        PreparedStatement ps = sharedConnection.prepareStatement("SELECT ?");
         ps.setTime(1, aTime);
         ResultSet rs = ps.executeQuery();
         rs.next();

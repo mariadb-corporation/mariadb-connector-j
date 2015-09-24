@@ -2,6 +2,7 @@ package org.mariadb.jdbc;
 
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.sql.*;
@@ -12,6 +13,8 @@ import java.util.concurrent.Executors;
 import static org.junit.Assert.assertEquals;
 
 public class CancelTest extends BaseTest {
+
+
     @Before
     public void cancelSupported() throws SQLException {
         requireMinimumVersion(5, 0);
@@ -40,22 +43,27 @@ public class CancelTest extends BaseTest {
 
     @Test(expected = java.sql.SQLTimeoutException.class)
     public void timeoutSleep() throws Exception {
-        PreparedStatement stmt = connection.prepareStatement("select sleep(100)");
-        stmt.setQueryTimeout(1);
-        stmt.execute();
+        Connection tmpConnection = null;
+        try {
+            tmpConnection = openNewConnection(connURI, new Properties());
+            PreparedStatement stmt = tmpConnection.prepareStatement("select sleep(100)");
+            stmt.setQueryTimeout(1);
+            stmt.execute();
+        } finally {
+            tmpConnection.close();
+        }
     }
 
     @Test
     public void NoTimeoutSleep() throws Exception {
-        Statement stmt = connection.createStatement();
+        Statement stmt = sharedConnection.createStatement();
         stmt.setQueryTimeout(1);
         stmt.execute("select sleep(0.5)");
-
     }
 
     @Test
     public void CancelIdleStatement() throws Exception {
-        Statement stmt = connection.createStatement();
+        Statement stmt = sharedConnection.createStatement();
         stmt.cancel();
         ResultSet rs = stmt.executeQuery("select 1");
         rs.next();

@@ -2,25 +2,29 @@ package org.mariadb.jdbc;
 
 
 import org.junit.Assume;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.Arrays;
 
 import static org.junit.Assert.assertEquals;
 
 
 public class BigQueryTest extends BaseTest {
+
+    @BeforeClass()
+    public static void initClass() throws SQLException {
+        createTable("bigblob", "id int not null primary key auto_increment, test longblob");
+        createTable("bigblob2","id int not null primary key auto_increment, test longblob, test2 longblob");
+    }
+
     @Test
     public void sendBigQuery2() throws SQLException {
 
         Assume.assumeTrue(checkMaxAllowedPacketMore40m("sendBigQuery2"));
 
-        Statement stmt = connection.createStatement();
-        createTestTable("bigblob","id int not null primary key auto_increment, test longblob");
+        Statement stmt = sharedConnection.createStatement();
 
 
         char[] arr = new char[20000000];
@@ -28,7 +32,7 @@ public class BigQueryTest extends BaseTest {
             arr[i] = (char) ('a' + (i % 10));
         }
 
-        Statement s = connection.createStatement();
+        Statement s = sharedConnection.createStatement();
         StringBuilder query = new StringBuilder("INSERT INTO bigblob VALUES (null, '").
                 append(arr).append("')");
 
@@ -48,15 +52,14 @@ public class BigQueryTest extends BaseTest {
 
         Assume.assumeTrue(checkMaxAllowedPacketMore40m("sendBigPreparedQuery"));
 
-        Statement stmt = connection.createStatement();
-        createTestTable("bigblob2","id int not null primary key auto_increment, test longblob, test2 longblob");
+        Statement stmt = sharedConnection.createStatement();
 
         byte[] arr = new byte[20000000];
         Arrays.fill(arr, (byte) 'a');
         byte[] arr2 = new byte[20000000];
         Arrays.fill(arr2, (byte) 'b');
 
-        PreparedStatement ps = connection.prepareStatement("insert into bigblob2 values(null, ?,?)");
+        PreparedStatement ps = sharedConnection.prepareStatement("insert into bigblob2 values(null, ?,?)");
         ps.setBytes(1, arr);
         ps.setBytes(2, arr2);
         ps.executeUpdate();

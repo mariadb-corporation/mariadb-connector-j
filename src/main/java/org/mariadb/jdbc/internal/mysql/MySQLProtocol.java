@@ -963,7 +963,7 @@ public class MySQLProtocol implements Protocol {
     @Override
     public QueryResult getResult(Object dQueries, boolean streaming, boolean binaryProtocol) throws QueryException {
 
-        RawPacket rawPacket;
+        RawPacket rawPacket = null;
         ResultPacket resultPacket;
         try {
             rawPacket = packetFetcher.getRawPacket();
@@ -992,7 +992,14 @@ public class MySQLProtocol implements Protocol {
                         URL u = new URL(localInfile);
                         is = u.openStream();
                     } catch (IOException ioe) {
-                        is = new FileInputStream(localInfile);
+                        try {
+                            is = new FileInputStream(localInfile);
+                        } catch (FileNotFoundException f) {
+                            writer.writeEmptyPacket(rawPacket.getPacketSeq() + 1);
+                            rawPacket = packetFetcher.getRawPacket();
+                            ResultPacketFactory.createResultPacket(rawPacket);
+                            throw new QueryException("Could not send file : " + f.getMessage(), -1, "22000", f);
+                        }
                     }
                 } else {
                     is = localInfileInputStream;
@@ -1006,15 +1013,16 @@ public class MySQLProtocol implements Protocol {
             }
         } catch (SocketTimeoutException ste) {
             this.close();
-            throw new QueryException("Could not read resultset: " + ste.getMessage(),
-                    -1,
-                    SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
-                    ste);
+            throw new QueryException("Could not read resultset: " + ste.getMessage(), -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), ste);
         } catch (IOException e) {
-            throw new QueryException("Could not read resultset: " + e.getMessage(),
-                    -1,
-                    SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
-                    e);
+            try {
+                if (writer != null) {
+                    writer.writeEmptyPacket(rawPacket.getPacketSeq() + 1);
+                    rawPacket = packetFetcher.getRawPacket();
+                    ResultPacketFactory.createResultPacket(rawPacket);
+                }
+            } catch (IOException ee) { }
+            throw new QueryException("Could not read resultset: " + e.getMessage(), -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), e);
         }
 
         switch (resultPacket.getResultType()) {

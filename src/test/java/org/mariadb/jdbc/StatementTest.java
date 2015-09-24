@@ -1,6 +1,7 @@
 package org.mariadb.jdbc;
 
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
@@ -28,13 +29,21 @@ public class StatementTest extends BaseTest {
     private final String ER_NO_PARTITION_FOR_GIVEN_VALUE_STATE = "HY000";
     private final String ER_LOAD_DATA_INVALID_COLUMN_STATE = "HY000";
     private final String ER_ADD_PARTITION_NO_NEW_PARTITION_STATE = "HY000";
-    private Statement statement;
-    public StatementTest() {
+
+    @BeforeClass()
+    public static void initClass() throws SQLException {
+        createTable("vendor_code_test", "id int not null primary key auto_increment, test boolean");
+        createTable("vendor_code_test2", "a INT", "PARTITION BY KEY (a) (PARTITION x0, PARTITION x1)");
+        createTable("vendor_code_test3", "a INT", "PARTITION BY LIST(a) (PARTITION p0 VALUES IN (1))");
+        createTable("StatementTestt1", "c1 INT, c2 VARCHAR(255)");
+
+
     }
+    
 
     @Test
     public void wrapperTest() throws SQLException {
-        MySQLStatement mysqlStatement = new MySQLStatement((MySQLConnection) connection);
+        MySQLStatement mysqlStatement = new MySQLStatement((MySQLConnection) sharedConnection);
         assertTrue(mysqlStatement.isWrapperFor(Statement.class));
         assertFalse(mysqlStatement.isWrapperFor(SQLException.class));
         assertThat(mysqlStatement.unwrap(Statement.class), equalTo((Statement) mysqlStatement));
@@ -56,14 +65,18 @@ public class StatementTest extends BaseTest {
      */
     @Test
     public void reexecuteStatementTest() throws SQLException {
-        setConnection("&allowMultiQueries=true");
-        PreparedStatement stmt = connection.prepareStatement("SELECT 1");
-        stmt.setFetchSize(Integer.MIN_VALUE);
-        ResultSet rs = stmt.executeQuery();
-        rs.next();
-        rs = stmt.executeQuery();
-        stmt.close();
-        connection.close();
+        Connection connection = null;
+        try {
+            connection = setConnection("&allowMultiQueries=true");
+            PreparedStatement stmt = connection.prepareStatement("SELECT 1");
+            stmt.setFetchSize(Integer.MIN_VALUE);
+            ResultSet rs = stmt.executeQuery();
+            rs.next();
+            rs = stmt.executeQuery();
+            stmt.close();
+        } finally {
+            connection.close();
+        }
     }
 
     @Test(expected = SQLException.class)
@@ -76,18 +89,12 @@ public class StatementTest extends BaseTest {
         assertTrue(false);
         st2.close();
     }
-
-    @Before
-    public void setUp() throws SQLException {
-        statement = connection.createStatement();
-    }
-
+    
     @Test
     public void testColumnsDoNotExist() throws SQLException {
-        createTestTable("vendor_code_test","id int not null primary key auto_increment, test boolean");
 
         try {
-            statement.executeQuery("select * from vendor_code_test where crazy_column_that_does_not_exist = 1");
+            sharedConnection.createStatement().executeQuery("select * from vendor_code_test where crazy_column_that_does_not_exist = 1");
             fail("The above statement should result in an exception");
         } catch (SQLException sqlException) {
             assertEquals(ER_BAD_FIELD_ERROR, sqlException.getErrorCode());
@@ -97,7 +104,7 @@ public class StatementTest extends BaseTest {
 
     @Test
     public void testNonInsertableTable() throws SQLException {
-        createTestTable("vendor_code_test","id int not null primary key auto_increment, test boolean");
+        Statement statement = sharedConnection.createStatement();
         statement.execute("create or replace view vendor_code_test_view as select id as id1, id as id2, test from vendor_code_test");
 
         try {
@@ -111,9 +118,10 @@ public class StatementTest extends BaseTest {
 
     @Test
     public void testNoSuchTable() throws SQLException, UnsupportedEncodingException {
-        statement.execute("drop table if exists vendor_code_test");
+        Statement statement = sharedConnection.createStatement();
+        statement.execute("drop table if exists vendor_code_test_");
         try {
-            statement.execute("SELECT * FROM vendor_code_test");
+            statement.execute("SELECT * FROM vendor_code_test_");
             fail("The above statement should result in an exception");
         } catch (SQLException sqlException) {
             assertEquals(ER_NO_SUCH_TABLE, sqlException.getErrorCode());
@@ -123,8 +131,9 @@ public class StatementTest extends BaseTest {
 
     @Test
     public void testNoSuchTableBatchUpdate() throws SQLException, UnsupportedEncodingException {
-        statement.execute("drop table if exists vendor_code_test");
-        statement.addBatch("INSERT INTO vendor_code_test VALUES('dummyValue')");
+        Statement statement = sharedConnection.createStatement();
+        statement.execute("drop table if exists vendor_code_test_");
+        statement.addBatch("INSERT INTO vendor_code_test_ VALUES('dummyValue')");
         try {
             statement.executeBatch();
             fail("The above statement should result in an exception");
@@ -136,7 +145,7 @@ public class StatementTest extends BaseTest {
 
     @Test
     public void testNonUpdateableColumn() throws SQLException {
-        createTestTable("vendor_code_test", "id int not null primary key auto_increment, test boolean");
+        Statement statement = sharedConnection.createStatement();
         statement.execute("create or replace view vendor_code_test_view as select *, 1 as derived_column_that_does_no_exist from vendor_code_test");
 
         try {
@@ -150,6 +159,7 @@ public class StatementTest extends BaseTest {
 
     @Test
     public void testParseErrorAddPartitionNoNewPartition() throws SQLException {
+        Statement statement = sharedConnection.createStatement();
         try {
             statement.execute("totally_not_a_sql_command_this_cannot_be_parsed");
             fail("The above statement should result in an exception");
@@ -161,9 +171,9 @@ public class StatementTest extends BaseTest {
 
     @Test
     public void testAddPartitionNoNewPartition() throws SQLException {
-        createTestTable("vendor_code_test","a INT","PARTITION BY KEY (a) (PARTITION x0, PARTITION x1)");
-        try {
-            statement.execute("ALTER TABLE vendor_code_test ADD PARTITION PARTITIONS 0");
+        Statement statement = sharedConnection.createStatement();
+       try {
+            statement.execute("ALTER TABLE vendor_code_test2 ADD PARTITION PARTITIONS 0");
             fail("The above statement should result in an exception");
         } catch (SQLException sqlException) {
             assertEquals(ER_ADD_PARTITION_NO_NEW_PARTITION, sqlException.getErrorCode());
@@ -173,10 +183,10 @@ public class StatementTest extends BaseTest {
 
     @Test
     public void testNoPartitionForGivenValue() throws SQLException {
-        createTestTable("vendor_code_test","a INT","PARTITION BY LIST(a) (PARTITION p0 VALUES IN (1))");
-        statement.execute("INSERT INTO vendor_code_test VALUES (1)");
+        Statement statement = sharedConnection.createStatement();
+        statement.execute("INSERT INTO vendor_code_test3 VALUES (1)");
         try {
-            statement.execute("INSERT INTO vendor_code_test VALUES (2)");
+            statement.execute("INSERT INTO vendor_code_test3 VALUES (2)");
             fail("The above statement should result in an exception");
         } catch (SQLException sqlException) {
             assertEquals(ER_NO_PARTITION_FOR_GIVEN_VALUE, sqlException.getErrorCode());
@@ -186,32 +196,35 @@ public class StatementTest extends BaseTest {
 
     @Test
     public void testLoadDataInvalidColumn() throws SQLException, UnsupportedEncodingException {
+        Statement statement = sharedConnection.createStatement();
         statement.execute("drop view if exists v2");
-        createTestTable("t1", "c1 INT, c2 VARCHAR(255)");
-        statement.execute("CREATE VIEW v2 AS SELECT 1 + 2 AS c0, c1, c2 FROM t1;");
-
-        MySQLStatement mysqlStatement;
-        if (statement.isWrapperFor(org.mariadb.jdbc.MySQLStatement.class)) {
-            mysqlStatement = statement.unwrap(org.mariadb.jdbc.MySQLStatement.class);
-        } else {
-            throw new RuntimeException("Mariadb JDBC adaptor must be used");
-        }
+        statement.execute("CREATE VIEW v2 AS SELECT 1 + 2 AS c0, c1, c2 FROM StatementTestt1;");
         try {
-            String data =
-                    "\"1\", \"string1\"\n" +
-                            "\"2\", \"string2\"\n" +
-                            "\"3\", \"string3\"\n";
-            ByteArrayInputStream loadDataInfileFile = new ByteArrayInputStream(data.getBytes("utf-8"));
-            mysqlStatement.setLocalInfileInputStream(loadDataInfileFile);
-            mysqlStatement.executeUpdate("LOAD DATA LOCAL INFILE 'dummyFileName' INTO TABLE v2 "
-                    + "FIELDS ESCAPED BY '\\\\' "
-                    + "TERMINATED BY ',' "
-                    + "ENCLOSED BY '\"'"
-                    + "LINES TERMINATED BY '\n' (c0, c2)");
-            fail("The above statement should result in an exception");
-        } catch (SQLException sqlException) {
-            assertEquals(ER_LOAD_DATA_INVALID_COLUMN, sqlException.getErrorCode());
-            assertEquals(ER_LOAD_DATA_INVALID_COLUMN_STATE, sqlException.getSQLState());
+            MySQLStatement mysqlStatement;
+            if (statement.isWrapperFor(org.mariadb.jdbc.MySQLStatement.class)) {
+                mysqlStatement = statement.unwrap(org.mariadb.jdbc.MySQLStatement.class);
+            } else {
+                throw new RuntimeException("Mariadb JDBC adaptor must be used");
+            }
+            try {
+                String data =
+                        "\"1\", \"string1\"\n" +
+                                "\"2\", \"string2\"\n" +
+                                "\"3\", \"string3\"\n";
+                ByteArrayInputStream loadDataInfileFile = new ByteArrayInputStream(data.getBytes("utf-8"));
+                mysqlStatement.setLocalInfileInputStream(loadDataInfileFile);
+                mysqlStatement.executeUpdate("LOAD DATA LOCAL INFILE 'dummyFileName' INTO TABLE v2 "
+                        + "FIELDS ESCAPED BY '\\\\' "
+                        + "TERMINATED BY ',' "
+                        + "ENCLOSED BY '\"'"
+                        + "LINES TERMINATED BY '\n' (c0, c2)");
+                fail("The above statement should result in an exception");
+            } catch (SQLException sqlException) {
+                assertEquals(ER_LOAD_DATA_INVALID_COLUMN, sqlException.getErrorCode());
+                assertEquals(ER_LOAD_DATA_INVALID_COLUMN_STATE, sqlException.getSQLState());
+            }
+        } finally {
+            statement.execute("drop view if exists v2");
         }
     }
 }
