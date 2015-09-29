@@ -80,6 +80,10 @@ public class DateParameter extends NotLongDataParameterHolder {
     }
 
 
+    /**
+     * write to server OutputStream in text protocol
+     * @param os output buffer
+     */
     public void writeTo(OutputStream os) throws IOException {
         if (options.useLegacyDatetimeCode || options.maximizeMysqlCompatibility) {
             calendar = Calendar.getInstance();
@@ -89,7 +93,8 @@ public class DateParameter extends NotLongDataParameterHolder {
     }
 
     /**
-     * @param writeBuffer
+     * write to server OutputStream in binary protocol
+     * @param writeBuffer output buffer
      */
     public void writeBinary(PacketOutputStream writeBuffer) {
         if (options.useLegacyDatetimeCode || options.maximizeMysqlCompatibility) {
@@ -98,10 +103,6 @@ public class DateParameter extends NotLongDataParameterHolder {
         calendar = Calendar.getInstance();
         calendar.setTimeInMillis(date.getTime());
         writeBuffer.writeDateLength(calendar);
-    }
-
-    public void writeToLittleEndian(final OutputStream os) throws IOException {
-
     }
 
     public MySQLType getMySQLType() {

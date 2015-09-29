@@ -10,5 +10,6 @@ call mvn exec:exec package -Dpackage-source
 call %BINDIR%\mysqladmin -uroot shutdown
 
 #deploy package
+#generate javadoc : mvn javadoc:javadoc
 #mvn clean deploy -Dmaven.test.skip=true -Dpackage-source
 

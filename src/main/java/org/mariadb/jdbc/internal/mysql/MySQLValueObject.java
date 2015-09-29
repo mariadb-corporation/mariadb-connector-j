@@ -728,7 +728,6 @@ public class MySQLValueObject implements ValueObject {
         c.set(Calendar.MINUTE, minutes);
         c.set(Calendar.SECOND, seconds);
         c.set(Calendar.MILLISECOND, microseconds / 1000);
-        System.out.println("TEST : c"+c.getTime().toString());
         Timestamp tt = new Timestamp(c.getTimeInMillis());
         tt.setNanos(microseconds * 1000);
         return tt;
