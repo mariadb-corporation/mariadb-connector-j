@@ -149,9 +149,11 @@ public class ParameterWriter {
         out.write(bd.toPlainString().getBytes());
     }
 
-    public static void writeDate(OutputStream out, java.sql.Date date) throws IOException {
+    public static void writeDate(OutputStream out, Calendar calendar) throws IOException {
         out.write(QUOTE);
-        out.write(date.toString().getBytes());
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        String dateString = sdf.format(calendar.getTime());
+        out.write(dateString.getBytes());
         out.write(QUOTE);
     }
 
@@ -191,6 +193,7 @@ public class ParameterWriter {
             sdf.setCalendar(calendar);
         }
         String dateString = sdf.format(time);
+        if (time.getTime() < 0) dateString="-"+dateString;
         out.write(dateString.getBytes());
         int microseconds = (int) (time.getTime() % 1000) * 1000;
         formatMicroseconds(out, microseconds, writeFractionalSeconds);

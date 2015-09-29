@@ -110,9 +110,9 @@ public class StreamingSelectResult extends SelectQueryResult {
         }
 
         if (binaryProtocol) {
-            values = new MySQLBinaryRowPacket(rawPacket, columnInformation).getRow(packetFetcher);
+            values = new MySQLBinaryRowPacket(rawPacket, columnInformation, protocol.getOptions()).getRow(packetFetcher);
         } else {
-            values = new MySQLRowPacket(rawPacket, columnInformation).getRow(packetFetcher);
+            values = new MySQLRowPacket(rawPacket, columnInformation, protocol.getOptions()).getRow(packetFetcher);
         }
         return true;
     }

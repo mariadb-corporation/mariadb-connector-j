@@ -82,6 +82,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -180,8 +181,9 @@ public class MySQLProtocol implements Protocol {
     private int transactionIsolationLevel = 0;
     private PrepareStatementCache prepareStatementCache;
     private  Map<String, String> serverData;
-
     private InputStream localInfileInputStream;
+    private Calendar cal;
+
 
     /**
      * Get a protocol instance
@@ -521,6 +523,9 @@ public class MySQLProtocol implements Protocol {
             hasWarnings = false;
             connected = true;
             hostFailed = false;
+
+            loadCalendar();
+
         } catch (IOException e) {
             throw new QueryException("Could not connect to " + host + ":" +
                     port + ": " + e.getMessage(),
@@ -531,6 +536,38 @@ public class MySQLProtocol implements Protocol {
 
     }
 
+    private void loadCalendar() throws QueryException {
+        String timeZone = null;
+        if (getOptions().serverTimezone != null) {
+            timeZone = getOptions().serverTimezone;
+        }
+
+        if (timeZone == null) {
+            timeZone = getServerData("time_zone");
+            if (timeZone != null) {
+                if ("SYSTEM".equals(timeZone)) {
+                    timeZone = getServerData("system_time_zone");
+                }
+            }
+        }
+        //handle custom timezone id
+        if (timeZone != null) {
+            if (timeZone.length() >=2 && (timeZone.startsWith("+") || timeZone.startsWith("-")) && Character.isDigit(timeZone.charAt(1))) {
+                timeZone = "GMT"+timeZone;
+            }
+        }
+        try {
+            TimeZone tz = Utils.getTimeZone(timeZone);
+            cal = Calendar.getInstance(tz);
+        } catch (SQLException e) {
+            cal = null;
+            if (!getOptions().useLegacyDatetimeCode)
+                throw new QueryException("The server time_zone '"+timeZone+"' cannot be parsed. The server time zone must defined in the jdbc url string with the 'serverTimezone' parameter (or server time zone must be defined explicitly)", 0, "01S00");
+        }
+
+    }
+
+
     private void loadServerData() throws QueryException, IOException {
         serverData = new TreeMap<>();
         SelectQueryResult qr = null;
@@ -538,17 +575,24 @@ public class MySQLProtocol implements Protocol {
             qr = (SelectQueryResult) executeQuery(new MySQLQuery("SELECT " +
                     "@@character_set_client, " +
                     "@@character_set_server, " +
-                    "@@max_allowed_packet"));
+                    "@@max_allowed_packet, " +
+                    "@@system_time_zone, "+
+                    "@@time_zone"));
             if (qr.next()) {
                 serverData.put("character_set_client", qr.getValueObject(0).getString());
                 serverData.put("character_set_server", qr.getValueObject(1).getString());
                 serverData.put("max_allowed_packet", qr.getValueObject(2).getString());
+                serverData.put("system_time_zone", qr.getValueObject(3).getString());
+                serverData.put("time_zone", qr.getValueObject(4).getString());
             }
         } finally {
             if (qr != null) qr.close();
         }
     }
 
+    public String getServerData(String code) {
+        return serverData.get(code);
+    }
 
     public boolean checkIfMaster() throws QueryException {
         return isMasterConnection();
@@ -1406,5 +1450,9 @@ public class MySQLProtocol implements Protocol {
 
     public PrepareStatementCache prepareStatementCache() {
         return prepareStatementCache;
+    }
+
+    public Calendar getCalendar() {
+        return cal;
     }
 }

@@ -49,6 +49,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.common.query.parameters;
 
+import org.mariadb.jdbc.internal.common.Options;
 import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
 import org.mariadb.jdbc.internal.mysql.MySQLType;
 
@@ -63,28 +64,40 @@ import java.util.TimeZone;
 
 public class DateParameter extends NotLongDataParameterHolder {
     Date date;
+    Calendar calendar;
+    Options options;
 
     /**
-     * Represents a timestamp, constructed with time in millis since epoch
-     *
+     * Represents a date, constructed with time in millis since epoch
      * @param date the date
+     * @param cal the calendar to use for timezone
+     * @param options jdbc options
      */
-    public DateParameter(Date date) {
+    public DateParameter(Date date, Calendar cal, Options options) {
         this.date = date;
+        this.calendar = cal;
+        this.options = options;
     }
 
 
     public void writeTo(OutputStream os) throws IOException {
-        ParameterWriter.writeDate(os, date);
+        if (options.useLegacyDatetimeCode || options.maximizeMysqlCompatibility) {
+            calendar = Calendar.getInstance();
+        }
+        calendar.setTimeInMillis(date.getTime());
+        ParameterWriter.writeDate(os, calendar);
     }
 
     /**
-     * java.sql.Date has no timeZone, but calendar has.
-     * so Date timemillis must be convert into calendar timeZone (UTC) to have the good date.
      * @param writeBuffer
      */
     public void writeBinary(PacketOutputStream writeBuffer) {
-        writeBuffer.writeDateLength(date);
+        if (options.useLegacyDatetimeCode || options.maximizeMysqlCompatibility) {
+
+        }
+        calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(date.getTime());
+        writeBuffer.writeDateLength(calendar);
     }
 
     public void writeToLittleEndian(final OutputStream os) throws IOException {

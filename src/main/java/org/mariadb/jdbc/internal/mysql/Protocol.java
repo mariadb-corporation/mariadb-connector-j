@@ -61,6 +61,7 @@ import org.mariadb.jdbc.internal.common.queryresults.QueryResult;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.SocketException;
+import java.util.Calendar;
 import java.util.List;
 
 public interface Protocol {
@@ -187,5 +188,10 @@ public interface Protocol {
     QueryResult executePreparedQueryAfterFailover(String sql, ParameterHolder[] parameters, PrepareResult oldPrepareResult, MySQLType[] parameterTypeHeader, boolean isStreaming) throws QueryException; //used
 
     PrepareStatementCache prepareStatementCache();
+
+
+    String getServerData(String code);
+
+    Calendar getCalendar();
 
 }

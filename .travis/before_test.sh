@@ -88,6 +88,4 @@ then
     sleep 20
 fi
 
-cat /etc/mysql/my.cnf
-
 sudo mysql -uroot -e "create database IF NOT EXISTS test"

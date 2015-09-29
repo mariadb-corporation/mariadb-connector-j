@@ -49,6 +49,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.mysql.packet;
 
+import org.mariadb.jdbc.internal.common.Options;
 import org.mariadb.jdbc.internal.common.PacketFetcher;
 import org.mariadb.jdbc.internal.common.ValueObject;
 import org.mariadb.jdbc.internal.common.packet.RawPacket;
@@ -63,11 +64,13 @@ public class MySQLBinaryRowPacket {
     private final ValueObject[] columns;
     private final Reader reader;
     private final MySQLColumnInformation[] columnInformation;
+    private final Options options;
 
-    public MySQLBinaryRowPacket(RawPacket rawPacket, MySQLColumnInformation[] columnInformation2) throws IOException {
+    public MySQLBinaryRowPacket(RawPacket rawPacket, MySQLColumnInformation[] columnInformation2, Options options) throws IOException {
         columns = new ValueObject[columnInformation2.length];
         reader = new Reader(rawPacket);
         this.columnInformation = columnInformation2;
+        this.options = options;
     }
 
     public void appendPacketIfNeeded(PacketFetcher packetFetcher) throws IOException {
@@ -97,7 +100,7 @@ public class MySQLBinaryRowPacket {
 
             if ((nullBitsBuffer[(i + 2) / 8] & (1 << ((i + 2) % 8))) > 0) {
                 //field is null
-                columns[i] = new MySQLValueObject(null, columnInformation[i], true);
+                columns[i] = new MySQLValueObject(null, columnInformation[i], true, options);
             } else {
                 switch (columnInformation[i].getType()) {
                     case VARCHAR:
@@ -114,39 +117,39 @@ public class MySQLBinaryRowPacket {
                     case OLDDECIMAL:
                     case DECIMAL:
                         appendPacketIfNeeded(packetFetcher);
-                        columns[i] = new MySQLValueObject(reader.getLengthEncodedBytes(), columnInformation[i], true);
+                        columns[i] = new MySQLValueObject(reader.getLengthEncodedBytes(), columnInformation[i], true, options);
                         break;
 
                     case BIGINT:
                         appendPacketIfNeeded(packetFetcher, 8);
-                        columns[i] = new MySQLValueObject(reader.getLengthEncodedBytesWithLength(8), columnInformation[i], true);
+                        columns[i] = new MySQLValueObject(reader.getLengthEncodedBytesWithLength(8), columnInformation[i], true, options);
                         break;
 
                     case INTEGER:
                     case MEDIUMINT:
                         appendPacketIfNeeded(packetFetcher, 4);
-                        columns[i] = new MySQLValueObject(reader.getLengthEncodedBytesWithLength(4), columnInformation[i], true);
+                        columns[i] = new MySQLValueObject(reader.getLengthEncodedBytesWithLength(4), columnInformation[i], true, options);
                         break;
 
                     case SMALLINT:
                     case YEAR:
                         appendPacketIfNeeded(packetFetcher, 2);
-                        columns[i] = new MySQLValueObject(reader.getLengthEncodedBytesWithLength(2), columnInformation[i], true);
+                        columns[i] = new MySQLValueObject(reader.getLengthEncodedBytesWithLength(2), columnInformation[i], true, options);
                         break;
 
                     case TINYINT:
                         appendPacketIfNeeded(packetFetcher, 1);
-                        columns[i] = new MySQLValueObject(reader.getLengthEncodedBytesWithLength(1), columnInformation[i], true);
+                        columns[i] = new MySQLValueObject(reader.getLengthEncodedBytesWithLength(1), columnInformation[i], true, options);
                         break;
 
                     case DOUBLE:
                         appendPacketIfNeeded(packetFetcher, 8);
-                        columns[i] = new MySQLValueObject(reader.getLengthEncodedBytesWithLength(8), columnInformation[i], true);
+                        columns[i] = new MySQLValueObject(reader.getLengthEncodedBytesWithLength(8), columnInformation[i], true, options);
                         break;
 
                     case FLOAT:
                         appendPacketIfNeeded(packetFetcher, 4);
-                        columns[i] = new MySQLValueObject(reader.getLengthEncodedBytesWithLength(4), columnInformation[i], true);
+                        columns[i] = new MySQLValueObject(reader.getLengthEncodedBytesWithLength(4), columnInformation[i], true, options);
                         break;
 
                     case TIME:
@@ -154,10 +157,10 @@ public class MySQLBinaryRowPacket {
                     case DATETIME:
                     case TIMESTAMP:
                         appendPacketIfNeeded(packetFetcher);
-                        columns[i] = new MySQLValueObject(reader.getLengthEncodedBytes(), columnInformation[i], true);
+                        columns[i] = new MySQLValueObject(reader.getLengthEncodedBytes(), columnInformation[i], true, options);
                         break;
                     default:
-                        columns[i] = new MySQLValueObject(null, columnInformation[i], true);
+                        columns[i] = new MySQLValueObject(null, columnInformation[i], true, options);
                         break;
                 }
             }

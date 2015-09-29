@@ -51,6 +51,7 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.common.query.parameters;
 
 
+import org.mariadb.jdbc.internal.common.Options;
 import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
 import org.mariadb.jdbc.internal.mysql.MySQLType;
 
@@ -64,11 +65,13 @@ public class TimeParameter extends NotLongDataParameterHolder {
     Time time;
     Calendar calendar;
     boolean fractionalSeconds;
+    Options options;
 
-    public TimeParameter(Time time, Calendar cal, boolean fractionalSeconds) {
+    public TimeParameter(Time time, Calendar cal, boolean fractionalSeconds, Options options) {
         this.time = time;
         this.calendar = cal;
         this.fractionalSeconds = fractionalSeconds;
+        this.options = options;
     }
 
     public void writeTo(final OutputStream os) throws IOException {
@@ -76,7 +79,9 @@ public class TimeParameter extends NotLongDataParameterHolder {
     }
 
     public void writeBinary(PacketOutputStream writeBuffer) {
+        calendar = Calendar.getInstance();
         calendar.setTime(time);
+        calendar.set(Calendar.DAY_OF_MONTH, 1);
         writeBuffer.writeTimeLength(calendar, fractionalSeconds);
     }
 

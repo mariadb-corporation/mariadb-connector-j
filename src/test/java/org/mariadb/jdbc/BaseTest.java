@@ -350,6 +350,10 @@ public class BaseTest {
         tempProcedureList.add(name);
 
     }
-
+    public void setSessionTimeZone(Connection connection, String timeZone) throws SQLException {
+        Statement statement = connection.createStatement();
+        statement.execute("set @@session.time_zone = '" + timeZone + "'");
+        statement.close();
+    }
 
 }

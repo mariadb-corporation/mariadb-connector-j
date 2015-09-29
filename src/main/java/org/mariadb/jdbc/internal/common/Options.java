@@ -88,6 +88,9 @@ public class Options {
     public boolean cachePrepStmts;
     public Integer prepStmtCacheSize;
     public Integer prepStmtCacheSqlLimit;
+    public boolean useLegacyDatetimeCode;
+    public boolean maximizeMysqlCompatibility;
+
 
     //HA options
     public boolean assureReadOnly;
@@ -147,6 +150,8 @@ public class Options {
                 ", validConnectionTimeout=" + validConnectionTimeout +
                 ", loadBalanceBlacklistTimeout=" + loadBalanceBlacklistTimeout +
                 ", failoverLoopRetries=" + failoverLoopRetries +
+                ", useLegacyDatetimeCode=" + useLegacyDatetimeCode +
+                ", maximizeMysqlCompatibility=" + maximizeMysqlCompatibility +
                 '}';
     }
 }

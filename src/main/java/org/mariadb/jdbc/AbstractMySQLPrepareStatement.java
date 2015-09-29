@@ -195,7 +195,7 @@ public abstract class AbstractMySQLPrepareStatement extends MySQLStatement imple
             setNull(parameterIndex, Types.DATE);
             return;
         }
-        setParameter(parameterIndex, new DateParameter(date));
+        setParameter(parameterIndex, new DateParameter(date, cal, protocol.getOptions()));
     }
 
     /**
@@ -218,7 +218,7 @@ public abstract class AbstractMySQLPrepareStatement extends MySQLStatement imple
             setNull(parameterIndex, MySQLType.TIME);
             return;
         }
-        setParameter(parameterIndex, new TimeParameter(time, cal, useFractionalSeconds()));
+        setParameter(parameterIndex, new TimeParameter(time, cal, useFractionalSeconds(), protocol.getOptions()));
     }
 
     /**
@@ -242,7 +242,7 @@ public abstract class AbstractMySQLPrepareStatement extends MySQLStatement imple
             setNull(parameterIndex, MySQLType.DATETIME);
             return;
         }
-        TimestampParameter t = new TimestampParameter(timestamp, cal, useFractionalSeconds());
+        TimestampParameter t = new TimestampParameter(timestamp, cal, useFractionalSeconds(), protocol.getOptions());
         setParameter(parameterIndex, t);
     }
 

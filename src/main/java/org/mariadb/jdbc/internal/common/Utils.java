@@ -60,6 +60,7 @@ import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.TimeZone;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 
@@ -517,4 +518,16 @@ public class Utils {
         EOLComment, /* # comment, or // comment, or -- comment */
         Backtick /* found backtick */
     }
+
+    public static TimeZone getTimeZone(String id) throws SQLException {
+        TimeZone tz = java.util.TimeZone.getTimeZone(id);
+
+        // Validate the timezone ID. JDK maps invalid timezones to GMT
+        if (tz.getID().equals("GMT") && !id.equals("GMT")) {
+            throw new SQLException("invalid timezone id '" + id + "'");
+        }
+        return tz;
+    }
+
+
 }

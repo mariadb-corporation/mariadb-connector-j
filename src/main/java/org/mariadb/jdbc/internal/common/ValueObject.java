@@ -13,6 +13,8 @@ public interface ValueObject {
     public static final int TINYINT1_IS_BIT = 1;
     public static final int YEAR_IS_DATE_TYPE = 2;
 
+    String getString(Calendar cal);
+
     String getString();
 
     long getLong();

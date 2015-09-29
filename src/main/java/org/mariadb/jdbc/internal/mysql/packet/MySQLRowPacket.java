@@ -49,6 +49,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.mysql.packet;
 
+import org.mariadb.jdbc.internal.common.Options;
 import org.mariadb.jdbc.internal.common.PacketFetcher;
 import org.mariadb.jdbc.internal.common.ValueObject;
 import org.mariadb.jdbc.internal.common.packet.RawPacket;
@@ -63,11 +64,13 @@ public class MySQLRowPacket {
     private final ValueObject[] columns;
     private final Reader reader;
     private final MySQLColumnInformation[] columnInformation;
+    private final Options options;
 
-    public MySQLRowPacket(RawPacket rawPacket, MySQLColumnInformation[] columnInformation2) throws IOException {
+    public MySQLRowPacket(RawPacket rawPacket, MySQLColumnInformation[] columnInformation2, Options options) throws IOException {
         columns = new ValueObject[columnInformation2.length];
         reader = new Reader(rawPacket);
         this.columnInformation = columnInformation2;
+        this.options = options;
     }
 
     public boolean isPacketComplete() throws IOException {
@@ -85,7 +88,7 @@ public class MySQLRowPacket {
             while (!isPacketComplete()) {
                 appendPacket(packetFetcher.getRawPacket());
             }
-            columns[i] = new MySQLValueObject(reader.getLengthEncodedBytes(), columnInformation[i]);
+            columns[i] = new MySQLValueObject(reader.getLengthEncodedBytes(), columnInformation[i], options);
         }
         return columns;
     }

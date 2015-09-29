@@ -73,7 +73,6 @@ public final class MySQLConnection implements Connection {
     boolean noBackslashEscapes;
     boolean nullCatalogMeansCurrent = true;
     int autoIncrementIncrement;
-    Calendar cal;
     volatile int lowercaseTableNames = -1;
     /**
      * save point count - to generate good names for the savepoints.
@@ -96,26 +95,11 @@ public final class MySQLConnection implements Connection {
         this.lock = lock;
     }
 
-    static TimeZone getTimeZone(String id) throws SQLException {
-        TimeZone tz = java.util.TimeZone.getTimeZone(id);
-
-        // Validate the timezone ID. JDK maps invalid timezones to GMT
-        if (tz.getID().equals("GMT") && !id.equals("GMT")) {
-            throw new SQLException("invalid timezone id '" + id + "'");
-        }
-        return tz;
-    }
-
     public static MySQLConnection newConnection(Protocol protocol, ReentrantReadWriteLock lock) throws SQLException {
         MySQLConnection connection = new MySQLConnection(protocol, lock);
 
         Options options = protocol.getOptions();
-        if (options.serverTimezone != null) {
-            TimeZone tz = getTimeZone(options.serverTimezone);
-            connection.cal = Calendar.getInstance(tz);
-        } else {
-            connection.cal = new GregorianCalendar();
-        }
+
         try {
             connection.noBackslashEscapes = protocol.noBackslashEscapes();
         } catch (QueryException e) {

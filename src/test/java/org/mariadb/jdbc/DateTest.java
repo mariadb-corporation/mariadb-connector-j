@@ -15,10 +15,10 @@ public class DateTest extends BaseTest {
     @BeforeClass()
     public static void initClass() throws SQLException {
         createTable("dtest", "d date");
-        createTable("date_test", "id int not null primary key auto_increment, d_test date,dt_test datetime, t_test time");
         createTable("date_test2","id int not null primary key auto_increment, d_from datetime ,d_to datetime");
         createTable("yeartest","y1 year, y2 year(2)");
         createTable("timetest","t time");
+        createTable("timetest2","t time");
         createTable("timestampzerotest","ts timestamp, dt datetime, dd date");
         createTable("dtest","d datetime");
         createTable("dtest2","d date");
@@ -31,31 +31,49 @@ public class DateTest extends BaseTest {
     }
 
 
+
     @Test
-    public void dateTest() throws SQLException {
-        Statement stmt = sharedConnection.createStatement();
-        Date date = Date.valueOf("2009-01-17");
-        Timestamp timestamp = Timestamp.valueOf("2009-01-17 15:41:01");
-        Time time = Time.valueOf("23:59:59");
-        PreparedStatement ps = sharedConnection.prepareStatement("insert into date_test (d_test, dt_test, t_test) values (?,?,?)");
-        ps.setDate(1, date);
-        ps.setTimestamp(2, timestamp);
-        ps.setTime(3, time);
-        ps.executeUpdate();
-        ResultSet rs = stmt.executeQuery("select d_test, dt_test, t_test from date_test");
-        assertEquals(true, rs.next());
-        Date date2 = rs.getDate(1);
-        Date date3 = rs.getDate("d_test");
-        Time time2 = rs.getTime(3);
-        Time time3 = rs.getTime("t_test");
-        Timestamp timestamp2 = rs.getTimestamp(2);
-        Timestamp timestamp3 = rs.getTimestamp("dt_test");
-        assertEquals(date.toString(), date2.toString());
-        assertEquals(date.toString(), date3.toString());
-        assertEquals(time.toString(), time2.toString());
-        assertEquals(time.toString(), time3.toString());
-        assertEquals(timestamp.toString(), timestamp2.toString());
-        assertEquals(timestamp.toString(), timestamp3.toString());
+    public void dateTestLegacy() throws SQLException {
+        dateTest(true);
+    }
+
+    @Test
+    public void dateTestWithoutLegacy() throws SQLException {
+        dateTest(false);
+    }
+
+    public void dateTest(boolean useLegacy) throws SQLException {
+        Connection connection = null;
+        try {
+            connection = setConnection("&useLegacyDatetimeCode=" + useLegacy + "&serverTimezone=+5:00&maximizeMysqlCompatibility=false&useServerPrepStmts=true");
+            setSessionTimeZone(connection, "+5:00");
+            createTable("date_test", "id int not null primary key auto_increment, d_test date,dt_test datetime, t_test time");
+            Statement stmt = connection.createStatement();
+            java.sql.Date date = java.sql.Date.valueOf("2009-01-17");
+            Timestamp timestamp = Timestamp.valueOf("2009-01-17 15:41:01");
+            Time time = Time.valueOf("23:59:59");
+            PreparedStatement ps = connection.prepareStatement("insert into date_test (d_test, dt_test, t_test) values (?,?,?)");
+            ps.setDate(1, date);
+            ps.setTimestamp(2, timestamp);
+            ps.setTime(3, time);
+            ps.executeUpdate();
+            ResultSet rs = stmt.executeQuery("select d_test, dt_test, t_test from date_test");
+            assertEquals(true, rs.next());
+            java.sql.Date date2 = rs.getDate(1);
+            java.sql.Date date3 = rs.getDate("d_test");
+            Time time2 = rs.getTime(3);
+            Time time3 = rs.getTime("t_test");
+            Timestamp timestamp2 = rs.getTimestamp(2);
+            Timestamp timestamp3 = rs.getTimestamp("dt_test");
+            assertEquals(date.toString(), date2.toString());
+            assertEquals(date.toString(), date3.toString());
+            assertEquals(time.toString(), time2.toString());
+            assertEquals(time.toString(), time3.toString());
+            assertEquals(timestamp.toString(), timestamp2.toString());
+            assertEquals(timestamp.toString(), timestamp3.toString());
+        } finally {
+            connection.close();
+        }
 
     }
 
@@ -112,7 +130,7 @@ public class DateTest extends BaseTest {
         ResultSet rs = stmt.executeQuery("select * from yeartest");
 
         Date[] data1 = new Date[]{null, Date.valueOf("1901-01-01"), Date.valueOf("0000-01-01"), Date.valueOf("2155-01-01")};
-        Date[] data2 = new Date[]{null, Date.valueOf("1970-01-01"), Date.valueOf("2000-01-01"), Date.valueOf("1969-01-01")};
+        Date[] data2 = new Date[]{null, Date.valueOf("1970-01-01"), Date.valueOf("2000-01-01"), Date.valueOf("2069-01-01")};
         int count = 0;
         while (rs.next()) {
             assertEquals(data1[count], rs.getObject(1));
@@ -122,22 +140,59 @@ public class DateTest extends BaseTest {
     }
 
     @Test
-    public void timeTest() throws SQLException {
-        sharedConnection.createStatement().execute("insert into timetest values (null), ('-838:59:59'), ('00:00:00'), ('838:59:59')");
-        Statement stmt = sharedConnection.createStatement();
-        ResultSet rs = stmt.executeQuery("select * from timetest");
-        Time[] data = new Time[]{null, Time.valueOf("-838:59:59"), Time.valueOf("00:00:00"), Time.valueOf("838:59:59")};
-        int count = 0;
-        while (rs.next()) {
-            assertEquals(data[count], rs.getObject(1));
-            count++;
+    public void timeTestLegacy() throws SQLException {
+        Connection connection = null;
+        try {
+            connection = setConnection("&useLegacyDatetimeCode=true&serverTimezone=+05:00");
+            setSessionTimeZone(connection, "+05:00");
+            connection.createStatement().execute("insert into timetest values (null), ('-838:59:59'), ('00:00:00'), ('838:59:59')");
+            Statement stmt = connection.createStatement();
+            ResultSet rs = stmt.executeQuery("select * from timetest");
+            Time[] data = new Time[]{null, Time.valueOf("-838:59:59"), Time.valueOf("00:00:00"), Time.valueOf("838:59:59")};
+            int count = 0;
+            while (rs.next()) {
+                Time t1 = data[count];
+                Time t2 = (Time) rs.getObject(1);
+                assertEquals(t1, t2);
+                count++;
+            }
+            rs.close();
+            Calendar cal = Calendar.getInstance();
+            rs = stmt.executeQuery("select '11:11:11'");
+            rs.next();
+            Time t = rs.getTime(1, cal);
+            assertEquals(t.toString(), "11:11:11");
+        } finally {
+            connection.close();
         }
-        rs.close();
-        Calendar cal = Calendar.getInstance();
-        rs = stmt.executeQuery("select '11:11:11'");
-        rs.next();
-        Time t = rs.getTime(1, cal);
-        assertEquals(t.toString(), "11:11:11");
+    }
+
+    @Test
+    public void timeTest() throws SQLException {
+        Connection connection = null;
+        try {
+            connection = setConnection("&useLegacyDatetimeCode=false&serverTimezone=+5:00");
+            setSessionTimeZone(connection, "+5:00");
+            connection.createStatement().execute("insert into timetest2 values (null), ('00:00:00'), ('23:59:59')");
+            Statement stmt = connection.createStatement();
+            ResultSet rs = stmt.executeQuery("select * from timetest2");
+            Time[] data = new Time[]{null, Time.valueOf("00:00:00"), Time.valueOf("23:59:59")};
+            int count = 0;
+            while (rs.next()) {
+                Time t1 = data[count];
+                Time t2 = (Time) rs.getObject(1);
+                assertEquals(t1, t2);
+                count++;
+            }
+            rs.close();
+            Calendar cal = Calendar.getInstance();
+            rs = stmt.executeQuery("select '11:11:11'");
+            rs.next();
+            Time t = rs.getTime(1, cal);
+            assertEquals(t.toString(), "11:11:11");
+        } finally {
+            if (connection != null) connection.close();
+        }
     }
 
     @Test
@@ -228,18 +283,24 @@ public class DateTest extends BaseTest {
     @Test
     public void serverTimezone() throws Exception {
         TimeZone tz = TimeZone.getDefault();
-        long offset = tz.getRawOffset();
+
         Connection connection = null;
         try {
-            connection = setConnection("&serverTimezone=GMT");
+            connection = setConnection("&serverTimezone=+5:00");
+            setSessionTimeZone(connection, "+5:00");
+
             java.util.Date now = new java.util.Date();
-            offset = tz.getOffset(now.getTime());
+            TimeZone canadaTimeZone = TimeZone.getTimeZone("GMT+5:00");
+
+            long clientOffset = tz.getOffset(now.getTime());
+            long serverOffser = canadaTimeZone.getOffset(System.currentTimeMillis());
+            long totalOffset = serverOffser - clientOffset;
             PreparedStatement ps = connection.prepareStatement("select now()");
             ResultSet rs = ps.executeQuery();
             rs.next();
             java.sql.Timestamp ts = rs.getTimestamp(1);
-            long differenceToGMT = ts.getTime() - now.getTime();
-            long diff = Math.abs(differenceToGMT - offset);
+            long differenceToServer = ts.getTime() - now.getTime();
+            long diff = Math.abs(differenceToServer - totalOffset);
             log.trace("diff : " + diff);
             assertTrue(diff < 5000); /* query take less than a second but taking in account server and client time second diff ... */
 
@@ -249,7 +310,7 @@ public class DateTest extends BaseTest {
             rs.next();
             ts = rs.getTimestamp(1);
             java.sql.Timestamp ts2 = rs.getTimestamp(2);
-            long diff2 = Math.abs(ts.getTime() - ts2.getTime());
+            long diff2 = Math.abs(ts.getTime() - ts2.getTime()) - clientOffset;
             assertTrue(diff2 < 5000); /* query take less than a second */
         }finally {
             connection.close();

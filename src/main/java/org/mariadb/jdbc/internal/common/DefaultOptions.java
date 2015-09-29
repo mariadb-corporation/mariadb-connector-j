@@ -280,7 +280,21 @@ public enum DefaultOptions {
      * setting session read-only.
      * default to false
      */
-    ASSUREREADONLY("assureReadOnly", Boolean.FALSE, "1.3.0");
+    ASSUREREADONLY("assureReadOnly", Boolean.FALSE, "1.3.0"),
+
+
+    /**
+     * if true (default) store date/timestamps according to client time zone
+     * if false, store all date/timestamps in DB according to server time zone, and time information (that is a time difference), doesn't take timezone in account.
+     */
+    USELEGACYDATETIMECODE("useLegacyDatetimeCode", Boolean.TRUE, "1.3.0"),
+
+    /**
+     * maximize Mysql compatibility.
+     * when using jdbc setDate(), will store date in client timezone, not in server timezone when useLegacyDatetimeCode = false
+     * default to false.
+     */
+    MAXIMIZEMYSQLCOMPATIBILITY("maximizeMysqlCompatibility", Boolean.FALSE, "1.3.0");
 
     protected final String name;
     protected final Object objType;

@@ -98,7 +98,7 @@ public class MySQLClientPreparedStatement extends AbstractMySQLPrepareStatement 
 
     @Override
     protected Calendar cal() {
-        return connection.cal;
+        return protocol.getCalendar();
     }
 
     /**

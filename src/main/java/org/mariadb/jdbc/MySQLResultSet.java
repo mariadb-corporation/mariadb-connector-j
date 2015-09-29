@@ -86,11 +86,11 @@ public class MySQLResultSet implements ResultSet {
     protected MySQLResultSet() {
     }
 
-    public MySQLResultSet(QueryResult dqr, MySQLStatement statement, Protocol protocol, Calendar cal) {
+    public MySQLResultSet(QueryResult dqr, MySQLStatement statement, Protocol protocol) {
         this.queryResult = dqr;
         this.statement = statement;
         this.protocol = protocol;
-        this.cal = cal;
+        this.cal = (protocol!=null)?protocol.getCalendar():null;
         this.columnNameMap = new ColumnNameMap(dqr.getColumnInformation());
     }
 
@@ -98,7 +98,7 @@ public class MySQLResultSet implements ResultSet {
         MySQLColumnInformation[] colList = new MySQLColumnInformation[0];
         List<ValueObject[]> voList = Collections.emptyList();
         QueryResult qr = new CachedSelectResult(colList, voList, (short) 0);
-        return new MySQLResultSet(qr, null, null, null);
+        return new MySQLResultSet(qr, null, null);
     }
 
     /**
@@ -140,20 +140,20 @@ public class MySQLResultSet implements ResultSet {
                 } else {
                     bytes = rowData[i].getBytes(StandardCharsets.UTF_8);
                 }
-                row[i] = new MySQLValueObject(bytes, columns[i]);
+                row[i] = new MySQLValueObject(bytes, columns[i], protocol.getOptions());
             }
             rows.add(row);
         }
         if (findColumnReturnsOne) {
             return new MySQLResultSet(new CachedSelectResult(columns, rows, (short) 0),
-                    null, protocol, null) {
+                    null, protocol) {
                 public int findColumn(String name) {
                     return 1;
                 }
             };
         }
         return new MySQLResultSet(new CachedSelectResult(columns, rows, (short) 0),
-                null, protocol, null);
+                null, protocol);
     }
 
     /**
@@ -205,20 +205,20 @@ public class MySQLResultSet implements ResultSet {
                 } else {
                     bytes = rowData[i].getBytes(StandardCharsets.UTF_8);
                 }
-                row[i] = new MySQLValueObject(bytes, columns[i]);
+                row[i] = new MySQLValueObject(bytes, columns[i], protocol.getOptions());
             }
             rows.add(row);
         }
         if (findColumnReturnsOne) {
             return new MySQLResultSet(new CachedSelectResult(columns, rows, (short) 0),
-                    null, protocol, null) {
+                    null, protocol) {
                 public int findColumn(String name) {
                     return 1;
                 }
             };
         }
         return new MySQLResultSet(new CachedSelectResult(columns, rows, (short) 0),
-                null, protocol, null);
+                null, protocol);
     }
 
     /**
@@ -322,7 +322,7 @@ public class MySQLResultSet implements ResultSet {
     }
 
     public String getString(int i) throws SQLException {
-        return getValueObject(i).getString();
+        return getValueObject(i).getString(cal);
     }
 
     public int getInt(int i) throws SQLException {

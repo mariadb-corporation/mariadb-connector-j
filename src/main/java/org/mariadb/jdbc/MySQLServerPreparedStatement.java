@@ -124,7 +124,7 @@ public class MySQLServerPreparedStatement extends AbstractMySQLPrepareStatement 
 
     @Override
     protected Calendar cal() {
-        return connection.cal;
+        return protocol.getCalendar();
     }
 
     protected void setParameter(final int parameterIndex, final ParameterHolder holder) throws SQLException {
