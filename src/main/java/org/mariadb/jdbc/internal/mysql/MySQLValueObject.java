@@ -658,7 +658,36 @@ public class MySQLValueObject implements ValueObject {
     }
 
     private Date binaryDate(Calendar cal) throws ParseException {
-        return new Date(getTimestamp(cal).getTime());
+        if (rawBytes.length == 0) return null;
+        int year = 1970;
+        int month = 1;
+        int day = 1;
+        int hour = 0;
+        int minutes = 0;
+        int seconds = 0;
+
+        year = ((rawBytes[0] & 0xff) | (rawBytes[1] & 0xff) << 8);
+        month = rawBytes[2];
+        day = rawBytes[3];
+
+        Calendar c = Calendar.getInstance();
+        /*if (!options.useLegacyDatetimeCode) {
+            c = cal;
+        }*/
+
+        Date dt;
+        synchronized (c) {
+            c.clear();
+            c.set(Calendar.YEAR, year);
+            c.set(Calendar.MONTH, month - 1);
+            c.set(Calendar.DAY_OF_MONTH, day);
+            c.set(Calendar.HOUR_OF_DAY, 0);
+            c.set(Calendar.MINUTE, 0);
+            c.set(Calendar.SECOND, 0);
+            c.set(Calendar.MILLISECOND, 0);
+            dt = new Date(c.getTimeInMillis());
+        }
+        return dt;
     }
 
     private Time binaryTime() {
@@ -721,14 +750,14 @@ public class MySQLValueObject implements ValueObject {
         }
 
         Calendar c = Calendar.getInstance();
-        c.set(Calendar.YEAR, year);
-        c.set(Calendar.MONTH, month - 1);
-        c.set(Calendar.DAY_OF_MONTH, day);
-        c.set(Calendar.HOUR_OF_DAY, hour);
-        c.set(Calendar.MINUTE, minutes);
-        c.set(Calendar.SECOND, seconds);
-        c.set(Calendar.MILLISECOND, microseconds / 1000);
-        Timestamp tt = new Timestamp(c.getTimeInMillis());
+        if (!options.useLegacyDatetimeCode) {
+            c = cal;
+        }
+        Timestamp tt;
+        synchronized (c) {
+            c.set(year, month - 1, day, hour, minutes, seconds);
+            tt = new Timestamp(c.getTimeInMillis());
+        }
         tt.setNanos(microseconds * 1000);
         return tt;
     }

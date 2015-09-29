@@ -340,82 +340,68 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
     @Test
     public void testDayLightLegacy() throws SQLException {
-        testDayLight(true, false);
-    }
-
-    @Test
-    public void testDayLightLegacyForceServer() throws SQLException {
-        testDayLight(true, true);
+        testDayLight(true);
     }
 
     @Test
     public void testDayLight() throws SQLException {
-        testDayLight(true, false);
-    }
-
-    @Test
-    public void testDayLightForceServer() throws SQLException {
-        testDayLight(true, true);
+        testDayLight(false);
     }
 
 
-    private void testDayLight(boolean legacy, boolean forceServerZone) throws SQLException {
+    private void testDayLight(boolean legacy) throws SQLException {
 
         Assume.assumeTrue(hasSuperPrivilege("testDayLight"));
         TimeZone.setDefault(parisTimeZone);
         Connection connection = null;
         try {
-            connection = setConnection("&useLegacyDatetimeCode=" + legacy + ((forceServerZone) ? "&serverTimezone=Europe/Paris" : ""));
-            setSessionTimeZone(connection, "Europe/Paris");
-            Statement st = connection.createStatement();
-            String serverTimeZone = null;
-            ResultSet rs = st.executeQuery("SHOW GLOBAL VARIABLES LIKE 'time_zone';");
-            if (rs.next()) {
-                serverTimeZone = rs.getString(2);
-            }
-            try {
-                createTable("daylight", "id int, t1 TIMESTAMP(6), t2 TIME(6), t3 DATETIME(6) , t4 DATE");
-                Calendar quarterBeforeChangingHour = Calendar.getInstance(TimeZone.getTimeZone("utc"));
-                quarterBeforeChangingHour.clear();
-                quarterBeforeChangingHour.set(2015, 2, 29, 0, 45, 0);
-                int offsetBefore = parisTimeZone.getOffset(quarterBeforeChangingHour.getTimeInMillis());
-                Assert.assertEquals(offsetBefore, 3600000);
+            connection = setConnection("&useLegacyDatetimeCode=" + legacy + "&serverTimezone=Canada/Atlantic");
+            setSessionTimeZone(connection, "Canada/Atlantic");
 
-                Calendar quarterAfterChangingHour = Calendar.getInstance(TimeZone.getTimeZone("utc"));
-                quarterAfterChangingHour.clear();
-                quarterAfterChangingHour.set(2015, 2, 29, 1, 15, 0);
-                int offsetAfter = parisTimeZone.getOffset(quarterAfterChangingHour.getTimeInMillis());
-                Assert.assertEquals(offsetAfter, 7200000);
+            createTable("daylight", "id int, t1 TIMESTAMP(6), t2 TIME(6), t3 DATETIME(6) , t4 DATE");
+            Calendar quarterBeforeChangingHour = Calendar.getInstance(TimeZone.getTimeZone("utc"));
+            quarterBeforeChangingHour.clear();
+            quarterBeforeChangingHour.set(2015, 2, 29, 0, 45, 0);
+            int offsetBefore = parisTimeZone.getOffset(quarterBeforeChangingHour.getTimeInMillis());
+            Assert.assertEquals(offsetBefore, 3600000);
 
 
-                Timestamp vt1 = new Timestamp(quarterBeforeChangingHour.getTimeInMillis());
-                vt1.setNanos(12340000);
-                PreparedStatement pst = connection.prepareStatement("INSERT INTO daylight VALUES (?, ?, ?, ?, ?)");
-                pst.setInt(1, 1);
-                pst.setTimestamp(2, vt1);
-                pst.setTime(3, new Time(quarterBeforeChangingHour.getTimeInMillis()));
-                pst.setTimestamp(4, vt1);
-                pst.setDate(5, new java.sql.Date(quarterBeforeChangingHour.getTimeInMillis()));
-                pst.addBatch();
-                pst.setInt(1, 2);
-                pst.setTimestamp(2, new Timestamp(quarterAfterChangingHour.getTimeInMillis()));
-                pst.setTime(3, new Time(quarterAfterChangingHour.getTimeInMillis()));
-                pst.setTimestamp(4, new Timestamp(quarterAfterChangingHour.getTimeInMillis()));
-                pst.setDate(5, new java.sql.Date(quarterAfterChangingHour.getTimeInMillis()));
-                pst.addBatch();
-                pst.executeBatch();
+            SimpleDateFormat cDateFormatISO8601 = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
+            cDateFormatISO8601.setTimeZone(canadaTimeZone);
 
-                checkResult(true, connection);
-                checkResult(false, connection);
+            Calendar test = Calendar.getInstance(TimeZone.getTimeZone("Canada/Atlantic"));
+            test.set(2015, 2, 28, 22, 45, 0);
+            System.out.println(cDateFormatISO8601.format(test.getTime()));
+
+            Calendar quarterAfterChangingHour = Calendar.getInstance(TimeZone.getTimeZone("utc"));
+            quarterAfterChangingHour.clear();
+            quarterAfterChangingHour.set(2015, 2, 29, 1, 15, 0);
+            int offsetAfter = parisTimeZone.getOffset(quarterAfterChangingHour.getTimeInMillis());
+            Assert.assertEquals(offsetAfter, 7200000);
 
 
-            } finally {
-                if (serverTimeZone != null)
-                    st.executeQuery("SET GLOBAL time_zone = '" + serverTimeZone + "'");
+            Timestamp vt1 = new Timestamp(quarterBeforeChangingHour.getTimeInMillis());
+            vt1.setNanos(12340000);
+            PreparedStatement pst = connection.prepareStatement("INSERT INTO daylight VALUES (?, ?, ?, ?, ?)");
+            pst.setInt(1, 1);
+            pst.setTimestamp(2, vt1);
+            pst.setTime(3, new Time(quarterBeforeChangingHour.getTimeInMillis()));
+            pst.setTimestamp(4, Timestamp.valueOf("2015-03-29 01:45:00"));
+            pst.setDate(5, new java.sql.Date(quarterBeforeChangingHour.getTimeInMillis()));
+            pst.addBatch();
+            pst.setInt(1, 2);
+            pst.setTimestamp(2, Timestamp.valueOf("2015-03-29 03:15:00"));
+            pst.setTime(3, new Time(quarterAfterChangingHour.getTimeInMillis()));
+            pst.setTimestamp(4, Timestamp.valueOf("2015-03-29 03:15:00"));
+            pst.setDate(5, new java.sql.Date(quarterAfterChangingHour.getTimeInMillis()));
+            pst.addBatch();
+            pst.executeBatch();
 
-            }
+            checkResult(true, connection);
+            checkResult(false, connection);
+
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
