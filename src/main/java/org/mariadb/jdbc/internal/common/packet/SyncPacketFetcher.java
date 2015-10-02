@@ -54,6 +54,7 @@ import org.mariadb.jdbc.internal.common.PacketFetcher;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
 
 public class SyncPacketFetcher implements PacketFetcher {
     public  static final int AVOID_CREATE_BUFFER_LENGTH = 1024;
@@ -65,6 +66,14 @@ public class SyncPacketFetcher implements PacketFetcher {
     }
 
     public RawPacket getRawPacket() throws IOException {
+        return RawPacket.nextPacket(inputStream);
+    }
+
+    public ByteBuffer getVolatileBuffer() throws IOException {
+        return RawPacket.nextBuffer(inputStream, fastBuffer);
+    }
+
+    public RawPacket getVolatileRawPacket() throws IOException {
         return RawPacket.nextPacket(inputStream, fastBuffer);
     }
 

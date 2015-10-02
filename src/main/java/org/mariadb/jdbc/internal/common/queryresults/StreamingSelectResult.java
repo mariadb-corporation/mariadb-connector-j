@@ -56,8 +56,8 @@ public class StreamingSelectResult extends SelectQueryResult {
             final RawPacket rawPacket = packetFetcher.getRawPacket();
 
             // We do not expect an error packet, but check it just for safety
-            if (ReadUtil.isErrorPacket(rawPacket)) {
-                ErrorPacket errorPacket = new ErrorPacket(rawPacket);
+            if (ReadUtil.isErrorPacket(rawPacket.getByteBuffer())) {
+                ErrorPacket errorPacket = new ErrorPacket(rawPacket.getByteBuffer());
                 throw new QueryException("error when reading field packet " + errorPacket.getMessage(),
                         errorPacket.getErrorNumber(), errorPacket.getSqlState());
             }
@@ -76,7 +76,7 @@ public class StreamingSelectResult extends SelectQueryResult {
                         MySQLProtocol.hexdump(rawPacket.getByteBuffer(), 0), 0, "HY000", e);
             }
         }
-        RawPacket fieldEOF = packetFetcher.getRawPacket();
+        RawPacket fieldEOF = packetFetcher.getVolatileRawPacket();
         if (!ReadUtil.eofIsNext(fieldEOF)) {
             throw new QueryException("Packets out of order when reading field packets, expected was EOF packet. " +
                     "Packet contents (hex) = " + MySQLProtocol.hexdump(fieldEOF.getByteBuffer(), 0));
@@ -91,15 +91,15 @@ public class StreamingSelectResult extends SelectQueryResult {
 
         RawPacket rawPacket = packetFetcher.getRawPacket();
 
-        if (ReadUtil.isErrorPacket(rawPacket)) {
+        if (ReadUtil.isErrorPacket(rawPacket.getByteBuffer())) {
             protocol.activeResult = null;
             protocol.moreResults = false;
-            ErrorPacket errorPacket = (ErrorPacket) ResultPacketFactory.createResultPacket(rawPacket);
+            ErrorPacket errorPacket = (ErrorPacket) ResultPacketFactory.createResultPacket(rawPacket.getByteBuffer());
             throw new QueryException(errorPacket.getMessage(), errorPacket.getErrorNumber(), errorPacket.getSqlState());
         }
 
         if (ReadUtil.eofIsNext(rawPacket)) {
-            final EOFPacket eofPacket = (EOFPacket) ResultPacketFactory.createResultPacket(rawPacket);
+            final EOFPacket eofPacket = (EOFPacket) ResultPacketFactory.createResultPacket(rawPacket.getByteBuffer());
             protocol.activeResult = null;
             protocol.moreResults = ((eofPacket.getStatusFlags() & ServerStatus.MORE_RESULTS_EXISTS) != 0);
             warningCount = eofPacket.getWarningCount();

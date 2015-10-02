@@ -53,6 +53,7 @@ import org.mariadb.jdbc.internal.common.packet.buffer.Reader;
 import org.mariadb.jdbc.internal.mysql.MySQLProtocol;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
 /**
  * . User: marcuse Date: Jan 21, 2009 Time: 10:40:03 PM
@@ -60,8 +61,9 @@ import java.io.IOException;
 public class ResultSetPacket extends ResultPacket {
     private final long fieldCount;
 
-    public ResultSetPacket(final RawPacket rawPacket) throws IOException {
-        final Reader reader = new Reader(rawPacket);
+    public ResultSetPacket(ByteBuffer byteBuffer) throws IOException {
+        super(byteBuffer);
+        final Reader reader = new Reader(byteBuffer);
 
         fieldCount = reader.getLengthEncodedBinary();
         if (fieldCount == -1) {
@@ -70,7 +72,7 @@ public class ResultSetPacket extends ResultPacket {
         }
         if (reader.getRemainingSize() != 0) {
             throw new IOException("invalid packet contents ,expected result set packet, actual packet hexdump = " +
-                    MySQLProtocol.hexdump(rawPacket.getByteBuffer(), 0));
+                    MySQLProtocol.hexdump(byteBuffer, 0));
         }
     }
 

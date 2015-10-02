@@ -108,7 +108,7 @@ public final class ReadUtil {
 
     }
 
-    public static boolean isErrorPacket(RawPacket rawPacket) {
-        return rawPacket.getByteBuffer().get(0) == (byte) 0xff;
+    public static boolean isErrorPacket(ByteBuffer byteBuffer) {
+        return byteBuffer.get(0) == (byte) 0xff;
     }
 }

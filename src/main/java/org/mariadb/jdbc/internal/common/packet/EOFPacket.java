@@ -52,6 +52,7 @@ package org.mariadb.jdbc.internal.common.packet;
 import org.mariadb.jdbc.internal.common.packet.buffer.Reader;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
 
 public class EOFPacket extends ResultPacket {
@@ -61,8 +62,9 @@ public class EOFPacket extends ResultPacket {
     private final short statusFlags;
 
 
-    public EOFPacket(final RawPacket rawPacket) throws IOException {
-        final Reader reader = new Reader(rawPacket);
+    public EOFPacket(ByteBuffer byteBuffer) throws IOException {
+        super(byteBuffer);
+        final Reader reader = new Reader(byteBuffer);
         packetSeq = 0;
         reader.readByte();
         warningCount = reader.readShort();

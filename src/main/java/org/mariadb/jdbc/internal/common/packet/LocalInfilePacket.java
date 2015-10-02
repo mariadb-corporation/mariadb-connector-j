@@ -4,14 +4,16 @@ package org.mariadb.jdbc.internal.common.packet;
 import org.mariadb.jdbc.internal.common.packet.buffer.Reader;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
 public class LocalInfilePacket extends ResultPacket {
     private long fieldCount;
     private String fileName;
 
-    public LocalInfilePacket(RawPacket rawPacket) throws IOException {
-        Reader reader = new Reader(rawPacket);
+    public LocalInfilePacket(ByteBuffer byteBuffer) throws IOException {
+        super(byteBuffer);
+        final Reader reader = new Reader(byteBuffer);
         fieldCount = reader.getLengthEncodedBinary();
         if (fieldCount != -1)
             throw new AssertionError("field count must be -1");

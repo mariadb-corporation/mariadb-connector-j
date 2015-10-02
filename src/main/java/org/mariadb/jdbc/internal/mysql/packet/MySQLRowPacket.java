@@ -68,7 +68,7 @@ public class MySQLRowPacket {
 
     public MySQLRowPacket(RawPacket rawPacket, MySQLColumnInformation[] columnInformation2, Options options) throws IOException {
         columns = new ValueObject[columnInformation2.length];
-        reader = new Reader(rawPacket);
+        reader = new Reader(rawPacket.getByteBuffer());
         this.columnInformation = columnInformation2;
         this.options = options;
     }

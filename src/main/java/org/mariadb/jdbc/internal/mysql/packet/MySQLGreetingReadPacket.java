@@ -55,6 +55,7 @@ import org.mariadb.jdbc.internal.common.packet.buffer.Reader;
 import org.mariadb.jdbc.internal.mysql.MySQLServerCapabilities;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
 
@@ -73,8 +74,8 @@ public class MySQLGreetingReadPacket {
     private final byte[] seed;
     private String serverVersion;
 
-    public MySQLGreetingReadPacket(final RawPacket rawPacket) throws IOException {
-        final Reader reader = new Reader(rawPacket);
+    public MySQLGreetingReadPacket(final ByteBuffer byteBuffer) throws IOException {
+        final Reader reader = new Reader(byteBuffer);
         protocolVersion = reader.readByte();
         serverVersion = reader.readString(StandardCharsets.US_ASCII);
         serverThreadID = reader.readInt();

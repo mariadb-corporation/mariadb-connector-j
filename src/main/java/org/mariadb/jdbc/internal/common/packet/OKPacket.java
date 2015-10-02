@@ -52,6 +52,7 @@ package org.mariadb.jdbc.internal.common.packet;
 import org.mariadb.jdbc.internal.common.packet.buffer.Reader;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
 /**
  * . User: marcuse Date: Jan 16, 2009 Time: 4:23:40 PM
@@ -64,26 +65,20 @@ public class OKPacket extends ResultPacket {
     private final short serverStatus;
     private final short warnings;
     private final String message;
-    private final byte packetSeqNum;
 
 
-    public OKPacket(final RawPacket rawPacket) throws IOException {
-        Reader reader = new Reader(rawPacket);
-        packetSeqNum = 0;
-        fieldCount = reader.readByte();
-        affectedRows = reader.getLengthEncodedBinary();
-        insertId = reader.getLengthEncodedBinary();
-        serverStatus = reader.readShort();
-        warnings = reader.readShort();
-        message = new String(reader.getLengthEncodedBytes());
+    public OKPacket(ByteBuffer byteBuffer) throws IOException {
+        super(byteBuffer);
+        fieldCount =  byteBuffer.get();
+        affectedRows = getLengthEncodedBinary();
+        insertId = getLengthEncodedBinary();
+        serverStatus = byteBuffer.getShort();
+        warnings = byteBuffer.getShort();
+        message = getStringLengthEncodedBytes();
     }
 
     public ResultType getResultType() {
         return ResultType.OK;
-    }
-
-    public byte getPacketSeq() {
-        return packetSeqNum;
     }
 
     @Override

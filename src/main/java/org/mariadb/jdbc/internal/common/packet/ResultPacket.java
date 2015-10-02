@@ -50,13 +50,83 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.common.packet;
 
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
+
 public abstract class ResultPacket {
+    ByteBuffer byteBuffer;
+
+    public ResultPacket(ByteBuffer byteBuffer) {
+        this.byteBuffer = byteBuffer;
+    }
 
     public abstract ResultType getResultType();
 
-    public abstract byte getPacketSeq();
-
     public enum ResultType {
         OK, ERROR, EOF, RESULTSET, LOCALINFILE, FIELD
+    }
+
+
+    public long getLengthEncodedBinary() {
+        /*if (byteBuffer.remaining() == 0) {
+            return 0;
+        }*/
+        final byte type = byteBuffer.get();
+
+        if ((type & 0xff) == 251) {
+            return -1;
+        }
+        if ((type & 0xff) == 252) {
+            return (long) 0xffff & byteBuffer.getShort();
+        }
+        if ((type & 0xff) == 253) {
+            return 0xffffff & read24bitword();
+        }
+        if ((type & 0xff) == 254) {
+            return byteBuffer.getLong();
+        }
+        if ((type & 0xff) <= 250) {
+            return (long) 0xff & type;
+        }
+
+        return 0;
+    }
+
+    public byte[] getLengthEncodedBytes() throws IOException {
+        if (byteBuffer.remaining() == 0) return new byte[0];
+        final long encLength = getLengthEncodedBinary();
+        if (encLength == -1) {
+            return null;
+        }
+        final byte[] tmpBuf = new byte[(int) encLength];
+        byteBuffer.get(tmpBuf);
+        return tmpBuf;
+    }
+
+    public String getStringLengthEncodedBytes() throws IOException {
+        if (byteBuffer.remaining() == 0) return null;
+        final long encLength = getLengthEncodedBinary();
+        if (encLength == 0) return "";
+        if (encLength != -1) {
+            final byte[] tmpBuf = new byte[(int) encLength];
+            byteBuffer.get(tmpBuf);
+            return new String(tmpBuf);
+        }
+        return null;
+    }
+
+    public short readShort() {
+        return byteBuffer.getShort();
+    }
+
+
+    public int read24bitword() {
+        final byte[] tmpArr = new byte[3];
+        byteBuffer.get(tmpArr);
+        return (tmpArr[0] & 0xff) + ((tmpArr[1] & 0xff) << 8) + ((tmpArr[2] & 0xff) << 16);
+    }
+
+    public long readLong() {
+        return byteBuffer.getLong();
     }
 }

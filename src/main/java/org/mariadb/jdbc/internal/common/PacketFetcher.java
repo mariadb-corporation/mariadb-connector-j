@@ -52,9 +52,12 @@ package org.mariadb.jdbc.internal.common;
 import org.mariadb.jdbc.internal.common.packet.RawPacket;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
 public interface PacketFetcher {
     RawPacket getRawPacket() throws IOException;
+    RawPacket getVolatileRawPacket() throws IOException;
+    ByteBuffer getVolatileBuffer() throws IOException;
 
     void clearInputStream() throws IOException;
 

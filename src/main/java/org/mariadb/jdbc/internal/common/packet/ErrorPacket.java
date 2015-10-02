@@ -51,7 +51,9 @@ package org.mariadb.jdbc.internal.common.packet;
 
 import org.mariadb.jdbc.internal.common.packet.buffer.Reader;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
 
@@ -62,8 +64,9 @@ public class ErrorPacket extends ResultPacket {
     private final String message;
 
 
-    public ErrorPacket(final RawPacket rawPacket) {
-        final Reader reader = new Reader(rawPacket);
+    public ErrorPacket(ByteBuffer byteBuffer) {
+        super(byteBuffer);
+        final Reader reader = new Reader(byteBuffer);
         reader.readByte();
         this.errorNumber = reader.readShort();
         this.sqlStateMarker = reader.readByte();

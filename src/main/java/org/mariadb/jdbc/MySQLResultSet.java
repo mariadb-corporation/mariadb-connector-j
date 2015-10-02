@@ -114,7 +114,7 @@ public class MySQLResultSet implements ResultSet {
      * @param findColumnReturnsOne - special parameter, used only in generated key result sets
      */
     static ResultSet createResultSet(String[] columnNames, MySQLType[] columnTypes, String[][] data,
-                                     Protocol protocol, boolean findColumnReturnsOne) {
+                                     Protocol protocol, boolean findColumnReturnsOne, boolean binaryData) {
         int N = columnNames.length;
         MySQLColumnInformation[] columns = new MySQLColumnInformation[N];
 
@@ -124,7 +124,7 @@ public class MySQLResultSet implements ResultSet {
 
         byte[] BOOL_TRUE = {1};
         byte[] BOOL_FALSE = {0};
-        List<ValueObject[]> rows = new ArrayList<ValueObject[]>();
+        List<ValueObject[]> rows = new ArrayList<>();
         for (String[] rowData : data) {
             ValueObject[] row = new ValueObject[N];
 
@@ -169,7 +169,7 @@ public class MySQLResultSet implements ResultSet {
      */
     static ResultSet createResultSet(String[] columnNames, MySQLType[] columnTypes, String[][] data,
                                      Protocol protocol) {
-        return createResultSet(columnNames, columnTypes, data, protocol, false);
+        return createResultSet(columnNames, columnTypes, data, protocol, false, false);
     }
 
     /**
@@ -189,7 +189,7 @@ public class MySQLResultSet implements ResultSet {
 
         byte[] BOOL_TRUE = {1};
         byte[] BOOL_FALSE = {0};
-        List<ValueObject[]> rows = new ArrayList<ValueObject[]>();
+        List<ValueObject[]> rows = new ArrayList<>();
         for (String[] rowData : data) {
             ValueObject[] row = new ValueObject[N];
 
@@ -239,10 +239,10 @@ public class MySQLResultSet implements ResultSet {
         String[][] data = new String[0][];
         return createResultSet(new String[]{"insert_id"},
                 new MySQLType[]{MySQLType.BIGINT},
-                data, connection.getProtocol(), true);
+                data, connection.getProtocol(), true, false);
     }
 
-    static ResultSet createGeneratedKeysResultSet(long lastInsertId, int updateCount, MySQLConnection connection) {
+    static ResultSet createGeneratedKeysResultSet(long lastInsertId, int updateCount, MySQLConnection connection, boolean binaryData) {
         if (updateCount <= 0) {
             return null;
         }
@@ -259,7 +259,7 @@ public class MySQLResultSet implements ResultSet {
         }
         return createResultSet(new String[]{"insert_id"},
                 new MySQLType[]{MySQLType.BIGINT},
-                data, connection.getProtocol(), true);
+                data, connection.getProtocol(), true, binaryData);
     }
 
     private void writeLock() {

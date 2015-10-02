@@ -402,14 +402,14 @@ public class MySQLProtocol implements Protocol {
             reader = new BufferedInputStream(socket.getInputStream(), 32768);
             packetFetcher = new SyncPacketFetcher(reader);
             writer = new PacketOutputStream(socket.getOutputStream());
-            RawPacket packet = packetFetcher.getRawPacket();
-            if (ReadUtil.isErrorPacket(packet)) {
+            ByteBuffer byteBuffer = packetFetcher.getVolatileBuffer();
+            if (ReadUtil.isErrorPacket(byteBuffer)) {
                 reader.close();
-                ErrorPacket errorPacket = (ErrorPacket) ResultPacketFactory.createResultPacket(packet);
+                ErrorPacket errorPacket = (ErrorPacket) ResultPacketFactory.createResultPacket(byteBuffer);
                 throw new QueryException(errorPacket.getMessage());
             }
 
-            final MySQLGreetingReadPacket greetingPacket = new MySQLGreetingReadPacket(packet);
+            final MySQLGreetingReadPacket greetingPacket = new MySQLGreetingReadPacket(byteBuffer);
             this.serverThreadId = greetingPacket.getServerThreadID();
             this.serverLanguage = greetingPacket.getServerLanguage();
             this.mySQLServerCharset = CharsetUtils.getServerCharset(serverLanguage);
@@ -482,8 +482,8 @@ public class MySQLProtocol implements Protocol {
                 rp = packetFetcher.getRawPacket();
             }
 
-            checkErrorPacket(rp);
-            ResultPacket resultPacket = ResultPacketFactory.createResultPacket(rp);
+            checkErrorPacket(rp.getByteBuffer());
+            ResultPacket resultPacket = ResultPacketFactory.createResultPacket(rp.getByteBuffer());
             OKPacket ok = (OKPacket) resultPacket;
             serverStatus = ok.getServerStatus();
 
@@ -610,18 +610,18 @@ public class MySQLProtocol implements Protocol {
         return result;
     }
 
-    void checkErrorPacket(RawPacket rp) throws QueryException {
-        if (rp.getByteBuffer().get(0) == -1) {
-            ErrorPacket ep = new ErrorPacket(rp);
+    void checkErrorPacket(ByteBuffer byteBuffer) throws QueryException {
+        if (byteBuffer.get(0) == -1) {
+            ErrorPacket ep = new ErrorPacket(byteBuffer);
             String message = ep.getMessage();
             throw new QueryException("Could not connect: " + message, ep.getErrorNumber(), ep.getSqlState());
         }
     }
 
     void readEOFPacket() throws QueryException, IOException {
-        RawPacket rp = packetFetcher.getRawPacket();
-        checkErrorPacket(rp);
-        ResultPacket resultPacket = ResultPacketFactory.createResultPacket(rp);
+        ByteBuffer byteBuffer = packetFetcher.getVolatileBuffer();
+        checkErrorPacket(byteBuffer);
+        ResultPacket resultPacket = ResultPacketFactory.createResultPacket(byteBuffer);
         if (resultPacket.getResultType() != ResultPacket.ResultType.EOF) {
             throw new QueryException("Unexpected packet type " + resultPacket.getResultType() +
                     "insted of EOF");
@@ -647,19 +647,19 @@ public class MySQLProtocol implements Protocol {
             SendPrepareStatementPacket sendPrepareStatementPacket = new SendPrepareStatementPacket(sql);
             sendPrepareStatementPacket.send(writer);
 
-            RawPacket rp = packetFetcher.getRawPacket();
+            ByteBuffer byteBuffer = packetFetcher.getVolatileBuffer();
 
-            if (rp.getByteBuffer().get(0) == -1) {
-                ErrorPacket ep = new ErrorPacket(rp);
+            if (byteBuffer.get(0) == -1) {
+                ErrorPacket ep = new ErrorPacket(byteBuffer);
                 String message = ep.getMessage();
                 throw new QueryException("Error preparing query: " + message, ep.getErrorNumber(), ep.getSqlState());
             }
 
 
-            byte b = rp.getByteBuffer().get(0);
+            byte b = byteBuffer.get(0);
             if (b == 0) {
                 /* Prepared Statement OK */
-                Reader r = new Reader(rp);
+                Reader r = new Reader(byteBuffer);
                 r.readByte(); /* skip field count */
                 int statementId = r.readInt();
                 int numColumns = r.readShort();
@@ -903,8 +903,8 @@ public class MySQLProtocol implements Protocol {
         final SelectDBPacket packet = new SelectDBPacket(database);
         try {
             packet.send(writer);
-            final RawPacket rawPacket = packetFetcher.getRawPacket();
-            ResultPacket rs = ResultPacketFactory.createResultPacket(rawPacket);
+            final ByteBuffer byteBuffer = packetFetcher.getVolatileBuffer();
+            ResultPacket rs = ResultPacketFactory.createResultPacket(byteBuffer);
             if (rs.getResultType() == ResultPacket.ResultType.ERROR) {
                 throw new QueryException("Could not select database '" + database + "' : " + ((ErrorPacket) rs).getMessage());
             }
@@ -985,8 +985,8 @@ public class MySQLProtocol implements Protocol {
             try {
                 pingPacket.send(writer);
 //                if (log.isTraceEnabled())log.trace("Sent ping packet");
-                final RawPacket rawPacket = packetFetcher.getRawPacket();
-                return ResultPacketFactory.createResultPacket(rawPacket).getResultType() == ResultPacket.ResultType.OK;
+                ByteBuffer byteBuffer = packetFetcher.getVolatileBuffer();
+                return ResultPacketFactory.createResultPacket(byteBuffer).getResultType() == ResultPacket.ResultType.OK;
             } catch (IOException e) {
                 throw new QueryException("Could not ping: " + e.getMessage(),
                         -1,
@@ -1009,8 +1009,8 @@ public class MySQLProtocol implements Protocol {
         RawPacket rawPacket = null;
         ResultPacket resultPacket;
         try {
-            rawPacket = packetFetcher.getRawPacket();
-            resultPacket = ResultPacketFactory.createResultPacket(rawPacket);
+            rawPacket = packetFetcher.getVolatileRawPacket();
+            resultPacket = ResultPacketFactory.createResultPacket(rawPacket.getByteBuffer());
 
             if (resultPacket.getResultType() == ResultPacket.ResultType.LOCALINFILE) {
                 // Server request the local file (LOCAL DATA LOCAL INFILE)
@@ -1039,8 +1039,8 @@ public class MySQLProtocol implements Protocol {
                             is = new FileInputStream(localInfile);
                         } catch (FileNotFoundException f) {
                             writer.writeEmptyPacket(rawPacket.getPacketSeq() + 1);
-                            rawPacket = packetFetcher.getRawPacket();
-                            ResultPacketFactory.createResultPacket(rawPacket);
+                            rawPacket = packetFetcher.getVolatileRawPacket();
+                            ResultPacketFactory.createResultPacket(rawPacket.getByteBuffer());
                             throw new QueryException("Could not send file : " + f.getMessage(), -1, "22000", f);
                         }
                     }
@@ -1051,8 +1051,8 @@ public class MySQLProtocol implements Protocol {
 
                 writer.sendFile(is, rawPacket.getPacketSeq() + 1);
                 is.close();
-                rawPacket = packetFetcher.getRawPacket();
-                resultPacket = ResultPacketFactory.createResultPacket(rawPacket);
+                rawPacket = packetFetcher.getVolatileRawPacket();
+                resultPacket = ResultPacketFactory.createResultPacket(rawPacket.getByteBuffer());
             }
         } catch (SocketTimeoutException ste) {
             this.close();
@@ -1061,8 +1061,8 @@ public class MySQLProtocol implements Protocol {
             try {
                 if (writer != null) {
                     writer.writeEmptyPacket(rawPacket.getPacketSeq() + 1);
-                    rawPacket = packetFetcher.getRawPacket();
-                    ResultPacketFactory.createResultPacket(rawPacket);
+                    rawPacket = packetFetcher.getVolatileRawPacket();
+                    ResultPacketFactory.createResultPacket(rawPacket.getByteBuffer());
                 }
             } catch (IOException ee) { }
             throw new QueryException("Could not read resultset: " + e.getMessage(), -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), e);

@@ -53,6 +53,7 @@ import org.mariadb.jdbc.internal.common.packet.RawPacket;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.Channels;
@@ -61,13 +62,11 @@ import java.nio.charset.StandardCharsets;
 
 
 public class Reader {
-    private final byte packetSeq;
     private ByteBuffer byteBuffer;
 
 
-    public Reader(final RawPacket rawPacket) {
-        this.packetSeq = 0;
-        byteBuffer = rawPacket.getByteBuffer();
+    public Reader(final ByteBuffer byteBuffer) {
+        this.byteBuffer = byteBuffer;
     }
 
     /**
@@ -149,17 +148,14 @@ public class Reader {
 
     public int read24bitword() {
         final byte[] tmpArr = new byte[3];
-        for (int i = 0; i < 3; i++) {
-            tmpArr[i] = byteBuffer.get();
-        }
-
+        byteBuffer.get(tmpArr);
         return (tmpArr[0] & 0xff) + ((tmpArr[1] & 0xff) << 8) + ((tmpArr[2] & 0xff) << 16);
     }
 
     public long getLengthEncodedBinary() {
-        if (byteBuffer.remaining() == 0) {
+        /*if (byteBuffer.remaining() == 0) {
             return 0;
-        }
+        }*/
         final byte type = byteBuffer.get();
 
         if ((type & 0xff) == 251) {
@@ -181,17 +177,8 @@ public class Reader {
         return 0;
     }
 
-    public String getLengthEncodedString() {
-        final long encLength = getLengthEncodedBinary();
-        if (encLength == -1) {
-            return null;
-        }
-        final byte[] tmpBuf = new byte[(int) encLength];
-        byteBuffer.get(tmpBuf);
-        return new String(tmpBuf, StandardCharsets.UTF_8);
-    }
-
     public byte[] getLengthEncodedBytes() throws IOException {
+        if (byteBuffer.remaining() == 0) return new byte[0];
         final long encLength = getLengthEncodedBinary();
         if (encLength == -1) {
             return null;
@@ -200,6 +187,19 @@ public class Reader {
         byteBuffer.get(tmpBuf);
         return tmpBuf;
     }
+
+    public String getStringLengthEncodedBytes() throws IOException {
+        if (byteBuffer.remaining() == 0) return null;
+        final long encLength = getLengthEncodedBinary();
+        if (encLength == 0) return "";
+        if (encLength != -1) {
+            final byte[] tmpBuf = new byte[(int) encLength];
+            byteBuffer.get(tmpBuf);
+            return new String(tmpBuf);
+        }
+        return null;
+    }
+
 
     public byte[] getLengthEncodedBytesWithLength(long length) {
         byte[] tmpBuf = new byte[(int) length];
@@ -209,10 +209,6 @@ public class Reader {
 
     public byte getByteAt(final int i) throws IOException {
         return byteBuffer.get(i);
-    }
-
-    public byte getPacketSeq() {
-        return packetSeq;
     }
 
     public int getRemainingSize() {

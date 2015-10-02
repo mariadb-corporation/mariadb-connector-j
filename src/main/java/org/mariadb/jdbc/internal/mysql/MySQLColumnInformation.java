@@ -108,7 +108,7 @@ public class MySQLColumnInformation {
     public MySQLColumnInformation(RawPacket buffer) throws IOException {
         this.buffer = buffer;
         buffer.getByteBuffer().mark();
-        Reader reader = new Reader(buffer);
+        Reader reader = new Reader(buffer.getByteBuffer());
 
         /*
         lenenc_str     catalog
@@ -194,7 +194,7 @@ public class MySQLColumnInformation {
         try {
             buffer.getByteBuffer().reset();
             buffer.getByteBuffer().mark();
-            Reader reader = new Reader(buffer);
+            Reader reader = new Reader(buffer.getByteBuffer());
             for (int i = 0; i < idx; i++) {
                 reader.skipLengthEncodedBytes();
             }

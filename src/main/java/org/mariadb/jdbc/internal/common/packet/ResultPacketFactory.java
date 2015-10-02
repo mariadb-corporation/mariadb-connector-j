@@ -50,6 +50,7 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.common.packet;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
 /**
  * Creates result packets only handles error, ok, eof and result set packets since field and row packets require a
@@ -66,20 +67,20 @@ public class ResultPacketFactory {
     }
 
     //    private static EOFPacket eof = new EOFPacket();
-    public static ResultPacket createResultPacket(final RawPacket rawPacket) throws IOException {
-        byte b = rawPacket.getByteBuffer().get(0);
+    public static ResultPacket createResultPacket(ByteBuffer byteBuffer) throws IOException {
+        byte b = byteBuffer.get(0);
         switch (b) {
 
             case ERROR:
-                return new ErrorPacket(rawPacket);
+                return new ErrorPacket(byteBuffer);
             case OK:
-                return new OKPacket(rawPacket);
+                return new OKPacket(byteBuffer);
             case EOF:
-                return new EOFPacket(rawPacket);
+                return new EOFPacket(byteBuffer);
             case LOCALINFILE:
-                return new LocalInfilePacket(rawPacket);
+                return new LocalInfilePacket(byteBuffer);
             default:
-                return new ResultSetPacket(rawPacket);
+                return new ResultSetPacket(byteBuffer);
         }
     }
 
