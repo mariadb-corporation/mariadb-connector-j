@@ -84,7 +84,8 @@ public class MySQLRowPacket {
     }
 
     public ValueObject[] getRow(PacketFetcher packetFetcher) throws IOException {
-        for (int i = 0; i < columnInformation.length; i++) {
+        int length = columnInformation.length;
+        for (int i = 0; i < length; i++) {
             while (!isPacketComplete()) {
                 appendPacket(packetFetcher.getRawPacket());
             }

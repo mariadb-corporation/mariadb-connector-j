@@ -194,7 +194,6 @@ public class MySQLProtocol implements Protocol {
 
     public MySQLProtocol(final JDBCUrl jdbcUrl, final ReentrantReadWriteLock lock) {
         this.lock = lock;
-        lock.writeLock().lock();
         this.jdbcUrl = jdbcUrl;
         this.database = (jdbcUrl.getDatabase() == null ? "" : jdbcUrl.getDatabase());
         this.username = (jdbcUrl.getUsername() == null ? "" : jdbcUrl.getUsername());
@@ -202,8 +201,6 @@ public class MySQLProtocol implements Protocol {
         if (jdbcUrl.getOptions().cachePrepStmts) {
             prepareStatementCache = PrepareStatementCache.newInstance(jdbcUrl.getOptions().prepStmtCacheSize);
         }
-        lock.writeLock().unlock();
-
         setDatatypeMappingFlags();
     }
 
@@ -651,7 +648,14 @@ public class MySQLProtocol implements Protocol {
             sendPrepareStatementPacket.send(writer);
 
             RawPacket rp = packetFetcher.getRawPacket();
-            checkErrorPacket(rp);
+
+            if (rp.getByteBuffer().get(0) == -1) {
+                ErrorPacket ep = new ErrorPacket(rp);
+                String message = ep.getMessage();
+                throw new QueryException("Error preparing query: " + message, ep.getErrorNumber(), ep.getSqlState());
+            }
+
+
             byte b = rp.getByteBuffer().get(0);
             if (b == 0) {
                 /* Prepared Statement OK */
@@ -740,12 +744,7 @@ public class MySQLProtocol implements Protocol {
 
     @Override
     public boolean noBackslashEscapes() {
-        lock.readLock().lock();
-        try {
-            return ((serverStatus & ServerStatus.NO_BACKSLASH_ESCAPES) != 0);
-        } finally {
-            lock.readLock().unlock();
-        }
+        return ((serverStatus & ServerStatus.NO_BACKSLASH_ESCAPES) != 0);
     }
 
     public void connect() throws QueryException {
@@ -788,7 +787,7 @@ public class MySQLProtocol implements Protocol {
     }
 
     public boolean shouldReconnectWithoutProxy() {
-        return (!inTransaction() && hostFailed && jdbcUrl.getOptions().autoReconnect);
+        return (!((serverStatus & ServerStatus.IN_TRANSACTION) != 0) && hostFailed && jdbcUrl.getOptions().autoReconnect);
     }
 
     @Override
@@ -1190,7 +1189,6 @@ public class MySQLProtocol implements Protocol {
                     SendPrepareParameterPacket sendPrepareParameterPacket = new SendPrepareParameterPacket(i, (LongDataParameterHolder) parameters[i], prepareResult.statementId, mySQLServerCharset);
                     sendPrepareParameterPacket.send(writer);
                 }
-
             }
 
             //send execute query

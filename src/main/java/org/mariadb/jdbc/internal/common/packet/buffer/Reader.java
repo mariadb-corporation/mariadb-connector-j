@@ -161,6 +161,7 @@ public class Reader {
             return 0;
         }
         final byte type = byteBuffer.get();
+
         if ((type & 0xff) == 251) {
             return -1;
         }

@@ -56,15 +56,16 @@ import java.io.IOException;
 import java.io.InputStream;
 
 public class SyncPacketFetcher implements PacketFetcher {
-
+    public  static final int AVOID_CREATE_BUFFER_LENGTH = 1024;
     private final InputStream inputStream;
+    private byte[] fastBuffer = new byte[AVOID_CREATE_BUFFER_LENGTH];
 
     public SyncPacketFetcher(final InputStream is) {
         this.inputStream = is;
     }
 
     public RawPacket getRawPacket() throws IOException {
-        return RawPacket.nextPacket(inputStream);
+        return RawPacket.nextPacket(inputStream, fastBuffer);
     }
 
     public void clearInputStream() throws IOException {

@@ -65,7 +65,6 @@ import java.util.List;
 public class MySQLServerPreparedStatement extends AbstractMySQLPrepareStatement {
     String sql;
     PrepareResult prepareResult;
-    MySQLConnection connection;
     boolean returnTableAlias = false;
     int parameterCount;
     MySQLResultSetMetaData metadata;
@@ -77,7 +76,6 @@ public class MySQLServerPreparedStatement extends AbstractMySQLPrepareStatement 
     public MySQLServerPreparedStatement(MySQLConnection connection, String sql) throws SQLException {
         super(connection);
         useFractionalSeconds = connection.getProtocol().getOptions().useFractionalSeconds;
-        this.connection = connection;
         this.sql = sql;
         prepare(sql);
     }
@@ -85,18 +83,17 @@ public class MySQLServerPreparedStatement extends AbstractMySQLPrepareStatement 
     private void prepare(String sql) throws SQLException {
         stLock.writeLock().lock();
         try {
-            Protocol protocol = connection.getProtocol();
             connection.lock.writeLock().lock();
             try {
                 if (protocol.hasUnreadData()) {
                     SQLExceptionMapper.throwException(new QueryException("There is an open result set on the current connection, which must be closed prior to executing a query"), connection, this);
                 }
                 prepareResult = protocol.prepare(sql);
-                parameterCount = prepareResult.parameters.length;
-                if (parameterCount > 0) currentParameterHolder = new ParameterHolder[prepareResult.parameters.length];
             } finally {
                 connection.lock.writeLock().unlock();
             }
+            parameterCount = prepareResult.parameters.length;
+            if (parameterCount > 0) currentParameterHolder = new ParameterHolder[prepareResult.parameters.length];
             returnTableAlias = protocol.getOptions().useOldAliasMetadataBehavior;
             metadata = new MySQLResultSetMetaData(prepareResult.columns,
                     protocol.getDatatypeMappingFlags(), returnTableAlias);
@@ -149,7 +146,6 @@ public class MySQLServerPreparedStatement extends AbstractMySQLPrepareStatement 
         stLock.writeLock().lock();
         try {
             queryParameters.add(currentParameterHolder.clone());
-            //currentParameterHolder = new ParameterHolder[prepareResult.parameters.length];
         } finally {
             stLock.writeLock().unlock();
         }
@@ -231,8 +227,8 @@ public class MySQLServerPreparedStatement extends AbstractMySQLPrepareStatement 
             int i = 0;
             int[] ret = new int[queryParameters.size()];
             MySQLResultSet rs = null;
-            connection.lock.writeLock().lock();
             MySQLType[] parameterTypeHeader = new MySQLType[parameterCount];
+            connection.lock.writeLock().lock();
             try {
                 for (; i < queryParameters.size(); i++) {
                     executeInternal(queryParameters.get(i), parameterTypeHeader);
@@ -273,7 +269,7 @@ public class MySQLServerPreparedStatement extends AbstractMySQLPrepareStatement 
                 executeQueryProlog();
                 try {
                     batchResultSet = null;
-                    queryResult = protocol.executePreparedQuery(sql, parameters, prepareResult, parameterTypeHeader, isStreaming());
+                    queryResult = protocol.executePreparedQuery(sql, parameters, prepareResult, parameterTypeHeader, isNotLockedStreaming());
 
                     // in case of failover
                     if (queryResult.getFailureObject() != null) {
@@ -420,7 +416,7 @@ public class MySQLServerPreparedStatement extends AbstractMySQLPrepareStatement 
                 }
             }
 
-            if (isStreaming()) {
+            if (isNotLockedStreaming()) {
                 connection.lock.writeLock().lock();
                 try {
                     while (getMoreResults(true)) {

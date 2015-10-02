@@ -83,15 +83,20 @@ public final class RawPacket {
      * @return The next packet from the stream, or NULL if the stream is closed
      * @throws java.io.IOException if an error occurs while reading data
      */
-    static RawPacket nextPacket(final InputStream is) throws IOException {
-        byte[] lengthBuffer = new byte[4];
-        ReadUtil.readFully(is, lengthBuffer);
-        int length = (lengthBuffer[0] & 0xff) + ((lengthBuffer[1] & 0xff) << 8) + ((lengthBuffer[2] & 0xff) << 16);
-        int packetSeq = lengthBuffer[3];
+    static RawPacket nextPacket(final InputStream is, byte[] fastBuffer) throws IOException {
+        ReadUtil.readFully(is, fastBuffer, 0, 4);
+        int length = (fastBuffer[0] & 0xff) + ((fastBuffer[1] & 0xff) << 8) + ((fastBuffer[2] & 0xff) << 16);
+        int packetSeq = fastBuffer[3];
 
-        byte[] rawBytes = new byte[length];
-        ReadUtil.readFully(is, rawBytes);
-        return new RawPacket(ByteBuffer.wrap(rawBytes).order(ByteOrder.LITTLE_ENDIAN),
+        byte[] rawBytes;
+        if (length < SyncPacketFetcher.AVOID_CREATE_BUFFER_LENGTH) {
+            rawBytes = fastBuffer;
+        } else {
+            rawBytes = new byte[length];
+        }
+
+        ReadUtil.readFully(is, rawBytes, 0, length);
+        return new RawPacket(ByteBuffer.wrap(rawBytes, 0, length).order(ByteOrder.LITTLE_ENDIAN),
                 packetSeq);
     }
 

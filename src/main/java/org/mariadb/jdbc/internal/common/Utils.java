@@ -486,25 +486,27 @@ public class Utils {
     }
 
     public static Protocol retrieveProxy(final JDBCUrl jdbcUrl, final ReentrantReadWriteLock lock) throws QueryException, SQLException {
-        if (jdbcUrl.getHaMode().equals(UrlHAMode.AURORA)) {
-            return (Protocol) Proxy.newProxyInstance(
-                    AuroraProtocol.class.getClassLoader(),
-                    new Class[]{Protocol.class},
-                    new FailoverProxy(new AuroraListener(jdbcUrl), lock));
-        } else if (jdbcUrl.getHaMode().equals(UrlHAMode.REPLICATION)) {
-            return (Protocol) Proxy.newProxyInstance(
-                    MastersSlavesProtocol.class.getClassLoader(),
-                    new Class[]{Protocol.class},
-                    new FailoverProxy(new MastersSlavesListener(jdbcUrl), lock));
-        } else if (jdbcUrl.getHaMode().equals(UrlHAMode.FAILOVER) || jdbcUrl.getHaMode().equals(UrlHAMode.SEQUENTIAL)) {
-            return (Protocol) Proxy.newProxyInstance(
-                    MySQLProtocol.class.getClassLoader(),
-                    new Class[]{Protocol.class},
-                    new FailoverProxy(new MastersFailoverListener(jdbcUrl), lock));
-        } else {
-            MySQLProtocol protocol = new MySQLProtocol(jdbcUrl, lock);
-            protocol.connectWithoutProxy();
-            return protocol;
+        switch (jdbcUrl.getHaMode()) {
+            case AURORA:
+                return (Protocol) Proxy.newProxyInstance(
+                        AuroraProtocol.class.getClassLoader(),
+                        new Class[]{Protocol.class},
+                        new FailoverProxy(new AuroraListener(jdbcUrl), lock));
+            case REPLICATION:
+                return (Protocol) Proxy.newProxyInstance(
+                        MastersSlavesProtocol.class.getClassLoader(),
+                        new Class[]{Protocol.class},
+                        new FailoverProxy(new MastersSlavesListener(jdbcUrl), lock));
+            case FAILOVER:
+            case SEQUENTIAL:
+                return (Protocol) Proxy.newProxyInstance(
+                        MySQLProtocol.class.getClassLoader(),
+                        new Class[]{Protocol.class},
+                        new FailoverProxy(new MastersFailoverListener(jdbcUrl), lock));
+            default:
+                MySQLProtocol protocol = new MySQLProtocol(jdbcUrl, lock);
+                protocol.connectWithoutProxy();
+                return protocol;
         }
     }
 

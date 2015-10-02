@@ -92,22 +92,13 @@ public final class MySQLConnection implements Connection {
     private MySQLConnection(Protocol protocol, ReentrantReadWriteLock lock) throws SQLException {
         this.protocol = protocol;
         options = protocol.getOptions();
+        noBackslashEscapes = protocol.noBackslashEscapes();
+        nullCatalogMeansCurrent = options.nullCatalogMeansCurrent;
         this.lock = lock;
     }
 
     public static MySQLConnection newConnection(Protocol protocol, ReentrantReadWriteLock lock) throws SQLException {
-        MySQLConnection connection = new MySQLConnection(protocol, lock);
-
-        Options options = protocol.getOptions();
-
-        try {
-            connection.noBackslashEscapes = protocol.noBackslashEscapes();
-        } catch (QueryException e) {
-            SQLExceptionMapper.throwException(e, connection, null);
-        }
-        connection.nullCatalogMeansCurrent = options.nullCatalogMeansCurrent;
-
-        return connection;
+        return new MySQLConnection(protocol, lock);
     }
 
     public static String quoteIdentifier(String s) {
@@ -186,7 +177,7 @@ public final class MySQLConnection implements Connection {
      */
     private boolean checkIfPreparable(String sql) {
         if (sql == null) return true;
-
+        if (sql.indexOf("?") == -1) return false;
         String cleanSql = sql.toUpperCase().trim();
         if (cleanSql.startsWith("SELECT")
                 || cleanSql.startsWith("UPDATE")

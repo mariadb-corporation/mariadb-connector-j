@@ -72,16 +72,13 @@ public class StreamedQueryPacket implements CommandPacket {
     }
 
     public int send(final OutputStream ostream) throws IOException, QueryException {
+        PacketOutputStream pos = (PacketOutputStream) ostream;
+        pos.startPacket(0);
+        pos.write(0x03);
+
         if (queries.size() == 1) {
-            PacketOutputStream pos = (PacketOutputStream) ostream;
-            pos.startPacket(0);
-            pos.write(0x03);
             queries.get(0).writeTo(ostream);
-            pos.finishPacket();
         } else {
-            PacketOutputStream pos = (PacketOutputStream) ostream;
-            pos.startPacket(0);
-            pos.write(0x03);
             if (!isRewritable) {
                 queries.get(0).writeTo(ostream);
                 for (int i = 1; i < queries.size(); i++) {
@@ -95,9 +92,9 @@ public class StreamedQueryPacket implements CommandPacket {
                 }
                 queries.get(0).writeLastRewritePart(ostream);
             }
-
-            pos.finishPacket();
         }
+
+        pos.finishPacket();
         return 0;
     }
 

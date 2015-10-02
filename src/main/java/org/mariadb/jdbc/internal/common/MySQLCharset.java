@@ -97,16 +97,16 @@ public enum MySQLCharset {
     public final String mysqlCharsetName;
     public final String javaIoCharsetName;
     public final String javaNioCharsetName;
-    public final Charset nioCharset;
+    //public final Charset nioCharset;
 
     MySQLCharset(int defaultId, String mysqlCharsetName, String javaIoCharsetName, String javaNioCharsetName) {
         this.defaultId = defaultId;
         this.mysqlCharsetName = mysqlCharsetName;
         this.javaIoCharsetName = javaIoCharsetName;
         this.javaNioCharsetName = javaNioCharsetName;
-        if (javaIoCharsetName == null) {
+        /*if (javaIoCharsetName == null) {
             this.nioCharset = null;
-        } else  this.nioCharset = Charset.forName(javaIoCharsetName);
+        } else  this.nioCharset = Charset.forName(javaIoCharsetName);*/
     }
 
 }

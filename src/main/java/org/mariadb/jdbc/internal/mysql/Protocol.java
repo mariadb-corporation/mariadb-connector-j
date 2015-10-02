@@ -71,7 +71,7 @@ public interface Protocol {
 
     boolean getAutocommit();
 
-    boolean noBackslashEscapes() throws QueryException;
+    boolean noBackslashEscapes();
 
     void connect() throws QueryException;
 

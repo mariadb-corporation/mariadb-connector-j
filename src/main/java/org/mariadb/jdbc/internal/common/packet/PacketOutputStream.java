@@ -28,6 +28,7 @@ public class PacketOutputStream extends OutputStream {
     int seqNo;
     int lastSeq;
     int maxAllowedPacket;
+    int maxPacketSize = MAX_PACKET_LENGTH;
     boolean checkPacketLength;
     boolean useCompression;
 
@@ -133,15 +134,14 @@ public class PacketOutputStream extends OutputStream {
             throw new AssertionError("Packet not started");
         }
         internalFlush();
-        buffer = ByteBuffer.allocate(1024).order(ByteOrder.LITTLE_ENDIAN);
+        if (buffer.capacity() > 8192) {
+            //to not keep big buffer in memory
+            buffer = ByteBuffer.allocate(1024).order(ByteOrder.LITTLE_ENDIAN);
+        } else {
+            buffer.clear();
+        }
         this.lastSeq = this.seqNo;
         this.seqNo = -1;
-    }
-
-    private int maxPacketSize() {
-        if (maxAllowedPacket > 0)
-            return Math.min(maxAllowedPacket - 1, MAX_PACKET_LENGTH);
-        else return MAX_PACKET_LENGTH;
     }
 
 
@@ -165,103 +165,98 @@ public class PacketOutputStream extends OutputStream {
     private void internalFlush() throws IOException {
         buffer.flip();
         if (buffer.limit() > 0) {
-            splitPacket();
-        }
-        buffer.clear();
-    }
-    private void splitPacket() throws IOException {
-        int maxPacketSize = maxPacketSize();
-        if (checkPacketLength
-                && maxAllowedPacket > 0
-                && buffer.limit() > (maxAllowedPacket - 1)) {
-            this.seqNo = -1;
-            throw new MaxAllowedPacketException("max_allowed_packet exceeded. packet size " + buffer.limit() + " is > to max_allowed_packet = " + (maxAllowedPacket - 1), this.seqNo != 0);
-        }
-
-        byte[] bufferBytes = new byte[0];
-        int notCompressPosition = 0;
-        int expectedPacketSize = buffer.limit() + HEADER_LENGTH * ((buffer.limit() / maxPacketSize) + 1);
-        if (useCompression) bufferBytes = new byte[expectedPacketSize];
-
-        while (notCompressPosition < expectedPacketSize) {
-            int length = buffer.remaining();
-            if (buffer.remaining() > maxPacketSize) length = maxPacketSize;
-            if (useCompression) {
-                bufferBytes[notCompressPosition++] = (byte) (length & 0xff);
-                bufferBytes[notCompressPosition++] = (byte) (length >>> 8);
-                bufferBytes[notCompressPosition++] = (byte) (length >>> 16);
-                bufferBytes[notCompressPosition++] = (byte) seqNo++;
-            } else {
-                byte[] header = new byte[HEADER_LENGTH];
-                header[0] = (byte) (length & 0xff);
-                header[1] = (byte) (length >>> 8);
-                header[2] = (byte) (length >>> 16);
-                header[3] = (byte) seqNo++;
-                outputStream.write(header);
-                notCompressPosition+=4;
+            if (checkPacketLength
+                    && maxAllowedPacket > 0
+                    && buffer.limit() > (maxAllowedPacket - 1)) {
+                this.seqNo = -1;
+                throw new MaxAllowedPacketException("max_allowed_packet exceeded. packet size " + buffer.limit() + " is > to max_allowed_packet = " + (maxAllowedPacket - 1), this.seqNo != 0);
             }
 
-            if (length > 0) {
+            byte[] bufferBytes = new byte[0];
+            int notCompressPosition = 0;
+            int expectedPacketSize = buffer.limit() + HEADER_LENGTH * ((buffer.limit() / maxPacketSize) + 1);
+            if (useCompression) bufferBytes = new byte[expectedPacketSize];
+
+            while (notCompressPosition < expectedPacketSize) {
+                int length = buffer.remaining();
+                if (buffer.remaining() > maxPacketSize) length = maxPacketSize;
                 if (useCompression) {
-                    buffer.get(bufferBytes, notCompressPosition, length);
-                    notCompressPosition += length;
+                    bufferBytes[notCompressPosition++] = (byte) (length & 0xff);
+                    bufferBytes[notCompressPosition++] = (byte) (length >>> 8);
+                    bufferBytes[notCompressPosition++] = (byte) (length >>> 16);
+                    bufferBytes[notCompressPosition++] = (byte) seqNo++;
                 } else {
-                    if (buffer.hasArray()) {
-                        outputStream.write(buffer.array(), buffer.position(), length);
-                        buffer.position(buffer.position() + length);
+                    byte[] header = new byte[HEADER_LENGTH];
+                    header[0] = (byte) (length & 0xff);
+                    header[1] = (byte) (length >>> 8);
+                    header[2] = (byte) (length >>> 16);
+                    header[3] = (byte) seqNo++;
+                    outputStream.write(header);
+                    notCompressPosition+=4;
+                }
+
+                if (length > 0) {
+                    if (useCompression) {
+                        buffer.get(bufferBytes, notCompressPosition, length);
+                        notCompressPosition += length;
                     } else {
-                        bufferBytes = new byte[length];
-                        buffer.get(bufferBytes, 0, length);
-                        outputStream.write(bufferBytes, 0, length);
+                        if (buffer.hasArray()) {
+                            outputStream.write(buffer.array(), buffer.position(), length);
+                            buffer.position(buffer.position() + length);
+                        } else {
+                            bufferBytes = new byte[length];
+                            buffer.get(bufferBytes, 0, length);
+                            outputStream.write(bufferBytes, 0, length);
+                        }
+                        notCompressPosition+=length;
+                        outputStream.flush();
                     }
-                    notCompressPosition+=length;
+                }
+            }
+
+
+            if (useCompression) {
+                //now bufferBytes in filled with uncompressed data
+                this.seqNo=0;
+                int position = 0;
+                int packetLength;
+
+                while (position - notCompressPosition < 0) {
+                    packetLength = Math.min(notCompressPosition - position, maxPacketSize);
+                    boolean compressedPacketSend = false;
+
+                    if (packetLength > MIN_COMPRESSION_SIZE) {
+                        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                        DeflaterOutputStream deflater = new DeflaterOutputStream(baos);
+
+                        deflater.write(bufferBytes, position, packetLength);
+                        deflater.finish();
+                        deflater.close();
+
+                        byte[] compressedBytes = baos.toByteArray();
+                        baos.close();
+
+                        if (compressedBytes.length < (int)(MIN_COMPRESSION_RATIO * packetLength)) {
+
+                            int compressedLength = compressedBytes.length;
+                            writeCompressedHeader(compressedLength, packetLength, outputStream);
+                            outputStream.write(compressedBytes, 0, compressedLength);
+                            compressedPacketSend = true;
+                        }
+                    }
+
+                    if (!compressedPacketSend) {
+                        writeCompressedHeader(packetLength, 0, outputStream);
+                        outputStream.write(bufferBytes, position, packetLength);
+                    }
+
+                    position+=packetLength;
                     outputStream.flush();
                 }
             }
         }
 
-
-        if (useCompression) {
-            //now bufferBytes in filled with uncompressed data
-            this.seqNo=0;
-            int position = 0;
-            int packetLength;
-
-            while (position - notCompressPosition < 0) {
-                packetLength = Math.min(notCompressPosition - position, maxPacketSize);
-                boolean compressedPacketSend = false;
-
-                if (packetLength > MIN_COMPRESSION_SIZE) {
-                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                    DeflaterOutputStream deflater = new DeflaterOutputStream(baos);
-
-                    deflater.write(bufferBytes, position, packetLength);
-                    deflater.finish();
-                    deflater.close();
-
-                    byte[] compressedBytes = baos.toByteArray();
-                    baos.close();
-
-                    if (compressedBytes.length < (int)(MIN_COMPRESSION_RATIO * packetLength)) {
-
-                        int compressedLength = compressedBytes.length;
-                        writeCompressedHeader(compressedLength, packetLength, outputStream);
-                        outputStream.write(compressedBytes, 0, compressedLength);
-                        compressedPacketSend = true;
-                    }
-                }
-
-                if (!compressedPacketSend) {
-                    writeCompressedHeader(packetLength, 0, outputStream);
-                    outputStream.write(bufferBytes, position, packetLength);
-                }
-
-                position+=packetLength;
-                outputStream.flush();
-            }
-        }
     }
-
 
     private void writeCompressedHeader(int packetLength, int initialLength, OutputStream outputStream) throws IOException {
         byte header[] = new byte[7];
@@ -294,6 +289,9 @@ public class PacketOutputStream extends OutputStream {
 
     public void setMaxAllowedPacket(int maxAllowedPacket) {
         this.maxAllowedPacket = maxAllowedPacket;
+        if (maxAllowedPacket > 0)
+            maxPacketSize = Math.min(maxAllowedPacket - 1, MAX_PACKET_LENGTH);
+        else maxPacketSize = MAX_PACKET_LENGTH;
     }
 
     public PacketOutputStream assureBufferCapacity(final int len) {

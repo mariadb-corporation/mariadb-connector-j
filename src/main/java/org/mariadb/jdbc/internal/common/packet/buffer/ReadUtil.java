@@ -54,6 +54,10 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.nio.channels.Channel;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
+import java.nio.channels.SocketChannel;
 
 
 public final class ReadUtil {
@@ -91,6 +95,7 @@ public final class ReadUtil {
         readFully(stream, b, 0, b.length);
     }
 
+
     /**
      * Checks whether the next packet is EOF.
      *
@@ -99,7 +104,7 @@ public final class ReadUtil {
      */
     public static boolean eofIsNext(final RawPacket rawPacket) {
         final ByteBuffer buf = rawPacket.getByteBuffer();
-        return (buf.get(0) == (byte) 0xfe && buf.capacity() < 9);
+        return (buf.get(0) == (byte) 0xfe && buf.limit() < 9);
 
     }
 

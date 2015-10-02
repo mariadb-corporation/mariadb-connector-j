@@ -68,7 +68,7 @@ public class HostAddress {
 
     static HostAddress parseSimpleHostAddress(String s) {
         HostAddress result = new HostAddress();
-        if (s.startsWith("[")) {
+        if (s.charAt(0) == '[') {
             /* IPv6 addresses in URLs are enclosed in square brackets */
             int ind = s.indexOf(']');
             result.host = s.substring(1, ind);

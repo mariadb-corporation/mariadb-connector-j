@@ -110,9 +110,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
     @Test
     public void testTimeStamp() throws SQLException {
         TimeZone.setDefault(parisTimeZone);
-        Connection connection = null;
-        try {
-            connection = setConnection("&serverTimezone=Europe/Paris&useServerPrepStmts=true");
+        try ( Connection connection = setConnection("&serverTimezone=Europe/Paris&useServerPrepStmts=true") ) {
             setSessionTimeZone(connection, "Europe/Paris");
             Timestamp currentTimeParis = new Timestamp(System.currentTimeMillis()); //timestamp timezone to parisTimeZone like server
             PreparedStatement st = connection.prepareStatement("SELECT ?");
@@ -120,8 +118,6 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
             ResultSet rs = st.executeQuery();
             rs.next();
             assertEquals(rs.getTimestamp(1), currentTimeParis);
-        } finally {
-            connection.close();
         }
     }
 

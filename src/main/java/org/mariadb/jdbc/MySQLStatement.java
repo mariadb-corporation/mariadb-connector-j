@@ -135,10 +135,14 @@ public class MySQLStatement implements Statement {
     public boolean isStreaming() {
         stLock.readLock().lock();
         try {
-            return fetchSize == Integer.MIN_VALUE;
+            return isNotLockedStreaming();
         } finally {
             stLock.readLock().unlock();
         }
+    }
+
+    protected boolean isNotLockedStreaming() {
+        return fetchSize == Integer.MIN_VALUE;
     }
 
     /**
@@ -167,7 +171,7 @@ public class MySQLStatement implements Statement {
     }
 
     void executeQueryProlog() throws SQLException {
-        if (isClosed()) {
+        if (isClosed) {
             throw new SQLException("execute() is called on closed statement");
         }
         if (protocol.isExplicitClosed()) {
@@ -199,8 +203,8 @@ public class MySQLStatement implements Statement {
     }
 
     protected void cacheMoreResults() {
-        wasStreaming = isStreaming();
-        if (isStreaming()) return;
+        wasStreaming = isNotLockedStreaming();
+        if (wasStreaming) return;
 
         QueryResult saveResult = queryResult;
         for (; ; ) {
@@ -275,7 +279,7 @@ public class MySQLStatement implements Statement {
                 executeQueryProlog();
                 try {
                     batchResultSet = null;
-                    queryResult = protocol.executeQuery(query, isStreaming());
+                    queryResult = protocol.executeQuery(query, isNotLockedStreaming());
                     cacheMoreResults();
                     return (queryResult.getResultSetType() == ResultSetType.SELECT);
                 } catch (QueryException e) {
@@ -319,7 +323,7 @@ public class MySQLStatement implements Statement {
                 executeQueryProlog();
                 try {
                     batchResultSet = null;
-                    queryResult = protocol.executeQuery(queries, isStreaming(), isRewritable, rewriteOffset);
+                    queryResult = protocol.executeQuery(queries, isNotLockedStreaming(), isRewritable, rewriteOffset);
                     cacheMoreResults();
                     return (queryResult.getResultSetType() == ResultSetType.SELECT);
                 } catch (QueryException e) {
@@ -426,7 +430,7 @@ public class MySQLStatement implements Statement {
             // This makes the cache eligible for garbage collection earlier if the statement is not
             // immediately garbage collected
             cachedResultSets.clear();
-            if (isStreaming()) {
+            if (isNotLockedStreaming()) {
                 connection.lock.writeLock().lock();
                 try {
                     while (getMoreResults(true)) {
@@ -1030,7 +1034,7 @@ public class MySQLStatement implements Statement {
         this.stLock.writeLock().lock();
         stLock.writeLock().lock();
         try {
-            if (!isStreaming()) {
+            if (!isNotLockedStreaming()) {
                 /* return pre-cached result set, if available */
                 if (cachedResultSets.isEmpty()) {
                     queryResult = null;

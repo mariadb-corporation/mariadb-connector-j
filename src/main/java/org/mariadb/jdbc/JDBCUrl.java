@@ -151,9 +151,10 @@ public class JDBCUrl {
          */
     private static void parseInternal(JDBCUrl jdbcUrl, String url, Properties properties) throws SQLException {
         try {
-            if (url.indexOf("//") == -1)
+            int separator = url.indexOf("//");
+            if (separator == -1)
                 throw new IllegalArgumentException("url parsing error : '//' is not present in the url " + url);
-            String[] baseTokens = url.substring(0, url.indexOf("//")).split(":");
+            String[] baseTokens = url.substring(0, separator).split(":");
 
             //parse HA mode
             jdbcUrl.haMode = UrlHAMode.NONE;
@@ -165,7 +166,7 @@ public class JDBCUrl {
                 }
             }
 
-            url = url.substring(url.indexOf("//") + 2);
+            url = url.substring(separator + 2);
             String[] tokens = url.split("/");
             String hostAddressesString = tokens[0];
             String additionalParameters = (tokens.length > 1) ? url.substring(tokens[0].length() + 1) : null;
@@ -201,11 +202,13 @@ public class JDBCUrl {
     public void parseUrl(String url) throws SQLException {
         if (url.startsWith("jdbc:mysql:")) {
             parseInternal(this, url, new Properties());
+            return;
         }
         String[] arr = new String[]{"jdbc:mysql:thin:", "jdbc:mariadb:"};
         for (String prefix : arr) {
             if (url.startsWith(prefix)) {
                 parseInternal(this, url, new Properties());
+                break;
             }
         }
     }
