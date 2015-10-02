@@ -200,7 +200,7 @@ public class DriverTest extends BaseTest {
     @Test
     public void autoIncTest() throws SQLException {
         Statement stmt = sharedConnection.createStatement();
-        stmt.execute("INSERT INTO Drivert3 (test) VALUES ('aa')");
+        stmt.execute("INSERT INTO Drivert3 (test) VALUES ('aa')", Statement.RETURN_GENERATED_KEYS);
         ResultSet rs = stmt.getGeneratedKeys();
         assertTrue(rs.next());
 
@@ -230,7 +230,7 @@ public class DriverTest extends BaseTest {
         try {
             connection = setConnection("&sessionVariables=auto_increment_increment=" + auto_increment_increment);
             stmt = connection.createStatement();
-            stmt.execute("INSERT INTO Drivert3 (test) values ('bb'),('cc')");
+            stmt.execute("INSERT INTO Drivert3 (test) values ('bb'),('cc')", Statement.RETURN_GENERATED_KEYS);
             rs = stmt.getGeneratedKeys();
             assertTrue(rs.next());
             assertEquals(7, rs.getInt(1));
@@ -254,7 +254,7 @@ public class DriverTest extends BaseTest {
         assertEquals(true, rs.next());
         assertEquals("japp", rs.getString("test"));
         assertEquals(false, rs.next());
-        stmt.executeUpdate("INSERT INTO Drivert30 (test) VALUES ('rollmeback')");
+        stmt.executeUpdate("INSERT INTO Drivert30 (test) VALUES ('rollmeback')", Statement.RETURN_GENERATED_KEYS);
         ResultSet rsGen = stmt.getGeneratedKeys();
         rsGen.next();
         assertEquals(3, rsGen.getInt(1));
@@ -383,7 +383,7 @@ public class DriverTest extends BaseTest {
 
     @Test
     public void batchTest() throws SQLException {
-        PreparedStatement ps = sharedConnection.prepareStatement("insert into test_batch values (null, ?)");
+        PreparedStatement ps = sharedConnection.prepareStatement("insert into test_batch values (null, ?)", Statement.RETURN_GENERATED_KEYS);
         ps.setString(1, "aaa");
         ps.addBatch();
         ps.setString(1, "bbb");
@@ -480,7 +480,7 @@ public class DriverTest extends BaseTest {
     public void bigAutoIncTest() throws SQLException {
         Statement stmt = sharedConnection.createStatement();
         stmt.execute("alter table test_big_autoinc2 auto_increment = 1000");
-        stmt.execute("insert into test_big_autoinc2 values (null, 'hej')");
+        stmt.execute("insert into test_big_autoinc2 values (null, 'hej')", Statement.RETURN_GENERATED_KEYS);
         ResultSet rsGen = stmt.getGeneratedKeys();
         assertEquals(true, rsGen.next());
         assertEquals(1000, rsGen.getInt(1));

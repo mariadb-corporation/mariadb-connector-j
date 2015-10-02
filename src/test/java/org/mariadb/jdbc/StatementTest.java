@@ -43,7 +43,7 @@ public class StatementTest extends BaseTest {
 
     @Test
     public void wrapperTest() throws SQLException {
-        MySQLStatement mysqlStatement = new MySQLStatement((MySQLConnection) sharedConnection);
+        MySQLStatement mysqlStatement = new MySQLStatement((MySQLConnection) sharedConnection, Statement.NO_GENERATED_KEYS);
         assertTrue(mysqlStatement.isWrapperFor(Statement.class));
         assertFalse(mysqlStatement.isWrapperFor(SQLException.class));
         assertThat(mysqlStatement.unwrap(Statement.class), equalTo((Statement) mysqlStatement));
