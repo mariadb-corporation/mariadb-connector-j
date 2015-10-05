@@ -55,8 +55,6 @@ import org.mariadb.jdbc.internal.mysql.FailoverProxy;
 import org.mariadb.jdbc.internal.mysql.HandleErrorResult;
 import org.mariadb.jdbc.internal.mysql.Protocol;
 import org.mariadb.jdbc.internal.mysql.listener.tools.SearchFilter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Method;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -65,7 +63,6 @@ import java.util.concurrent.atomic.AtomicLong;
 
 
 public abstract class AbstractMastersSlavesListener extends AbstractMastersListener {
-    private final static Logger log = LoggerFactory.getLogger(AbstractMastersSlavesListener.class);
 
     /* =========================== Failover variables ========================================= */
     private AtomicLong secondaryHostFailTimestamp = new AtomicLong();
@@ -81,14 +78,12 @@ public abstract class AbstractMastersSlavesListener extends AbstractMastersListe
         if (explicitClosed) throw new QueryException("Connection has been closed !");
         if (currentProtocol.mustBeMasterConnection()) {
             if (setMasterHostFail()) {
-                log.warn("SQL Primary node [" + this.currentProtocol.getHostAddress().toString() + "] connection fail ");
                 addToBlacklist(currentProtocol.getHostAddress());
                 if (FailoverProxy.METHOD_EXECUTE_QUERY.equals(method.getName())) queriesSinceFailover.incrementAndGet();
             }
             return primaryFail(method, args);
         } else {
             if (setSecondaryHostFail()) {
-                log.warn("SQL Secondary node [" + this.currentProtocol.getHostAddress().toString() + "] connection fail ");
                 addToBlacklist(currentProtocol.getHostAddress());
                 if (FailoverProxy.METHOD_EXECUTE_QUERY.equals(method.getName())) queriesSinceFailover.incrementAndGet();
             }

@@ -3,14 +3,7 @@ package org.mariadb.jdbc;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.sql.Date;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.Time;
-import java.sql.Timestamp;
-import java.sql.Types;
+import java.sql.*;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.TimeZone;
@@ -245,32 +238,34 @@ public class DateTest extends BaseTest{
               Assert.assertTrue(Math.abs(d.getSeconds() - rs.getTime(1).getSeconds())<=1);
           }
     }
+    public void setSessionTimeZone(Connection connection, String timeZone) throws SQLException {
+        Statement statement = connection.createStatement();
+        statement.execute("set @@session.time_zone = '" + timeZone + "'");
+        statement.close();
+    }
 
     @Test
-    public void  serverTimezone() throws Exception {
+    public void serverTimezone() throws Exception {
         TimeZone tz = TimeZone.getDefault();
-        //TimeZone gmt = TimeZone.getTimeZone("GMT");
-        long offset = tz.getRawOffset();
-        setConnection("&serverTimezone=GMT") ;
+
+        setConnection("&serverTimezone=GMT-5:00");
+        setSessionTimeZone(connection, "-5:00");
+
         java.util.Date now = new java.util.Date();
-        offset = tz.getOffset(now.getTime());
+        TimeZone canadaTimeZone = TimeZone.getTimeZone("GMT-5:00");
+
+        long clientOffset = tz.getOffset(now.getTime());
+        long serverOffset = canadaTimeZone.getOffset(now.getTime());
+        long totalOffset = clientOffset - serverOffset;
         PreparedStatement ps = connection.prepareStatement("select now()");
         ResultSet rs = ps.executeQuery();
         rs.next();
-        java.sql.Timestamp ts  =  rs.getTimestamp(1);
-        long differenceToGMT = ts.getTime() - now.getTime();
-        long diff = Math.abs(differenceToGMT - offset);
-        log.trace("diff : "+diff);
-        assertTrue(diff < 5000); /* query take less than a second but taking in accout server and client time second diff ... */
+        java.sql.Timestamp ts = rs.getTimestamp(1);
+        long differenceToServer = ts.getTime() - now.getTime();
+        long diff = Math.abs(differenceToServer - totalOffset);
+        //System.out.println("diff : " + diff);
+        assertTrue(differenceToServer < 5000); /* query take less than a second but taking in account server and client time second diff ... */
 
-        ps = connection.prepareStatement("select utc_timestamp(), ?");
-        ps.setObject(1,now);
-        rs = ps.executeQuery();
-        rs.next();
-        ts  =  rs.getTimestamp(1);
-        java.sql.Timestamp ts2 =  rs.getTimestamp(2);
-        long diff2 = Math.abs(ts.getTime() - ts2.getTime());
-        assertTrue(diff2 < 5000); /* query take less than a second */
     }
 
     /**

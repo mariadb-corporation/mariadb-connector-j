@@ -56,7 +56,6 @@ import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.common.UrlHAMode;
 import org.mariadb.jdbc.internal.common.Utils;
 import org.mariadb.jdbc.internal.mysql.*;
-import org.slf4j.LoggerFactory;
 
 import javax.sql.*;
 
@@ -72,7 +71,6 @@ import java.util.logging.Logger;
 
 
 public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XADataSource {
-    private final static org.slf4j.Logger log = LoggerFactory.getLogger(MySQLDataSource.class);
 
     private final JDBCUrl jdbcUrl;
 
@@ -281,7 +279,6 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XA
     public Connection getConnection(final String username, final String password) throws SQLException {
         jdbcUrl.setUsername(username);
         jdbcUrl.setPassword(password);
-        if (log.isDebugEnabled()) log.debug("connection : " +jdbcUrl.toString());
         return getConnection();
     }
 

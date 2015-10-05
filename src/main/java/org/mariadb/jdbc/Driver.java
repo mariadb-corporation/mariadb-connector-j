@@ -53,10 +53,6 @@ import org.mariadb.jdbc.internal.SQLExceptionMapper;
 import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.common.Utils;
 import org.mariadb.jdbc.internal.mysql.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.lang.reflect.Proxy;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.DriverPropertyInfo;
@@ -68,7 +64,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 
 public final class Driver implements java.sql.Driver {
-    private final static Logger log = LoggerFactory.getLogger(Driver.class);
 
     static {
         try {
@@ -89,13 +84,11 @@ public final class Driver implements java.sql.Driver {
      */
     public Connection connect(final String url, final Properties props) throws SQLException {
 
-        log.debug("Connecting to: " + url);
         try {
             JDBCUrl jdbcUrl = JDBCUrl.parse(url, props);
             //
             if (jdbcUrl == null) return null;
             if (jdbcUrl.getHostAddresses() == null) {
-                log.info("MariaDB connector : missing Host address");
                 return null;
             } else {
                 ReentrantReadWriteLock lock = new ReentrantReadWriteLock();

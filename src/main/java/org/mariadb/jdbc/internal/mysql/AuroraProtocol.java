@@ -57,16 +57,12 @@ import org.mariadb.jdbc.internal.common.query.MySQLQuery;
 import org.mariadb.jdbc.internal.common.queryresults.SelectQueryResult;
 import org.mariadb.jdbc.internal.mysql.listener.impl.AuroraListener;
 import org.mariadb.jdbc.internal.mysql.listener.tools.SearchFilter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class AuroraProtocol extends MastersSlavesProtocol {
-    private final static Logger log = LoggerFactory.getLogger(AuroraProtocol.class);
-
     public AuroraProtocol(final JDBCUrl url, final ReentrantReadWriteLock lock) {
         super(url, lock);
     }
@@ -97,7 +93,6 @@ public class AuroraProtocol extends MastersSlavesProtocol {
             return this.masterConnection;
 
         } catch (IOException ioe) {
-            log.trace("exception during checking if master", ioe);
             throw new QueryException("could not check the 'innodb_read_only' variable status on " + this.getHostAddress() +
                     " : " + ioe.getMessage(), -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), ioe);
         } finally {
@@ -107,16 +102,11 @@ public class AuroraProtocol extends MastersSlavesProtocol {
 
 
     public static void searchProbableMaster(AuroraListener listener, HostAddress probableMaster, Map<HostAddress, Long> blacklist, SearchFilter searchFilter) throws QueryException {
-        if (log.isDebugEnabled()) {
-            log.debug("searching for master:" + searchFilter.isSearchForMaster() + " replica:" + searchFilter.isSearchForSlave() + " address:" + probableMaster + " blacklist:" + blacklist.keySet());
-        }
         AuroraProtocol protocol = getNewProtocol(listener.getProxy(), listener.getJdbcUrl());
         try {
 
             protocol.setHostAddress(probableMaster);
-            if (log.isTraceEnabled()) log.trace("trying to connect to " + protocol.getHostAddress());
             protocol.connect();
-            if (log.isTraceEnabled()) log.trace("connected to " + protocol.getHostAddress());
 
             if (searchFilter.isSearchForMaster() && protocol.isMasterConnection()) {
                 searchFilter.setSearchForMaster(false);
@@ -127,16 +117,12 @@ public class AuroraProtocol extends MastersSlavesProtocol {
                 protocol.setMustBeMasterConnection(false);
                 listener.foundActiveSecondary(protocol);
             } else {
-                if (log.isDebugEnabled())
-                    log.debug("close connection because unused : " + protocol.getHostAddress());
                 protocol.close();
                 protocol = getNewProtocol(listener.getProxy(), listener.getJdbcUrl());
             }
 
         } catch (QueryException e) {
             blacklist.put(protocol.getHostAddress(), System.currentTimeMillis());
-            if (log.isDebugEnabled())
-                log.debug("Could not connect to " + protocol.currentHost + " searching for master : " + searchFilter.isSearchForMaster() + " for replica :" + searchFilter.isSearchForSlave() + " error:" + e.getMessage());
         }
     }
 
@@ -150,10 +136,6 @@ public class AuroraProtocol extends MastersSlavesProtocol {
      * @throws QueryException if not found
      */
     public static void loop(AuroraListener listener, final List<HostAddress> addresses, Map<HostAddress, Long> blacklist, SearchFilter searchFilter) throws QueryException {
-        if (log.isDebugEnabled()) {
-            log.debug("searching for master:" + searchFilter.isSearchForMaster() + " replica:" + searchFilter.isSearchForSlave() + " addresses:" + addresses);
-        }
-
         AuroraProtocol protocol;
         List<HostAddress> loopAddresses = new LinkedList<>(addresses);
         int maxConnectionTry = listener.getRetriesAllDown();
@@ -169,10 +151,8 @@ public class AuroraProtocol extends MastersSlavesProtocol {
                 protocol.setHostAddress(loopAddresses.get(0));
                 loopAddresses.remove(0);
 
-                if (log.isDebugEnabled()) log.debug("trying to connect to " + protocol.getHostAddress());
                 protocol.connect();
                 blacklist.remove(protocol.getHostAddress());
-                if (log.isDebugEnabled()) log.debug("connected to " + (protocol.isMasterConnection()?"primary ":"replica ") + protocol.getHostAddress());
 
                 if (searchFilter.isSearchForMaster() && protocol.isMasterConnection()) {
                     if (foundMaster(listener, protocol, searchFilter)) return;
@@ -191,7 +171,6 @@ public class AuroraProtocol extends MastersSlavesProtocol {
             } catch (QueryException e) {
                 lastQueryException = e;
                 blacklist.put(protocol.getHostAddress(), System.currentTimeMillis());
-                if (log.isDebugEnabled()) log.debug("Could not connect to " + protocol.getHostAddress() + " searching: " + searchFilter + " error: " + e.getMessage());
             }
 
             if (!searchFilter.isSearchForMaster() && !searchFilter.isSearchForSlave()) return;

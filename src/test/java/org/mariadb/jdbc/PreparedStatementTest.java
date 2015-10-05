@@ -108,4 +108,28 @@ public class PreparedStatementTest extends BaseTest {
         connection.createStatement().execute("DROP TABLE IF EXISTS backTicksPreparedStatements");
     }
 
+
+    @Test
+    public void testduplicate() throws Exception {
+        connection.createStatement().execute("DROP TABLE IF EXISTS SOME_TABLE");
+        connection.createStatement().execute("CREATE TABLE SOME_TABLE (ID INT(11) not null, FOO INT(11), PRIMARY KEY (ID), UNIQUE INDEX `FOO` (`FOO`))");
+        String sql = "insert into `SOME_TABLE` (`ID`, `FOO`) values (?, ?) on duplicate key update `SOME_TABLE`.`FOO` = ?";
+        PreparedStatement pst = connection.prepareStatement(sql);
+        pst.setInt(1, 1);
+        pst.setInt(2, 1);
+        pst.setInt(3, 1);
+        pst.addBatch();
+
+        pst.setInt(1, 2);
+        pst.setInt(2, 1);
+        pst.setInt(3, 2);
+        pst.addBatch();
+        pst.executeBatch();
+
+        Statement st = connection.createStatement();
+        ResultSet rs = st.executeQuery("SELECT * FROM `SOME_TABLE`");
+        rs.next();
+        assertEquals(rs.getInt(1), 1);
+        assertEquals(rs.getInt(2), 2);
+    }
 }

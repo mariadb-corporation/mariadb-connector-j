@@ -1,15 +1,11 @@
 package org.mariadb.jdbc.internal.common.packet;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
 
 public class PacketOutputStream extends OutputStream {
-    private final static Logger log = LoggerFactory.getLogger(PacketOutputStream.class);
 
     private static final int MAX_PACKET_LENGTH = 0x00ffffff;
     private static final int SEQNO_OFFSET = 3;
@@ -132,12 +128,6 @@ public class PacketOutputStream extends OutputStream {
             throw new MaxAllowedPacketException("max_allowed_packet exceeded. wrote " + bytesWritten + ", max_allowed_packet = " +maxAllowedPacket, this.seqNo != 0);
         }
         baseStream.write(byteBuffer, 0, position);
-        if (log.isTraceEnabled()) {
-            byte[] tmp = new byte[Math.min(1000, position)];
-            System.arraycopy(byteBuffer, 0, tmp, 0, Math.min(1000, position));
-            log.trace(new String(tmp));
-        }
-
         position = HEADER_LENGTH;
         this.seqNo++;
     }

@@ -52,8 +52,6 @@ package org.mariadb.jdbc.internal.mysql;
 import org.mariadb.jdbc.internal.SQLExceptionMapper;
 import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.mysql.listener.Listener;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
@@ -63,7 +61,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 
 public class FailoverProxy implements InvocationHandler {
-    private final static Logger log = LoggerFactory.getLogger(FailoverProxy.class);
 
     public final static String METHOD_IS_EXPLICIT_CLOSED =  "isExplicitClosed";
     public final static String METHOD_GET_OPTIONS =  "getOptions";

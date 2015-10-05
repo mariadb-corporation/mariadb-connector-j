@@ -59,8 +59,6 @@ import org.mariadb.jdbc.internal.mysql.FailoverProxy;
 import org.mariadb.jdbc.internal.mysql.HandleErrorResult;
 import org.mariadb.jdbc.internal.mysql.Protocol;
 import org.mariadb.jdbc.internal.mysql.listener.tools.SearchFilter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -76,7 +74,6 @@ import java.util.concurrent.atomic.AtomicLong;
 
 
 public abstract class AbstractMastersListener implements Listener {
-    private final static Logger log = LoggerFactory.getLogger(AbstractMastersListener.class);
 
     /* =========================== Failover variables ========================================= */
     public final JDBCUrl jdbcUrl;
@@ -119,7 +116,6 @@ public abstract class AbstractMastersListener implements Listener {
     public HandleErrorResult handleFailover(Method method, Object[] args) throws Throwable {
         if (explicitClosed) throw new QueryException("Connection has been closed !");
         if (setMasterHostFail()) {
-            log.warn("SQL Primary node [" + this.currentProtocol.getHostAddress().toString() + "] connection fail ");
             addToBlacklist(currentProtocol.getHostAddress());
         }
         return primaryFail(method, args);
@@ -131,7 +127,6 @@ public abstract class AbstractMastersListener implements Listener {
      */
     public void addToBlacklist(HostAddress hostAddress) {
         if (hostAddress != null) {
-            if (log.isTraceEnabled())log.trace("host " + hostAddress+" added to blacklist");
             blacklist.put(hostAddress, System.currentTimeMillis());
         }
     }
@@ -144,7 +139,6 @@ public abstract class AbstractMastersListener implements Listener {
         Set<HostAddress> currentBlackListkeys = new HashSet<HostAddress>(blacklist.keySet());
         for (HostAddress blackListHost : currentBlackListkeys) {
             if (blacklist.get(blackListHost) < currentTime - jdbcUrl.getOptions().loadBalanceBlacklistTimeout * 1000) {
-                if (log.isTraceEnabled()) log.trace("host " + blackListHost+" remove of blacklist");
                 blacklist.remove(blackListHost);
             }
         }
@@ -160,13 +154,11 @@ public abstract class AbstractMastersListener implements Listener {
     protected class FailLoop implements Runnable {
         Listener listener;
         public FailLoop(Listener listener) {
-            log.trace("launched FailLoop");
             this.listener = listener;
         }
 
         public void run() {
                 if (hasHostFail()) {
-                    if (log.isTraceEnabled()) log.trace("failLoop , listener.shouldReconnect() : "+listener.shouldReconnect());
                     if (listener.shouldReconnect()) {
                         try {
                             if (currentConnectionAttempts.get() >= jdbcUrl.getOptions().failoverLoopRetries)
@@ -177,18 +169,15 @@ public abstract class AbstractMastersListener implements Listener {
                             //reconnection done !
                             stopFailover();
                         } catch (Exception e) {
-                            log.trace("FailLoop search connection failed", e);
                         }
                     } else {
                         if (currentConnectionAttempts.get() > jdbcUrl.getOptions().retriesAllDown) {
-                            if (log.isDebugEnabled()) log.debug("stopping failover after too many attemps ("+currentConnectionAttempts+")");
                             stopFailover();
                         }
                     }
                 } else {
                     stopFailover();
                 }
-                log.trace("end launched FailLoop");
             }
     }
 
@@ -200,7 +189,6 @@ public abstract class AbstractMastersListener implements Listener {
 
     protected void stopFailover() {
         if (isLooping.compareAndSet(true, false)) {
-            log.trace("stopping failover");
             if (scheduledFailover!=null)scheduledFailover.cancel(false);
         }
     }
