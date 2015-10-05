@@ -70,7 +70,7 @@ public class SelectDBPacket implements CommandPacket {
         PacketOutputStream pos = (PacketOutputStream) outputStream;
         pos.startPacket(0);
         pos.write(0x02);
-        pos.write(database.getBytes(StandardCharsets.UTF_8));
+        pos.write(database.getBytes("UTF-8"));
         pos.finishPacket();
         return 0;
     }

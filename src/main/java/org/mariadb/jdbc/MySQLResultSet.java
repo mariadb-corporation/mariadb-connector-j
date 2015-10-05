@@ -58,10 +58,7 @@ import org.mariadb.jdbc.internal.mysql.MySQLType;
 import org.mariadb.jdbc.internal.mysql.MySQLValueObject;
 import org.mariadb.jdbc.internal.mysql.Protocol;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.Reader;
-import java.io.StringReader;
+import java.io.*;
 import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -138,7 +135,12 @@ public class MySQLResultSet implements ResultSet {
                 } else if (columnTypes[i] == MySQLType.BIT) {
                     bytes = rowData[i].equals("0") ? BOOL_FALSE : BOOL_TRUE;
                 } else {
-                    bytes = rowData[i].getBytes(StandardCharsets.UTF_8);
+                    try {
+                        bytes = rowData[i].getBytes("UTF-8");
+                    } catch (UnsupportedEncodingException e) {
+                        //never append, UTF-8 is known
+                        bytes=new byte[0];
+                    }
                 }
                 row[i] = new MySQLValueObject(bytes, columns[i], protocol.getOptions());
             }
@@ -203,7 +205,12 @@ public class MySQLResultSet implements ResultSet {
                 } else if (columns[i].getType() == MySQLType.BIT) {
                     bytes = rowData[i].equals("0") ? BOOL_FALSE : BOOL_TRUE;
                 } else {
-                    bytes = rowData[i].getBytes(StandardCharsets.UTF_8);
+                    try {
+                        bytes = rowData[i].getBytes("UTF-8");
+                    } catch (UnsupportedEncodingException e) {
+                        //never append, UTF-8 is known
+                        bytes=new byte[0];
+                    }
                 }
                 row[i] = new MySQLValueObject(bytes, columns[i], protocol.getOptions());
             }
@@ -262,24 +269,51 @@ public class MySQLResultSet implements ResultSet {
                 data, connection.getProtocol(), true, binaryData);
     }
 
-    private void writeLock() {
-        if (statement != null) statement.stLock.writeLock().lock();
+    static ResultSet createGeneratedKeysResultSet(long[] lastInsertIds, int[] updateCounts, MySQLConnection connection, boolean binaryData) {
+        String[][] data = new String[updateCounts.length][];
+        boolean hasSeekAutoIncrement = false;
+        int autoIncrementIncrement = 1;
+
+        for (int incr=0;incr<updateCounts.length;incr++) {
+            int updateCount = updateCounts[incr];
+            if (updateCount <= 0) {
+                data[incr] = new String[0];
+            } else {
+                if (updateCount == 1) {
+                    data[incr] = new String[] {"" + lastInsertIds[incr]};
+                } else {
+                    String[] insertIdsMultiple = new String[updateCount];
+
+                    if (!hasSeekAutoIncrement) {
+                        autoIncrementIncrement = connection.getAutoIncrementIncrement();
+                        hasSeekAutoIncrement=true;
+                    }
+
+                    for (int i = 0; i < updateCount; i++) {
+                        insertIdsMultiple[i] = "" + (lastInsertIds[incr] + i * autoIncrementIncrement);
+                    }
+
+                    data[incr] = insertIdsMultiple;
+                }
+            }
+        }
+
+        return createResultSet(new String[]{"insert_id"},
+                new MySQLType[]{MySQLType.BIGINT},
+                data, connection.getProtocol(), true, binaryData);
     }
 
-    private void writeUnlock() {
-        if (statement != null) statement.stLock.writeLock().unlock();
+
+    private void lock() {
+        if (statement != null) statement.stLock.lock();
     }
 
-    private void readLock() {
-        if (statement != null) statement.stLock.readLock().lock();
-    }
-
-    private void readUnlock() {
-        if (statement != null) statement.stLock.readLock().unlock();
+    private void unlock() {
+        if (statement != null) statement.stLock.unlock();
     }
 
     public boolean next() throws SQLException {
-        writeLock();
+        lock();
         try {
             return queryResult.getResultSetType() == ResultSetType.SELECT
                     && ((SelectQueryResult) queryResult).next();
@@ -288,17 +322,17 @@ public class MySQLResultSet implements ResultSet {
         } catch (QueryException qe) {
             throw new SQLException(qe);
         } finally {
-            writeUnlock();
+            unlock();
         }
     }
 
     public void close() throws SQLException {
         if (this.queryResult != null) {
-            writeLock();
+            lock();
             try {
                 this.queryResult.close();
             } finally {
-                writeUnlock();
+                unlock();
             }
         }
     }
@@ -313,11 +347,11 @@ public class MySQLResultSet implements ResultSet {
      * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed result set
      */
     public boolean wasNull() throws SQLException {
-        readLock();
+        lock();
         try {
             return lastGetWasNull;
         } finally {
-            readUnlock();
+            unlock();
         }
     }
 
@@ -336,7 +370,7 @@ public class MySQLResultSet implements ResultSet {
     private ValueObject getValueObject(int i) throws SQLException {
         if (queryResult.getResultSetType() == ResultSetType.SELECT) {
             ValueObject vo;
-            writeLock();
+            lock();
             try {
                 try {
                     vo = ((SelectQueryResult) queryResult).getValueObject(i - 1);
@@ -345,7 +379,7 @@ public class MySQLResultSet implements ResultSet {
                 }
                 this.lastGetWasNull = vo.isNull();
             } finally {
-                writeUnlock();
+                unlock();
             }
             return vo;
         }
@@ -3792,43 +3826,38 @@ public class MySQLResultSet implements ResultSet {
     }
 
     public MySQLResultSet joinResultSets(MySQLResultSet resultSet) throws SQLException {
-        writeLock();
-        try {
-            MySQLColumnInformation[] columnInfo = this.queryResult.getColumnInformation();
-            MySQLColumnInformation[] otherColumnInfo = resultSet.queryResult.getColumnInformation();
-            int thisColumnNumber = columnInfo.length;
-            int resultSetColumnNumber = otherColumnInfo.length;
-            if (thisColumnNumber != resultSetColumnNumber) {
-                throw new SQLException("The two result sets do not have the same column number.");
-            }
-            for (int count = 0; count < columnInfo.length; count++) {
-                if (columnInfo[count].getType() != otherColumnInfo[count].getType()) {
-                    throw new SQLException("The two result sets differ in column types.");
-                }
-            }
-            MySQLResultSet result = null;
-            int rowNumber = this.queryResult.getRows() + resultSet.queryResult.getRows();
-            String[][] data = new String[rowNumber][columnInfo.length];
-            int i = 0;
-            this.beforeFirst();
-            while (this.next()) {
-                for (int j = 0; j < columnInfo.length; j++) {
-                    data[i][j] = this.getString(j + 1);
-                }
-                i++;
-            }
-            resultSet.beforeFirst();
-            while (resultSet.next()) {
-                for (int j = 0; j < columnInfo.length; j++) {
-                    data[i][j] = resultSet.getString(j + 1);
-                }
-                i++;
-            }
-            result = (MySQLResultSet) createResultSet(columnInfo, data, protocol);
-            return result;
-        } finally {
-            writeUnlock();
+        MySQLColumnInformation[] columnInfo = this.queryResult.getColumnInformation();
+        MySQLColumnInformation[] otherColumnInfo = resultSet.queryResult.getColumnInformation();
+        int thisColumnNumber = columnInfo.length;
+        int resultSetColumnNumber = otherColumnInfo.length;
+        if (thisColumnNumber != resultSetColumnNumber) {
+            throw new SQLException("The two result sets do not have the same column number.");
         }
+        for (int count = 0; count < columnInfo.length; count++) {
+            if (columnInfo[count].getType() != otherColumnInfo[count].getType()) {
+                throw new SQLException("The two result sets differ in column types.");
+            }
+        }
+        MySQLResultSet result = null;
+        int rowNumber = this.queryResult.getRows() + resultSet.queryResult.getRows();
+        String[][] data = new String[rowNumber][columnInfo.length];
+        int i = 0;
+        this.beforeFirst();
+        while (this.next()) {
+            for (int j = 0; j < columnInfo.length; j++) {
+                data[i][j] = this.getString(j + 1);
+            }
+            i++;
+        }
+        resultSet.beforeFirst();
+        while (resultSet.next()) {
+            for (int j = 0; j < columnInfo.length; j++) {
+                data[i][j] = resultSet.getString(j + 1);
+            }
+            i++;
+        }
+        result = (MySQLResultSet) createResultSet(columnInfo, data, protocol);
+        return result;
     }
 
     public MySQLResultSet joinResultSets(MySQLResultSet[] resultSets) throws SQLException {

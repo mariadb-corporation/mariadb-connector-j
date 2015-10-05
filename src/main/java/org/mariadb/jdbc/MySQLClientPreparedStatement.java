@@ -168,24 +168,24 @@ public class MySQLClientPreparedStatement extends AbstractMySQLPrepareStatement 
      * @since 1.2
      */
     public void addBatch() throws SQLException {
-        stLock.writeLock().lock();
+        stLock.lock();
         try {
             checkBatchFields();
             batchQueries.add(dQuery.cloneQuery());
             isInsertRewriteable(dQuery.getQuery());
         } finally {
-            stLock.writeLock().unlock();
+            stLock.unlock();
         }
     }
 
     public void addBatch(final String sql) throws SQLException {
-        stLock.writeLock().lock();
+        stLock.lock();
         try {
             checkBatchFields();
             isInsertRewriteable(sql);
             batchQueries.add(new MySQLQuery(sql));
         } finally {
-            stLock.writeLock().unlock();
+            stLock.unlock();
         }
     }
 
@@ -196,7 +196,7 @@ public class MySQLClientPreparedStatement extends AbstractMySQLPrepareStatement 
     }
 
     public void clearBatch() {
-        stLock.writeLock().lock();
+        stLock.lock();
         try {
             if (batchQueries != null) {
                 batchQueries.clear();
@@ -204,7 +204,7 @@ public class MySQLClientPreparedStatement extends AbstractMySQLPrepareStatement 
             firstRewrite = null;
             isRewriteable = true;
         } finally {
-            stLock.writeLock().unlock();
+            stLock.unlock();
         }
     }
 
@@ -228,7 +228,7 @@ public class MySQLClientPreparedStatement extends AbstractMySQLPrepareStatement 
      * @since 1.2
      */
     public ResultSetMetaData getMetaData() throws SQLException {
-        stLock.writeLock().lock();
+        stLock.lock();
         try {
             ResultSet rs = getResultSet();
             if (rs != null) {
@@ -242,20 +242,20 @@ public class MySQLClientPreparedStatement extends AbstractMySQLPrepareStatement 
             }
             return resultSetMetaData;
         } finally {
-            stLock.writeLock().unlock();
+            stLock.unlock();
         }
     }
 
 
     protected void setParameter(final int parameterIndex, final ParameterHolder holder) throws SQLException {
-        stLock.writeLock().lock();
+        stLock.lock();
         try {
             dQuery.setParameter(parameterIndex - 1, holder);
             parametersCleared = false;
         } catch (IllegalParameterException e) {
             throw SQLExceptionMapper.getSQLException("Could not set parameter", e);
         } finally {
-            stLock.writeLock().unlock();
+            stLock.unlock();
         }
     }
 
@@ -271,7 +271,7 @@ public class MySQLClientPreparedStatement extends AbstractMySQLPrepareStatement 
      * @since 1.4
      */
     public ParameterMetaData getParameterMetaData() throws SQLException {
-        stLock.writeLock().lock();
+        stLock.lock();
         try {
             if (parameterMetaData == null) {
                 MySQLServerPreparedStatement ssps = new MySQLServerPreparedStatement(connection, this.sqlQuery, Statement.NO_GENERATED_KEYS);
@@ -281,7 +281,7 @@ public class MySQLClientPreparedStatement extends AbstractMySQLPrepareStatement 
             }
             return parameterMetaData;
         } finally {
-            stLock.writeLock().unlock();
+            stLock.unlock();
         }
     }
 
@@ -293,12 +293,12 @@ public class MySQLClientPreparedStatement extends AbstractMySQLPrepareStatement 
      * method <code>clearParameters</code>.
      */
     public void clearParameters() {
-        stLock.writeLock().lock();
+        stLock.lock();
         try {
             dQuery.clearParameters();
             parametersCleared = true;
         } finally {
-            stLock.writeLock().unlock();
+            stLock.unlock();
         }
     }
 
@@ -306,7 +306,7 @@ public class MySQLClientPreparedStatement extends AbstractMySQLPrepareStatement 
     // Close prepared statement, maybe fire closed-statement events
     @Override
     public void close() throws SQLException {
-        stLock.writeLock().lock();
+        stLock.lock();
         connection.lock.writeLock().lock();
         try {
             super.close();
@@ -320,7 +320,7 @@ public class MySQLClientPreparedStatement extends AbstractMySQLPrepareStatement 
             connection.pooledConnection.fireStatementClosed(this);
         } finally {
             connection.lock.writeLock().unlock();
-            stLock.writeLock().unlock();
+            stLock.unlock();
         }
     }
 

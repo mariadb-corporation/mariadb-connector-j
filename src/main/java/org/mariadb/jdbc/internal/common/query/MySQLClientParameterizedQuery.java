@@ -73,25 +73,27 @@ public class MySQLClientParameterizedQuery implements ParameterizedQuery {
 
 
     public MySQLClientParameterizedQuery(String query, boolean noBackslashEscapes, int rewriteOffset) {
-        this.query = query;
-        List<String> queryParts = createQueryParts(query, noBackslashEscapes);
-        if (rewriteOffset != -1) {
-            rewriteFirstPart = queryParts.get(0).substring(rewriteOffset + 1).getBytes(StandardCharsets.UTF_8);
-            String lastPart = queryParts.get(queryParts.size() - 1);
-            if (lastPart.indexOf(")") != -1) {
-                rewriteRepeatLastPart = lastPart.substring(0, lastPart.indexOf(")")).getBytes(StandardCharsets.UTF_8);
-                rewriteNotRepeatLastPart = lastPart.substring(lastPart.indexOf(")") + 1).getBytes(StandardCharsets.UTF_8);
-            } else {
-                rewriteRepeatLastPart = lastPart.getBytes(StandardCharsets.UTF_8);
-                rewriteNotRepeatLastPart = new byte[0];
+        try {
+            this.query = query;
+            List<String> queryParts = createQueryParts(query, noBackslashEscapes);
+            if (rewriteOffset != -1) {
+                rewriteFirstPart = queryParts.get(0).substring(rewriteOffset + 1).getBytes("UTF-8");
+                String lastPart = queryParts.get(queryParts.size() - 1);
+                if (lastPart.indexOf(")") != -1) {
+                    rewriteRepeatLastPart = lastPart.substring(0, lastPart.indexOf(")")).getBytes("UTF-8");
+                    rewriteNotRepeatLastPart = lastPart.substring(lastPart.indexOf(")") + 1).getBytes("UTF-8");
+                } else {
+                    rewriteRepeatLastPart = lastPart.getBytes("UTF-8");
+                    rewriteNotRepeatLastPart = new byte[0];
+                }
             }
-        }
-        queryPartsArray = new byte[queryParts.size()][];
-        for (int i = 0; i < queryParts.size(); i++) {
-            queryPartsArray[i] = queryParts.get(i).getBytes(StandardCharsets.UTF_8);
-        }
-        paramCount = queryParts.size() - 1;
-        parameters = new ParameterHolder[paramCount];
+            queryPartsArray = new byte[queryParts.size()][];
+            for (int i = 0; i < queryParts.size(); i++) {
+                queryPartsArray[i] = queryParts.get(i).getBytes("UTF-8");
+            }
+            paramCount = queryParts.size() - 1;
+            parameters = new ParameterHolder[paramCount];
+        } catch (UnsupportedEncodingException u) {}
     }
 
     private MySQLClientParameterizedQuery() {

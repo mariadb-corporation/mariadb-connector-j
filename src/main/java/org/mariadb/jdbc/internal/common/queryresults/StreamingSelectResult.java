@@ -56,19 +56,19 @@ public class StreamingSelectResult extends SelectQueryResult {
             final RawPacket rawPacket = packetFetcher.getRawPacket();
 
             // We do not expect an error packet, but check it just for safety
-            if (ReadUtil.isErrorPacket(rawPacket.getByteBuffer())) {
-                ErrorPacket errorPacket = new ErrorPacket(rawPacket.getByteBuffer());
-                throw new QueryException("error when reading field packet " + errorPacket.getMessage(),
-                        errorPacket.getErrorNumber(), errorPacket.getSqlState());
-            }
-            // We do not expect OK or EOF packets either
-            byte b = rawPacket.getByteBuffer().get(0);
-            if (b == 0 || b == (byte) 0xfe) {
-                throw new QueryException("Packets out of order when trying to read field packet - " +
-                        "got packet starting with byte " + b + "packet content (hex) = "
-                        + MySQLProtocol.hexdump(rawPacket.getByteBuffer(), 0));
-            }
-
+//            if (ReadUtil.isErrorPacket(rawPacket.getByteBuffer())) {
+//                ErrorPacket errorPacket = new ErrorPacket(rawPacket.getByteBuffer());
+//                throw new QueryException("error when reading field packet " + errorPacket.getMessage(),
+//                        errorPacket.getErrorNumber(), errorPacket.getSqlState());
+//            }
+//            // We do not expect OK or EOF packets either
+//            byte b = rawPacket.getByteBuffer().get(0);
+//            if (b == 0 || b == (byte) 0xfe) {
+//                throw new QueryException("Packets out of order when trying to read field packet - " +
+//                        "got packet starting with byte " + b + "packet content (hex) = "
+//                        + MySQLProtocol.hexdump(rawPacket.getByteBuffer(), 0));
+//            }
+//
             try {
                 ci[i] = new MySQLColumnInformation(rawPacket);
             } catch (Exception e) {

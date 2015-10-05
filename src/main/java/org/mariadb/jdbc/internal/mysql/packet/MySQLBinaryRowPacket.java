@@ -160,6 +160,7 @@ public class MySQLBinaryRowPacket {
                         columns[i] = new MySQLValueObject(reader.getLengthEncodedBytes(), columnInformation[i], true, options);
                         break;
                     default:
+                        appendPacketIfNeeded(packetFetcher);
                         columns[i] = new MySQLValueObject(null, columnInformation[i], true, options);
                         break;
                 }

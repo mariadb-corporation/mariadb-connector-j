@@ -71,25 +71,19 @@ public abstract class ResultPacket {
         /*if (byteBuffer.remaining() == 0) {
             return 0;
         }*/
-        final byte type = byteBuffer.get();
-
-        if ((type & 0xff) == 251) {
-            return -1;
+        final int type = byteBuffer.get() & 0xff;
+        switch (type) {
+            case 252:
+                return (long) 0xffff & byteBuffer.getShort();
+            case 253:
+                return 0xffffff & read24bitword();
+            case 254:
+                return byteBuffer.getLong();
+            case 255:
+                return -1;
+            default:
+                return type;
         }
-        if ((type & 0xff) == 252) {
-            return (long) 0xffff & byteBuffer.getShort();
-        }
-        if ((type & 0xff) == 253) {
-            return 0xffffff & read24bitword();
-        }
-        if ((type & 0xff) == 254) {
-            return byteBuffer.getLong();
-        }
-        if ((type & 0xff) <= 250) {
-            return (long) 0xff & type;
-        }
-
-        return 0;
     }
 
     public byte[] getLengthEncodedBytes() throws IOException {

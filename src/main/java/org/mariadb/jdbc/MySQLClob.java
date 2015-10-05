@@ -1,5 +1,7 @@
 package org.mariadb.jdbc;
 
+import org.mariadb.jdbc.internal.SQLExceptionMapper;
+
 import java.io.*;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -9,7 +11,6 @@ import java.sql.SQLException;
 
 public class MySQLClob extends MySQLBlob implements Clob, NClob, Serializable {
     private static final long serialVersionUID = -2006825230517923067L;
-
     public MySQLClob(byte[] bytes) {
         super(bytes);
     }
@@ -79,7 +80,11 @@ public class MySQLClob extends MySQLBlob implements Clob, NClob, Serializable {
 
     public int setString(long pos, String str) throws SQLException {
         int bytePosition = UTF8position((int) pos - 1);
-        super.setBytes(bytePosition + 1, str.getBytes(StandardCharsets.UTF_8));
+        try {
+            super.setBytes(bytePosition + 1, str.getBytes("UTF-8"));
+        } catch (UnsupportedEncodingException e) {
+            //eat exception, UTF-8 is a known charset
+        }
         return str.length();
     }
 

@@ -1,5 +1,6 @@
 package org.mariadb.jdbc.internal.common.packet;
 
+import javafx.util.converter.ByteStringConverter;
 import org.mariadb.jdbc.internal.common.MySQLCharset;
 
 import java.io.*;
@@ -57,9 +58,9 @@ public class PacketOutputStream extends OutputStream {
     }
 
     public void startPacket(int seqNo, boolean checkPacketLength) throws IOException {
-        if (this.seqNo != -1) {
+        /*if (this.seqNo != -1) {
             throw new IOException("Last packet not finished");
-        }
+        }*/
         this.seqNo = seqNo;
         buffer.clear();
         this.checkPacketLength = checkPacketLength;
@@ -130,9 +131,9 @@ public class PacketOutputStream extends OutputStream {
 
 
     public void finishPacket() throws IOException {
-        if (this.seqNo == -1) {
+        /*if (this.seqNo == -1) {
             throw new AssertionError("Packet not started");
-        }
+        }*/
         internalFlush();
         if (buffer.capacity() > 8192) {
             //to not keep big buffer in memory
@@ -164,22 +165,23 @@ public class PacketOutputStream extends OutputStream {
 
     private void internalFlush() throws IOException {
         buffer.flip();
-        if (buffer.limit() > 0) {
+        int limit = buffer.limit();
+        if (limit > 0) {
             if (checkPacketLength
                     && maxAllowedPacket > 0
-                    && buffer.limit() > (maxAllowedPacket - 1)) {
+                    && limit > (maxAllowedPacket - 1)) {
                 this.seqNo = -1;
-                throw new MaxAllowedPacketException("max_allowed_packet exceeded. packet size " + buffer.limit() + " is > to max_allowed_packet = " + (maxAllowedPacket - 1), this.seqNo != 0);
+                throw new MaxAllowedPacketException("max_allowed_packet exceeded. packet size " + limit + " is > to max_allowed_packet = " + (maxAllowedPacket - 1), this.seqNo != 0);
             }
 
             byte[] bufferBytes = new byte[0];
             int notCompressPosition = 0;
-            int expectedPacketSize = buffer.limit() + HEADER_LENGTH * ((buffer.limit() / maxPacketSize) + 1);
+            int expectedPacketSize = limit + HEADER_LENGTH * ((limit / maxPacketSize) + 1);
             if (useCompression) bufferBytes = new byte[expectedPacketSize];
 
             while (notCompressPosition < expectedPacketSize) {
                 int length = buffer.remaining();
-                if (buffer.remaining() > maxPacketSize) length = maxPacketSize;
+                if (length > maxPacketSize) length = maxPacketSize;
                 if (useCompression) {
                     bufferBytes[notCompressPosition++] = (byte) (length & 0xff);
                     bufferBytes[notCompressPosition++] = (byte) (length >>> 8);
@@ -332,9 +334,12 @@ public class PacketOutputStream extends OutputStream {
 
     public PacketOutputStream writeString(final String str) {
         final byte[] strBytes;
-        strBytes = str.getBytes(StandardCharsets.UTF_8);
-        return writeByteArray(strBytes);
-
+        try {
+            strBytes = str.getBytes("UTF-8");
+            return writeByteArray(strBytes);
+        } catch (UnsupportedEncodingException u) {
+            return this;
+        }
     }
 
     public PacketOutputStream writeShort(final short theShort) {
@@ -377,12 +382,36 @@ public class PacketOutputStream extends OutputStream {
         return this;
     }
 
+    public PacketOutputStream writeFieldLengthAssume(long length) {
+        if (length < 251) {
+            assureBufferCapacity(1);
+            buffer.put((byte) length);
+        } else if (length < 65536) {
+            assureBufferCapacity(3);
+            buffer.put((byte) 0xfc);
+            buffer.putShort((short) length);
+        } else if (length < 16777216) {
+            assureBufferCapacity(4);
+            buffer.put((byte)0xfd);
+            buffer.put((byte) (length & 0xff) );
+            buffer.put((byte) (length >>> 8) );
+            buffer.put((byte) (length >>> 16));
+        } else {
+            assureBufferCapacity(9);
+            buffer.put((byte) 0xfe);
+            buffer.putLong(length);
+        }
+        return this;
+    }
+
 
     public PacketOutputStream writeStringLength(final String str) {
-        final byte[] strBytes = str.getBytes(StandardCharsets.UTF_8);
-        assureBufferCapacity(strBytes.length + 9);
-        writeFieldLength(strBytes.length);
-        buffer.put(strBytes);
+        try {
+            final byte[] strBytes = str.getBytes("UTF-8");
+            assureBufferCapacity(strBytes.length + 9);
+            writeFieldLength(strBytes.length);
+            buffer.put(strBytes);
+        } catch (UnsupportedEncodingException u) { }
         return this;
     }
 

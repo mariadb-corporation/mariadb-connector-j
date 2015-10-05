@@ -63,6 +63,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.sql.*;
 import java.util.*;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 
@@ -86,7 +87,7 @@ public class MySQLStatement implements Statement {
     protected boolean isRewriteable = true;
     protected String firstRewrite = null;
     protected ResultSet batchResultSet = null;
-    protected ReentrantReadWriteLock stLock = new ReentrantReadWriteLock();
+    protected ReentrantLock stLock = new ReentrantLock();
     boolean isClosed;
     boolean isTimedout;
     volatile boolean executing;
@@ -136,11 +137,11 @@ public class MySQLStatement implements Statement {
     }
 
     public boolean isStreaming() {
-        stLock.readLock().lock();
+        stLock.lock();
         try {
             return isNotLockedStreaming();
         } finally {
-            stLock.readLock().unlock();
+            stLock.unlock();
         }
     }
 
@@ -273,7 +274,7 @@ public class MySQLStatement implements Statement {
      * @throws SQLException the error description
      */
     protected boolean execute(Query query) throws SQLException {
-        stLock.writeLock().lock();
+        stLock.lock();
         try {
             executing = true;
             QueryException exception = null;
@@ -296,7 +297,7 @@ public class MySQLStatement implements Statement {
                 connection.lock.writeLock().unlock();
             }
         } finally {
-            stLock.writeLock().unlock();
+            stLock.unlock();
         }
     }
 
@@ -317,7 +318,7 @@ public class MySQLStatement implements Statement {
      * @throws SQLException the error description
      */
     protected boolean execute(List<Query> queries, boolean isRewritable, int rewriteOffset) throws SQLException {
-        stLock.writeLock().lock();
+        stLock.lock();
         try {
             executing = true;
             QueryException exception = null;
@@ -340,7 +341,7 @@ public class MySQLStatement implements Statement {
                 connection.lock.writeLock().unlock();
             }
         } finally {
-            stLock.writeLock().unlock();
+            stLock.unlock();
         }
     }
 
@@ -423,7 +424,7 @@ public class MySQLStatement implements Statement {
      * @throws java.sql.SQLException if a database access error occurs
      */
     public void close() throws SQLException {
-        stLock.writeLock().lock();
+        stLock.lock();
         try {
             if (queryResult != null) {
                 queryResult.close();
@@ -444,7 +445,7 @@ public class MySQLStatement implements Statement {
             }
             isClosed = true;
         } finally {
-            stLock.writeLock().unlock();
+            stLock.unlock();
         }
     }
 
@@ -493,11 +494,11 @@ public class MySQLStatement implements Statement {
      * @see #setMaxRows
      */
     public int getMaxRows() throws SQLException {
-        stLock.readLock().lock();
+        stLock.lock();
         try {
             return maxRows;
         } finally {
-            stLock.readLock().unlock();
+            stLock.unlock();
         }
     }
 
@@ -515,9 +516,9 @@ public class MySQLStatement implements Statement {
         if (max < 0) {
             throw new SQLException("max rows is negative");
         }
-        stLock.writeLock().lock();
+        stLock.lock();
         maxRows = max;
-        stLock.writeLock().unlock();
+        stLock.unlock();
     }
 
     /**
@@ -531,9 +532,9 @@ public class MySQLStatement implements Statement {
      *                               <code>Statement</code>
      */
     public void setEscapeProcessing(final boolean enable) throws SQLException {
-        stLock.writeLock().lock();
+        stLock.lock();
         escapeProcessing = enable;
-        stLock.writeLock().unlock();
+        stLock.unlock();
     }
 
     /**
@@ -546,11 +547,11 @@ public class MySQLStatement implements Statement {
      * @see #setQueryTimeout
      */
     public int getQueryTimeout() throws SQLException {
-        stLock.readLock().lock();
+        stLock.lock();
         try {
             return queryTimeout;
         } finally {
-            stLock.readLock().unlock();
+            stLock.unlock();
         }
     }
 
@@ -567,9 +568,9 @@ public class MySQLStatement implements Statement {
      * @see #getQueryTimeout
      */
     public void setQueryTimeout(final int seconds) throws SQLException {
-        stLock.writeLock().lock();
+        stLock.lock();
         this.queryTimeout = seconds;
-        stLock.writeLock().unlock();
+        stLock.unlock();
     }
 
     /**
@@ -580,11 +581,11 @@ public class MySQLStatement implements Statement {
      * @param inputStream inputStream instance, that will be used to send data to server
      */
     public void setLocalInfileInputStream(InputStream inputStream) {
-        stLock.writeLock().lock();
+        stLock.lock();
         try {
             protocol.setLocalInfileInputStream(inputStream);
         } finally {
-            stLock.writeLock().unlock();
+            stLock.unlock();
         }
     }
 
@@ -625,14 +626,14 @@ public class MySQLStatement implements Statement {
      *                               <code>Statement</code>
      */
     public SQLWarning getWarnings() throws SQLException {
-        stLock.readLock().lock();
+        stLock.lock();
         try {
             if (!warningsCleared) {
                 return this.connection.getWarnings();
             }
             return null;
         } finally {
-            stLock.readLock().unlock();
+            stLock.unlock();
         }
     }
 
@@ -645,9 +646,9 @@ public class MySQLStatement implements Statement {
      *                               <code>Statement</code>
      */
     public void clearWarnings() throws SQLException {
-        stLock.writeLock().lock();
+        stLock.lock();
         warningsCleared = true;
-        stLock.writeLock().unlock();
+        stLock.unlock();
     }
 
     /**
@@ -725,13 +726,13 @@ public class MySQLStatement implements Statement {
      * @since 1.4
      */
     public ResultSet getGeneratedKeys() throws SQLException {
-        stLock.readLock().lock();
+        stLock.lock();
         try {
             if (!autoGeneratedKeys)
                 throw new SQLException("getGeneratedKeys error. Statement.RETURN_GENERATED_KEYS must be precised on connection.prepareStatement(String sql, int autoGeneratedKeys) or statement.executeUpdate(String sql, int autoGeneratedKeys)");
             return getInternalGeneratedKeys();
         } finally {
-            stLock.readLock().unlock();
+            stLock.unlock();
         }
     }
 
@@ -952,11 +953,11 @@ public class MySQLStatement implements Statement {
      * @since 1.6
      */
     public boolean isClosed() throws SQLException {
-        stLock.readLock().lock();
+        stLock.lock();
         try {
             return isClosed;
         } finally {
-            stLock.readLock().unlock();
+            stLock.unlock();
         }
     }
 
@@ -1006,7 +1007,7 @@ public class MySQLStatement implements Statement {
     }
 
     protected boolean getMoreResults(boolean streaming) throws SQLException {
-        this.stLock.writeLock().lock();
+        this.stLock.lock();
         connection.lock.writeLock().lock();
         try {
             if (queryResult != null) {
@@ -1023,7 +1024,7 @@ public class MySQLStatement implements Statement {
             return false;
         } finally {
             connection.lock.writeLock().unlock();
-            this.stLock.writeLock().unlock();
+            this.stLock.unlock();
         }
     }
 
@@ -1042,8 +1043,8 @@ public class MySQLStatement implements Statement {
      * @see #execute
      */
     public boolean getMoreResults() throws SQLException {
-        this.stLock.writeLock().lock();
-        stLock.writeLock().lock();
+        this.stLock.lock();
+        stLock.lock();
         try {
             if (!isNotLockedStreaming()) {
                 /* return pre-cached result set, if available */
@@ -1061,8 +1062,8 @@ public class MySQLStatement implements Statement {
             }
             return getMoreResults(false);
         } finally {
-            stLock.writeLock().unlock();
-            this.stLock.writeLock().unlock();
+            stLock.unlock();
+            this.stLock.unlock();
         }
     }
 
@@ -1112,11 +1113,11 @@ public class MySQLStatement implements Statement {
      * @since 1.2
      */
     public int getFetchSize() throws SQLException {
-        this.stLock.readLock().lock();
+        this.stLock.lock();
         try {
             return this.fetchSize;
         } finally {
-            this.stLock.readLock().unlock();
+            this.stLock.unlock();
         }
     }
 
@@ -1134,9 +1135,9 @@ public class MySQLStatement implements Statement {
     public void setFetchSize(final int rows) throws SQLException {
         if (rows < 0 && rows != Integer.MIN_VALUE)
             throw new SQLException("invalid fetch size");
-        this.stLock.writeLock().lock();
+        this.stLock.lock();
         this.fetchSize = rows;
-        this.stLock.writeLock().unlock();
+        this.stLock.unlock();
 
     }
 
@@ -1180,7 +1181,7 @@ public class MySQLStatement implements Statement {
      * @since 1.2
      */
     public void addBatch(final String sql) throws SQLException {
-        stLock.writeLock().lock();
+        stLock.lock();
         try {
             if (batchQueries == null) {
                 batchQueries = new ArrayList<>();
@@ -1188,7 +1189,7 @@ public class MySQLStatement implements Statement {
             isInsertRewriteable(sql);
             batchQueries.add(new MySQLQuery(sql));
         } finally {
-            stLock.writeLock().unlock();
+            stLock.unlock();
         }
     }
 
@@ -1198,7 +1199,7 @@ public class MySQLStatement implements Statement {
      * @param sql the sql string
      */
     protected void isInsertRewriteable(String sql) {
-        stLock.writeLock().lock();
+        stLock.lock();
         try {
             if (!isRewriteable) {
                 return;
@@ -1214,7 +1215,7 @@ public class MySQLStatement implements Statement {
             sql.startsWith(firstRewrite);
 
         } finally {
-            stLock.writeLock().unlock();
+            stLock.unlock();
         }
     }
 
@@ -1306,7 +1307,7 @@ public class MySQLStatement implements Statement {
      * @since 1.3
      */
     public int[] executeBatch() throws SQLException {
-        stLock.writeLock().lock();
+        stLock.lock();
         try {
             if (batchQueries == null || batchQueries.size() == 0) return new int[0];
 
@@ -1349,7 +1350,7 @@ public class MySQLStatement implements Statement {
             batchResultSet = rs;
             return ret;
         } finally {
-            stLock.writeLock().unlock();
+            stLock.unlock();
         }
     }
 

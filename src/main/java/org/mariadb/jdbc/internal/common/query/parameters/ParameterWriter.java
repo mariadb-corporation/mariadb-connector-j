@@ -59,7 +59,7 @@ public class ParameterWriter {
     }
 
     public static void write(OutputStream out, String s, boolean noBackslashEscapes) throws IOException {
-        byte[] bytes = s.getBytes(StandardCharsets.UTF_8);
+        byte[] bytes = s.getBytes("UTF-8");
         out.write(QUOTE);
         writeBytesEscaped(out, bytes, noBackslashEscapes);
         out.write(QUOTE);
@@ -107,7 +107,7 @@ public class ParameterWriter {
         char[] buffer = new char[1024];
         int len;
         while ((len = reader.read(buffer)) >= 0) {
-            writeBytesEscaped(out, new String(buffer, 0, len).getBytes(StandardCharsets.UTF_8), noBackslashEscapes);
+            writeBytesEscaped(out, new String(buffer, 0, len).getBytes("UTF-8"), noBackslashEscapes);
         }
         out.write(QUOTE);
     }
@@ -126,7 +126,7 @@ public class ParameterWriter {
             len = reader.read(buffer, 0, charsToRead);
             if (len <= 0)
                 break;
-            byte[] bytes = new String(buffer, 0, len).getBytes(StandardCharsets.UTF_8);
+            byte[] bytes = new String(buffer, 0, len).getBytes("UTF-8");
             writeBytesEscaped(out, bytes, bytes.length, noBackslashEscapes);
             charsLeft -= len;
         }

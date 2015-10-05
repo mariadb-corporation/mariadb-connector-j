@@ -75,13 +75,11 @@ public class SendExecutePrepareStatementPacket implements CommandPacket {
 
     public int send(final OutputStream os) throws IOException {
         PacketOutputStream buffer = (PacketOutputStream) os;
-        buffer.startPacket(0);
-        buffer.assureBufferCapacity(1000);
-
-        buffer.writeByte((byte) 0x17);
-        buffer.writeInt(statementId);
-        buffer.writeByte((byte) 0x00); //CURSOR TYPE NO CURSOR TODO implement when using cursor
-        buffer.writeInt(1); //Iteration count
+        buffer.startPacket(0, true);
+        buffer.buffer.put((byte) 0x17);
+        buffer.buffer.putInt(statementId);
+        buffer.buffer.put((byte) 0x00); //CURSOR TYPE NO CURSOR TODO implement when using cursor
+        buffer.buffer.putInt(1); //Iteration count
 
         //create null bitmap
         if (parameterCount > 0) {
@@ -92,7 +90,7 @@ public class SendExecutePrepareStatementPacket implements CommandPacket {
                     nullBitsBuffer[i / 8] |= (1 << (i % 8));
                 }
             }
-            buffer.writeByteArray(nullBitsBuffer);/*Null Bit Map*/
+            buffer.buffer.put(nullBitsBuffer);/*Null Bit Map*/
 
             //check if parameters type (using setXXX) have change since previous request, and resend new header type if so
             boolean mustSendHeaderType = false;
@@ -108,13 +106,13 @@ public class SendExecutePrepareStatementPacket implements CommandPacket {
             }
 
             if (mustSendHeaderType) {
-                buffer.writeByte((byte) 0x01);
+                buffer.buffer.put((byte) 0x01);
                 //Store types of parameters in first in first package that is sent to the server.
                 for (int i = 0; i < this.parameterCount; i++) {
                     parameterTypeHeader[i] = parameters[i].getMySQLType();
                     parameters[i].writeBufferType(buffer);
                 }
-            } else buffer.writeByte((byte) 0x00);
+            } else buffer.buffer.put((byte) 0x00);
         }
         for (int i = 0; i < parameterCount; i++) {
             if (parameters[i] instanceof NotLongDataParameterHolder) {

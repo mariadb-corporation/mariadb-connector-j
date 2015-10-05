@@ -68,7 +68,7 @@ public class SendPrepareStatementPacket implements CommandPacket {
         PacketOutputStream pos = (PacketOutputStream) os;
         pos.startPacket(0);
         pos.write(0x16);
-        pos.write(sql.getBytes(StandardCharsets.UTF_8));
+        pos.write(sql.getBytes("UTF-8"));
         pos.finishPacket();
         return 0;
     }
