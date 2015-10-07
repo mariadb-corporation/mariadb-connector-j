@@ -127,18 +127,23 @@ public class JDBCUrl {
     public static JDBCUrl parse(final String url, Properties prop) throws SQLException {
         if (url != null) {
             if (prop == null) prop = new Properties();
-            if (url.startsWith("jdbc:mysql:")) {
+            String prefix = "jdbc:mysql:thin:";
+            final String fixPrefix = "jdbc:mysql:";
+            if (url.startsWith(prefix)) {
+                JDBCUrl jdbcUrl = new JDBCUrl();
+                parseInternal(jdbcUrl, fixPrefix + url.substring(prefix.length()), prop);
+                return jdbcUrl;
+            }
+            if (url.startsWith(fixPrefix)) {
                 JDBCUrl jdbcUrl = new JDBCUrl();
                 parseInternal(jdbcUrl, url, prop);
                 return jdbcUrl;
             }
-            String[] arr = new String[]{"jdbc:mysql:thin:", "jdbc:mariadb:"};
-            for (String prefix : arr) {
-                if (url.startsWith(prefix)) {
-                    JDBCUrl jdbcUrl = new JDBCUrl();
-                    parseInternal(jdbcUrl, "jdbc:mysql:" + url.substring(prefix.length()), prop);
-                    return jdbcUrl;
-                }
+            prefix = "jdbc:mariadb:";
+            if (url.startsWith(prefix)) {
+                JDBCUrl jdbcUrl = new JDBCUrl();
+                parseInternal(jdbcUrl, fixPrefix + url.substring(prefix.length()), prop);
+                return jdbcUrl;
             }
         }
         return null;
