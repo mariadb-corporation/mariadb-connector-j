@@ -52,46 +52,43 @@ package org.mariadb.jdbc.internal.mysql.packet;
 import org.mariadb.jdbc.internal.common.Options;
 import org.mariadb.jdbc.internal.common.PacketFetcher;
 import org.mariadb.jdbc.internal.common.ValueObject;
-import org.mariadb.jdbc.internal.common.packet.RawPacket;
 import org.mariadb.jdbc.internal.common.packet.buffer.Reader;
 import org.mariadb.jdbc.internal.mysql.MySQLColumnInformation;
 import org.mariadb.jdbc.internal.mysql.MySQLValueObject;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
 
-public class MySQLRowPacket {
-    private final ValueObject[] columns;
-    private final Reader reader;
+public class MySQLTextRowPacket implements RowPacket {
     private final MySQLColumnInformation[] columnInformation;
     private final Options options;
+    private final int columnInformationLength;
 
-    public MySQLRowPacket(RawPacket rawPacket, MySQLColumnInformation[] columnInformation2, Options options) throws IOException {
-        columns = new ValueObject[columnInformation2.length];
-        reader = new Reader(rawPacket.getByteBuffer());
-        this.columnInformation = columnInformation2;
+    public MySQLTextRowPacket(MySQLColumnInformation[] columnInformation, Options options, int columnInformationLength) {
+        this.columnInformationLength = columnInformationLength;
+        this.columnInformation = columnInformation;
         this.options = options;
     }
 
-    public boolean isPacketComplete() throws IOException {
-        long encLength = reader.getSilentLengthEncodedBinary();
-        long remaining = reader.getRemainingSize();
-        return encLength <= remaining;
-    }
-
-    public void appendPacket(RawPacket rawPacket) {
-        reader.appendPacket(rawPacket);
-    }
-
-    public ValueObject[] getRow(PacketFetcher packetFetcher) throws IOException {
-        int length = columnInformation.length;
-        for (int i = 0; i < length; i++) {
-            while (!isPacketComplete()) {
-                appendPacket(packetFetcher.getRawPacket());
+    public ValueObject[] getRow(PacketFetcher packetFetcher, ByteBuffer buffer) throws IOException {
+        ValueObject[] valueObjects = new ValueObject[columnInformationLength];
+        Reader reader = new Reader(buffer);
+        for (int i = 0; i < columnInformationLength; i++) {
+            while (reader.byteBuffer.remaining() == 0) {
+                reader.appendPacket(packetFetcher.getRawPacket());
             }
-            columns[i] = new MySQLValueObject(reader.getLengthEncodedBytes(), columnInformation[i], options);
+            long valueLen = reader.getLengthEncodedBinary();
+            if (valueLen == -1) {
+                valueObjects[i] = new MySQLValueObject(null, columnInformation[i], options);
+            } else {
+                while (reader.byteBuffer.remaining() < valueLen) {
+                    reader.appendPacket(packetFetcher.getRawPacket());
+                }
+                valueObjects[i] = new MySQLValueObject(reader.readRawBytes((int) valueLen), columnInformation[i], options);
+            }
         }
-        return columns;
+        return valueObjects;
     }
 
 }

@@ -104,12 +104,12 @@ public class MastersFailoverListener extends AbstractMastersListener {
     @Override
     public void preClose() throws SQLException {
         setExplicitClosed(true);
-        proxy.lock.writeLock().lock();
+        proxy.lock.lock();
         try {
             if (currentProtocol != null && this.currentProtocol.isConnected()) this.currentProtocol.close();
         } finally {
             if (!UrlHAMode.NONE.equals(mode)) {
-                proxy.lock.writeLock().unlock();
+                proxy.lock.unlock();
                 if (scheduledFailover != null) {
                     scheduledFailover.cancel(true);
                     isLooping.set(false);
@@ -140,11 +140,11 @@ public class MastersFailoverListener extends AbstractMastersListener {
                 return new HandleErrorResult(true);
             }
         } catch (QueryException e) {
-            proxy.lock.writeLock().lock();
+            proxy.lock.lock();
             try {
                 currentProtocol.close();
             } finally {
-                proxy.lock.writeLock().unlock();
+                proxy.lock.unlock();
             }
             if (setMasterHostFail()) addToBlacklist(currentProtocol.getHostAddress());
         }
@@ -216,21 +216,21 @@ public class MastersFailoverListener extends AbstractMastersListener {
     @Override
     public void foundActiveMaster(Protocol protocol) throws QueryException {
         if (isExplicitClosed()) {
-            proxy.lock.writeLock().lock();
+            proxy.lock.lock();
             try {
                 protocol.close();
             } finally {
-                proxy.lock.writeLock().unlock();
+                proxy.lock.unlock();
             }
             return;
         }
         syncConnection(this.currentProtocol, protocol);
-        proxy.lock.writeLock().lock();
+        proxy.lock.lock();
         try {
             if (currentProtocol != null && !currentProtocol.isClosed()) currentProtocol.close();
             currentProtocol = protocol;
         } finally {
-            proxy.lock.writeLock().unlock();
+            proxy.lock.unlock();
         }
 
 //        if (log.isDebugEnabled()) {

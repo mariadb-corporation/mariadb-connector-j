@@ -58,13 +58,13 @@ import org.mariadb.jdbc.internal.mysql.listener.tools.SearchFilter;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class MastersSlavesProtocol extends MySQLProtocol {
     boolean masterConnection = false;
     boolean mustBeMasterConnection = false;
 
-    public MastersSlavesProtocol(final JDBCUrl url, final ReentrantReadWriteLock lock) {
+    public MastersSlavesProtocol(final JDBCUrl url, final ReentrantLock lock) {
         super(url, lock);
     }
 

@@ -61,7 +61,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TimeZone;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.locks.ReentrantLock;
 
 
 public class Utils {
@@ -485,7 +485,7 @@ public class Utils {
         return sqlBuffer.toString();
     }
 
-    public static Protocol retrieveProxy(final JDBCUrl jdbcUrl, final ReentrantReadWriteLock lock) throws QueryException, SQLException {
+    public static Protocol retrieveProxy(final JDBCUrl jdbcUrl, final ReentrantLock lock) throws QueryException, SQLException {
         switch (jdbcUrl.getHaMode()) {
             case AURORA:
                 return (Protocol) Proxy.newProxyInstance(

@@ -61,6 +61,7 @@ import java.sql.SQLFeatureNotSupportedException;
 public abstract class SelectQueryResult extends QueryResult {
 
     MySQLColumnInformation[] columnInformation;
+    int columnInformationLength;
     short warningCount;
 
     public MySQLColumnInformation[] getColumnInformation() {

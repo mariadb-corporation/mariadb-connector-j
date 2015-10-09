@@ -61,36 +61,49 @@ import java.util.List;
 
 public class StreamedQueryPacket implements CommandPacket {
 
+    private Query query;
     private List<Query> queries;
     private boolean isRewritable;
     private int rewriteOffset;
 
     public StreamedQueryPacket(final List<Query> queries, boolean isRewritable, int rewriteOffset) {
         this.queries = queries;
+        this.query = null;
         this.isRewritable = isRewritable;
         this.rewriteOffset = rewriteOffset;
     }
+
+    public StreamedQueryPacket(final Query query, boolean isRewritable, int rewriteOffset) {
+        this.query = query;
+        this.queries = null;
+        this.isRewritable = isRewritable;
+        this.rewriteOffset = rewriteOffset;
+    }
+
 
     public int send(final OutputStream ostream) throws IOException, QueryException {
         PacketOutputStream pos = (PacketOutputStream) ostream;
         pos.startPacket(0);
         pos.write(0x03);
-
-        if (queries.size() == 1) {
-            queries.get(0).writeTo(ostream);
+        if (query != null) {
+            query.writeTo(ostream);
         } else {
-            if (!isRewritable) {
+            if (queries.size() == 1) {
                 queries.get(0).writeTo(ostream);
-                for (int i = 1; i < queries.size(); i++) {
-                    pos.write(';');
-                    queries.get(i).writeTo(ostream);
-                }
             } else {
-                queries.get(0).writeFirstRewritePart(ostream);
-                for (int i = 1; i < queries.size(); i++) {
-                    queries.get(i).writeToRewritablePart(ostream, rewriteOffset);
+                if (!isRewritable) {
+                    queries.get(0).writeTo(ostream);
+                    for (int i = 1; i < queries.size(); i++) {
+                        pos.write(';');
+                        queries.get(i).writeTo(ostream);
+                    }
+                } else {
+                    queries.get(0).writeFirstRewritePart(ostream);
+                    for (int i = 1; i < queries.size(); i++) {
+                        queries.get(i).writeToRewritablePart(ostream, rewriteOffset);
+                    }
+                    queries.get(0).writeLastRewritePart(ostream);
                 }
-                queries.get(0).writeLastRewritePart(ostream);
             }
         }
 

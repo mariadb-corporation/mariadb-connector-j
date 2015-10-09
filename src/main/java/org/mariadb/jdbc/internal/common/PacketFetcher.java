@@ -56,8 +56,8 @@ import java.nio.ByteBuffer;
 
 public interface PacketFetcher {
     RawPacket getRawPacket() throws IOException;
-    RawPacket getVolatileRawPacket() throws IOException;
-    ByteBuffer getVolatileBuffer() throws IOException;
+    RawPacket getReusableRawPacket() throws IOException;
+    ByteBuffer getReusableBuffer() throws IOException;
 
     void clearInputStream() throws IOException;
 

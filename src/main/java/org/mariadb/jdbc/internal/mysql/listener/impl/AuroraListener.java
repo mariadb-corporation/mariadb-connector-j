@@ -152,12 +152,12 @@ public class AuroraListener extends MastersSlavesListener {
         if (!isSecondaryHostFail()) {
             SelectQueryResult queryResult = null;
             try {
-                proxy.lock.writeLock().lock();
+                proxy.lock.lock();
                 try {
                     queryResult = (SelectQueryResult) secondaryProtocol.executeQuery(new MySQLQuery("select server_id from information_schema.replica_host_status where session_id = 'MASTER_SESSION_ID'"));
                     queryResult.next();
                 } finally {
-                    proxy.lock.writeLock().unlock();
+                    proxy.lock.unlock();
                 }
                 String masterHostName = queryResult.getValueObject(0).getString();
                 for (int i = 0; i < loopAddress.size(); i++) {
@@ -200,11 +200,11 @@ public class AuroraListener extends MastersSlavesListener {
                 try {
                     masterProtocol.ping();
                 } catch (QueryException ee) {
-                    proxy.lock.writeLock().lock();
+                    proxy.lock.lock();
                     try {
                         masterProtocol.close();
                     } finally {
-                        proxy.lock.writeLock().unlock();
+                        proxy.lock.unlock();
                     }
                     if (setMasterHostFail()) addToBlacklist(masterProtocol.getHostAddress());
                 }
@@ -225,11 +225,11 @@ public class AuroraListener extends MastersSlavesListener {
                 try {
                     this.secondaryProtocol.ping();
                 } catch (Exception ee) {
-                    proxy.lock.writeLock().lock();
+                    proxy.lock.lock();
                     try {
                         secondaryProtocol.close();
                     } finally {
-                        proxy.lock.writeLock().unlock();
+                        proxy.lock.unlock();
                     }
                     if (setSecondaryHostFail()) addToBlacklist(this.secondaryProtocol.getHostAddress());
                     launchFailLoopIfNotlaunched(false);

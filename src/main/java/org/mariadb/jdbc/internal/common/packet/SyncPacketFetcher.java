@@ -51,15 +51,18 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.common.packet;
 
 import org.mariadb.jdbc.internal.common.PacketFetcher;
+import org.mariadb.jdbc.internal.common.packet.buffer.ReadUtil;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 public class SyncPacketFetcher implements PacketFetcher {
     public  static final int AVOID_CREATE_BUFFER_LENGTH = 1024;
     private final InputStream inputStream;
-    private byte[] fastBuffer = new byte[AVOID_CREATE_BUFFER_LENGTH];
+    private byte[] reusableBuffer = new byte[AVOID_CREATE_BUFFER_LENGTH];
 
     public SyncPacketFetcher(final InputStream is) {
         this.inputStream = is;
@@ -69,12 +72,73 @@ public class SyncPacketFetcher implements PacketFetcher {
         return RawPacket.nextPacket(inputStream);
     }
 
-    public ByteBuffer getVolatileBuffer() throws IOException {
-        return RawPacket.nextBuffer(inputStream, fastBuffer);
+    /**
+     * get buffer without packet sequence information
+     * @return ByteBuffer
+     * @throws IOException
+     */
+    public ByteBuffer getReusableBuffer() throws IOException {
+        int remaining = 4;
+        int off = 0;
+        do {
+            int count = inputStream.read(reusableBuffer, off, remaining);
+            if (count <= 0) {
+                throw new EOFException("unexpected end of stream, read " + (4 - remaining) + " bytes from " + 4);
+            }
+            remaining -= count;
+            off += count;
+        } while (remaining > 0);
+
+        int length = (reusableBuffer[0] & 0xff) + ((reusableBuffer[1] & 0xff) << 8) + ((reusableBuffer[2] & 0xff) << 16);
+
+        byte[] rawBytes;
+        if (length < SyncPacketFetcher.AVOID_CREATE_BUFFER_LENGTH) {
+            rawBytes = reusableBuffer;
+        } else {
+            rawBytes = new byte[length];
+        }
+        remaining = length;
+        off = 0;
+        do {
+            int count = inputStream.read(rawBytes, off, remaining);
+            if (count <= 0) {
+                throw new EOFException("unexpected end of stream, read " + (length - remaining) + " bytes from " + length);
+            }
+            remaining -= count;
+            off += count;
+        } while (remaining > 0);
+
+        return ByteBuffer.wrap(rawBytes, 0, length).order(ByteOrder.LITTLE_ENDIAN);
     }
 
-    public RawPacket getVolatileRawPacket() throws IOException {
-        return RawPacket.nextPacket(inputStream, fastBuffer);
+
+    public void skipNextPacket() throws IOException {
+        int remaining = 4;
+        int off = 0;
+        do {
+            int count = inputStream.read(reusableBuffer, off, remaining);
+            if (count <= 0) {
+                throw new EOFException("unexpected end of stream, read " + (4 - remaining) + " bytes from " + 4);
+            }
+            remaining -= count;
+            off += count;
+        } while (remaining > 0);
+
+        int length = (reusableBuffer[0] & 0xff) + ((reusableBuffer[1] & 0xff) << 8) + ((reusableBuffer[2] & 0xff) << 16);
+
+        remaining = length;
+        do {
+            int count = inputStream.read(reusableBuffer, 0, Math.min(remaining, AVOID_CREATE_BUFFER_LENGTH));
+            if (count <= 0) {
+                throw new EOFException("unexpected end of stream, read " + (length - remaining) + " bytes from " + length);
+            }
+            remaining -= count;
+        } while (remaining > 0);
+    }
+
+
+    public RawPacket getReusableRawPacket() throws IOException {
+        return RawPacket.nextPacket(inputStream, reusableBuffer);
     }
 
     public void clearInputStream() throws IOException {

@@ -385,6 +385,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
             pst.setTimestamp(4, Timestamp.valueOf("2015-03-29 01:45:00"));
             pst.setDate(5, new java.sql.Date(quarterBeforeChangingHour.getTimeInMillis()));
             pst.addBatch();
+
             pst.setInt(1, 2);
             pst.setTimestamp(2, Timestamp.valueOf("2015-03-29 03:15:00"));
             pst.setTime(3, new Time(quarterAfterChangingHour.getTimeInMillis()));
@@ -417,7 +418,6 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
         Timestamp t3 = rs.getTimestamp(4);
         java.sql.Date t4 = rs.getDate(5);
 
-        assertEquals(t1.getTime(), t1.getTime());
         assertEquals(dateFormatISO8601.format(t1), "2015-03-29T01:45:00+0100");
 
         assertEquals(t2.getTime(), (long) 2700000);
@@ -425,8 +425,6 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
         Timestamp tt2 = rs.getTimestamp(3);
         assertEquals(tt2, vtt2);
         assertEquals(dateFormatISO8601.format(t2), "1970-01-01T01:45:00+0100");
-
-        assertEquals(t3.getTime(), t3.getTime());
         assertEquals(dateFormatISO8601.format(t3), "2015-03-29T01:45:00+0100");
 
 

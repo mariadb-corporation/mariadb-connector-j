@@ -77,18 +77,15 @@ public final class ReadUtil {
      *                             java.io.EOFException of end of stream is hit.
      */
     public static void readFully(InputStream stream, byte[] b, int off, int len) throws IOException {
-        if (len < 0) {
-            throw new AssertionError("len < 0");
-        }
         int remaining = len;
-        while (remaining > 0) {
+        do {
             int count = stream.read(b, off, remaining);
             if (count <= 0) {
                 throw new EOFException("unexpected end of stream, read " + (len - remaining) + " bytes from " + len);
             }
             remaining -= count;
             off += count;
-        }
+        } while (remaining > 0);
     }
 
     public static void readFully(InputStream stream, byte[] b) throws IOException {
@@ -99,12 +96,11 @@ public final class ReadUtil {
     /**
      * Checks whether the next packet is EOF.
      *
-     * @param rawPacket the raw packet
+     * @param byteBuffer the raw packet
      * @return true if the packet is an EOF packet
      */
-    public static boolean eofIsNext(final RawPacket rawPacket) {
-        final ByteBuffer buf = rawPacket.getByteBuffer();
-        return (buf.get(0) == (byte) 0xfe && buf.limit() < 9);
+    public static boolean eofIsNext(ByteBuffer byteBuffer) {
+        return (byteBuffer.get(0) == (byte) 0xfe && byteBuffer.limit() < 9);
 
     }
 

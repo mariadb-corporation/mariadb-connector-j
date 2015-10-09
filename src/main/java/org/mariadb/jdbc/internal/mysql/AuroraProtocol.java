@@ -62,10 +62,10 @@ import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class AuroraProtocol extends MastersSlavesProtocol {
-    public AuroraProtocol(final JDBCUrl url, final ReentrantReadWriteLock lock) {
+    public AuroraProtocol(final JDBCUrl url, final ReentrantLock lock) {
         super(url, lock);
     }
 
@@ -224,7 +224,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
      */
     @Override
     public boolean checkIfMaster() throws QueryException {
-        proxy.lock.writeLock().lock();
+        proxy.lock.lock();
         try {
             SelectQueryResult queryResult = (SelectQueryResult) executeQuery(new MySQLQuery("show global variables like 'innodb_read_only'"));
             if (queryResult != null) {
@@ -241,7 +241,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
             throw new QueryException("could not check the 'innodb_read_only' variable status on " + this.getHostAddress() +
                     " : " + ioe.getMessage(), -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), ioe);
         } finally {
-            proxy.lock.writeLock().unlock();
+            proxy.lock.unlock();
         }
     }
 

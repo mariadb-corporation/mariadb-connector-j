@@ -307,7 +307,7 @@ public class MySQLClientPreparedStatement extends AbstractMySQLPrepareStatement 
     @Override
     public void close() throws SQLException {
         stLock.lock();
-        connection.lock.writeLock().lock();
+        connection.lock.lock();
         try {
             super.close();
 
@@ -319,7 +319,7 @@ public class MySQLClientPreparedStatement extends AbstractMySQLPrepareStatement 
             isClosed = false;
             connection.pooledConnection.fireStatementClosed(this);
         } finally {
-            connection.lock.writeLock().unlock();
+            connection.lock.unlock();
             stLock.unlock();
         }
     }

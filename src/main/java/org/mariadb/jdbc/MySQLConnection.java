@@ -60,11 +60,11 @@ import java.net.SocketException;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.Executor;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.locks.ReentrantLock;
 
 
 public final class MySQLConnection implements Connection {
-    public final ReentrantReadWriteLock lock;
+    public final ReentrantLock lock;
     /**
      * the protocol to communicate with.
      */
@@ -89,7 +89,7 @@ public final class MySQLConnection implements Connection {
      *
      * @param protocol the protocol to use.
      */
-    private MySQLConnection(Protocol protocol, ReentrantReadWriteLock lock) throws SQLException {
+    private MySQLConnection(Protocol protocol, ReentrantLock lock) throws SQLException {
         this.protocol = protocol;
         options = protocol.getOptions();
         noBackslashEscapes = protocol.noBackslashEscapes();
@@ -97,7 +97,7 @@ public final class MySQLConnection implements Connection {
         this.lock = lock;
     }
 
-    public static MySQLConnection newConnection(Protocol protocol, ReentrantReadWriteLock lock) throws SQLException {
+    public static MySQLConnection newConnection(Protocol protocol, ReentrantLock lock) throws SQLException {
         return new MySQLConnection(protocol, lock);
     }
 
@@ -146,11 +146,11 @@ public final class MySQLConnection implements Connection {
         }
         if (protocol.isClosed()) {
             if (protocol.getProxy() != null) {
-                lock.writeLock().lock();
+                lock.lock();
                 try {
                     protocol.getProxy().reconnect();
                 } finally {
-                    lock.writeLock().unlock();
+                    lock.unlock();
                 }
             }
         }
@@ -265,7 +265,7 @@ public final class MySQLConnection implements Connection {
      * @throws SQLException if there is an error commiting.
      */
     public void commit() throws SQLException {
-        lock.writeLock().lock();
+        lock.lock();
         try {
             if (getAutoCommit())
                 throw new SQLException("Error : committing transaction on a autocommit connection", "HY012");
@@ -277,7 +277,7 @@ public final class MySQLConnection implements Connection {
             }
 
         } finally {
-            lock.writeLock().unlock();
+            lock.unlock();
         }
     }
 

@@ -98,17 +98,21 @@ public class MySQLColumnInformation {
             4, 4, 4, 4, 0, 4, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0
     };
-    RawPacket buffer;
+    ByteBuffer buffer;
     private short charsetNumber;
     private long length;
     private MySQLType type;
     private byte decimals;
     private short flags;
 
-    public MySQLColumnInformation(RawPacket buffer) throws IOException {
+    public MySQLColumnInformation(MySQLType type) throws IOException {
+        this.type=type;
+    }
+
+    public MySQLColumnInformation(ByteBuffer buffer) throws IOException {
         this.buffer = buffer;
-        buffer.getByteBuffer().mark();
-        Reader reader = new Reader(buffer.getByteBuffer());
+        buffer.mark();
+        Reader reader = new Reader(buffer);
 
         /*
         lenenc_str     catalog
@@ -184,7 +188,7 @@ public class MySQLColumnInformation {
             baos.write(new byte[]{0, 0});   /* flags */
             baos.write(0); /* decimals */
             baos.write(new byte[]{0, 0});   /* filler */
-            return new MySQLColumnInformation(new RawPacket(ByteBuffer.wrap(baos.toByteArray()).order(ByteOrder.LITTLE_ENDIAN), 0));
+            return new MySQLColumnInformation(ByteBuffer.wrap(baos.toByteArray()).order(ByteOrder.LITTLE_ENDIAN));
         } catch (IOException ioe) {
             throw new RuntimeException("unexpected condition", ioe);
         }
@@ -192,9 +196,9 @@ public class MySQLColumnInformation {
 
     private String getString(int idx) {
         try {
-            buffer.getByteBuffer().reset();
-            buffer.getByteBuffer().mark();
-            Reader reader = new Reader(buffer.getByteBuffer());
+            buffer.reset();
+            buffer.mark();
+            Reader reader = new Reader(buffer);
             for (int i = 0; i < idx; i++) {
                 reader.skipLengthEncodedBytes();
             }

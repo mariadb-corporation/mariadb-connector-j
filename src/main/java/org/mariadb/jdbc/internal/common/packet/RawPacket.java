@@ -83,14 +83,13 @@ public final class RawPacket {
      * @return The next packet from the stream, or NULL if the stream is closed
      * @throws java.io.IOException if an error occurs while reading data
      */
-    static ByteBuffer nextBuffer(final InputStream is, byte[] fastBuffer) throws IOException {
-        ReadUtil.readFully(is, fastBuffer, 0, 4);
-        int length = (fastBuffer[0] & 0xff) + ((fastBuffer[1] & 0xff) << 8) + ((fastBuffer[2] & 0xff) << 16);
-        int packetSeq = fastBuffer[3];
+    static ByteBuffer nextBuffer(final InputStream is, byte[] reusableBuffer) throws IOException {
+        ReadUtil.readFully(is, reusableBuffer, 0, 4);
+        int length = (reusableBuffer[0] & 0xff) + ((reusableBuffer[1] & 0xff) << 8) + ((reusableBuffer[2] & 0xff) << 16);
 
         byte[] rawBytes;
         if (length < SyncPacketFetcher.AVOID_CREATE_BUFFER_LENGTH) {
-            rawBytes = fastBuffer;
+            rawBytes = reusableBuffer;
         } else {
             rawBytes = new byte[length];
         }
@@ -99,14 +98,14 @@ public final class RawPacket {
         return ByteBuffer.wrap(rawBytes, 0, length).order(ByteOrder.LITTLE_ENDIAN);
     }
 
-    static RawPacket nextPacket(final InputStream is, byte[] fastBuffer) throws IOException {
-        ReadUtil.readFully(is, fastBuffer, 0, 4);
-        int length = (fastBuffer[0] & 0xff) + ((fastBuffer[1] & 0xff) << 8) + ((fastBuffer[2] & 0xff) << 16);
-        int packetSeq = fastBuffer[3];
+    static RawPacket nextPacket(final InputStream is, byte[] reusableBuffer) throws IOException {
+        ReadUtil.readFully(is, reusableBuffer, 0, 4);
+        int length = (reusableBuffer[0] & 0xff) + ((reusableBuffer[1] & 0xff) << 8) + ((reusableBuffer[2] & 0xff) << 16);
+        int packetSeq = reusableBuffer[3];
 
         byte[] rawBytes;
         if (length < SyncPacketFetcher.AVOID_CREATE_BUFFER_LENGTH) {
-            rawBytes = fastBuffer;
+            rawBytes = reusableBuffer;
         } else {
             rawBytes = new byte[length];
         }

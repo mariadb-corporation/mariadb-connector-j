@@ -347,12 +347,7 @@ public class MySQLResultSet implements ResultSet {
      * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed result set
      */
     public boolean wasNull() throws SQLException {
-        lock();
-        try {
-            return lastGetWasNull;
-        } finally {
-            unlock();
-        }
+        return lastGetWasNull;
     }
 
     public String getString(int i) throws SQLException {
@@ -370,17 +365,12 @@ public class MySQLResultSet implements ResultSet {
     private ValueObject getValueObject(int i) throws SQLException {
         if (queryResult.getResultSetType() == ResultSetType.SELECT) {
             ValueObject vo;
-            lock();
             try {
-                try {
-                    vo = ((SelectQueryResult) queryResult).getValueObject(i - 1);
-                } catch (NoSuchColumnException e) {
-                    throw SQLExceptionMapper.getSQLException(e.getMessage(), e);
-                }
-                this.lastGetWasNull = vo.isNull();
-            } finally {
-                unlock();
+                vo = ((SelectQueryResult) queryResult).getValueObject(i - 1);
+            } catch (NoSuchColumnException e) {
+                throw SQLExceptionMapper.getSQLException(e.getMessage(), e);
             }
+            this.lastGetWasNull = vo.isNull();
             return vo;
         }
         throw SQLExceptionMapper.getSQLException("Cannot get data from update-result sets");

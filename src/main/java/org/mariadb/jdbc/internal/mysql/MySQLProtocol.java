@@ -84,7 +84,7 @@ import java.security.cert.X509Certificate;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.*;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.locks.ReentrantLock;
 
 class MyX509TrustManager implements X509TrustManager {
     String serverCertFile;
@@ -151,7 +151,7 @@ class MyX509TrustManager implements X509TrustManager {
 }
 
 public class MySQLProtocol implements Protocol {
-    protected final ReentrantReadWriteLock lock;
+    protected final ReentrantLock lock;
     protected final JDBCUrl jdbcUrl;
     private final String username;
     private final String password;
@@ -192,7 +192,7 @@ public class MySQLProtocol implements Protocol {
      * @param lock    the lock for thread synchronisation
      */
 
-    public MySQLProtocol(final JDBCUrl jdbcUrl, final ReentrantReadWriteLock lock) {
+    public MySQLProtocol(final JDBCUrl jdbcUrl, final ReentrantLock lock) {
         this.lock = lock;
         this.jdbcUrl = jdbcUrl;
         this.database = (jdbcUrl.getDatabase() == null ? "" : jdbcUrl.getDatabase());
@@ -402,7 +402,7 @@ public class MySQLProtocol implements Protocol {
             reader = new BufferedInputStream(socket.getInputStream(), 32768);
             packetFetcher = new SyncPacketFetcher(reader);
             writer = new PacketOutputStream(socket.getOutputStream());
-            ByteBuffer byteBuffer = packetFetcher.getVolatileBuffer();
+            ByteBuffer byteBuffer = packetFetcher.getReusableBuffer();
             if (ReadUtil.isErrorPacket(byteBuffer)) {
                 reader.close();
                 ErrorPacket errorPacket = (ErrorPacket) ResultPacketFactory.createResultPacket(byteBuffer);
@@ -558,22 +558,27 @@ public class MySQLProtocol implements Protocol {
             cal = Calendar.getInstance(tz);
         } catch (SQLException e) {
             cal = null;
-            if (!getOptions().useLegacyDatetimeCode)
-                throw new QueryException("The server time_zone '"+timeZone+"' cannot be parsed. The server time zone must defined in the jdbc url string with the 'serverTimezone' parameter (or server time zone must be defined explicitly)", 0, "01S00");
+            if (!getOptions().useLegacyDatetimeCode) {
+                if (getOptions().serverTimezone != null)
+                    throw new QueryException("The server time_zone '"+timeZone+"' defined in the 'serverTimezone' parameter cannot be parsed by java TimeZone implementation. See java.util.TimeZone#getAvailableIDs() for available TimeZone, depending on your JRE implementation.", 0, "01S00");
+                else
+                    throw new QueryException("The server time_zone '"+timeZone+"' cannot be parsed. The server time zone must defined in the jdbc url string with the 'serverTimezone' parameter (or server time zone must be defined explicitly).  See java.util.TimeZone#getAvailableIDs() for available TimeZone, depending on your JRE implementation.", 0, "01S00");
+            }
         }
 
     }
+
 
 
     private void loadServerData() throws QueryException, IOException {
         serverData = new TreeMap<>();
         SelectQueryResult qr = null;
         try {
-            qr = (SelectQueryResult) executeQuery(new MySQLQuery("SELECT " +
+            qr = (SelectQueryResult) executeSingleInternalQuery(new MySQLQuery("SELECT " +
                     "@@character_set_client, " +
                     "@@character_set_server, " +
                     "@@max_allowed_packet, " +
-                    "@@system_time_zone, "+
+                    "@@system_time_zone, " +
                     "@@time_zone"));
             if (qr.next()) {
                 serverData.put("character_set_client", qr.getValueObject(0).getString());
@@ -619,7 +624,7 @@ public class MySQLProtocol implements Protocol {
     }
 
     void readEOFPacket() throws QueryException, IOException {
-        ByteBuffer byteBuffer = packetFetcher.getVolatileBuffer();
+        ByteBuffer byteBuffer = packetFetcher.getReusableBuffer();
         checkErrorPacket(byteBuffer);
         ResultPacket resultPacket = ResultPacketFactory.createResultPacket(byteBuffer);
         if (resultPacket.getResultType() != ResultPacket.ResultType.EOF) {
@@ -647,7 +652,7 @@ public class MySQLProtocol implements Protocol {
             SendPrepareStatementPacket sendPrepareStatementPacket = new SendPrepareStatementPacket(sql);
             sendPrepareStatementPacket.send(writer);
 
-            ByteBuffer byteBuffer = packetFetcher.getVolatileBuffer();
+            ByteBuffer byteBuffer = packetFetcher.getReusableBuffer();
 
             if (byteBuffer.get(0) == -1) {
                 ErrorPacket ep = new ErrorPacket(byteBuffer);
@@ -669,14 +674,14 @@ public class MySQLProtocol implements Protocol {
                 MySQLColumnInformation[] params = new MySQLColumnInformation[numParams];
                 if (numParams > 0) {
                     for (int i = 0; i < numParams; i++) {
-                        params[i] = new MySQLColumnInformation(packetFetcher.getRawPacket());
+                        params[i] = new MySQLColumnInformation(packetFetcher.getRawPacket().getByteBuffer());
                     }
                     readEOFPacket();
                 }
                 MySQLColumnInformation[] columns = new MySQLColumnInformation[numColumns];
                 if (numColumns > 0) {
                     for (int i = 0; i < numColumns; i++) {
-                        columns[i] = new MySQLColumnInformation(packetFetcher.getRawPacket());
+                        columns[i] = new MySQLColumnInformation(packetFetcher.getRawPacket().getByteBuffer());
                     }
                     readEOFPacket();
                 }
@@ -699,7 +704,7 @@ public class MySQLProtocol implements Protocol {
 
     @Override
     public void closePreparedStatement(int statementId) throws QueryException {
-        lock.writeLock().lock();
+        lock.lock();
         try {
             writer.startPacket(0);
             writer.write(0x19); /*COM_STMT_CLOSE*/
@@ -710,7 +715,7 @@ public class MySQLProtocol implements Protocol {
                     SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
                     e);
         } finally {
-            lock.writeLock().unlock();
+            lock.unlock();
         }
     }
 
@@ -725,11 +730,11 @@ public class MySQLProtocol implements Protocol {
 
     @Override
     public boolean getAutocommit() {
-        lock.readLock().lock();
+        lock.lock();
         try {
             return ((serverStatus & ServerStatus.AUTOCOMMIT) != 0);
         } finally {
-            lock.readLock().unlock();
+            lock.unlock();
         }
 
     }
@@ -792,11 +797,11 @@ public class MySQLProtocol implements Protocol {
 
     @Override
     public boolean inTransaction() {
-        lock.readLock().lock();
+        lock.lock();
         try {
             return ((serverStatus & ServerStatus.IN_TRANSACTION) != 0);
         } finally {
-            lock.readLock().unlock();
+            lock.unlock();
         }
     }
 
@@ -838,7 +843,7 @@ public class MySQLProtocol implements Protocol {
      */
     @Override
     public void close() {
-        if (lock != null) lock.writeLock().lock();
+        if (lock != null) lock.lock();
         try {
             /* If a streaming result set is open, close it.*/
             skip();
@@ -857,18 +862,18 @@ public class MySQLProtocol implements Protocol {
         } finally {
             this.connected = false;
 
-            if (lock != null) lock.writeLock().unlock();
+            if (lock != null) lock.unlock();
         }
     }
 
     public void rollback() {
-        lock.writeLock().lock();
+        lock.lock();
         try {
             if (inTransaction()) executeQuery(new MySQLQuery("ROLLBACK"));
         } catch (Exception e) {
             /* eat exception */
         } finally {
-            lock.writeLock().unlock();
+            lock.unlock();
         }
     }
 
@@ -898,12 +903,12 @@ public class MySQLProtocol implements Protocol {
 
     @Override
     public void setCatalog(final String database) throws QueryException {
-        lock.writeLock().lock();
+        lock.lock();
 //        if (log.isTraceEnabled()) log.trace("Selecting db " + database);
         final SelectDBPacket packet = new SelectDBPacket(database);
         try {
             packet.send(writer);
-            final ByteBuffer byteBuffer = packetFetcher.getVolatileBuffer();
+            final ByteBuffer byteBuffer = packetFetcher.getReusableBuffer();
             ResultPacket rs = ResultPacketFactory.createResultPacket(byteBuffer);
             if (rs.getResultType() == ResultPacket.ResultType.ERROR) {
                 throw new QueryException("Could not select database '" + database + "' : " + ((ErrorPacket) rs).getMessage());
@@ -915,7 +920,7 @@ public class MySQLProtocol implements Protocol {
                     SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
                     e);
         } finally {
-            lock.writeLock().unlock();
+            lock.unlock();
         }
     }
 
@@ -979,13 +984,13 @@ public class MySQLProtocol implements Protocol {
 
     @Override
     public boolean ping() throws QueryException {
-        lock.writeLock().lock();
+        lock.lock();
         try {
             final MySQLPingPacket pingPacket = new MySQLPingPacket();
             try {
                 pingPacket.send(writer);
 //                if (log.isTraceEnabled())log.trace("Sent ping packet");
-                ByteBuffer byteBuffer = packetFetcher.getVolatileBuffer();
+                ByteBuffer byteBuffer = packetFetcher.getReusableBuffer();
                 return ResultPacketFactory.createResultPacket(byteBuffer).getResultType() == ResultPacket.ResultType.OK;
             } catch (IOException e) {
                 throw new QueryException("Could not ping: " + e.getMessage(),
@@ -994,7 +999,7 @@ public class MySQLProtocol implements Protocol {
                         e);
             }
         } finally {
-            lock.writeLock().unlock();
+            lock.unlock();
         }
     }
 
@@ -1009,7 +1014,7 @@ public class MySQLProtocol implements Protocol {
         RawPacket rawPacket = null;
         ResultPacket resultPacket;
         try {
-            rawPacket = packetFetcher.getVolatileRawPacket();
+            rawPacket = packetFetcher.getReusableRawPacket();
             resultPacket = ResultPacketFactory.createResultPacket(rawPacket.getByteBuffer());
 
             if (resultPacket.getResultType() == ResultPacket.ResultType.LOCALINFILE) {
@@ -1039,7 +1044,7 @@ public class MySQLProtocol implements Protocol {
                             is = new FileInputStream(localInfile);
                         } catch (FileNotFoundException f) {
                             writer.writeEmptyPacket(rawPacket.getPacketSeq() + 1);
-                            rawPacket = packetFetcher.getVolatileRawPacket();
+                            rawPacket = packetFetcher.getReusableRawPacket();
                             ResultPacketFactory.createResultPacket(rawPacket.getByteBuffer());
                             throw new QueryException("Could not send file : " + f.getMessage(), -1, "22000", f);
                         }
@@ -1051,7 +1056,7 @@ public class MySQLProtocol implements Protocol {
 
                 writer.sendFile(is, rawPacket.getPacketSeq() + 1);
                 is.close();
-                rawPacket = packetFetcher.getVolatileRawPacket();
+                rawPacket = packetFetcher.getReusableRawPacket();
                 resultPacket = ResultPacketFactory.createResultPacket(rawPacket.getByteBuffer());
             }
         } catch (SocketTimeoutException ste) {
@@ -1061,7 +1066,7 @@ public class MySQLProtocol implements Protocol {
             try {
                 if (writer != null) {
                     writer.writeEmptyPacket(rawPacket.getPacketSeq() + 1);
-                    rawPacket = packetFetcher.getVolatileRawPacket();
+                    rawPacket = packetFetcher.getReusableRawPacket();
                     ResultPacketFactory.createResultPacket(rawPacket.getByteBuffer());
                 }
             } catch (IOException ee) { }
@@ -1112,18 +1117,60 @@ public class MySQLProtocol implements Protocol {
 
     }
 
+    private SelectQueryResult executeSingleInternalQuery(Query dQuery)  throws QueryException {
+        try {
+            writer.startPacket(0);
+            writer.write(0x03);
+            dQuery.writeTo(writer);
+            writer.finishPacket();
+            ByteBuffer buffer = packetFetcher.getReusableBuffer();
+            ResultSetPacket resultSetPacket = (ResultSetPacket) ResultPacketFactory.createResultPacket(buffer);
+            try {
+
+                long fieldCount = resultSetPacket.getFieldCount();
+                MySQLColumnInformation[] ci = new MySQLColumnInformation[(int) fieldCount];
+
+                for (int i = 0; i < fieldCount; i++) {
+                    packetFetcher.skipNextPacket();
+                    try {
+                        ci[i] = new MySQLColumnInformation(MySQLType.STRING);
+                    } catch (Exception e) {
+                        throw new QueryException("Error when trying to parse field packet : " + e + ",packet content (hex) = " + MySQLProtocol.hexdump(buffer, 0), 0, "HY000", e);
+                    }
+                }
+                ByteBuffer bufferEOF = packetFetcher.getReusableBuffer();
+                if (!ReadUtil.eofIsNext(bufferEOF)) {
+                    throw new QueryException("Packets out of order when reading field packets, expected was EOF packet. " +
+                            "Packet contents (hex) = " + MySQLProtocol.hexdump(bufferEOF, 0));
+                }
+                return new StreamingSelectResult(ci, this, packetFetcher, false);
+            } catch (IOException e) {
+                throw new QueryException("Could not read result set: " + e.getMessage(), -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), e);
+            }
+        } catch (IOException e) {
+            throw new QueryException("Could not send query: " + e.getMessage(), -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), e);
+        }
+    }
+
+
     @Override
     public QueryResult executeQuery(final Query query, boolean streaming) throws QueryException {
-        List<Query> queries = new ArrayList<>();
-        queries.add(query);
-        return executeQuery(queries, streaming, false, 0);
+        query.validate();
+        this.moreResults = false;
+        final StreamedQueryPacket packet = new StreamedQueryPacket(query, false, 0);
+        return executeQuery(query, packet, streaming);
     }
+
 
     public QueryResult executeQuery(final List<Query> dQueries, boolean streaming, boolean isRewritable, int rewriteOffset) throws QueryException {
         for (Query query : dQueries) query.validate();
-
         this.moreResults = false;
         final StreamedQueryPacket packet = new StreamedQueryPacket(dQueries, isRewritable, rewriteOffset);
+        return executeQuery(dQueries, packet, streaming);
+    }
+
+
+    private QueryResult executeQuery(Object dQueries, StreamedQueryPacket packet, boolean streaming) throws QueryException {
         try {
             packet.send(writer);
         } catch (MaxAllowedPacketException e) {
@@ -1215,7 +1262,7 @@ public class MySQLProtocol implements Protocol {
     @Override
     public void releasePrepareStatement(String sql, int statementId) throws QueryException {
 //        if (log.isDebugEnabled()) log.debug("Closing prepared statement "+statementId);
-        lock.writeLock().lock();
+        lock.lock();
         try {
             if (jdbcUrl.getOptions().cachePrepStmts) {
                 if (prepareStatementCache.containsKey(sql)) {
@@ -1235,7 +1282,7 @@ public class MySQLProtocol implements Protocol {
                 throw new QueryException("Could not send query: " + e.getMessage(), -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), e);
             }
         } finally {
-            lock.writeLock().unlock();
+            lock.unlock();
         }
     }
 
@@ -1247,7 +1294,7 @@ public class MySQLProtocol implements Protocol {
      */
     @Override
     public void cancelCurrentQuery() throws QueryException, IOException {
-        MySQLProtocol copiedProtocol = new MySQLProtocol(jdbcUrl, new ReentrantReadWriteLock());
+        MySQLProtocol copiedProtocol = new MySQLProtocol(jdbcUrl, new ReentrantLock());
         copiedProtocol.setHostAddress(getHostAddress());
         copiedProtocol.connect();
         //no lock, because there is already a query running that possessed the lock.
@@ -1264,11 +1311,11 @@ public class MySQLProtocol implements Protocol {
 
     @Override
     public boolean hasUnreadData() {
-        lock.readLock().lock();
+        lock.lock();
         try {
             return (activeResult != null);
         } finally {
-            lock.readLock().unlock();
+            lock.unlock();
         }
 
     }
@@ -1366,12 +1413,12 @@ public class MySQLProtocol implements Protocol {
      */
     @Override
     public void setTimeout(int timeout) throws SocketException {
-        lock.writeLock().lock();
+        lock.lock();
         try {
             this.getOptions().socketTimeout = timeout;
             this.socket.setSoTimeout(timeout);
         } finally {
-            lock.writeLock().unlock();
+            lock.unlock();
         }
     }
 
@@ -1382,7 +1429,7 @@ public class MySQLProtocol implements Protocol {
 
 
     public void setTransactionIsolation(final int level) throws QueryException {
-        lock.writeLock().lock();
+        lock.lock();
         try {
             String query = "SET SESSION TRANSACTION ISOLATION LEVEL";
             switch (level) {
@@ -1404,7 +1451,7 @@ public class MySQLProtocol implements Protocol {
             executeQuery(new MySQLQuery(query));
             transactionIsolationLevel = level;
         } finally {
-            lock.writeLock().unlock();
+            lock.unlock();
         }
     }
 
@@ -1413,20 +1460,20 @@ public class MySQLProtocol implements Protocol {
     }
 
     public boolean hasWarnings() {
-        lock.readLock().lock();
+        lock.lock();
         try {
             return hasWarnings;
         } finally {
-            lock.readLock().unlock();
+            lock.unlock();
         }
     }
 
     public boolean isConnected() {
-        lock.readLock().lock();
+        lock.lock();
         try {
             return connected;
         } finally {
-            lock.readLock().unlock();
+            lock.unlock();
         }
     }
 

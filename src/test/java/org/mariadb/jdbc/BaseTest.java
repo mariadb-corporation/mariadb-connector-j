@@ -44,12 +44,12 @@ public class BaseTest {
 
     @Rule
     public TestRule watcher = new TestWatcher() {
-        protected void starting(Description description) {
-            log.trace("Starting test: " + description.getMethodName());
+        protected void succeeded(Description description) {
+            log.trace("finished test success : " + description.getClassName() + "."+description.getMethodName());
         }
 
-        protected void finished(Description description) {
-            log.trace("finished test: " + description.getMethodName());
+        protected void failed(Throwable e, Description description) {
+            log.trace("finished test failed : " + description.getClassName() + "."+description.getMethodName());
         }
     };
 

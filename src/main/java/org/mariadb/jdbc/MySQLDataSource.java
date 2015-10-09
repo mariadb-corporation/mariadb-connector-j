@@ -63,7 +63,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.ArrayList;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Logger;
 
 
@@ -246,7 +246,7 @@ public class MySQLDataSource implements DataSource, ConnectionPoolDataSource, XA
      */
     public Connection getConnection() throws SQLException {
         try {
-            ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+            ReentrantLock lock = new ReentrantLock();
             Protocol proxyfiedProtocol = Utils.retrieveProxy(jdbcUrl, lock);
             return MySQLConnection.newConnection(proxyfiedProtocol, lock);
         } catch (QueryException e) {

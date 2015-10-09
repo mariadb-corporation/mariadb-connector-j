@@ -589,4 +589,36 @@ public class MultiTest extends BaseTest {
             if (tmpConnection != null) tmpConnection.close();
         }
     }
+
+    @Test
+    public void testduplicate() throws Exception {
+        createTable("SOME_TABLE", "ID INT(11) not null, FOO INT(11), PRIMARY KEY (ID), UNIQUE INDEX `FOO` (`FOO`)");
+        String sql = "insert into `SOME_TABLE` (`ID`, `FOO`) values (?, ?) on duplicate key update `SOME_TABLE`.`FOO` = ?";
+        PreparedStatement st = sharedConnection.prepareStatement(sql);
+        st.setInt(1, 1);
+        st.setInt(2, 1);
+        st.setInt(3, 1);
+        st.addBatch();
+
+        st.setInt(1, 2);
+        st.setInt(2, 1);
+        st.setInt(3, 2);
+        st.addBatch();
+        st.executeBatch();
+
+        sql = "/*CLIENT*/"+sql;
+        st = sharedConnection.prepareStatement(sql);
+        st.setInt(1, 4);
+        st.setInt(2, 4);
+        st.setInt(3, 5);
+        st.addBatch();
+
+        st.setInt(1, 5);
+        st.setInt(2, 4);
+        st.setInt(3, 8);
+        st.addBatch();
+        st.executeBatch();
+    }
+
+
 }

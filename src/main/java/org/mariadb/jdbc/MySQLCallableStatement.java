@@ -1240,7 +1240,7 @@ public class MySQLCallableStatement implements CallableStatement {
     }
 
     public boolean execute() throws SQLException {
-        con.lock.writeLock().lock();
+        con.lock.lock();
         try {
             if (rsOutputParameters != null) {
                 rsOutputParameters.close();
@@ -1258,7 +1258,7 @@ public class MySQLCallableStatement implements CallableStatement {
             }
             return ret;
         } finally {
-            con.lock.writeLock().unlock();
+            con.lock.unlock();
         }
     }
 

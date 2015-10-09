@@ -256,7 +256,7 @@ public abstract class AbstractMastersListener implements Listener {
     public void syncConnection(Protocol from, Protocol to) throws QueryException {
 
         if (from != null) {
-            proxy.lock.writeLock().lock();
+            proxy.lock.lock();
 
             try {
                 to.setMaxRows(from.getMaxRows());
@@ -271,7 +271,7 @@ public abstract class AbstractMastersListener implements Listener {
                     to.executeQuery(new MySQLQuery("set autocommit=" + (from.getAutocommit() ? "1" : "0")));
                 }
             } finally {
-                proxy.lock.writeLock().unlock();
+                proxy.lock.unlock();
             }
 
         }

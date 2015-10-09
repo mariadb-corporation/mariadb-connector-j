@@ -56,7 +56,7 @@ import org.mariadb.jdbc.internal.mysql.Protocol;
 
 import java.sql.*;
 import java.util.Properties;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.locks.ReentrantLock;
 
 
 public final class Driver implements java.sql.Driver {
@@ -98,7 +98,7 @@ public final class Driver implements java.sql.Driver {
                 //log.info("MariaDB connector : missing Host address");
                 return null;
             } else {
-                ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+                ReentrantLock lock = new ReentrantLock();
                 Protocol protocol = Utils.retrieveProxy(jdbcUrl, lock);
                 return MySQLConnection.newConnection(protocol, lock);
             }

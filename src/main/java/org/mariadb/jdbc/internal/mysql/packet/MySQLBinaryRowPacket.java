@@ -52,28 +52,26 @@ package org.mariadb.jdbc.internal.mysql.packet;
 import org.mariadb.jdbc.internal.common.Options;
 import org.mariadb.jdbc.internal.common.PacketFetcher;
 import org.mariadb.jdbc.internal.common.ValueObject;
-import org.mariadb.jdbc.internal.common.packet.RawPacket;
 import org.mariadb.jdbc.internal.common.packet.buffer.Reader;
 import org.mariadb.jdbc.internal.mysql.MySQLColumnInformation;
 import org.mariadb.jdbc.internal.mysql.MySQLValueObject;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
 
-public class MySQLBinaryRowPacket {
-    private final ValueObject[] columns;
-    private final Reader reader;
+public class MySQLBinaryRowPacket implements RowPacket {
     private final MySQLColumnInformation[] columnInformation;
     private final Options options;
+    private final int columnInformationLength;
 
-    public MySQLBinaryRowPacket(RawPacket rawPacket, MySQLColumnInformation[] columnInformation2, Options options) throws IOException {
-        columns = new ValueObject[columnInformation2.length];
-        reader = new Reader(rawPacket.getByteBuffer());
-        this.columnInformation = columnInformation2;
+    public MySQLBinaryRowPacket(MySQLColumnInformation[] columnInformation, Options options, int columnInformationLength) {
+        this.columnInformation = columnInformation;
         this.options = options;
+        this.columnInformationLength = columnInformationLength;
     }
 
-    public void appendPacketIfNeeded(PacketFetcher packetFetcher) throws IOException {
+    public void appendPacketIfNeeded(Reader reader, PacketFetcher packetFetcher) throws IOException {
         long encLength = reader.getSilentLengthEncodedBinary();
         long remaining = reader.getRemainingSize();
         while (encLength > remaining) {
@@ -83,24 +81,25 @@ public class MySQLBinaryRowPacket {
         }
     }
 
-    public void appendPacketIfNeeded(PacketFetcher packetFetcher, long encLength) throws IOException {
+    public void appendPacketIfNeeded(Reader reader, PacketFetcher packetFetcher, long encLength) throws IOException {
         long remaining = reader.getRemainingSize();
         while (encLength > remaining) {
-            reader.appendPacket(packetFetcher.getRawPacket());
+            reader.appendPacket(packetFetcher.getRawPacket(), encLength);
             encLength = reader.getSilentLengthEncodedBinary();
         }
     }
 
-    public ValueObject[] getRow(PacketFetcher packetFetcher) throws IOException {
+    public ValueObject[] getRow(PacketFetcher packetFetcher, ByteBuffer buffer) throws IOException {
+        ValueObject[] valueObjects = new ValueObject[columnInformationLength];
+        Reader reader = new Reader(buffer);
         reader.skipByte(); //packet header
-        int nullCount = (columnInformation.length + 9) / 8;
+        int nullCount = (columnInformationLength + 9) / 8;
         byte[] nullBitsBuffer = reader.readRawBytes(nullCount);
 
-        for (int i = 0; i < columnInformation.length; i++) {
-
+        for (int i = 0; i < columnInformationLength; i++) {
             if ((nullBitsBuffer[(i + 2) / 8] & (1 << ((i + 2) % 8))) > 0) {
                 //field is null
-                columns[i] = new MySQLValueObject(null, columnInformation[i], true, options);
+                valueObjects[i] = new MySQLValueObject(null, columnInformation[i], true, options);
             } else {
                 switch (columnInformation[i].getType()) {
                     case VARCHAR:
@@ -116,57 +115,57 @@ public class MySQLBinaryRowPacket {
                     case GEOMETRY:
                     case OLDDECIMAL:
                     case DECIMAL:
-                        appendPacketIfNeeded(packetFetcher);
-                        columns[i] = new MySQLValueObject(reader.getLengthEncodedBytes(), columnInformation[i], true, options);
+                        appendPacketIfNeeded(reader, packetFetcher);
+                        valueObjects[i] = new MySQLValueObject(reader.getLengthEncodedBytes(), columnInformation[i], true, options);
                         break;
 
                     case BIGINT:
-                        appendPacketIfNeeded(packetFetcher, 8);
-                        columns[i] = new MySQLValueObject(reader.getLengthEncodedBytesWithLength(8), columnInformation[i], true, options);
+                        appendPacketIfNeeded(reader, packetFetcher, 8);
+                        valueObjects[i] = new MySQLValueObject(reader.getLengthEncodedBytesWithLength(8), columnInformation[i], true, options);
                         break;
 
                     case INTEGER:
                     case MEDIUMINT:
-                        appendPacketIfNeeded(packetFetcher, 4);
-                        columns[i] = new MySQLValueObject(reader.getLengthEncodedBytesWithLength(4), columnInformation[i], true, options);
+                        appendPacketIfNeeded(reader, packetFetcher, 4);
+                        valueObjects[i] = new MySQLValueObject(reader.getLengthEncodedBytesWithLength(4), columnInformation[i], true, options);
                         break;
 
                     case SMALLINT:
                     case YEAR:
-                        appendPacketIfNeeded(packetFetcher, 2);
-                        columns[i] = new MySQLValueObject(reader.getLengthEncodedBytesWithLength(2), columnInformation[i], true, options);
+                        appendPacketIfNeeded(reader, packetFetcher, 2);
+                        valueObjects[i] = new MySQLValueObject(reader.getLengthEncodedBytesWithLength(2), columnInformation[i], true, options);
                         break;
 
                     case TINYINT:
-                        appendPacketIfNeeded(packetFetcher, 1);
-                        columns[i] = new MySQLValueObject(reader.getLengthEncodedBytesWithLength(1), columnInformation[i], true, options);
+                        appendPacketIfNeeded(reader, packetFetcher, 1);
+                        valueObjects[i] = new MySQLValueObject(reader.getLengthEncodedBytesWithLength(1), columnInformation[i], true, options);
                         break;
 
                     case DOUBLE:
-                        appendPacketIfNeeded(packetFetcher, 8);
-                        columns[i] = new MySQLValueObject(reader.getLengthEncodedBytesWithLength(8), columnInformation[i], true, options);
+                        appendPacketIfNeeded(reader, packetFetcher, 8);
+                        valueObjects[i] = new MySQLValueObject(reader.getLengthEncodedBytesWithLength(8), columnInformation[i], true, options);
                         break;
 
                     case FLOAT:
-                        appendPacketIfNeeded(packetFetcher, 4);
-                        columns[i] = new MySQLValueObject(reader.getLengthEncodedBytesWithLength(4), columnInformation[i], true, options);
+                        appendPacketIfNeeded(reader, packetFetcher, 4);
+                        valueObjects[i] = new MySQLValueObject(reader.getLengthEncodedBytesWithLength(4), columnInformation[i], true, options);
                         break;
 
                     case TIME:
                     case DATE:
                     case DATETIME:
                     case TIMESTAMP:
-                        appendPacketIfNeeded(packetFetcher);
-                        columns[i] = new MySQLValueObject(reader.getLengthEncodedBytes(), columnInformation[i], true, options);
+                        appendPacketIfNeeded(reader, packetFetcher);
+                        valueObjects[i] = new MySQLValueObject(reader.getLengthEncodedBytes(), columnInformation[i], true, options);
                         break;
                     default:
-                        appendPacketIfNeeded(packetFetcher);
-                        columns[i] = new MySQLValueObject(null, columnInformation[i], true, options);
+                        appendPacketIfNeeded(reader, packetFetcher);
+                        valueObjects[i] = new MySQLValueObject(null, columnInformation[i], true, options);
                         break;
                 }
             }
         }
-        return columns;
+        return valueObjects;
     }
 
 }

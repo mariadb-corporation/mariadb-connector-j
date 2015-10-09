@@ -76,8 +76,8 @@ public class MySQLValueObject implements ValueObject {
     private final byte[] rawBytes;
     private final MySQLType dataType;
     private final boolean isBinaryEncoded;
-    private MySQLColumnInformation columnInfo;
-    private Options options;
+    private final MySQLColumnInformation columnInfo;
+    private final Options options;
 
     public MySQLValueObject(byte[] rawBytes, MySQLColumnInformation columnInfo, Options options) {
         this.dataType = columnInfo.getType();

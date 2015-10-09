@@ -49,6 +49,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.common.packet.buffer;
 
+import org.mariadb.jdbc.internal.common.PacketFetcher;
 import org.mariadb.jdbc.internal.common.packet.RawPacket;
 
 import java.io.IOException;
@@ -62,7 +63,7 @@ import java.nio.charset.StandardCharsets;
 
 
 public class Reader {
-    private ByteBuffer byteBuffer;
+    public ByteBuffer byteBuffer;
 
 
     public Reader(final ByteBuffer byteBuffer) {
@@ -153,28 +154,19 @@ public class Reader {
     }
 
     public long getLengthEncodedBinary() {
-        /*if (byteBuffer.remaining() == 0) {
-            return 0;
-        }*/
         final byte type = byteBuffer.get();
-
-        if ((type & 0xff) == 251) {
-            return -1;
+        if (type < (byte) 0xfb) return (long) 0xff & type;
+        switch (type) {
+            case (byte) 0xfb: //251
+                return -1;
+            case (byte) 0xfc: //252
+                return (long) 0xffff & readShort();
+            case (byte) 0xfd: //253
+                return 0xffffff & read24bitword();
+            case (byte) 0xfe: //254
+                return readLong();
         }
-        if ((type & 0xff) == 252) {
-            return (long) 0xffff & readShort();
-        }
-        if ((type & 0xff) == 253) {
-            return 0xffffff & read24bitword();
-        }
-        if ((type & 0xff) == 254) {
-            return readLong();
-        }
-        if ((type & 0xff) <= 250) {
-            return (long) 0xff & type;
-        }
-
-        return 0;
+        return (long) 0xff & type;
     }
 
     public byte[] getLengthEncodedBytes() throws IOException {
@@ -224,6 +216,22 @@ public class Reader {
         newBuffer.position(pos);
         byteBuffer = newBuffer;
     }
+
+    public void appendPacket(RawPacket rawPacket, long encLength) {
+        if (encLength < byteBuffer.capacity()) {
+            byteBuffer.rewind();
+            byteBuffer.put(rawPacket.getByteBuffer());
+        } else {
+            ByteBuffer newBuffer = ByteBuffer.allocate(byteBuffer.capacity() + rawPacket.getByteBuffer().capacity()).order(ByteOrder.LITTLE_ENDIAN);
+            int pos = byteBuffer.position();
+            byteBuffer.rewind();
+            newBuffer.put(byteBuffer);
+            newBuffer.put(rawPacket.getByteBuffer());
+            newBuffer.position(pos);
+            byteBuffer = newBuffer;
+        }
+    }
+
 
     public long getSilentLengthEncodedBinary() {
         if (byteBuffer.remaining() == 0)

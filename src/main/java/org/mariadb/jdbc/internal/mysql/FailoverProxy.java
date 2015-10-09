@@ -57,7 +57,7 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.SQLException;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.locks.ReentrantLock;
 
 
 public class FailoverProxy implements InvocationHandler {
@@ -71,11 +71,11 @@ public class FailoverProxy implements InvocationHandler {
     public final static String METHOD_IS_CLOSED = "isClosed";
 
 
-    public final ReentrantReadWriteLock lock;
+    public final ReentrantLock lock;
 
     private Listener listener;
 
-    public FailoverProxy(Listener listener, ReentrantReadWriteLock lock) throws QueryException, SQLException {
+    public FailoverProxy(Listener listener, ReentrantLock lock) throws QueryException, SQLException {
         this.lock = lock;
         this.listener = listener;
         this.listener.setProxy(this);
