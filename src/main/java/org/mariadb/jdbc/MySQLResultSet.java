@@ -303,17 +303,7 @@ public class MySQLResultSet implements ResultSet {
                 data, connection.getProtocol(), true, binaryData);
     }
 
-
-    private void lock() {
-        if (statement != null) statement.stLock.lock();
-    }
-
-    private void unlock() {
-        if (statement != null) statement.stLock.unlock();
-    }
-
     public boolean next() throws SQLException {
-        lock();
         try {
             return queryResult.getResultSetType() == ResultSetType.SELECT
                     && ((SelectQueryResult) queryResult).next();
@@ -321,19 +311,12 @@ public class MySQLResultSet implements ResultSet {
             throw new SQLException(ioe);
         } catch (QueryException qe) {
             throw new SQLException(qe);
-        } finally {
-            unlock();
         }
     }
 
     public void close() throws SQLException {
         if (this.queryResult != null) {
-            lock();
-            try {
-                this.queryResult.close();
-            } finally {
-                unlock();
-            }
+            this.queryResult.close();
         }
     }
 

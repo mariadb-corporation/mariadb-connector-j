@@ -87,9 +87,9 @@ public class StreamParameter extends LongDataParameterHolder {
 
     public void writeBinary(PacketOutputStream os) throws IOException {
         if (length == Long.MAX_VALUE) {
-            os.sendStream(is, mySQLServerCharset);
+            os.sendStream(is);
         } else {
-            os.sendStream(is, length, mySQLServerCharset);
+            os.sendStream(is, length);
         }
 
     }

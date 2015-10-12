@@ -611,7 +611,7 @@ public class MySQLProtocol implements Protocol {
     }
 
     private byte decideLanguage() {
-        byte result = (byte) (isServerLanguageUTF8MB4(this.serverLanguage) ? this.serverLanguage : 33);
+        byte result = (isServerLanguageUTF8MB4(this.serverLanguage) ? this.serverLanguage : 33);
         return result;
     }
 

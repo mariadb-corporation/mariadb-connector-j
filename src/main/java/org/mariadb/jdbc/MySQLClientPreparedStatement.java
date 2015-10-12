@@ -168,25 +168,15 @@ public class MySQLClientPreparedStatement extends AbstractMySQLPrepareStatement 
      * @since 1.2
      */
     public void addBatch() throws SQLException {
-        stLock.lock();
-        try {
-            checkBatchFields();
-            batchQueries.add(dQuery.cloneQuery());
-            isInsertRewriteable(dQuery.getQuery());
-        } finally {
-            stLock.unlock();
-        }
+        checkBatchFields();
+        batchQueries.add(dQuery.cloneQuery());
+        isInsertRewriteable(dQuery.getQuery());
     }
 
     public void addBatch(final String sql) throws SQLException {
-        stLock.lock();
-        try {
-            checkBatchFields();
-            isInsertRewriteable(sql);
-            batchQueries.add(new MySQLQuery(sql));
-        } finally {
-            stLock.unlock();
-        }
+        checkBatchFields();
+        isInsertRewriteable(sql);
+        batchQueries.add(new MySQLQuery(sql));
     }
 
     private void checkBatchFields() {
@@ -196,16 +186,11 @@ public class MySQLClientPreparedStatement extends AbstractMySQLPrepareStatement 
     }
 
     public void clearBatch() {
-        stLock.lock();
-        try {
-            if (batchQueries != null) {
-                batchQueries.clear();
-            }
-            firstRewrite = null;
-            isRewriteable = true;
-        } finally {
-            stLock.unlock();
+        if (batchQueries != null) {
+            batchQueries.clear();
         }
+        firstRewrite = null;
+        isRewriteable = true;
     }
 
     /**
@@ -228,34 +213,26 @@ public class MySQLClientPreparedStatement extends AbstractMySQLPrepareStatement 
      * @since 1.2
      */
     public ResultSetMetaData getMetaData() throws SQLException {
-        stLock.lock();
-        try {
-            ResultSet rs = getResultSet();
-            if (rs != null) {
-                return rs.getMetaData();
-            }
-            if (resultSetMetaData == null) {
-                MySQLServerPreparedStatement ssps = new MySQLServerPreparedStatement(connection, this.sqlQuery, Statement.NO_GENERATED_KEYS);
-                ssps.close();
-                resultSetMetaData = ssps.getMetaData();
-                parameterMetaData = ssps.getParameterMetaData();
-            }
-            return resultSetMetaData;
-        } finally {
-            stLock.unlock();
+        ResultSet rs = getResultSet();
+        if (rs != null) {
+            return rs.getMetaData();
         }
+        if (resultSetMetaData == null) {
+            MySQLServerPreparedStatement ssps = new MySQLServerPreparedStatement(connection, this.sqlQuery, Statement.NO_GENERATED_KEYS);
+            ssps.close();
+            resultSetMetaData = ssps.getMetaData();
+            parameterMetaData = ssps.getParameterMetaData();
+        }
+        return resultSetMetaData;
     }
 
 
     protected void setParameter(final int parameterIndex, final ParameterHolder holder) throws SQLException {
-        stLock.lock();
         try {
             dQuery.setParameter(parameterIndex - 1, holder);
             parametersCleared = false;
         } catch (IllegalParameterException e) {
             throw SQLExceptionMapper.getSQLException("Could not set parameter", e);
-        } finally {
-            stLock.unlock();
         }
     }
 
@@ -271,18 +248,13 @@ public class MySQLClientPreparedStatement extends AbstractMySQLPrepareStatement 
      * @since 1.4
      */
     public ParameterMetaData getParameterMetaData() throws SQLException {
-        stLock.lock();
-        try {
-            if (parameterMetaData == null) {
-                MySQLServerPreparedStatement ssps = new MySQLServerPreparedStatement(connection, this.sqlQuery, Statement.NO_GENERATED_KEYS);
-                ssps.close();
-                resultSetMetaData = ssps.getMetaData();
-                parameterMetaData = ssps.getParameterMetaData();
-            }
-            return parameterMetaData;
-        } finally {
-            stLock.unlock();
+        if (parameterMetaData == null) {
+            MySQLServerPreparedStatement ssps = new MySQLServerPreparedStatement(connection, this.sqlQuery, Statement.NO_GENERATED_KEYS);
+            ssps.close();
+            resultSetMetaData = ssps.getMetaData();
+            parameterMetaData = ssps.getParameterMetaData();
         }
+        return parameterMetaData;
     }
 
 
@@ -293,20 +265,14 @@ public class MySQLClientPreparedStatement extends AbstractMySQLPrepareStatement 
      * method <code>clearParameters</code>.
      */
     public void clearParameters() {
-        stLock.lock();
-        try {
-            dQuery.clearParameters();
-            parametersCleared = true;
-        } finally {
-            stLock.unlock();
-        }
+        dQuery.clearParameters();
+        parametersCleared = true;
     }
 
 
     // Close prepared statement, maybe fire closed-statement events
     @Override
     public void close() throws SQLException {
-        stLock.lock();
         connection.lock.lock();
         try {
             super.close();
@@ -320,7 +286,6 @@ public class MySQLClientPreparedStatement extends AbstractMySQLPrepareStatement 
             connection.pooledConnection.fireStatementClosed(this);
         } finally {
             connection.lock.unlock();
-            stLock.unlock();
         }
     }
 

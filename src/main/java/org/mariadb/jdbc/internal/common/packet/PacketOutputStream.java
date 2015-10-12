@@ -93,7 +93,7 @@ public class PacketOutputStream extends OutputStream {
         writeEmptyPacket(lastSeq);
     }
 
-    public void sendStream(InputStream is, MySQLCharset charset) throws IOException {
+    public void sendStream(InputStream is) throws IOException {
         byte[] buffer = new byte[8192];
         int len;
         while ((len = is.read(buffer)) > 0) {
@@ -101,7 +101,7 @@ public class PacketOutputStream extends OutputStream {
         }
     }
 
-    public void sendStream(InputStream is, long readLength, MySQLCharset charset) throws IOException {
+    public void sendStream(InputStream is, long readLength) throws IOException {
         byte[] buffer = new byte[(int) readLength];
         int len;
         while ((len = is.read(buffer, 0, (int) readLength)) > 0) {
