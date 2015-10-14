@@ -3,7 +3,6 @@ package org.mariadb.jdbc;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mariadb.jdbc.internal.mysql.MySQLProtocol;
 
 import java.io.*;
 import java.sql.*;

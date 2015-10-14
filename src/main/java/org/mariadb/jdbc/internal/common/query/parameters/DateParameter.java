@@ -56,11 +56,7 @@ import org.mariadb.jdbc.internal.mysql.MySQLType;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.sql.Date;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.Calendar;
-import java.util.GregorianCalendar;
-import java.util.TimeZone;
 
 public class DateParameter extends NotLongDataParameterHolder {
     Date date;

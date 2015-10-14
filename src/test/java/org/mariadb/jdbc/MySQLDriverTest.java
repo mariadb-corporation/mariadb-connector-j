@@ -6,10 +6,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import javax.sql.rowset.CachedRowSet;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.math.BigInteger;
 import java.sql.*;
 import java.text.SimpleDateFormat;

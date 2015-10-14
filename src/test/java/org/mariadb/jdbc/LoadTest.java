@@ -1,10 +1,6 @@
 package org.mariadb.jdbc;
 
-import org.junit.BeforeClass;
 import org.junit.Ignore;
-import org.junit.Test;
-
-import java.sql.*;
 
 
 @Ignore

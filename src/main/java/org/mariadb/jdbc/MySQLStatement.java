@@ -63,7 +63,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.sql.*;
 import java.util.*;
-import java.util.concurrent.locks.ReentrantLock;
 
 
 public class MySQLStatement implements Statement {

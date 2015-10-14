@@ -51,7 +51,6 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.common.packet;
 
 import org.mariadb.jdbc.internal.common.PacketFetcher;
-import org.mariadb.jdbc.internal.common.packet.buffer.ReadUtil;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -62,6 +61,7 @@ import java.nio.ByteOrder;
 public class SyncPacketFetcher implements PacketFetcher {
     public  static final int AVOID_CREATE_BUFFER_LENGTH = 1024;
     private final InputStream inputStream;
+    private byte[] headerBuffer = new byte[4];
     private byte[] reusableBuffer = new byte[AVOID_CREATE_BUFFER_LENGTH];
 
     public SyncPacketFetcher(final InputStream is) {
@@ -74,8 +74,8 @@ public class SyncPacketFetcher implements PacketFetcher {
 
     /**
      * get buffer without packet sequence information
-     * @return ByteBuffer
-     * @throws IOException
+     * @return ByteBuffer the bytebuffer
+     * @throws IOException if any
      */
     public ByteBuffer getReusableBuffer() throws IOException {
         int remaining = 4;
@@ -138,7 +138,7 @@ public class SyncPacketFetcher implements PacketFetcher {
 
 
     public RawPacket getReusableRawPacket() throws IOException {
-        return RawPacket.nextPacket(inputStream, reusableBuffer);
+        return RawPacket.nextPacket(inputStream, headerBuffer, reusableBuffer);
     }
 
     public void clearInputStream() throws IOException {

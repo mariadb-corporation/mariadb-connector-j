@@ -48,11 +48,6 @@ OF SUCH DAMAGE.
 */
 package org.mariadb.jdbc.internal.common;
 
-import java.nio.charset.Charset;
-import java.util.Map;
-import java.util.TreeMap;
-
-
 public class CharsetUtils {
 
     public static MySQLCharset getServerCharset(int serverCharsetByte) {

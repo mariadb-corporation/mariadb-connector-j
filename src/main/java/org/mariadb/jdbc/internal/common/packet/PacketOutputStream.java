@@ -1,16 +1,10 @@
 package org.mariadb.jdbc.internal.common.packet;
 
-import javafx.util.converter.ByteStringConverter;
 import org.mariadb.jdbc.internal.common.MySQLCharset;
 
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.channels.SocketChannel;
-import java.nio.channels.WritableByteChannel;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.zip.DeflaterOutputStream;

@@ -49,17 +49,12 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.common.packet.buffer;
 
-import org.mariadb.jdbc.internal.common.PacketFetcher;
 import org.mariadb.jdbc.internal.common.packet.RawPacket;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.channels.Channels;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 
 
 public class Reader {

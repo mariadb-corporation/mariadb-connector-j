@@ -48,8 +48,6 @@ OF SUCH DAMAGE.
 */
 package org.mariadb.jdbc.internal.common;
 
-import java.nio.charset.Charset;
-
 public enum MySQLCharset {
     BIG5(1, "big5", "Big5", "Big5"),
     CP1252(3, "dec8", "Cp1252", "windows-1252"),

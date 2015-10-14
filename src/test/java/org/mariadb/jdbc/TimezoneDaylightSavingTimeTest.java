@@ -5,11 +5,12 @@ import org.junit.*;
 import java.io.InputStream;
 import java.sql.*;
 import java.text.SimpleDateFormat;
-import java.util.*;
-import java.util.Date;
+import java.util.Calendar;
+import java.util.Locale;
+import java.util.Scanner;
+import java.util.TimeZone;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class TimezoneDaylightSavingTimeTest extends BaseTest {

@@ -50,7 +50,6 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.mysql.packet;
 
 import org.mariadb.jdbc.internal.common.Utils;
-import org.mariadb.jdbc.internal.common.packet.RawPacket;
 import org.mariadb.jdbc.internal.common.packet.buffer.Reader;
 import org.mariadb.jdbc.internal.mysql.MySQLServerCapabilities;
 

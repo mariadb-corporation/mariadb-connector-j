@@ -369,7 +369,10 @@ public class MySQLProtocol implements Protocol {
         }
 
         try {
-            if (jdbcUrl.getOptions().tcpNoDelay) socket.setTcpNoDelay(true);
+            if (jdbcUrl.getOptions().tcpNoDelay) {
+                socket.setTcpNoDelay(jdbcUrl.getOptions().tcpNoDelay);
+            } else socket.setTcpNoDelay(true);
+
             if (jdbcUrl.getOptions().tcpKeepAlive) socket.setKeepAlive(true);
             if (jdbcUrl.getOptions().tcpRcvBuf != null) socket.setReceiveBufferSize(jdbcUrl.getOptions().tcpRcvBuf);
             if (jdbcUrl.getOptions().tcpSndBuf != null) socket.setSendBufferSize(jdbcUrl.getOptions().tcpSndBuf);
@@ -1010,7 +1013,6 @@ public class MySQLProtocol implements Protocol {
 
     @Override
     public QueryResult getResult(Object dQueries, boolean streaming, boolean binaryProtocol) throws QueryException {
-
         RawPacket rawPacket = null;
         ResultPacket resultPacket;
         try {
@@ -1226,7 +1228,6 @@ public class MySQLProtocol implements Protocol {
 
     @Override
     public QueryResult executePreparedQuery(String sql, ParameterHolder[] parameters, PrepareResult prepareResult, MySQLType[] parameterTypeHeader, boolean isStreaming) throws QueryException {
-
         this.moreResults = false;
         try {
             int parameterCount = parameters.length;
@@ -1237,10 +1238,10 @@ public class MySQLProtocol implements Protocol {
                     sendPrepareParameterPacket.send(writer);
                 }
             }
-
             //send execute query
             SendExecutePrepareStatementPacket packet = new SendExecutePrepareStatementPacket(prepareResult, parameters, parameterCount, parameterTypeHeader);
             packet.send(writer);
+
         } catch (MaxAllowedPacketException e) {
             if (e.isMustReconnect()) connect();
             throw new QueryException("Could not send query: " + e.getMessage(), -1, SQLExceptionMapper.SQLStates.INTERRUPTED_EXCEPTION.getSqlState(), e);

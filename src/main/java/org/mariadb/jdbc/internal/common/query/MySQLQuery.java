@@ -54,7 +54,6 @@ import org.mariadb.jdbc.internal.common.QueryException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
-import java.nio.charset.StandardCharsets;
 
 
 public class MySQLQuery implements Query {

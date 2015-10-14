@@ -51,8 +51,6 @@ package org.mariadb.jdbc.internal.common.packet;
 
 import org.mariadb.jdbc.internal.common.packet.buffer.Reader;
 
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 

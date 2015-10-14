@@ -55,7 +55,6 @@ import org.mariadb.jdbc.internal.common.queryresults.ModifyQueryResult;
 import org.mariadb.jdbc.internal.common.queryresults.PrepareResult;
 import org.mariadb.jdbc.internal.common.queryresults.ResultSetType;
 import org.mariadb.jdbc.internal.mysql.MySQLType;
-import org.mariadb.jdbc.internal.mysql.Protocol;
 
 import java.sql.*;
 import java.util.ArrayList;

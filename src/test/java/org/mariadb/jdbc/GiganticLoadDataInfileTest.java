@@ -1,6 +1,8 @@
 package org.mariadb.jdbc;
 
-import org.junit.*;
+import org.junit.BeforeClass;
+import org.junit.Ignore;
+import org.junit.Test;
 
 import java.io.IOException;
 import java.io.InputStream;

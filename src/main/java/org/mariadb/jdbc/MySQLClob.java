@@ -1,9 +1,6 @@
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.SQLExceptionMapper;
-
 import java.io.*;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.sql.Clob;
 import java.sql.NClob;

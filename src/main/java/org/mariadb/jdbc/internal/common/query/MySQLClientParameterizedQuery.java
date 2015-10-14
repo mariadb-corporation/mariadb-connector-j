@@ -54,7 +54,6 @@ import org.mariadb.jdbc.internal.common.query.parameters.ParameterHolder;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import static org.mariadb.jdbc.internal.common.Utils.createQueryParts;

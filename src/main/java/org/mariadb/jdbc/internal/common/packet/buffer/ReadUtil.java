@@ -48,16 +48,10 @@ OF SUCH DAMAGE.
 */
 package org.mariadb.jdbc.internal.common.packet.buffer;
 
-import org.mariadb.jdbc.internal.common.packet.RawPacket;
-
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
-import java.nio.channels.Channel;
-import java.nio.channels.Channels;
-import java.nio.channels.ReadableByteChannel;
-import java.nio.channels.SocketChannel;
 
 
 public final class ReadUtil {
@@ -77,6 +71,7 @@ public final class ReadUtil {
      *                             java.io.EOFException of end of stream is hit.
      */
     public static void readFully(InputStream stream, byte[] b, int off, int len) throws IOException {
+        long start = System.nanoTime();
         int remaining = len;
         do {
             int count = stream.read(b, off, remaining);
@@ -86,6 +81,7 @@ public final class ReadUtil {
             remaining -= count;
             off += count;
         } while (remaining > 0);
+
     }
 
     public static void readFully(InputStream stream, byte[] b) throws IOException {

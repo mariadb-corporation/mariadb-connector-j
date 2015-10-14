@@ -54,8 +54,6 @@ import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 
 
 public class SelectDBPacket implements CommandPacket {

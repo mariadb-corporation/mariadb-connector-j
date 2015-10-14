@@ -1,19 +1,14 @@
 package org.mariadb.jdbc.failover;
 
-import org.junit.*;
-import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.JDBCUrl;
+import org.junit.Assert;
+import org.junit.Assume;
+import org.junit.Before;
+import org.junit.Test;
 import org.mariadb.jdbc.internal.common.UrlHAMode;
-import org.mariadb.jdbc.internal.mysql.Protocol;
 
-import java.sql.*;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-
-import static org.junit.Assert.assertTrue;
 
 /**
  * test for galera

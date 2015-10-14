@@ -7,7 +7,6 @@ import org.mariadb.jdbc.internal.common.UrlHAMode;
 import org.mariadb.jdbc.internal.mysql.Protocol;
 
 import java.sql.*;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;

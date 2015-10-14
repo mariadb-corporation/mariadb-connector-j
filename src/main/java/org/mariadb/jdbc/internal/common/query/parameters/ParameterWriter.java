@@ -2,8 +2,6 @@ package org.mariadb.jdbc.internal.common.query.parameters;
 
 import java.io.*;
 import java.math.BigDecimal;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
