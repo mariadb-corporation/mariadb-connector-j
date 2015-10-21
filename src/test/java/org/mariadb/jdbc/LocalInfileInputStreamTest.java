@@ -69,6 +69,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
 
         ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM tt_local");
         boolean next = rs.next();
+
         Assert.assertTrue(next);
 
         int count = rs.getInt(1);
