@@ -22,8 +22,8 @@ public class LocalInfileInputStreamTest extends BaseTest {
      */
     @BeforeClass()
     public static void initClass() throws SQLException {
-        createTable("t", "id int, test varchar(100)");
-        createTable("tt", "id int, test varchar(100)");
+        createTable("t_local", "id int, test varchar(100)");
+        createTable("tt_local", "id int, test varchar(100)");
         createTable("ldinfile", "a varchar(10)");
     }
 
@@ -40,16 +40,16 @@ public class LocalInfileInputStreamTest extends BaseTest {
         InputStream inputStream = new ByteArrayInputStream(builder.toString().getBytes());
         ((MariaDbStatement) st).setLocalInfileInputStream(inputStream);
 
-        st.executeUpdate("LOAD DATA LOCAL INFILE 'dummy.tsv' INTO TABLE t (id, test)");
+        st.executeUpdate("LOAD DATA LOCAL INFILE 'dummy.tsv' INTO TABLE t_local (id, test)");
 
-        ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM t");
+        ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM t_local");
         boolean next = rs.next();
         Assert.assertTrue(next);
 
         int count = rs.getInt(1);
         Assert.assertEquals(2, count);
 
-        rs = st.executeQuery("SELECT * FROM t");
+        rs = st.executeQuery("SELECT * FROM t_local");
 
         validateRecord(rs, 1, "hello");
         validateRecord(rs, 2, "world");
@@ -62,19 +62,19 @@ public class LocalInfileInputStreamTest extends BaseTest {
         Statement st = sharedConnection.createStatement();
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
         st.executeUpdate("LOAD DATA LOCAL INFILE '" + classLoader.getResource("test.txt").getPath()
-                + "' INTO TABLE tt \n"
-                + "  FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"'\n"
-                + "  LINES TERMINATED BY '\\n' \n"
+                + "' INTO TABLE tt_local "
+                + "  FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"'"
+                + "  LINES TERMINATED BY '\\r\\n' "
                 + "  (id, test)");
 
-        ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM tt");
+        ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM tt_local");
         boolean next = rs.next();
         Assert.assertTrue(next);
 
         int count = rs.getInt(1);
         Assert.assertEquals(2, count);
 
-        rs = st.executeQuery("SELECT * FROM tt");
+        rs = st.executeQuery("SELECT * FROM tt_local");
 
         validateRecord(rs, 1, "hello");
         validateRecord(rs, 2, "world");
