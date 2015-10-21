@@ -1,3 +1,5 @@
+package org.mariadb.jdbc.internal.common.packet;
+
 /*
 MariaDB Client for Java
 
@@ -47,15 +49,12 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc.internal.common.packet;
-
-import java.io.IOException;
 import java.nio.ByteBuffer;
 
 /**
  * . User: marcuse Date: Jan 16, 2009 Time: 4:23:40 PM
  */
-public class OKPacket extends ResultPacket {
+public class OkPacket extends ResultPacket {
     @SuppressWarnings("unused")
     private final byte fieldCount;
     private final long affectedRows;
@@ -64,10 +63,13 @@ public class OKPacket extends ResultPacket {
     private final short warnings;
     private final String message;
 
-
-    public OKPacket(ByteBuffer byteBuffer) throws IOException {
+    /**
+     * Read Ok packet result.
+     * @param byteBuffer current packet's byteBuffer
+     */
+    public OkPacket(ByteBuffer byteBuffer) {
         super(byteBuffer);
-        fieldCount =  byteBuffer.get();
+        fieldCount = byteBuffer.get();
         affectedRows = getLengthEncodedBinary();
         insertId = getLengthEncodedBinary();
         serverStatus = byteBuffer.getShort();
@@ -81,16 +83,16 @@ public class OKPacket extends ResultPacket {
 
     @Override
     public String toString() {
-        return "affectedRows = " +
-                affectedRows +
-                "&insertId = " +
-                insertId +
-                "&serverStatus=" +
-                serverStatus +
-                "&warnings=" +
-                warnings +
-                "&message=" +
-                message;
+        return "affectedRows = "
+                + affectedRows
+                + "&insertId = "
+                + insertId
+                + "&serverStatus="
+                + serverStatus
+                + "&warnings="
+                + warnings
+                + "&message="
+                + message;
     }
 
     public long getAffectedRows() {

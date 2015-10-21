@@ -1,3 +1,5 @@
+package org.mariadb.jdbc.internal.common;
+
 /*
 MariaDB Client for Java
 
@@ -46,9 +48,7 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWIS
 ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
 OF SUCH DAMAGE.
 */
-package org.mariadb.jdbc.internal.common;
-
-import org.mariadb.jdbc.JDBCUrl;
+import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.mysql.*;
 import org.mariadb.jdbc.internal.mysql.listener.impl.AuroraListener;
 import org.mariadb.jdbc.internal.mysql.listener.impl.MastersFailoverListener;
@@ -66,7 +66,12 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class Utils {
 
-
+    /**
+     * Create query part.
+     * @param queryString query String
+     * @param noBackslashEscapes must backslash be escaped.
+     * @return List of query part.
+     */
     public static List<String> createQueryParts(String queryString, boolean noBackslashEscapes) {
         List<String> list = new ArrayList<String>();
         LexState state = LexState.Normal;
@@ -86,60 +91,70 @@ public class Utils {
                 continue;
             }
 
-            char c = query[i];
-            switch (c) {
+            char car = query[i];
+            switch (car) {
                 case '*':
-                    if (state == LexState.Normal && lastChar == '/')
+                    if (state == LexState.Normal && lastChar == '/') {
                         state = LexState.SlashStarComment;
+                    }
                     break;
                 case '/':
-                    if (state == LexState.SlashStarComment && lastChar == '*')
+                    if (state == LexState.SlashStarComment && lastChar == '*') {
                         state = LexState.Normal;
-                    else if (state == LexState.Normal && lastChar == '/')
+                    } else if (state == LexState.Normal && lastChar == '/') {
                         state = LexState.EOLComment;
+                    }
                     break;
 
                 case '#':
-                    if (state == LexState.Normal)
+                    if (state == LexState.Normal) {
                         state = LexState.EOLComment;
+                    }
                     break;
 
                 case '-':
-                    if (state == LexState.Normal && lastChar == '-')
+                    if (state == LexState.Normal && lastChar == '-') {
                         state = LexState.EOLComment;
+                    }
                     break;
 
                 case '\n':
-                    if (state == LexState.EOLComment)
+                    if (state == LexState.EOLComment) {
                         state = LexState.Normal;
+                    }
                     break;
 
                 case '"':
                     if (state == LexState.Normal) {
                         state = LexState.String;
                         singleQuotes = false;
-                    } else if (state == LexState.String && !singleQuotes)
+                    } else if (state == LexState.String && !singleQuotes) {
                         state = LexState.Normal;
+                    }
                     break;
 
                 case '\'':
                     if (state == LexState.Normal) {
                         state = LexState.String;
                         singleQuotes = true;
-                    } else if (state == LexState.String && singleQuotes)
+                    } else if (state == LexState.String && singleQuotes) {
                         state = LexState.Normal;
+                    }
                     break;
 
                 case '\\':
-                    if (noBackslashEscapes)
+                    if (noBackslashEscapes) {
                         break;
-                    if (state == LexState.String)
+                    }
+                    if (state == LexState.String) {
                         state = LexState.Escape;
+                    }
                     break;
 
                 case '?':
-                    if (state == LexState.Normal)
+                    if (state == LexState.Normal) {
                         isParam = true;
+                    }
                     break;
                 case '`':
                     if (state == LexState.Backtick) {
@@ -148,14 +163,16 @@ public class Utils {
                         state = LexState.Backtick;
                     }
                     break;
+                default:
+                    break;
             }
-            lastChar = c;
+            lastChar = car;
             if (isParam) {
                 list.add(sb.toString());
                 sb.setLength(0);
                 isParam = false;
             } else {
-                sb.append(c);
+                sb.append(car);
             }
 
         }
@@ -163,24 +180,31 @@ public class Utils {
         return list;
     }
 
-    ;
-
-    public static String escapeString(String s, boolean noBackslashEscapes) {
-        if (s.indexOf("'") == -1) {
-            if (noBackslashEscapes)
-                return s;
-            if (s.indexOf("\\") == -1)
-                return s;
+    /**
+     * Escape String.
+     * @param value value to escape
+     * @param noBackslashEscapes must backslash be escaped
+     * @return escaped string.
+     */
+    public static String escapeString(String value, boolean noBackslashEscapes) {
+        if (value.indexOf("'") == -1) {
+            if (noBackslashEscapes) {
+                return value;
+            }
+            if (value.indexOf("\\") == -1) {
+                return value;
+            }
         }
-        String escaped = s.replace("'", "''");
-        if (noBackslashEscapes)
+        String escaped = value.replace("'", "''");
+        if (noBackslashEscapes) {
             return escaped;
+        }
         return escaped.replace("\\", "\\\\");
     }
 
     /**
      * encrypts a password
-     *
+     * <p>
      * protocol for authentication is like this: 1. mysql server sends a random array of bytes (the seed) 2. client
      * makes a sha1 digest of the password 3. client hashes the output of 2 4. client digests the seed 5. client updates
      * the digest with the output from 3 6. an xor of the output of 5 and 2 is sent to server 7. server does the same
@@ -257,24 +281,26 @@ public class Utils {
      * - TIMESTAMPDIFF(type, ...) or TIMESTAMPADD(type, ...) , we replace SQL_TSI_XXX in type with XXX, i.e
      * SQL_TSI_HOUR with HOUR
      *
-     * @param s - input string
+     * @param functionString - input string
      * @return unescaped string
      */
-    public static String replaceFunctionParameter(String s) {
+    public static String replaceFunctionParameter(String functionString) {
 
-        if (!s.contains("SQL_"))
-            return s;
-
-        char[] input = s.toCharArray();
-        StringBuffer sb = new StringBuffer();
-        int i;
-        for (i = 0; i < input.length; i++) {
-            if (input[i] != ' ')
-                break;
+        if (!functionString.contains("SQL_")) {
+            return functionString;
         }
 
-        for (; ((input[i] >= 'a' && i <= 'z') || (input[i] >= 'A' && input[i] <= 'Z')) && i < input.length; i++) {
-            sb.append(input[i]);
+        char[] input = functionString.toCharArray();
+        StringBuffer sb = new StringBuffer();
+        int index;
+        for (index = 0; index < input.length; index++) {
+            if (input[index] != ' ') {
+                break;
+            }
+        }
+
+        for (; ((input[index] >= 'a' && index <= 'z') || (input[index] >= 'A' && input[index] <= 'Z')) && index < input.length; index++) {
+            sb.append(input[index]);
         }
         String func = sb.toString().toLowerCase();
 
@@ -283,52 +309,60 @@ public class Utils {
 
             if (func.equals("timestampdiff") || func.equals("timestampadd")) {
                 // Skip to first parameter
-                for (; i < input.length; i++) {
-                    if (!Character.isWhitespace(input[i]) && input[i] != '(')
+                for (; index < input.length; index++) {
+                    if (!Character.isWhitespace(input[index]) && input[index] != '(') {
                         break;
+                    }
                 }
-                if (i == input.length)
+                if (index == input.length) {
                     return new String(input);
+                }
 
 
-                if (i >= input.length - 8)
+                if (index >= input.length - 8) {
                     return new String(input);
-                paramPrefix = new String(input, i, 8);
-                if (paramPrefix.equals("SQL_TSI_"))
-                    return new String(input, 0, i) + new String(input, i + 8, input.length - (i + 8));
+                }
+                paramPrefix = new String(input, index, 8);
+                if (paramPrefix.equals("SQL_TSI_")) {
+                    return new String(input, 0, index) + new String(input, index + 8, input.length - (index + 8));
+                }
                 return new String(input);
             }
 
             // Handle "convert(value, type)" case
             // extract last parameter, after the last ','
-            int lastCommaIndex = s.lastIndexOf(',');
+            int lastCommaIndex = functionString.lastIndexOf(',');
 
-            for (i = lastCommaIndex + 1; i < input.length; i++) {
-                if (!Character.isWhitespace(input[i]))
+            for (index = lastCommaIndex + 1; index < input.length; index++) {
+                if (!Character.isWhitespace(input[index])) {
                     break;
+                }
             }
-            if (i >= input.length - 4)
+            if (index >= input.length - 4) {
                 return new String(input);
-            paramPrefix = new String(input, i, 4);
-            if (paramPrefix.equals("SQL_"))
-                return new String(input, 0, i) + new String(input, i + 4, input.length - (i + 4));
+            }
+            paramPrefix = new String(input, index, 4);
+            if (paramPrefix.equals("SQL_")) {
+                return new String(input, 0, index) + new String(input, index + 4, input.length - (index + 4));
+            }
 
         }
         return new String(input);
     }
 
     private static String resolveEscapes(String escaped, boolean noBackslashEscapes) throws SQLException {
-        if (escaped.charAt(0) != '{' || escaped.charAt(escaped.length() - 1) != '}')
+        if (escaped.charAt(0) != '{' || escaped.charAt(escaped.length() - 1) != '}') {
             throw new SQLException("unexpected escaped string");
+        }
         int endIndex = escaped.length() - 1;
         String escapedLower = escaped.toLowerCase();
         if (escaped.startsWith("{fn ")) {
             String resolvedParams = replaceFunctionParameter(escaped.substring(4, endIndex));
-            return nativeSQL(resolvedParams, noBackslashEscapes);
+            return nativeSql(resolvedParams, noBackslashEscapes);
         } else if (escapedLower.startsWith("{oj ")) {
             // Outer join
             // the server supports "oj" in any case, even "oJ"
-            return nativeSQL(escaped.substring(4, endIndex), noBackslashEscapes);
+            return nativeSql(escaped.substring(4, endIndex), noBackslashEscapes);
         } else if (escaped.startsWith("{d ")) {
             // date literal
             return escaped.substring(3, endIndex);
@@ -350,12 +384,12 @@ public class Utils {
         } else if (escaped.startsWith("{call ") || escaped.startsWith("{CALL ")) {
             // We support uppercase "{CALL" only because Connector/J supports it. It is not in the JDBC spec.
 
-            return nativeSQL(escaped.substring(1, endIndex), noBackslashEscapes);
+            return nativeSql(escaped.substring(1, endIndex), noBackslashEscapes);
         } else if (escaped.startsWith("{escape ")) {
             return escaped.substring(1, endIndex);
         } else if (escaped.startsWith("{?")) {
             // likely ?=call(...)
-            return nativeSQL(escaped.substring(1, endIndex), noBackslashEscapes);
+            return nativeSql(escaped.substring(1, endIndex), noBackslashEscapes);
         } else if (escaped.startsWith("{ ")) {
             // Spaces before keyword, this is not JDBC compliant, however some it works in some drivers,
             // so we support it, too
@@ -368,14 +402,22 @@ public class Utils {
         throw new SQLException("unknown escape sequence " + escaped);
     }
 
-    public static String nativeSQL(String sql, boolean noBackslashEscapes) throws SQLException {
-        if (sql.indexOf('{') == -1)
+    /**
+     * Escape sql String
+     * @param sql intial sql
+     * @param noBackslashEscapes must backslash be escape
+     * @return escaped sql string
+     * @throws SQLException if escape sequence is incorrect.
+     */
+    public static String nativeSql(String sql, boolean noBackslashEscapes) throws SQLException {
+        if (sql.indexOf('{') == -1) {
             return sql;
+        }
 
         StringBuffer escapeSequenceBuf = new StringBuffer();
         StringBuffer sqlBuffer = new StringBuffer();
 
-        char[] a = sql.toCharArray();
+        char[] charArray = sql.toCharArray();
         char lastChar = 0;
         boolean inQuote = false;
         char quoteChar = 0;
@@ -383,24 +425,24 @@ public class Utils {
         boolean isSlashSlashComment = false;
         int inEscapeSeq = 0;
 
-        for (int i = 0; i < a.length; i++) {
-            char c = a[i];
+        for (int i = 0; i < charArray.length; i++) {
+            char car = charArray[i];
             if (lastChar == '\\' && !noBackslashEscapes) {
-                sqlBuffer.append(c);
+                sqlBuffer.append(car);
                 continue;
             }
 
-            switch (c) {
+            switch (car) {
                 case '\'':
                 case '"':
                     if (!inComment) {
                         if (inQuote) {
-                            if (quoteChar == c) {
+                            if (quoteChar == car) {
                                 inQuote = false;
                             }
                         } else {
                             inQuote = true;
-                            quoteChar = c;
+                            quoteChar = car;
                         }
                     }
                     break;
@@ -419,11 +461,11 @@ public class Utils {
                         if (inComment) {
                             if (lastChar == '*' && !isSlashSlashComment) {
                                 inComment = false;
-                            } else if (lastChar == c && isSlashSlashComment) {
+                            } else if (lastChar == car && isSlashSlashComment) {
                                 inComment = false;
                             }
                         } else {
-                            if (lastChar == c) {
+                            if (lastChar == car) {
                                 inComment = true;
                                 isSlashSlashComment = true;
                             } else if (lastChar == '*') {
@@ -438,8 +480,10 @@ public class Utils {
                     // This would convert e.g SQL_INTEGER => INTEGER, SQL_TSI_HOUR=>HOUR
 
                     if (!inQuote && !inComment && inEscapeSeq > 0) {
-                        if (i + 4 < a.length && a[i + 1] == 'Q' && a[i + 2] == 'L' && a[i + 3] == 'L' && a[i + 4] == '_') {
-                            if (i + 8 < a.length && a[i + 5] == 'T' && a[i + 6] == 'S' && a[i + 7] == 'I' && a[i + 8] == '_') {
+                        if (i + 4 < charArray.length && charArray[i + 1] == 'Q' && charArray[i + 2] == 'L' && charArray[i + 3] == 'L'
+                                && charArray[i + 4] == '_') {
+                            if (i + 8 < charArray.length && charArray[i + 5] == 'T' && charArray[i + 6] == 'S' && charArray[i + 7] == 'I'
+                                    && charArray[i + 8] == '_') {
                                 i += 8;
                                 continue;
                             }
@@ -464,52 +508,85 @@ public class Utils {
                     if (!inQuote && !inComment) {
                         inEscapeSeq--;
                         if (inEscapeSeq == 0) {
-                            escapeSequenceBuf.append(c);
+                            escapeSequenceBuf.append(car);
                             sqlBuffer.append(resolveEscapes(escapeSequenceBuf.toString(), noBackslashEscapes));
                             escapeSequenceBuf.setLength(0);
                             continue;
                         }
                     }
+                    break;
 
+                default:
+                    break;
 
             }
-            lastChar = c;
+            lastChar = car;
             if (inEscapeSeq > 0) {
-                escapeSequenceBuf.append(c);
+                escapeSequenceBuf.append(car);
             } else {
-                sqlBuffer.append(c);
+                sqlBuffer.append(car);
             }
         }
-        if (inEscapeSeq > 0)
+        if (inEscapeSeq > 0) {
             throw new SQLException("Invalid escape sequence , missing closing '}' character in '" + sqlBuffer);
+        }
         return sqlBuffer.toString();
     }
 
-    public static Protocol retrieveProxy(final JDBCUrl jdbcUrl, final ReentrantLock lock) throws QueryException, SQLException {
-        switch (jdbcUrl.getHaMode()) {
+    /**
+     * Retreive protocol corresponding to the failover options.
+     * if no failover option, protocol will not be proxied.
+     * if a failover option is precised, protocol will be proxied so that any connection error will be handle directly.
+     *
+     * @param urlParser urlParser corresponding to connection url string.
+     * @param lock lock to handle thread synchronisation
+     * @return protocol
+     * @throws QueryException if any error occur during connection
+     * @throws SQLException if any error occur during connection
+     */
+    public static Protocol retrieveProxy(final UrlParser urlParser, final ReentrantLock lock) throws QueryException, SQLException {
+        switch (urlParser.getHaMode()) {
             case AURORA:
                 return (Protocol) Proxy.newProxyInstance(
                         AuroraProtocol.class.getClassLoader(),
                         new Class[]{Protocol.class},
-                        new FailoverProxy(new AuroraListener(jdbcUrl), lock));
+                        new FailoverProxy(new AuroraListener(urlParser), lock));
             case REPLICATION:
                 return (Protocol) Proxy.newProxyInstance(
                         MastersSlavesProtocol.class.getClassLoader(),
                         new Class[]{Protocol.class},
-                        new FailoverProxy(new MastersSlavesListener(jdbcUrl), lock));
+                        new FailoverProxy(new MastersSlavesListener(urlParser), lock));
             case FAILOVER:
             case SEQUENTIAL:
                 return (Protocol) Proxy.newProxyInstance(
-                        MySQLProtocol.class.getClassLoader(),
+                        MariaDbProtocol.class.getClassLoader(),
                         new Class[]{Protocol.class},
-                        new FailoverProxy(new MastersFailoverListener(jdbcUrl), lock));
+                        new FailoverProxy(new MastersFailoverListener(urlParser), lock));
             default:
-                MySQLProtocol protocol = new MySQLProtocol(jdbcUrl, lock);
+                MariaDbProtocol protocol = new MariaDbProtocol(urlParser, lock);
                 protocol.connectWithoutProxy();
                 return protocol;
         }
     }
 
+    /**
+     * Get timezone from Id.
+     * This differ from java implementation : by default, if timezone Id is unknown, java return GMT timezone.
+     * GMT will be return only if explicitly asked.
+     *
+     * @param id timezone id
+     * @return timezone.
+     * @throws SQLException if no timezone is found for this Id
+     */
+    public static TimeZone getTimeZone(String id) throws SQLException {
+        TimeZone tz = java.util.TimeZone.getTimeZone(id);
+
+        // Validate the timezone ID. JDK maps invalid timezones to GMT
+        if (tz.getID().equals("GMT") && !id.equals("GMT")) {
+            throw new SQLException("invalid timezone id '" + id + "'");
+        }
+        return tz;
+    }
 
     enum LexState {
         Normal, /* inside  query */
@@ -519,16 +596,6 @@ public class Utils {
         Parameter, /* parameter placeholder found */
         EOLComment, /* # comment, or // comment, or -- comment */
         Backtick /* found backtick */
-    }
-
-    public static TimeZone getTimeZone(String id) throws SQLException {
-        TimeZone tz = java.util.TimeZone.getTimeZone(id);
-
-        // Validate the timezone ID. JDK maps invalid timezones to GMT
-        if (tz.getID().equals("GMT") && !id.equals("GMT")) {
-            throw new SQLException("invalid timezone id '" + id + "'");
-        }
-        return tz;
     }
 
 

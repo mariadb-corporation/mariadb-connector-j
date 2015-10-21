@@ -30,9 +30,9 @@ public class TimeoutTest extends BaseTest {
     }
 
     /**
-     * CONJ-79
+     * Conj-79.
      *
-     * @throws SQLException
+     * @throws SQLException exception
      */
     @Test
     public void resultSetAfterSocketTimeoutTest() throws SQLException {
@@ -63,7 +63,9 @@ public class TimeoutTest extends BaseTest {
                         bugReproduced = true;
                         break;
                     }
-                    if (i % 100 == 0) System.out.println("->" + i);
+                    if (i % 100 == 0) {
+                        System.out.println("->" + i);
+                    }
                     assertTrue(v1 == 1 && v2 == 2);
                     went++;
                 } catch (Exception e) {
@@ -81,13 +83,12 @@ public class TimeoutTest extends BaseTest {
     }
 
     /**
-     * CONJ-79
+     * Conj-79.
      *
-     * @throws SQLException
+     * @throws SQLException exception
      */
     @Test
     public void socketTimeoutTest() throws SQLException {
-        int exceptionCount = 0;
         // set a short connection timeout
         Connection connection = null;
         try {
@@ -102,26 +103,26 @@ public class TimeoutTest extends BaseTest {
 
             // a timeout should occur here
             try {
-                rs = ps.executeQuery();
+                ps.executeQuery();
                 Assert.fail();
             } catch (SQLException e) {
                 // check that it's a timeout that occurs
-                if (e.getMessage().contains("timed out"))
-                    exceptionCount++;
             }
 
             try {
                 ps = connection.prepareStatement("SELECT 2");
                 ps.execute();
-                Assert.fail();
-            } catch (Exception e) {
-
+                Assert.fail("Connection must have thrown error");
+            } catch (SQLException e) {
+                //normal exception
             }
 
             // the connection should  be closed
             assertTrue(connection.isClosed());
         } finally {
-            connection.close();
+            if (connection != null) {
+                connection.close();
+            }
         }
     }
 
@@ -140,9 +141,9 @@ public class TimeoutTest extends BaseTest {
             // "Could not read resultset: unexpected end of stream, ..."
             try {
                 statement.execute("SELECT 1");
-                Assert.fail();
+                Assert.fail("Connection must have thrown error");
             } catch (SQLException e) {
-
+                //normal exception
             }
 
             statement.close();
@@ -169,7 +170,9 @@ public class TimeoutTest extends BaseTest {
             try {
                 rs = stmt.executeQuery("SELECT 2");
                 rs.next();
+                Assert.fail("Connection must have thrown error");
             } catch (SQLException e) {
+                //normal exception
             }
         } finally {
             connection.close();

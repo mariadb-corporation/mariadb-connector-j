@@ -63,6 +63,12 @@ public class SendPrepareStatementPacket implements CommandPacket {
         this.sql = sql;
     }
 
+    /**
+     * Send server prepareStatement packet.
+     * @param os database socket
+     * @return 0 if all went well
+     * @throws IOException if any connection error occur
+     */
     public int send(final OutputStream os) throws IOException {
         PacketOutputStream pos = (PacketOutputStream) os;
         pos.startPacket(0);

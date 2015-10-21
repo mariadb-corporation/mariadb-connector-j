@@ -22,6 +22,8 @@ the following copyright and notice provisions:
 
 Copyright (c) 2009-2011, Marcus Eriksson
 
+All rights reserved.            MariaDB Client for Java
+
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 Redistributions of source code must retain the above copyright notice, this list
@@ -47,37 +49,38 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc.internal.common.query.parameters;
 
-import org.mariadb.jdbc.internal.mysql.MariaDbType;
+package org.mariadb.jdbc.internal.common.query;
 
-import java.io.IOException;
-import java.io.OutputStream;
+import org.mariadb.jdbc.internal.common.query.parameters.ParameterHolder;
 
 
-public class NullParameter extends ParameterHolder {
-    private static final byte[] NULL = {'N', 'U', 'L', 'L'};
-    private MariaDbType type;
+public interface ParameterizeQuery extends Query {
+    /**
+     * get the number of parameters in this query.
+     *
+     * @return number of parameters
+     */
+    int getParamCount();
 
-    public NullParameter() {
-        type = MariaDbType.NULL;
-    }
+    /**
+     * clears the parameters.
+     */
+    void clearParameters();
 
-    public NullParameter(MariaDbType type) {
-        this.type = type;
-    }
+    /**
+     * Sets a parameter at a position. The positions start at 0.
+     *
+     * @param position  the position to set it at
+     * @param parameter the parameter to set
+     * @throws IllegalParameterException if, for example, the position is out of bounds
+     */
+    void setParameter(int position, ParameterHolder parameter)
+            throws IllegalParameterException;
 
-    public void writeTo(final OutputStream os) throws IOException {
-        os.write(NULL);
-    }
+    ParameterHolder[] getParameters();
 
-    @Override
-    public boolean isLongData() {
-        return false;
-    }
+    String getQuery();
 
-    public MariaDbType getMariaDbType() {
-        return type;
-    }
-
+    byte[][] getQueryPartsArray();
 }

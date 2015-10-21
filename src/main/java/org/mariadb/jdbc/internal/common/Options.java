@@ -75,7 +75,8 @@ public class Options {
     public boolean rewriteBatchedStatements;
     public boolean useCompression;
     public boolean interactiveClient;
-    public boolean useSSL;
+    /*public boolean useSSL;*/
+    public boolean useSsl;
     public String sessionVariables;
     public boolean tinyInt1isBit;
     public boolean yearIsDateType;
@@ -106,54 +107,53 @@ public class Options {
 
     @Override
     public String toString() {
-        return "Options{" +
-                "user='" + user + '\'' +
-                ", assureReadOnly="+assureReadOnly+
-                ", password='" + password + '\'' +
-                ", trustServerCertificate=" + trustServerCertificate +
-                ", serverSslCert='" + serverSslCert + '\'' +
-                ", useFractionalSeconds=" + useFractionalSeconds +
-                ", pinGlobalTxToPhysicalConnection=" + pinGlobalTxToPhysicalConnection +
-                ", socketFactory='" + socketFactory + '\'' +
-                ", connectTimeout=" + connectTimeout +
-                ", pipe='" + pipe + '\'' +
-                ", localSocket='" + localSocket + '\'' +
-                ", sharedMemory='" + sharedMemory + '\'' +
-                ", tcpNoDelay=" + tcpNoDelay +
-                ", tcpKeepAlive=" + tcpKeepAlive +
-                ", tcpRcvBuf=" + tcpRcvBuf +
-                ", tcpSndBuf=" + tcpSndBuf +
-                ", tcpAbortiveClose=" + tcpAbortiveClose +
-                ", localSocketAddress='" + localSocketAddress + '\'' +
-                ", socketTimeout=" + socketTimeout +
-                ", allowMultiQueries=" + allowMultiQueries +
-                ", rewriteBatchedStatements=" + rewriteBatchedStatements +
-                ", useCompression=" + useCompression +
-                ", interactiveClient=" + interactiveClient +
-                ", useSSL=" + useSSL +
-                ", sessionVariables='" + sessionVariables + '\'' +
-                ", tinyInt1isBit=" + tinyInt1isBit +
-                ", yearIsDateType=" + yearIsDateType +
-                ", createDatabaseIfNotExist=" + createDatabaseIfNotExist +
-                ", serverTimezone='" + serverTimezone + '\'' +
-                ", nullCatalogMeansCurrent=" + nullCatalogMeansCurrent +
-                ", dumpQueriesOnException=" + dumpQueriesOnException +
-                ", useOldAliasMetadataBehavior=" + useOldAliasMetadataBehavior +
-                ", allowLocalInfile=" + allowLocalInfile +
-                ", cachePrepStmts=" + cachePrepStmts +
-                ", prepStmtCacheSize=" + prepStmtCacheSize +
-                ", prepStmtCacheSqlLimit=" + prepStmtCacheSqlLimit +
-                ", autoReconnect=" + autoReconnect +
-                ", failOnReadOnly=" + failOnReadOnly +
-                ", secondsBeforeRetryMaster=" + secondsBeforeRetryMaster +
-                ", queriesBeforeRetryMaster=" + queriesBeforeRetryMaster +
-                ", retriesAllDown=" + retriesAllDown +
-                ", validConnectionTimeout=" + validConnectionTimeout +
-                ", loadBalanceBlacklistTimeout=" + loadBalanceBlacklistTimeout +
-                ", failoverLoopRetries=" + failoverLoopRetries +
-                ", useLegacyDatetimeCode=" + useLegacyDatetimeCode +
-                ", maximizeMysqlCompatibility=" + maximizeMysqlCompatibility +
-
-                '}';
+        return "Options{"
+                + "user='" + user + '\''
+                + ", assureReadOnly=" + assureReadOnly
+                + ", password='" + password + '\''
+                + ", trustServerCertificate=" + trustServerCertificate
+                + ", serverSslCert='" + serverSslCert + '\''
+                + ", useFractionalSeconds=" + useFractionalSeconds
+                + ", pinGlobalTxToPhysicalConnection=" + pinGlobalTxToPhysicalConnection
+                + ", socketFactory='" + socketFactory + '\''
+                + ", connectTimeout=" + connectTimeout
+                + ", pipe='" + pipe + '\''
+                + ", localSocket='" + localSocket + '\''
+                + ", sharedMemory='" + sharedMemory + '\''
+                + ", tcpNoDelay=" + tcpNoDelay
+                + ", tcpKeepAlive=" + tcpKeepAlive
+                + ", tcpRcvBuf=" + tcpRcvBuf
+                + ", tcpSndBuf=" + tcpSndBuf
+                + ", tcpAbortiveClose=" + tcpAbortiveClose
+                + ", localSocketAddress='" + localSocketAddress + '\''
+                + ", socketTimeout=" + socketTimeout
+                + ", allowMultiQueries=" + allowMultiQueries
+                + ", rewriteBatchedStatements=" + rewriteBatchedStatements
+                + ", useCompression=" + useCompression
+                + ", interactiveClient=" + interactiveClient
+                + ", useSsl=" + useSsl
+                + ", sessionVariables='" + sessionVariables + '\''
+                + ", tinyInt1isBit=" + tinyInt1isBit
+                + ", yearIsDateType=" + yearIsDateType
+                + ", createDatabaseIfNotExist=" + createDatabaseIfNotExist
+                + ", serverTimezone='" + serverTimezone + '\''
+                + ", nullCatalogMeansCurrent=" + nullCatalogMeansCurrent
+                + ", dumpQueriesOnException=" + dumpQueriesOnException
+                + ", useOldAliasMetadataBehavior=" + useOldAliasMetadataBehavior
+                + ", allowLocalInfile=" + allowLocalInfile
+                + ", cachePrepStmts=" + cachePrepStmts
+                + ", prepStmtCacheSize=" + prepStmtCacheSize
+                + ", prepStmtCacheSqlLimit=" + prepStmtCacheSqlLimit
+                + ", autoReconnect=" + autoReconnect
+                + ", failOnReadOnly=" + failOnReadOnly
+                + ", secondsBeforeRetryMaster=" + secondsBeforeRetryMaster
+                + ", queriesBeforeRetryMaster=" + queriesBeforeRetryMaster
+                + ", retriesAllDown=" + retriesAllDown
+                + ", validConnectionTimeout=" + validConnectionTimeout
+                + ", loadBalanceBlacklistTimeout=" + loadBalanceBlacklistTimeout
+                + ", failoverLoopRetries=" + failoverLoopRetries
+                + ", useLegacyDatetimeCode=" + useLegacyDatetimeCode
+                + ", maximizeMysqlCompatibility=" + maximizeMysqlCompatibility
+                + "}";
     }
 }

@@ -1,3 +1,4 @@
+package org.mariadb.jdbc.internal.common.packet.buffer;
 /*
 MariaDB Client for Java
 
@@ -46,7 +47,6 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWIS
 ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
 OF SUCH DAMAGE.
 */
-package org.mariadb.jdbc.internal.common.packet.buffer;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -64,17 +64,17 @@ public final class ReadUtil {
      * doing another read if we don't have all of the data yet.
      *
      * @param stream the input stream to read from
-     * @param b      buffer where to store the data
+     * @param bytes      buffer where to store the data
      * @param off    offset in the buffer
      * @param len    bytes to read
      * @throws java.io.IOException if an error occurs while reading the stream.
      *                             java.io.EOFException of end of stream is hit.
      */
-    public static void readFully(InputStream stream, byte[] b, int off, int len) throws IOException {
+    public static void readFully(InputStream stream, byte[] bytes, int off, int len) throws IOException {
         long start = System.nanoTime();
         int remaining = len;
         do {
-            int count = stream.read(b, off, remaining);
+            int count = stream.read(bytes, off, remaining);
             if (count <= 0) {
                 throw new EOFException("unexpected end of stream, read " + (len - remaining) + " bytes from " + len);
             }
@@ -84,8 +84,8 @@ public final class ReadUtil {
 
     }
 
-    public static void readFully(InputStream stream, byte[] b) throws IOException {
-        readFully(stream, b, 0, b.length);
+    public static void readFully(InputStream stream, byte[] bytes) throws IOException {
+        readFully(stream, bytes, 0, bytes.length);
     }
 
 

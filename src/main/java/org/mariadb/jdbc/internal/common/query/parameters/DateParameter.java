@@ -1,3 +1,5 @@
+package org.mariadb.jdbc.internal.common.query.parameters;
+
 /*
 MariaDB Client for Java
 
@@ -47,11 +49,10 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc.internal.common.query.parameters;
 
 import org.mariadb.jdbc.internal.common.Options;
 import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
-import org.mariadb.jdbc.internal.mysql.MySQLType;
+import org.mariadb.jdbc.internal.mysql.MariaDbType;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -64,9 +65,10 @@ public class DateParameter extends NotLongDataParameterHolder {
     Options options;
 
     /**
-     * Represents a date, constructed with time in millis since epoch
-     * @param date the date
-     * @param cal the calendar to use for timezone
+     * Represents a date, constructed with time in millis since epoch.
+     *
+     * @param date    the date
+     * @param cal     the calendar to use for timezone
      * @param options jdbc options
      */
     public DateParameter(Date date, Calendar cal, Options options) {
@@ -77,7 +79,8 @@ public class DateParameter extends NotLongDataParameterHolder {
 
 
     /**
-     * write to server OutputStream in text protocol
+     * Write to server OutputStream in text protocol.
+     *
      * @param os output buffer
      */
     public void writeTo(OutputStream os) throws IOException {
@@ -89,20 +92,18 @@ public class DateParameter extends NotLongDataParameterHolder {
     }
 
     /**
-     * write to server OutputStream in binary protocol
+     * Write to server OutputStream in binary protocol.
+     *
      * @param writeBuffer output buffer
      */
     public void writeBinary(PacketOutputStream writeBuffer) {
-        if (options.useLegacyDatetimeCode || options.maximizeMysqlCompatibility) {
-
-        }
         calendar = Calendar.getInstance();
         calendar.setTimeInMillis(date.getTime());
         writeBuffer.writeDateLength(calendar);
     }
 
-    public MySQLType getMySQLType() {
-        return MySQLType.DATE;
+    public MariaDbType getMariaDbType() {
+        return MariaDbType.DATE;
     }
 
 }

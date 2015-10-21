@@ -58,7 +58,7 @@ import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.sql.Types;
 
-public class MySQLColumnInformation {
+public class ColumnInformation {
     // This array stored character length for every collation id up to collation id 256
     // It is generated from the information schema using
     // "select  id, maxlen from information_schema.character_sets, information_schema.collations
@@ -100,15 +100,19 @@ public class MySQLColumnInformation {
     ByteBuffer buffer;
     private short charsetNumber;
     private long length;
-    private MySQLType type;
+    private MariaDbType type;
     private byte decimals;
     private short flags;
 
-    public MySQLColumnInformation(MySQLType type) throws IOException {
-        this.type=type;
+    public ColumnInformation(MariaDbType type) throws IOException {
+        this.type = type;
     }
 
-    public MySQLColumnInformation(ByteBuffer buffer) throws IOException {
+    /**
+     * Read column information from buffer.
+     * @param buffer buffer
+     */
+    public ColumnInformation(ByteBuffer buffer) {
         this.buffer = buffer;
         buffer.mark();
         Reader reader = new Reader(buffer);
@@ -138,7 +142,7 @@ public class MySQLColumnInformation {
         reader.skipBytes(1);
         charsetNumber = reader.readShort();
         length = reader.readInt();
-        type = MySQLType.fromServer(reader.readByte() & 0xff);
+        type = MariaDbType.fromServer(reader.readByte() & 0xff);
         flags = reader.readShort();
         decimals = reader.readByte();
 
@@ -148,11 +152,17 @@ public class MySQLColumnInformation {
         if ((sqlType == Types.BLOB || sqlType == Types.VARBINARY || sqlType == Types.BINARY || sqlType == Types.LONGVARBINARY)
                 && !isBinary()) {
            /* MySQL Text datatype */
-            type = MySQLType.VARCHAR;
+            type = MariaDbType.VARCHAR;
         }
     }
 
-    public static MySQLColumnInformation create(String name, MySQLType type) {
+    /**
+     * Constructor.
+     * @param name column name
+     * @param type column type
+     * @return ColumnInformation
+     */
+    public static ColumnInformation create(String name, MariaDbType type) {
         try {
             java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
             for (int i = 0; i < 4; i++) {
@@ -183,11 +193,11 @@ public class MySQLColumnInformation {
                     break;
             }
             baos.write(new byte[]{(byte) len, 0, 0, 0});  /*  length */
-            baos.write(MySQLType.toServer(type.getSqlType()).getType());
+            baos.write(MariaDbType.toServer(type.getSqlType()).getType());
             baos.write(new byte[]{0, 0});   /* flags */
             baos.write(0); /* decimals */
             baos.write(new byte[]{0, 0});   /* filler */
-            return new MySQLColumnInformation(ByteBuffer.wrap(baos.toByteArray()).order(ByteOrder.LITTLE_ENDIAN));
+            return new ColumnInformation(ByteBuffer.wrap(baos.toByteArray()).order(ByteOrder.LITTLE_ENDIAN));
         } catch (IOException ioe) {
             throw new RuntimeException("unexpected condition", ioe);
         }
@@ -239,12 +249,17 @@ public class MySQLColumnInformation {
         return length;
     }
 
+    /**
+     * Get column size.
+     * @return size
+     */
     public int getDisplaySize() {
-        int t = type.getSqlType();
-        if (t == Types.VARCHAR || t == Types.CHAR) {
+        int vtype = type.getSqlType();
+        if (vtype == Types.VARCHAR || vtype == Types.CHAR) {
             int maxWidth = maxCharlen[charsetNumber & 0xff];
-            if (maxWidth == 0)
+            if (maxWidth == 0) {
                 maxWidth = 1;
+            }
 
             return (int) length / maxWidth;
 
@@ -256,7 +271,7 @@ public class MySQLColumnInformation {
         return decimals;
     }
 
-    public MySQLType getType() {
+    public MariaDbType getType() {
         return type;
     }
 

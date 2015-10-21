@@ -4,7 +4,7 @@ import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
-import org.mariadb.jdbc.internal.common.UrlHAMode;
+import org.mariadb.jdbc.internal.common.UrlHaMode;
 
 import java.sql.SQLException;
 import java.util.HashMap;
@@ -19,11 +19,14 @@ import java.util.Map;
  * exemple mvn test  -DdbUrl=jdbc:mysql://localhost:3306,localhost:3307/test?user=root
  */
 public class GaleraFailoverTest extends SequentialFailoverTest {
-
+    /**
+     * Initialisation.
+     * @throws SQLException exception
+     */
     @Before
     @Override
     public void init() throws SQLException {
-        currentType = UrlHAMode.FAILOVER;
+        currentType = UrlHaMode.FAILOVER;
         initialUrl = initialGaleraUrl;
         proxyUrl = proxyGaleraUrl;
         Assume.assumeTrue(initialGaleraUrl != null);

@@ -1,3 +1,5 @@
+package org.mariadb.jdbc.internal.common.meta;
+
 /*
 MariaDB Client for Java
 
@@ -20,8 +22,8 @@ This particular MariaDB Client for Java file is work
 derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
 the following copyright and notice provisions:
 
+Copyright (c) 2009-2011, Marcus Eriksson
 
-Copyright (c) 2009-2011, Marcus Eriksson, Jay Pipes
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 Redistributions of source code must retain the above copyright notice, this list
@@ -47,80 +49,21 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc.internal.common.query;
+/*
+ Identifier, i.e table, or column name. Put into ` quotes in SHOW CREATE TABLE. Can be "multi-part", i.e `schema`.`table`
+ */
+public class Identifier {
+    public String schema;
+    public String name;
 
-import org.mariadb.jdbc.internal.common.QueryException;
-
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
-
-
-public class MySQLQuery implements Query {
-
-    private final String query;
-
-    public MySQLQuery(final String query) {
-        this.query = query;
-    }
-
-    public void writeTo(final OutputStream os) throws IOException {
-        try {
-            byte[] queryToSend = query.getBytes("UTF-8");
-            os.write(queryToSend, 0, queryToSend.length);
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException("Unsupported encoding: " + e.getMessage(), e);
-        }
-    }
-
-    public void writeFirstRewritePart(final OutputStream os) throws IOException, QueryException {
-        writeTo(os);
-    }
-
-    public void writeLastRewritePart(final OutputStream os) throws IOException, QueryException {
-    }
-
-
-    public void writeToRewritablePart(final OutputStream os, int rewriteOffset) throws IOException, QueryException {
-        try {
-            byte[] queryToSend = query.substring(rewriteOffset).getBytes("UTF-8");
-            os.write(',');
-            os.write(queryToSend, 0, queryToSend.length);
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException("Unsupported encoding: " + e.getMessage(), e);
-        }
-    }
-
-    public String getQuery() {
-        return query;
-    }
-
-    public QueryType getQueryType() {
-        return QueryType.classifyQuery(query);
-    }
-
-    @Override
-    public boolean equals(final Object otherObj) {
-        return otherObj instanceof MySQLQuery && (((MySQLQuery) otherObj).query).equals(query);
-    }
-
-    public void writeTo(OutputStream ostream, int offset, int packLength) throws IOException {
-        try {
-            byte[] queryToSend = query.getBytes("UTF-8");
-            ostream.write(queryToSend, offset, packLength);
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException("Unsupported encoding: " + e.getMessage(), e);
-        }
-    }
-
-
-    public void validate() throws QueryException {
-
-    }
-
+    /**
+     * Identifier string value.
+     * @return the datas.
+     */
     public String toString() {
-        return query;
+        if (schema != null) {
+            return schema + "." + name;
+        }
+        return name;
     }
-
-
 }

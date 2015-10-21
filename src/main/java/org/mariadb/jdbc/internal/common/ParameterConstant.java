@@ -49,6 +49,6 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 public class ParameterConstant {
-    public final static String TYPE_MASTER = "master";
-    public final static String TYPE_SLAVE = "slave";
+    public static final String TYPE_MASTER = "master";
+    public static final String TYPE_SLAVE = "slave";
 }

@@ -1,3 +1,5 @@
+package org.mariadb.jdbc;
+
 /*
 MariaDB Client for Java
 
@@ -47,28 +49,55 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc.internal.common.query;
+import java.io.IOException;
+import java.io.OutputStream;
 
+/**
+ * Output stream for the blob.
+ */
+class BlobOutputStream extends OutputStream {
 
-public enum QueryType {
-    REPLACE, INSERT, SELECT, UPDATE, DELETE, ALTER, UNCLASSIFIABLE;
+    int pos;
+    MariaDbBlob blob;
 
-    public static QueryType classifyQuery(final String query) {
-        final String lowerCaseQuery = query.toLowerCase();
-        if (lowerCaseQuery.startsWith("select")) {
-            return QueryType.SELECT;
-        } else if (lowerCaseQuery.startsWith("update")) {
-            return QueryType.UPDATE;
-        } else if (lowerCaseQuery.startsWith("insert")) {
-            return QueryType.INSERT;
-        } else if (lowerCaseQuery.startsWith("alter")) {
-            return QueryType.ALTER;
-        } else if (lowerCaseQuery.startsWith("delete")) {
-            return QueryType.DELETE;
-        } else if (lowerCaseQuery.startsWith("replace")) {
-            return QueryType.REPLACE;
-        } else {
-            return QueryType.UNCLASSIFIABLE;
+    public BlobOutputStream(MariaDbBlob blob, int pos) {
+        this.blob = blob;
+        this.pos = pos;
+    }
+
+    @Override
+    public void write(int bit) throws IOException {
+
+        if (this.pos >= blob.blobContent.length) {
+            byte[] tmp = new byte[2 * blob.blobContent.length + 1];
+            System.arraycopy(blob.blobContent, 0, tmp, 0, blob.blobContent.length);
+            blob.blobContent = tmp;
+        }
+        blob.blobContent[pos] = (byte) bit;
+        pos++;
+        if (pos > blob.actualSize) {
+            blob.actualSize = pos;
         }
     }
+
+    @Override
+    public void write(byte[] buf, int off, int len) {
+        if (pos + len >= blob.blobContent.length) {
+            int newLen = Math.max(2 * (pos + len + 1), 1024);
+            byte[] tmp = new byte[newLen];
+            System.arraycopy(blob.blobContent, 0, tmp, 0, blob.blobContent.length);
+            blob.blobContent = tmp;
+        }
+        System.arraycopy(buf, off, blob.blobContent, pos, len);
+        pos += len;
+        if (pos > blob.actualSize) {
+            blob.actualSize = pos;
+        }
+    }
+
+    @Override
+    public void write(byte[] buf) {
+        write(buf, 0, buf.length);
+    }
 }
+

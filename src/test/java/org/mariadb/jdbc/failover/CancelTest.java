@@ -4,7 +4,7 @@ import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
-import org.mariadb.jdbc.internal.common.UrlHAMode;
+import org.mariadb.jdbc.internal.common.UrlHaMode;
 
 import java.sql.*;
 
@@ -13,20 +13,30 @@ import static org.junit.Assert.assertEquals;
 public class CancelTest extends BaseMultiHostTest {
     private Connection connection;
 
+    /**
+     * Initialisation.
+     * @throws SQLException exception
+     */
     @Before
     public void init() throws SQLException {
-        currentType = UrlHAMode.FAILOVER;
+        currentType = UrlHaMode.FAILOVER;
         initialUrl = initialGaleraUrl;
         proxyUrl = proxyGaleraUrl;
         Assume.assumeTrue(initialGaleraUrl != null);
         connection = null;
     }
 
+    /**
+     * Assure status.
+     * @throws SQLException exception
+     */
     @After
     public void after() throws SQLException {
         assureProxy();
         assureBlackList(connection);
-        if (connection != null) connection.close();
+        if (connection != null) {
+            connection.close();
+        }
     }
 
 
@@ -39,7 +49,7 @@ public class CancelTest extends BaseMultiHostTest {
     }
 
     @Test
-    public void NoTimeoutSleep() throws Exception {
+    public void noTimeoutSleep() throws Exception {
         connection = getNewConnection(false);
         Statement stmt = connection.createStatement();
         stmt.setQueryTimeout(1);
@@ -48,7 +58,7 @@ public class CancelTest extends BaseMultiHostTest {
     }
 
     @Test
-    public void CancelIdleStatement() throws Exception {
+    public void cancelIdleStatement() throws Exception {
         connection = getNewConnection(false);
         Statement stmt = connection.createStatement();
         stmt.cancel();

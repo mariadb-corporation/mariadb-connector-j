@@ -1,3 +1,5 @@
+package org.mariadb.jdbc;
+
 /*
 MariaDB Client for Java
 
@@ -20,7 +22,7 @@ This particular MariaDB Client for Java file is work
 derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
 the following copyright and notice provisions:
 
-Copyright (c) 2009-2011, Marcus Eriksson
+Copyright (c) 2009-2011, Marcus Eriksson, Trond Norbye, Stephane Giron
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
@@ -47,48 +49,26 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc.internal.mysql.packet;
+import java.sql.Types;
 
-import org.mariadb.jdbc.internal.common.Options;
-import org.mariadb.jdbc.internal.common.PacketFetcher;
-import org.mariadb.jdbc.internal.common.ValueObject;
-import org.mariadb.jdbc.internal.common.packet.buffer.Reader;
-import org.mariadb.jdbc.internal.mysql.MySQLColumnInformation;
-import org.mariadb.jdbc.internal.mysql.MySQLValueObject;
+/**
+ * Info about in/out parameters.
+ */
+class CallParameter {
+    boolean isInput;
+    boolean isOutput;
+    int sqlType;
+    int outputSqlType;
+    int scale;
+    String typeName;
+    boolean isSigned;
+    int isNullable;
+    int precision;
+    String className;
+    String name;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-
-
-public class MySQLTextRowPacket implements RowPacket {
-    private final MySQLColumnInformation[] columnInformation;
-    private final Options options;
-    private final int columnInformationLength;
-
-    public MySQLTextRowPacket(MySQLColumnInformation[] columnInformation, Options options, int columnInformationLength) {
-        this.columnInformationLength = columnInformationLength;
-        this.columnInformation = columnInformation;
-        this.options = options;
+    public CallParameter() {
+        sqlType = Types.OTHER;
+        outputSqlType = Types.OTHER;
     }
-
-    public ValueObject[] getRow(PacketFetcher packetFetcher, ByteBuffer buffer) throws IOException {
-        ValueObject[] valueObjects = new ValueObject[columnInformationLength];
-        Reader reader = new Reader(buffer);
-        for (int i = 0; i < columnInformationLength; i++) {
-            while (reader.byteBuffer.remaining() == 0) {
-                reader.appendPacket(packetFetcher.getRawPacket());
-            }
-            long valueLen = reader.getLengthEncodedBinary();
-            if (valueLen == -1) {
-                valueObjects[i] = new MySQLValueObject(null, columnInformation[i], options);
-            } else {
-                while (reader.byteBuffer.remaining() < valueLen) {
-                    reader.appendPacket(packetFetcher.getRawPacket());
-                }
-                valueObjects[i] = new MySQLValueObject(reader.readRawBytes((int) valueLen), columnInformation[i], options);
-            }
-        }
-        return valueObjects;
-    }
-
 }

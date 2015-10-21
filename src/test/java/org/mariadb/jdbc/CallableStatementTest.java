@@ -12,7 +12,10 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.*;
 
 public class CallableStatementTest extends BaseTest {
-
+    /**
+     * Initialisation.
+     * @throws SQLException exception
+     */
     @BeforeClass()
     public static void initClass() throws SQLException {
         createProcedure("withResultSet", "(a int) begin select a; end");
@@ -25,12 +28,12 @@ public class CallableStatementTest extends BaseTest {
     }
 
     @Before
-    public void checkSP() throws SQLException {
+    public void checkSp() throws SQLException {
         requireMinimumVersion(5, 0);
     }
 
     @Test
-    public void CallSimple() throws SQLException {
+    public void callSimple() throws SQLException {
         CallableStatement st = sharedConnection.prepareCall("{?=call pow(?,?)}");
         st.setInt(2, 2);
         st.setInt(3, 2);
@@ -39,7 +42,6 @@ public class CallableStatementTest extends BaseTest {
         assertEquals(result, 4);
 
     }
-
 
 
     @Test

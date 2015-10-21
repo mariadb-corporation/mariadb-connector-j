@@ -61,7 +61,10 @@ public class ErrorPacket extends ResultPacket {
     private final byte[] sqlState;
     private final String message;
 
-
+    /**
+     * Reading error packet.
+     * @param byteBuffer current packet byteBuffer
+     */
     public ErrorPacket(ByteBuffer byteBuffer) {
         super(byteBuffer);
         final Reader reader = new Reader(byteBuffer);
@@ -77,10 +80,11 @@ public class ErrorPacket extends ResultPacket {
             msgBuf[0] = sqlStateMarker;
             int cnt = 1;
             while (reader.getRemainingSize() > 0) {
-                byte b = reader.readByte();
-                if (b == 0)
+                byte bytes = reader.readByte();
+                if (bytes == 0) {
                     break;
-                msgBuf[cnt++] = b;
+                }
+                msgBuf[cnt++] = bytes;
             }
             this.message = new String(msgBuf, StandardCharsets.UTF_8);
             this.sqlState = "HY000".getBytes();

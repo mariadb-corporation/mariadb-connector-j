@@ -1,3 +1,4 @@
+package org.mariadb.jdbc.internal.common.query.parameters;
 /*
 MariaDB Client for Java
 
@@ -46,10 +47,9 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWIS
 ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
 OF SUCH DAMAGE.
 */
-package org.mariadb.jdbc.internal.common.query.parameters;
 
 import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
-import org.mariadb.jdbc.internal.mysql.MySQLType;
+import org.mariadb.jdbc.internal.mysql.MariaDbType;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -73,8 +73,8 @@ public class ByteArrayParameter extends NotLongDataParameterHolder {
         writeBuffer.writeByteArrayLength(bytes);
     }
 
-    public MySQLType getMySQLType() {
-        return MySQLType.VARSTRING;
+    public MariaDbType getMariaDbType() {
+        return MariaDbType.VARSTRING;
     }
 
     public String toString() {

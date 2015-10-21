@@ -47,52 +47,44 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc.internal.common.packet;
+package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.common.packet.buffer.Reader;
+import java.sql.SQLException;
+import java.sql.Savepoint;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
+public class MariaDbSavepoint implements Savepoint {
+    private final int savepointId;
+    private final String name;
 
-
-public class EOFPacket extends ResultPacket {
-
-    private final byte packetSeq;
-    private final short warningCount;
-    private final short statusFlags;
-
-
-    public EOFPacket(ByteBuffer byteBuffer) throws IOException {
-        super(byteBuffer);
-        final Reader reader = new Reader(byteBuffer);
-        packetSeq = 0;
-        reader.readByte();
-        warningCount = reader.readShort();
-        statusFlags = reader.readShort();
+    public MariaDbSavepoint(final String name, final int savepointId) {
+        this.savepointId = savepointId;
+        this.name = name;
     }
 
-    public ResultType getResultType() {
-        return ResultType.EOF;
+    /**
+     * Retrieves the generated ID for the savepoint that this <code>Savepoint</code> object represents.
+     *
+     * @return the numeric ID of this savepoint
+     * @throws java.sql.SQLException if this is a named savepoint
+     * @since 1.4
+     */
+    public int getSavepointId() throws SQLException {
+        return savepointId;
     }
 
-    public byte getPacketSeq() {
-        return packetSeq;
-    }
-
-    public short getWarningCount() {
-        return warningCount;
-    }
-
-    public short getStatusFlags() {
-        return statusFlags;
+    /**
+     * Retrieves the name of the savepoint that this <code>Savepoint</code> object represents.
+     *
+     * @return the name of this savepoint
+     * @throws java.sql.SQLException if this is an un-named savepoint
+     * @since 1.4
+     */
+    public String getSavepointName() throws SQLException {
+        return name;
     }
 
     @Override
     public String toString() {
-        return "EOFPacket{" +
-                "packetSeq=" + packetSeq +
-                ", warningCount=" + warningCount +
-                ", statusFlags=" + statusFlags +
-                '}';
+        return name + savepointId;
     }
 }

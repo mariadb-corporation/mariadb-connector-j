@@ -22,8 +22,6 @@ the following copyright and notice provisions:
 
 Copyright (c) 2009-2011, Marcus Eriksson
 
-All rights reserved.            MariaDB Client for Java
-
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 Redistributions of source code must retain the above copyright notice, this list
@@ -49,38 +47,54 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
+package org.mariadb.jdbc.internal.common.packet;
 
-package org.mariadb.jdbc.internal.common.query;
+import org.mariadb.jdbc.internal.common.packet.buffer.Reader;
 
-import org.mariadb.jdbc.internal.common.query.parameters.ParameterHolder;
+import java.nio.ByteBuffer;
 
 
-public interface ParameterizedQuery extends Query {
-    /**
-     * get the number of parameters in this query.
-     *
-     * @return number of parameters
-     */
-    int getParamCount();
+public class EndOfFilePacket extends ResultPacket {
 
-    /**
-     * clears the parameters.
-     */
-    void clearParameters();
+    private final byte packetSeq;
+    private final short warningCount;
+    private final short statusFlags;
 
     /**
-     * Sets a parameter at a position. The positions start at 0.
-     *
-     * @param position  the position to set it at
-     * @param parameter the parameter to set
-     * @throws IllegalParameterException if, for example, the position is out of bounds
+     * Read EOF packet.
+     * @param byteBuffer packet byteBuffer
      */
-    void setParameter(int position, ParameterHolder parameter)
-            throws IllegalParameterException;
+    public EndOfFilePacket(ByteBuffer byteBuffer)  {
+        super(byteBuffer);
+        final Reader reader = new Reader(byteBuffer);
+        packetSeq = 0;
+        reader.readByte();
+        warningCount = reader.readShort();
+        statusFlags = reader.readShort();
+    }
 
-    ParameterHolder[] getParameters();
+    public ResultType getResultType() {
+        return ResultType.EOF;
+    }
 
-    String getQuery();
+    public byte getPacketSeq() {
+        return packetSeq;
+    }
 
-    byte[][] getQueryPartsArray();
+    public short getWarningCount() {
+        return warningCount;
+    }
+
+    public short getStatusFlags() {
+        return statusFlags;
+    }
+
+    @Override
+    public String toString() {
+        return "EndOfFilePacket{"
+                + "packetSeq=" + packetSeq
+                + ", warningCount=" + warningCount
+                + ", statusFlags=" + statusFlags
+                + "}";
+    }
 }

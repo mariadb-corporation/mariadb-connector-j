@@ -1,3 +1,5 @@
+package org.mariadb.jdbc.internal.mysql;
+
 /*
 MariaDB Client for Java
 
@@ -46,10 +48,9 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWIS
 ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
 OF SUCH DAMAGE.
 */
-package org.mariadb.jdbc.internal.mysql;
 
 import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.JDBCUrl;
+import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.common.Options;
 import org.mariadb.jdbc.internal.common.PrepareStatementCache;
 import org.mariadb.jdbc.internal.common.QueryException;
@@ -75,7 +76,7 @@ public interface Protocol {
 
     void connect() throws QueryException;
 
-    JDBCUrl getJdbcUrl();
+    UrlParser getUrlParser();
 
     boolean inTransaction();
 
@@ -125,13 +126,13 @@ public interface Protocol {
 
     boolean ping() throws QueryException;
 
-    QueryResult executeQuery(Query dQuery) throws QueryException;
+    QueryResult executeQuery(Query query) throws QueryException;
 
-    QueryResult executeQuery(final List<Query> dQueries, boolean streaming, boolean isRewritable, int rewriteOffset) throws QueryException;
+    QueryResult executeQuery(final List<Query> queries, boolean streaming, boolean isRewritable, int rewriteOffset) throws QueryException;
 
-    QueryResult getResult(Object dQuery, boolean streaming, boolean binaryProtocol) throws QueryException;
+    QueryResult executeQuery(Query query, boolean streaming) throws QueryException;
 
-    QueryResult executeQuery(Query dQuery, boolean streaming) throws QueryException;
+    QueryResult getResult(Object queryObj, boolean streaming, boolean binaryProtocol) throws QueryException;
 
     void cancelCurrentQuery() throws QueryException, IOException;
 
@@ -181,11 +182,13 @@ public interface Protocol {
 
     void setHostFailedWithoutProxy();
 
-    QueryResult executePreparedQuery(String sql, ParameterHolder[] parameters, PrepareResult prepareResult, MySQLType[] parameterTypeHeader, boolean isStreaming) throws QueryException;
+    QueryResult executePreparedQuery(String sql, ParameterHolder[] parameters, PrepareResult prepareResult, MariaDbType[] parameterTypeHeader,
+                                     boolean isStreaming) throws QueryException;
 
     void releasePrepareStatement(String sql, int statementId) throws QueryException;
 
-    QueryResult executePreparedQueryAfterFailover(String sql, ParameterHolder[] parameters, PrepareResult oldPrepareResult, MySQLType[] parameterTypeHeader, boolean isStreaming) throws QueryException; //used
+    QueryResult executePreparedQueryAfterFailover(String sql, ParameterHolder[] parameters, PrepareResult oldPrepareResult,
+                                                  MariaDbType[] parameterTypeHeader, boolean isStreaming) throws QueryException; //used
 
     PrepareStatementCache prepareStatementCache();
 

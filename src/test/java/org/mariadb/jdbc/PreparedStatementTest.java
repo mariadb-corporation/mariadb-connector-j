@@ -10,27 +10,32 @@ import java.sql.*;
 import static org.junit.Assert.*;
 
 public class PreparedStatementTest extends BaseTest {
-    private final static int ER_NO_SUCH_TABLE = 1146;
-    private final String ER_NO_SUCH_TABLE_STATE = "42S02";
+    private static final int ER_NO_SUCH_TABLE = 1146;
+    private static final String ER_NO_SUCH_TABLE_STATE = "42S02";
 
+    /**
+     * Initialisation.
+     * @throws SQLException exception
+     */
     @BeforeClass()
     public static void initClass() throws SQLException {
         createTable("table1", "id1 int auto_increment primary key");
         createTable("table2", "id2 int auto_increment primary key");
-        createTable("`testBigintTable`", "`id` bigint(20) unsigned NOT NULL, PRIMARY KEY (`id`)", "ENGINE=InnoDB DEFAULT CHARSET=utf8");
+        createTable("`testBigintTable`", "`id` bigint(20) unsigned NOT NULL, PRIMARY KEY (`id`)",
+                "ENGINE=InnoDB DEFAULT CHARSET=utf8");
         createTable("`backTicksPreparedStatements`",
                 "`id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,"
                         + "`SLIndex#orBV#` text,"
                         + "`isM&M'sTasty?` bit(1) DEFAULT NULL,"
                         + "`Seems:LikeParam?` bit(1) DEFAULT NULL,"
-                        + "`Webinar10-TM/ProjComp` text"
-                , "ENGINE=InnoDB DEFAULT CHARSET=utf8");
+                        + "`Webinar10-TM/ProjComp` text",
+                 "ENGINE=InnoDB DEFAULT CHARSET=utf8");
     }
 
     /**
-     * CONJ-90
+     * Conj-90.
      *
-     * @throws SQLException
+     * @throws SQLException exception
      */
     @Test
     public void reexecuteStatementTest() throws SQLException {
@@ -52,7 +57,8 @@ public class PreparedStatementTest extends BaseTest {
     @Test
     public void testNoSuchTableBatchUpdate() throws SQLException, UnsupportedEncodingException {
         sharedConnection.createStatement().execute("drop table if exists vendor_code_test");
-        PreparedStatement preparedStatement = sharedConnection.prepareStatement("/*CLIENT*/ INSERT INTO vendor_code_test VALUES(?)");
+        PreparedStatement preparedStatement = sharedConnection.prepareStatement(
+                "/*CLIENT*/ INSERT INTO vendor_code_test VALUES(?)");
         preparedStatement.setString(1, "dummyValue");
         preparedStatement.addBatch();
 
@@ -74,7 +80,7 @@ public class PreparedStatementTest extends BaseTest {
     /**
      * CONJ-124: BigInteger not supported when setObject is used on PreparedStatements.
      *
-     * @throws SQLException
+     * @throws SQLException exception
      */
     @Test
     public void testBigInt() throws SQLException {
@@ -95,7 +101,8 @@ public class PreparedStatementTest extends BaseTest {
     public void testPreparedStatementsWithQuotes() throws SQLException {
 
 
-        String query = "INSERT INTO backTicksPreparedStatements (`SLIndex#orBV#`,`Seems:LikeParam?`,`Webinar10-TM/ProjComp`,`isM&M'sTasty?`)"
+        String query = "INSERT INTO backTicksPreparedStatements (`SLIndex#orBV#`,`Seems:LikeParam?`,"
+                + "`Webinar10-TM/ProjComp`,`isM&M'sTasty?`)"
                 + " VALUES (?,?,?,?)";
         PreparedStatement ps = sharedConnection.prepareStatement(query);
         ps.setString(1, "slIndex");
@@ -103,7 +110,8 @@ public class PreparedStatementTest extends BaseTest {
         ps.setString(3, "webinar10");
         ps.setBoolean(4, true);
         ps.execute();
-        ResultSet rs = sharedConnection.createStatement().executeQuery("SELECT `SLIndex#orBV#`,`Seems:LikeParam?`,`Webinar10-TM/ProjComp`,`isM&M'sTasty?` FROM backTicksPreparedStatements");
+        ResultSet rs = sharedConnection.createStatement().executeQuery("SELECT `SLIndex#orBV#`,`Seems:LikeParam?`,"
+                + "`Webinar10-TM/ProjComp`,`isM&M'sTasty?` FROM backTicksPreparedStatements");
         assertTrue(rs.next());
         assertEquals("slIndex", rs.getString(1));
         assertEquals(false, rs.getBoolean(2));

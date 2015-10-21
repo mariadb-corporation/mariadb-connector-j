@@ -50,7 +50,7 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.common.query.parameters;
 
 import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
-import org.mariadb.jdbc.internal.mysql.MySQLType;
+import org.mariadb.jdbc.internal.mysql.MariaDbType;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -72,7 +72,7 @@ public class ShortParameter extends NotLongDataParameterHolder {
         writeBuffer.writeShort(value);
     }
 
-    public MySQLType getMySQLType() {
-        return MySQLType.SMALLINT;
+    public MariaDbType getMariaDbType() {
+        return MariaDbType.SMALLINT;
     }
 }

@@ -1,3 +1,4 @@
+package org.mariadb.jdbc.internal.common.packet;
 /*
 MariaDB Client for Java
 
@@ -46,7 +47,6 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWIS
 ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
 OF SUCH DAMAGE.
 */
-package org.mariadb.jdbc.internal.common.packet;
 
 import java.io.IOException;
 

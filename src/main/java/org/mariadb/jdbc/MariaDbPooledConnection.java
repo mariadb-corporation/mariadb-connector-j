@@ -10,13 +10,17 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 
-public class MySQLPooledConnection implements PooledConnection {
+public class MariaDbPooledConnection implements PooledConnection {
 
-    MySQLConnection connection;
+    MariaDbConnection connection;
     List<ConnectionEventListener> connectionEventListeners;
     List<StatementEventListener> statementEventListeners;
 
-    public MySQLPooledConnection(MySQLConnection connection) {
+    /**
+     * Constructor.
+     * @param connection connection to retrieve connection options
+     */
+    public MariaDbPooledConnection(MariaDbConnection connection) {
         this.connection = connection;
         connection.pooledConnection = this;
         statementEventListeners = new ArrayList<StatementEventListener>();
@@ -123,32 +127,52 @@ public class MySQLPooledConnection implements PooledConnection {
         statementEventListeners.remove(listener);
     }
 
+    /**
+     * Fire statement close event to listeners.
+     * @param st statement
+     */
     public void fireStatementClosed(Statement st) {
         if (st instanceof PreparedStatement) {
             StatementEvent event = new StatementEvent(this, (PreparedStatement) st);
-            for (StatementEventListener listener : statementEventListeners)
+            for (StatementEventListener listener : statementEventListeners) {
                 listener.statementClosed(event);
+            }
         }
     }
 
-    public void fireStatementErrorOccured(Statement st, SQLException e) {
+    /**
+     * Fire statement error to listeners.
+     * @param st statement
+     * @param ex exception
+     */
+    public void fireStatementErrorOccured(Statement st, SQLException ex) {
         if (st instanceof PreparedStatement) {
-            StatementEvent event = new StatementEvent(this, (PreparedStatement) st, e);
-            for (StatementEventListener listener : statementEventListeners)
+            StatementEvent event = new StatementEvent(this, (PreparedStatement) st, ex);
+            for (StatementEventListener listener : statementEventListeners) {
                 listener.statementErrorOccurred(event);
+            }
         }
     }
 
+    /**
+     * Fire Connection close to listening listeners.
+     */
     public void fireConnectionClosed() {
         ConnectionEvent event = new ConnectionEvent(this);
         CopyOnWriteArrayList<ConnectionEventListener> copyListeners = new CopyOnWriteArrayList<ConnectionEventListener>(connectionEventListeners);
-        for (ConnectionEventListener listener : copyListeners)
+        for (ConnectionEventListener listener : copyListeners) {
             listener.connectionClosed(event);
+        }
     }
 
-    public void fireConnectionErrorOccured(SQLException e) {
-        ConnectionEvent event = new ConnectionEvent(this, e);
-        for (ConnectionEventListener listener : connectionEventListeners)
+    /**
+     * Fire connection error to listening listerners.
+     * @param ex exception
+     */
+    public void fireConnectionErrorOccured(SQLException ex) {
+        ConnectionEvent event = new ConnectionEvent(this, ex);
+        for (ConnectionEventListener listener : connectionEventListeners) {
             listener.connectionErrorOccurred(event);
+        }
     }
 }

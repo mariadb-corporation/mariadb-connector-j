@@ -1,6 +1,6 @@
 package org.mariadb.jdbc.internal.common.packet;
 
-import org.mariadb.jdbc.internal.common.MySQLCharset;
+import org.mariadb.jdbc.internal.common.MariaDbCharset;
 
 import java.io.*;
 import java.nio.ByteBuffer;
@@ -12,21 +12,30 @@ import java.util.zip.DeflaterOutputStream;
 
 public class PacketOutputStream extends OutputStream {
     //private final static Logger log = LoggerFactory.getLogger(PacketOutputStream.class);
-    private static final int MIN_COMPRESSION_SIZE = 16*1024;
-    private static final float MIN_COMPRESSION_RATIO =0.9f;
+    private static final int MIN_COMPRESSION_SIZE = 16 * 1024;
+    private static final float MIN_COMPRESSION_RATIO = 0.9f;
     private static final int MAX_PACKET_LENGTH = 0x00ffffff;
     private static final int HEADER_LENGTH = 4;
-    private float increasing = 1.5f;
     public ByteBuffer buffer;
-    private OutputStream outputStream;
-
     int seqNo;
     int lastSeq;
     int maxAllowedPacket;
     int maxPacketSize = MAX_PACKET_LENGTH;
     boolean checkPacketLength;
     boolean useCompression;
+    private float increasing = 1.5f;
+    private OutputStream outputStream;
 
+    /**
+     * Initialization with server outputStream.
+     * @param outputStream server outPutStream
+     */
+    public PacketOutputStream(OutputStream outputStream) {
+        this.outputStream = outputStream;
+        buffer = ByteBuffer.allocate(1024).order(ByteOrder.LITTLE_ENDIAN);
+        this.seqNo = -1;
+        useCompression = false;
+    }
 
     protected void increase(int newCapacity) {
         buffer.limit(buffer.position());
@@ -40,30 +49,39 @@ public class PacketOutputStream extends OutputStream {
         buffer.order(ByteOrder.LITTLE_ENDIAN);
     }
 
-    public PacketOutputStream(OutputStream outputStream) {
-        this.outputStream = outputStream;
-        buffer = ByteBuffer.allocate(1024).order(ByteOrder.LITTLE_ENDIAN);
-        this.seqNo = -1;
-        useCompression = false;
-    }
-
     public void setUseCompression(boolean useCompression) {
         this.useCompression = useCompression;
     }
 
+    /**
+     * Initialize packet sequence. Max packet allowed size will be checked.
+     * @param seqNo packet sequence number
+     * @param checkPacketLength indication that max packet allowed size will be checked.
+     * @throws IOException if any error occur during data send to server
+     */
     public void startPacket(int seqNo, boolean checkPacketLength) throws IOException {
-        /*if (this.seqNo != -1) {
+        if (this.seqNo != -1) {
             throw new IOException("Last packet not finished");
-        }*/
+        }
         this.seqNo = seqNo;
         buffer.clear();
         this.checkPacketLength = checkPacketLength;
     }
 
+    /**
+     * Initialize packet sequence.
+     * @param seqNo packet sequence number
+     * @throws IOException if any error occur during data send to server
+     */
     public void startPacket(int seqNo) throws IOException {
         startPacket(seqNo, true);
     }
 
+    /**
+     * Send an empty packet to server.
+     * @param seqNo packet sequence number
+     * @throws IOException if any error occur during data send to server
+     */
     public void writeEmptyPacket(int seqNo) throws IOException {
         byte[] buf = new byte[4];
         buf[0] = ((byte) 0);
@@ -73,11 +91,16 @@ public class PacketOutputStream extends OutputStream {
         outputStream.write(buf, 0, 4);
     }
 
-    /* Used by LOAD DATA INFILE. End of data is indicated by packet of length 0. */
+    /**
+     * Used to send LOAD DATA INFILE. End of data is indicated by packet of length 0.
+     * @param is inputStream to send
+     * @param seq packet sequence number
+     * @throws IOException if any error occur during data send to server
+     */
     public void sendFile(InputStream is, int seq) throws IOException {
         this.seqNo = seq;
         buffer.clear();
-        this.checkPacketLength=false;
+        this.checkPacketLength = false;
         byte[] buffer = new byte[8192];
         int len;
         while ((len = is.read(buffer)) > 0) {
@@ -87,6 +110,11 @@ public class PacketOutputStream extends OutputStream {
         writeEmptyPacket(lastSeq);
     }
 
+    /**
+     * Send stream to server.
+     * @param is inputStream to send
+     * @throws IOException if any error occur during data send to server
+     */
     public void sendStream(InputStream is) throws IOException {
         byte[] buffer = new byte[8192];
         int len;
@@ -95,35 +123,61 @@ public class PacketOutputStream extends OutputStream {
         }
     }
 
+    /**
+     * Send stream to server.
+     * @param is inputStream to send
+     * @param readLength max size to send
+     * @throws IOException if any error occur during data send to server
+     */
     public void sendStream(InputStream is, long readLength) throws IOException {
         byte[] buffer = new byte[(int) readLength];
         int len;
         while ((len = is.read(buffer, 0, (int) readLength)) > 0) {
             write(buffer, 0, len);
-            if (len >= readLength) return;
+            if (len >= readLength) {
+                return;
+            }
         }
     }
 
-    public void sendStream(java.io.Reader reader, MySQLCharset charset) throws IOException {
+    /**
+     * Send reader stream to server.
+     * @param reader reader to send
+     * @param charset charset converter
+     * @throws IOException if any error occur during data send to server
+     */
+    public void sendStream(java.io.Reader reader, MariaDbCharset charset) throws IOException {
         char[] buffer = new char[8192];
         int len;
         while ((len = reader.read(buffer)) > 0) {
-            byte[] s = new String(buffer, 0, len).getBytes(charset.javaIoCharsetName);
-            write(s, 0, s.length);
+            byte[] bytes = new String(buffer, 0, len).getBytes(charset.javaIoCharsetName);
+            write(bytes, 0, bytes.length);
         }
     }
 
-    public void sendStream(java.io.Reader reader, long readLength, MySQLCharset charset) throws IOException {
+    /**
+     * Send reader stream to server.
+     * @param reader reader to send
+     * @param readLength max size to send
+     * @param charset charset converter
+     * @throws IOException if any error occur during data send to server
+     */
+    public void sendStream(java.io.Reader reader, long readLength, MariaDbCharset charset) throws IOException {
         char[] buffer = new char[8192];
         int len;
         while ((len = reader.read(buffer, 0, (int) readLength)) > 0) {
-            byte[] s = new String(buffer, 0, len).getBytes(charset.javaIoCharsetName);
-            write(s, 0, s.length);
-            if (len >= readLength) return;
+            byte[] bytes = new String(buffer, 0, len).getBytes(charset.javaIoCharsetName);
+            write(bytes, 0, bytes.length);
+            if (len >= readLength) {
+                return;
+            }
         }
     }
 
-
+    /**
+     * Ending command that tell to send buffer to server.
+     * @throws IOException if any connection error occur
+     */
     public void finishPacket() throws IOException {
         /*if (this.seqNo == -1) {
             throw new AssertionError("Packet not started");
@@ -139,16 +193,28 @@ public class PacketOutputStream extends OutputStream {
         this.seqNo = -1;
     }
 
+    @Override
+    public void write(byte[] bytes) throws IOException {
+        write(bytes, 0, bytes.length);
+    }
 
     @Override
-    public void write(byte[] b, int off, int len) throws IOException {
-        if (this.seqNo == -1) throw new AssertionError("Use PacketOutputStream.startPacket() before write()");
+    public void write(int byteInt) throws IOException {
+        byte[] byteArray = {(byte) byteInt};
+        write(byteArray);
+    }
 
-        while (len > buffer.remaining()){
-            int newCapacity = Math.max(len + buffer.position(), (int)(buffer.capacity() * increasing));
+    @Override
+    public void write(byte[] bytes, int off, int len) throws IOException {
+        if (this.seqNo == -1) {
+            throw new AssertionError("Use PacketOutputStream.startPacket() before write()");
+        }
+
+        while (len > buffer.remaining()) {
+            int newCapacity = Math.max(len + buffer.position(), (int) (buffer.capacity() * increasing));
             increase(newCapacity);
         }
-        buffer.put(b, 0, len);
+        buffer.put(bytes, 0, len);
     }
 
 
@@ -165,17 +231,22 @@ public class PacketOutputStream extends OutputStream {
                     && maxAllowedPacket > 0
                     && limit > (maxAllowedPacket - 1)) {
                 this.seqNo = -1;
-                throw new MaxAllowedPacketException("max_allowed_packet exceeded. packet size " + limit + " is > to max_allowed_packet = " + (maxAllowedPacket - 1), this.seqNo != 0);
+                throw new MaxAllowedPacketException("max_allowed_packet exceeded. packet size " + limit + " is > to max_allowed_packet = "
+                        + (maxAllowedPacket - 1), this.seqNo != 0);
             }
 
             byte[] bufferBytes = new byte[0];
             int notCompressPosition = 0;
             int expectedPacketSize = limit + HEADER_LENGTH * ((limit / maxPacketSize) + 1);
-            if (useCompression) bufferBytes = new byte[expectedPacketSize];
+            if (useCompression) {
+                bufferBytes = new byte[expectedPacketSize];
+            }
 
             while (notCompressPosition < expectedPacketSize) {
                 int length = buffer.remaining();
-                if (length > maxPacketSize) length = maxPacketSize;
+                if (length > maxPacketSize) {
+                    length = maxPacketSize;
+                }
                 if (useCompression) {
                     bufferBytes[notCompressPosition++] = (byte) (length & 0xff);
                     bufferBytes[notCompressPosition++] = (byte) (length >>> 8);
@@ -188,7 +259,7 @@ public class PacketOutputStream extends OutputStream {
                     header[2] = (byte) (length >>> 16);
                     header[3] = (byte) seqNo++;
                     outputStream.write(header);
-                    notCompressPosition+=4;
+                    notCompressPosition += 4;
                 }
 
                 if (length > 0) {
@@ -204,7 +275,7 @@ public class PacketOutputStream extends OutputStream {
                             buffer.get(bufferBytes, 0, length);
                             outputStream.write(bufferBytes, 0, length);
                         }
-                        notCompressPosition+=length;
+                        notCompressPosition += length;
                         outputStream.flush();
                     }
                 }
@@ -213,7 +284,7 @@ public class PacketOutputStream extends OutputStream {
 
             if (useCompression) {
                 //now bufferBytes in filled with uncompressed data
-                this.seqNo=0;
+                this.seqNo = 0;
                 int position = 0;
                 int packetLength;
 
@@ -232,7 +303,7 @@ public class PacketOutputStream extends OutputStream {
                         byte[] compressedBytes = baos.toByteArray();
                         baos.close();
 
-                        if (compressedBytes.length < (int)(MIN_COMPRESSION_RATIO * packetLength)) {
+                        if (compressedBytes.length < (int) (MIN_COMPRESSION_RATIO * packetLength)) {
 
                             int compressedLength = compressedBytes.length;
                             writeCompressedHeader(compressedLength, packetLength, outputStream);
@@ -246,7 +317,7 @@ public class PacketOutputStream extends OutputStream {
                         outputStream.write(bufferBytes, position, packetLength);
                     }
 
-                    position+=packetLength;
+                    position += packetLength;
                     outputStream.flush();
                 }
             }
@@ -255,27 +326,18 @@ public class PacketOutputStream extends OutputStream {
     }
 
     private void writeCompressedHeader(int packetLength, int initialLength, OutputStream outputStream) throws IOException {
-        byte header[] = new byte[7];
-        header[0] = (byte)(packetLength & 0xff);
-        header[1] = (byte)((packetLength >> 8) & 0xff);
-        header[2] = (byte)((packetLength >> 16) & 0xff);
+        byte[] header = new byte[7];
+        header[0] = (byte) (packetLength & 0xff);
+        header[1] = (byte) ((packetLength >> 8) & 0xff);
+        header[2] = (byte) ((packetLength >> 16) & 0xff);
         header[3] = (byte) seqNo++;
-        header[4] = (byte)(initialLength & 0xff);
-        header[5] = (byte)((initialLength >> 8) & 0xff);
-        header[6] = (byte)((initialLength >> 16) & 0xff);
+        header[4] = (byte) (initialLength & 0xff);
+        header[5] = (byte) ((initialLength >> 8) & 0xff);
+        header[6] = (byte) ((initialLength >> 16) & 0xff);
         outputStream.write(header);
     }
 
-    @Override
-    public void write(byte[] bytes) throws IOException {
-        write(bytes, 0, bytes.length);
-    }
 
-    @Override
-    public void write(int b) throws IOException {
-        byte[] a = {(byte) b};
-        write(a);
-    }
 
     @Override
     public void close() throws IOException {
@@ -283,28 +345,49 @@ public class PacketOutputStream extends OutputStream {
         buffer = null;
     }
 
+    /**
+     * Initialize maximal send size (can be send in multiple packet).
+     * @param maxAllowedPacket value of server maxAllowedPacket
+     */
     public void setMaxAllowedPacket(int maxAllowedPacket) {
         this.maxAllowedPacket = maxAllowedPacket;
-        if (maxAllowedPacket > 0)
+        if (maxAllowedPacket > 0) {
             maxPacketSize = Math.min(maxAllowedPacket - 1, MAX_PACKET_LENGTH);
-        else maxPacketSize = MAX_PACKET_LENGTH;
+        } else {
+            maxPacketSize = MAX_PACKET_LENGTH;
+        }
     }
 
+    /**
+     * Ensure that the buffer remaining size permit to write a data with a size len.
+     * @param len size of the data
+     * @return this
+     */
     public PacketOutputStream assureBufferCapacity(final int len) {
-        while (len > buffer.remaining()){
-            int newCapacity = Math.max(len +  buffer.position() , (int)(buffer.capacity() * increasing));
+        while (len > buffer.remaining()) {
+            int newCapacity = Math.max(len + buffer.position(), (int) (buffer.capacity() * increasing));
             increase(newCapacity);
         }
         return this;
     }
 
-
+    /**
+     * Write a byte data to buffer.
+     * @param theByte byte to write
+     * @return this
+     */
     public PacketOutputStream writeByte(final byte theByte) {
         assureBufferCapacity(1);
         buffer.put(theByte);
         return this;
     }
 
+    /**
+     * Write count time the byte value.
+     * @param theByte byte to write to buffer
+     * @param count number of time the value will be put to buffer
+     * @return this
+     */
     public PacketOutputStream writeBytes(final byte theByte, final int count) {
         for (int i = 0; i < count; i++) {
             this.writeByte(theByte);
@@ -313,12 +396,22 @@ public class PacketOutputStream extends OutputStream {
     }
 
 
+    /**
+     * Write byte array to buffer.
+     * @param bytes  byte array
+     * @return this.
+     */
     public PacketOutputStream writeByteArray(final byte[] bytes) {
         assureBufferCapacity(bytes.length);
         buffer.put(bytes);
         return this;
     }
 
+    /**
+     * Write byte array data to binary data.
+     * @param bytes  byte array to encode
+     * @return this.
+     */
     public PacketOutputStream writeByteArrayLength(final byte[] bytes) {
         assureBufferCapacity(bytes.length + 9);
         writeFieldLength(bytes.length);
@@ -326,6 +419,11 @@ public class PacketOutputStream extends OutputStream {
         return this;
     }
 
+    /**
+     * Write string data in binary format.
+     * @param str string value to encode
+     * @return this.
+     */
     public PacketOutputStream writeString(final String str) {
         final byte[] strBytes;
         try {
@@ -336,25 +434,44 @@ public class PacketOutputStream extends OutputStream {
         }
     }
 
+    /**
+     * Write short data in binary format.
+     * @param theShort short data to encode
+     * @return this
+     */
     public PacketOutputStream writeShort(final short theShort) {
         assureBufferCapacity(2);
         buffer.putShort(theShort);
         return this;
     }
 
+    /**
+     * Write int data in binary format.
+     * @param theInt int data
+     * @return this.
+     */
     public PacketOutputStream writeInt(final int theInt) {
         assureBufferCapacity(4);
         buffer.putInt(theInt);
         return this;
     }
 
-
+    /**
+     * Write long data in binary format.
+     * @param theLong long data
+     * @return this
+     */
     public PacketOutputStream writeLong(final long theLong) {
         assureBufferCapacity(8);
         buffer.putLong(theLong);
         return this;
     }
 
+    /**
+     * Write field length to encode in binary format.
+     * @param length data length to encode
+     * @return this.
+     */
     public PacketOutputStream writeFieldLength(long length) {
         if (length < 251) {
             buffer.put((byte) length);
@@ -364,9 +481,9 @@ public class PacketOutputStream extends OutputStream {
             buffer.putShort((short) length);
         } else if (length < 16777216) {
             assureBufferCapacity(4);
-            buffer.put((byte)0xfd);
-            buffer.put((byte) (length & 0xff) );
-            buffer.put((byte) (length >>> 8) );
+            buffer.put((byte) 0xfd);
+            buffer.put((byte) (length & 0xff));
+            buffer.put((byte) (length >>> 8));
             buffer.put((byte) (length >>> 16));
         } else {
             assureBufferCapacity(9);
@@ -376,41 +493,29 @@ public class PacketOutputStream extends OutputStream {
         return this;
     }
 
-    public PacketOutputStream writeFieldLengthAssume(long length) {
-        if (length < 251) {
-            assureBufferCapacity(1);
-            buffer.put((byte) length);
-        } else if (length < 65536) {
-            assureBufferCapacity(3);
-            buffer.put((byte) 0xfc);
-            buffer.putShort((short) length);
-        } else if (length < 16777216) {
-            assureBufferCapacity(4);
-            buffer.put((byte)0xfd);
-            buffer.put((byte) (length & 0xff) );
-            buffer.put((byte) (length >>> 8) );
-            buffer.put((byte) (length >>> 16));
-        } else {
-            assureBufferCapacity(9);
-            buffer.put((byte) 0xfe);
-            buffer.putLong(length);
-        }
-        return this;
-    }
-
-
+    /**
+     * Write string in binary format.
+     * @param str string to encode
+     * @return this.
+     */
     public PacketOutputStream writeStringLength(final String str) {
         try {
             final byte[] strBytes = str.getBytes("UTF-8");
             assureBufferCapacity(strBytes.length + 9);
             writeFieldLength(strBytes.length);
             buffer.put(strBytes);
-        } catch (UnsupportedEncodingException u) { }
+        } catch (UnsupportedEncodingException u) {
+        }
         return this;
     }
 
-
-    public PacketOutputStream writeTimestampLength(final Calendar calendar, Timestamp ts) {
+    /**
+     * Write timestamp in binary format.
+     * @param calendar session calendar
+     * @param ts timestamp to send
+     * @return this
+     */
+    public PacketOutputStream writeTimestampLength(final Calendar calendar, Timestamp ts, boolean fractionalSeconds) {
         assureBufferCapacity(12);
         buffer.put((byte) 11);//length
 
@@ -420,10 +525,17 @@ public class PacketOutputStream extends OutputStream {
         buffer.put((byte) calendar.get(Calendar.HOUR_OF_DAY));
         buffer.put((byte) calendar.get(Calendar.MINUTE));
         buffer.put((byte) calendar.get(Calendar.SECOND));
-        buffer.putInt(ts.getNanos() / 1000);
+        if (fractionalSeconds) {
+            buffer.putInt(ts.getNanos() / 1000);
+        }
         return this;
     }
 
+    /**
+     * Write date in binary format.
+     * @param calendar date
+     * @return this
+     */
     public PacketOutputStream writeDateLength(final Calendar calendar) {
         assureBufferCapacity(8);
         buffer.put((byte) 7);//length
@@ -436,7 +548,13 @@ public class PacketOutputStream extends OutputStream {
         return this;
     }
 
-    public PacketOutputStream writeTimeLength( final Calendar calendar, final boolean fractionalSeconds) {
+    /**
+     * Write time in binary format.
+     * @param calendar session calendar.
+     * @param fractionalSeconds fractional seconds must be send
+     * @return this
+     */
+    public PacketOutputStream writeTimeLength(final Calendar calendar, final boolean fractionalSeconds) {
         if (fractionalSeconds) {
             assureBufferCapacity(13);
             buffer.put((byte) 12);

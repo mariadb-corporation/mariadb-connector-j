@@ -59,7 +59,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 public class SyncPacketFetcher implements PacketFetcher {
-    public  static final int AVOID_CREATE_BUFFER_LENGTH = 1024;
+    public static final int AVOID_CREATE_BUFFER_LENGTH = 1024;
     private final InputStream inputStream;
     private byte[] headerBuffer = new byte[4];
     private byte[] reusableBuffer = new byte[AVOID_CREATE_BUFFER_LENGTH];
@@ -73,7 +73,8 @@ public class SyncPacketFetcher implements PacketFetcher {
     }
 
     /**
-     * get buffer without packet sequence information
+     * Get buffer without packet sequence information.
+     *
      * @return ByteBuffer the bytebuffer
      * @throws IOException if any
      */
@@ -111,7 +112,10 @@ public class SyncPacketFetcher implements PacketFetcher {
         return ByteBuffer.wrap(rawBytes, 0, length).order(ByteOrder.LITTLE_ENDIAN);
     }
 
-
+    /**
+     * Skip next packet.
+     * @throws IOException if connection errors occur.
+     */
     public void skipNextPacket() throws IOException {
         int remaining = 4;
         int off = 0;
@@ -141,6 +145,10 @@ public class SyncPacketFetcher implements PacketFetcher {
         return RawPacket.nextPacket(inputStream, headerBuffer, reusableBuffer);
     }
 
+    /**
+     * Clear current inputStream.
+     * @throws IOException if connection errors occur
+     */
     public void clearInputStream() throws IOException {
         int available = inputStream.available();
         while (available > 0) {

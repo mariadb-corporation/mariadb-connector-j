@@ -12,12 +12,18 @@ import static org.junit.Assert.assertEquals;
 
 
 public class UnicodeTest extends BaseTest {
-
+    /**
+     * Initialisation.
+     *
+     * @throws SQLException exception
+     */
     @BeforeClass()
     public static void initClass() throws SQLException {
-        createTable("unicode_test", "id int not null primary key auto_increment, test_text varchar(100)", "charset utf8");
+        createTable("unicode_test", "id int not null primary key auto_increment, test_text varchar(100)",
+                "charset utf8");
         createTable("umlaut_test", "id varchar(100), test_text varchar(100), t int", "charset utf8");
-        createTable("unicode_test2", "id int not null primary key auto_increment, test_text varchar(100)", "charset=utf8");
+        createTable("unicode_test2", "id int not null primary key auto_increment, test_text varchar(100)",
+                "charset=utf8");
     }
 
     @Test
@@ -34,7 +40,8 @@ public class UnicodeTest extends BaseTest {
 
     @Test
     public void testGermanUmlauts() throws SQLException {
-        String query = "insert into umlaut_test values('tax-1273608028038--5546415852995205209-13', 'MwSt. 7% Bücher & Lebensmittel', 7)";
+        String query = "insert into umlaut_test values('tax-1273608028038--5546415852995205209-13', "
+                + "'MwSt. 7% Bücher & Lebensmittel', 7)";
         Statement stmt = sharedConnection.createStatement();
         stmt.executeUpdate(query);
 

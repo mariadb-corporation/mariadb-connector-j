@@ -57,15 +57,13 @@ import java.io.OutputStream;
 public interface Query {
     String getQuery();
 
-    void writeTo(OutputStream os) throws IOException, QueryException;
+    void writeTo(OutputStream os) throws IOException;
 
-    void writeFirstRewritePart(final OutputStream os) throws IOException, QueryException;
+    void writeFirstRewritePart(final OutputStream os) throws IOException;
 
-    void writeLastRewritePart(final OutputStream os) throws IOException, QueryException;
+    void writeLastRewritePart(final OutputStream os) throws IOException;
 
-    void writeToRewritablePart(OutputStream os, int rewriteOffset) throws IOException, QueryException;
-
-    QueryType getQueryType();
+    void writeToRewritablePart(OutputStream os, int rewriteOffset) throws IOException;
 
     void validate() throws QueryException;
 }

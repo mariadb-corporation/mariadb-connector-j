@@ -54,29 +54,36 @@ import java.nio.ByteBuffer;
 
 /**
  * Creates result packets only handles error, ok, eof and result set packets since field and row packets require a
- * previous result set packet
+ * previous result set packet.
  */
 public class ResultPacketFactory {
-    private final static byte ERROR = (byte) 0xff;
-    private final static byte OK = (byte) 0x00;
-    private final static byte EOF = (byte) 0xfe;
-    private final static byte LOCALINFILE = (byte) 0xfb;
+    private static final byte ERROR = (byte) 0xff;
+    private static final byte OK = (byte) 0x00;
+    private static final byte EOF = (byte) 0xfe;
+    private static final byte LOCALINFILE = (byte) 0xfb;
 
     private ResultPacketFactory() {
 
     }
 
-    //    private static EOFPacket eof = new EOFPacket();
+    //    private static EndOfFilePacket eof = new EndOfFilePacket();
+
+    /**
+     * Initialize a result packet according to first packet byte.
+     * @param byteBuffer current packet's byteBuffer
+     * @return a result packet
+     * @throws IOException in case of an incorrect ResultSetPacket
+     */
     public static ResultPacket createResultPacket(ByteBuffer byteBuffer) throws IOException {
-        byte b = byteBuffer.get(0);
-        switch (b) {
+        byte buf = byteBuffer.get(0);
+        switch (buf) {
 
             case ERROR:
                 return new ErrorPacket(byteBuffer);
             case OK:
-                return new OKPacket(byteBuffer);
+                return new OkPacket(byteBuffer);
             case EOF:
-                return new EOFPacket(byteBuffer);
+                return new EndOfFilePacket(byteBuffer);
             case LOCALINFILE:
                 return new LocalInfilePacket(byteBuffer);
             default:

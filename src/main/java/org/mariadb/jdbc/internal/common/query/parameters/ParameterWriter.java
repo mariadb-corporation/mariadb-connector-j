@@ -8,8 +8,9 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
 /**
- * Helper class for serializing query parameters
+ * Helper class for serializing query parameters.
  */
+//TODO integrate that text helper class to packetOutput that already has binary helper
 public class ParameterWriter {
     static final byte[] BINARY_INTRODUCER = {'_', 'b', 'i', 'n', 'a', 'r', 'y', ' ', '\''};
     static final byte[] QUOTE = {'\''};
@@ -18,29 +19,29 @@ public class ParameterWriter {
             throws IOException {
         if (noBackslashEscapes) {
             for (int i = 0; i < count; i++) {
-                byte b = bytes[i];
-                switch (b) {
+                byte bit = bytes[i];
+                switch (bit) {
                     case '\'':
                         out.write('\'');
-                        out.write(b);
+                        out.write(bit);
                         break;
                     default:
-                        out.write(b);
+                        out.write(bit);
                 }
             }
         } else {
             for (int i = 0; i < count; i++) {
-                byte b = bytes[i];
-                switch (b) {
+                byte bit = bytes[i];
+                switch (bit) {
                     case '\\':
                     case '\'':
                     case '"':
                     case 0:
                         out.write('\\');
-                        out.write(b);
+                        out.write(bit);
                         break;
                     default:
-                        out.write(b);
+                        out.write(bit);
                 }
             }
         }
@@ -50,25 +51,42 @@ public class ParameterWriter {
         writeBytesEscaped(out, bytes, bytes.length, noBackslashEscapes);
     }
 
+    /**
+     * Write byte array in text format.
+     * @param out database stream
+     * @param bytes byte arrayto send
+     * @param noBackslashEscapes must backslash be escape
+     * @throws IOException if any error occur when writing to database
+     */
     public static void write(OutputStream out, byte[] bytes, boolean noBackslashEscapes) throws IOException {
         out.write(BINARY_INTRODUCER);
         writeBytesEscaped(out, bytes, noBackslashEscapes);
         out.write(QUOTE);
     }
 
-    public static void write(OutputStream out, String s, boolean noBackslashEscapes) throws IOException {
-        byte[] bytes = s.getBytes("UTF-8");
+    /**
+     * Write string in text format.
+     * @param out database stream
+     * @param value String value to send
+     * @param noBackslashEscapes must backslash be escape
+     * @throws IOException if any error occur when writing to database
+     */
+    public static void write(OutputStream out, String value, boolean noBackslashEscapes) throws IOException {
+        byte[] bytes = value.getBytes("UTF-8");
         out.write(QUOTE);
         writeBytesEscaped(out, bytes, noBackslashEscapes);
         out.write(QUOTE);
     }
 
-    public static void write(OutputStream out, InputStream is, boolean noBackslashEscapes, boolean isText) throws IOException {
-        if (isText) {
-            out.write(QUOTE);
-        } else {
-            out.write(BINARY_INTRODUCER);
-        }
+    /**
+     * Write stream in text format.
+     * @param out database stream
+     * @param is input stream to write
+     * @param noBackslashEscapes must backslash be escape
+     * @throws IOException if any error occur when writing to database
+     */
+    public static void write(OutputStream out, InputStream is, boolean noBackslashEscapes) throws IOException {
+        out.write(QUOTE);
         byte[] buffer = new byte[1024];
         int len;
         while ((len = is.read(buffer)) >= 0) {
@@ -77,29 +95,42 @@ public class ParameterWriter {
         out.write(QUOTE);
     }
 
-    public static void write(OutputStream out, InputStream is, long length, boolean noBackslashEscapes, boolean isText) throws IOException {
-        if (isText) {
-            out.write(QUOTE);
-        } else {
-            out.write(BINARY_INTRODUCER);
-        }
+    /**
+     * Write stream in text format.
+     * @param out database stream
+     * @param is input stream to write
+     * @param length max inputstream length to write
+     * @param noBackslashEscapes must backslash be escape
+     * @throws IOException if any error occur when writing to database
+     */
+    public static void write(OutputStream out, InputStream is, long length, boolean noBackslashEscapes) throws IOException {
+        out.write(QUOTE);
         byte[] buffer = new byte[1024];
         long bytesLeft = length;
         int len;
 
         for (; ; ) {
             int bytesToRead = (int) Math.min(bytesLeft, buffer.length);
-            if (bytesToRead == 0)
+            if (bytesToRead == 0) {
                 break;
+            }
             len = is.read(buffer, 0, bytesToRead);
-            if (len <= 0)
+            if (len <= 0) {
                 break;
+            }
             writeBytesEscaped(out, buffer, len, noBackslashEscapes);
             bytesLeft -= len;
         }
         out.write(QUOTE);
     }
 
+    /**
+     * Write whole reader in text format.
+     * @param out database stream
+     * @param reader reader to write
+     * @param noBackslashEscapes must backslash be escape
+     * @throws IOException if any error occur when writing to database
+     */
     public static void write(OutputStream out, java.io.Reader reader, boolean noBackslashEscapes) throws IOException {
         out.write(QUOTE);
         char[] buffer = new char[1024];
@@ -110,6 +141,14 @@ public class ParameterWriter {
         out.write(QUOTE);
     }
 
+    /**
+     * Write reader in text format.
+     * @param out database stream
+     * @param reader reader to write
+     * @param length reader max length to write
+     * @param noBackslashEscapes must backslash be escape
+     * @throws IOException if any error occur when writing to database
+     */
     public static void write(OutputStream out, java.io.Reader reader, long length, boolean noBackslashEscapes)
             throws IOException {
         out.write(QUOTE);
@@ -119,11 +158,13 @@ public class ParameterWriter {
 
         for (; ; ) {
             int charsToRead = (int) Math.min(charsLeft, buffer.length);
-            if (charsToRead == 0)
+            if (charsToRead == 0) {
                 break;
+            }
             len = reader.read(buffer, 0, charsToRead);
-            if (len <= 0)
+            if (len <= 0) {
                 break;
+            }
             byte[] bytes = new String(buffer, 0, len).getBytes("UTF-8");
             writeBytesEscaped(out, bytes, bytes.length, noBackslashEscapes);
             charsLeft -= len;
@@ -131,22 +172,28 @@ public class ParameterWriter {
         out.write(QUOTE);
     }
 
-    public static void write(OutputStream out, int i) throws IOException {
-        out.write(String.valueOf(i).getBytes());
+    public static void write(OutputStream out, int value) throws IOException {
+        out.write(String.valueOf(value).getBytes());
     }
 
-    public static void write(OutputStream out, long l) throws IOException {
-        out.write(String.valueOf(l).getBytes());
+    public static void write(OutputStream out, long value) throws IOException {
+        out.write(String.valueOf(value).getBytes());
     }
 
-    public static void write(OutputStream out, double d) throws IOException {
-        out.write(String.valueOf(d).getBytes());
+    public static void write(OutputStream out, double value) throws IOException {
+        out.write(String.valueOf(value).getBytes());
     }
 
     public static void write(OutputStream out, BigDecimal bd) throws IOException {
         out.write(bd.toPlainString().getBytes());
     }
 
+    /**
+     * Write date in text format.
+     * @param out database stream
+     * @param calendar session calendar
+     * @throws IOException if any error occur when writing to database
+     */
     public static void writeDate(OutputStream out, Calendar calendar) throws IOException {
         out.write(QUOTE);
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
@@ -156,8 +203,9 @@ public class ParameterWriter {
     }
 
     static void formatMicroseconds(OutputStream out, int microseconds, boolean writeFractionalSeconds) throws IOException {
-        if (microseconds == 0 || !writeFractionalSeconds)
+        if (microseconds == 0 || !writeFractionalSeconds) {
             return;
+        }
         out.write('.');
         int factor = 100000;
         while (microseconds > 0) {
@@ -168,7 +216,14 @@ public class ParameterWriter {
         }
     }
 
-
+    /**
+     * Write timestamps in text format
+     * @param out database outputstream
+     * @param ts timestamp to write
+     * @param calendar session calendar
+     * @param writeFractionalSeconds must fractional seconds be send to database
+     * @throws IOException if any error occur when writing to database.
+     */
     public static void writeTimestamp(OutputStream out, Timestamp ts, Calendar calendar, boolean writeFractionalSeconds)
             throws IOException {
         out.write(QUOTE);
@@ -182,7 +237,14 @@ public class ParameterWriter {
         out.write(QUOTE);
     }
 
-
+    /**
+     * Write time in text format.
+     * @param out database outputStream
+     * @param time time to write
+     * @param calendar session calendar
+     * @param writeFractionalSeconds must fractional seconds be send to database
+     * @throws IOException if any error occur when writing to database.
+     */
     public static void writeTime(OutputStream out, Time time, Calendar calendar, boolean writeFractionalSeconds)
             throws IOException {
         out.write(QUOTE);
@@ -191,21 +253,34 @@ public class ParameterWriter {
             sdf.setCalendar(calendar);
         }
         String dateString = sdf.format(time);
-        if (time.getTime() < 0) dateString="-"+dateString;
+        if (time.getTime() < 0) {
+            dateString = "-" + dateString;
+        }
         out.write(dateString.getBytes());
         int microseconds = (int) (time.getTime() % 1000) * 1000;
         formatMicroseconds(out, microseconds, writeFractionalSeconds);
         out.write(QUOTE);
     }
 
-    public static void writeObject(OutputStream out, Object o, boolean noBackslashEscapes) throws IOException {
+    /**
+     * Write object to buffer.
+     * @param out outputStream
+     * @param obj Object to send
+     * @param noBackslashEscapes must back slash be escaped
+     * @throws IOException if any connection error occued
+     */
+    public static void writeObject(OutputStream out, Object obj, boolean noBackslashEscapes) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ObjectOutputStream oos = new ObjectOutputStream(baos);
-        oos.writeObject(o);
+        oos.writeObject(obj);
         write(out, baos.toByteArray(), noBackslashEscapes);
     }
 
-
+    /**
+     * Write integer to byte LittleEndian order.
+     * @param value int value to convert
+     * @return byte array
+     */
     public static byte[] writeLittleEndian(int value) {
         return new byte[]{
                 (byte) ((value >> 0) & 0xff),

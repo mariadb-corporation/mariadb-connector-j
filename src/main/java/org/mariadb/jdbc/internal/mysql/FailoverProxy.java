@@ -49,7 +49,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.mysql;
 
-import org.mariadb.jdbc.internal.SQLExceptionMapper;
+import org.mariadb.jdbc.internal.SqlExceptionMapper;
 import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.mysql.listener.Listener;
 
@@ -61,21 +61,27 @@ import java.util.concurrent.locks.ReentrantLock;
 
 
 public class FailoverProxy implements InvocationHandler {
-    public final static String METHOD_IS_EXPLICIT_CLOSED = "isExplicitClosed";
-    public final static String METHOD_GET_OPTIONS = "getOptions";
-    public final static String METHOD_GET_PROXY = "getProxy";
-    public final static String METHOD_EXECUTE_QUERY = "executeQuery";
-    public final static String METHOD_SET_READ_ONLY = "setReadonly";
-    public final static String METHOD_IS_READ_ONLY = "isReadOnly";
-    public final static String METHOD_CLOSED_EXPLICIT = "closeExplicit";
-    public final static String METHOD_IS_CLOSED = "isClosed";
+    public static final String METHOD_IS_EXPLICIT_CLOSED = "isExplicitClosed";
+    public static final String METHOD_GET_OPTIONS = "getOptions";
+    public static final String METHOD_GET_PROXY = "getProxy";
+    public static final String METHOD_EXECUTE_QUERY = "executeQuery";
+    public static final String METHOD_SET_READ_ONLY = "setReadonly";
+    public static final String METHOD_IS_READ_ONLY = "isReadOnly";
+    public static final String METHOD_CLOSED_EXPLICIT = "closeExplicit";
+    public static final String METHOD_IS_CLOSED = "isClosed";
 
 
     public final ReentrantLock lock;
 
     private Listener listener;
 
-    public FailoverProxy(Listener listener, ReentrantLock lock) throws QueryException, SQLException {
+    /**
+     * Procy constructor.
+     * @param listener listener implementation.
+     * @param lock synchronisation lock
+     * @throws QueryException if connection error occur
+     */
+    public FailoverProxy(Listener listener, ReentrantLock lock) throws QueryException {
         this.lock = lock;
         this.listener = listener;
         this.listener.setProxy(this);
@@ -83,7 +89,7 @@ public class FailoverProxy implements InvocationHandler {
     }
 
     /**
-     * proxy that catch Protocol call, to permit to catch errors and handle failover when multiple hosts
+     * Proxy that catch Protocol call, to permit to catch errors and handle failover when multiple hosts.
      *
      * @param proxy  the current protocol
      * @param method the called method on the protocol
@@ -98,7 +104,7 @@ public class FailoverProxy implements InvocationHandler {
             case METHOD_IS_EXPLICIT_CLOSED:
                 return listener.isExplicitClosed();
             case METHOD_GET_OPTIONS:
-                return listener.getJdbcUrl().getOptions();
+                return listener.getUrlParser().getOptions();
             case METHOD_GET_PROXY:
                 return this;
             case METHOD_IS_CLOSED:
@@ -118,6 +124,7 @@ public class FailoverProxy implements InvocationHandler {
             case METHOD_CLOSED_EXPLICIT:
                 this.listener.preClose();
                 return null;
+            default:
         }
         try {
             return listener.invoke(method, args);
@@ -136,23 +143,25 @@ public class FailoverProxy implements InvocationHandler {
 
 
     /**
-     * After a connection exception, launch failover
+     * After a connection exception, launch failover.
      *
      * @param qe     the exception thrown
      * @param method the method to call if failover works well
      * @param args   the arguments of the method
      * @return the object return from the method
-     * @throws Throwable
+     * @throws Throwable throwable
      */
     private Object handleFailOver(QueryException qe, Method method, Object[] args) throws Throwable {
         HandleErrorResult handleErrorResult = listener.handleFailover(method, args);
-        if (handleErrorResult.mustThrowError) listener.throwFailoverMessage(qe, handleErrorResult.isReconnected);
+        if (handleErrorResult.mustThrowError) {
+            listener.throwFailoverMessage(qe, handleErrorResult.isReconnected);
+        }
         return handleErrorResult.resultObject;
     }
 
     /**
      * Check if this Sqlerror is a connection exception. if that's the case, must be handle by failover
-     *
+     * <p>
      * error codes :
      * 08000 : connection exception
      * 08001 : SQL client unable to establish SQL connection
@@ -163,23 +172,25 @@ public class FailoverProxy implements InvocationHandler {
      * 08007 : transaction resolution unknown
      * 70100 : connection was killed
      *
-     * @param e the Exception
+     * @param exception the Exception
      * @return true if there has been a connection error that must be handled by failover
      */
-    public boolean hasToHandleFailover(QueryException e) {
-        if (e.getSqlState() != null && e.getSqlState().startsWith("08")
-            //|| "70100".equals(e.getSqlState())
-                ) {
+    public boolean hasToHandleFailover(QueryException exception) {
+        if (exception.getSqlState() != null && exception.getSqlState().startsWith("08")) {
             return true;
         }
         return false;
     }
 
+    /**
+     * Launch reconnect implementation.
+     * @throws SQLException exception
+     */
     public void reconnect() throws SQLException {
         try {
             listener.reconnect();
         } catch (QueryException e) {
-            SQLExceptionMapper.throwException(e, null, null);
+            SqlExceptionMapper.throwException(e, null, null);
         }
     }
 

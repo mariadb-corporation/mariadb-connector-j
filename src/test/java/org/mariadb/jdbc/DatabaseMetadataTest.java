@@ -10,44 +10,47 @@ import static org.junit.Assert.*;
 
 
 public class DatabaseMetadataTest extends BaseTest {
-
+    /**
+     * Initialisation.
+     * @throws SQLException exception
+     */
     @BeforeClass()
     public static void initClass() throws SQLException {
-        createTable("dbpk_test", "val varchar(20), id1 int not null, id2 int not null,primary key(id1, id2)", "engine=innodb");
+        createTable("dbpk_test", "val varchar(20), id1 int not null, id2 int not null,primary key(id1, id2)",
+                "engine=innodb");
         createTable("datetime_test", "dt datetime");
         createTable("`manycols`",
-                "  `tiny` tinyint(4) DEFAULT NULL,\n" +
-                        "  `tiny_uns` tinyint(3) unsigned DEFAULT NULL,\n" +
-                        "  `small` smallint(6) DEFAULT NULL,\n" +
-                        "  `small_uns` smallint(5) unsigned DEFAULT NULL,\n" +
-                        "  `medium` mediumint(9) DEFAULT NULL,\n" +
-                        "  `medium_uns` mediumint(8) unsigned DEFAULT NULL,\n" +
-                        "  `int_col` int(11) DEFAULT NULL,\n" +
-                        "  `int_col_uns` int(10) unsigned DEFAULT NULL,\n" +
-                        "  `big` bigint(20) DEFAULT NULL,\n" +
-                        "  `big_uns` bigint(20) unsigned DEFAULT NULL,\n" +
-                        "  `decimal_col` decimal(10,5) DEFAULT NULL,\n" +
-                        "  `fcol` float DEFAULT NULL,\n" +
-                        "  `fcol_uns` float unsigned DEFAULT NULL,\n" +
-                        "  `dcol` double DEFAULT NULL,\n" +
-                        "  `dcol_uns` double unsigned DEFAULT NULL,\n" +
-                        "  `date_col` date DEFAULT NULL,\n" +
-                        "  `time_col` time DEFAULT NULL,\n" +
-                        "  `timestamp_col` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE\n" +
-                        "CURRENT_TIMESTAMP,\n" +
-                        "  `year_col` year(4) DEFAULT NULL,\n" +
-                        "  `bit_col` bit(5) DEFAULT NULL,\n" +
-                        "  `char_col` char(5) DEFAULT NULL,\n" +
-                        "  `varchar_col` varchar(10) DEFAULT NULL,\n" +
-                        "  `binary_col` binary(10) DEFAULT NULL,\n" +
-                        "  `varbinary_col` varbinary(10) DEFAULT NULL,\n" +
-                        "  `tinyblob_col` tinyblob,\n" +
-                        "  `blob_col` blob,\n" +
-                        "  `mediumblob_col` mediumblob,\n" +
-                        "  `longblob_col` longblob,\n" +
-                        "  `text_col` text,\n" +
-                        "  `mediumtext_col` mediumtext,\n" +
-                        "  `longtext_col` longtext"
+                "  `tiny` tinyint(4) DEFAULT NULL,"
+                        + "  `tiny_uns` tinyint(3) unsigned DEFAULT NULL,"
+                        + "  `small` smallint(6) DEFAULT NULL,"
+                        + "  `small_uns` smallint(5) unsigned DEFAULT NULL,"
+                        + "  `medium` mediumint(9) DEFAULT NULL,"
+                        + "  `medium_uns` mediumint(8) unsigned DEFAULT NULL,"
+                        + "  `int_col` int(11) DEFAULT NULL,"
+                        + "  `int_col_uns` int(10) unsigned DEFAULT NULL,"
+                        + "  `big` bigint(20) DEFAULT NULL,"
+                        + "  `big_uns` bigint(20) unsigned DEFAULT NULL,"
+                        + "  `decimal_col` decimal(10,5) DEFAULT NULL,"
+                        + "  `fcol` float DEFAULT NULL,"
+                        + "  `fcol_uns` float unsigned DEFAULT NULL,"
+                        + "  `dcol` double DEFAULT NULL,"
+                        + "  `dcol_uns` double unsigned DEFAULT NULL,"
+                        + "  `date_col` date DEFAULT NULL,"
+                        + "  `time_col` time DEFAULT NULL,"
+                        + "  `timestamp_col` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
+                        + "  `year_col` year(4) DEFAULT NULL,"
+                        + "  `bit_col` bit(5) DEFAULT NULL,"
+                        + "  `char_col` char(5) DEFAULT NULL,"
+                        + "  `varchar_col` varchar(10) DEFAULT NULL,"
+                        + "  `binary_col` binary(10) DEFAULT NULL,"
+                        + "  `varbinary_col` varbinary(10) DEFAULT NULL,"
+                        + "  `tinyblob_col` tinyblob,"
+                        + "  `blob_col` blob,"
+                        + "  `mediumblob_col` mediumblob,"
+                        + "  `longblob_col` longblob,"
+                        + "  `text_col` text,"
+                        + "  `mediumtext_col` mediumtext,"
+                        + "  `longtext_col` longtext"
         );
         createTable("ytab", "y year");
         createTable("maxcharlength", "maxcharlength char(1)", "character set utf8");
@@ -55,8 +58,9 @@ public class DatabaseMetadataTest extends BaseTest {
     }
 
     static void checkType(String name, int actualType, String colName, int expectedType) {
-        if (name.equals(colName))
+        if (name.equals(colName)) {
             assertEquals(actualType, expectedType);
+        }
     }
 
     @Before
@@ -65,22 +69,20 @@ public class DatabaseMetadataTest extends BaseTest {
     }
 
 
-
-
     @Test
     public void primaryKeysTest() throws SQLException {
         DatabaseMetaData dbmd = sharedConnection.getMetaData();
         ResultSet rs = dbmd.getPrimaryKeys("test", null, "dbpk_test");
-        int i = 0;
+        int counter = 0;
         while (rs.next()) {
-            i++;
+            counter++;
             assertEquals("test", rs.getString("table_cat"));
             assertEquals(null, rs.getString("table_schem"));
             assertEquals("dbpk_test", rs.getString("table_name"));
-            assertEquals("id" + i, rs.getString("column_name"));
-            assertEquals(i, rs.getShort("key_seq"));
+            assertEquals("id" + counter, rs.getString("column_name"));
+            assertEquals(counter, rs.getShort("key_seq"));
         }
-        assertEquals(2, i);
+        assertEquals(2, counter);
     }
 
     @Test
@@ -89,19 +91,21 @@ public class DatabaseMetadataTest extends BaseTest {
         stmt.execute("drop table if exists t2");
         stmt.execute("drop table if exists t1");
         stmt.execute("CREATE TABLE t1 ( id1 integer, constraint pk primary key(id1))");
-        stmt.execute("CREATE TABLE t2 (id2a integer, id2b integer, constraint pk primary key(id2a, id2b), constraint fk1 foreign key(id2a) references t1(id1),  constraint fk2 foreign key(id2b) references t1(id1))");
+        stmt.execute("CREATE TABLE t2 (id2a integer, id2b integer, constraint pk primary key(id2a, id2b), "
+                + "constraint fk1 foreign key(id2a) references t1(id1),  constraint fk2 foreign key(id2b) "
+                + "references t1(id1))");
 
         DatabaseMetaData dbmd = sharedConnection.getMetaData();
         ResultSet rs = dbmd.getPrimaryKeys("test", null, "t2");
-        int i = 0;
+        int counter = 0;
         while (rs.next()) {
-            i++;
+            counter++;
             assertEquals("test", rs.getString("table_cat"));
             assertEquals(null, rs.getString("table_schem"));
             assertEquals("t2", rs.getString("table_name"));
-            assertEquals(i, rs.getShort("key_seq"));
+            assertEquals(counter, rs.getShort("key_seq"));
         }
-        assertEquals(2, i);
+        assertEquals(2, counter);
         stmt.execute("drop table if exists t2");
         stmt.execute("drop table if exists t1");
     }
@@ -119,13 +123,15 @@ public class DatabaseMetadataTest extends BaseTest {
         Statement stmt = sharedConnection.createStatement();
         DatabaseMetaData md = sharedConnection.getMetaData();
 
-        if (md.getDatabaseMajorVersion() < 5)
+        if (md.getDatabaseMajorVersion() < 5) {
             return;
-        if (md.getDatabaseMajorVersion() == 5 && md.getDatabaseMinorVersion() < 5)
+        } else if (md.getDatabaseMajorVersion() == 5 && md.getDatabaseMinorVersion() < 5) {
             return;
+        }
 
         stmt.execute("DROP FUNCTION IF EXISTS hello");
-        stmt.execute("CREATE FUNCTION hello (s CHAR(20), i int) RETURNS CHAR(50) DETERMINISTIC  RETURN CONCAT('Hello, ',s,'!')");
+        stmt.execute("CREATE FUNCTION hello (s CHAR(20), i int) RETURNS CHAR(50) DETERMINISTIC  "
+                + "RETURN CONCAT('Hello, ',s,'!')");
         ResultSet rs = sharedConnection.getMetaData().getFunctionColumns(null, null, "hello", null);
 
         rs.next();
@@ -152,55 +158,50 @@ public class DatabaseMetadataTest extends BaseTest {
     }
 
 
-     /** Same as getImportedKeys, with one foreign key in a table in another catalog */
-     @Test
-     public void getImportedKeys() throws Exception{
-           Statement st  = sharedConnection.createStatement();
+    /**
+     * Same as getImportedKeys, with one foreign key in a table in another catalog.
+     */
+    @Test
+    public void getImportedKeys() throws Exception {
+        Statement st = sharedConnection.createStatement();
 
-           st.execute("DROP TABLE IF EXISTS product_order");
-           st.execute("DROP TABLE IF EXISTS t1.product ");
-           st.execute("DROP TABLE IF EXISTS `cus``tomer`");
-           st.execute("DROP DATABASE IF EXISTS test1");
+        st.execute("DROP TABLE IF EXISTS product_order");
+        st.execute("DROP TABLE IF EXISTS t1.product ");
+        st.execute("DROP TABLE IF EXISTS `cus``tomer`");
+        st.execute("DROP DATABASE IF EXISTS test1");
 
-           st.execute("CREATE DATABASE IF NOT EXISTS t1");
+        st.execute("CREATE DATABASE IF NOT EXISTS t1");
 
-           st.execute("CREATE TABLE t1.product (\n" +
-                   "    category INT NOT NULL, id INT NOT NULL,\n" +
-                   "    price DECIMAL,\n" +
-                   "    PRIMARY KEY(category, id)\n" +
-                   ")   ENGINE=INNODB");
+        st.execute("CREATE TABLE t1.product ( category INT NOT NULL, id INT NOT NULL, price DECIMAL,"
+                + " PRIMARY KEY(category, id) )   ENGINE=INNODB");
 
-           st.execute("CREATE TABLE `cus``tomer` (\n" +
-                   "    id INT NOT NULL,\n" +
-                   "    PRIMARY KEY (id)\n" +
-                   ")   ENGINE=INNODB");
+        st.execute("CREATE TABLE `cus``tomer` (id INT NOT NULL, PRIMARY KEY (id))   ENGINE=INNODB");
 
-           st.execute("CREATE TABLE product_order (\n" +
-                           "    no INT NOT NULL AUTO_INCREMENT,\n" +
-                           "    product_category INT NOT NULL,\n" +
-                           "    product_id INT NOT NULL,\n" +
-                           "    customer_id INT NOT NULL,\n" +
-                           "\n" +
-                           "    PRIMARY KEY(no),\n" +
-                           "    INDEX (product_category, product_id),\n" +
-                           "    INDEX (customer_id),\n" +
-                           "\n" +
-                           "    FOREIGN KEY (product_category, product_id)\n" +
-                           "      REFERENCES t1.product(category, id)\n" +
-                           "      ON UPDATE CASCADE ON DELETE RESTRICT,\n" +
-                           "\n" +
-                           "    FOREIGN KEY (customer_id)\n" +
-                           "      REFERENCES `cus``tomer`(id)\n" +
-                           ")   ENGINE=INNODB;"
-           )   ;
+        st.execute("CREATE TABLE product_order (\n"
+                        + "    no INT NOT NULL AUTO_INCREMENT,\n"
+                        + "    product_category INT NOT NULL,\n"
+                        + "    product_id INT NOT NULL,\n"
+                        + "    customer_id INT NOT NULL,\n"
+                        + "    PRIMARY KEY(no),\n"
+                        + "    INDEX (product_category, product_id),\n"
+                        + "    INDEX (customer_id),\n"
+                        + "    FOREIGN KEY (product_category, product_id)\n"
+                        + "      REFERENCES t1.product(category, id)\n"
+                        + "      ON UPDATE CASCADE ON DELETE RESTRICT,\n"
+                        + "    FOREIGN KEY (customer_id)\n"
+                        + "      REFERENCES `cus``tomer`(id)\n"
+                        + ")   ENGINE=INNODB;"
+        );
 
 
            /*
             Test that I_S implementation is equivalent to parsing "show create table" .
              Get result sets using either method and compare (ignore minor differences INT vs SMALLINT
            */
-        ResultSet rs1 = ((MySQLDatabaseMetaData) sharedConnection.getMetaData()).getImportedKeysUsingShowCreateTable("test", null, "product_order");
-        ResultSet rs2 = ((MySQLDatabaseMetaData) sharedConnection.getMetaData()).getImportedKeysUsingInformationSchema("test", null, "product_order");
+        ResultSet rs1 = ((MariaDbDatabaseMetaData) sharedConnection.getMetaData())
+                .getImportedKeysUsingShowCreateTable("test", null, "product_order");
+        ResultSet rs2 = ((MariaDbDatabaseMetaData) sharedConnection.getMetaData())
+                .getImportedKeysUsingInformationSchema("test", null, "product_order");
         assertEquals(rs1.getMetaData().getColumnCount(), rs2.getMetaData().getColumnCount());
 
 
@@ -226,10 +227,10 @@ public class DatabaseMetadataTest extends BaseTest {
         for (int i = 1; i <= md1.getColumnCount(); i++) {
             assertEquals(md1.getColumnLabel(i), md2.getColumnLabel(i));
         }
-         st.execute("DROP TABLE IF EXISTS product_order");
-         st.execute("DROP TABLE IF EXISTS t1.product ");
-         st.execute("DROP TABLE IF EXISTS `cus``tomer`");
-         st.execute("DROP DATABASE IF EXISTS test1");
+        st.execute("DROP TABLE IF EXISTS product_order");
+        st.execute("DROP TABLE IF EXISTS t1.product ");
+        st.execute("DROP TABLE IF EXISTS `cus``tomer`");
+        st.execute("DROP DATABASE IF EXISTS test1");
     }
 
     @Test
@@ -240,25 +241,24 @@ public class DatabaseMetadataTest extends BaseTest {
         stmt.execute("drop table if exists prim_key");
 
 
-        stmt.execute("create table prim_key (id int not null primary key, " +
-                "val varchar(20)) engine=innodb");
-        stmt.execute("create table fore_key0 (id int not null primary key, " +
-                "id_ref0 int, foreign key (id_ref0) references prim_key(id)) engine=innodb");
-        stmt.execute("create table fore_key1 (id int not null primary key, " +
-                "id_ref1 int, foreign key (id_ref1) references prim_key(id) on update cascade) engine=innodb");
+        stmt.execute("create table prim_key (id int not null primary key, "
+                + "val varchar(20)) engine=innodb");
+        stmt.execute("create table fore_key0 (id int not null primary key, "
+                + "id_ref0 int, foreign key (id_ref0) references prim_key(id)) engine=innodb");
+        stmt.execute("create table fore_key1 (id int not null primary key, "
+                + "id_ref1 int, foreign key (id_ref1) references prim_key(id) on update cascade) engine=innodb");
 
 
         DatabaseMetaData dbmd = sharedConnection.getMetaData();
         ResultSet rs = dbmd.getExportedKeys("test", null, "prim_key");
-        int i = 0;
+        int counter = 0;
         while (rs.next()) {
             assertEquals("id", rs.getString("pkcolumn_name"));
-            assertEquals("fore_key" + i, rs.getString("fktable_name"));
-            assertEquals("id_ref" + i, rs.getString("fkcolumn_name"));
-            i++;
-
+            assertEquals("fore_key" + counter, rs.getString("fktable_name"));
+            assertEquals("id_ref" + counter, rs.getString("fkcolumn_name"));
+            counter++;
         }
-        assertEquals(2, i);
+        assertEquals(2, counter);
         stmt.execute("drop table if exists fore_key0");
         stmt.execute("drop table if exists fore_key1");
         stmt.execute("drop table if exists prim_key");
@@ -271,22 +271,22 @@ public class DatabaseMetadataTest extends BaseTest {
         stmt.execute("drop table if exists fore_key1");
         stmt.execute("drop table if exists prim_key");
 
-        stmt.execute("create table prim_key (id int not null primary key, " +
-                "val varchar(20)) engine=innodb");
-        stmt.execute("create table fore_key0 (id int not null primary key, " +
-                "id_ref0 int, foreign key (id_ref0) references prim_key(id)) engine=innodb");
-        stmt.execute("create table fore_key1 (id int not null primary key, " +
-                "id_ref1 int, foreign key (id_ref1) references prim_key(id) on update cascade) engine=innodb");
+        stmt.execute("create table prim_key (id int not null primary key, "
+                + "val varchar(20)) engine=innodb");
+        stmt.execute("create table fore_key0 (id int not null primary key, "
+                + "id_ref0 int, foreign key (id_ref0) references prim_key(id)) engine=innodb");
+        stmt.execute("create table fore_key1 (id int not null primary key, "
+                + "id_ref1 int, foreign key (id_ref1) references prim_key(id) on update cascade) engine=innodb");
 
         DatabaseMetaData dbmd = sharedConnection.getMetaData();
         ResultSet rs = dbmd.getImportedKeys(sharedConnection.getCatalog(), null, "fore_key0");
-        int i = 0;
+        int counter = 0;
         while (rs.next()) {
             assertEquals("id", rs.getString("pkcolumn_name"));
             assertEquals("prim_key", rs.getString("pktable_name"));
-            i++;
+            counter++;
         }
-        assertEquals(1, i);
+        assertEquals(1, counter);
         stmt.execute("drop table if exists fore_key0");
         stmt.execute("drop table if exists fore_key1");
         stmt.execute("drop table if exists prim_key");
@@ -302,10 +302,11 @@ public class DatabaseMetadataTest extends BaseTest {
         while (rs.next()) {
             String cat = rs.getString(1);
 
-            if (cat.equalsIgnoreCase("mysql"))
+            if (cat.equalsIgnoreCase("mysql")) {
                 haveMysql = true;
-            else if (cat.equalsIgnoreCase("information_schema"))
+            } else if (cat.equalsIgnoreCase("information_schema")) {
                 haveInformationSchema = true;
+            }
         }
         assertTrue(haveMysql);
         assertTrue(haveInformationSchema);
@@ -319,19 +320,16 @@ public class DatabaseMetadataTest extends BaseTest {
         stmt.execute("drop table if exists prim_key");
 
 
-        stmt.execute("create table prim_key (id int not null primary key, " +
-                "val varchar(20)) engine=innodb");
-        stmt.execute("create table fore_key0 (id int not null primary key, " +
-                "id_ref0 int, foreign key (id_ref0) references prim_key(id)) engine=innodb");
-        stmt.execute("create table fore_key1 (id int not null primary key, " +
-                "id_ref1 int, foreign key (id_ref1) references prim_key(id) on update cascade) engine=innodb");
+        stmt.execute("create table prim_key (id int not null primary key, "
+                + "val varchar(20)) engine=innodb");
+        stmt.execute("create table fore_key0 (id int not null primary key, "
+                + "id_ref0 int, foreign key (id_ref0) references prim_key(id)) engine=innodb");
+        stmt.execute("create table fore_key1 (id int not null primary key, "
+                + "id_ref1 int, foreign key (id_ref1) references prim_key(id) on update cascade) engine=innodb");
 
         DatabaseMetaData dbmd = sharedConnection.getMetaData();
         ResultSet rs = dbmd.getTables(null, null, "prim_key", null);
 
-        /*if (!isMariadbServer()) requireMinimumVersion(5,6);
-        System.out.println("isMariadbServer() = "+isMariadbServer() + " "+ dbmd.getDatabaseProductVersion()+" "+ dbmd.getDatabaseMajorVersion() + " "+dbmd.getDatabaseMinorVersion());
-*/
         assertEquals(true, rs.next());
         rs = dbmd.getTables("", null, "prim_key", null);
         assertEquals(true, rs.next());
@@ -364,29 +362,35 @@ public class DatabaseMetadataTest extends BaseTest {
         String[] tokens = spec.split(",");
 
         for (int i = 0; i < tokens.length; i++) {
-            String[] a = tokens[i].trim().split(" ");
-            String label = a[0];
-            String type = a[1];
+            String[] splitTokens = tokens[i].trim().split(" ");
+            String label = splitTokens[0];
+            String type = splitTokens[1];
 
             int col = i + 1;
             assertEquals(label, rsmd.getColumnLabel(col));
-            int t = rsmd.getColumnType(col);
+            int columnType = rsmd.getColumnType(col);
             if (type.equals("String")) {
-                assertTrue("invalid type  " + t + " for " + rsmd.getColumnLabel(col) + ",expected String",
-                        t == java.sql.Types.VARCHAR || t == java.sql.Types.NULL || t == Types.LONGVARCHAR);
+                assertTrue("invalid type  " + columnType + " for " + rsmd.getColumnLabel(col) + ",expected String",
+                        columnType == java.sql.Types.VARCHAR
+                                || columnType == java.sql.Types.NULL
+                                || columnType == Types.LONGVARCHAR);
             } else if (type.equals("int") || type.equals("short")) {
 
-                assertTrue("invalid type  " + t + "( " + rsmd.getColumnTypeName(col) + " ) for " + rsmd.getColumnLabel(col) + ",expected numeric",
-                        t == java.sql.Types.BIGINT || t == java.sql.Types.INTEGER ||
-                                t == java.sql.Types.SMALLINT || t == java.sql.Types.TINYINT);
+                assertTrue("invalid type  " + columnType + "( " + rsmd.getColumnTypeName(col) + " ) for "
+                                + rsmd.getColumnLabel(col) + ",expected numeric",
+                        columnType == java.sql.Types.BIGINT
+                                || columnType == java.sql.Types.INTEGER
+                                || columnType == java.sql.Types.SMALLINT
+                                || columnType == java.sql.Types.TINYINT);
 
             } else if (type.equals("boolean")) {
-                assertTrue("invalid type  " + t + "( " + rsmd.getColumnTypeName(col) + " ) for " + rsmd.getColumnLabel(col) + ",expected boolean",
-                        t == java.sql.Types.BOOLEAN || t == java.sql.Types.BIT);
+                assertTrue("invalid type  " + columnType + "( " + rsmd.getColumnTypeName(col) + " ) for "
+                                + rsmd.getColumnLabel(col) + ",expected boolean",
+                        columnType == java.sql.Types.BOOLEAN || columnType == java.sql.Types.BIT);
 
             } else if (type.equals("null")) {
-                assertTrue("invalid type  " + t + " for " + rsmd.getColumnLabel(col) + ",expected null",
-                        t == java.sql.Types.NULL);
+                assertTrue("invalid type  " + columnType + " for " + rsmd.getColumnLabel(col) + ",expected null",
+                        columnType == java.sql.Types.NULL);
             } else {
                 assertTrue("invalid type '" + type + "'", false);
             }
@@ -399,8 +403,9 @@ public class DatabaseMetadataTest extends BaseTest {
                 sharedConnection.getMetaData().getAttributes(null, null, null, null),
                 "TYPE_CAT String,TYPE_SCHEM String,TYPE_NAME String,"
                         + "ATTR_NAME String,DATA_TYPE int,ATTR_TYPE_NAME String,ATTR_SIZE int,DECIMAL_DIGITS int,"
-                        + "NUM_PREC_RADIX int,NULLABLE int,REMARKS String,ATTR_DEF String,SQL_DATA_TYPE int,SQL_DATETIME_SUB int,"
-                        + "CHAR_OCTET_LENGTH int,ORDINAL_POSITION int,IS_NULLABLE String,SCOPE_CATALOG String,SCOPE_SCHEMA String,"
+                        + "NUM_PREC_RADIX int,NULLABLE int,REMARKS String,ATTR_DEF String,SQL_DATA_TYPE int,"
+                        + "SQL_DATETIME_SUB int, CHAR_OCTET_LENGTH int,ORDINAL_POSITION int,IS_NULLABLE String,"
+                        + "SCOPE_CATALOG String,SCOPE_SCHEMA String,"
                         + "SCOPE_TABLE String,SOURCE_DATA_TYPE short");
     }
 
@@ -426,6 +431,7 @@ public class DatabaseMetadataTest extends BaseTest {
                 createTable("AB", "i int");
                 fail("should not get there, since names are case-insensitive");
             } catch (SQLException e) {
+                //normal error
             }
 
             /* Check that table is stored case-preserving */
@@ -450,6 +456,7 @@ public class DatabaseMetadataTest extends BaseTest {
                 sharedConnection.createStatement().execute("create table AB(i int)");
                 fail("should not get there, since names are case-insensitive");
             } catch (SQLException e) {
+                //normal error
             }
 
             /* Check that table is stored lowercase */
@@ -507,9 +514,10 @@ public class DatabaseMetadataTest extends BaseTest {
     @Test
     public void getProcedureColumnsBasic() throws SQLException {
         testResultSetColumns(sharedConnection.getMetaData().getProcedureColumns(null, null, null, null),
-                "PROCEDURE_CAT String,PROCEDURE_SCHEM String,PROCEDURE_NAME String,COLUMN_NAME String ,COLUMN_TYPE short,"
-                        + "DATA_TYPE int,TYPE_NAME String,PRECISION int,LENGTH int,SCALE short,RADIX short,NULLABLE short,"
-                        + "REMARKS String,COLUMN_DEF String,SQL_DATA_TYPE int,SQL_DATETIME_SUB int ,CHAR_OCTET_LENGTH int,"
+                "PROCEDURE_CAT String,PROCEDURE_SCHEM String,PROCEDURE_NAME String,COLUMN_NAME String ,"
+                        + "COLUMN_TYPE short,DATA_TYPE int,TYPE_NAME String,PRECISION int,LENGTH int,SCALE short,"
+                        + "RADIX short,NULLABLE short,REMARKS String,COLUMN_DEF String,SQL_DATA_TYPE int,"
+                        + "SQL_DATETIME_SUB int ,CHAR_OCTET_LENGTH int,"
                         + "ORDINAL_POSITION int,IS_NULLABLE String,SPECIFIC_NAME String");
 
     }
@@ -518,8 +526,9 @@ public class DatabaseMetadataTest extends BaseTest {
     public void getFunctionColumnsBasic() throws SQLException {
         testResultSetColumns(sharedConnection.getMetaData().getFunctionColumns(null, null, null, null),
                 "FUNCTION_CAT String,FUNCTION_SCHEM String,FUNCTION_NAME String,COLUMN_NAME String,COLUMN_TYPE short,"
-                        + "DATA_TYPE int,TYPE_NAME String,PRECISION int,LENGTH int,SCALE short,RADIX short,NULLABLE short,REMARKS String,"
-                        + "CHAR_OCTET_LENGTH int,ORDINAL_POSITION int,IS_NULLABLE String,SPECIFIC_NAME String");
+                        + "DATA_TYPE int,TYPE_NAME String,PRECISION int,LENGTH int,SCALE short,RADIX short,"
+                        + "NULLABLE short,REMARKS String,CHAR_OCTET_LENGTH int,ORDINAL_POSITION int,"
+                        + "IS_NULLABLE String,SPECIFIC_NAME String");
 
     }
 
@@ -527,8 +536,8 @@ public class DatabaseMetadataTest extends BaseTest {
     public void getColumnPrivilegesBasic() throws SQLException {
         testResultSetColumns(
                 sharedConnection.getMetaData().getColumnPrivileges(null, null, "", null),
-                "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,COLUMN_NAME String," +
-                        "GRANTOR String,GRANTEE String,PRIVILEGE String,IS_GRANTABLE String");
+                "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,COLUMN_NAME String,"
+                        + "GRANTOR String,GRANTEE String,PRIVILEGE String,IS_GRANTABLE String");
     }
 
     @Test
@@ -562,8 +571,8 @@ public class DatabaseMetadataTest extends BaseTest {
         testResultSetColumns(
                 sharedConnection.getMetaData().getImportedKeys(null, null, ""),
                 "PKTABLE_CAT String,PKTABLE_SCHEM String,PKTABLE_NAME String, PKCOLUMN_NAME String,FKTABLE_CAT String,"
-                        + "FKTABLE_SCHEM String,FKTABLE_NAME String,FKCOLUMN_NAME String,KEY_SEQ short,UPDATE_RULE short,"
-                        + "DELETE_RULE short,FK_NAME String,PK_NAME String,DEFERRABILITY short");
+                        + "FKTABLE_SCHEM String,FKTABLE_NAME String,FKCOLUMN_NAME String,KEY_SEQ short,"
+                        + "UPDATE_RULE short,DELETE_RULE short,FK_NAME String,PK_NAME String,DEFERRABILITY short");
 
     }
 
@@ -572,8 +581,8 @@ public class DatabaseMetadataTest extends BaseTest {
         testResultSetColumns(
                 sharedConnection.getMetaData().getExportedKeys(null, null, ""),
                 "PKTABLE_CAT String,PKTABLE_SCHEM String,PKTABLE_NAME String, PKCOLUMN_NAME String,FKTABLE_CAT String,"
-                        + "FKTABLE_SCHEM String,FKTABLE_NAME String,FKCOLUMN_NAME String,KEY_SEQ short,UPDATE_RULE short,"
-                        + "DELETE_RULE short,FK_NAME String,PK_NAME String,DEFERRABILITY short");
+                        + "FKTABLE_SCHEM String,FKTABLE_NAME String,FKCOLUMN_NAME String,KEY_SEQ short,"
+                        + "UPDATE_RULE short, DELETE_RULE short,FK_NAME String,PK_NAME String,DEFERRABILITY short");
 
     }
 
@@ -582,12 +591,12 @@ public class DatabaseMetadataTest extends BaseTest {
         testResultSetColumns(
                 sharedConnection.getMetaData().getCrossReference(null, null, "", null, null, ""),
                 "PKTABLE_CAT String,PKTABLE_SCHEM String,PKTABLE_NAME String, PKCOLUMN_NAME String,FKTABLE_CAT String,"
-                        + "FKTABLE_SCHEM String,FKTABLE_NAME String,FKCOLUMN_NAME String,KEY_SEQ short,UPDATE_RULE short,"
-                        + "DELETE_RULE short,FK_NAME String,PK_NAME String,DEFERRABILITY short");
+                        + "FKTABLE_SCHEM String,FKTABLE_NAME String,FKCOLUMN_NAME String,KEY_SEQ short,"
+                        + "UPDATE_RULE short,DELETE_RULE short,FK_NAME String,PK_NAME String,DEFERRABILITY short");
     }
 
     @Test
-    public void getUDTsBasic() throws SQLException {
+    public void getUdtsBasic() throws SQLException {
         testResultSetColumns(
                 sharedConnection.getMetaData().getUDTs(null, null, null, null),
                 "TYPE_CAT String,TYPE_SCHEM String,TYPE_NAME String,CLASS_NAME String,DATA_TYPE int,"
@@ -621,12 +630,13 @@ public class DatabaseMetadataTest extends BaseTest {
     public void testGetSchemas2() throws SQLException {
         DatabaseMetaData dbmd = sharedConnection.getMetaData();
         ResultSet rs = dbmd.getCatalogs();
-        boolean foundTestUnitsJDBC = false;
+        boolean foundTestUnitsJdbc = false;
         while (rs.next()) {
-            if (rs.getString(1).equals("test"))
-                foundTestUnitsJDBC = true;
+            if (rs.getString(1).equals("test")) {
+                foundTestUnitsJdbc = true;
+            }
         }
-        assertEquals(true, foundTestUnitsJDBC);
+        assertEquals(true, foundTestUnitsJdbc);
     }
 
     /* Verify default behavior for nullCatalogMeansCurrent (=true) */
@@ -666,9 +676,9 @@ public class DatabaseMetadataTest extends BaseTest {
                 sharedConnection.getMetaData().getTypeInfo(),
                 "TYPE_NAME String,DATA_TYPE int,PRECISION int,LITERAL_PREFIX String,"
                         + "LITERAL_SUFFIX String,CREATE_PARAMS String, NULLABLE short,CASE_SENSITIVE boolean,"
-                        + "SEARCHABLE short,UNSIGNED_ATTRIBUTE boolean,FIXED_PREC_SCALE boolean, AUTO_INCREMENT boolean,"
-                        + "LOCAL_TYPE_NAME String,MINIMUM_SCALE short,MAXIMUM_SCALE short,SQL_DATA_TYPE int,SQL_DATETIME_SUB int,"
-                        + "NUM_PREC_RADIX int");
+                        + "SEARCHABLE short,UNSIGNED_ATTRIBUTE boolean,FIXED_PREC_SCALE boolean, "
+                        + "AUTO_INCREMENT boolean, LOCAL_TYPE_NAME String,MINIMUM_SCALE short,MAXIMUM_SCALE short,"
+                        + "SQL_DATA_TYPE int,SQL_DATETIME_SUB int, NUM_PREC_RADIX int");
     }
 
     @Test
@@ -738,7 +748,7 @@ public class DatabaseMetadataTest extends BaseTest {
 
     /* CONJ-15 */
     @Test
-    public void maxCharLengthUTF8() throws Exception {
+    public void maxCharLengthUtf8() throws Exception {
         DatabaseMetaData dmd = sharedConnection.getMetaData();
         ResultSet rs = dmd.getColumns(sharedConnection.getCatalog(), null, "maxcharlength", null);
         assertTrue(rs.next());

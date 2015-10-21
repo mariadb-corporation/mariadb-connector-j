@@ -44,11 +44,11 @@ public class CatalogTest extends BaseTest {
         String[] weirdDbNames = new String[]{"abc 123", "\"", "`"};
         for (String name : weirdDbNames) {
             Statement stmt = sharedConnection.createStatement();
-            stmt.execute("drop database if exists " + MySQLConnection.quoteIdentifier(name));
-            stmt.execute("create database " + MySQLConnection.quoteIdentifier(name));
+            stmt.execute("drop database if exists " + MariaDbConnection.quoteIdentifier(name));
+            stmt.execute("create database " + MariaDbConnection.quoteIdentifier(name));
             sharedConnection.setCatalog(name);
             assertEquals(name, sharedConnection.getCatalog());
-            stmt.execute("drop database if exists " + MySQLConnection.quoteIdentifier(name));
+            stmt.execute("drop database if exists " + MariaDbConnection.quoteIdentifier(name));
             stmt.close();
             sharedConnection.setCatalog(database);
         }

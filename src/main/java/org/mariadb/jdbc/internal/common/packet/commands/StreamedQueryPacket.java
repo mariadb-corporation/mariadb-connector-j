@@ -66,6 +66,12 @@ public class StreamedQueryPacket implements CommandPacket {
     private boolean isRewritable;
     private int rewriteOffset;
 
+    /**
+     * Initialize data.
+     * @param queries list of queries to send to server
+     * @param isRewritable are queries rewritable.
+     * @param rewriteOffset initial common offset
+     */
     public StreamedQueryPacket(final List<Query> queries, boolean isRewritable, int rewriteOffset) {
         this.queries = queries;
         this.query = null;
@@ -73,14 +79,24 @@ public class StreamedQueryPacket implements CommandPacket {
         this.rewriteOffset = rewriteOffset;
     }
 
-    public StreamedQueryPacket(final Query query, boolean isRewritable, int rewriteOffset) {
+    /**
+     * Initialize datas.
+     * @param query query to send to server.
+     */
+    public StreamedQueryPacket(final Query query) {
         this.query = query;
         this.queries = null;
-        this.isRewritable = isRewritable;
-        this.rewriteOffset = rewriteOffset;
+        this.isRewritable = false;
+        this.rewriteOffset = 0;
     }
 
-
+    /**
+     * Send queries to server.
+     * @param ostream write socket to server
+     * @return 0
+     * @throws IOException if connection error occur
+     * @throws QueryException when query rewrite error.
+     */
     public int send(final OutputStream ostream) throws IOException, QueryException {
         PacketOutputStream pos = (PacketOutputStream) ostream;
         pos.startPacket(0);

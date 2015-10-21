@@ -23,7 +23,7 @@ public class CancelTest extends BaseTest {
     public void cancelTest() throws SQLException {
         Connection tmpConnection = null;
         try {
-            tmpConnection = openNewConnection(connURI, new Properties());
+            tmpConnection = openNewConnection(connUri, new Properties());
             Statement stmt = tmpConnection.createStatement();
             ExecutorService exec = Executors.newFixedThreadPool(1);
             //check blacklist shared
@@ -34,6 +34,7 @@ public class CancelTest extends BaseTest {
             exec.shutdown();
             Assert.fail();
         } catch (SQLException e) {
+            //normal exception
         } finally {
             tmpConnection.close();
         }
@@ -44,7 +45,7 @@ public class CancelTest extends BaseTest {
     public void timeoutSleep() throws Exception {
         Connection tmpConnection = null;
         try {
-            tmpConnection = openNewConnection(connURI, new Properties());
+            tmpConnection = openNewConnection(connUri, new Properties());
             PreparedStatement stmt = tmpConnection.prepareStatement("select sleep(100)");
             stmt.setQueryTimeout(1);
             stmt.execute();
@@ -54,14 +55,14 @@ public class CancelTest extends BaseTest {
     }
 
     @Test
-    public void NoTimeoutSleep() throws Exception {
+    public void noTimeoutSleep() throws Exception {
         Statement stmt = sharedConnection.createStatement();
         stmt.setQueryTimeout(1);
         stmt.execute("select sleep(0.5)");
     }
 
     @Test
-    public void CancelIdleStatement() throws Exception {
+    public void cancelIdleStatement() throws Exception {
         Statement stmt = sharedConnection.createStatement();
         stmt.cancel();
         ResultSet rs = stmt.executeQuery("select 1");

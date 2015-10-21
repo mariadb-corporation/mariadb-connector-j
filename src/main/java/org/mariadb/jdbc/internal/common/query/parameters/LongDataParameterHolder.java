@@ -1,3 +1,5 @@
+package org.mariadb.jdbc.internal.common.query.parameters;
+
 /*
 MariaDB Client for Java
 
@@ -47,20 +49,21 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc.internal.common.query.parameters;
-
-import org.mariadb.jdbc.internal.common.MySQLCharset;
+import org.mariadb.jdbc.internal.common.MariaDbCharset;
 import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
 
 import java.io.IOException;
 
 
 public abstract class LongDataParameterHolder extends ParameterHolder {
-    public MySQLCharset mySQLServerCharset;
+    public MariaDbCharset mariaDbCharset;
+
     public abstract void writeBinary(PacketOutputStream writeBuffer) throws IOException;
-    public void setMySQLServerCharset(MySQLCharset mySQLServerCharset) {
-        this.mySQLServerCharset = mySQLServerCharset;
+
+    public void setMariaDbServerCharset(MariaDbCharset mariaDbCharset) {
+        this.mariaDbCharset = mariaDbCharset;
     }
+
     public boolean isLongData() {
         return true;
     }

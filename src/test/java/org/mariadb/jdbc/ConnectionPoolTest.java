@@ -10,7 +10,7 @@ import java.util.Properties;
 public class ConnectionPoolTest extends BaseTest {
 
     @Test
-    public void testConnectionWithApacheDBCP() throws SQLException {
+    public void testConnectionWithApacheDbcp() throws SQLException {
         org.apache.commons.dbcp.BasicDataSource dataSource;
         dataSource = new org.apache.commons.dbcp.BasicDataSource();
         dataSource.setUrl(connU);
@@ -39,7 +39,7 @@ public class ConnectionPoolTest extends BaseTest {
      * should compile without Apache DBCP but still show the problem.
      */
     @Test
-    public void testConnectionWithSimululatedApacheDBCP() throws SQLException {
+    public void testConnectionWithSimululatedApacheDbcp() throws SQLException {
 
         java.sql.Driver driver = new org.mariadb.jdbc.Driver();
 
@@ -68,17 +68,18 @@ public class ConnectionPoolTest extends BaseTest {
      * This class is a simulated version of org.apache.commons.dbcp.DriverConnectionFactory
      */
     private static class SimulatedDriverConnectionFactory {
-        protected java.sql.Driver _driver = null;
-        protected String _connectUri = null;
-        protected Properties _props = null;
+        protected java.sql.Driver internalDriver = null;
+        protected String internalConnectUri = null;
+        protected Properties internalProps = null;
+
         public SimulatedDriverConnectionFactory(java.sql.Driver driver, String connectUri, Properties props) {
-            _driver = driver;
-            _connectUri = connectUri;
-            _props = props;
+            internalDriver = driver;
+            internalConnectUri = connectUri;
+            internalProps = props;
         }
 
         public Connection createConnection() throws SQLException {
-            return _driver.connect(_connectUri, _props);
+            return internalDriver.connect(internalConnectUri, internalProps);
         }
     }
 

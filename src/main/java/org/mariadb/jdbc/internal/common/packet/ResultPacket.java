@@ -50,7 +50,6 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.common.packet;
 
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public abstract class ResultPacket {
@@ -62,11 +61,10 @@ public abstract class ResultPacket {
 
     public abstract ResultType getResultType();
 
-    public enum ResultType {
-        OK, ERROR, EOF, RESULTSET, LOCALINFILE, FIELD
-    }
-
-
+    /**
+     * Get next binary data encoded length.
+     * @return length
+     */
     public long getLengthEncodedBinary() {
         /*if (byteBuffer.remaining() == 0) {
             return 0;
@@ -86,8 +84,14 @@ public abstract class ResultPacket {
         }
     }
 
-    public byte[] getLengthEncodedBytes() throws IOException {
-        if (byteBuffer.remaining() == 0) return new byte[0];
+    /**
+     * Get next data length encoded binary.
+     * @return length of next data.
+     */
+    public byte[] getLengthEncodedBytes() {
+        if (byteBuffer.remaining() == 0) {
+            return new byte[0];
+        }
         final long encLength = getLengthEncodedBinary();
         if (encLength == -1) {
             return null;
@@ -97,10 +101,18 @@ public abstract class ResultPacket {
         return tmpBuf;
     }
 
-    public String getStringLengthEncodedBytes() throws IOException {
-        if (byteBuffer.remaining() == 0) return null;
+    /**
+     * Read next binary String encoded.
+     * @return String value
+     */
+    public String getStringLengthEncodedBytes() {
+        if (byteBuffer.remaining() == 0) {
+            return null;
+        }
         final long encLength = getLengthEncodedBinary();
-        if (encLength == 0) return "";
+        if (encLength == 0) {
+            return "";
+        }
         if (encLength != -1) {
             final byte[] tmpBuf = new byte[(int) encLength];
             byteBuffer.get(tmpBuf);
@@ -113,7 +125,10 @@ public abstract class ResultPacket {
         return byteBuffer.getShort();
     }
 
-
+    /**
+     * Read 24 bit integer.
+     * @return length
+     */
     public int read24bitword() {
         final byte[] tmpArr = new byte[3];
         byteBuffer.get(tmpArr);
@@ -122,5 +137,9 @@ public abstract class ResultPacket {
 
     public long readLong() {
         return byteBuffer.getLong();
+    }
+
+    public enum ResultType {
+        OK, ERROR, EOF, RESULTSET, LOCALINFILE, FIELD
     }
 }
