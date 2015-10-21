@@ -131,6 +131,10 @@ public class UnixDomainSocket extends Socket {
         public short sun_family;
         public byte[] sun_path;
 
+        /**
+         * Contructor.
+         * @param sunPath path
+         */
         public SockAddr(String sunPath) {
             sun_family = AF_UNIX;
             byte[] arr = sunPath.getBytes();
@@ -148,7 +152,7 @@ public class UnixDomainSocket extends Socket {
     class UnixSocketInputStream extends InputStream {
 
         @Override
-        public int read(byte[] b, int off, int len) throws IOException {
+        public int read(byte[] bytesEntry, int off, int len) throws IOException {
             try {
                 if (off > 0) {
                     int bytes = 0;
@@ -158,7 +162,7 @@ public class UnixDomainSocket extends Socket {
                         size = (len < 10240) ? len : 10240;
                         size = recv(fd, data, size, 0);
                         if (size > 0) {
-                            System.arraycopy(data, 0, b, off, size);
+                            System.arraycopy(data, 0, bytesEntry, off, size);
                             bytes += size;
                             off += size;
                             len -= size;
@@ -166,7 +170,7 @@ public class UnixDomainSocket extends Socket {
                     } while ((len > 0) && (size > 0));
                     return bytes;
                 } else {
-                    return recv(fd, b, len, 0);
+                    return recv(fd, bytesEntry, len, 0);
                 }
             } catch (LastErrorException lee) {
                 throw new IOException("native read() failed : " + formatError(lee));
@@ -175,22 +179,24 @@ public class UnixDomainSocket extends Socket {
 
         @Override
         public int read() throws IOException {
-            byte[] b = new byte[1];
-            int bytesRead = read(b);
-            if (bytesRead == 0) return -1;
-            return b[0] & 0xff;
+            byte[] bytes = new byte[1];
+            int bytesRead = read(bytes);
+            if (bytesRead == 0) {
+                return -1;
+            }
+            return bytes[0] & 0xff;
         }
 
         @Override
-        public int read(byte[] b) throws IOException {
-            return read(b, 0, b.length);
+        public int read(byte[] bytes) throws IOException {
+            return read(bytes, 0, bytes.length);
         }
     }
 
     class UnixSocketOutputStream extends OutputStream {
 
         @Override
-        public void write(byte[] b, int off, int len) throws IOException {
+        public void write(byte[] bytesEntry, int off, int len) throws IOException {
             int bytes = 0;
             try {
                 if (off > 0) {
@@ -198,7 +204,7 @@ public class UnixDomainSocket extends Socket {
                     byte[] data = new byte[size];
                     do {
                         size = (len < 10240) ? len : 10240;
-                        System.arraycopy(b, off, data, 0, size);
+                        System.arraycopy(bytesEntry, off, data, 0, size);
                         bytes = send(fd, data, size, 0);
                         if (bytes > 0) {
                             off += bytes;
@@ -206,23 +212,25 @@ public class UnixDomainSocket extends Socket {
                         }
                     } while ((len > 0) && (bytes > 0));
                 } else {
-                    bytes = send(fd, b, len, 0);
+                    bytes = send(fd, bytesEntry, len, 0);
                 }
 
-                if (bytes != len) throw new IOException("can't write " + len + "bytes");
+                if (bytes != len) {
+                    throw new IOException("can't write " + len + "bytes");
+                }
             } catch (LastErrorException lee) {
                 throw new IOException("native write() failed : " + formatError(lee));
             }
         }
 
         @Override
-        public void write(int b) throws IOException {
-            write(new byte[]{(byte) b});
+        public void write(int value) throws IOException {
+            write(new byte[]{(byte) value});
         }
 
         @Override
-        public void write(byte[] b) throws IOException {
-            write(b, 0, b.length);
+        public void write(byte[] bytes) throws IOException {
+            write(bytes, 0, bytes.length);
         }
     }
 }

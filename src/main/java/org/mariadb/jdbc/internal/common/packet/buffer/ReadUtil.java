@@ -1,3 +1,4 @@
+package org.mariadb.jdbc.internal.common.packet.buffer;
 /*
 MariaDB Client for Java
 
@@ -46,9 +47,6 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWIS
 ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
 OF SUCH DAMAGE.
 */
-package org.mariadb.jdbc.internal.common.packet.buffer;
-
-import org.mariadb.jdbc.internal.common.packet.RawPacket;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -66,44 +64,43 @@ public final class ReadUtil {
      * doing another read if we don't have all of the data yet.
      *
      * @param stream the input stream to read from
-     * @param b      buffer where to store the data
+     * @param bytes      buffer where to store the data
      * @param off    offset in the buffer
      * @param len    bytes to read
      * @throws java.io.IOException if an error occurs while reading the stream.
      *                             java.io.EOFException of end of stream is hit.
      */
-    public static void readFully(InputStream stream, byte[] b, int off, int len) throws IOException {
-        if (len < 0) {
-            throw new AssertionError("len < 0");
-        }
+    public static void readFully(InputStream stream, byte[] bytes, int off, int len) throws IOException {
+        long start = System.nanoTime();
         int remaining = len;
-        while (remaining > 0) {
-            int count = stream.read(b, off, remaining);
+        do {
+            int count = stream.read(bytes, off, remaining);
             if (count <= 0) {
                 throw new EOFException("unexpected end of stream, read " + (len - remaining) + " bytes from " + len);
             }
             remaining -= count;
             off += count;
-        }
+        } while (remaining > 0);
+
     }
 
-    public static void readFully(InputStream stream, byte[] b) throws IOException {
-        readFully(stream, b, 0, b.length);
+    public static void readFully(InputStream stream, byte[] bytes) throws IOException {
+        readFully(stream, bytes, 0, bytes.length);
     }
+
 
     /**
      * Checks whether the next packet is EOF.
      *
-     * @param rawPacket the raw packet
+     * @param byteBuffer the raw packet
      * @return true if the packet is an EOF packet
      */
-    public static boolean eofIsNext(final RawPacket rawPacket) {
-        final ByteBuffer buf = rawPacket.getByteBuffer();
-        return (buf.get(0) == (byte) 0xfe && buf.capacity() < 9);
+    public static boolean eofIsNext(ByteBuffer byteBuffer) {
+        return (byteBuffer.get(0) == (byte) 0xfe && byteBuffer.limit() < 9);
 
     }
 
-    public static boolean isErrorPacket(RawPacket rawPacket) {
-        return rawPacket.getByteBuffer().get(0) == (byte) 0xff;
+    public static boolean isErrorPacket(ByteBuffer byteBuffer) {
+        return byteBuffer.get(0) == (byte) 0xff;
     }
 }

@@ -9,6 +9,10 @@ import java.sql.*;
 import static org.junit.Assert.assertEquals;
 
 public class ResultSetMetaDataTest extends BaseTest {
+    /**
+     * Initialisation.
+     * @throws SQLException exception
+     */
     @BeforeClass()
     public static void initClass() throws SQLException {
         createTable("test_rsmd", "id_col int not null primary key auto_increment, "

@@ -1,6 +1,5 @@
 package org.mariadb.jdbc;
 
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -13,23 +12,29 @@ import static org.junit.Assert.*;
 
 public class StatementTest extends BaseTest {
 
-    private final static int ER_BAD_FIELD_ERROR = 1054;
-    private final static int ER_NON_INSERTABLE_TABLE = 1471;
-    private final static int ER_NO_SUCH_TABLE = 1146;
-    private final static int ER_NONUPDATEABLE_COLUMN = 1348;
-    private final static int ER_PARSE_ERROR = 1064;
-    private final static int ER_NO_PARTITION_FOR_GIVEN_VALUE = 1526;
-    private final static int ER_LOAD_DATA_INVALID_COLUMN = 1611;
-    private final static int ER_ADD_PARTITION_NO_NEW_PARTITION = 1514;
-    private final String ER_BAD_FIELD_ERROR_STATE = "42S22";
-    private final String ER_NON_INSERTABLE_TABLE_STATE = "HY000";
-    private final String ER_NO_SUCH_TABLE_STATE = "42S02";
-    private final String ER_NONUPDATEABLE_COLUMN_STATE = "HY000";
-    private final String ER_PARSE_ERROR_STATE = "42000";
-    private final String ER_NO_PARTITION_FOR_GIVEN_VALUE_STATE = "HY000";
-    private final String ER_LOAD_DATA_INVALID_COLUMN_STATE = "HY000";
-    private final String ER_ADD_PARTITION_NO_NEW_PARTITION_STATE = "HY000";
+    private static final int ER_BAD_FIELD_ERROR = 1054;
+    private static final int ER_NON_INSERTABLE_TABLE = 1471;
+    private static final int ER_NO_SUCH_TABLE = 1146;
+    private static final int ER_NONUPDATEABLE_COLUMN = 1348;
+    private static final int ER_PARSE_ERROR = 1064;
+    private static final int ER_NO_PARTITION_FOR_GIVEN_VALUE = 1526;
+    private static final int ER_LOAD_DATA_INVALID_COLUMN = 1611;
+    private static final int ER_ADD_PARTITION_NO_NEW_PARTITION = 1514;
+    private static final String ER_BAD_FIELD_ERROR_STATE = "42S22";
+    private static final String ER_NON_INSERTABLE_TABLE_STATE = "HY000";
+    private static final String ER_NO_SUCH_TABLE_STATE = "42S02";
+    private static final String ER_NONUPDATEABLE_COLUMN_STATE = "HY000";
+    private static final String ER_PARSE_ERROR_STATE = "42000";
+    private static final String ER_NO_PARTITION_FOR_GIVEN_VALUE_STATE = "HY000";
+    private static final String ER_LOAD_DATA_INVALID_COLUMN_STATE = "HY000";
+    private static final String ER_ADD_PARTITION_NO_NEW_PARTITION_STATE = "HY000";
 
+
+    /**
+     * Initializing tables.
+     *
+     * @throws SQLException exception
+     */
     @BeforeClass()
     public static void initClass() throws SQLException {
         createTable("vendor_code_test", "id int not null primary key auto_increment, test boolean");
@@ -39,17 +44,18 @@ public class StatementTest extends BaseTest {
 
 
     }
-    
+
 
     @Test
     public void wrapperTest() throws SQLException {
-        MySQLStatement mysqlStatement = new MySQLStatement((MySQLConnection) sharedConnection);
+        MariaDbStatement mysqlStatement = new MariaDbStatement((MariaDbConnection) sharedConnection,
+                Statement.NO_GENERATED_KEYS);
         assertTrue(mysqlStatement.isWrapperFor(Statement.class));
         assertFalse(mysqlStatement.isWrapperFor(SQLException.class));
         assertThat(mysqlStatement.unwrap(Statement.class), equalTo((Statement) mysqlStatement));
         try {
             mysqlStatement.unwrap(SQLException.class);
-            fail("MySQLStatement class unwrapped as SQLException class");
+            fail("MariaDbStatement class unwrapped as SQLException class");
         } catch (SQLException sqle) {
             assertTrue(true);
         } catch (Exception e) {
@@ -59,9 +65,9 @@ public class StatementTest extends BaseTest {
     }
 
     /**
-     * CONJ-90
+     * Conj-90.
      *
-     * @throws SQLException
+     * @throws SQLException exception
      */
     @Test
     public void reexecuteStatementTest() throws SQLException {
@@ -89,12 +95,13 @@ public class StatementTest extends BaseTest {
         assertTrue(false);
         st2.close();
     }
-    
+
     @Test
     public void testColumnsDoNotExist() throws SQLException {
 
         try {
-            sharedConnection.createStatement().executeQuery("select * from vendor_code_test where crazy_column_that_does_not_exist = 1");
+            sharedConnection.createStatement().executeQuery(
+                    "select * from vendor_code_test where crazy_column_that_does_not_exist = 1");
             fail("The above statement should result in an exception");
         } catch (SQLException sqlException) {
             assertEquals(ER_BAD_FIELD_ERROR, sqlException.getErrorCode());
@@ -105,7 +112,8 @@ public class StatementTest extends BaseTest {
     @Test
     public void testNonInsertableTable() throws SQLException {
         Statement statement = sharedConnection.createStatement();
-        statement.execute("create or replace view vendor_code_test_view as select id as id1, id as id2, test from vendor_code_test");
+        statement.execute("create or replace view vendor_code_test_view as select id as id1, id as id2, test "
+                + "from vendor_code_test");
 
         try {
             statement.executeQuery("insert into vendor_code_test_view VALUES (null, null, true)");
@@ -146,7 +154,8 @@ public class StatementTest extends BaseTest {
     @Test
     public void testNonUpdateableColumn() throws SQLException {
         Statement statement = sharedConnection.createStatement();
-        statement.execute("create or replace view vendor_code_test_view as select *, 1 as derived_column_that_does_no_exist from vendor_code_test");
+        statement.execute("create or replace view vendor_code_test_view as select *,"
+                + " 1 as derived_column_that_does_no_exist from vendor_code_test");
 
         try {
             statement.executeQuery("UPDATE vendor_code_test_view SET derived_column_that_does_no_exist = 1");
@@ -172,7 +181,7 @@ public class StatementTest extends BaseTest {
     @Test
     public void testAddPartitionNoNewPartition() throws SQLException {
         Statement statement = sharedConnection.createStatement();
-       try {
+        try {
             statement.execute("ALTER TABLE vendor_code_test2 ADD PARTITION PARTITIONS 0");
             fail("The above statement should result in an exception");
         } catch (SQLException sqlException) {
@@ -200,17 +209,16 @@ public class StatementTest extends BaseTest {
         statement.execute("drop view if exists v2");
         statement.execute("CREATE VIEW v2 AS SELECT 1 + 2 AS c0, c1, c2 FROM StatementTestt1;");
         try {
-            MySQLStatement mysqlStatement;
-            if (statement.isWrapperFor(org.mariadb.jdbc.MySQLStatement.class)) {
-                mysqlStatement = statement.unwrap(org.mariadb.jdbc.MySQLStatement.class);
+            MariaDbStatement mysqlStatement;
+            if (statement.isWrapperFor(MariaDbStatement.class)) {
+                mysqlStatement = statement.unwrap(MariaDbStatement.class);
             } else {
                 throw new RuntimeException("Mariadb JDBC adaptor must be used");
             }
             try {
-                String data =
-                        "\"1\", \"string1\"\n" +
-                                "\"2\", \"string2\"\n" +
-                                "\"3\", \"string3\"\n";
+                String data = "\"1\", \"string1\"\n"
+                        + "\"2\", \"string2\"\n"
+                        + "\"3\", \"string3\"\n";
                 ByteArrayInputStream loadDataInfileFile = new ByteArrayInputStream(data.getBytes("utf-8"));
                 mysqlStatement.setLocalInfileInputStream(loadDataInfileFile);
                 mysqlStatement.executeUpdate("LOAD DATA LOCAL INFILE 'dummyFileName' INTO TABLE v2 "

@@ -3,7 +3,6 @@ package org.mariadb.jdbc;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mariadb.jdbc.internal.mysql.MySQLProtocol;
 
 import java.io.*;
 import java.sql.*;
@@ -12,7 +11,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class BlobTest extends BaseTest {
-
+    /**
+     * Initialisation.
+     * @throws SQLException exception
+     */
     @BeforeClass()
     public static void initClass() throws SQLException {
         createTable("bug716378", "id int not null primary key auto_increment, test longblob, test2 blob, test3 text");
@@ -33,7 +35,7 @@ public class BlobTest extends BaseTest {
     public void testPosition() throws SQLException {
         byte[] blobContent = new byte[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
         byte[] pattern = new byte[]{3, 4};
-        Blob blob = new MySQLBlob(blobContent);
+        Blob blob = new MariaDbBlob(blobContent);
         assertEquals(3, blob.position(pattern, 1));
         pattern = new byte[]{12, 13};
         assertEquals(-1, blob.position(pattern, 1));
@@ -48,7 +50,7 @@ public class BlobTest extends BaseTest {
     public void testBadStart() throws SQLException {
         byte[] blobContent = new byte[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
         byte[] pattern = new byte[]{3, 4};
-        Blob blob = new MySQLBlob(blobContent);
+        Blob blob = new MariaDbBlob(blobContent);
         blob.position(pattern, 0);
     }
 
@@ -56,7 +58,7 @@ public class BlobTest extends BaseTest {
     public void testBadStart2() throws SQLException {
         byte[] blobContent = new byte[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
         byte[] pattern = new byte[]{3, 4};
-        Blob blob = new MySQLBlob(blobContent);
+        Blob blob = new MariaDbBlob(blobContent);
         blob.position(pattern, 44);
     }
 
@@ -126,9 +128,9 @@ public class BlobTest extends BaseTest {
         ResultSet rs = sharedConnection.createStatement().executeQuery("select * from BlobTestclobtest");
         rs.next();
         Reader readStuff = rs.getClob("strm").getCharacterStream();
-        char[] a = new char[5];
-        readStuff.read(a);
-        assertEquals(new String(a), clob);
+        char[] chars = new char[5];
+        readStuff.read(chars);
+        assertEquals(new String(chars), clob);
     }
 
     @Test
@@ -142,10 +144,8 @@ public class BlobTest extends BaseTest {
         stmt.execute();
         ResultSet rs = sharedConnection.createStatement().executeQuery("select * from BlobTestclobtest2");
         rs.next();
-        Object o = rs.getObject(1);
-        assertTrue(o instanceof String);
-        String s = rs.getString(1);
-        assertEquals("\u00D8hello", s);
+        assertTrue(rs.getObject(1) instanceof String);
+        assertEquals("\u00D8hello", rs.getString(1));
     }
 
     @Test
@@ -201,9 +201,9 @@ public class BlobTest extends BaseTest {
         ResultSet rs = sharedConnection.createStatement().executeQuery("select * from BlobTestclobtest3");
         rs.next();
         Reader readStuff = rs.getClob("strm").getCharacterStream();
-        char[] a = new char[4];
-        readStuff.read(a);
-        Assert.assertEquals(new String(a), clob);
+        char[] chars = new char[4];
+        readStuff.read(chars);
+        Assert.assertEquals(new String(chars), clob);
     }
 
     @Test
@@ -218,52 +218,50 @@ public class BlobTest extends BaseTest {
         stmt.execute();
         ResultSet rs = sharedConnection.createStatement().executeQuery("select * from BlobTestclobtest4");
         rs.next();
-        Object o = rs.getObject(2);
-        assertTrue(o instanceof String);
-        String s = rs.getString(2);
-        assertTrue(s.equals("hello"));
+        assertTrue(rs.getObject(2) instanceof String);
+        assertTrue(rs.getString(2).equals("hello"));
     }
 
     @Test
     public void blobSerialization() throws Exception {
-        Blob b = new MySQLBlob(new byte[]{1, 2, 3});
+        Blob blob = new MariaDbBlob(new byte[]{1, 2, 3});
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ObjectOutputStream oos = new ObjectOutputStream(baos);
-        oos.writeObject(b);
+        oos.writeObject(blob);
 
         ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(baos.toByteArray()));
-        MySQLBlob b2 = (MySQLBlob) ois.readObject();
-        byte[] a = b2.getBytes(1, (int) b2.length());
-        assertEquals(3, a.length);
-        assertEquals(1, a[0]);
-        assertEquals(2, a[1]);
-        assertEquals(3, a[2]);
+        MariaDbBlob blob2 = (MariaDbBlob) ois.readObject();
+        byte[] blobBytes = blob2.getBytes(1, (int) blob2.length());
+        assertEquals(3, blobBytes.length);
+        assertEquals(1, blobBytes[0]);
+        assertEquals(2, blobBytes[1]);
+        assertEquals(3, blobBytes[2]);
 
 
-        java.sql.Clob c = new MySQLClob(new byte[]{1, 2, 3});
+        java.sql.Clob clob = new MariaDbClob(new byte[]{1, 2, 3});
         baos = new ByteArrayOutputStream();
         oos = new ObjectOutputStream(baos);
-        oos.writeObject(c);
+        oos.writeObject(clob);
 
         ois = new ObjectInputStream(new ByteArrayInputStream(baos.toByteArray()));
-        MySQLClob c2 = (MySQLClob) ois.readObject();
-        a = c2.getBytes(1, (int) c2.length());
-        assertEquals(3, a.length);
-        assertEquals(1, a[0]);
-        assertEquals(2, a[1]);
-        assertEquals(3, a[2]);
+        MariaDbClob c2 = (MariaDbClob) ois.readObject();
+        blobBytes = c2.getBytes(1, (int) c2.length());
+        assertEquals(3, blobBytes.length);
+        assertEquals(1, blobBytes[0]);
+        assertEquals(2, blobBytes[1]);
+        assertEquals(3, blobBytes[2]);
     }
 
     @Test
     public void conj73() throws Exception {
        /* CONJ-73: Assertion error: UTF8 length calculation reports invalid ut8 characters */
-        java.sql.Clob c = new MySQLClob(new byte[]{(byte) 0x10, (byte) 0xD0, (byte) 0xA0, (byte) 0xe0, (byte) 0xa1, (byte) 0x8e});
+        java.sql.Clob clob = new MariaDbClob(new byte[]{(byte) 0x10, (byte) 0xD0, (byte) 0xA0, (byte) 0xe0, (byte) 0xa1, (byte) 0x8e});
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ObjectOutputStream oos = new ObjectOutputStream(baos);
-        oos.writeObject(c);
+        oos.writeObject(clob);
 
         ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(baos.toByteArray()));
-        MySQLClob c2 = (MySQLClob) ois.readObject();
+        MariaDbClob c2 = (MariaDbClob) ois.readObject();
 
         assertEquals(3, c2.length());
     }
@@ -289,12 +287,14 @@ public class BlobTest extends BaseTest {
 
                 pre.executeBatch();
             } finally {
-                if (pre != null)
+                if (pre != null) {
                     pre.close();
+                }
             }
         } finally {
-            if (sta1 != null)
+            if (sta1 != null) {
                 sta1.close();
+            }
         }
         final Statement sta2 = sharedConnection.createStatement();
         try {
@@ -308,26 +308,30 @@ public class BlobTest extends BaseTest {
                             final InputStream bin = blob.getBinaryStream();
                             try {
                                 final byte[] buffer = new byte[1024 * 4];
-
-                                for (int read = bin.read(buffer); read != -1; read = bin.read(buffer))
+                                for (int read = bin.read(buffer); read != -1; read = bin.read(buffer)) {
                                     bout.write(buffer, 0, read);
+                                }
                             } finally {
-                                if (bin != null)
+                                if (bin != null) {
                                     bin.close();
+                                }
                             }
                         } finally {
-                            if (bout != null)
+                            if (bout != null) {
                                 bout.close();
+                            }
                         }
                     }
                 }
             } finally {
-                if (set != null)
+                if (set != null) {
                     set.close();
+                }
             }
         } finally {
-            if (sta2 != null)
+            if (sta2 != null) {
                 sta2.close();
+            }
         }
     }
 

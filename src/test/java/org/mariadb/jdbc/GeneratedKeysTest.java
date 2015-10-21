@@ -1,7 +1,5 @@
 package org.mariadb.jdbc;
 
-import org.junit.After;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -10,6 +8,10 @@ import java.sql.*;
 import static org.junit.Assert.*;
 
 public class GeneratedKeysTest extends BaseTest {
+    /**
+     * Initialisation.
+     * @throws SQLException exception
+     */
     @BeforeClass()
     public static void initClass() throws SQLException {
         createTable("gen_key_test", "id INTEGER NOT NULL AUTO_INCREMENT, name VARCHAR(100), PRIMARY KEY (id)");
@@ -19,7 +21,8 @@ public class GeneratedKeysTest extends BaseTest {
     public void testSimpleGeneratedKeys() throws SQLException {
         Statement statement = sharedConnection.createStatement();
         statement.execute("truncate gen_key_test");
-        statement.executeUpdate("INSERT INTO gen_key_test (id, name) VALUES (null, 'Dave')", Statement.RETURN_GENERATED_KEYS);
+        statement.executeUpdate("INSERT INTO gen_key_test (id, name) VALUES (null, 'Dave')",
+                Statement.RETURN_GENERATED_KEYS);
 
         ResultSet resultSet = statement.getGeneratedKeys();
         assertTrue(resultSet.next());

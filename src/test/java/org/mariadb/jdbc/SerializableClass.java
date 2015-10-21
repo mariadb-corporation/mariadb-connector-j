@@ -7,9 +7,9 @@ public class SerializableClass implements Serializable {
     private final String val;
     private final int val2;
 
-    public SerializableClass(String v, int v2) {
-        this.val = v;
-        this.val2 = v2;
+    public SerializableClass(String val, int val2) {
+        this.val = val;
+        this.val2 = val2;
     }
 
     public String getVal() {

@@ -10,11 +10,12 @@ import org.mariadb.jdbc.internal.mysql.Protocol;
 import java.io.*;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
-import java.sql.Date;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
+import java.util.TimeZone;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -22,6 +23,10 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.Assert.*;
 
 public class ServerPrepareStatementTest extends BaseTest {
+    /**
+     * Tables initialisations.
+     * @throws SQLException exception
+     */
     @BeforeClass()
     public static void initClass() throws SQLException {
         createTable("ServerPrepareStatementTest", "id int not null primary key auto_increment, test boolean");
@@ -31,59 +36,61 @@ public class ServerPrepareStatementTest extends BaseTest {
         createTable("ServerPrepareStatementCacheSize", "id int not null primary key auto_increment, test int");
         createTable("preparetestFactionnal", "time0 TIME(6) default '22:11:00'");
         createTable("preparetest",
-                "bit1 BIT(1)," +
-                        "bit2 BIT(2)," +
-                        "tinyint1 TINYINT(1)," +
-                        "tinyint2 TINYINT(2)," +
-                        "bool0 BOOL default 1," +
-                        "smallint0 SMALLINT default 1," +
-                        "smallint_unsigned SMALLINT UNSIGNED default 0," +
-                        "mediumint0 MEDIUMINT default 1," +
-                        "mediumint_unsigned MEDIUMINT UNSIGNED default 0," +
-                        "int0 INT default 1," +
-                        "int_unsigned INT UNSIGNED default 0," +
-                        "bigint0 BIGINT default 1," +
-                        "bigint_unsigned BIGINT UNSIGNED default 0," +
-                        "float0 FLOAT default 0," +
-                        "double0 DOUBLE default 1," +
-                        "decimal0 DECIMAL default 0," +
-                        "decimal1 DECIMAL(15,4) default 0," +
-                        "date0 DATE default '2001-01-01'," +
-                        "datetime0 DATETIME(6) default '2001-01-01 00:00:00'," +
-                        "timestamp0 TIMESTAMP(6) default  '2001-01-01 00:00:00'," +
-                        "timestamp1 TIMESTAMP(0) default  '2001-01-01 00:00:00'," +
-                        "timestamp_zero TIMESTAMP  null, " +
-                        "time0 TIME(6) default '22:11:00'," +
-                        "year2 YEAR(2) default 99," +
-                        "year4 YEAR(4) default 2011," +
-                        "char0 CHAR(1) default '0'," +
-                        "char_binary CHAR (1) binary default '0'," +
-                        "varchar0 VARCHAR(1) default '1'," +
-                        "varchar_binary VARCHAR(10) BINARY default 0x1," +
-                        "binary0 BINARY(10) default 0x1," +
-                        "varbinary0 VARBINARY(10) default 0x1"
+                "bit1 BIT(1),"
+                        + "bit2 BIT(2),"
+                        + "tinyint1 TINYINT(1),"
+                        + "tinyint2 TINYINT(2),"
+                        + "bool0 BOOL default 1,"
+                        + "smallint0 SMALLINT default 1,"
+                        + "smallint_unsigned SMALLINT UNSIGNED default 0,"
+                        + "mediumint0 MEDIUMINT default 1,"
+                        + "mediumint_unsigned MEDIUMINT UNSIGNED default 0,"
+                        + "int0 INT default 1,"
+                        + "int_unsigned INT UNSIGNED default 0,"
+                        + "bigint0 BIGINT default 1,"
+                        + "bigint_unsigned BIGINT UNSIGNED default 0,"
+                        + "float0 FLOAT default 0,"
+                        + "double0 DOUBLE default 1,"
+                        + "decimal0 DECIMAL default 0,"
+                        + "decimal1 DECIMAL(15,4) default 0,"
+                        + "date0 DATE default '2001-01-01',"
+                        + "datetime0 DATETIME(6) default '2001-01-01 00:00:00',"
+                        + "timestamp0 TIMESTAMP(6) default  '2001-01-01 00:00:00',"
+                        + "timestamp1 TIMESTAMP(0) default  '2001-01-01 00:00:00',"
+                        + "timestamp_zero TIMESTAMP  null, "
+                        + "time0 TIME(6) default '22:11:00',"
+                        + "year2 YEAR(2) default 99,"
+                        + "year4 YEAR(4) default 2011,"
+                        + "char0 CHAR(1) default '0',"
+                        + "char_binary CHAR (1) binary default '0',"
+                        + "varchar0 VARCHAR(1) default '1',"
+                        + "varchar_binary VARCHAR(10) BINARY default 0x1,"
+                        + "binary0 BINARY(10) default 0x1,"
+                        + "varbinary0 VARBINARY(10) default 0x1"
         );
         createTable("ServerPrepareStatementCacheSize2", "id int not null primary key auto_increment, test boolean");
         createTable("ServerPrepareStatementCacheSize3", "id int not null primary key auto_increment, test blob");
         createTable("ServerPrepareStatementParameters", "id int, id2 int");
-        createTable("ServerPrepareStatementCacheSize4", "id int not null primary key auto_increment, test LONGBLOB", "ROW_FORMAT=COMPRESSED ENGINE=INNODB");
+        createTable("ServerPrepareStatementCacheSize4", "id int not null primary key auto_increment, test LONGBLOB",
+                "ROW_FORMAT=COMPRESSED ENGINE=INNODB");
 
         createTable("streamtest2", "id int primary key not null, strm text");
 
     }
-    
+
 
     @Test
-    public void ServerExecutionTest() throws SQLException {
+    public void serverExecutionTest() throws SQLException {
         Connection connection = null;
         try {
             connection = setConnection();
             Statement statement = connection.createStatement();
             ResultSet rs = statement.executeQuery("show global status like 'Prepared_stmt_count'");
             assertTrue(rs.next());
-            int nbStatementCount = rs.getInt(2);
+            final int nbStatementCount = rs.getInt(2);
 
-            PreparedStatement ps = connection.prepareStatement("INSERT INTO ServerPrepareStatementTestt (test) VALUES (?)");
+            PreparedStatement ps = connection.prepareStatement(
+                    "INSERT INTO ServerPrepareStatementTestt (test) VALUES (?)");
             ps.setBoolean(1, true);
             ps.addBatch();
             ps.execute();
@@ -105,9 +112,10 @@ public class ServerPrepareStatementTest extends BaseTest {
             Statement statement = connection.createStatement();
             ResultSet rs = statement.executeQuery("show global status like 'Prepared_stmt_count'");
             assertTrue(rs.next());
-            int nbStatementCount = rs.getInt(2);
+            final int nbStatementCount = rs.getInt(2);
 
-            PreparedStatement ps = connection.prepareStatement("INSERT INTO ServerPrepareStatementTest (test) VALUES (1)");
+            PreparedStatement ps = connection.prepareStatement(
+                    "INSERT INTO ServerPrepareStatementTest (test) VALUES (1)");
             ps.addBatch();
             ps.execute();
 
@@ -143,7 +151,8 @@ public class ServerPrepareStatementTest extends BaseTest {
             int prepareServerStatement = rs.getInt(2);
             log.debug("server side : " + prepareServerStatement);
 
-            PreparedStatement ps1 = connection.prepareStatement("INSERT INTO ServerPrepareStatementCacheSize3(test) VALUES (?)");
+            PreparedStatement ps1 = connection.prepareStatement("INSERT INTO ServerPrepareStatementCacheSize3(test) "
+                    + "VALUES (?)");
             rs = statement.executeQuery("show global status like 'Prepared_stmt_count'");
             rs.next();
             int prepareServerStatement2 = rs.getInt(2);
@@ -217,79 +226,79 @@ public class ServerPrepareStatementTest extends BaseTest {
 
     @Test
     public void dataConformityTest() throws SQLException {
+        PreparedStatement ps = sharedConnection.prepareStatement("INSERT INTO preparetest (bit1,bit2,tinyint1,"
+                + "tinyint2,bool0,smallint0,smallint_unsigned,mediumint0,mediumint_unsigned,int0,"
+                + "int_unsigned,bigint0,bigint_unsigned, float0, double0, decimal0,decimal1, date0,datetime0, "
+                + "timestamp0,timestamp1,timestamp_zero, time0,"
+                + "year2,year4,char0, char_binary, varchar0, varchar_binary, binary0, varbinary0)  "
+                + "VALUES (?,?,?,?,?,?,?,?,?,?,"
+                + "?,?,?,?,?,?,?,?,?,?,?,?,?,"
+                + "?,?,?,?,?,?,?,?)");
         sharedConnection.createStatement().execute("truncate preparetest");
+
         boolean bit1 = Boolean.FALSE;
-        byte bit2 = (byte) 3;
-        byte tinyint1 = (byte) 127;
-        short tinyint2 = 127;
-        boolean bool0 = Boolean.FALSE;
-        short smallint0 = 5;
-        short smallint_unsigned = Short.MAX_VALUE;
-        int mediumint0 = 55000;
-        int mediumint_unsigned = 55000;
-        int int0 = Integer.MAX_VALUE;
-        int int_unsigned = Integer.MAX_VALUE;
-        long bigint0 = 5000l;
-        BigInteger bigint_unsigned = new BigInteger("3147483647");
-        float float0 = 3147483647.7527F;
-        double double0 = 3147483647.8527D;
-        BigDecimal decimal0 = new BigDecimal("3147483647");
-        BigDecimal decimal1 = new BigDecimal("3147483647.9527");
-        System.out.println(System.currentTimeMillis());
-        TimeZone.setDefault(TimeZone.getTimeZone("GMT+00:00"));
-        Date date0 = new Date(1441238400000l);
-
-        Timestamp datetime0 = new Timestamp(-2124690212000l);
-        datetime0.setNanos(392005000);
-        Timestamp timestamp0 = new Timestamp(1441290349000l);
-        timestamp0.setNanos(392005000);
-        Timestamp timestamp1 = new Timestamp(1441290349000l);
-        Time time0 = new Time(55549392);
-        short year2 = 30;
-        int year4 = 2050;
-
-        String char0 = "\n";
-        String char_binary = "\n";
-        String varchar0 = "\b";
-        String varchar_binary = "\b";
-        byte[] binary0 = "1234567890".getBytes();
-        byte[] varbinary0 = "azerty".getBytes();
-        PreparedStatement ps = sharedConnection.prepareStatement("INSERT INTO preparetest (bit1,bit2,tinyint1,tinyint2,bool0,smallint0,smallint_unsigned,mediumint0,mediumint_unsigned,int0," +
-                "int_unsigned,bigint0,bigint_unsigned, float0, double0, decimal0,decimal1, date0,datetime0, timestamp0,timestamp1,timestamp_zero, time0," +
-                "year2,year4,char0, char_binary, varchar0, varchar_binary, binary0, varbinary0)  " +
-                "VALUES (?,?,?,?,?,?,?,?,?,?," +
-                "?,?,?,?,?,?,?,?,?,?,?,?,?," +
-                "?,?,?,?,?,?,?,?)");
         ps.setBoolean(1, bit1);
+        byte bit2 = (byte) 3;
         ps.setByte(2, bit2);
+        byte tinyint1 = (byte) 127;
         ps.setByte(3, tinyint1);
+        short tinyint2 = 127;
         ps.setShort(4, tinyint2);
+        boolean bool0 = Boolean.FALSE;
         ps.setBoolean(5, bool0);
+        short smallint0 = 5;
         ps.setShort(6, smallint0);
-        ps.setShort(7, smallint_unsigned);
+        short smallintUnsigned = Short.MAX_VALUE;
+        ps.setShort(7, smallintUnsigned);
+        int mediumint0 = 55000;
         ps.setInt(8, mediumint0);
-        ps.setInt(9, mediumint_unsigned);
+        int mediumintUnsigned = 55000;
+        ps.setInt(9, mediumintUnsigned);
+        int int0 = Integer.MAX_VALUE;
         ps.setInt(10, int0);
-        ps.setInt(11, int_unsigned);
+        int intUnsigned = Integer.MAX_VALUE;
+        ps.setInt(11, intUnsigned);
+        long bigint0 = 5000L;
         ps.setLong(12, bigint0);
-        ps.setObject(13, bigint_unsigned);
+        BigInteger bigintUnsigned = new BigInteger("3147483647");
+        ps.setObject(13, bigintUnsigned);
+        float float0 = 3147483647.7527F;
         ps.setFloat(14, float0);
+        double double0 = 3147483647.8527D;
         ps.setDouble(15, double0);
+        BigDecimal decimal0 = new BigDecimal("3147483647");
         ps.setBigDecimal(16, decimal0);
+        BigDecimal decimal1 = new BigDecimal("3147483647.9527");
         ps.setBigDecimal(17, decimal1);
+        TimeZone.setDefault(TimeZone.getTimeZone("GMT+00:00"));
+        Date date0 = new Date(1441238400000L);
         ps.setDate(18, date0);
+        Timestamp datetime0 = new Timestamp(-2124690212000L);
+        datetime0.setNanos(392005000);
         ps.setTimestamp(19, datetime0);
+        Timestamp timestamp0 = new Timestamp(1441290349000L);
+        timestamp0.setNanos(392005000);
         ps.setTimestamp(20, timestamp0);
+        Timestamp timestamp1 = new Timestamp(1441290349000L);
         ps.setTimestamp(21, timestamp1);
         ps.setTimestamp(22, null);
+        Time time0 = new Time(55549392);
         ps.setTime(23, time0);
+        short year2 = 30;
         ps.setShort(24, year2);
+        int year4 = 2050;
         ps.setInt(25, year4);
+        String char0 = "\n";
         ps.setObject(26, char0, java.sql.Types.CHAR);
-        ps.setString(27, char_binary);
+        String charBinary = "\n";
+        ps.setString(27, charBinary);
+        String varchar0 = "\b";
         ps.setString(28, varchar0);
-        ps.setString(29, varchar_binary);
+        String varcharBinary = "\b";
+        ps.setString(29, varcharBinary);
+        byte[] binary0 = "1234567890".getBytes();
         ps.setBytes(30, binary0);
+        byte[] varbinary0 = "azerty".getBytes();
         ps.setBytes(31, varbinary0);
 
         ps.addBatch();
@@ -302,43 +311,49 @@ public class ServerPrepareStatementTest extends BaseTest {
         assertEquals(rs.getShort(4), tinyint2);
         assertEquals(rs.getBoolean(5), bool0);
         assertEquals(rs.getShort(6), smallint0);
-        assertEquals(rs.getShort(7), smallint_unsigned);
+        assertEquals(rs.getShort(7), smallintUnsigned);
         assertEquals(rs.getInt(8), mediumint0);
-        assertEquals(rs.getInt(9), mediumint_unsigned);
+        assertEquals(rs.getInt(9), mediumintUnsigned);
         assertEquals(rs.getInt(10), int0);
-        assertEquals(rs.getInt(11), int_unsigned);
+        assertEquals(rs.getInt(11), intUnsigned);
         assertEquals(rs.getInt(12), bigint0);
-        assertEquals(rs.getObject(13), bigint_unsigned);
+        assertEquals(rs.getObject(13), bigintUnsigned);
         assertEquals(rs.getFloat(14), float0, 10000);
         assertEquals(rs.getDouble(15), double0, 10000);
         assertEquals(rs.getBigDecimal(16), decimal0);
         assertEquals(rs.getBigDecimal(17), decimal1);
         Calendar cc = new GregorianCalendar();
         cc.setTimeInMillis(date0.getTime());
-        System.out.println("date0 : " + date0.getTime() + " " + cc.get(Calendar.DAY_OF_MONTH) + " " + " " + cc.get(Calendar.HOUR_OF_DAY));
+        System.out.println("date0 : " + date0.getTime() + " " + cc.get(Calendar.DAY_OF_MONTH) + " " + " "
+                + cc.get(Calendar.HOUR_OF_DAY));
         cc.setTimeInMillis(date0.getTime());
-        System.out.println("rs.getDate(18) : " + rs.getDate(18).getTime() +" " + cc.get(Calendar.DAY_OF_MONTH) +" "+" " + cc.get(Calendar.HOUR_OF_DAY));
+        System.out.println("rs.getDate(18) : " + rs.getDate(18).getTime() + " " + cc.get(Calendar.DAY_OF_MONTH)
+                + " " + " " + cc.get(Calendar.HOUR_OF_DAY));
         assertEquals(rs.getDate(18), date0);
         assertEquals(rs.getTimestamp(19), datetime0);
         assertEquals(rs.getTimestamp(20), timestamp0);
         assertEquals(rs.getTimestamp(21), timestamp1);
         assertNull(rs.getTimestamp(22));
         assertEquals(rs.getTime(23), time0);
-        if ( isMariadbServer() ) {
+        if (isMariadbServer()) {
             assertEquals(rs.getInt(24), year2);
         } else {
-            if (minVersion(5,6)) {
+            if (minVersion(5, 6)) {
                 //year on 2 bytes is deprecated since 5.5.27
                 assertEquals(rs.getInt(24), 2030);
-            } else assertEquals(rs.getInt(24), 30);
+            } else {
+                assertEquals(rs.getInt(24), 30);
+            }
         }
         assertEquals(rs.getInt(25), year4);
         assertEquals(rs.getString(26), char0);
-        assertEquals(rs.getString(27), char_binary);
+        assertEquals(rs.getString(27), charBinary);
         assertEquals(rs.getString(28), varchar0);
-        assertEquals(rs.getString(29), varchar_binary);
-        assertEquals(new String(rs.getBytes(30), StandardCharsets.UTF_8), new String(binary0, StandardCharsets.UTF_8));
-        assertEquals(new String(rs.getBytes(31), StandardCharsets.UTF_8), new String(varbinary0, StandardCharsets.UTF_8));
+        assertEquals(rs.getString(29), varcharBinary);
+        assertEquals(new String(rs.getBytes(30), StandardCharsets.UTF_8),
+                new String(binary0, StandardCharsets.UTF_8));
+        assertEquals(new String(rs.getBytes(31), StandardCharsets.UTF_8),
+                new String(varbinary0, StandardCharsets.UTF_8));
 
     }
 
@@ -350,13 +365,16 @@ public class ServerPrepareStatementTest extends BaseTest {
         ExecutorService exec = Executors.newFixedThreadPool(2);
 
         //check blacklist shared
-        exec.execute(new CreatePrepareDouble("INSERT INTO ServerPrepareStatementCacheSize2( test) VALUES (?)", sharedConnection, 100, 100));
-        exec.execute(new CreatePrepareDouble("INSERT INTO ServerPrepareStatementCacheSize2( test) VALUES (?)", sharedConnection, 500, 100));
+        exec.execute(new CreatePrepareDouble("INSERT INTO ServerPrepareStatementCacheSize2( test) VALUES (?)",
+                sharedConnection, 100, 100));
+        exec.execute(new CreatePrepareDouble("INSERT INTO ServerPrepareStatementCacheSize2( test) VALUES (?)",
+                sharedConnection, 500, 100));
         //wait for thread endings
         exec.shutdown();
         try {
             exec.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
         } catch (InterruptedException e) {
+            //eat exception
         }
     }
 
@@ -366,7 +384,8 @@ public class ServerPrepareStatementTest extends BaseTest {
         try {
             connection = setConnection("&prepStmtCacheSize=10");
 
-            PreparedStatement ps = connection.prepareStatement("INSERT INTO ServerPrepareStatementCacheSize3(test) VALUES (?)");
+            PreparedStatement ps = connection.prepareStatement(
+                    "INSERT INTO ServerPrepareStatementCacheSize3(test) VALUES (?)");
             ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
             InputStream input = classLoader.getResourceAsStream("logback.xml");
 
@@ -383,8 +402,10 @@ public class ServerPrepareStatementTest extends BaseTest {
         Connection connection = null;
         try {
             connection = setConnection("&prepStmtCacheSize=10");
-            PreparedStatement ps = connection.prepareStatement("INSERT INTO ServerPrepareStatementCacheSize3(test) VALUES (?)");
-            Reader reader = new BufferedReader(new InputStreamReader(ClassLoader.getSystemResourceAsStream("logback.xml")));
+            PreparedStatement ps = connection.prepareStatement(
+                    "INSERT INTO ServerPrepareStatementCacheSize3(test) VALUES (?)");
+            Reader reader = new BufferedReader(new InputStreamReader(
+                    ClassLoader.getSystemResourceAsStream("logback.xml")));
 
             ps.setCharacterStream(1, reader);
             ps.addBatch();
@@ -396,14 +417,16 @@ public class ServerPrepareStatementTest extends BaseTest {
 
     @Test(expected = SQLException.class)
     public void parametersNotSetTest() throws Throwable {
-        PreparedStatement ps = sharedConnection.prepareStatement("INSERT INTO ServerPrepareStatementParameters(id, id2) VALUES (?,?)");
+        PreparedStatement ps = sharedConnection.prepareStatement(
+                "INSERT INTO ServerPrepareStatementParameters(id, id2) VALUES (?,?)");
         ps.setInt(1, 1);
         ps.addBatch();
     }
 
     @Test
     public void checkSendDifferentParameterTypeTest() throws Throwable {
-        PreparedStatement ps = sharedConnection.prepareStatement("INSERT INTO ServerPrepareStatementParameters(id, id2) VALUES (?,?)");
+        PreparedStatement ps = sharedConnection.prepareStatement(
+                "INSERT INTO ServerPrepareStatementParameters(id, id2) VALUES (?,?)");
         ps.setByte(1, (byte) 1);
         ps.setShort(2, (short) 1);
         ps.addBatch();
@@ -420,9 +443,8 @@ public class ServerPrepareStatementTest extends BaseTest {
     public void blobMultipleSizeTest() throws Throwable {
         Assume.assumeTrue(checkMaxAllowedPacketMore40m("blobMultipleSizeTest"));
 
-        Statement statement = sharedConnection.createStatement();
-
-        PreparedStatement ps = sharedConnection.prepareStatement("INSERT INTO ServerPrepareStatementCacheSize4(test) VALUES (?)");
+        PreparedStatement ps = sharedConnection.prepareStatement(
+                "INSERT INTO ServerPrepareStatementCacheSize4(test) VALUES (?)");
         byte[] arr = new byte[20000000];
         Arrays.fill(arr, (byte) 'b');
         InputStream input = new ByteArrayInputStream(arr);
@@ -437,6 +459,7 @@ public class ServerPrepareStatementTest extends BaseTest {
         ps.addBatch();
         ps.executeBatch();
 
+        Statement statement = sharedConnection.createStatement();
         ResultSet rs = statement.executeQuery("select * from ServerPrepareStatementCacheSize4");
         rs.next();
         byte[] newBytes = rs.getBytes(2);
@@ -467,7 +490,8 @@ public class ServerPrepareStatementTest extends BaseTest {
     private PreparedStatement prepareInsert() throws Throwable {
         Statement statement = sharedConnection.createStatement();
         statement.execute("truncate ServerPrepareStatementParameters");
-        PreparedStatement ps = sharedConnection.prepareStatement("INSERT INTO ServerPrepareStatementParameters(id, id2) VALUES (?,?)");
+        PreparedStatement ps = sharedConnection.prepareStatement(
+                "INSERT INTO ServerPrepareStatementParameters(id, id2) VALUES (?,?)");
         ps.setByte(1, (byte) 1);
         ps.setShort(2, (short) 1);
         ps.addBatch();
@@ -483,7 +507,8 @@ public class ServerPrepareStatementTest extends BaseTest {
     @Test
     public void directExecuteNumber() throws Throwable {
         sharedConnection.createStatement().execute("truncate ServerPrepareStatementParameters");
-        PreparedStatement ps = sharedConnection.prepareStatement("INSERT INTO ServerPrepareStatementParameters(id, id2) VALUES (?,?)");
+        PreparedStatement ps = sharedConnection.prepareStatement(
+                "INSERT INTO ServerPrepareStatementParameters(id, id2) VALUES (?,?)");
         ps.setByte(1, (byte) 1);
         ps.setShort(2, (short) 1);
         ps.execute();
@@ -514,76 +539,78 @@ public class ServerPrepareStatementTest extends BaseTest {
     @Test
     public void dataConformityTest2() throws SQLException {
         sharedConnection.createStatement().execute("truncate preparetest");
+
+
+        PreparedStatement ps = sharedConnection.prepareStatement("INSERT INTO preparetest "
+                + "(bit1,bit2,tinyint1,tinyint2,bool0,smallint0,smallint_unsigned,mediumint0,mediumint_unsigned,int0,"
+                + "int_unsigned,bigint0,bigint_unsigned, float0, double0, decimal0,decimal1, date0,datetime0, "
+                + "timestamp0,timestamp1,timestamp_zero, time0,"
+                + "year2,year4,char0, char_binary, varchar0, varchar_binary, binary0, varbinary0)  "
+                + "VALUES (?,?,?,?,?,?,?,?,?,?,"
+                + "?,?,?,?,?,?,?,?,?,?,?,?,?,"
+                + "?,?,?,?,?,?,?,?)");
         boolean bit1 = Boolean.FALSE;
-        byte bit2 = (byte) 3;
-        byte tinyint1 = (byte) 127;
-        short tinyint2 = 127;
-        boolean bool0 = Boolean.FALSE;
-        short smallint0 = 5;
-        short smallint_unsigned = Short.MAX_VALUE;
-        int mediumint0 = 55000;
-        int mediumint_unsigned = 55000;
-        int int0 = Integer.MAX_VALUE;
-        int int_unsigned = Integer.MAX_VALUE;
-        long bigint0 = 5000l;
-        BigInteger bigint_unsigned = new BigInteger("3147483647");
-        float float0 = 3147483647.7527F;
-        double double0 = 3147483647.8527D;
-        BigDecimal decimal0 = new BigDecimal("3147483647");
-        BigDecimal decimal1 = new BigDecimal("3147483647.9527");
-
-        Date date0 = java.sql.Date.valueOf("2016-02-01");
-        Timestamp datetime0 = new Timestamp(-2124690212000l);
-        datetime0.setNanos(392005000);
-        Timestamp timestamp0 = new Timestamp(1441290349000l);
-        timestamp0.setNanos(392005000);
-        Timestamp timestamp1 = new Timestamp(1441290349000l);
-        Time time0 = new Time(55549392);
-        short year2 = 30;
-        int year4 = 2050;
-
-        String char0 = "\n";
-        String char_binary = "\n";
-        String varchar0 = "\b";
-        String varchar_binary = "\b";
-        byte[] binary0 = "1234567890".getBytes();
-        byte[] varbinary0 = "azerty".getBytes();
-        PreparedStatement ps = sharedConnection.prepareStatement("INSERT INTO preparetest (bit1,bit2,tinyint1,tinyint2,bool0,smallint0,smallint_unsigned,mediumint0,mediumint_unsigned,int0," +
-                "int_unsigned,bigint0,bigint_unsigned, float0, double0, decimal0,decimal1, date0,datetime0, timestamp0,timestamp1,timestamp_zero, time0," +
-                "year2,year4,char0, char_binary, varchar0, varchar_binary, binary0, varbinary0)  " +
-                "VALUES (?,?,?,?,?,?,?,?,?,?," +
-                "?,?,?,?,?,?,?,?,?,?,?,?,?," +
-                "?,?,?,?,?,?,?,?)");
         ps.setBoolean(1, bit1);
+        byte bit2 = (byte) 3;
         ps.setByte(2, bit2);
+        byte tinyint1 = (byte) 127;
         ps.setByte(3, tinyint1);
+        short tinyint2 = 127;
         ps.setShort(4, tinyint2);
+        boolean bool0 = Boolean.FALSE;
         ps.setBoolean(5, bool0);
+        short smallint0 = 5;
         ps.setShort(6, smallint0);
-        ps.setShort(7, smallint_unsigned);
+        short smallintUnsigned = Short.MAX_VALUE;
+        ps.setShort(7, smallintUnsigned);
+        int mediumint0 = 55000;
         ps.setInt(8, mediumint0);
-        ps.setInt(9, mediumint_unsigned);
+        int mediumintUnsigned = 55000;
+        ps.setInt(9, mediumintUnsigned);
+        int int0 = Integer.MAX_VALUE;
         ps.setInt(10, int0);
-        ps.setInt(11, int_unsigned);
+        int intUnsigned = Integer.MAX_VALUE;
+        ps.setInt(11, intUnsigned);
+        long bigint0 = 5000L;
         ps.setLong(12, bigint0);
-        ps.setObject(13, bigint_unsigned);
+        BigInteger bigintUnsigned = new BigInteger("3147483647");
+        ps.setObject(13, bigintUnsigned);
+        float float0 = 3147483647.7527F;
         ps.setFloat(14, float0);
+        double double0 = 3147483647.8527D;
         ps.setDouble(15, double0);
+        BigDecimal decimal0 = new BigDecimal("3147483647");
         ps.setBigDecimal(16, decimal0);
+        BigDecimal decimal1 = new BigDecimal("3147483647.9527");
         ps.setBigDecimal(17, decimal1);
+        Date date0 = java.sql.Date.valueOf("2016-02-01");
         ps.setDate(18, date0);
+        Timestamp datetime0 = new Timestamp(-2124690212000L);
+        datetime0.setNanos(392005000);
         ps.setTimestamp(19, datetime0);
+        Timestamp timestamp0 = new Timestamp(1441290349000L);
+        timestamp0.setNanos(392005000);
         ps.setTimestamp(20, timestamp0);
+        Timestamp timestamp1 = new Timestamp(1441290349000L);
         ps.setTimestamp(21, timestamp1);
         ps.setTimestamp(22, null);
+        Time time0 = new Time(55549392);
         ps.setTime(23, time0);
+        short year2 = 30;
         ps.setShort(24, year2);
+        int year4 = 2050;
         ps.setInt(25, year4);
+        String char0 = "\n";
         ps.setString(26, char0);
-        ps.setString(27, char_binary);
+        String charBinary = "\n";
+        ps.setString(27, charBinary);
+        String varchar0 = "\b";
         ps.setString(28, varchar0);
-        ps.setString(29, varchar_binary);
+        String varcharBinary = "\b";
+        ps.setString(29, varcharBinary);
+        byte[] binary0 = "1234567890".getBytes();
         ps.setBytes(30, binary0);
+        byte[] varbinary0 = "azerty".getBytes();
         ps.setBytes(31, varbinary0);
 
         ps.addBatch();
@@ -599,13 +626,13 @@ public class ServerPrepareStatementTest extends BaseTest {
         assertEquals(rs.getShort(4), tinyint2);
         assertEquals(rs.getBoolean(5), bool0);
         assertEquals(rs.getShort(6), smallint0);
-        assertEquals(rs.getShort(7), smallint_unsigned);
+        assertEquals(rs.getShort(7), smallintUnsigned);
         assertEquals(rs.getInt(8), mediumint0);
-        assertEquals(rs.getInt(9), mediumint_unsigned);
+        assertEquals(rs.getInt(9), mediumintUnsigned);
         assertEquals(rs.getInt(10), int0);
-        assertEquals(rs.getInt(11), int_unsigned);
+        assertEquals(rs.getInt(11), intUnsigned);
         assertEquals(rs.getInt(12), bigint0);
-        assertEquals(rs.getObject(13), bigint_unsigned);
+        assertEquals(rs.getObject(13), bigintUnsigned);
         assertEquals(rs.getFloat(14), float0, 10000);
         assertEquals(rs.getDouble(15), double0, 10000);
         assertEquals(rs.getBigDecimal(16), decimal0);
@@ -616,22 +643,26 @@ public class ServerPrepareStatementTest extends BaseTest {
         assertEquals(rs.getTimestamp(21), timestamp1);
         assertNull(rs.getTimestamp(22));
         assertEquals(rs.getTime(23), time0);
-        if ( isMariadbServer() ) {
+        if (isMariadbServer()) {
             assertEquals(rs.getInt(24), year2);
         } else {
-            if (minVersion(5,6)) {
+            if (minVersion(5, 6)) {
                 //year on 2 bytes is deprecated since 5.5.27
                 assertEquals(rs.getInt(24), 2030);
-            } else assertEquals(rs.getInt(24), 30);
+            } else {
+                assertEquals(rs.getInt(24), 30);
+            }
         }
         assertEquals(rs.getInt(25), year4);
         assertEquals(rs.getString(26), char0);
-        assertEquals(rs.getString(27), char_binary);
+        assertEquals(rs.getString(27), charBinary);
         assertEquals(rs.getString(28), varchar0);
-        assertEquals(rs.getString(29), varchar_binary);
+        assertEquals(rs.getString(29), varcharBinary);
 
-        assertEquals(new String(rs.getBytes(30), StandardCharsets.UTF_8), new String(binary0, StandardCharsets.UTF_8));
-        assertEquals(new String(rs.getBytes(31), StandardCharsets.UTF_8), new String(varbinary0, StandardCharsets.UTF_8));
+        assertEquals(new String(rs.getBytes(30), StandardCharsets.UTF_8),
+                new String(binary0, StandardCharsets.UTF_8));
+        assertEquals(new String(rs.getBytes(31), StandardCharsets.UTF_8),
+                new String(varbinary0, StandardCharsets.UTF_8));
 
     }
 
@@ -657,12 +688,12 @@ public class ServerPrepareStatementTest extends BaseTest {
                     PrepareResult ps = protocol.prepareStatementCache().get(sql);
                     log.debug("before : ps : " + ps.getUseTime());
                 }
-                PreparedStatement ps = connection.prepareStatement(sql);
                 log.debug("after : contain key : " + protocol.prepareStatementCache().containsKey(sql));
                 if (protocol.prepareStatementCache().containsKey(sql)) {
                     PrepareResult ps2 = protocol.prepareStatementCache().get(sql);
                     log.debug("after : ps : " + ps2.getUseTime());
                 }
+                PreparedStatement ps = connection.prepareStatement(sql);
                 Thread.sleep(firstWaitTime);
                 ps.setBoolean(1, true);
                 ps.addBatch();

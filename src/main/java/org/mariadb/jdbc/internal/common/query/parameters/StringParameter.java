@@ -50,31 +50,31 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.common.query.parameters;
 
 import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
-import org.mariadb.jdbc.internal.mysql.MySQLType;
+import org.mariadb.jdbc.internal.mysql.MariaDbType;
 
 import java.io.IOException;
 import java.io.OutputStream;
 
 
 public class StringParameter extends NotLongDataParameterHolder {
-    String s;
+    String string;
     boolean noBackslashEscapes;
 
-    public StringParameter(String s, boolean noBackslashEscapes) {
-        this.s = s;
+    public StringParameter(String string, boolean noBackslashEscapes) {
+        this.string = string;
         this.noBackslashEscapes = noBackslashEscapes;
     }
 
     public void writeTo(final OutputStream os) throws IOException {
-        ParameterWriter.write(os, s, noBackslashEscapes);
+        ParameterWriter.write(os, string, noBackslashEscapes);
     }
 
     public void writeBinary(PacketOutputStream writeBuffer) {
-        writeBuffer.writeStringLength(s);
+        writeBuffer.writeStringLength(string);
     }
 
-    public MySQLType getMySQLType() {
-        return MySQLType.VARCHAR;
+    public MariaDbType getMariaDbType() {
+        return MariaDbType.VARCHAR;
     }
 
 }

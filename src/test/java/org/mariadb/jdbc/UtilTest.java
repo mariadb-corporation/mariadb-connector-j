@@ -41,7 +41,8 @@ public class UtilTest {
                 "'{string data with { or } will not be altered'",
                 "--  Also note that you can safely include { and } in comments"
         };
-        for (int i = 0; i < inputs.length; i++)
-            assertEquals(Utils.nativeSQL(inputs[i], false), outputs[i]);
+        for (int i = 0; i < inputs.length; i++) {
+            assertEquals(Utils.nativeSql(inputs[i], false), outputs[i]);
+        }
     }
 }

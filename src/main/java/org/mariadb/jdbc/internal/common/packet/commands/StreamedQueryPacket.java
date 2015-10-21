@@ -61,43 +61,69 @@ import java.util.List;
 
 public class StreamedQueryPacket implements CommandPacket {
 
+    private Query query;
     private List<Query> queries;
     private boolean isRewritable;
     private int rewriteOffset;
 
+    /**
+     * Initialize data.
+     * @param queries list of queries to send to server
+     * @param isRewritable are queries rewritable.
+     * @param rewriteOffset initial common offset
+     */
     public StreamedQueryPacket(final List<Query> queries, boolean isRewritable, int rewriteOffset) {
         this.queries = queries;
+        this.query = null;
         this.isRewritable = isRewritable;
         this.rewriteOffset = rewriteOffset;
     }
 
-    public int send(final OutputStream ostream) throws IOException, QueryException {
-        if (queries.size() == 1) {
-            PacketOutputStream pos = (PacketOutputStream) ostream;
-            pos.startPacket(0);
-            pos.write(0x03);
-            queries.get(0).writeTo(ostream);
-            pos.finishPacket();
-        } else {
-            PacketOutputStream pos = (PacketOutputStream) ostream;
-            pos.startPacket(0);
-            pos.write(0x03);
-            if (!isRewritable) {
-                queries.get(0).writeTo(ostream);
-                for (int i = 1; i < queries.size(); i++) {
-                    pos.write(';');
-                    queries.get(i).writeTo(ostream);
-                }
-            } else {
-                queries.get(0).writeFirstRewritePart(ostream);
-                for (int i = 1; i < queries.size(); i++) {
-                    queries.get(i).writeToRewritablePart(ostream, rewriteOffset);
-                }
-                queries.get(0).writeLastRewritePart(ostream);
-            }
+    /**
+     * Initialize datas.
+     * @param query query to send to server.
+     */
+    public StreamedQueryPacket(final Query query) {
+        this.query = query;
+        this.queries = null;
+        this.isRewritable = false;
+        this.rewriteOffset = 0;
+    }
 
-            pos.finishPacket();
+    /**
+     * Send queries to server.
+     * @param ostream write socket to server
+     * @return 0
+     * @throws IOException if connection error occur
+     * @throws QueryException when query rewrite error.
+     */
+    public int send(final OutputStream ostream) throws IOException, QueryException {
+        PacketOutputStream pos = (PacketOutputStream) ostream;
+        pos.startPacket(0);
+        pos.write(0x03);
+        if (query != null) {
+            query.writeTo(ostream);
+        } else {
+            if (queries.size() == 1) {
+                queries.get(0).writeTo(ostream);
+            } else {
+                if (!isRewritable) {
+                    queries.get(0).writeTo(ostream);
+                    for (int i = 1; i < queries.size(); i++) {
+                        pos.write(';');
+                        queries.get(i).writeTo(ostream);
+                    }
+                } else {
+                    queries.get(0).writeFirstRewritePart(ostream);
+                    for (int i = 1; i < queries.size(); i++) {
+                        queries.get(i).writeToRewritablePart(ostream, rewriteOffset);
+                    }
+                    queries.get(0).writeLastRewritePart(ostream);
+                }
+            }
         }
+
+        pos.finishPacket();
         return 0;
     }
 

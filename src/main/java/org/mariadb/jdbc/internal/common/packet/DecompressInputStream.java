@@ -13,7 +13,7 @@ import java.util.zip.Inflater;
 public class DecompressInputStream extends InputStream {
     InputStream baseStream;
     int remainingBytes;
-    byte header[];
+    byte[] header;
     boolean doDecompress;
     ByteArrayInputStream decompressedByteStream;
 
@@ -24,8 +24,9 @@ public class DecompressInputStream extends InputStream {
 
     @Override
     public int read(byte[] bytes, int off, int len) throws IOException {
-        if (len == 0 || off < 0 || bytes == null)
+        if (len == 0 || off < 0 || bytes == null) {
             throw new InvalidParameterException();
+        }
 
         if (remainingBytes == 0) {
             nextPacket();
@@ -53,17 +54,18 @@ public class DecompressInputStream extends InputStream {
 
     @Override
     public int read() throws IOException {
-        byte[] b = new byte[1];
-        if (read(b) == 0)
+        byte[] buffer = new byte[1];
+        if (read(buffer) == 0) {
             return -1;
-        return (b[0] & 0xff);
+        }
+        return (buffer[0] & 0xff);
     }
 
 
     /**
      * Read packet header. If required, decompress compressed packet.
      *
-     * @throws IOException
+     * @throws IOException exception
      */
     private void nextPacket() throws IOException {
         ReadUtil.readFully(baseStream, header);
@@ -78,10 +80,11 @@ public class DecompressInputStream extends InputStream {
             Inflater inflater = new Inflater();
             inflater.setInput(compressedBuffer);
             try {
-                int n = inflater.inflate(decompressedBuffer);
-                if (n != decompressedLength)
-                    throw new IOException("Invalid packet length after decompression " + n + ",expected "
+                int actualUncompressBytes = inflater.inflate(decompressedBuffer);
+                if (actualUncompressBytes != decompressedLength) {
+                    throw new IOException("Invalid packet length after decompression " + actualUncompressBytes + ",expected "
                             + decompressedLength);
+                }
             } catch (DataFormatException dfe) {
                 throw new IOException(dfe);
             }

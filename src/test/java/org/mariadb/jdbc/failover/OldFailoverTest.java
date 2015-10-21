@@ -10,9 +10,9 @@ import java.sql.Statement;
 public class OldFailoverTest extends BaseTest {
 
     /**
-     * check old connection way before multihost was handle
+     * Check old connection way before multihost was handle.
      *
-     * @throws Exception
+     * @throws Exception exception
      */
     @Test
     public void isOldConfigurationValid() throws Exception {
@@ -21,7 +21,8 @@ public class OldFailoverTest extends BaseTest {
                 + (parameters != null ? parameters : "");
 
         try {
-            //the first host doesn't exist, so with the random host selection, verifying that we connect to the good host
+            //the first host doesn't exist, so with the random host selection, verifying that we connect to the good
+            //host
             for (int i = 0; i < 10; i++) {
                 Connection tmpConnection = openNewConnection(falseUrl);
                 Statement tmpStatement = tmpConnection.createStatement();
@@ -33,8 +34,6 @@ public class OldFailoverTest extends BaseTest {
     }
 
 
-
-
     @Test
     public void errorUrl() throws Exception {
         String falseUrl = "jdbc:mysql://localhost:1111/test";
@@ -43,6 +42,7 @@ public class OldFailoverTest extends BaseTest {
             Connection tmpConnection = openNewConnection(falseUrl);
             Assert.fail();
         } catch (Exception e) {
+            //normal exception
         }
     }
 

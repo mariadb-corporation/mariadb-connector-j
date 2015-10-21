@@ -50,12 +50,12 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.mysql.listener.impl;
 
 import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.JDBCUrl;
-import org.mariadb.jdbc.internal.SQLExceptionMapper;
+import org.mariadb.jdbc.UrlParser;
+import org.mariadb.jdbc.internal.ExceptionMapper;
 import org.mariadb.jdbc.internal.common.QueryException;
-import org.mariadb.jdbc.internal.common.UrlHAMode;
+import org.mariadb.jdbc.internal.common.HaMode;
 import org.mariadb.jdbc.internal.mysql.HandleErrorResult;
-import org.mariadb.jdbc.internal.mysql.MySQLProtocol;
+import org.mariadb.jdbc.internal.mysql.MariaDbProtocol;
 import org.mariadb.jdbc.internal.mysql.Protocol;
 import org.mariadb.jdbc.internal.mysql.listener.AbstractMastersListener;
 import org.mariadb.jdbc.internal.mysql.listener.tools.SearchFilter;
@@ -68,14 +68,22 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class MastersFailoverListener extends AbstractMastersListener {
-    private final UrlHAMode mode;
+    private final HaMode mode;
 
-    public MastersFailoverListener(final JDBCUrl jdbcUrl) {
-        super(jdbcUrl);
-        this.mode = jdbcUrl.getHaMode();
+    /**
+     * Initialisation.
+     * @param urlParser url options.
+     */
+    public MastersFailoverListener(final UrlParser urlParser) {
+        super(urlParser);
+        this.mode = urlParser.getHaMode();
 
     }
 
+    /**
+     * Connect to database.
+     * @throws QueryException if connection is on error.
+     */
     public void initializeConnection() throws QueryException {
         this.currentProtocol = null;
 //        log.trace("launching initial loop");
@@ -84,16 +92,22 @@ public class MastersFailoverListener extends AbstractMastersListener {
 
     }
 
+    /**
+     * Before executing query, reconnect if connection is closed, and autoReconnect option is set.
+     * @throws QueryException if connection has been explicitly closed.
+     */
     public void preExecute() throws QueryException {
         //if connection is closed or failed on slave
         if (this.currentProtocol != null && this.currentProtocol.isClosed()) {
-            if (!isExplicitClosed() && jdbcUrl.getOptions().autoReconnect) {
+            if (!isExplicitClosed() && urlParser.getOptions().autoReconnect) {
                 try {
                     reconnectFailedConnection(new SearchFilter(isMasterHostFail(), false, !currentReadOnlyAsked.get(), currentReadOnlyAsked.get()));
                 } catch (QueryException e) {
+                    //eat exception
                 }
-            } else
-                throw new QueryException("Connection is closed", (short) -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState());
+            } else {
+                throw new QueryException("Connection is closed", (short) -1, ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState());
+            }
         }
     }
 
@@ -104,12 +118,14 @@ public class MastersFailoverListener extends AbstractMastersListener {
     @Override
     public void preClose() throws SQLException {
         setExplicitClosed(true);
-        proxy.lock.writeLock().lock();
+        proxy.lock.lock();
         try {
-            if (currentProtocol != null && this.currentProtocol.isConnected()) this.currentProtocol.close();
+            if (currentProtocol != null && this.currentProtocol.isConnected()) {
+                this.currentProtocol.close();
+            }
         } finally {
-            if (!UrlHAMode.NONE.equals(mode)) {
-                proxy.lock.writeLock().unlock();
+            if (!HaMode.NONE.equals(mode)) {
+                proxy.lock.unlock();
                 if (scheduledFailover != null) {
                     scheduledFailover.cancel(true);
                     isLooping.set(false);
@@ -140,28 +156,36 @@ public class MastersFailoverListener extends AbstractMastersListener {
                 return new HandleErrorResult(true);
             }
         } catch (QueryException e) {
-            proxy.lock.writeLock().lock();
+            proxy.lock.lock();
             try {
                 currentProtocol.close();
             } finally {
-                proxy.lock.writeLock().unlock();
+                proxy.lock.unlock();
             }
-            if (setMasterHostFail()) addToBlacklist(currentProtocol.getHostAddress());
+            if (setMasterHostFail()) {
+                addToBlacklist(currentProtocol.getHostAddress());
+            }
         }
 
         try {
             reconnectFailedConnection(new SearchFilter(true, false));
-            if (!UrlHAMode.NONE.equals(mode)) launchFailLoopIfNotlaunched(true);
-            if (alreadyClosed) return relaunchOperation(method, args);
+            if (!HaMode.NONE.equals(mode)) {
+                launchFailLoopIfNotlaunched(true);
+            }
+            if (alreadyClosed) {
+                return relaunchOperation(method, args);
+            }
             return new HandleErrorResult(true);
         } catch (Exception e) {
-            if (!UrlHAMode.NONE.equals(mode)) launchFailLoopIfNotlaunched(true);
+            if (!HaMode.NONE.equals(mode)) {
+                launchFailLoopIfNotlaunched(true);
+            }
             return new HandleErrorResult();
         }
     }
 
     /**
-     * Loop to connect
+     * Loop to connect.
      *
      * @throws QueryException if there is any error during reconnection
      * @throws QueryException sqlException
@@ -172,8 +196,8 @@ public class MastersFailoverListener extends AbstractMastersListener {
         currentConnectionAttempts.incrementAndGet();
         resetOldsBlackListHosts();
 
-        List<HostAddress> loopAddress = new LinkedList<>(jdbcUrl.getHostAddresses());
-        if (UrlHAMode.FAILOVER.equals(mode)) {
+        List<HostAddress> loopAddress = new LinkedList<>(urlParser.getHostAddresses());
+        if (HaMode.FAILOVER.equals(mode)) {
             //put the list in the following order
             // - random order not connected host
             // - random order blacklist host
@@ -195,47 +219,54 @@ public class MastersFailoverListener extends AbstractMastersListener {
             //loopAddress.add(currentProtocol.getHostAddress());
         }
 
-        MySQLProtocol.loop(this, loopAddress, blacklist, searchFilter);
+        MariaDbProtocol.loop(this, loopAddress, blacklist, searchFilter);
 
         //if no error, reset failover variables
         resetMasterFailoverData();
     }
 
-
+    /**
+     * Force session to read-only according to options.
+     * @param mustBeReadOnly is read-only flag
+     * @throws QueryException if a connection error occur
+     */
     public void switchReadOnlyConnection(Boolean mustBeReadOnly) throws QueryException {
-        if (jdbcUrl.getOptions().assureReadOnly && currentReadOnlyAsked.compareAndSet(!mustBeReadOnly, mustBeReadOnly)) {
+        if (urlParser.getOptions().assureReadOnly && currentReadOnlyAsked.compareAndSet(!mustBeReadOnly, mustBeReadOnly)) {
             setSessionReadOnly(mustBeReadOnly, currentProtocol);
         }
     }
 
     /**
-     * method called when a new Master connection is found after a fallback
+     * method called when a new Master connection is found after a fallback.
      *
      * @param protocol the new active connection
      */
     @Override
     public void foundActiveMaster(Protocol protocol) throws QueryException {
         if (isExplicitClosed()) {
-            proxy.lock.writeLock().lock();
+            proxy.lock.lock();
             try {
                 protocol.close();
             } finally {
-                proxy.lock.writeLock().unlock();
+                proxy.lock.unlock();
             }
             return;
         }
         syncConnection(this.currentProtocol, protocol);
-        proxy.lock.writeLock().lock();
+        proxy.lock.lock();
         try {
-            if (currentProtocol != null && !currentProtocol.isClosed()) currentProtocol.close();
+            if (currentProtocol != null && !currentProtocol.isClosed()) {
+                currentProtocol.close();
+            }
             currentProtocol = protocol;
         } finally {
-            proxy.lock.writeLock().unlock();
+            proxy.lock.unlock();
         }
 
 //        if (log.isDebugEnabled()) {
 //            if (getMasterHostFailTimestamp() > 0) {
-//                log.debug("new primary node [" + currentProtocol.getHostAddress().toString() + "] connection established after " + (System.currentTimeMillis() - getMasterHostFailTimestamp()));
+//                log.debug("new primary node [" + currentProtocol.getHostAddress().toString() + "] connection established after "
+// + (System.currentTimeMillis() - getMasterHostFailTimestamp()));
 //            } else log.debug("new primary node [" + currentProtocol.getHostAddress().toString() + "] connection established");
 //        }
 
@@ -245,7 +276,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
 
 
     /**
-     * Throw a human readable message after a failoverException
+     * Throw a human readable message after a failoverException.
      *
      * @param queryException internal error
      * @param reconnected    connection status
@@ -255,12 +286,15 @@ public class MastersFailoverListener extends AbstractMastersListener {
     public void throwFailoverMessage(QueryException queryException, boolean reconnected) throws QueryException {
         HostAddress hostAddress = (currentProtocol != null) ? currentProtocol.getHostAddress() : null;
 
-        String firstPart = "Communications link failure with primary" + ((hostAddress != null) ? " host " + hostAddress.host + ":" + hostAddress.port : "") + ". ";
+        String firstPart = "Communications link failure with primary" + ((hostAddress != null) ? " host " + hostAddress.host
+                + ":" + hostAddress.port : "") + ". ";
         String error = "";
-        if (jdbcUrl.getOptions().autoReconnect) {
-            if (isMasterHostFail())
+        if (urlParser.getOptions().autoReconnect) {
+            if (isMasterHostFail()) {
                 error += " Driver will reconnect automatically in a few millisecond or during next query if append before";
-            else error += " Driver as successfully reconnect connection";
+            } else {
+                error += " Driver as successfully reconnect connection";
+            }
         } else {
             if (reconnected) {
                 error += " Driver as reconnect connection";
@@ -271,7 +305,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
             }
         }
         if (queryException == null) {
-            throw new QueryException(firstPart + error, (short) -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState());
+            throw new QueryException(firstPart + error, (short) -1, ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState());
         } else {
             error = queryException.getMessage() + ". " + error;
             queryException.setMessage(firstPart + error);

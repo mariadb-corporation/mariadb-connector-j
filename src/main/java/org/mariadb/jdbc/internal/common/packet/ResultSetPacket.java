@@ -1,3 +1,4 @@
+package org.mariadb.jdbc.internal.common.packet;
 /*
 MariaDB Client for Java
 
@@ -47,21 +48,24 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc.internal.common.packet;
 
 import org.mariadb.jdbc.internal.common.packet.buffer.Reader;
-import org.mariadb.jdbc.internal.mysql.MySQLProtocol;
+import org.mariadb.jdbc.internal.mysql.MariaDbProtocol;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
-/**
- * . User: marcuse Date: Jan 21, 2009 Time: 10:40:03 PM
- */
 public class ResultSetPacket extends ResultPacket {
     private final long fieldCount;
 
-    public ResultSetPacket(final RawPacket rawPacket) throws IOException {
-        final Reader reader = new Reader(rawPacket);
+    /**
+     * Initialize a ResultSetPacket : a resultset will have to be create.
+     * @param byteBuffer current packet's byteBuffer
+     * @throws IOException if byteBuffer data doesn't correspond to exepected data
+     */
+    public ResultSetPacket(ByteBuffer byteBuffer) throws IOException {
+        super(byteBuffer);
+        final Reader reader = new Reader(byteBuffer);
 
         fieldCount = reader.getLengthEncodedBinary();
         if (fieldCount == -1) {
@@ -69,8 +73,8 @@ public class ResultSetPacket extends ResultPacket {
             throw new AssertionError("field count is -1 in ResultSetPacket.");
         }
         if (reader.getRemainingSize() != 0) {
-            throw new IOException("invalid packet contents ,expected result set packet, actual packet hexdump = " +
-                    MySQLProtocol.hexdump(rawPacket.getByteBuffer(), 0));
+            throw new IOException("invalid packet contents ,expected result set packet, actual packet hexdump = "
+                    + MariaDbProtocol.hexdump(byteBuffer, 0));
         }
     }
 

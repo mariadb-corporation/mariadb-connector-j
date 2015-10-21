@@ -1,3 +1,5 @@
+package org.mariadb.jdbc.internal.common;
+
 /*
 MariaDB Client for Java
 
@@ -46,32 +48,31 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWIS
 ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
 OF SUCH DAMAGE.
 */
-package org.mariadb.jdbc.internal.common;
-
-import java.nio.charset.Charset;
-import java.util.Map;
-import java.util.TreeMap;
 
 
 public class CharsetUtils {
-
-    public static MySQLCharset getServerCharset(int serverCharsetByte) {
+    /**
+     * Retrieve Charset from serverCharset identifier.
+     * @param serverCharsetByte server charset identifier.
+     * @return Charset if found.
+     */
+    public static MariaDbCharset getServerCharset(int serverCharsetByte) {
         switch (serverCharsetByte) {
-            case 1 :
-            case 84 :
-                return MySQLCharset.BIG5;
+            case 1:
+            case 84:
+                return MariaDbCharset.BIG5;
             case 2:
             case 9:
             case 21:
             case 27:
             case 77:
-                return MySQLCharset.LATIN2;
+                return MariaDbCharset.LATIN2;
             case 3:
             case 69:
-                return MySQLCharset.CP1252;
+                return MariaDbCharset.CP1252;
             case 4:
             case 80:
-                return MySQLCharset.CP850;
+                return MariaDbCharset.CP850;
             case 5:
             case 8:
             case 15:
@@ -80,75 +81,75 @@ public class CharsetUtils {
             case 48:
             case 49:
             case 94:
-                return MySQLCharset.LATIN1;
+                return MariaDbCharset.LATIN1;
             case 6:
             case 72:
-                return MySQLCharset.HP8;
+                return MariaDbCharset.HP8;
             case 7:
             case 74:
-                return MySQLCharset.KOI8R;
+                return MariaDbCharset.KOI8R;
             case 10:
             case 82:
-                return MySQLCharset.SWE7;
+                return MariaDbCharset.SWE7;
             case 11:
             case 65:
             case 92:
             case 93:
-                return MySQLCharset.ASCII;
+                return MariaDbCharset.ASCII;
             case 12:
             case 91:
-                return MySQLCharset.UJIS;
+                return MariaDbCharset.UJIS;
             case 13:
             case 88:
-                return MySQLCharset.SJIS;
+                return MariaDbCharset.SJIS;
             case 14:
             case 23:
             case 50:
             case 51:
             case 52:
-                return MySQLCharset.CP1251;
+                return MariaDbCharset.CP1251;
             case 16:
             case 71:
-                return MySQLCharset.HEBREW;
+                return MariaDbCharset.HEBREW;
             case 18:
             case 89:
-                return MySQLCharset.TIS620;
+                return MariaDbCharset.TIS620;
             case 19:
             case 85:
-                return MySQLCharset.EUCKR;
+                return MariaDbCharset.EUCKR;
             case 20:
             case 41:
             case 42:
             case 79:
-                return MySQLCharset.LATIN7;
+                return MariaDbCharset.LATIN7;
             case 22:
             case 75:
-                return MySQLCharset.KOI8U;
+                return MariaDbCharset.KOI8U;
             case 24:
             case 86:
-                return MySQLCharset.GB2312;
+                return MariaDbCharset.GB2312;
             case 25:
             case 70:
-                return MySQLCharset.GREEK;
+                return MariaDbCharset.GREEK;
             case 26:
             case 34:
             case 44:
             case 66:
             case 99:
-                return MySQLCharset.CP1250;
+                return MariaDbCharset.CP1250;
             case 28:
             case 87:
-                return MySQLCharset.GBK;
+                return MariaDbCharset.GBK;
             case 29:
             case 58:
             case 59:
-                return MySQLCharset.CP1257;
+                return MariaDbCharset.CP1257;
             case 30:
             case 78:
-                return MySQLCharset.LATIN5;
+                return MariaDbCharset.LATIN5;
             case 32:
             case 64:
-                return MySQLCharset.ARMSCII8;
+                return MariaDbCharset.ARMSCII8;
             case 35:
             case 90:
             case 128:
@@ -178,22 +179,22 @@ public class CharsetUtils {
             case 159:
             case 640:
             case 641:
-                return MySQLCharset.UCS2;
+                return MariaDbCharset.UCS2;
             case 36:
             case 68:
-                return MySQLCharset.CP866;
+                return MariaDbCharset.CP866;
             case 37:
             case 73:
-                return MySQLCharset.KEYBCS2;
+                return MariaDbCharset.KEYBCS2;
             case 38:
             case 43:
-                return MySQLCharset.MACCE;
+                return MariaDbCharset.MACCE;
             case 39:
             case 53:
-                return MySQLCharset.MACROMAN;
+                return MariaDbCharset.MACROMAN;
             case 40:
             case 81:
-                return MySQLCharset.CP852;
+                return MariaDbCharset.CP852;
             case 33:
             case 83:
             case 192:
@@ -223,7 +224,7 @@ public class CharsetUtils {
             case 223:
             case 576:
             case 577:
-                return MySQLCharset.UTF8;
+                return MariaDbCharset.UTF8;
             case 45:
             case 46:
             case 224:
@@ -252,7 +253,7 @@ public class CharsetUtils {
             case 247:
             case 608:
             case 609:
-                return MySQLCharset.UTF8MB4;
+                return MariaDbCharset.UTF8MB4;
             case 54:
             case 55:
             case 101:
@@ -280,13 +281,13 @@ public class CharsetUtils {
             case 124:
             case 672:
             case 673:
-                return MySQLCharset.UTF16;
+                return MariaDbCharset.UTF16;
             case 56:
             case 62:
-                return MySQLCharset.UTF16LE;
+                return MariaDbCharset.UTF16LE;
             case 57:
             case 67:
-                return MySQLCharset.CP1256;
+                return MariaDbCharset.CP1256;
             case 60:
             case 61:
             case 160:
@@ -315,17 +316,17 @@ public class CharsetUtils {
             case 183:
             case 736:
             case 737:
-                return MySQLCharset.UTF32;
+                return MariaDbCharset.UTF32;
             case 63:
-                return MySQLCharset.BINARY;
+                return MariaDbCharset.BINARY;
             case 95:
             case 96:
-                return MySQLCharset.CP932;
+                return MariaDbCharset.CP932;
             case 97:
             case 98:
-                return MySQLCharset.EUCJPMS;
+                return MariaDbCharset.EUCJPMS;
             default:
-                return MySQLCharset.BINARY;
+                return MariaDbCharset.BINARY;
 
         }
     }

@@ -16,7 +16,10 @@ import java.sql.Statement;
 import static org.junit.Assert.assertFalse;
 
 public class LocalInfileInputStreamTest extends BaseTest {
-
+    /**
+     * Initialisation.
+     * @throws SQLException exception
+     */
     @BeforeClass()
     public static void initClass() throws SQLException {
         createTable("t", "id int, test varchar(100)");
@@ -35,7 +38,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
         builder.append("2\tworld\n");
 
         InputStream inputStream = new ByteArrayInputStream(builder.toString().getBytes());
-        ((MySQLStatement) st).setLocalInfileInputStream(inputStream);
+        ((MariaDbStatement) st).setLocalInfileInputStream(inputStream);
 
         st.executeUpdate("LOAD DATA LOCAL INFILE 'dummy.tsv' INTO TABLE t (id, test)");
 
@@ -58,10 +61,11 @@ public class LocalInfileInputStreamTest extends BaseTest {
     public void testLocalInfile() throws SQLException {
         Statement st = sharedConnection.createStatement();
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-        st.executeUpdate("LOAD DATA LOCAL INFILE '"+classLoader.getResource("test.txt").getPath()+"' INTO TABLE tt \n" +
-                "  FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"'\n" +
-                "  LINES TERMINATED BY '\\n' \n" +
-                "  (id, test)");
+        st.executeUpdate("LOAD DATA LOCAL INFILE '" + classLoader.getResource("test.txt").getPath()
+                + "' INTO TABLE tt \n"
+                + "  FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"'\n"
+                + "  LINES TERMINATED BY '\\n' \n"
+                + "  (id, test)");
 
         ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM tt");
         boolean next = rs.next();
@@ -80,13 +84,14 @@ public class LocalInfileInputStreamTest extends BaseTest {
 
 
     @Test
-    public void LoadDataInfileEmpty() throws SQLException, IOException {
+    public void loadDataInfileEmpty() throws SQLException, IOException {
         // Create temp file.
         File temp = File.createTempFile("ldinfile", ".tmp");
 
         try {
             Statement st = sharedConnection.createStatement();
-            st.execute("LOAD DATA LOCAL INFILE '" + temp.getAbsolutePath().replace('\\', '/') + "' INTO TABLE ldinfile");
+            st.execute("LOAD DATA LOCAL INFILE '" + temp.getAbsolutePath().replace('\\', '/')
+                    + "' INTO TABLE ldinfile");
             ResultSet rs = st.executeQuery("SELECT * FROM ldinfile");
             assertFalse(rs.next());
             rs.close();
@@ -98,7 +103,8 @@ public class LocalInfileInputStreamTest extends BaseTest {
     @Test
     public void testPrepareLocalInfileWithoutInputStream() throws SQLException {
         try {
-            PreparedStatement st = sharedConnection.prepareStatement("LOAD DATA LOCAL INFILE 'dummy.tsv' INTO TABLE t (id, test)");
+            PreparedStatement st = sharedConnection.prepareStatement("LOAD DATA LOCAL INFILE 'dummy.tsv' "
+                    + "INTO TABLE t (id, test)");
             st.execute();
             Assert.fail();
         } catch (SQLException e) {
@@ -106,7 +112,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
             try {
                 Assert.assertFalse(sharedConnection.isClosed());
                 Statement st = sharedConnection.createStatement();
-            st.execute("SELECT 1");
+                st.execute("SELECT 1");
             } catch (SQLException eee) {
                 Assert.fail();
             }

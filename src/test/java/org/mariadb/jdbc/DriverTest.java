@@ -1,6 +1,9 @@
 package org.mariadb.jdbc;
 
-import org.junit.*;
+import org.junit.Assert;
+import org.junit.Assume;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.io.*;
 import java.math.BigDecimal;
@@ -14,7 +17,10 @@ import static org.junit.Assert.*;
 
 
 public class DriverTest extends BaseTest {
-
+    /**
+     * Tables initialisation.
+     * @throws SQLException exception
+     */
     @BeforeClass()
     public static void initClass() throws SQLException {
         createTable("tt1", "id int , name varchar(20)");
@@ -31,14 +37,16 @@ public class DriverTest extends BaseTest {
         createTable("Driverstreamtest", "id int not null primary key, strm text");
         createTable("Driverstreamtest2", "id int primary key not null, strm text");
         createTable("sharedConnection", "id int");
-        createTable("objecttest", "int_test int primary key not null, string_test varchar(30), timestamp_test timestamp, serial_test blob");
+        createTable("objecttest", "int_test int primary key not null, string_test varchar(30), "
+                + "timestamp_test timestamp, serial_test blob");
         createTable("bintest", "id int not null primary key auto_increment, bin1 varbinary(300), bin2 varbinary(300)");
         createTable("genkeys", "priKey INT NOT NULL AUTO_INCREMENT, dataField VARCHAR(64), PRIMARY KEY (priKey)");
         createTable("extest", "id int not null primary key");
         createTable("rewritetest", "id int not null primary key, a varchar(10), b int", "engine=innodb");
         createTable("rewritetest2", "id int not null primary key, a varchar(10), b int", "engine=innodb");
         createTable("commentPreparedStatements", "id int not null primary key auto_increment, a varchar(10)");
-        createTable("quotesPreparedStatements", "id int not null primary key auto_increment, a varchar(10) , b varchar(10)");
+        createTable("quotesPreparedStatements", "id int not null primary key auto_increment, a varchar(10) , "
+                + "b varchar(10)");
         createTable("bigdectest", "id int not null primary key auto_increment, bd decimal", "engine=innodb");
         createTable("bytetest", "id int not null primary key auto_increment, a int", "engine=innodb");
         createTable("shorttest", "id int not null primary key auto_increment,a int", "engine=innodb");
@@ -56,11 +64,11 @@ public class DriverTest extends BaseTest {
         createTable("conj25", "a VARCHAR(1024)");
         createTable("batchUpdateException", "i int,PRIMARY KEY (i)");
         createTable("emptytest", "id int");
-        createTable("DriverTestt1","id int not null primary key auto_increment, test varchar(20)");
-        createTable("DriverTestt2","id int not null primary key auto_increment, test varchar(20)");
-        createTable("DriverTestt3","id int not null primary key auto_increment, test varchar(20)");
-        createTable("DriverTestt4","id int not null primary key auto_increment, test varchar(20)");
-        createTable("DriverTestt5","id int not null primary key auto_increment, test varchar(20)");
+        createTable("DriverTestt1", "id int not null primary key auto_increment, test varchar(20)");
+        createTable("DriverTestt2", "id int not null primary key auto_increment, test varchar(20)");
+        createTable("DriverTestt3", "id int not null primary key auto_increment, test varchar(20)");
+        createTable("DriverTestt4", "id int not null primary key auto_increment, test varchar(20)");
+        createTable("DriverTestt5", "id int not null primary key auto_increment, test varchar(20)");
     }
 
     @Test
@@ -187,20 +195,24 @@ public class DriverTest extends BaseTest {
     @Test
     public void ralfTest() throws SQLException {
         Statement stmt = sharedConnection.createStatement();
-        for (int i = 0; i < 10; i++) stmt.execute("INSERT INTO Drivert2 (test) VALUES ('aßa" + i + "')");
+        for (int i = 0; i < 10; i++) {
+            stmt.execute("INSERT INTO Drivert2 (test) VALUES ('aßa" + i + "')");
+        }
         PreparedStatement ps = sharedConnection.prepareStatement("SELECT * FROM Drivert2 where test like'%ß%' limit ?");
         ps.setInt(1, 5);
         ps.addBatch();
         ResultSet rs = ps.executeQuery();
         int result = 0;
-        while (rs.next()) result++;
+        while (rs.next()) {
+            result++;
+        }
         assertEquals(result, 5);
     }
 
     @Test
     public void autoIncTest() throws SQLException {
         Statement stmt = sharedConnection.createStatement();
-        stmt.execute("INSERT INTO Drivert3 (test) VALUES ('aa')");
+        stmt.execute("INSERT INTO Drivert3 (test) VALUES ('aa')", Statement.RETURN_GENERATED_KEYS);
         ResultSet rs = stmt.getGeneratedKeys();
         assertTrue(rs.next());
 
@@ -224,20 +236,22 @@ public class DriverTest extends BaseTest {
         }
 
         requireMinimumVersion(5, 0);
-        /* non-standard auto_increment_increment */
-        int auto_increment_increment = 2;
+        /* non-standard autoIncrementIncrement */
+        int autoIncrementIncrement = 2;
         Connection connection = null;
         try {
-            connection = setConnection("&sessionVariables=auto_increment_increment=" + auto_increment_increment);
+            connection = setConnection("&sessionVariables=auto_increment_increment=" + autoIncrementIncrement);
             stmt = connection.createStatement();
-            stmt.execute("INSERT INTO Drivert3 (test) values ('bb'),('cc')");
+            stmt.execute("INSERT INTO Drivert3 (test) values ('bb'),('cc')", Statement.RETURN_GENERATED_KEYS);
             rs = stmt.getGeneratedKeys();
             assertTrue(rs.next());
             assertEquals(7, rs.getInt(1));
             assertTrue(rs.next());
-            assertEquals(7 + auto_increment_increment, rs.getInt(1));
+            assertEquals(7 + autoIncrementIncrement, rs.getInt(1));
         } finally {
-            connection.close();
+            if (connection != null) {
+                connection.close();
+            }
         }
     }
 
@@ -254,7 +268,7 @@ public class DriverTest extends BaseTest {
         assertEquals(true, rs.next());
         assertEquals("japp", rs.getString("test"));
         assertEquals(false, rs.next());
-        stmt.executeUpdate("INSERT INTO Drivert30 (test) VALUES ('rollmeback')");
+        stmt.executeUpdate("INSERT INTO Drivert30 (test) VALUES ('rollmeback')", Statement.RETURN_GENERATED_KEYS);
         ResultSet rsGen = stmt.getGeneratedKeys();
         rsGen.next();
         assertEquals(3, rsGen.getInt(1));
@@ -305,7 +319,7 @@ public class DriverTest extends BaseTest {
                 connection.setTransactionIsolation(level);
                 assertEquals(level, connection.getTransactionIsolation());
             }
-        }finally {
+        } finally {
             connection.close();
         }
     }
@@ -317,7 +331,7 @@ public class DriverTest extends BaseTest {
 
 
     @Test
-    public void testConnectNoDB() throws Exception {
+    public void testConnectNoDb() throws Exception {
         Connection connection = null;
         try {
             connection = setConnection();
@@ -328,13 +342,13 @@ public class DriverTest extends BaseTest {
     }
 
     @Test
-    public void testConnectorJURL() throws SQLException {
-        JDBCUrl url = JDBCUrl.parse("jdbc:mysql://localhost/test");
+    public void testConnectorJurl() throws SQLException {
+        UrlParser url = UrlParser.parse("jdbc:mysql://localhost/test");
         assertEquals("localhost", url.getHostAddresses().get(0).host);
         assertEquals("test", url.getDatabase());
         assertEquals(3306, url.getHostAddresses().get(0).port);
 
-        url = JDBCUrl.parse("jdbc:mysql://localhost:3307/test");
+        url = UrlParser.parse("jdbc:mysql://localhost:3307/test");
         assertEquals("localhost", url.getHostAddresses().get(0).host);
         assertEquals("test", url.getDatabase());
         assertEquals(3307, url.getHostAddresses().get(0).port);
@@ -368,47 +382,52 @@ public class DriverTest extends BaseTest {
         String hosts = hostname + ":" + port + "," + hostname + ":" + (port + 1);
         String url = "jdbc:mysql://" + hosts + "/" + database + "?user=" + username;
         url += (password != null && !"".equals(password) ? "&password=" + password : "");
-        Connection c = null;
+        Connection connection = null;
         try {
-            c = openNewConnection(url);
-            MySQLConnection my = (MySQLConnection) c;
+            connection = openNewConnection(url);
+            MariaDbConnection my = (MariaDbConnection) connection;
             assertTrue(my.getPort() == port);
-            ResultSet rs = c.createStatement().executeQuery("select 1");
+            ResultSet rs = connection.createStatement().executeQuery("select 1");
             rs.next();
             assertEquals(rs.getInt(1), 1);
         } finally {
-            c.close();
+            connection.close();
         }
     }
 
     @Test
     public void batchTest() throws SQLException {
-        PreparedStatement ps = sharedConnection.prepareStatement("insert into test_batch values (null, ?)");
+        PreparedStatement ps = sharedConnection.prepareStatement("insert into test_batch values (null, ?)", 
+                Statement.RETURN_GENERATED_KEYS);
         ps.setString(1, "aaa");
         ps.addBatch();
         ps.setString(1, "bbb");
         ps.addBatch();
         ps.setString(1, "ccc");
         ps.addBatch();
-        int[] a = ps.executeBatch();
+        int[] batchResult = ps.executeBatch();
         ResultSet rs1 = ps.getGeneratedKeys();
         for (int count = 1; count <= 3; count++) {
             assertTrue(rs1.next());
             assertTrue(String.valueOf(count).equalsIgnoreCase(rs1.getString(1)));
         }
-        for (int c : a) assertEquals(1, c);
+        for (int unitInsertNumber : batchResult) {
+            assertEquals(1, unitInsertNumber);
+        }
         ps.setString(1, "aaa");
         ps.addBatch();
         ps.setString(1, "bbb");
         ps.addBatch();
         ps.setString(1, "ccc");
         ps.addBatch();
-        a = ps.executeBatch();
-        for (int c : a) assertEquals(1, c);
-        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from test_batch");
+        batchResult = ps.executeBatch();
+        for (int unitInsertNumber : batchResult) {
+            assertEquals(1, unitInsertNumber);
+        }
+        final ResultSet rs = sharedConnection.createStatement().executeQuery("select * from test_batch");
         ps.executeQuery("SELECT 1");
         rs1 = ps.getGeneratedKeys();
-        assertEquals(MySQLResultSet.EMPTY, rs1);
+        assertEquals(MariaDbResultSet.EMPTY, rs1);
         assertEquals(true, rs.next());
         assertEquals("aaa", rs.getString(2));
         assertEquals(true, rs.next());
@@ -480,7 +499,7 @@ public class DriverTest extends BaseTest {
     public void bigAutoIncTest() throws SQLException {
         Statement stmt = sharedConnection.createStatement();
         stmt.execute("alter table test_big_autoinc2 auto_increment = 1000");
-        stmt.execute("insert into test_big_autoinc2 values (null, 'hej')");
+        stmt.execute("insert into test_big_autoinc2 values (null, 'hej')", Statement.RETURN_GENERATED_KEYS);
         ResultSet rsGen = stmt.getGeneratedKeys();
         assertEquals(true, rsGen.next());
         assertEquals(1000, rsGen.getInt(1));
@@ -513,7 +532,8 @@ public class DriverTest extends BaseTest {
     @SuppressWarnings("deprecation")
     @Test
     public void testCharacterStreams() throws SQLException, IOException {
-        PreparedStatement stmt = sharedConnection.prepareStatement("insert into Driverstreamtest (id, strm) values (?,?)");
+        PreparedStatement stmt = sharedConnection.prepareStatement(
+                "insert into Driverstreamtest (id, strm) values (?,?)");
         stmt.setInt(1, 2);
         String toInsert = "abcdefgh\njklmn\"";
         Reader reader = new StringReader(toInsert);
@@ -553,7 +573,8 @@ public class DriverTest extends BaseTest {
 
     @Test
     public void testCharacterStreamWithLength() throws SQLException, IOException {
-        PreparedStatement stmt = sharedConnection.prepareStatement("insert into Driverstreamtest2 (id, strm) values (?,?)");
+        PreparedStatement stmt = sharedConnection.prepareStatement(
+                "insert into Driverstreamtest2 (id, strm) values (?,?)");
         stmt.setInt(1, 2);
         String toInsert = "abcdefgh\njklmn\"";
         Reader reader = new StringReader(toInsert);
@@ -682,7 +703,7 @@ public class DriverTest extends BaseTest {
         assertEquals(rs.getInt(1), 1);
         assertEquals(rs.getInt("priKey"), 1);
         assertEquals(rs.getInt("foo"), 1);
-        int indexes[] = {1, 2, 3};
+        int[] indexes = {1, 2, 3};
         st.executeUpdate("insert into genkeys(dataField) values('b')", indexes);
         rs = st.getGeneratedKeys();
         assertTrue(rs.next());
@@ -694,7 +715,7 @@ public class DriverTest extends BaseTest {
             // eat
         }
 
-        String columnNames[] = {"priKey", "Alice", "Bob"};
+        String[] columnNames = {"priKey", "Alice", "Bob"};
         st.executeUpdate("insert into genkeys(dataField) values('c')", columnNames);
         rs = st.getGeneratedKeys();
         assertTrue(rs.next());
@@ -769,16 +790,17 @@ public class DriverTest extends BaseTest {
         }
         ps.executeBatch();
         ResultSet rs = sharedConnection.createStatement().executeQuery("select * from rewritetest");
-        int i = 0;
+        int counter = 0;
         while (rs.next()) {
-            assertEquals(i++, rs.getInt("id"));
+            assertEquals(counter++, rs.getInt("id"));
         }
-        assertEquals(10, i);
+        assertEquals(10, counter);
     }
 
     @Test
     public void testBatchLoopWithDupKey() throws SQLException {
-        PreparedStatement ps = sharedConnection.prepareStatement("insert into rewritetest2 values (?,?,?) on duplicate key update a=values(a)");
+        PreparedStatement ps = sharedConnection.prepareStatement(
+                "insert into rewritetest2 values (?,?,?) on duplicate key update a=values(a)");
         for (int i = 0; i < 2; i++) {
             ps.setInt(1, 0);
             ps.setString(2, "bbb" + i);
@@ -788,11 +810,11 @@ public class DriverTest extends BaseTest {
         ps.executeBatch();
 
         ResultSet rs = sharedConnection.createStatement().executeQuery("select * from rewritetest2");
-        int i = 0;
+        int counter = 0;
         while (rs.next()) {
-            assertEquals(i++, rs.getInt("id"));
+            assertEquals(counter++, rs.getInt("id"));
         }
-        assertEquals(1, i);
+        assertEquals(1, counter);
     }
 
     @Test
@@ -870,17 +892,17 @@ public class DriverTest extends BaseTest {
     @Test
     public void doubleTest() throws SQLException {
         PreparedStatement ps = sharedConnection.prepareStatement("insert into doubletest (a) values (?)");
-        double d = 1.5;
-        ps.setDouble(1, d);
+        double sendDoubleValue = 1.5;
+        ps.setDouble(1, sendDoubleValue);
         ps.execute();
         ResultSet rs = sharedConnection.createStatement().executeQuery("select a from doubletest");
         assertTrue(rs.next());
-        Object b = rs.getObject(1);
-        assertEquals(b.getClass(), Double.class);
+        Object returnObject = rs.getObject(1);
+        assertEquals(returnObject.getClass(), Double.class);
         Double bc = rs.getDouble(1);
         Double bc2 = rs.getDouble("a");
 
-        assertTrue(d == bc);
+        assertTrue(sendDoubleValue == bc);
         assertEquals(bc2, bc);
 
 
@@ -898,7 +920,9 @@ public class DriverTest extends BaseTest {
         assertTrue(rs.isFirst());
         rs.beforeFirst();
         assertTrue(rs.isBeforeFirst());
-        while (rs.next()) ;
+        while (rs.next()){
+            //just load datas.
+        }
         assertTrue(rs.isAfterLast());
         rs.absolute(4);
         assertTrue(!rs.isAfterLast());
@@ -1008,7 +1032,7 @@ public class DriverTest extends BaseTest {
         try {
             sharedConnection.createStatement().execute("insert into nosuchtable values(1)");
         } catch (Exception e) {
-
+            //eat exception
         }
         assertFalse(sharedConnection.getAutoCommit());
         ResultSet rs = sharedConnection.createStatement().executeQuery("select @@autocommit");
@@ -1027,7 +1051,7 @@ public class DriverTest extends BaseTest {
         try {
             sharedConnection.createStatement().execute("insert into nosuchtable values(1)");
         } catch (Exception e) {
-
+            //eat exception
         }
         assertTrue(sharedConnection.getAutoCommit());
         rs = sharedConnection.createStatement().executeQuery("select @@autocommit");
@@ -1084,11 +1108,12 @@ public class DriverTest extends BaseTest {
     }
 
     @Test
-    public void testConnectWithDB() throws SQLException {
+    public void testConnectWithDb() throws SQLException {
         requireMinimumVersion(5, 0);
         try {
             sharedConnection.createStatement().executeUpdate("drop database test_testdrop");
         } catch (Exception e) {
+            //eat exception
         }
         Connection connection = null;
         try {
@@ -1098,7 +1123,9 @@ public class DriverTest extends BaseTest {
             ResultSet rs = dbmd.getCatalogs();
             boolean foundDb = false;
             while (rs.next()) {
-                if (rs.getString("table_cat").equals("test_testdrop")) foundDb = true;
+                if (rs.getString("table_cat").equals("test_testdrop")) {
+                    foundDb = true;
+                }
             }
             assertTrue(foundDb);
             sharedConnection.createStatement().executeUpdate("drop database test_testdrop");
@@ -1109,7 +1136,7 @@ public class DriverTest extends BaseTest {
 
     @Test
     public void testError() throws SQLException {
-        // check that max_allowed_packet is big enough for the test
+        // check that maxAllowedPacket is big enough for the test
         Assume.assumeTrue(checkMaxAllowedPacket("testError"));
 
         Connection connection = null;
@@ -1117,14 +1144,14 @@ public class DriverTest extends BaseTest {
             connection = setConnection();
             ResultSet rs = connection.createStatement().executeQuery("select @@max_allowed_packet");
             rs.next();
-            int max_allowed_packet = rs.getInt(1);
+            int maxAllowedPacket = rs.getInt(1);
 
             int selectSize = 9;
             int packetHeader = 4 + 2; //packet header + 2 escape slash beacause of string escape
-            char arr[] = new char[16 * 1024 * 1024 - selectSize - packetHeader];
+            char[] arr = new char[16 * 1024 * 1024 - selectSize - packetHeader];
             Arrays.fill(arr, 'a');
             String request = "select '" + new String(arr) + "'";
-            System.out.println("request size : " + (request.length()) + " / " + max_allowed_packet);
+            System.out.println("request size : " + (request.length()) + " / " + maxAllowedPacket);
 
             rs = connection.createStatement().executeQuery(request);
             rs.next();
@@ -1136,7 +1163,7 @@ public class DriverTest extends BaseTest {
 
 
     @Test
-    public void StreamingResult() throws SQLException {
+    public void streamingResult() throws SQLException {
         Statement st = sharedConnection.createStatement();
 
         for (int i = 0; i < 100; i++) {
@@ -1154,7 +1181,7 @@ public class DriverTest extends BaseTest {
 
     // Test if driver works with sql_mode= NO_BACKSLASH_ESCAPES
     @Test
-    public void NoBackslashEscapes() throws SQLException {
+    public void noBackslashEscapes() throws SQLException {
         requireMinimumVersion(5, 0);
 
         // super privilege is needed for this test
@@ -1171,11 +1198,11 @@ public class DriverTest extends BaseTest {
             try {
                 PreparedStatement preparedStatement =
                         connection.prepareStatement("insert into testBlob2(a) values(?)");
-                byte[] b = new byte[255];
+                byte[] bytes = new byte[255];
                 for (byte i = -128; i < 127; i++) {
-                    b[i + 128] = i;
+                    bytes[i + 128] = i;
                 }
-                MySQLBlob blob = new MySQLBlob(b);
+                MariaDbBlob blob = new MariaDbBlob(bytes);
                 preparedStatement.setBlob(1, blob);
                 int affectedRows = preparedStatement.executeUpdate();
                 Assert.assertEquals(affectedRows, 1);
@@ -1189,7 +1216,7 @@ public class DriverTest extends BaseTest {
 
     // Test if driver works with sql_mode= NO_BACKSLASH_ESCAPES
     @Test
-    public void NoBackslashEscapes2() throws SQLException {
+    public void noBackslashEscapes2() throws SQLException {
         requireMinimumVersion(5, 0);
 
         // super privilege is needed for this test
@@ -1231,7 +1258,7 @@ public class DriverTest extends BaseTest {
 
     // Test if driver works with sql_mode= ANSI_QUOTES
     @Test
-    public void AnsiQuotes() throws SQLException {
+    public void ansiQuotes() throws SQLException {
 
         // super privilege is needed for this test
         Assume.assumeTrue(hasSuperPrivilege("AnsiQuotes"));
@@ -1247,11 +1274,11 @@ public class DriverTest extends BaseTest {
             try {
                 PreparedStatement preparedStatement =
                         connection.prepareStatement("insert into testBlob2(a) values(?)");
-                byte[] b = new byte[255];
+                byte[] bytes = new byte[255];
                 for (byte i = -128; i < 127; i++) {
-                    b[i + 128] = i;
+                    bytes[i + 128] = i;
                 }
-                MySQLBlob blob = new MySQLBlob(b);
+                MariaDbBlob blob = new MariaDbBlob(bytes);
                 preparedStatement.setBlob(1, blob);
                 int affectedRows = preparedStatement.executeUpdate();
                 Assert.assertEquals(affectedRows, 1);
@@ -1274,8 +1301,8 @@ public class DriverTest extends BaseTest {
 
 
     @Test
-    public void useSSL() throws Exception {
-        Assume.assumeTrue(haveSSL(sharedConnection));
+    public void useSsl() throws Exception {
+        Assume.assumeTrue(haveSsl(sharedConnection));
         //Skip SSL test on java 7 since SSL packet size JDK-6521495).
         org.junit.Assume.assumeFalse(System.getProperty("java.version").contains("1.7."));
         Connection connection = setConnection("&useSSL=true&trustServerCertificate=true");
@@ -1293,8 +1320,9 @@ public class DriverTest extends BaseTest {
             setConnection("&password=");
         } catch (SQLException ex) {
             //SQLException is ok because we might get for example an access denied exception
-            if (!(ex.getMessage().indexOf("Could not connect: Access denied") > -1))
+            if (!(ex.getMessage().indexOf("Could not connect: Access denied") > -1)) {
                 throw ex;
+            }
         }
     }
 
@@ -1311,7 +1339,7 @@ public class DriverTest extends BaseTest {
                 st.execute("select sleep(1.5)");
                 assertFalse("must be exception here", true);
             } catch (Exception e) {
-
+                //normal exception
             }
 
             Statement st2 = connection.createStatement();
@@ -1506,12 +1534,14 @@ public class DriverTest extends BaseTest {
 
         Statement st = sharedConnection.createStatement();
         ResultSet rs = st.executeQuery("select @@version_compile_os,@@socket");
-        if (!rs.next())
+        if (!rs.next()) {
             return;
+        }
         log.info("os:" + rs.getString(1) + " path:" + rs.getString(2));
         String os = rs.getString(1);
-        if (os.toLowerCase().startsWith("win"))
+        if (os.toLowerCase().startsWith("win")) {
             return;
+        }
 
         String path = rs.getString(2);
         Connection connection = null;
@@ -1571,8 +1601,8 @@ public class DriverTest extends BaseTest {
         ps.setBigDecimal(2, new BigDecimal("1"));
         ps.setString(3, "one");
         ps.setBoolean(4, true);
-        Calendar c = new GregorianCalendar(1972, 3, 22);
-        ps.setDate(5, new java.sql.Date(c.getTime().getTime()));
+        Calendar calendar = new GregorianCalendar(1972, 3, 22);
+        ps.setDate(5, new java.sql.Date(calendar.getTime().getTime()));
         ps.setDouble(6, 1.5);
         assertEquals("sql : 'SELECT ?,?,?,?,?,?', parameters : [1,1,'one',1,'1972-04-22',1.5]", ps.toString());
         ps.close();
@@ -1582,13 +1612,16 @@ public class DriverTest extends BaseTest {
     /* Test that CLOSE_CURSORS_ON_COMMIT is silently ignored, and HOLD_CURSORS_OVER_COMMIT is actually used*/
     @Test
     public void resultSetHoldability() throws Exception {
-        Statement st = sharedConnection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, ResultSet.CLOSE_CURSORS_AT_COMMIT);
+        Statement st = sharedConnection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
+                ResultSet.CLOSE_CURSORS_AT_COMMIT);
         assertEquals(ResultSet.HOLD_CURSORS_OVER_COMMIT, st.getResultSetHoldability());
-        PreparedStatement ps = sharedConnection.prepareStatement("SELECT 1", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, ResultSet.CLOSE_CURSORS_AT_COMMIT);
+        PreparedStatement ps = sharedConnection.prepareStatement("SELECT 1", ResultSet.TYPE_FORWARD_ONLY,
+                ResultSet.CONCUR_READ_ONLY, ResultSet.CLOSE_CURSORS_AT_COMMIT);
         assertEquals(ResultSet.HOLD_CURSORS_OVER_COMMIT, ps.getResultSetHoldability());
         ResultSet rs = ps.executeQuery();
         assertEquals(rs.getHoldability(), ResultSet.HOLD_CURSORS_OVER_COMMIT);
-        CallableStatement cs = sharedConnection.prepareCall("{CALL foo}", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, ResultSet.CLOSE_CURSORS_AT_COMMIT);
+        CallableStatement cs = sharedConnection.prepareCall("{CALL foo}", ResultSet.TYPE_FORWARD_ONLY,
+                ResultSet.CONCUR_READ_ONLY, ResultSet.CLOSE_CURSORS_AT_COMMIT);
         assertEquals(cs.getResultSetHoldability(), ResultSet.HOLD_CURSORS_OVER_COMMIT);
     }
 
@@ -1607,7 +1640,9 @@ public class DriverTest extends BaseTest {
             ResultSet rs = dbmd.getCatalogs();
             boolean foundDb = false;
             while (rs.next()) {
-                if (rs.getString("table_cat").equals("test with spaces")) foundDb = true;
+                if (rs.getString("table_cat").equals("test with spaces")) {
+                    foundDb = true;
+                }
             }
             assertTrue(foundDb);
             connection.createStatement().execute("drop database `test with spaces`");

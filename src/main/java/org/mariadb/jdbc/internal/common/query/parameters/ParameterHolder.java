@@ -50,7 +50,7 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.common.query.parameters;
 
 import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
-import org.mariadb.jdbc.internal.mysql.MySQLType;
+import org.mariadb.jdbc.internal.mysql.MariaDbType;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -60,24 +60,27 @@ import java.nio.charset.StandardCharsets;
 
 public abstract class ParameterHolder implements Cloneable {
     /**
-     * Write parameter value
+     * Write parameter value.
      *
      * @param os the stream to write to
      * @throws IOException when something goes wrong
      */
     public abstract void writeTo(OutputStream os) throws IOException;
 
-    // allows for nice formatting of prepared statements using PreparedStatement.toString()
+    /**
+     * Nice formatting of prepared statements using PreparedStatement.toString().
+     * @return formatted value
+     */
     public String toString() {
         try {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             writeTo(baos);
-            byte[] a = baos.toByteArray();
-            if (a.length < 1024) {
-                return new String(a, StandardCharsets.UTF_8);
+            byte[] bytes = baos.toByteArray();
+            if (bytes.length < 1024) {
+                return new String(bytes, StandardCharsets.UTF_8);
             } else {
                 // cut overlong strings.
-                return new String(a, 0, 1024, StandardCharsets.UTF_8) + "<cut>...'";
+                return new String(bytes, 0, 1024, StandardCharsets.UTF_8) + "<cut>...'";
             }
         } catch (Exception e) {
             return "";
@@ -88,9 +91,9 @@ public abstract class ParameterHolder implements Cloneable {
     public abstract boolean isLongData();
 
 
-    public abstract MySQLType getMySQLType();
+    public abstract MariaDbType getMariaDbType();
 
     public void writeBufferType(final PacketOutputStream buffer) {
-        buffer.writeShort((short) getMySQLType().getType());
+        buffer.writeShort((short) getMariaDbType().getType());
     }
 }

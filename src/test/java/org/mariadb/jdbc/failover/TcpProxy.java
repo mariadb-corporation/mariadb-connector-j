@@ -9,12 +9,18 @@ import java.util.concurrent.TimeUnit;
 
 
 public class TcpProxy {
-    protected final static Logger log = LoggerFactory.getLogger(TcpProxy.class);
+    protected static final Logger log = LoggerFactory.getLogger(TcpProxy.class);
 
     String host;
     int remoteport;
     TcpProxySocket socket;
 
+    /**
+     * Initialise procy.
+     * @param host host (ip / dns)
+     * @param remoteport port
+     * @throws IOException  exception
+     */
     public TcpProxy(String host, int remoteport) throws IOException {
         this.host = host;
         this.remoteport = remoteport;
@@ -22,23 +28,31 @@ public class TcpProxy {
         Executors.newSingleThreadScheduledExecutor().schedule(socket, 0, TimeUnit.MILLISECONDS);
     }
 
+    public void stop() {
+        socket.kill();
+    }
+
     public void restart(long sleepTime) {
         socket.kill();
         Executors.newSingleThreadScheduledExecutor().schedule(socket, sleepTime, TimeUnit.MILLISECONDS);
     }
 
-    public void stop() {
-        socket.kill();
-    }
 
+    /**
+     * Restart proxy.
+     */
     public void restart() {
         Executors.newSingleThreadExecutor().execute(socket);
         try {
             Thread.sleep(10);
         } catch (InterruptedException e) {
+            //eat Exception
         }
     }
 
+    /**
+     * Assure that proxy is in a stable status.
+     */
     public void assureProxyOk() {
         if (socket.isClosed()) {
             restart();

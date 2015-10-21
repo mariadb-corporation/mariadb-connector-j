@@ -15,16 +15,20 @@ import static org.junit.Assert.*;
 
 public class ConnectionTest extends BaseTest {
 
+    /**
+     * Initialisation.
+     * @throws SQLException exception
+     */
     @BeforeClass()
     public static void initClass() throws SQLException {
         createTable("dummy", "a BLOB");
     }
 
     /**
-     * CONJ-166
+     * Conj-166.
      * Connection error code must be thrown
      *
-     * @throws SQLException
+     * @throws SQLException exception
      */
     @Test
     public void testAccessDeniedErrorCode() throws SQLException {
@@ -39,9 +43,9 @@ public class ConnectionTest extends BaseTest {
     }
 
     /**
-     * CONJ-89
+     * Conj-89.
      *
-     * @throws SQLException
+     * @throws SQLException exception
      */
     @Test
     public void getPropertiesTest() throws SQLException {
@@ -68,10 +72,10 @@ public class ConnectionTest extends BaseTest {
     }
 
     /**
-     * CONJ-75 (corrected with CONJ-156)
-     * Needs permission java.sql.SQLPermission "abort" or will be skipped
+     * Conj-75 (corrected with CONJ-156)
+     * Needs permission java.sql.SQLPermission "abort" or will be skipped.
      *
-     * @throws SQLException
+     * @throws SQLException exception
      */
     @Test
     public void abortTest() throws SQLException {
@@ -112,9 +116,9 @@ public class ConnectionTest extends BaseTest {
     }
 
     /**
-     * CONJ-121: implemented Connection.getNetworkTimeout and Connection.setNetworkTimeout
+     * Conj-121: implemented Connection.getNetworkTimeout and Connection.setNetworkTimeout.
      *
-     * @throws SQLException
+     * @throws SQLException exception
      */
     @Test
     public void networkTimeoutTest() throws SQLException {
@@ -161,12 +165,12 @@ public class ConnectionTest extends BaseTest {
     }
 
     /**
-     * CONJ-120 Fix Connection.isValid method
+     * Conj-120 Fix Connection.isValid method.
      *
-     * @throws SQLException
+     * @throws SQLException exception
      */
     @Test
-    public void isValid_shouldThrowExceptionWithNegativeTimeout() throws SQLException {
+    public void isValidShouldThrowExceptionWithNegativeTimeout() throws SQLException {
         try {
             sharedConnection.isValid(-1);
             fail("The above row should have thrown an SQLException");
@@ -176,10 +180,10 @@ public class ConnectionTest extends BaseTest {
     }
 
     /**
-     * CONJ-116: Make SQLException prettier when too large packet is sent to the server
+     * Conj-116: Make SQLException prettier when too large packet is sent to the server.
      *
-     * @throws SQLException
-     * @throws UnsupportedEncodingException
+     * @throws SQLException exception
+     * @throws UnsupportedEncodingException exception
      */
     @Test
     public void checkMaxAllowedPacket() throws Throwable, SQLException, UnsupportedEncodingException {
@@ -189,7 +193,7 @@ public class ConnectionTest extends BaseTest {
         int maxAllowedPacket = rs.getInt(2);
         log.debug("max_allowed_packet DB" + maxAllowedPacket);
 
-        /**Create a SQL packet bigger than maxAllowedPacket**/
+        //Create a SQL packet bigger than maxAllowedPacket
         StringBuilder sb = new StringBuilder();
         String rowData = "('this is a dummy row values')";
         int rowsToWrite = (maxAllowedPacket / rowData.getBytes("UTF-8").length) + 1;
@@ -213,7 +217,7 @@ public class ConnectionTest extends BaseTest {
 
         statement.execute("select count(*) from dummy"); //check that the connection is still working
 
-        /**added in CONJ-151 to check the 2 differents type of query implementation**/
+        //added in CONJ-151 to check the 2 differents type of query implementation
         PreparedStatement preparedStatement = sharedConnection.prepareStatement("INSERT INTO dummy VALUES (?)");
         try {
             byte[] arr = new byte[maxAllowedPacket + 1000];
@@ -244,7 +248,7 @@ public class ConnectionTest extends BaseTest {
     /**
      * CONJ-120 Fix Connection.isValid method
      *
-     * @throws SQLException
+     * @throws SQLException exception
      */
     @Test
     public void isValid_closedConnection() throws SQLException {
@@ -262,8 +266,8 @@ public class ConnectionTest extends BaseTest {
     /**
      * CONJ-120 Fix Connection.isValid method
      *
-     * @throws SQLException
-     * @throws InterruptedException
+     * @throws SQLException exception
+     * @throws InterruptedException exception
      */
     @Test
     public void isValid_connectionThatTimesOutByServer() throws SQLException, InterruptedException {

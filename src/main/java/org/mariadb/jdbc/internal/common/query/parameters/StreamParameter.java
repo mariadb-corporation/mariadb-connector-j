@@ -50,7 +50,7 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.common.query.parameters;
 
 import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
-import org.mariadb.jdbc.internal.mysql.MySQLType;
+import org.mariadb.jdbc.internal.mysql.MariaDbType;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -61,8 +61,13 @@ public class StreamParameter extends LongDataParameterHolder {
     InputStream is;
     long length;
     boolean noBackslashEscapes;
-    boolean isText;
 
+    /**
+     * Constructor.
+     * @param is stream to write
+     * @param length max length to write (if null the whole stream will be send)
+     * @param noBackslashEscapes must backslash be escape
+     */
     public StreamParameter(InputStream is, long length, boolean noBackslashEscapes) {
         this.is = is;
         this.length = length;
@@ -73,23 +78,29 @@ public class StreamParameter extends LongDataParameterHolder {
         this(is, Long.MAX_VALUE, noBackSlashEscapes);
     }
 
-    public void setText(boolean b) {
-        isText = b;
-    }
-
+    /**
+     * Write stream in text format.
+     * @param os database outputStream
+     * @throws IOException if any error occur when reader stream
+     */
     public void writeTo(final OutputStream os) throws IOException {
         if (length == Long.MAX_VALUE) {
-            ParameterWriter.write(os, is, noBackslashEscapes, isText);
+            ParameterWriter.write(os, is, noBackslashEscapes);
         } else {
-            ParameterWriter.write(os, is, length, noBackslashEscapes, isText);
+            ParameterWriter.write(os, is, length, noBackslashEscapes);
         }
     }
 
+    /**
+     * Write stream in binary format.
+     * @param os database outputStream
+     * @throws IOException if any error occur when reader stream
+     */
     public void writeBinary(PacketOutputStream os) throws IOException {
         if (length == Long.MAX_VALUE) {
-            os.sendStream(is, mySQLServerCharset);
+            os.sendStream(is);
         } else {
-            os.sendStream(is, length, mySQLServerCharset);
+            os.sendStream(is, length);
         }
 
     }
@@ -99,8 +110,8 @@ public class StreamParameter extends LongDataParameterHolder {
         return "<Stream> " + is;
     }
 
-    public MySQLType getMySQLType() {
-        return MySQLType.BLOB;
+    public MariaDbType getMariaDbType() {
+        return MariaDbType.BLOB;
     }
 
 }

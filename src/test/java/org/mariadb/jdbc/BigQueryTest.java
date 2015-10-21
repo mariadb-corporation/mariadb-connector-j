@@ -5,7 +5,10 @@ import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.sql.*;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Arrays;
 
 import static org.junit.Assert.assertEquals;
@@ -16,7 +19,7 @@ public class BigQueryTest extends BaseTest {
     @BeforeClass()
     public static void initClass() throws SQLException {
         createTable("bigblob", "id int not null primary key auto_increment, test longblob");
-        createTable("bigblob2","id int not null primary key auto_increment, test longblob, test2 longblob");
+        createTable("bigblob2", "id int not null primary key auto_increment, test longblob, test2 longblob");
     }
 
     @Test
@@ -24,19 +27,16 @@ public class BigQueryTest extends BaseTest {
 
         Assume.assumeTrue(checkMaxAllowedPacketMore40m("sendBigQuery2"));
 
-        Statement stmt = sharedConnection.createStatement();
-
-
         char[] arr = new char[20000000];
         for (int i = 0; i < arr.length; i++) {
             arr[i] = (char) ('a' + (i % 10));
         }
 
-        Statement s = sharedConnection.createStatement();
-        StringBuilder query = new StringBuilder("INSERT INTO bigblob VALUES (null, '").
-                append(arr).append("')");
+        Statement stmt = sharedConnection.createStatement();
+        StringBuilder query = new StringBuilder("INSERT INTO bigblob VALUES (null, '")
+                .append(arr).append("')");
 
-        s.executeUpdate(query.toString());
+        stmt.executeUpdate(query.toString());
 
         ResultSet rs = stmt.executeQuery("select * from bigblob");
         rs.next();
@@ -52,7 +52,6 @@ public class BigQueryTest extends BaseTest {
 
         Assume.assumeTrue(checkMaxAllowedPacketMore40m("sendBigPreparedQuery"));
 
-        Statement stmt = sharedConnection.createStatement();
 
         byte[] arr = new byte[20000000];
         Arrays.fill(arr, (byte) 'a');
@@ -63,6 +62,7 @@ public class BigQueryTest extends BaseTest {
         ps.setBytes(1, arr);
         ps.setBytes(2, arr2);
         ps.executeUpdate();
+        Statement stmt = sharedConnection.createStatement();
         ResultSet rs = stmt.executeQuery("select * from bigblob2");
         rs.next();
         byte[] newBytes = rs.getBytes(2);

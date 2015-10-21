@@ -3,18 +3,24 @@ package org.mariadb.jdbc.internal.common.packet;
 
 import org.mariadb.jdbc.internal.common.packet.buffer.Reader;
 
-import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
 public class LocalInfilePacket extends ResultPacket {
     private long fieldCount;
     private String fileName;
 
-    public LocalInfilePacket(RawPacket rawPacket) throws IOException {
-        Reader reader = new Reader(rawPacket);
+    /**
+     * Read Local Infile Packet result.
+     * @param byteBuffer current packet's byteBuffer
+     */
+    public LocalInfilePacket(ByteBuffer byteBuffer) {
+        super(byteBuffer);
+        final Reader reader = new Reader(byteBuffer);
         fieldCount = reader.getLengthEncodedBinary();
-        if (fieldCount != -1)
+        if (fieldCount != -1) {
             throw new AssertionError("field count must be -1");
+        }
         fileName = reader.readString(StandardCharsets.UTF_8);
     }
 

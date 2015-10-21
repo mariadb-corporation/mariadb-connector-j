@@ -66,9 +66,16 @@ public class PrepareStatementCache extends LinkedHashMap<String, PrepareResult> 
         return new PrepareStatementCache(size);
     }
 
-
+    /**
+     * Add prepared statement to cache.
+     * @param key sql
+     * @param value prepareResult
+     * @return PrepareResult to avoid to prepare statement.
+     */
     public PrepareResult putIfNone(String key, PrepareResult value) {
-        if (!containsKey(key)) put(key, value);
+        if (!containsKey(key)) {
+            put(key, value);
+        }
         return value;
     }
 

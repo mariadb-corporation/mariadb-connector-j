@@ -31,7 +31,7 @@ public class ResultSetUnsupportedMethodsTest extends BaseTest {
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
-    public void testRowID() throws SQLException {
+    public void testRowId() throws SQLException {
         rs.getRowId(1);
     }
 
@@ -521,12 +521,12 @@ public class ResultSetUnsupportedMethodsTest extends BaseTest {
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
-    public void testupdateSQLXML76() throws SQLException {
+    public void testupdateSqlXml76() throws SQLException {
         rs.updateSQLXML(1, (java.sql.SQLXML) null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
-    public void testupdateSQLXML77() throws SQLException {
+    public void testupdateSsqlXml77() throws SQLException {
         rs.updateSQLXML("a", (java.sql.SQLXML) null);
     }
 

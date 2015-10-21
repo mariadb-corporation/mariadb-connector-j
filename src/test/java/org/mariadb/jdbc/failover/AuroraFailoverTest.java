@@ -1,7 +1,7 @@
 package org.mariadb.jdbc.failover;
 
 import org.junit.*;
-import org.mariadb.jdbc.internal.common.UrlHAMode;
+import org.mariadb.jdbc.internal.common.HaMode;
 
 import java.sql.*;
 import java.util.HashMap;
@@ -13,16 +13,24 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
     private Connection connection;
     private long testBeginTime;
 
+    /**
+     * Initialisation.
+     * @throws SQLException exception
+     */
     @Before
     public void init() throws SQLException {
         initialUrl = initialAuroraUrl;
         proxyUrl = proxyAuroraUrl;
-        currentType = UrlHAMode.AURORA;
+        currentType = HaMode.AURORA;
         testBeginTime = System.currentTimeMillis();
         Assume.assumeTrue(initialAuroraUrl != null);
         connection = null;
     }
 
+    /**
+     * After.
+     * @throws SQLException exception
+     */
     @After
     public void after() throws SQLException {
         assureProxy();
@@ -49,9 +57,10 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
         Assert.assertTrue(connection.isReadOnly());
         try {
             stmt.execute("drop table  if exists multinode4");
-            log.error("ERROR - > must not be able to write on slave --> check if you database is start with --read-only");
+            log.error("ERROR - > must not be able to write on slave. check if you database is start with --read-only");
             Assert.fail();
         } catch (SQLException e) {
+            //normal exception
         }
     }
 
@@ -80,7 +89,9 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
             connection = getNewConnection(false);
             int serverId = getServerId(connection);
             log.debug("master server found " + serverId);
-            if (i > 0) Assert.assertTrue(masterId == serverId);
+            if (i > 0) {
+                Assert.assertTrue(masterId == serverId);
+            }
             masterId = serverId;
             connection.setReadOnly(true);
             int replicaId = getServerId(connection);
@@ -137,12 +148,14 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
             connection.setReadOnly(false);
             Assert.fail();
         } catch (SQLException e) {
+            //normal exception
         }
     }
 
     @Test
     public void pingReconnectAfterRestart() throws Throwable {
-        connection = getNewConnection("&retriesAllDown=1&secondsBeforeRetryMaster=1&failOnReadOnly=false&queriesBeforeRetryMaster=50000", true);
+        connection = getNewConnection("&retriesAllDown=1&secondsBeforeRetryMaster=1&failOnReadOnly=false"
+                + "&queriesBeforeRetryMaster=50000", true);
         Statement st = connection.createStatement();
         int masterServerId = getServerId(connection);
         stopProxy(masterServerId);
@@ -151,6 +164,7 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
         try {
             st.execute("SELECT 1");
         } catch (SQLException e) {
+            //normal exception
         }
         restartProxy(masterServerId);
         long restartTime = System.currentTimeMillis();
@@ -158,10 +172,13 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
         boolean loop = true;
         while (loop) {
             if (!connection.isClosed()) {
-                log.debug("reconnection with failover loop after : " + (System.currentTimeMillis() - stoppedTime) + "ms");
+                log.debug("reconnection with failover loop after : "
+                        + (System.currentTimeMillis() - stoppedTime) + "ms");
                 loop = false;
             }
-            if (System.currentTimeMillis() - restartTime > 15 * 1000) Assert.fail();
+            if (System.currentTimeMillis() - restartTime > 15 * 1000) {
+                Assert.fail();
+            }
             Thread.sleep(250);
         }
     }
@@ -284,7 +301,8 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
 
     @Test
     public void checkReconnectionToMasterAfterQueryNumber() throws Throwable {
-        connection = getNewConnection("&retriesAllDown=1&secondsBeforeRetryMaster=3000&queriesBeforeRetryMaster=10&failOnReadOnly=true", true);
+        connection = getNewConnection("&retriesAllDown=1&secondsBeforeRetryMaster=3000&queriesBeforeRetryMaster=10"
+                + "&failOnReadOnly=true", true);
         Statement st = connection.createStatement();
         int masterServerId = getServerId(connection);
         stopProxy(masterServerId);
@@ -315,13 +333,16 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
                 Thread.sleep(250);
                 st.execute("SELECT 1");
                 if (!connection.isReadOnly()) {
-                    log.debug("reconnection with failover loop after : " + (System.currentTimeMillis() - stoppedTime) + "ms");
+                    log.debug("reconnection with failover loop after : " + (System.currentTimeMillis() - stoppedTime)
+                            + "ms");
                     loop = false;
                 }
             } catch (SQLException e) {
                 log.debug("not reconnected ... ");
             }
-            if (System.currentTimeMillis() - stoppedTime > 20 * 1000) Assert.fail();
+            if (System.currentTimeMillis() - stoppedTime > 20 * 1000) {
+                Assert.fail();
+            }
         }
     }
 
@@ -343,6 +364,7 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
             Assert.assertTrue(System.currentTimeMillis() - stopTime > 10);
             Assert.assertTrue(System.currentTimeMillis() - stopTime < 20);
         } catch (SQLException e) {
+            //eat exception
         }
     }
 
@@ -363,6 +385,7 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
             st.execute("insert into multinode2 (id, amount) VALUE (2 , 100)");
             Assert.fail();
         } catch (SQLException e) {
+            //normal exception
         }
     }
 
@@ -387,12 +410,16 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
             Thread.sleep(250);
             try {
                 if (!connection.isReadOnly()) {
-                    log.debug("reconnection to master with failover loop after : " + (System.currentTimeMillis() - stoppedTime) + "ms");
+                    log.debug("reconnection to master with failover loop after : " + (System.currentTimeMillis()
+                            - stoppedTime) + "ms");
                     loop = false;
                 }
             } catch (SQLException e) {
+                //eat eaxception
             }
-            if (System.currentTimeMillis() - stoppedTime > 15 * 1000) Assert.fail();
+            if (System.currentTimeMillis() - stoppedTime > 15 * 1000) {
+                Assert.fail();
+            }
         }
     }
 
@@ -402,7 +429,8 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
         Statement st = connection.createStatement();
 
         st.execute("drop table  if exists multinodeTransaction2");
-        st.execute("create table multinodeTransaction2 (id int not null primary key , amount int not null) ENGINE = InnoDB");
+        st.execute("create table multinodeTransaction2 (id int not null primary key , amount int not null) "
+                + "ENGINE = InnoDB");
         connection.setAutoCommit(false);
         st.execute("insert into multinodeTransaction2 (id, amount) VALUE (1 , 100)");
 
@@ -411,6 +439,7 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
             connection.setReadOnly(true);
             Assert.fail();
         } catch (SQLException e) {
+            //normal exception
         }
     }
 
@@ -419,15 +448,17 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
         connection = getNewConnection("&autoReconnect=true&retriesAllDown=1", true);
         Statement st = connection.createStatement();
 
-        int masterServerId = getServerId(connection);
+        final int masterServerId = getServerId(connection);
         st.execute("drop table  if exists multinodeTransaction");
-        st.execute("create table multinodeTransaction (id int not null primary key , amount int not null) ENGINE = InnoDB");
+        st.execute("create table multinodeTransaction (id int not null primary key , amount int not null) "
+                + "ENGINE = InnoDB");
         connection.setAutoCommit(false);
         st.execute("insert into multinodeTransaction (id, amount) VALUE (1 , 100)");
         stopProxy(masterServerId);
         Assert.assertTrue(inTransaction(connection));
         try {
-            // will to execute the query. if there is a connection error, try a ping, if ok, good, query relaunched. If not good, transaction is considered be lost
+            // will to execute the query. if there is a connection error, try a ping, if ok, good, query relaunched.
+            // If not good, transaction is considered be lost
             st.execute("insert into multinodeTransaction (id, amount) VALUE (2 , 10)");
             Assert.fail();
         } catch (SQLException e) {
@@ -475,9 +506,9 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
     }
 
     /**
-     * CONJ-79
+     * Conj-79.
      *
-     * @throws SQLException
+     * @throws SQLException exception
      */
     @Test
     public void socketTimeoutTest() throws SQLException {
@@ -518,10 +549,10 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
     }
 
     /**
-     * CONJ-166
-     * Connection error code must be thrown
+     * Conj-166
+     * Connection error code must be thrown.
      *
-     * @throws SQLException
+     * @throws SQLException exception
      */
     @Test
     public void testAccessDeniedErrorCode() throws SQLException {
@@ -548,7 +579,8 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
 
 //    @Test
 //    public void testFailoverMaster() throws Throwable {
-//        connection = getNewConnection("&validConnectionTimeout=1&secondsBeforeRetryMaster=1&autoReconnect=true", false);
+//        connection = getNewConnection("&validConnectionTimeout=1&secondsBeforeRetryMaster=1&autoReconnect=true",
+// false);
 //        Statement stmt = connection.createStatement();
 //        ResultSet rs;
 //        stmt.execute("ALTER SYSTEM SIMULATE 100 PERCENT DISK FAILURE FOR INTERVAL 60 SECOND");
@@ -602,7 +634,8 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
 //            //master must change
 //            if (currentMaster != initMaster) {
 //                long endFailover = System.currentTimeMillis() - launchInit;
-//                log.debug("Master automatically change after failover after " + endFailover + "ms. new master is " + currentMaster);
+//                log.debug("Master automatically change after failover after " + endFailover + "ms. new master is "
+// + currentMaster);
 //
 //                //wait 15s for others tests may not be disturb by replica restart
 //                Thread.sleep(15000);
@@ -648,7 +681,8 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
 //            boolean validationConnection1 = false;
 //            boolean validationConnection2 = false;
 //
-//            //this permit to launched a failover is less than 15s after and every second, ping will test that master is ok.
+//            //this permit to launched a failover is less than 15s after and every second, ping will test
+// //that master is ok.
 //            long launchInit = System.currentTimeMillis();
 //            while (System.currentTimeMillis() - launchInit < 180000) {
 //                Thread.sleep(250);

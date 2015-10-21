@@ -4,7 +4,7 @@ import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
-import org.mariadb.jdbc.internal.common.UrlHAMode;
+import org.mariadb.jdbc.internal.common.HaMode;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -18,21 +18,31 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
     private Connection connection;
     private long testBeginTime;
 
+    /**
+     * Failover initialisation.
+     * @throws SQLException  exception
+     */
     @Before
     public void init() throws SQLException {
         initialUrl = initialReplicationUrl;
         proxyUrl = proxyReplicationUrl;
         Assume.assumeTrue(initialReplicationUrl != null);
         connection = null;
-        currentType = UrlHAMode.REPLICATION;
+        currentType = HaMode.REPLICATION;
         testBeginTime = System.currentTimeMillis();
     }
 
+    /**
+     * Reinitialisation proxy.
+     * @throws SQLException exception
+     */
     @After
     public void after() throws SQLException {
         assureProxy();
         assureBlackList(connection);
-        if (connection != null) connection.close();
+        if (connection != null) {
+            connection.close();
+        }
 
         log.debug("test time : " + (System.currentTimeMillis() - testBeginTime) + "ms");
     }
@@ -47,7 +57,7 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
 
     @Test
     public void testErrorWriteOnSlave() throws SQLException {
-        connection = getNewConnection("&assureReadOnly=true",false);
+        connection = getNewConnection("&assureReadOnly=true", false);
         connection.setReadOnly(true);
         Statement stmt = connection.createStatement();
         assertTrue(connection.isReadOnly());
@@ -60,6 +70,7 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
             log.error("ERROR - > must not be able to write on slave ");
             fail();
         } catch (SQLException e) {
+            //normal exception
         }
     }
 
@@ -71,7 +82,9 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
             connection = getNewConnection("&retriesAllDown=1", false);
             int serverId = getServerId(connection);
             log.debug("master server found " + serverId);
-            if (i > 0) assertTrue(masterId == serverId);
+            if (i > 0) {
+                assertTrue(masterId == serverId);
+            }
             masterId = serverId;
             connection.setReadOnly(true);
             int replicaId = getServerId(connection);
@@ -128,14 +141,16 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
 
     @Test
     public void pingReconnectAfterFailover() throws Throwable {
-        connection = getNewConnection("&retriesAllDown=1&secondsBeforeRetryMaster=5&failOnReadOnly=false&queriesBeforeRetryMaster=50000", true);
+        connection = getNewConnection("&retriesAllDown=1&secondsBeforeRetryMaster=5&failOnReadOnly=false"
+                + "&queriesBeforeRetryMaster=50000", true);
         Statement st = connection.createStatement();
-        int masterServerId = getServerId(connection);
+        final int masterServerId = getServerId(connection);
         stopProxy(masterServerId);
 
         try {
             st.execute("SELECT 1");
         } catch (SQLException e) {
+            //normal exception
         }
 
         connection.setReadOnly(true);
@@ -145,6 +160,7 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
             connection.setReadOnly(false);
             fail();
         } catch (SQLException e) {
+            //normal exception
         }
 
         long stoppedTime = System.currentTimeMillis();
@@ -156,13 +172,17 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
                 log.debug("time : " + (System.currentTimeMillis() - stoppedTime) + "ms");
                 int currentHost = getServerId(connection);
                 if (masterServerId == currentHost) {
-                    log.debug("reconnection with failover loop after : " + (System.currentTimeMillis() - stoppedTime) + "ms");
+                    log.debug("reconnection with failover loop after : " + (System.currentTimeMillis() - stoppedTime)
+                            + "ms");
                     assertTrue((System.currentTimeMillis() - stoppedTime) > 5 * 1000);
                     loop = false;
                 }
             } catch (SQLException e) {
+                //eat exception
             }
-            if (System.currentTimeMillis() - stoppedTime > 20 * 1000) fail();
+            if (System.currentTimeMillis() - stoppedTime > 20 * 1000) {
+                fail();
+            }
         }
     }
 
@@ -268,7 +288,8 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
 
     @Test
     public void checkReconnectionToMasterAfterQueryNumber() throws Throwable {
-        connection = getNewConnection("&retriesAllDown=1&secondsBeforeRetryMaster=3000&queriesBeforeRetryMaster=10&failOnReadOnly=true", true);
+        connection = getNewConnection("&retriesAllDown=1&secondsBeforeRetryMaster=3000&queriesBeforeRetryMaster=10"
+                + "&failOnReadOnly=true", true);
         Statement st = connection.createStatement();
         int masterServerId = getServerId(connection);
         stopProxy(masterServerId);
@@ -317,6 +338,7 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
             assertTrue(System.currentTimeMillis() - stopTime > 10);
             assertTrue(System.currentTimeMillis() - stopTime < 20);
         } catch (SQLException e) {
+            e.printStackTrace();
         }
     }
 
@@ -337,6 +359,7 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
             st.execute("insert into multinode2 (id, amount) VALUE (2 , 100)");
             fail();
         } catch (SQLException e) {
+            //normal exception
         }
     }
 
@@ -362,13 +385,17 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
             Thread.sleep(250);
             try {
                 if (!connection.isReadOnly()) {
-                    log.debug("reconnection to master with failover loop after : " + (System.currentTimeMillis() - stoppedTime) + "ms");
+                    log.debug("reconnection to master with failover loop after : " + (System.currentTimeMillis()
+                            - stoppedTime) + "ms");
                     assertTrue((System.currentTimeMillis() - stoppedTime) > 10 * 1000);
                     loop = false;
                 }
             } catch (SQLException e) {
+                //eat exception
             }
-            if (System.currentTimeMillis() - stoppedTime > 30 * 1000) fail();
+            if (System.currentTimeMillis() - stoppedTime > 30 * 1000) {
+                fail();
+            }
         }
     }
 
@@ -379,7 +406,8 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
         Statement st = connection.createStatement();
 
         st.execute("drop table  if exists multinodeTransaction2");
-        st.execute("create table multinodeTransaction2 (id int not null primary key , amount int not null) ENGINE = InnoDB");
+        st.execute("create table multinodeTransaction2 (id int not null primary key , amount int not null) "
+                + "ENGINE = InnoDB");
         connection.setAutoCommit(false);
         st.execute("insert into multinodeTransaction2 (id, amount) VALUE (1 , 100)");
 
@@ -388,6 +416,7 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
             connection.setReadOnly(true);
             fail();
         } catch (SQLException e) {
+            //normal exception
         }
     }
 
@@ -396,9 +425,10 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
         connection = getNewConnection("&retriesAllDown=1&autoReconnect=true", true);
         Statement st = connection.createStatement();
 
-        int masterServerId = getServerId(connection);
+        final int masterServerId = getServerId(connection);
         st.execute("drop table  if exists multinodeTransaction");
-        st.execute("create table multinodeTransaction (id int not null primary key , amount int not null) ENGINE = InnoDB");
+        st.execute("create table multinodeTransaction (id int not null primary key , amount int not null) "
+                + "ENGINE = InnoDB");
         connection.setAutoCommit(false);
         st.execute("insert into multinodeTransaction (id, amount) VALUE (1 , 100)");
         stopProxy(masterServerId);
@@ -408,6 +438,7 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
             st.execute("insert into multinodeTransaction (id, amount) VALUE (2 , 10)");
             fail();
         } catch (SQLException e) {
+            //normal exception
         }
         restartProxy(masterServerId);
         try {

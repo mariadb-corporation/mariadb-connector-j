@@ -46,17 +46,24 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWIS
 ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
 OF SUCH DAMAGE.
 */
+
 package org.mariadb.jdbc.internal.common.queryresults;
 
-import org.mariadb.jdbc.internal.mysql.MySQLColumnInformation;
+import org.mariadb.jdbc.internal.mysql.ColumnInformation;
 
 public class PrepareResult {
     public int statementId;
-    public MySQLColumnInformation[] columns;
-    public MySQLColumnInformation[] parameters;
+    public ColumnInformation[] columns;
+    public ColumnInformation[] parameters;
     private int useTime = 1;
 
-    public PrepareResult(int statementId, MySQLColumnInformation[] columns, MySQLColumnInformation parameters[]) {
+    /**
+     * PrepareStatement Result object.
+     * @param statementId server statement Id.
+     * @param columns columns information
+     * @param parameters parameters information
+     */
+    public PrepareResult(int statementId, ColumnInformation[] columns, ColumnInformation[] parameters) {
         this.statementId = statementId;
         this.columns = columns;
         this.parameters = parameters;

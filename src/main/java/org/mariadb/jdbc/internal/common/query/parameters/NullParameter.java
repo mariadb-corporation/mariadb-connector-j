@@ -49,7 +49,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.common.query.parameters;
 
-import org.mariadb.jdbc.internal.mysql.MySQLType;
+import org.mariadb.jdbc.internal.mysql.MariaDbType;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -57,13 +57,13 @@ import java.io.OutputStream;
 
 public class NullParameter extends ParameterHolder {
     private static final byte[] NULL = {'N', 'U', 'L', 'L'};
-    private MySQLType type;
+    private MariaDbType type;
 
     public NullParameter() {
-        type = MySQLType.NULL;
+        type = MariaDbType.NULL;
     }
 
-    public NullParameter(MySQLType type) {
+    public NullParameter(MariaDbType type) {
         this.type = type;
     }
 
@@ -76,7 +76,7 @@ public class NullParameter extends ParameterHolder {
         return false;
     }
 
-    public MySQLType getMySQLType() {
+    public MariaDbType getMariaDbType() {
         return type;
     }
 

@@ -50,7 +50,7 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.common.query.parameters;
 
 import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
-import org.mariadb.jdbc.internal.mysql.MySQLType;
+import org.mariadb.jdbc.internal.mysql.MariaDbType;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -71,6 +71,11 @@ public class SerializableParameter extends LongDataParameterHolder {
         ParameterWriter.writeObject(os, object, noBackSlashEscapes);
     }
 
+    /**
+     * Write data in binary format to buffer.
+     * @param os buffer
+     * @throws IOException exception
+     */
     public void writeBinary(PacketOutputStream os) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ObjectOutputStream oos = new ObjectOutputStream(baos);
@@ -82,8 +87,8 @@ public class SerializableParameter extends LongDataParameterHolder {
         return "<Serializable> " + object;
     }
 
-    public MySQLType getMySQLType() {
-        return MySQLType.BLOB;
+    public MariaDbType getMariaDbType() {
+        return MariaDbType.BLOB;
     }
 
 }

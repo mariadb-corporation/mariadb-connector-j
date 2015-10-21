@@ -2,12 +2,11 @@ package org.mariadb.jdbc.failover;
 
 import org.junit.*;
 import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.JDBCUrl;
-import org.mariadb.jdbc.internal.common.UrlHAMode;
+import org.mariadb.jdbc.UrlParser;
+import org.mariadb.jdbc.internal.common.HaMode;
 import org.mariadb.jdbc.internal.mysql.Protocol;
 
 import java.sql.*;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -16,33 +15,43 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.Assert.assertTrue;
 
 /**
- * test for sequential connection
- * exemple mvn test  -DdefaultGaleraUrl=jdbc:mysql:sequential//localhost:3306,localhost:3307/test?user=root
+ * Test for sequential connection
+ * exemple mvn test  -DdefaultGaleraUrl=jdbc:mysql:sequential//localhost:3306,localhost:3307/test?user=root.
  */
 public class SequentialFailoverTest extends BaseMultiHostTest {
     protected Connection connection;
 
+    /**
+     * Initialisation of failover parameters.
+     * @throws SQLException exception
+     */
     @Before
     public void init() throws SQLException {
-        currentType = UrlHAMode.SEQUENTIAL;
+        currentType = HaMode.SEQUENTIAL;
         initialUrl = initialSequentialUrl;
         proxyUrl = proxySequentialUrl;
         Assume.assumeTrue(initialSequentialUrl != null);
         connection = null;
     }
 
+    /**
+     * Closing proxies.
+     * @throws SQLException exception
+     */
     @After
     public void after() throws SQLException {
         assureProxy();
         assureBlackList(connection);
-        if (connection != null) connection.close();
+        if (connection != null) {
+            connection.close();
+        }
     }
 
     @Test
     public void connectionOrder() throws Throwable {
         Assume.assumeTrue(!initialGaleraUrl.contains("failover"));
-        JDBCUrl jdbcUrl = JDBCUrl.parse(initialGaleraUrl);
-        for (int i = 0; i < jdbcUrl.getHostAddresses().size(); i++) {
+        UrlParser urlParser = UrlParser.parse(initialGaleraUrl);
+        for (int i = 0; i < urlParser.getHostAddresses().size(); i++) {
             connection = getNewConnection(true);
             int serverNb = getServerId(connection);
             Assert.assertTrue(serverNb == i + 1);
@@ -74,8 +83,9 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
                 Assert.assertTrue(protocol.getProxy().getListener().getBlacklist().size() == 1);
 
                 //replace proxified HostAddress by normal one
-                JDBCUrl jdbcUrl = JDBCUrl.parse(initialUrl);
-                protocol.getProxy().getListener().getBlacklist().put(jdbcUrl.getHostAddresses().get(firstServerId - 1), System.currentTimeMillis());
+                UrlParser urlParser = UrlParser.parse(initialUrl);
+                protocol.getProxy().getListener().getBlacklist().put(urlParser.getHostAddresses().get(firstServerId - 1),
+                        System.currentTimeMillis());
             } catch (Throwable e) {
                 e.printStackTrace();
                 Assert.fail();
@@ -96,6 +106,7 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
             try {
                 exec.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
             } catch (InterruptedException e) {
+                //eat exception
             }
         } catch (Throwable e) {
             e.printStackTrace();
@@ -118,13 +129,16 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
             assureProxy();
             assureBlackList(connection);
             log.debug("testMultiHostWriteOnMaster done");
-            if (connection != null) connection.close();
+            if (connection != null) {
+                connection.close();
+            }
         }
     }
 
     @Test
     public void pingReconnectAfterRestart() throws Throwable {
-        connection = getNewConnection("&retriesAllDown=1&secondsBeforeRetryMaster=1&failOnReadOnly=false&queriesBeforeRetryMaster=50000", true);
+        connection = getNewConnection("&retriesAllDown=1&secondsBeforeRetryMaster=1&failOnReadOnly=false"
+                + "&queriesBeforeRetryMaster=50000", true);
         Statement st = connection.createStatement();
         int masterServerId = getServerId(connection);
         stopProxy(masterServerId);
@@ -133,16 +147,20 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
         try {
             st.execute("SELECT 1");
         } catch (SQLException e) {
+            //eat exception
         }
         restartProxy(masterServerId);
         long restartTime = System.currentTimeMillis();
         boolean loop = true;
         while (loop) {
             if (!connection.isClosed()) {
-                log.debug("reconnection with failover loop after : " + (System.currentTimeMillis() - stoppedTime) + "ms");
+                log.debug("reconnection with failover loop after : " + (System.currentTimeMillis() - stoppedTime)
+                        + "ms");
                 loop = false;
             }
-            if (System.currentTimeMillis() - restartTime > 15 * 1000) Assert.fail();
+            if (System.currentTimeMillis() - restartTime > 15 * 1000) {
+                Assert.fail();
+            }
             Thread.sleep(250);
         }
     }
@@ -195,7 +213,8 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
                 log.debug("connected to server " + otherServerId);
                 Assert.assertTrue(otherServerId != firstServerId);
                 Protocol protocol = getProtocolFromConnection(connection2);
-                Assert.assertTrue(blacklist.keySet().toArray()[0].equals(protocol.getProxy().getListener().getBlacklist().keySet().toArray()[0]));
+                Assert.assertTrue(blacklist.keySet().toArray()[0].equals(protocol.getProxy().getListener()
+                        .getBlacklist().keySet().toArray()[0]));
 
             } catch (Throwable e) {
                 e.printStackTrace();

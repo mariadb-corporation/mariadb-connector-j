@@ -64,6 +64,12 @@ public class SendClosePrepareStatementPacket implements CommandPacket {
         this.statementId = statementId;
     }
 
+    /**
+     * Send close preparedStatement packet.
+     * @param os database socket.
+     * @return 0 if all went well
+     * @throws IOException if a connection error occur
+     */
     public int send(final OutputStream os) throws IOException {
         PacketOutputStream pos = (PacketOutputStream) os;
         pos.startPacket(0);
