@@ -21,6 +21,18 @@ public class JdbcParserTest {
     }
 
     @Test
+    public void testSslAlias() throws Throwable {
+        UrlParser jdbc = UrlParser.parse("jdbc:mariadb://localhost/test?useSSL=true");
+        Assert.assertTrue(jdbc.getOptions().useSsl);
+
+        jdbc = UrlParser.parse("jdbc:mariadb://localhost/test?useSsl=true");
+        Assert.assertTrue(jdbc.getOptions().useSsl);
+
+        jdbc = UrlParser.parse("jdbc:mariadb://localhost/test");
+        Assert.assertFalse(jdbc.getOptions().useSsl);
+    }
+
+    @Test
     public void testOptionTakeDefault() throws Throwable {
         UrlParser jdbc = UrlParser.parse("jdbc:mysql://localhost/test");
         Assert.assertNull(jdbc.getOptions().connectTimeout);

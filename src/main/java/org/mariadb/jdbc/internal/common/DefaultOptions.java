@@ -157,12 +157,7 @@ public enum DefaultOptions {
     /**
      * Force SSL on connection.
      */
-    USE_SSL("useSSL", Boolean.FALSE, "1.1.0"),
-
-    /**
-     * Force Ssl on connection.
-     */
-    USE_SSL_LOWER("useSsl", Boolean.FALSE, "1.3.0"),
+    USE_SSL("useSsl", Boolean.FALSE, "1.1.0"),
 
     /**
      * allow compression in MySQL Protocol.
@@ -422,8 +417,12 @@ public enum DefaultOptions {
             for (DefaultOptions o : DefaultOptions.values()) {
 
                 String propertieValue = properties.getProperty(o.name);
-                if (propertieValue == null && o.name.equals("createDatabaseIfNotExist")) {
-                    propertieValue = properties.getProperty("createDB");
+                if (propertieValue == null) {
+                    if (o.name.equals("createDatabaseIfNotExist")) {
+                        propertieValue = properties.getProperty("createDB");
+                    } else if (o.name.equals("useSsl")) {
+                        propertieValue = properties.getProperty("useSSL");
+                    }
                 }
 
                 if (propertieValue != null) {
@@ -439,9 +438,6 @@ public enum DefaultOptions {
                         if (!"true".equals(value) && !"false".equals(value)) {
                             throw new IllegalArgumentException("Optional parameter " + o.name + " must be boolean (true/false or 0/1) was \""
                                     + propertieValue + "\"");
-                        }
-                        if ("useSSL".equals(o.name)) {
-                            o = USE_SSL_LOWER;
                         }
                         Options.class.getField(o.name).set(options, Boolean.valueOf(value));
                     } else if (o.objType.equals(Integer.class)) {
@@ -459,9 +455,6 @@ public enum DefaultOptions {
                     }
                 } else {
                     if (initial) {
-                        if ("useSSL".equals(o.name)) {
-                            o = USE_SSL_LOWER;
-                        }
                         if (o.defaultValue instanceof Integer[]) {
                             Options.class.getField(o.name).set(options, ((Integer[]) o.defaultValue)[haMode.ordinal()]);
                         } else {
