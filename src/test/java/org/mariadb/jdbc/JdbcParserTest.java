@@ -10,6 +10,17 @@ import java.util.Properties;
 public class JdbcParserTest {
 
     @Test
+    public void testMariaAlias() throws Throwable {
+        UrlParser jdbc = UrlParser.parse("jdbc:mariadb://localhost/test");
+        Assert.assertNull(jdbc.getOptions().connectTimeout);
+        Assert.assertTrue(jdbc.getOptions().validConnectionTimeout == 120);
+        Assert.assertFalse(jdbc.getOptions().autoReconnect);
+        Assert.assertNull(jdbc.getOptions().user);
+        Assert.assertFalse(jdbc.getOptions().createDatabaseIfNotExist);
+        Assert.assertNull(jdbc.getOptions().socketTimeout);
+    }
+
+    @Test
     public void testOptionTakeDefault() throws Throwable {
         UrlParser jdbc = UrlParser.parse("jdbc:mysql://localhost/test");
         Assert.assertNull(jdbc.getOptions().connectTimeout);

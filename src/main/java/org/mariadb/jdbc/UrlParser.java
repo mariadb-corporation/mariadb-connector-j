@@ -142,12 +142,10 @@ public class UrlParser {
                 UrlParser urlParser = new UrlParser();
                 parseInternal(urlParser, url, prop);
                 return urlParser;
-            }
-            String[] arr = new String[]{"jdbc:mysql:thin:", "jdbc:mariadb:"};
-            for (String prefix : arr) {
-                if (url.startsWith(prefix)) {
+            } else {
+                if (url.startsWith("jdbc:mariadb:")) {
                     UrlParser urlParser = new UrlParser();
-                    parseInternal(urlParser, "jdbc:mysql:" + url.substring(prefix.length()), prop);
+                    parseInternal(urlParser, "jdbc:mysql:" + url.substring(12), prop);
                     return urlParser;
                 }
             }
