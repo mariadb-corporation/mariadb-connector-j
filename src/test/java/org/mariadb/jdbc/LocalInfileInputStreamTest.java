@@ -64,7 +64,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
         st.executeUpdate("LOAD DATA LOCAL INFILE '" + classLoader.getResource("test.txt").getPath()
                 + "' INTO TABLE tt_local "
                 + "  FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"'"
-                + "  LINES TERMINATED BY '\\r\\n' "
+                + "  LINES TERMINATED BY '\\n' "
                 + "  (id, test)");
 
         ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM tt_local");
