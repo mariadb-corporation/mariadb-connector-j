@@ -336,12 +336,14 @@
             <groupId>net.java.dev.jna</groupId>
             <artifactId>jna</artifactId>
             <version>${jna.version}</version>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>net.java.dev.jna</groupId>
             <artifactId>jna</artifactId>
             <version>${jna.version}</version>
             <classifier>platform</classifier>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>commons-dbcp</groupId>
