@@ -516,7 +516,7 @@ public class MariaDbProtocol implements Protocol {
 
             checkErrorPacket(rp.getByteBuffer());
             ResultPacket resultPacket = ResultPacketFactory.createResultPacket(rp.getByteBuffer());
-            ApprovedPacket ok = (ApprovedPacket) resultPacket;
+            OkPacket ok = (OkPacket) resultPacket;
             serverStatus = ok.getServerStatus();
 
             if (urlParser.getOptions().useCompression) {
@@ -1162,7 +1162,7 @@ public class MariaDbProtocol implements Protocol {
                 throw new QueryException(ep.getMessage(), ep.getErrorNumber(), ep.getSqlState());
 
             case OK:
-                final ApprovedPacket okpacket = (ApprovedPacket) resultPacket;
+                final OkPacket okpacket = (OkPacket) resultPacket;
                 serverStatus = okpacket.getServerStatus();
                 this.moreResults = ((serverStatus & ServerStatus.MORE_RESULTS_EXISTS) != 0);
                 this.hasWarnings = (okpacket.getWarnings() > 0);

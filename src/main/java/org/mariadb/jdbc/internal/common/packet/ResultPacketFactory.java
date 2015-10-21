@@ -81,7 +81,7 @@ public class ResultPacketFactory {
             case ERROR:
                 return new ErrorPacket(byteBuffer);
             case OK:
-                return new ApprovedPacket(byteBuffer);
+                return new OkPacket(byteBuffer);
             case EOF:
                 return new EndOfFilePacket(byteBuffer);
             case LOCALINFILE:

@@ -51,7 +51,7 @@ OF SUCH DAMAGE.
 
 import java.nio.ByteBuffer;
 
-public class ApprovedPacket extends ResultPacket {
+public class OkPacket extends ResultPacket {
     @SuppressWarnings("unused")
     private final byte fieldCount;
     private final long affectedRows;
@@ -64,7 +64,7 @@ public class ApprovedPacket extends ResultPacket {
      * Read Ok packet result.
      * @param byteBuffer current packet's byteBuffer
      */
-    public ApprovedPacket(ByteBuffer byteBuffer) {
+    public OkPacket(ByteBuffer byteBuffer) {
         super(byteBuffer);
         fieldCount = byteBuffer.get();
         affectedRows = getLengthEncodedBinary();
