@@ -1,3 +1,5 @@
+package org.mariadb.jdbc.internal.common;
+
 /*
 MariaDB Client for Java
 
@@ -47,29 +49,6 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc.internal.common.packet.commands;
-
-import org.mariadb.jdbc.internal.common.packet.CommandPacket;
-import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
-
-import java.io.IOException;
-import java.io.OutputStream;
-
-
-public class SelectDBPacket implements CommandPacket {
-
-    String database;
-
-    public SelectDBPacket(final String database) {
-        this.database = database;
-    }
-
-    public int send(final OutputStream outputStream) throws IOException {
-        PacketOutputStream pos = (PacketOutputStream) outputStream;
-        pos.startPacket(0);
-        pos.write(0x02);
-        pos.write(database.getBytes("UTF-8"));
-        pos.finishPacket();
-        return 0;
-    }
+public enum HaMode {
+    AURORA, REPLICATION, FAILOVER, SEQUENTIAL, LOADBALANCE, NONE
 }

@@ -51,7 +51,7 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.common.query.parameters;
 
 import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
-import org.mariadb.jdbc.internal.mysql.MySQLType;
+import org.mariadb.jdbc.internal.mysql.MariaDbType;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -73,8 +73,8 @@ public class BigIntParameter extends NotLongDataParameterHolder {
         writeBuffer.writeStringLength(value.toPlainString());
     }
 
-    public MySQLType getMySQLType() {
-        return MySQLType.VARSTRING;
+    public MariaDbType getMariaDbType() {
+        return MariaDbType.VARSTRING;
     }
 
 }

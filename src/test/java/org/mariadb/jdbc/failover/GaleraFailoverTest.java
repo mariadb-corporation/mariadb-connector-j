@@ -4,7 +4,7 @@ import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
-import org.mariadb.jdbc.internal.common.UrlHaMode;
+import org.mariadb.jdbc.internal.common.HaMode;
 
 import java.sql.SQLException;
 import java.util.HashMap;
@@ -26,7 +26,7 @@ public class GaleraFailoverTest extends SequentialFailoverTest {
     @Before
     @Override
     public void init() throws SQLException {
-        currentType = UrlHaMode.FAILOVER;
+        currentType = HaMode.FAILOVER;
         initialUrl = initialGaleraUrl;
         proxyUrl = proxyGaleraUrl;
         Assume.assumeTrue(initialGaleraUrl != null);

@@ -49,7 +49,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.mysql;
 
-import org.mariadb.jdbc.internal.SqlExceptionMapper;
+import org.mariadb.jdbc.internal.ExceptionMapper;
 import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.mysql.listener.Listener;
 
@@ -190,7 +190,7 @@ public class FailoverProxy implements InvocationHandler {
         try {
             listener.reconnect();
         } catch (QueryException e) {
-            SqlExceptionMapper.throwException(e, null, null);
+            ExceptionMapper.throwException(e, null, null);
         }
     }
 

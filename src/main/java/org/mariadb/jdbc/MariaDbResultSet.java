@@ -49,7 +49,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.SqlExceptionMapper;
+import org.mariadb.jdbc.internal.ExceptionMapper;
 import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.common.ValueObject;
 import org.mariadb.jdbc.internal.common.queryresults.*;
@@ -468,12 +468,12 @@ public class MariaDbResultSet implements ResultSet {
             try {
                 vo = ((SelectQueryResult) queryResult).getValueObject(columnIndex - 1);
             } catch (NoSuchColumnException e) {
-                throw SqlExceptionMapper.getSqlException(e.getMessage(), e);
+                throw ExceptionMapper.getSqlException(e.getMessage(), e);
             }
             this.lastGetWasNull = vo.isNull();
             return vo;
         }
-        throw SqlExceptionMapper.getSqlException("Cannot get data from update-result sets");
+        throw ExceptionMapper.getSqlException("Cannot get data from update-result sets");
     }
 
     /**
@@ -639,7 +639,7 @@ public class MariaDbResultSet implements ResultSet {
         try {
             return getValueObject(columnIndex).getDate(cal);
         } catch (ParseException e) {
-            throw SqlExceptionMapper.getSqlException("Could not parse column as date, was: \""
+            throw ExceptionMapper.getSqlException("Could not parse column as date, was: \""
                     + getValueObject(columnIndex).getString()
                     + "\"", e);
         }
@@ -677,7 +677,7 @@ public class MariaDbResultSet implements ResultSet {
         try {
             return getValueObject(columnIndex).getDate(cal);
         } catch (ParseException e) {
-            throw SqlExceptionMapper.getSqlException("Could not parse as date");
+            throw ExceptionMapper.getSqlException("Could not parse as date");
         }
     }
 
@@ -713,7 +713,7 @@ public class MariaDbResultSet implements ResultSet {
         try {
             return getValueObject(columnIndex).getTime(cal);
         } catch (ParseException e) {
-            throw SqlExceptionMapper.getSqlException("Could not parse column as time, was: \""
+            throw ExceptionMapper.getSqlException("Could not parse column as time, was: \""
                     + getValueObject(columnIndex).getString()
                     + "\"", e);
         }
@@ -751,7 +751,7 @@ public class MariaDbResultSet implements ResultSet {
         try {
             return getValueObject(columnIndex).getTime(cal);
         } catch (ParseException e) {
-            throw SqlExceptionMapper.getSqlException("Could not parse time", e);
+            throw ExceptionMapper.getSqlException("Could not parse time", e);
         }
     }
 
@@ -810,7 +810,7 @@ public class MariaDbResultSet implements ResultSet {
             }
             return new Timestamp(result.getTime());
         } catch (ParseException e) {
-            throw SqlExceptionMapper.getSqlException("Could not parse timestamp", e);
+            throw ExceptionMapper.getSqlException("Could not parse timestamp", e);
         }
     }
 
@@ -846,7 +846,7 @@ public class MariaDbResultSet implements ResultSet {
         try {
             return getValueObject(columnIndex).getTimestamp(cal);
         } catch (ParseException e) {
-            throw SqlExceptionMapper.getSqlException("Could not parse column as timestamp, was: \""
+            throw ExceptionMapper.getSqlException("Could not parse column as timestamp, was: \""
                     + getValueObject(columnIndex).getString()
                     + "\"", e);
         }
@@ -941,7 +941,7 @@ public class MariaDbResultSet implements ResultSet {
      * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      */
     public String getCursorName() throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Cursors not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Cursors not supported");
     }
 
     /**
@@ -979,7 +979,7 @@ public class MariaDbResultSet implements ResultSet {
         try {
             return getValueObject(columnIndex).getObject(protocol.getDatatypeMappingFlags(), cal);
         } catch (ParseException e) {
-            throw SqlExceptionMapper.getSqlException("Could not get object: " + e.getMessage(), "S1009", e);
+            throw ExceptionMapper.getSqlException("Could not get object: " + e.getMessage(), "S1009", e);
         }
     }
 
@@ -1040,18 +1040,18 @@ public class MariaDbResultSet implements ResultSet {
      */
     public Object getObject(String columnLabel, Map<String, Class<?>> map) throws SQLException {
         //TODO: implement this
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Type map getting is not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Type map getting is not supported");
     }
 
 
     public <T> T getObject(int columnIndex, Class<T> arg1) throws SQLException {
         //TODO: implement this
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Type getObject getting is not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Type getObject getting is not supported");
     }
 
     public <T> T getObject(String columnLabel, Class<T> arg1) throws SQLException {
         //TODO: implement this
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Type getObject getting is not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Type getObject getting is not supported");
     }
 
     /**
@@ -1067,7 +1067,7 @@ public class MariaDbResultSet implements ResultSet {
         if (this.queryResult.getResultSetType() == ResultSetType.SELECT) {
             return columnNameMap.getIndex(columnLabel) + 1;
         }
-        throw SqlExceptionMapper.getSqlException("Cannot get column id of update result sets");
+        throw ExceptionMapper.getSqlException("Cannot get column id of update result sets");
     }
 
     /**
@@ -1257,7 +1257,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public void afterLast() throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Cannot move after last row");
+        throw ExceptionMapper.getFeatureNotSupportedException("Cannot move after last row");
     }
 
     /**
@@ -1520,7 +1520,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean rowUpdated() throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Detecting row updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Detecting row updates are not supported");
     }
 
     /**
@@ -1537,7 +1537,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean rowInserted() throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Detecting inserts are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Detecting inserts are not supported");
     }
 
     /**
@@ -1554,7 +1554,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public boolean rowDeleted() throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Row deletes are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Row deletes are not supported");
     }
 
     /**
@@ -1569,7 +1569,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateNull(int columnIndex) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1585,7 +1585,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateNull(String columnLabel) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1601,7 +1601,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateBoolean(int columnIndex, boolean bool) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1618,7 +1618,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateBoolean(String columnLabel, boolean value) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1634,7 +1634,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateByte(int columnIndex, byte value) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1651,7 +1651,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateByte(String columnLabel, byte value) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1667,7 +1667,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateShort(int columnIndex, short value) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1684,7 +1684,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateShort(String columnLabel, short value) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1700,7 +1700,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateInt(int columnIndex, int value) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1717,7 +1717,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateInt(String columnLabel, int value) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1733,7 +1733,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateFloat(int columnIndex, float value) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1750,7 +1750,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateFloat(String columnLabel, float value) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1766,7 +1766,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateDouble(int columnIndex, double value) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1783,7 +1783,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateDouble(String columnLabel, double value) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1799,7 +1799,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateBigDecimal(int columnIndex, BigDecimal value) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1816,7 +1816,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateBigDecimal(String columnLabel, BigDecimal value) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1832,7 +1832,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateString(int columnIndex, String value) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1849,7 +1849,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateString(String columnLabel, String value) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1865,7 +1865,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateBytes(int columnIndex, byte[] value) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1883,7 +1883,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateBytes(String columnLabel, byte[] value) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1899,7 +1899,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateDate(int columnIndex, Date date) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1916,7 +1916,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateDate(String columnLabel, Date value) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1932,7 +1932,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateTime(int columnIndex, Time time) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
 
@@ -1950,7 +1950,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateTime(String columnLabel, Time value) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -1966,7 +1966,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateTimestamp(int columnIndex, Timestamp timeStamp) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
 
@@ -1984,7 +1984,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateTimestamp(String columnLabel, Timestamp value) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -2001,7 +2001,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateAsciiStream(int columnIndex, InputStream inputStream, int length) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
 
@@ -2021,7 +2021,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateAsciiStream(String columnLabel, InputStream inputStream) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -2039,7 +2039,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateAsciiStream(String columnLabel, InputStream value, int length) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
 
@@ -2058,7 +2058,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateAsciiStream(int columnIndex, InputStream inputStream, long length) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -2076,7 +2076,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateAsciiStream(String columnLabel, InputStream inputStream, long length) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -2094,7 +2094,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateAsciiStream(int columnIndex, InputStream inputStream) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
 
@@ -2112,7 +2112,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateBinaryStream(int columnIndex, InputStream inputStream, int length) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -2130,7 +2130,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateBinaryStream(int columnIndex, InputStream inputStream, long length) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -2148,7 +2148,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateBinaryStream(String columnLabel, InputStream value, int length) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -2166,7 +2166,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateBinaryStream(String columnLabel, InputStream inputStream, long length) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -2184,7 +2184,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateBinaryStream(int columnIndex, InputStream inputStream) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -2203,7 +2203,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateBinaryStream(String columnLabel, InputStream inputStream) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -2220,7 +2220,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateCharacterStream(int columnIndex, Reader value, int length) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -2238,7 +2238,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateCharacterStream(int columnIndex, Reader value) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -2256,7 +2256,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateCharacterStream(String columnLabel, Reader reader, int length) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
 
@@ -2275,7 +2275,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateCharacterStream(int columnIndex, Reader value, long length) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -2293,7 +2293,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateCharacterStream(String columnLabel, Reader reader, long length) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
 
@@ -2313,7 +2313,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateCharacterStream(String columnLabel, Reader reader) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
 
@@ -2337,7 +2337,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateObject(int columnIndex, Object value, int scaleOrLength) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -2353,7 +2353,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateObject(int columnIndex, Object value) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -2377,7 +2377,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateObject(String columnLabel, Object value, int scaleOrLength) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -2394,7 +2394,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateObject(String columnLabel, Object value) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
 
@@ -2412,7 +2412,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateLong(String columnLabel, long value) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -2428,7 +2428,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateLong(int columnIndex, long value) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
 
@@ -2443,7 +2443,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public void insertRow() throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -2456,7 +2456,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public void updateRow() throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -2469,7 +2469,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public void deleteRow() throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -2488,7 +2488,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public void refreshRow() throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Row refresh is not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Row refresh is not supported");
     }
 
     /**
@@ -2502,7 +2502,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public void cancelRowUpdates() throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -2518,7 +2518,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public void moveToInsertRow() throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -2531,7 +2531,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public void moveToCurrentRow() throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -2564,7 +2564,7 @@ public class MariaDbResultSet implements ResultSet {
      */
     public Ref getRef(int columnIndex) throws SQLException {
         // TODO: figure out what REF's are and implement this method
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
 
@@ -2582,7 +2582,7 @@ public class MariaDbResultSet implements ResultSet {
      */
     public Ref getRef(String columnLabel) throws SQLException {
         // TODO see getRef(int)
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Getting REFs not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Getting REFs not supported");
     }
 
 
@@ -2668,7 +2668,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.2
      */
     public Array getArray(int columnIndex) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Arrays are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Arrays are not supported");
     }
 
     /**
@@ -2705,7 +2705,7 @@ public class MariaDbResultSet implements ResultSet {
         try {
             return new URL(getValueObject(columnIndex).getString());
         } catch (MalformedURLException e) {
-            throw SqlExceptionMapper.getSqlException("Could not parse as URL");
+            throw ExceptionMapper.getSqlException("Could not parse as URL");
         }
     }
 
@@ -2740,7 +2740,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.4
      */
     public void updateRef(int columnIndex, Ref ref) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -2757,7 +2757,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.4
      */
     public void updateRef(String columnLabel, Ref ref) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -2773,7 +2773,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.4
      */
     public void updateBlob(int columnIndex, Blob blob) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -2790,7 +2790,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.4
      */
     public void updateBlob(String columnLabel, Blob blob) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -2808,7 +2808,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateBlob(int columnIndex, InputStream inputStream) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -2827,7 +2827,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateBlob(String columnLabel, InputStream inputStream) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -2845,7 +2845,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateBlob(int columnIndex, InputStream inputStream, long length) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -2863,7 +2863,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateBlob(String columnLabel, InputStream inputStream, long length) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
 
@@ -2880,7 +2880,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.4
      */
     public void updateClob(int columnIndex, Clob clob) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -2897,7 +2897,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.4
      */
     public void updateClob(String columnLabel, Clob clob) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -2916,7 +2916,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateClob(int columnIndex, Reader reader, long length) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -2936,7 +2936,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateClob(String columnLabel, Reader reader, long length) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -2955,7 +2955,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateClob(int columnIndex, Reader reader) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -2975,7 +2975,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateClob(String columnLabel, Reader reader) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -2991,7 +2991,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.4
      */
     public void updateArray(int columnIndex, Array array) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -3008,7 +3008,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.4
      */
     public void updateArray(String columnLabel, Array array) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -3023,7 +3023,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.6
      */
     public java.sql.RowId getRowId(int columnIndex) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("RowIDs not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("RowIDs not supported");
     }
 
     /**
@@ -3039,7 +3039,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.6
      */
     public java.sql.RowId getRowId(String columnLabel) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("RowIDs not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("RowIDs not supported");
     }
 
     /**
@@ -3055,7 +3055,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateRowId(int columnIndex, java.sql.RowId rowId) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
 
     }
 
@@ -3073,7 +3073,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateRowId(String columnLabel, java.sql.RowId rowId) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
 
     }
 
@@ -3118,7 +3118,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateNString(int columnIndex, String nstring) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -3137,7 +3137,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateNString(String columnLabel, String nstring) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -3154,7 +3154,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateNClob(int columnIndex, java.sql.NClob nclob) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -3172,7 +3172,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateNClob(String columnLabel, java.sql.NClob nclob) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
     }
 
     /**
@@ -3196,7 +3196,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateNClob(int columnIndex, Reader reader) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -3216,7 +3216,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateNClob(String columnLabel, Reader reader) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
 
@@ -3237,7 +3237,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateNClob(int columnIndex, Reader reader, long length) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -3258,7 +3258,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateNClob(String columnLabel, Reader reader, long length) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -3273,7 +3273,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.6
      */
     public java.sql.NClob getNClob(int columnIndex) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("NClobs are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("NClobs are not supported");
     }
 
     /**
@@ -3289,7 +3289,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.6
      */
     public java.sql.NClob getNClob(String columnLabel) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("NClobs are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("NClobs are not supported");
     }
 
     /**
@@ -3305,7 +3305,7 @@ public class MariaDbResultSet implements ResultSet {
      */
     @Override
     public java.sql.SQLXML getSQLXML(int columnIndex) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("SQLXML not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("SQLXML not supported");
     }
 
     /**
@@ -3322,7 +3322,7 @@ public class MariaDbResultSet implements ResultSet {
      */
     @Override
     public java.sql.SQLXML getSQLXML(String columnLabel) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("SQLXML not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("SQLXML not supported");
     }
 
     /**
@@ -3341,7 +3341,7 @@ public class MariaDbResultSet implements ResultSet {
      */
     @Override
     public void updateSQLXML(int columnIndex, java.sql.SQLXML xmlObject) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("SQLXML not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("SQLXML not supported");
     }
 
     /**
@@ -3361,7 +3361,7 @@ public class MariaDbResultSet implements ResultSet {
      */
     @Override
     public void updateSQLXML(String columnLabel, java.sql.SQLXML xmlObject) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("SQLXML not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("SQLXML not supported");
     }
 
     /**
@@ -3376,7 +3376,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.6
      */
     public String getNString(int columnIndex) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("NString not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("NString not supported");
     }
 
     /**
@@ -3392,7 +3392,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.6
      */
     public String getNString(String columnLabel) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("NString not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("NString not supported");
     }
 
 
@@ -3413,7 +3413,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateNCharacterStream(int columnIndex, Reader value, long length) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -3434,7 +3434,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateNCharacterStream(String columnLabel, Reader reader, long length) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
 
@@ -3455,7 +3455,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateNCharacterStream(int columnIndex, Reader reader) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -3476,7 +3476,7 @@ public class MariaDbResultSet implements ResultSet {
      * @since 1.6
      */
     public void updateNCharacterStream(String columnLabel, Reader reader) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Updates not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
 

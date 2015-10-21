@@ -49,7 +49,7 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-import org.mariadb.jdbc.internal.SqlExceptionMapper;
+import org.mariadb.jdbc.internal.ExceptionMapper;
 import org.mariadb.jdbc.internal.common.Utils;
 import org.mariadb.jdbc.internal.common.query.IllegalParameterException;
 import org.mariadb.jdbc.internal.common.query.MariaDbClientParameterizeQuery;
@@ -246,7 +246,7 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
             query.setParameter(parameterIndex - 1, holder);
             parametersCleared = false;
         } catch (IllegalParameterException e) {
-            throw SqlExceptionMapper.getSqlException("Could not set parameter", e);
+            throw ExceptionMapper.getSqlException("Could not set parameter", e);
         }
     }
 

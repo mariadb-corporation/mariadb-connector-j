@@ -98,7 +98,7 @@ public final class RawPacket {
         return ByteBuffer.wrap(rawBytes, 0, length).order(ByteOrder.LITTLE_ENDIAN);
     }
 
-    static RawPacket nextPacket(final InputStream is,byte[] headerBuffer, byte[] reusableBuffer) throws IOException {
+    static RawPacket nextPacket(final InputStream is, byte[] headerBuffer, byte[] reusableBuffer) throws IOException {
         ReadUtil.readFully(is, headerBuffer, 0, 4);
 
         int length = (headerBuffer[0] & 0xff) + ((headerBuffer[1] & 0xff) << 8) + ((headerBuffer[2] & 0xff) << 16);
@@ -137,7 +137,7 @@ public final class RawPacket {
     }
 
     /**
-     * Get the byte buffer backing this packet
+     * Get the byte buffer backing this packet.
      *
      * @return a read only byte buffer
      */
@@ -146,14 +146,13 @@ public final class RawPacket {
     }
 
     /**
-     * Get the package sequence number
+     * Get the package sequence number.
      *
      * @return the sequence number of the package
      */
     public int getPacketSeq() {
         return packetSeq;
     }
-
 
 
 }

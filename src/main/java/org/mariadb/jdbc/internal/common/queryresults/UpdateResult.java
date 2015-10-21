@@ -49,7 +49,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.common.queryresults;
 
-import org.mariadb.jdbc.internal.mysql.MySQLColumnInformation;
+import org.mariadb.jdbc.internal.mysql.ColumnInformation;
 
 
 public class UpdateResult extends ModifyQueryResult {
@@ -58,7 +58,13 @@ public class UpdateResult extends ModifyQueryResult {
     private final String message;
     private final long insertId;
 
-
+    /**
+     * Create Update result object.
+     * @param updateCount updateCount
+     * @param warnings warnings
+     * @param message message
+     * @param insertId insertId
+     */
     public UpdateResult(final long updateCount, final short warnings, final String message, final long insertId) {
         this.updateCount = updateCount;
         this.warnings = warnings;
@@ -85,7 +91,7 @@ public class UpdateResult extends ModifyQueryResult {
         return message;
     }
 
-    public MySQLColumnInformation[] getColumnInformation() {
+    public ColumnInformation[] getColumnInformation() {
         return null;
     }
 

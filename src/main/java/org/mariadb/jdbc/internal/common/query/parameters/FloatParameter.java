@@ -1,3 +1,4 @@
+package org.mariadb.jdbc.internal.common.query.parameters;
 /*
 MariaDB Client for Java
 
@@ -48,10 +49,9 @@ OF SUCH DAMAGE.
 */
 
 
-package org.mariadb.jdbc.internal.common.query.parameters;
 
 import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
-import org.mariadb.jdbc.internal.mysql.MySQLType;
+import org.mariadb.jdbc.internal.mysql.MariaDbType;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -72,7 +72,7 @@ public class FloatParameter extends NotLongDataParameterHolder {
         writeBuffer.writeInt(Float.floatToIntBits(value));
     }
 
-    public MySQLType getMySQLType() {
-        return MySQLType.FLOAT;
+    public MariaDbType getMariaDbType() {
+        return MariaDbType.FLOAT;
     }
 }

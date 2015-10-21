@@ -1,3 +1,4 @@
+package org.mariadb.jdbc.internal.common.query;
 /*
 MariaDB Client for Java
 
@@ -46,7 +47,6 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWIS
 ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
 OF SUCH DAMAGE.
 */
-package org.mariadb.jdbc.internal.common.query;
 
 import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.common.query.parameters.ParameterHolder;
@@ -59,7 +59,7 @@ import java.util.List;
 import static org.mariadb.jdbc.internal.common.Utils.createQueryParts;
 
 
-public class MySQLClientParameterizedQuery implements ParameterizedQuery {
+public class MariaDbClientParameterizeQuery implements ParameterizeQuery {
 
     private ParameterHolder[] parameters;
     private int paramCount;
@@ -71,7 +71,13 @@ public class MySQLClientParameterizedQuery implements ParameterizedQuery {
     private byte[] rewriteNotRepeatLastPart = null;
 
 
-    public MySQLClientParameterizedQuery(String query, boolean noBackslashEscapes, int rewriteOffset) {
+    /**
+     * Constructor.
+     * @param query query string
+     * @param noBackslashEscapes must backSlash be escaped
+     * @param rewriteOffset first common part index
+     */
+    public MariaDbClientParameterizeQuery(String query, boolean noBackslashEscapes, int rewriteOffset) {
         try {
             this.query = query;
             List<String> queryParts = createQueryParts(query, noBackslashEscapes);
@@ -92,28 +98,39 @@ public class MySQLClientParameterizedQuery implements ParameterizedQuery {
             }
             paramCount = queryParts.size() - 1;
             parameters = new ParameterHolder[paramCount];
-        } catch (UnsupportedEncodingException u) {}
-    }
-
-    private MySQLClientParameterizedQuery() {
-
-    }
-
-    public MySQLClientParameterizedQuery cloneQuery() {
-        MySQLClientParameterizedQuery q = new MySQLClientParameterizedQuery();
-        q.parameters = new ParameterHolder[parameters.length];
-        for (int i = 0; i < parameters.length; i++) {
-            q.parameters[i] = parameters[i];
+        } catch (UnsupportedEncodingException u) {
         }
-        q.paramCount = paramCount;
-        q.query = query;
-        q.queryPartsArray = queryPartsArray;
-        q.rewriteFirstPart = rewriteFirstPart;
-        q.rewriteRepeatLastPart = rewriteRepeatLastPart;
-        q.rewriteNotRepeatLastPart = rewriteNotRepeatLastPart;
-        return q;
     }
 
+    private MariaDbClientParameterizeQuery() {
+
+    }
+
+    /**
+     * Clone query to avoid recreating parts.
+     * @return a clone version.
+     */
+    public MariaDbClientParameterizeQuery cloneQuery() {
+        MariaDbClientParameterizeQuery clientQuery = new MariaDbClientParameterizeQuery();
+        clientQuery.parameters = new ParameterHolder[parameters.length];
+        for (int i = 0; i < parameters.length; i++) {
+            clientQuery.parameters[i] = parameters[i];
+        }
+        clientQuery.paramCount = paramCount;
+        clientQuery.query = query;
+        clientQuery.queryPartsArray = queryPartsArray;
+        clientQuery.rewriteFirstPart = rewriteFirstPart;
+        clientQuery.rewriteRepeatLastPart = rewriteRepeatLastPart;
+        clientQuery.rewriteNotRepeatLastPart = rewriteNotRepeatLastPart;
+        return clientQuery;
+    }
+
+    /**
+     * Set a parameter to query.
+     * @param position  the position to set it at
+     * @param parameter the parameter to set
+     * @throws IllegalParameterException if position is incorrect
+     */
     public void setParameter(final int position, final ParameterHolder parameter) throws IllegalParameterException {
         if (position >= 0 && position < paramCount) {
             parameters[position] = parameter;
@@ -130,26 +147,40 @@ public class MySQLClientParameterizedQuery implements ParameterizedQuery {
         this.parameters = new ParameterHolder[paramCount];
     }
 
+    /**
+     * Validate that all parameters are set.
+     * @throws QueryException if any parameter is missing
+     */
     public void validate() throws QueryException {
         if (containsNull(parameters)) {
             throw new QueryException("You need to set exactly " + paramCount + " parameters on the prepared statement");
         }
     }
 
-
-    public void writeTo(final OutputStream os) throws IOException, QueryException {
+    /**
+     * Write whole query to buffer.
+     * @param os outputStream
+     * @throws IOException if any error occur during buffer writing
+     */
+    public void writeTo(final OutputStream os) throws IOException {
         if (queryPartsArray.length == 0) {
             throw new AssertionError("Invalid query, queryParts was empty");
         }
         os.write(queryPartsArray[0]);
         for (int i = 1; i < queryPartsArray.length; i++) {
             parameters[i - 1].writeTo(os);
-            if (queryPartsArray[i].length != 0)
+            if (queryPartsArray[i].length != 0) {
                 os.write(queryPartsArray[i]);
+            }
         }
     }
 
-    public void writeFirstRewritePart(final OutputStream os) throws IOException, QueryException {
+    /**
+     * Write first common part into buffer.
+     * @param os outputStream
+     * @throws IOException if any error occur during buffer writing
+     */
+    public void writeFirstRewritePart(final OutputStream os) throws IOException {
         if (queryPartsArray.length == 0) {
             throw new AssertionError("Invalid query, queryParts was empty");
         }
@@ -158,17 +189,30 @@ public class MySQLClientParameterizedQuery implements ParameterizedQuery {
             os.write(queryPartsArray[i]);
             parameters[i].writeTo(os);
         }
-        if (rewriteRepeatLastPart != null) os.write(rewriteRepeatLastPart);
+        if (rewriteRepeatLastPart != null) {
+            os.write(rewriteRepeatLastPart);
+        }
         os.write(41); // ")" in UTF-8
     }
 
-    public void writeLastRewritePart(final OutputStream os) throws IOException, QueryException {
+    /**
+     * Write last common part into buffer.
+     * @param os outputStream
+     * @throws IOException if any error occur during buffer writing
+     */
+    public void writeLastRewritePart(final OutputStream os) throws IOException {
         if (rewriteNotRepeatLastPart != null) {
             os.write(rewriteNotRepeatLastPart);
         }
     }
 
-    public void writeToRewritablePart(final OutputStream os, int rewriteOffset) throws IOException, QueryException {
+    /**
+     * Write rewritable specific part of the query.
+     * @param os outputStream
+     * @param rewriteOffset for compatibility (not used)
+     * @throws IOException if any error occur during writing into buffer.
+     */
+    public void writeToRewritablePart(final OutputStream os, int rewriteOffset) throws IOException {
         if (queryPartsArray.length == 0) {
             throw new AssertionError("Invalid query, queryParts was empty");
         }
@@ -177,9 +221,11 @@ public class MySQLClientParameterizedQuery implements ParameterizedQuery {
         os.write(rewriteFirstPart);
         for (int i = 0; i < parameters.length; i++) {
             parameters[i].writeTo(os);
-            if (i < parameters.length - 1)
+            if (i < parameters.length - 1) {
                 os.write(queryPartsArray[i + 1]);
-            else os.write(rewriteRepeatLastPart);
+            } else {
+                os.write(rewriteRepeatLastPart);
+            }
         }
         os.write(41); // ")" in UTF-8
     }
@@ -201,14 +247,14 @@ public class MySQLClientParameterizedQuery implements ParameterizedQuery {
         return queryPartsArray;
     }
 
-    public QueryType getQueryType() {
-        return QueryType.classifyQuery(query);
-    }
-
     public int getParamCount() {
         return paramCount;
     }
 
+    /**
+     * toString implementation. Display current sql string.
+     * @return current sql String.
+     */
     public String toString() {
         StringBuffer sb = new StringBuffer("sql : '" + query + "'");
         if (parameters.length > 0) {

@@ -47,30 +47,27 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc.internal.mysql.packet.commands;
+package org.mariadb.jdbc.internal.mysql;
 
-import org.mariadb.jdbc.internal.common.packet.CommandPacket;
-import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
-
-import java.io.IOException;
-import java.io.OutputStream;
-
-/**
- * used for starting ssl connections!
- */
-public class AbbreviatedMySQLClientAuthPacket implements CommandPacket {
-    private final int serverCapabilities;
-
-    public AbbreviatedMySQLClientAuthPacket(int serverCapabilities) {
-        this.serverCapabilities = serverCapabilities;
-    }
-
-
-    public int send(final OutputStream os) throws IOException {
-        PacketOutputStream pos = (PacketOutputStream) os;
-        pos.startPacket(1);
-        pos.writeInt(this.serverCapabilities);
-        pos.finishPacket();
-        return 1;
-    }
+public class MariaDbServerCapabilities {
+    public static final int LONG_PASSWORD = 1;       /* new more secure passwords */
+    public static final int FOUND_ROWS = 2;       /* Found instead of affected rows */
+    public static final int LONG_FLAG = 4;       /* Get all column flags */
+    public static final int CONNECT_WITH_DB = 8;     /* One can specify db on connect */
+    public static final int NO_SCHEMA = 16;          /* Don't allow database.table.column */
+    public static final int COMPRESS = 32;          /* Can use compression protocol */
+    public static final int ODBC = 64;               /* Odbc client */
+    public static final int LOCAL_FILES = 128;       /* Can use LOAD DATA LOCAL */
+    public static final int IGNORE_SPACE = 256;       /* Ignore spaces before '(' */
+    public static final int CLIENT_PROTOCOL_41 = 512; /* New 4.1 protocol */
+    public static final int CLIENT_INTERACTIVE = 1024;
+    public static final int SSL = 2048;                /* Switch to SSL after handshake */
+    public static final int IGNORE_SIGPIPE = 4096;     /* IGNORE sigpipes */
+    public static final int TRANSACTIONS = 8192;
+    public static final int RESERVED = 16384;           /* Old flag for 4.1 protocol  */
+    public static final int SECURE_CONNECTION = 32768;  /* New 4.1 authentication */
+    public static final int MULTI_STATEMENTS = 1 << 16; /* Enable/disable multi-stmt support */
+    public static final int MULTI_RESULTS = 1 << 17;    /* Enable/disable multi-results */
+    public static final int PLUGIN_AUTH = 1 << 19;      /* Client supports plugin authentication */
+    public static final int PROGRESS = 1 << 29;         /* Client support progress indicator */
 }

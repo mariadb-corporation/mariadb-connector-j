@@ -46,8 +46,36 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWIS
 ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
 OF SUCH DAMAGE.
 */
-package org.mariadb.jdbc.internal.common;
 
-public enum UrlHAMode {
-    AURORA, REPLICATION, FAILOVER, SEQUENTIAL, LOADBALANCE, NONE
+package org.mariadb.jdbc.internal.mysql.packet.commands;
+
+import org.mariadb.jdbc.internal.common.packet.CommandPacket;
+import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
+
+import java.io.IOException;
+import java.io.OutputStream;
+
+/**
+ * Used for starting ssl connections.
+ */
+public class AbbreviatedMariaDbClientAuthPacket implements CommandPacket {
+    private final int serverCapabilities;
+
+    public AbbreviatedMariaDbClientAuthPacket(int serverCapabilities) {
+        this.serverCapabilities = serverCapabilities;
+    }
+
+    /**
+     * Send capabilities.
+     * @param os database stream.
+     * @return 1
+     * @throws IOException if any connection error occur
+     */
+    public int send(final OutputStream os) throws IOException {
+        PacketOutputStream pos = (PacketOutputStream) os;
+        pos.startPacket(1);
+        pos.writeInt(this.serverCapabilities);
+        pos.finishPacket();
+        return 1;
+    }
 }

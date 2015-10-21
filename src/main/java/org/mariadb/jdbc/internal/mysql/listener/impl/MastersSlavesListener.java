@@ -51,7 +51,7 @@ package org.mariadb.jdbc.internal.mysql.listener.impl;
 
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.UrlParser;
-import org.mariadb.jdbc.internal.SqlExceptionMapper;
+import org.mariadb.jdbc.internal.ExceptionMapper;
 import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.mysql.HandleErrorResult;
 import org.mariadb.jdbc.internal.mysql.MastersSlavesProtocol;
@@ -167,7 +167,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                     //eat exception
                 }
             } else {
-                throw new QueryException("Connection is closed", (short) -1, SqlExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState());
+                throw new QueryException("Connection is closed", (short) -1, ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState());
             }
         }
         if (isMasterHostFail() || isSecondaryHostFail()) {
@@ -689,7 +689,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
             }
         }
         if (queryException == null) {
-            throw new QueryException(firstPart + error, (short) -1, SqlExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState());
+            throw new QueryException(firstPart + error, (short) -1, ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState());
         } else {
             error = queryException.getMessage() + ". " + error;
             queryException.setMessage(firstPart + error);

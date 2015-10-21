@@ -50,7 +50,7 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.mysql.listener;
 
 import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.JDBCUrl;
+import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.mysql.FailoverProxy;
 import org.mariadb.jdbc.internal.mysql.HandleErrorResult;
@@ -90,7 +90,7 @@ public interface Listener {
 
     void syncConnection(Protocol from, Protocol to) throws QueryException;
 
-    JDBCUrl getJdbcUrl();
+    UrlParser getUrlParser();
 
     void throwFailoverMessage(QueryException queryException, boolean reconnected) throws QueryException;
 

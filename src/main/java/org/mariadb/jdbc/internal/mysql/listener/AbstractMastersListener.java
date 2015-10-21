@@ -50,9 +50,9 @@ OF SUCH DAMAGE.
 */
 
 import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.JDBCUrl;
+import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.common.QueryException;
-import org.mariadb.jdbc.internal.common.query.MySQLQuery;
+import org.mariadb.jdbc.internal.common.query.MariaDbQuery;
 import org.mariadb.jdbc.internal.common.query.Query;
 import org.mariadb.jdbc.internal.common.query.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.mysql.FailoverProxy;
@@ -79,11 +79,11 @@ import java.util.concurrent.atomic.AtomicLong;
 public abstract class AbstractMastersListener implements Listener {
 
     /**
-     * list the recent failedConnection
+     * List the recent failedConnection.
      */
     protected static Map<HostAddress, Long> blacklist = new HashMap<>();
     /* =========================== Failover variables ========================================= */
-    public final JDBCUrl jdbcUrl;
+    public final UrlParser urlParser;
     protected AtomicInteger currentConnectionAttempts = new AtomicInteger();
     protected AtomicBoolean currentReadOnlyAsked = new AtomicBoolean();
     protected AtomicBoolean isLooping = new AtomicBoolean();
@@ -96,8 +96,8 @@ public abstract class AbstractMastersListener implements Listener {
     private AtomicLong masterHostFailTimestamp = new AtomicLong();
     private AtomicBoolean masterHostFail = new AtomicBoolean();
 
-    protected AbstractMastersListener(JDBCUrl jdbcUrl) {
-        this.jdbcUrl = jdbcUrl;
+    protected AbstractMastersListener(UrlParser urlParser) {
+        this.urlParser = urlParser;
         this.masterHostFail.set(true);
     }
 
@@ -113,8 +113,23 @@ public abstract class AbstractMastersListener implements Listener {
         return blacklist;
     }
 
+    /**
+     * Call when a failover is detected on master connection.
+     * Will  : <ol>
+     * <li> set fail variable</li>
+     * <li> try to reconnect</li>
+     * <li> relaunch query if possible</li>
+     * </ol>
+     *
+     * @param method called method
+     * @param args methods parameters
+     * @return a HandleErrorResult object to indicate if query has been relaunched, and the exception if not
+     * @throws Throwable when method and parameters does not exist.
+     */
     public HandleErrorResult handleFailover(Method method, Object[] args) throws Throwable {
-        if (explicitClosed) throw new QueryException("Connection has been closed !");
+        if (explicitClosed) {
+            throw new QueryException("Connection has been closed !");
+        }
         if (setMasterHostFail()) {
 //            log.warn("SQL Primary node [" + this.currentProtocol.getHostAddress().toString() + "] connection fail ");
             addToBlacklist(currentProtocol.getHostAddress());
@@ -123,7 +138,7 @@ public abstract class AbstractMastersListener implements Listener {
     }
 
     /**
-     * After a failover, put the hostAddress in a static list so the other connection will not take this host in account for a time
+     * After a failover, put the hostAddress in a static list so the other connection will not take this host in account for a time.
      *
      * @param hostAddress the HostAddress to add to blacklist
      */
@@ -135,13 +150,13 @@ public abstract class AbstractMastersListener implements Listener {
     }
 
     /**
-     * Permit to remove Host to blacklist after loadBalanceBlacklistTimeout seconds
+     * Permit to remove Host to blacklist after loadBalanceBlacklistTimeout seconds.
      */
     public void resetOldsBlackListHosts() {
         long currentTime = System.currentTimeMillis();
         Set<HostAddress> currentBlackListkeys = new HashSet<HostAddress>(blacklist.keySet());
         for (HostAddress blackListHost : currentBlackListkeys) {
-            if (blacklist.get(blackListHost) < currentTime - jdbcUrl.getOptions().loadBalanceBlacklistTimeout * 1000) {
+            if (blacklist.get(blackListHost) < currentTime - urlParser.getOptions().loadBalanceBlacklistTimeout * 1000) {
 //                if (log.isTraceEnabled()) log.trace("host " + blackListHost+" remove of blacklist");
                 blacklist.remove(blackListHost);
             }
@@ -149,19 +164,23 @@ public abstract class AbstractMastersListener implements Listener {
     }
 
     protected void resetMasterFailoverData() {
-        if (masterHostFail.compareAndSet(true, false)) masterHostFailTimestamp.set(0);
+        if (masterHostFail.compareAndSet(true, false)) {
+            masterHostFailTimestamp.set(0);
+        }
     }
 
     protected void setSessionReadOnly(boolean readOnly, Protocol protocol) throws QueryException {
         if (protocol.versionGreaterOrEqual(10, 0, 0)) {
-            protocol.executeQuery(new MySQLQuery("SET SESSION TRANSACTION " + (readOnly ? "READ ONLY" : "READ WRITE")));
+            protocol.executeQuery(new MariaDbQuery("SET SESSION TRANSACTION " + (readOnly ? "READ ONLY" : "READ WRITE")));
         }
     }
 
     protected void stopFailover() {
         if (isLooping.compareAndSet(true, false)) {
 //            log.trace("stopping failover");
-            if (scheduledFailover != null) scheduledFailover.cancel(false);
+            if (scheduledFailover != null) {
+                scheduledFailover.cancel(false);
+            }
         }
     }
 
@@ -172,8 +191,9 @@ public abstract class AbstractMastersListener implements Listener {
      * @param now now will launch the loop immediatly, 250ms after if false
      */
     protected void launchFailLoopIfNotlaunched(boolean now) {
-        if (isLooping.compareAndSet(false, true) && jdbcUrl.getOptions().failoverLoopRetries != 0) {
-            scheduledFailover = Executors.newSingleThreadScheduledExecutor().scheduleWithFixedDelay(new FailLoop(this), now ? 0 : 250, 250, TimeUnit.MILLISECONDS);
+        if (isLooping.compareAndSet(false, true) && urlParser.getOptions().failoverLoopRetries != 0) {
+            scheduledFailover = Executors.newSingleThreadScheduledExecutor().scheduleWithFixedDelay(
+                    new FailLoop(this), now ? 0 : 250, 250, TimeUnit.MILLISECONDS);
         }
     }
 
@@ -185,6 +205,10 @@ public abstract class AbstractMastersListener implements Listener {
         return masterHostFailTimestamp.get();
     }
 
+    /**
+     * Set master fail variables.
+     * @return true if was already failed
+     */
     public boolean setMasterHostFail() {
         if (masterHostFail.compareAndSet(false, true)) {
             masterHostFailTimestamp.set(System.currentTimeMillis());
@@ -229,7 +253,8 @@ public abstract class AbstractMastersListener implements Listener {
             } else if ("executePreparedQuery".equals(method.getName())) {
                 //the statementId has been discarded with previous session
                 try {
-                    Method methodFailure = currentProtocol.getClass().getDeclaredMethod("executePreparedQueryAfterFailover", String.class, ParameterHolder[].class, boolean.class);
+                    Method methodFailure = currentProtocol.getClass().getDeclaredMethod("executePreparedQueryAfterFailover",
+                            String.class, ParameterHolder[].class, boolean.class);
                     handleErrorResult.resultObject = methodFailure.invoke(currentProtocol, args);
                     handleErrorResult.mustThrowError = false;
                 } catch (Exception e) {
@@ -247,7 +272,7 @@ public abstract class AbstractMastersListener implements Listener {
     }
 
     /**
-     * when switching between 2 connections, report existing connection parameter to the new used connection
+     * When switching between 2 connections, report existing connection parameter to the new used connection.
      *
      * @param from used connection
      * @param to   will-be-current connection
@@ -268,7 +293,7 @@ public abstract class AbstractMastersListener implements Listener {
                     to.setCatalog(from.getDatabase());
                 }
                 if (from.getAutocommit() != to.getAutocommit()) {
-                    to.executeQuery(new MySQLQuery("set autocommit=" + (from.getAutocommit() ? "1" : "0")));
+                    to.executeQuery(new MariaDbQuery("set autocommit=" + (from.getAutocommit() ? "1" : "0")));
                 }
             } finally {
                 proxy.lock.unlock();
@@ -294,15 +319,15 @@ public abstract class AbstractMastersListener implements Listener {
     }
 
     public int getRetriesAllDown() {
-        return jdbcUrl.getOptions().retriesAllDown;
+        return urlParser.getOptions().retriesAllDown;
     }
 
     public boolean isAutoReconnect() {
-        return jdbcUrl.getOptions().autoReconnect;
+        return urlParser.getOptions().autoReconnect;
     }
 
-    public JDBCUrl getJdbcUrl() {
-        return jdbcUrl;
+    public UrlParser getUrlParser() {
+        return urlParser;
     }
 
     public abstract void initializeConnection() throws QueryException;
@@ -324,7 +349,7 @@ public abstract class AbstractMastersListener implements Listener {
     public abstract void reconnect() throws QueryException;
 
     /**
-     * private class to permit a timer reconnection loop
+     * Private class to permit a timer reconnection loop.
      */
     protected class FailLoop implements Runnable {
         Listener listener;
@@ -339,8 +364,9 @@ public abstract class AbstractMastersListener implements Listener {
 //                    if (log.isTraceEnabled()) log.trace("failLoop , listener.shouldReconnect() : "+listener.shouldReconnect());
                 if (listener.shouldReconnect()) {
                     try {
-                        if (currentConnectionAttempts.get() >= jdbcUrl.getOptions().failoverLoopRetries)
-                            throw new QueryException("Too many reconnection attempts (" + jdbcUrl.getOptions().retriesAllDown + ")");
+                        if (currentConnectionAttempts.get() >= urlParser.getOptions().failoverLoopRetries) {
+                            throw new QueryException("Too many reconnection attempts (" + urlParser.getOptions().retriesAllDown + ")");
+                        }
                         SearchFilter filter = getFilterForFailedHost();
                         filter.setUniqueLoop(true);
                         listener.reconnectFailedConnection(filter);
@@ -350,7 +376,7 @@ public abstract class AbstractMastersListener implements Listener {
 //                            log.trace("FailLoop search connection failed", e);
                     }
                 } else {
-                    if (currentConnectionAttempts.get() > jdbcUrl.getOptions().retriesAllDown) {
+                    if (currentConnectionAttempts.get() > urlParser.getOptions().retriesAllDown) {
 //                            if (log.isDebugEnabled()) log.debug("stopping failover after too many attemps ("+currentConnectionAttempts+")");
                         stopFailover();
                     }

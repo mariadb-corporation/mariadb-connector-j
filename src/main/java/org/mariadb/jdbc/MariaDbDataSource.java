@@ -50,10 +50,10 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.SqlExceptionMapper;
+import org.mariadb.jdbc.internal.ExceptionMapper;
 import org.mariadb.jdbc.internal.common.DefaultOptions;
 import org.mariadb.jdbc.internal.common.QueryException;
-import org.mariadb.jdbc.internal.common.UrlHaMode;
+import org.mariadb.jdbc.internal.common.HaMode;
 import org.mariadb.jdbc.internal.common.Utils;
 import org.mariadb.jdbc.internal.mysql.Protocol;
 
@@ -80,7 +80,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
     public MariaDbDataSource(String hostname, int port, String database) throws SQLException {
         ArrayList<HostAddress> hostAddresses = new ArrayList<HostAddress>();
         hostAddresses.add(new HostAddress(hostname, port));
-        urlParser = new UrlParser(database, hostAddresses, DefaultOptions.defaultValues(UrlHaMode.NONE), UrlHaMode.NONE);
+        urlParser = new UrlParser(database, hostAddresses, DefaultOptions.defaultValues(HaMode.NONE), HaMode.NONE);
     }
 
     public MariaDbDataSource(String url) throws SQLException {
@@ -95,7 +95,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
         hostAddresses.add(new HostAddress("localhost", 3306));
         UrlParser tmpUrlParser = null;
         try {
-            tmpUrlParser = new UrlParser("", hostAddresses, DefaultOptions.defaultValues(UrlHaMode.NONE), UrlHaMode.NONE);
+            tmpUrlParser = new UrlParser("", hostAddresses, DefaultOptions.defaultValues(HaMode.NONE), HaMode.NONE);
         } catch (SQLException e) {
             //cannot happen, but eating exception to avoid throw SQLException in class descriptor
         }
@@ -262,7 +262,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
             Protocol proxyfiedProtocol = Utils.retrieveProxy(urlParser, lock);
             return MariaDbConnection.newConnection(proxyfiedProtocol, lock);
         } catch (QueryException e) {
-            SqlExceptionMapper.throwException(e, null, null);
+            ExceptionMapper.throwException(e, null, null);
             return null;
         }
     }
@@ -422,12 +422,12 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
 
     @Override
     public XAConnection getXAConnection() throws SQLException {
-        return new MariaDbXaConnection((MariaDbConnection) getConnection());
+        return new MariaXaConnection((MariaDbConnection) getConnection());
     }
 
     @Override
     public XAConnection getXAConnection(String user, String password) throws SQLException {
-        return new MariaDbXaConnection((MariaDbConnection) getConnection(user, password));
+        return new MariaXaConnection((MariaDbConnection) getConnection(user, password));
     }
 
     public Logger getParentLogger() throws SQLFeatureNotSupportedException {

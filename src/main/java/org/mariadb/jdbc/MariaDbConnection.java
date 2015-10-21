@@ -49,7 +49,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.SqlExceptionMapper;
+import org.mariadb.jdbc.internal.ExceptionMapper;
 import org.mariadb.jdbc.internal.common.DefaultOptions;
 import org.mariadb.jdbc.internal.common.Options;
 import org.mariadb.jdbc.internal.common.QueryException;
@@ -190,7 +190,7 @@ public final class MariaDbConnection implements Connection {
     public Statement createStatement(final int resultSetType, final int resultSetConcurrency, final int resultSetHoldability)
             throws SQLException {
         if (resultSetConcurrency != ResultSet.CONCUR_READ_ONLY) {
-            throw SqlExceptionMapper.getFeatureNotSupportedException("Only read-only result sets allowed");
+            throw ExceptionMapper.getFeatureNotSupportedException("Only read-only result sets allowed");
         }
 
         return createStatement();
@@ -273,7 +273,7 @@ public final class MariaDbConnection implements Connection {
                                               final int resultSetConcurrency,
                                               final int resultSetHoldability) throws SQLException {
         if (resultSetConcurrency != ResultSet.CONCUR_READ_ONLY) {
-            throw SqlExceptionMapper.getFeatureNotSupportedException("Only read-only result sets allowed");
+            throw ExceptionMapper.getFeatureNotSupportedException("Only read-only result sets allowed");
         }
         //TODO : implement parameters
         // resultSetType is ignored since we always are scroll insensitive
@@ -618,7 +618,7 @@ public final class MariaDbConnection implements Connection {
         try {
             protocol.setReadonly(readOnly);
         } catch (QueryException e) {
-            SqlExceptionMapper.throwException(e, this, null);
+            ExceptionMapper.throwException(e, this, null);
         }
     }
 
@@ -667,7 +667,7 @@ public final class MariaDbConnection implements Connection {
         try {
             protocol.setCatalog(catalog);
         } catch (QueryException e) {
-            SqlExceptionMapper.throwException(e, this, null);
+            ExceptionMapper.throwException(e, this, null);
         }
     }
 
@@ -702,7 +702,7 @@ public final class MariaDbConnection implements Connection {
         } finally {
             stmt.close();
         }
-        throw SqlExceptionMapper.getSqlException("Could not get transaction isolation level");
+        throw ExceptionMapper.getSqlException("Could not get transaction isolation level");
     }
 
     /**
@@ -724,7 +724,7 @@ public final class MariaDbConnection implements Connection {
         try {
             protocol.setTransactionIsolation(level);
         } catch (QueryException e) {
-            SqlExceptionMapper.throwException(e, this, null);
+            ExceptionMapper.throwException(e, this, null);
         }
     }
 
@@ -759,7 +759,7 @@ public final class MariaDbConnection implements Connection {
             while (rs.next()) {
                 int code = rs.getInt(2);
                 String message = rs.getString(3);
-                SQLWarning warning = new SQLWarning(message, SqlExceptionMapper.mapMariaDbCodeToSqlState(code), code);
+                SQLWarning warning = new SQLWarning(message, ExceptionMapper.mapMariaDbCodeToSqlState(code), code);
                 if (first == null) {
                     first = warning;
                     last = warning;
@@ -821,7 +821,7 @@ public final class MariaDbConnection implements Connection {
      * @see #getTypeMap
      */
     public void setTypeMap(final Map<String, Class<?>> map) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Not yet supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Not yet supported");
     }
 
     /**
@@ -969,7 +969,7 @@ public final class MariaDbConnection implements Connection {
      */
     @Override
     public java.sql.SQLXML createSQLXML() throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Not supported");
     }
 
     /**
@@ -1113,7 +1113,7 @@ public final class MariaDbConnection implements Connection {
      * @since 1.6
      */
     public Array createArrayOf(final String typeName, final Object[] elements) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Not yet supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Not yet supported");
     }
 
     /**
@@ -1128,7 +1128,7 @@ public final class MariaDbConnection implements Connection {
      * @since 1.6
      */
     public Struct createStruct(final String typeName, final Object[] attributes) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Not yet supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Not yet supported");
     }
 
     /**
@@ -1257,7 +1257,7 @@ public final class MariaDbConnection implements Connection {
             securityManager.checkPermission(sqlPermission);
         }
         if (executor == null) {
-            throw SqlExceptionMapper.getSqlException("Cannot abort the connection: null executor passed");
+            throw ExceptionMapper.getSqlException("Cannot abort the connection: null executor passed");
         }
         executor.execute(new Runnable() {
             @Override
@@ -1281,7 +1281,7 @@ public final class MariaDbConnection implements Connection {
         try {
             return this.protocol.getTimeout();
         } catch (SocketException se) {
-            throw SqlExceptionMapper.getSqlException("Cannot retrieve the network timeout", se);
+            throw ExceptionMapper.getSqlException("Cannot retrieve the network timeout", se);
         }
     }
 
@@ -1292,7 +1292,7 @@ public final class MariaDbConnection implements Connection {
 
     public void setSchema(String arg0) throws SQLException {
         // We support only catalog
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Only catalogs are supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Only catalogs are supported");
     }
 
 
@@ -1304,10 +1304,10 @@ public final class MariaDbConnection implements Connection {
      */
     public void setNetworkTimeout(Executor executor, final int milliseconds) throws SQLException {
         if (this.isClosed()) {
-            throw SqlExceptionMapper.getSqlException("Connection.setNetworkTimeout cannot be called on a closed connection");
+            throw ExceptionMapper.getSqlException("Connection.setNetworkTimeout cannot be called on a closed connection");
         }
         if (milliseconds < 0) {
-            throw SqlExceptionMapper.getSqlException("Connection.setNetworkTimeout cannot be called with a negative timeout");
+            throw ExceptionMapper.getSqlException("Connection.setNetworkTimeout cannot be called with a negative timeout");
         }
         SQLPermission sqlPermission = new SQLPermission("setNetworkTimeout");
         SecurityManager securityManager = System.getSecurityManager();
@@ -1315,12 +1315,12 @@ public final class MariaDbConnection implements Connection {
             securityManager.checkPermission(sqlPermission);
         }
         if (executor == null) {
-            throw SqlExceptionMapper.getSqlException("Cannot set the connection timeout: null executor passed");
+            throw ExceptionMapper.getSqlException("Cannot set the connection timeout: null executor passed");
         }
         try {
             protocol.setTimeout(milliseconds);
         } catch (SocketException se) {
-            throw SqlExceptionMapper.getSqlException("Cannot set the network timeout", se);
+            throw ExceptionMapper.getSqlException("Cannot set the network timeout", se);
         }
     }
 

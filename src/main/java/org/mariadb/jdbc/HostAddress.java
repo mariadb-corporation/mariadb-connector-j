@@ -1,7 +1,7 @@
 package org.mariadb.jdbc;
 
 import org.mariadb.jdbc.internal.common.ParameterConstant;
-import org.mariadb.jdbc.internal.common.UrlHAMode;
+import org.mariadb.jdbc.internal.common.HaMode;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,12 +15,23 @@ public class HostAddress {
     public HostAddress() {
     }
 
+    /**
+     * Constructor. type is master.
+     * @param host host
+     * @param port port
+     */
     public HostAddress(String host, int port) {
         this.host = host;
         this.port = port;
         this.type = ParameterConstant.TYPE_MASTER;
     }
 
+    /**
+     * Constructor.
+     * @param host host
+     * @param port port
+     * @param type type
+     */
     public HostAddress(String host, int port, String type) {
         this.host = host;
         this.port = port;
@@ -36,8 +47,10 @@ public class HostAddress {
      * @param haMode High availability mode
      * @return parsed endpoints
      */
-    public static List<HostAddress> parse(String spec, UrlHAMode haMode) {
-        if (spec == null) throw new IllegalArgumentException("Invalid connection URL, host address must not be empty ");
+    public static List<HostAddress> parse(String spec, HaMode haMode) {
+        if (spec == null) {
+            throw new IllegalArgumentException("Invalid connection URL, host address must not be empty ");
+        }
         String[] tokens = spec.trim().split(",");
         List<HostAddress> arr = new ArrayList<>(tokens.length);
 
@@ -55,9 +68,12 @@ public class HostAddress {
         }
 
         for (int i = 0; i < arr.size(); i++) {
-            if (haMode == UrlHAMode.REPLICATION) {
-                if (i == 0 && arr.get(i).type == null) arr.get(i).type = ParameterConstant.TYPE_MASTER;
-                else if (i != 0 && arr.get(i).type == null) arr.get(i).type = ParameterConstant.TYPE_SLAVE;
+            if (haMode == HaMode.REPLICATION) {
+                if (i == 0 && arr.get(i).type == null) {
+                    arr.get(i).type = ParameterConstant.TYPE_MASTER;
+                } else if (i != 0 && arr.get(i).type == null) {
+                    arr.get(i).type = ParameterConstant.TYPE_SLAVE;
+                }
             }
             if (arr.get(i).port == 0) {
                 arr.get(i).port = defaultPort;
@@ -66,34 +82,35 @@ public class HostAddress {
         return arr;
     }
 
-    static HostAddress parseSimpleHostAddress(String s) {
+    static HostAddress parseSimpleHostAddress(String str) {
         HostAddress result = new HostAddress();
-        if (s.charAt(0) == '[') {
+        if (str.charAt(0) == '[') {
             /* IPv6 addresses in URLs are enclosed in square brackets */
-            int ind = s.indexOf(']');
-            result.host = s.substring(1, ind);
-            if (ind != (s.length() - 1) && s.charAt(ind + 1) == ':') {
-                result.port = Integer.parseInt(s.substring(ind + 2));
+            int ind = str.indexOf(']');
+            result.host = str.substring(1, ind);
+            if (ind != (str.length() - 1) && str.charAt(ind + 1) == ':') {
+                result.port = Integer.parseInt(str.substring(ind + 2));
             }
-        } else if (s.contains(":")) {
+        } else if (str.contains(":")) {
               /* Parse host:port */
-            String[] hostPort = s.split(":");
+            String[] hostPort = str.split(":");
             result.host = hostPort[0];
             result.port = Integer.parseInt(hostPort[1]);
         } else {
-        	  /* Just host name is given */
-            result.host = s;
+              /* Just host name is given */
+            result.host = str;
         }
         return result;
     }
 
-    static HostAddress parseParameterHostAddress(String s) {
+    static HostAddress parseParameterHostAddress(String str) {
         HostAddress result = new HostAddress();
-        String[] array = s.split("(?=\\()|(?<=\\))");
+        String[] array = str.split("(?=\\()|(?<=\\))");
         for (int i = 1; i < array.length; i++) {
             String[] token = array[i].replace("(", "").replace(")", "").trim().split("=");
-            if (token.length != 2)
+            if (token.length != 2) {
                 throw new IllegalArgumentException("Invalid connection URL, expected key=value pairs, found " + array[i]);
+            }
             String key = token[0].toLowerCase();
             String value = token[1].toLowerCase();
             if (key.equals("host")) {
@@ -101,52 +118,84 @@ public class HostAddress {
             } else if (key.equals("port")) {
                 result.port = Integer.parseInt(value);
             } else if (key.equals("type")) {
-                if (value.equals(ParameterConstant.TYPE_MASTER) || value.equals(ParameterConstant.TYPE_SLAVE))
+                if (value.equals(ParameterConstant.TYPE_MASTER) || value.equals(ParameterConstant.TYPE_SLAVE)) {
                     result.type = value;
+                }
             }
         }
         return result;
     }
 
+    /**
+     * ToString implementation of addresses.
+     * @param addrs address list
+     * @return String value
+     */
     public static String toString(List<HostAddress> addrs) {
-        String s = "";
+        String str = "";
         for (int i = 0; i < addrs.size(); i++) {
             if (addrs.get(i).type != null) {
-                s += "address=(host=" + addrs.get(i).host + ")(port=" + addrs.get(i).port + ")(type=" + addrs.get(i).type + ")";
+                str += "address=(host=" + addrs.get(i).host + ")(port=" + addrs.get(i).port + ")(type=" + addrs.get(i).type + ")";
             } else {
                 boolean isIPv6 = addrs.get(i).host != null && addrs.get(i).host.contains(":");
                 String host = (isIPv6) ? ("[" + addrs.get(i).host + "]") : addrs.get(i).host;
-                s += host + ":" + addrs.get(i).port;
+                str += host + ":" + addrs.get(i).port;
             }
-            if (i < addrs.size() - 1) s += ",";
+            if (i < addrs.size() - 1) {
+                str += ",";
+            }
         }
-        return s;
+        return str;
     }
 
+    /**
+     * ToString implementation of addresses.
+     * @param addrs address array
+     * @return String value
+     */
     public static String toString(HostAddress[] addrs) {
-        String s = "";
+        String str = "";
         for (int i = 0; i < addrs.length; i++) {
             if (addrs[i].type != null) {
-                s += "address=(host=" + addrs[i].host + ")(port=" + addrs[i].port + ")(type=" + addrs[i].type + ")";
+                str += "address=(host=" + addrs[i].host + ")(port=" + addrs[i].port + ")(type=" + addrs[i].type + ")";
             } else {
                 boolean isIPv6 = addrs[i].host != null && addrs[i].host.contains(":");
                 String host = (isIPv6) ? ("[" + addrs[i].host + "]") : addrs[i].host;
-                s += host + ":" + addrs[i].port;
+                str += host + ":" + addrs[i].port;
             }
-            if (i < addrs.length - 1) s += ",";
+            if (i < addrs.length - 1) {
+                str += ",";
+            }
         }
-        return s;
+        return str;
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+    public String toString() {
+        return "HostAddress{"
+                + "host='" + host + '\''
+                + ", port=" + port
+                + ", type='" + type + '\''
+                + "}";
+    }
 
-        HostAddress that = (HostAddress) o;
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
 
-        if (port != that.port) return false;
-        if (host != null ? !host.equals(that.host) : that.host != null) return false;
+        HostAddress that = (HostAddress) obj;
+
+        if (port != that.port) {
+            return false;
+        }
+        if (host != null ? !host.equals(that.host) : that.host != null) {
+            return false;
+        }
         return !(type != null ? !type.equals(that.type) : that.type != null);
 
     }
@@ -158,13 +207,6 @@ public class HostAddress {
         return result;
     }
 
-    @Override
-    public String toString() {
-        return "HostAddress{" +
-                "host='" + host + '\'' +
-                ", port=" + port +
-                ", type='" + type + '\'' +
-                '}';
-    }
+
 }
 

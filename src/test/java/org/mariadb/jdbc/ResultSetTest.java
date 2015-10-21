@@ -9,10 +9,13 @@ import java.sql.SQLException;
 import static org.junit.Assert.*;
 
 public class ResultSetTest extends BaseTest {
-
+    /**
+     * Initialisation.
+     * @throws SQLException exception
+     */
     @BeforeClass()
     public static void initClass() throws SQLException {
-        createTable("result_set_test","id int not null primary key auto_increment, name char(20)");
+        createTable("result_set_test", "id int not null primary key auto_increment, name char(20)");
     }
 
 
@@ -190,6 +193,7 @@ public class ResultSetTest extends BaseTest {
             rs.first();
             fail("cannot call first() on a closed result set");
         } catch (SQLException sqlex) {
+            //eat exception
         }
     }
 
@@ -206,13 +210,15 @@ public class ResultSetTest extends BaseTest {
             rs.last();
             fail("cannot call last() on a closed result set");
         } catch (SQLException sqlex) {
+            //eat exception
         }
     }
 
     private void insertRows(int numberOfRowsToInsert) throws SQLException {
         sharedConnection.createStatement().execute("truncate result_set_test ");
         for (int i = 1; i <= numberOfRowsToInsert; i++) {
-            sharedConnection.createStatement().executeUpdate("INSERT INTO result_set_test VALUES(" + i + ", 'row" + i + "')");
+            sharedConnection.createStatement().executeUpdate("INSERT INTO result_set_test VALUES(" + i
+                    + ", 'row" + i + "')");
         }
     }
 }

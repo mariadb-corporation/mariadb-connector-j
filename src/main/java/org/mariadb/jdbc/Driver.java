@@ -49,7 +49,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.SQLExceptionMapper;
+import org.mariadb.jdbc.internal.ExceptionMapper;
 import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.common.Utils;
 import org.mariadb.jdbc.internal.mysql.Protocol;
@@ -75,12 +75,12 @@ public final class Driver implements java.sql.Driver {
         See CONJ-61.
      */
     public static void unloadDriver() {
-        MySQLStatement.unloadDriver();
+        MariaDbStatement.unloadDriver();
     }
 
     /**
      * Connect to the given connection string.
-     *
+     * <p>
      * the properties are currently ignored
      *
      * @param url the url to connect to
@@ -91,20 +91,22 @@ public final class Driver implements java.sql.Driver {
 
         //log.debug("Connecting to: " + url);
         try {
-            JDBCUrl jdbcUrl = JDBCUrl.parse(url, props);
+            UrlParser urlParser = UrlParser.parse(url, props);
             //
-            if (jdbcUrl == null) return null;
-            if (jdbcUrl.getHostAddresses() == null) {
+            if (urlParser == null) {
+                return null;
+            }
+            if (urlParser.getHostAddresses() == null) {
                 //log.info("MariaDB connector : missing Host address");
                 return null;
             } else {
                 ReentrantLock lock = new ReentrantLock();
-                Protocol protocol = Utils.retrieveProxy(jdbcUrl, lock);
-                return MySQLConnection.newConnection(protocol, lock);
+                Protocol protocol = Utils.retrieveProxy(urlParser, lock);
+                return MariaDbConnection.newConnection(protocol, lock);
             }
 
         } catch (QueryException e) {
-            SQLExceptionMapper.throwException(e, null, null);
+            ExceptionMapper.throwException(e, null, null);
             return null;
         }
     }
@@ -115,8 +117,9 @@ public final class Driver implements java.sql.Driver {
      * @param url the url to test
      * @return true if the url is valid for this driver
      */
+    @Override
     public boolean acceptsURL(String url) {
-        return JDBCUrl.acceptsURL(url);
+        return UrlParser.acceptsUrl(url);
     }
 
     /**

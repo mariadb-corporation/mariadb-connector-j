@@ -49,7 +49,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.SqlExceptionMapper;
+import org.mariadb.jdbc.internal.ExceptionMapper;
 import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.common.Utils;
 import org.mariadb.jdbc.internal.common.query.MariaDbQuery;
@@ -194,7 +194,7 @@ public class MariaDbStatement implements Statement {
         try {
             protocol.setMaxRows(maxRows);
         } catch (QueryException qe) {
-            SqlExceptionMapper.throwException(qe, connection, this);
+            ExceptionMapper.throwException(qe, connection, this);
         }
 
         if (queryTimeout != 0) {
@@ -264,7 +264,7 @@ public class MariaDbStatement implements Statement {
             close();
         }
 
-        SqlExceptionMapper.throwException(queryException, connection, this);
+        ExceptionMapper.throwException(queryException, connection, this);
     }
 
     /**
@@ -717,7 +717,7 @@ public class MariaDbStatement implements Statement {
             }
             protocol.cancelCurrentQuery();
         } catch (QueryException e) {
-            SqlExceptionMapper.throwException(e, connection, this);
+            ExceptionMapper.throwException(e, connection, this);
         } catch (IOException e) {
             // connection gone, query is definitely canceled
         }
@@ -768,7 +768,7 @@ public class MariaDbStatement implements Statement {
      * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      */
     public void setCursorName(final String name) throws SQLException {
-        throw SqlExceptionMapper.getFeatureNotSupportedException("Cursors are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException("Cursors are not supported");
     }
 
     /**
@@ -910,7 +910,7 @@ public class MariaDbStatement implements Statement {
             connection.reenableWarnings();
             return true;
         } catch (QueryException e) {
-            SqlExceptionMapper.throwException(e, connection, this);
+            ExceptionMapper.throwException(e, connection, this);
             return false;
         } finally {
             connection.lock.unlock();
@@ -1313,7 +1313,7 @@ public class MariaDbStatement implements Statement {
             try {
                 protocol.connectWithoutProxy();
             } catch (QueryException qe) {
-                SqlExceptionMapper.throwException(qe, connection, this);
+                ExceptionMapper.throwException(qe, connection, this);
             }
         }
     }

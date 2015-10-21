@@ -33,6 +33,12 @@ public class NamedPipeSocket extends Socket {
         connect(endpoint, 0);
     }
 
+    /**
+     * Name pipe connection.
+     * @param endpoint endPoint
+     * @param timeout timeout
+     * @throws IOException exception
+     */
     public void connect(SocketAddress endpoint, int timeout) throws IOException {
         String filename;
         if (host == null || host.equals("localhost")) {
@@ -44,8 +50,8 @@ public class NamedPipeSocket extends Socket {
 
         is = new InputStream() {
             @Override
-            public int read(byte[] b, int off, int len) throws IOException {
-                return file.read(b, off, len);
+            public int read(byte[] bytes, int off, int len) throws IOException {
+                return file.read(bytes, off, len);
             }
 
             @Override
@@ -54,25 +60,25 @@ public class NamedPipeSocket extends Socket {
             }
 
             @Override
-            public int read(byte[] b) throws IOException {
-                return file.read(b);
+            public int read(byte[] bytes) throws IOException {
+                return file.read(bytes);
             }
         };
 
         os = new OutputStream() {
             @Override
-            public void write(byte[] b, int off, int len) throws IOException {
-                file.write(b, off, len);
+            public void write(byte[] bytes, int off, int len) throws IOException {
+                file.write(bytes, off, len);
             }
 
             @Override
-            public void write(int b) throws IOException {
-                file.write(b);
+            public void write(int value) throws IOException {
+                file.write(value);
             }
 
             @Override
-            public void write(byte[] b) throws IOException {
-                file.write(b);
+            public void write(byte[] bytes) throws IOException {
+                file.write(bytes);
             }
         };
     }
@@ -85,10 +91,10 @@ public class NamedPipeSocket extends Socket {
         return os;
     }
 
-    public void setTcpNoDelay(boolean b) {
+    public void setTcpNoDelay(boolean bool) {
     }
 
-    public void setKeepAlive(boolean b) {
+    public void setKeepAlive(boolean bool) {
     }
 
     public void setReceiveBufferSize(int size) {
@@ -97,7 +103,7 @@ public class NamedPipeSocket extends Socket {
     public void setSendBufferSize(int size) {
     }
 
-    public void setSoLinger(boolean b, int i) {
+    public void setSoLinger(boolean bool, int value) {
     }
 
     @Override

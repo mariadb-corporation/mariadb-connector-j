@@ -1,7 +1,7 @@
 package org.mariadb.jdbc.failover;
 
 import org.junit.*;
-import org.mariadb.jdbc.internal.common.UrlHAMode;
+import org.mariadb.jdbc.internal.common.HaMode;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -10,25 +10,35 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * exemple mvn test  -DdefaultLoadbalanceUrl=jdbc:mysql:loadbalance//localhost:3306,localhost:3307/test?user=root
+ * Exemple mvn test  -DdefaultLoadbalanceUrl=jdbc:mysql:loadbalance//localhost:3306,localhost:3307/test?user=root.
  */
 public class LoadBalanceFailoverTest extends BaseMultiHostTest {
     private Connection connection;
 
+    /**
+     * Initialisaton.
+     * @throws SQLException exception
+     */
     @Before
     public void init() throws SQLException {
-        currentType = UrlHAMode.LOADBALANCE;
+        currentType = HaMode.LOADBALANCE;
         initialUrl = initialLoadbalanceUrl;
         proxyUrl = proxyLoadbalanceUrl;
         Assume.assumeTrue(initialLoadbalanceUrl != null);
         connection = null;
     }
 
+    /**
+     * Assure status.
+     * @throws SQLException exception
+     */
     @After
     public void after() throws SQLException {
         assureProxy();
         assureBlackList(connection);
-        if (connection != null) connection.close();
+        if (connection != null) {
+            connection.close();
+        }
     }
 
 

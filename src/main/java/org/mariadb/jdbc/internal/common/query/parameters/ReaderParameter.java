@@ -50,7 +50,7 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.common.query.parameters;
 
 import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
-import org.mariadb.jdbc.internal.mysql.MySQLType;
+import org.mariadb.jdbc.internal.mysql.MariaDbType;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -62,6 +62,12 @@ public class ReaderParameter extends LongDataParameterHolder {
     long length;
     boolean noBackslashEscapes;
 
+    /**
+     * Constructor.
+     * @param reader reader to write
+     * @param length max length to write (can be null)
+     * @param noBackslashEscapes must backslash be escape
+     */
     public ReaderParameter(Reader reader, long length, boolean noBackslashEscapes) {
         this.reader = reader;
         this.length = length;
@@ -72,22 +78,34 @@ public class ReaderParameter extends LongDataParameterHolder {
         this(reader, Long.MAX_VALUE, noBackslashEscapes);
     }
 
+    /**
+     * Write reader to database in text format.
+     * @param os database outputStream
+     * @throws IOException if any error occur when reading reader
+     */
     public void writeTo(OutputStream os) throws IOException {
-        if (length == Long.MAX_VALUE)
+        if (length == Long.MAX_VALUE) {
             ParameterWriter.write(os, reader, noBackslashEscapes);
-        else
+        } else {
             ParameterWriter.write(os, reader, length, noBackslashEscapes);
+        }
     }
 
+    /**
+     * Write reader to database in binary format.
+     * @param os database outputStream
+     * @throws IOException if any error occur when reading reader
+     */
     public void writeBinary(PacketOutputStream os) throws IOException {
-        if (length == Long.MAX_VALUE)
-            os.sendStream(reader, mySQLServerCharset);
-        else
-            os.sendStream(reader, length, mySQLServerCharset);
+        if (length == Long.MAX_VALUE) {
+            os.sendStream(reader, mariaDbCharset);
+        } else {
+            os.sendStream(reader, length, mariaDbCharset);
+        }
     }
 
-    public MySQLType getMySQLType() {
-        return MySQLType.BLOB;
+    public MariaDbType getMariaDbType() {
+        return MariaDbType.BLOB;
     }
 
 

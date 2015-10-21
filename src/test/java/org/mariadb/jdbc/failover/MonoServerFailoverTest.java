@@ -1,7 +1,7 @@
 package org.mariadb.jdbc.failover;
 
 import org.junit.*;
-import org.mariadb.jdbc.internal.common.UrlHAMode;
+import org.mariadb.jdbc.internal.common.HaMode;
 import org.mariadb.jdbc.internal.mysql.Protocol;
 
 import java.sql.Connection;
@@ -14,17 +14,27 @@ import static org.junit.Assert.assertFalse;
 public class MonoServerFailoverTest extends BaseMultiHostTest {
     private Connection connection;
 
+    /**
+     * Initialisation.
+     * @throws SQLException exception
+     */
     @Before
     public void init() throws SQLException {
         Assume.assumeTrue(initialUrl != null);
-        currentType = UrlHAMode.NONE;
+        currentType = HaMode.NONE;
     }
 
+    /**
+     * Assure status.
+     * @throws SQLException exception
+     */
     @After
     public void after() throws SQLException {
         assureProxy();
         assureBlackList(connection);
-        if (connection != null) connection.close();
+        if (connection != null) {
+            connection.close();
+        }
     }
 
     @Test
@@ -38,6 +48,7 @@ public class MonoServerFailoverTest extends BaseMultiHostTest {
             st.execute("SELECT 1");
             Assert.fail();
         } catch (SQLException e) {
+            //normal exception
         }
         Assert.assertTrue(st.isClosed());
         restartProxy(masterServerId);
@@ -61,6 +72,7 @@ public class MonoServerFailoverTest extends BaseMultiHostTest {
             st.execute("SELECT 1");
             Assert.fail();
         } catch (SQLException e) {
+            //normal exception
         }
 
         restartProxy(masterServerId);
@@ -86,6 +98,7 @@ public class MonoServerFailoverTest extends BaseMultiHostTest {
             st.execute("SELECT 1");
             Assert.fail();
         } catch (SQLException e) {
+            //normal exception
         }
 
         restartProxy(masterServerId);
@@ -105,7 +118,7 @@ public class MonoServerFailoverTest extends BaseMultiHostTest {
     /**
      * CONJ-120 Fix Connection.isValid method
      *
-     * @throws Exception
+     * @throws Exception exception
      */
     @Test
     public void isValid_connectionThatIsKilledExternally() throws Throwable {
@@ -146,7 +159,7 @@ public class MonoServerFailoverTest extends BaseMultiHostTest {
             preparedStatement.executeBatch();
             Assert.fail();
         } catch (SQLException e) {
-
+            //normal exception
         }
         restartProxy(masterServerId);
         try {

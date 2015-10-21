@@ -22,7 +22,7 @@ public class SharedMemorySocket extends Socket {
 
     //SDDL string for mutex security flags (Everyone group has SYNCHRONIZE right)
     public static final String EVERYONE_SYNCHRONIZE_SDDL = "D:(A;;0x100000;;;WD)";
-    final static Map<String, Object> WIN32API_OPTIONS = new HashMap<String, Object>() {
+    static final Map<String, Object> WIN32API_OPTIONS = new HashMap<String, Object>() {
         {
             put(Library.OPTION_FUNCTION_MAPPER, W32APIFunctionMapper.UNICODE);
             put(Library.OPTION_TYPE_MAPPER, W32APITypeMapper.UNICODE);
@@ -44,6 +44,11 @@ public class SharedMemorySocket extends Socket {
     private int connectNumber;
     private int timeout = Kernel32.INFINITE;
 
+    /**
+     * Create ShareMemorySocket.
+     * @param name name
+     * @throws IOException exception
+     */
     public SharedMemorySocket(String name) throws IOException {
         if (!Platform.isWindows()) {
             throw new IOException("shared memory connections are only supported on Windows");
@@ -55,6 +60,13 @@ public class SharedMemorySocket extends Socket {
         return Kernel32.INSTANCE.OpenEvent(Kernel32.EVENT_MODIFY_STATE | Kernel32.SYNCHRONIZE, false, name);
     }
 
+    /**
+     * Map memory
+     * @param mapName map name
+     * @param mode mode
+     * @param size size
+     * @return Pointer
+     */
     public static Pointer mapMemory(String mapName, int mode, int size) {
         HANDLE mapping = Kernel32.INSTANCE.OpenFileMapping(mode, false, mapName);
         Pointer v = Kernel32.INSTANCE.MapViewOfFile(mapping, mode, 0, 0, new SIZE_T(size));
@@ -263,8 +275,8 @@ public class SharedMemorySocket extends Socket {
 
     class SharedMemoryInputStream extends InputStream {
         @Override
-        public int read(byte[] b, int off, int count) throws IOException {
-            HANDLE handles[] = {serverWrote, connectionClosed};
+        public int read(byte[] bytes, int off, int count) throws IOException {
+            HANDLE[] handles = {serverWrote, connectionClosed};
             if (bytesLeft == 0) {
                 int index = Kernel32.INSTANCE.WaitForMultipleObjects(2, handles, false, timeout);
                 if (index == -1) {
@@ -279,36 +291,37 @@ public class SharedMemorySocket extends Socket {
                 position = 4;
             }
             int len = Math.min(count, bytesLeft);
-            view.read(position, b, off, len);
+            view.read(position, bytes, off, len);
             position += len;
             bytesLeft -= len;
-            if (bytesLeft == 0)
+            if (bytesLeft == 0) {
                 Kernel32.INSTANCE.SetEvent(clientRead);
+            }
             return len;
         }
 
         @Override
         public int read() throws IOException {
-            byte[] b = new byte[1];
-            int bytesRead = read(b);
+            byte[] bit = new byte[1];
+            int bytesRead = read(bit);
             if (bytesRead == 0) {
                 return -1;
             }
-            return b[0] & 0xff;
+            return bit[0] & 0xff;
         }
 
         @Override
-        public int read(byte[] b) throws IOException {
-            return read(b, 0, b.length);
+        public int read(byte[] bytes) throws IOException {
+            return read(bytes, 0, bytes.length);
         }
     }
 
     class SharedMemoryOutputStream extends OutputStream {
         @Override
-        public void write(byte[] b, int off, int count) throws IOException {
+        public void write(byte[] bytes, int off, int count) throws IOException {
             int bytesToWrite = count;
             int buffPos = off;
-            HANDLE handles[] = {serverRead, connectionClosed};
+            HANDLE[] handles = {serverRead, connectionClosed};
             while (bytesToWrite > 0) {
                 int index = Kernel32.INSTANCE.WaitForMultipleObjects(2, handles, false, timeout);
                 if (index == -1) {
@@ -323,22 +336,23 @@ public class SharedMemorySocket extends Socket {
 
                 int chunk = Math.min(bytesToWrite, BUFFERLEN);
                 view.setInt(0, chunk);
-                view.write(4, b, buffPos, chunk);
+                view.write(4, bytes, buffPos, chunk);
                 buffPos += chunk;
                 bytesToWrite -= chunk;
-                if (!Kernel32.INSTANCE.SetEvent(clientWrote))
+                if (!Kernel32.INSTANCE.SetEvent(clientWrote)) {
                     throw new IOException("SetEvent failed");
+                }
             }
         }
 
         @Override
-        public void write(int b) throws IOException {
-            write(new byte[]{(byte) b});
+        public void write(int value) throws IOException {
+            write(new byte[]{(byte) value});
         }
 
         @Override
-        public void write(byte[] b) throws IOException {
-            write(b, 0, b.length);
+        public void write(byte[] bytes) throws IOException {
+            write(bytes, 0, bytes.length);
         }
     }
 }

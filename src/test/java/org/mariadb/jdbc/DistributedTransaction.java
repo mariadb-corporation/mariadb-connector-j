@@ -16,22 +16,25 @@ import java.util.UUID;
 
 import static org.junit.Assert.*;
 
-public class XA extends BaseTest {
+public class DistributedTransaction extends BaseTest {
 
-    @BeforeClass()
-    public static void initClass() throws SQLException {
-        createTable("xatable","i int","ENGINE=InnoDB");
-    }
+    MariaDbDataSource dataSource;
 
-    MySQLDataSource dataSource;
-
-    public XA() {
-        dataSource = new MySQLDataSource();
+    /**
+     * Initialisation.
+     */
+    public DistributedTransaction() {
+        dataSource = new MariaDbDataSource();
         dataSource.setServerName(hostname);
         dataSource.setPortNumber(port);
         dataSource.setDatabaseName(database);
         dataSource.setUser(username);
         dataSource.setPassword(password);
+    }
+
+    @BeforeClass()
+    public static void initClass() throws SQLException {
+        createTable("xatable", "i int", "ENGINE=InnoDB");
     }
 
     @Before
@@ -40,68 +43,68 @@ public class XA extends BaseTest {
     }
 
     Xid newXid() {
-        return new MySQLXid(1, UUID.randomUUID().toString().getBytes(), UUID.randomUUID().toString().getBytes());
+        return new MariaDbXid(1, UUID.randomUUID().toString().getBytes(), UUID.randomUUID().toString().getBytes());
     }
 
     Xid newXid(Xid branchFrom) {
-        return new MySQLXid(1, branchFrom.getGlobalTransactionId(), UUID.randomUUID().toString().getBytes());
+        return new MariaDbXid(1, branchFrom.getGlobalTransactionId(), UUID.randomUUID().toString().getBytes());
     }
 
     /**
-     * 2 phase commit , with either commit or rollback at the end
+     * 2 phase commit , with either commit or rollback at the end.
      *
-     * @param doCommit
-     * @throws Exception
+     * @param doCommit must commit
+     * @throws Exception exception
      */
-    void test2PC(boolean doCommit) throws Exception {
+    void test2PhaseCommit(boolean doCommit) throws Exception {
 
 
-
-        int N = 1;
+        int connectionNumber = 1;
 
         Xid parentXid = newXid();
-        Connection[] connections = new Connection[N];
-        XAConnection[] xaConnections = new XAConnection[N];
-        XAResource[] xaResources = new XAResource[N];
-        Xid xids[] = new Xid[N];
+        Connection[] connections = new Connection[connectionNumber];
+        XAConnection[] xaConnections = new XAConnection[connectionNumber];
+        XAResource[] xaResources = new XAResource[connectionNumber];
+        Xid[] xids = new Xid[connectionNumber];
 
         try {
 
-            for (int i = 0; i < N; i++) {
+            for (int i = 0; i < connectionNumber; i++) {
                 xaConnections[i] = dataSource.getXAConnection();
                 connections[i] = xaConnections[i].getConnection();
                 xaResources[i] = xaConnections[i].getXAResource();
                 xids[i] = newXid(parentXid);
             }
 
-            for (int i = 0; i < N; i++) {
+            for (int i = 0; i < connectionNumber; i++) {
                 xaResources[i].start(xids[i], XAResource.TMNOFLAGS);
             }
 
-            for (int i = 0; i < N; i++) {
+            for (int i = 0; i < connectionNumber; i++) {
                 connections[i].createStatement().executeUpdate("INSERT INTO xatable VALUES (" + i + ")");
             }
 
-            for (int i = 0; i < N; i++) {
+            for (int i = 0; i < connectionNumber; i++) {
                 xaResources[i].end(xids[i], XAResource.TMSUCCESS);
             }
 
-            for (int i = 0; i < N; i++) {
+            for (int i = 0; i < connectionNumber; i++) {
                 xaResources[i].prepare(xids[i]);
             }
 
-            for (int i = 0; i < N; i++) {
-                if (doCommit)
+            for (int i = 0; i < connectionNumber; i++) {
+                if (doCommit) {
                     xaResources[i].commit(xids[i], false);
-                else
+                } else {
                     xaResources[i].rollback(xids[i]);
+                }
             }
 
 
             // check the completion
             ResultSet rs = sharedConnection.createStatement().executeQuery("SELECT * from xatable order by i");
             if (doCommit) {
-                for (int i = 0; i < N; i++) {
+                for (int i = 0; i < connectionNumber; i++) {
                     rs.next();
                     assertEquals(rs.getInt(1), i);
                 }
@@ -111,12 +114,13 @@ public class XA extends BaseTest {
             }
             rs.close();
         } finally {
-            for (int i = 0; i < N; i++) {
+            for (int i = 0; i < connectionNumber; i++) {
                 try {
                     if (xaConnections[i] != null) {
                         xaConnections[i].close();
                     }
                 } catch (Exception e) {
+                    e.printStackTrace();
                 }
             }
         }
@@ -124,23 +128,23 @@ public class XA extends BaseTest {
 
     @Test
     public void testCommit() throws Exception {
-        test2PC(true);
+        test2PhaseCommit(true);
     }
 
     @Test
     public void testRollback() throws Exception {
-        test2PC(false);
+        test2PhaseCommit(false);
     }
 
     @Test
     public void testRecover() throws Exception {
         XAConnection xaConnection = dataSource.getXAConnection();
         try {
-            Connection c = xaConnection.getConnection();
+            Connection connection = xaConnection.getConnection();
             Xid xid = newXid();
             XAResource xaResource = xaConnection.getXAResource();
             xaResource.start(xid, XAResource.TMNOFLAGS);
-            c.createStatement().executeQuery("SELECT 1");
+            connection.createStatement().executeQuery("SELECT 1");
             xaResource.end(xid, XAResource.TMSUCCESS);
             xaResource.prepare(xid);
             Xid[] recoveredXids = xaResource.recover(XAResource.TMSTARTRSCAN | XAResource.TMENDRSCAN);
@@ -163,7 +167,7 @@ public class XA extends BaseTest {
     @Test
     public void resumeAndJoinTest() throws Exception {
         Connection conn1 = null;
-        MySQLDataSource ds = new MySQLDataSource();
+        MariaDbDataSource ds = new MariaDbDataSource();
         ds.setUrl(connU);
         ds.setDatabaseName(database);
         ds.setUser(username);

@@ -13,10 +13,13 @@ import static org.junit.Assert.assertTrue;
 
 
 public class BooleanTest extends BaseTest {
-
+    /**
+     * Initialization.
+     * @throws SQLException exception
+     */
     @BeforeClass()
     public static void initClass() throws SQLException {
-        createTable("booleantest","id int not null primary key auto_increment, test boolean");
+        createTable("booleantest", "id int not null primary key auto_increment, test boolean");
     }
 
     @Test

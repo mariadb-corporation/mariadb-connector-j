@@ -12,15 +12,19 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class CollationTest extends BaseTest {
-
+    /**
+     * Tables Initialisation.
+     * @throws SQLException exception
+     */
     @BeforeClass()
     public static void initClass() throws SQLException {
         createTable("emojiTest", "id int unsigned, field longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
     }
+
     /**
-     * CONJ-92 and CONJ-118
+     * Conj-92 and CONJ-118.
      *
-     * @throws SQLException
+     * @throws SQLException exception
      */
     @Test
     public void emoji() throws SQLException {
@@ -28,11 +32,13 @@ public class CollationTest extends BaseTest {
         try {
             connection = setConnection("&useUnicode=yes&useConfigs=maxPerformance");
 
-            String sqlForCharset = "SELECT * FROM information_schema.global_variables WHERE variable_name = 'character_set_server'";
+            String sqlForCharset = "SELECT * FROM information_schema.global_variables WHERE variable_name = "
+                    + "'character_set_server'";
             ResultSet rs = connection.createStatement().executeQuery(sqlForCharset);
             assertTrue(rs.next());
-            String serverCharacterSet = rs.getString(2);
-            sqlForCharset = "SELECT * FROM information_schema.global_variables WHERE variable_name = 'character_set_client'";
+            final String serverCharacterSet = rs.getString(2);
+            sqlForCharset = "SELECT * FROM information_schema.global_variables WHERE variable_name = "
+                    + "'character_set_client'";
             rs = connection.createStatement().executeQuery(sqlForCharset);
             assertTrue(rs.next());
             String clientCharacterSet = rs.getString(2);

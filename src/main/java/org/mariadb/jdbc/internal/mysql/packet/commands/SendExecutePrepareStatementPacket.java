@@ -54,8 +54,7 @@ import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
 import org.mariadb.jdbc.internal.common.query.parameters.NotLongDataParameterHolder;
 import org.mariadb.jdbc.internal.common.query.parameters.NullParameter;
 import org.mariadb.jdbc.internal.common.query.parameters.ParameterHolder;
-import org.mariadb.jdbc.internal.common.queryresults.PrepareResult;
-import org.mariadb.jdbc.internal.mysql.MySQLType;
+import org.mariadb.jdbc.internal.mysql.MariaDbType;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -64,15 +63,29 @@ public class SendExecutePrepareStatementPacket implements CommandPacket {
     private final int parameterCount;
     private final ParameterHolder[] parameters;
     private final int statementId;
-    private MySQLType[] parameterTypeHeader;
+    private MariaDbType[] parameterTypeHeader;
 
-    public SendExecutePrepareStatementPacket(final PrepareResult prepareResult, final ParameterHolder[] parameters, final int parameterCount, MySQLType[] parameterTypeHeader) {
+    /**
+     * Initialize parameters.
+     * @param statementId prepareResult object received after preparation.
+     * @param parameters parameters
+     * @param parameterCount parameters number
+     * @param parameterTypeHeader parameters header
+     */
+    public SendExecutePrepareStatementPacket(final int statementId, final ParameterHolder[] parameters, final int parameterCount,
+                                             MariaDbType[] parameterTypeHeader) {
         this.parameterCount = parameterCount;
         this.parameters = parameters;
-        this.statementId = prepareResult.statementId;
+        this.statementId = statementId;
         this.parameterTypeHeader = parameterTypeHeader;
     }
 
+    /**
+     * Send a prepare statement binary packet.
+     * @param os database socket
+     * @return 0 if all when well
+     * @throws IOException if a connection error occur
+     */
     public int send(final OutputStream os) throws IOException {
         PacketOutputStream buffer = (PacketOutputStream) os;
         buffer.startPacket(0, true);
@@ -98,7 +111,7 @@ public class SendExecutePrepareStatementPacket implements CommandPacket {
                 mustSendHeaderType = true;
             } else {
                 for (int i = 0; i < this.parameterCount; i++) {
-                    if (!parameterTypeHeader[i].equals(parameters[i].getMySQLType())) {
+                    if (!parameterTypeHeader[i].equals(parameters[i].getMariaDbType())) {
                         mustSendHeaderType = true;
                         break;
                     }
@@ -109,10 +122,12 @@ public class SendExecutePrepareStatementPacket implements CommandPacket {
                 buffer.buffer.put((byte) 0x01);
                 //Store types of parameters in first in first package that is sent to the server.
                 for (int i = 0; i < this.parameterCount; i++) {
-                    parameterTypeHeader[i] = parameters[i].getMySQLType();
+                    parameterTypeHeader[i] = parameters[i].getMariaDbType();
                     parameters[i].writeBufferType(buffer);
                 }
-            } else buffer.buffer.put((byte) 0x00);
+            } else {
+                buffer.buffer.put((byte) 0x00);
+            }
         }
         for (int i = 0; i < parameterCount; i++) {
             if (parameters[i] instanceof NotLongDataParameterHolder) {

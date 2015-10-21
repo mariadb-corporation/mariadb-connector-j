@@ -3,7 +3,7 @@ package org.mariadb.jdbc.failover;
 import org.junit.*;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.UrlParser;
-import org.mariadb.jdbc.internal.common.UrlHaMode;
+import org.mariadb.jdbc.internal.common.HaMode;
 import org.mariadb.jdbc.internal.mysql.Protocol;
 
 import java.sql.*;
@@ -27,7 +27,7 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
      */
     @Before
     public void init() throws SQLException {
-        currentType = UrlHaMode.SEQUENTIAL;
+        currentType = HaMode.SEQUENTIAL;
         initialUrl = initialSequentialUrl;
         proxyUrl = proxySequentialUrl;
         Assume.assumeTrue(initialSequentialUrl != null);

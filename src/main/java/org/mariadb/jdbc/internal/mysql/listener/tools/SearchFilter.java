@@ -1,3 +1,5 @@
+package org.mariadb.jdbc.internal.mysql.listener.tools;
+
 /*
 MariaDB Client for Java
 
@@ -46,8 +48,6 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWIS
 ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
 OF SUCH DAMAGE.
 */
-package org.mariadb.jdbc.internal.mysql.listener.tools;
-
 public class SearchFilter {
     boolean searchForMaster;
     boolean searchForSlave;
@@ -61,6 +61,13 @@ public class SearchFilter {
         this.searchForSlave = searchForSlave;
     }
 
+    /**
+     * Constructor.
+     * @param searchForMaster must search for master flag
+     * @param searchForSlave must search for slave flag
+     * @param fineIfFoundOnlyMaster stop searching if master found
+     * @param fineIfFoundOnlySlave stop searching if slave found
+     */
     public SearchFilter(boolean searchForMaster, boolean searchForSlave, boolean fineIfFoundOnlyMaster, boolean fineIfFoundOnlySlave) {
         this.searchForMaster = searchForMaster;
         this.searchForSlave = searchForSlave;
@@ -68,6 +75,12 @@ public class SearchFilter {
         this.fineIfFoundOnlySlave = fineIfFoundOnlySlave;
     }
 
+    /**
+     * Constructor.
+     * @param searchForMaster must search for master flag
+     * @param searchForSlave must search for slave flag
+     * @param initialConnection initial connection flag
+     */
     public SearchFilter(boolean searchForMaster, boolean searchForSlave, boolean initialConnection) {
         this.searchForMaster = searchForMaster;
         this.searchForSlave = searchForSlave;
@@ -124,13 +137,13 @@ public class SearchFilter {
 
     @Override
     public String toString() {
-        return "SearchFilter{" +
-                "searchForMaster=" + searchForMaster +
-                ", searchForSlave=" + searchForSlave +
-                ", fineIfFoundOnlyMaster=" + fineIfFoundOnlyMaster +
-                ", fineIfFoundOnlySlave=" + fineIfFoundOnlySlave +
-                ", initialConnection=" + initialConnection +
-                ", uniqueLoop=" + uniqueLoop +
-                '}';
+        return "SearchFilter{"
+                + "searchForMaster=" + searchForMaster
+                + ", searchForSlave=" + searchForSlave
+                + ", fineIfFoundOnlyMaster=" + fineIfFoundOnlyMaster
+                + ", fineIfFoundOnlySlave=" + fineIfFoundOnlySlave
+                + ", initialConnection=" + initialConnection
+                + ", uniqueLoop=" + uniqueLoop
+                + "}";
     }
 }

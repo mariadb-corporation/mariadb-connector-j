@@ -2,7 +2,7 @@ package org.mariadb.jdbc;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.mariadb.jdbc.internal.common.UrlHaMode;
+import org.mariadb.jdbc.internal.common.HaMode;
 
 import java.sql.SQLException;
 import java.util.Properties;
@@ -181,14 +181,14 @@ public class JdbcParserTest {
     public void testJdbcParserHaModeNone() throws SQLException {
         String url = "jdbc:mysql://localhost/database";
         UrlParser jdbc = UrlParser.parse(url);
-        Assert.assertTrue(jdbc.getHaMode().equals(UrlHaMode.NONE));
+        Assert.assertTrue(jdbc.getHaMode().equals(HaMode.NONE));
     }
 
     @Test
     public void testJdbcParserHaModeLoadReplication() throws SQLException {
         String url = "jdbc:mysql:replication://localhost/database";
         UrlParser jdbc = UrlParser.parse(url);
-        Assert.assertTrue(jdbc.getHaMode().equals(UrlHaMode.REPLICATION));
+        Assert.assertTrue(jdbc.getHaMode().equals(HaMode.REPLICATION));
     }
 
     @Test
@@ -221,7 +221,7 @@ public class JdbcParserTest {
     public void testJdbcParserHaModeLoadAurora() throws SQLException {
         String url = "jdbc:mysql:aurora://localhost/database";
         UrlParser jdbc = UrlParser.parse(url);
-        Assert.assertTrue(jdbc.getHaMode().equals(UrlHaMode.AURORA));
+        Assert.assertTrue(jdbc.getHaMode().equals(HaMode.AURORA));
     }
 
     /**

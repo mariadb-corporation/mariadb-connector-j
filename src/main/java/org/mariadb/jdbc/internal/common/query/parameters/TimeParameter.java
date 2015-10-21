@@ -53,7 +53,7 @@ package org.mariadb.jdbc.internal.common.query.parameters;
 
 import org.mariadb.jdbc.internal.common.Options;
 import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
-import org.mariadb.jdbc.internal.mysql.MySQLType;
+import org.mariadb.jdbc.internal.mysql.MariaDbType;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -67,6 +67,13 @@ public class TimeParameter extends NotLongDataParameterHolder {
     boolean fractionalSeconds;
     Options options;
 
+    /**
+     * Constructor.
+     * @param time time to write
+     * @param cal session calendar
+     * @param fractionalSeconds must fractional seconds be send.
+     * @param options session options.
+     */
     public TimeParameter(Time time, Calendar cal, boolean fractionalSeconds, Options options) {
         this.time = time;
         this.calendar = cal;
@@ -78,6 +85,10 @@ public class TimeParameter extends NotLongDataParameterHolder {
         ParameterWriter.writeTime(os, time, calendar, fractionalSeconds);
     }
 
+    /**
+     * Write time in binary format.
+     * @param writeBuffer write buffer
+     */
     public void writeBinary(PacketOutputStream writeBuffer) {
         calendar = Calendar.getInstance();
         calendar.setTime(time);
@@ -85,8 +96,8 @@ public class TimeParameter extends NotLongDataParameterHolder {
         writeBuffer.writeTimeLength(calendar, fractionalSeconds);
     }
 
-    public MySQLType getMySQLType() {
-        return MySQLType.TIME;
+    public MariaDbType getMariaDbType() {
+        return MariaDbType.TIME;
     }
 
 

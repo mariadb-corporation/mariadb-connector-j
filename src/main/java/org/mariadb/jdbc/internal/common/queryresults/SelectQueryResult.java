@@ -51,7 +51,7 @@ package org.mariadb.jdbc.internal.common.queryresults;
 
 import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.common.ValueObject;
-import org.mariadb.jdbc.internal.mysql.MySQLColumnInformation;
+import org.mariadb.jdbc.internal.mysql.ColumnInformation;
 
 import java.io.IOException;
 import java.sql.SQLException;
@@ -60,11 +60,11 @@ import java.sql.SQLFeatureNotSupportedException;
 
 public abstract class SelectQueryResult extends QueryResult {
 
-    MySQLColumnInformation[] columnInformation;
+    ColumnInformation[] columnInformation;
     int columnInformationLength;
     short warningCount;
 
-    public MySQLColumnInformation[] getColumnInformation() {
+    public ColumnInformation[] getColumnInformation() {
         return columnInformation;
     }
 
@@ -81,17 +81,17 @@ public abstract class SelectQueryResult extends QueryResult {
     }
 
     /**
-     * moves the row pointer to position i
+     * Moves the row pointer to position i.
      *
-     * @param i pointer to move
+     * @param index pointer to move
      * @throws SQLException sql feature not supported
      */
-    public void moveRowPointerTo(int i) throws SQLException {
+    public void moveRowPointerTo(int index) throws SQLException {
         throw new SQLFeatureNotSupportedException("scrolling result set not supported");
     }
 
     /**
-     * gets the current row number
+     * Gets the current row number.
      *
      * @return the current row number
      * @throws SQLException sql feature not supported
@@ -101,12 +101,7 @@ public abstract class SelectQueryResult extends QueryResult {
     }
 
     /**
-     * move pointer forward
-     *
-     * @return true if there is another row
-     */
-    /**
-     * gets the value object at position index, starts at 0
+     * Gets the value object at position index, starts at 0.
      *
      * @param index the position, starts at 0
      * @return the value object at position index
@@ -115,6 +110,11 @@ public abstract class SelectQueryResult extends QueryResult {
     public abstract ValueObject getValueObject(int index) throws NoSuchColumnException;
 
 
+    /**
+     * Move pointer forward.
+     *
+     * @return true if there is another row
+     */
     public abstract boolean next() throws IOException, QueryException;
 
     public abstract boolean isBeforeFirst();

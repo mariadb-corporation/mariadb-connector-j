@@ -50,15 +50,14 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.common;
 
 public class ServerStatus {
-    public static final short
-            IN_TRANSACTION = 1,
-            AUTOCOMMIT = 2,
-            MORE_RESULTS_EXISTS = 8,
-            QUERY_NO_GOOD_INDEX_USED = 16,
-            QUERY_NO_INDEX_USED = 32,
-            CURSOR_EXISTS = 64,
-            LAST_ROW_SENT = 128,
-            DB_DROPPED = 256,
-            NO_BACKSLASH_ESCAPES = 512,
-            QUERY_WAS_SLOW = 1024;
+    public static short IN_TRANSACTION = 1;
+    public static short AUTOCOMMIT = 2;
+    public static short MORE_RESULTS_EXISTS = 8;
+    public static short QUERY_NO_GOOD_INDEX_USED = 16;
+    public static short QUERY_NO_INDEX_USED = 32;
+    public static short CURSOR_EXISTS = 64;
+    public static short LAST_ROW_SENT = 128;
+    public static short DB_DROPPED = 256;
+    public static short NO_BACKSLASH_ESCAPES = 512;
+    public static short QUERY_WAS_SLOW = 1024;
 }

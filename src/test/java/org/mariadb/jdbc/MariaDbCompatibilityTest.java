@@ -8,7 +8,7 @@ import java.sql.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-public class MySQLCompatibilityTest extends BaseTest {
+public class MariaDbCompatibilityTest extends BaseTest {
     @BeforeClass()
     public static void initClass() throws SQLException {
         createTable("datatypesTest", "type_longvarchar TEXT NULL");
@@ -16,14 +16,15 @@ public class MySQLCompatibilityTest extends BaseTest {
     }
 
     /**
-     * CONJ-82: data type LONGVARCHAR not supported in setObject()
+     * Conj-82: data type LONGVARCHAR not supported in setObject().
      *
-     * @throws SQLException
+     * @throws SQLException exception
      */
     @Test
     public void datatypesTest() throws SQLException {
         Statement stmt = sharedConnection.createStatement();
-        PreparedStatement preparedStmt = sharedConnection.prepareStatement("INSERT INTO `datatypesTest` (`type_longvarchar`) VALUES ( ? )");
+        PreparedStatement preparedStmt = sharedConnection.prepareStatement(
+                "INSERT INTO `datatypesTest` (`type_longvarchar`) VALUES ( ? )");
         preparedStmt.setObject(1, "longvarcharTest", Types.LONGVARCHAR);
         preparedStmt.executeUpdate();
         preparedStmt.close();
@@ -37,7 +38,7 @@ public class MySQLCompatibilityTest extends BaseTest {
      * The Mysql connector returns "0" or "1" for BIT(1) with ResultSet.getString().
      * CONJ-102: mariadb-java-client returned "false" or "true".
      *
-     * @throws SQLException
+     * @throws SQLException exception
      */
     @Test
     public void testBitConj102() throws SQLException {

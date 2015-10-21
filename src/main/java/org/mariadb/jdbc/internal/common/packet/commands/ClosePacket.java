@@ -61,6 +61,12 @@ public class ClosePacket implements CommandPacket {
     public ClosePacket() {
     }
 
+    /**
+     * Send close packet to server.
+     * @param os write outputStream
+     * @return 0
+     * @throws IOException if connection problem occur
+     */
     public int send(final OutputStream os) throws IOException {
         PacketOutputStream pos = (PacketOutputStream) os;
         pos.startPacket(0);

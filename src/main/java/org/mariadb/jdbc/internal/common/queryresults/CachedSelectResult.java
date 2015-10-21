@@ -1,3 +1,4 @@
+package org.mariadb.jdbc.internal.common.queryresults;
 /*
 MariaDB Client for Java
 
@@ -46,11 +47,10 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWIS
 ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
 OF SUCH DAMAGE.
 */
-package org.mariadb.jdbc.internal.common.queryresults;
 
 import org.mariadb.jdbc.internal.common.QueryException;
 import org.mariadb.jdbc.internal.common.ValueObject;
-import org.mariadb.jdbc.internal.mysql.MySQLColumnInformation;
+import org.mariadb.jdbc.internal.mysql.ColumnInformation;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -63,14 +63,26 @@ public class CachedSelectResult extends SelectQueryResult {
     private List<ValueObject[]> resultSet;
     private int rowPointer;
 
-    public CachedSelectResult(MySQLColumnInformation[] ci, List<ValueObject[]> result, short warningCount) {
+    /**
+     * Initialisation.
+     * @param ci column informations
+     * @param result first valueObject
+     * @param warningCount warning count
+     */
+    public CachedSelectResult(ColumnInformation[] ci, List<ValueObject[]> result, short warningCount) {
         this.columnInformation = ci;
         this.resultSet = result;
         this.warningCount = warningCount;
         rowPointer = -1;
     }
 
-
+    /**
+     * Will retrieve all "next" packet, and cache them.
+     * @param streamingResult streamingResult to populate
+     * @return ResultSet with all cached datas.
+     * @throws IOException if any error occur during retreiving "next"s packets
+     * @throws QueryException if receiving an database error packet
+     */
     public static CachedSelectResult createCachedSelectResult(StreamingSelectResult streamingResult) throws IOException, QueryException {
         final List<ValueObject[]> valueObjects = new ArrayList<>();
 
@@ -96,36 +108,36 @@ public class CachedSelectResult extends SelectQueryResult {
         return null;
     }
 
-    public MySQLColumnInformation[] getColumnInformation() {
+    public ColumnInformation[] getColumnInformation() {
         return columnInformation;
     }
 
     /**
      * gets the value at position i in the result set. i starts at zero!
      *
-     * @param i index, starts at 0
+     * @param position index, starts at 0
      * @return the value
      */
-    public ValueObject getValueObject(int i) throws NoSuchColumnException {
-        if (rowPointer < 0) {
+    public ValueObject getValueObject(int position) throws NoSuchColumnException {
+        if (this.rowPointer < 0) {
             throw new NoSuchColumnException("Current position is before the first row");
         }
-        if (rowPointer >= resultSet.size()) {
+        if (this.rowPointer >= resultSet.size()) {
             throw new NoSuchColumnException("Current position is after the last row");
         }
-        ValueObject[] row = resultSet.get(rowPointer);
-        if (i < 0 || i >= row.length) {
-            throw new NoSuchColumnException("No such column: " + i);
+        ValueObject[] row = resultSet.get(this.rowPointer);
+        if (position < 0 || position >= row.length) {
+            throw new NoSuchColumnException("No such column: " + position);
         }
-        return row[i];
+        return row[position];
     }
 
     public int getRows() {
         return resultSet.size();
     }
 
-    public void moveRowPointerTo(final int i) {
-        this.rowPointer = i;
+    public void moveRowPointerTo(final int pointerPosition) {
+        this.rowPointer = pointerPosition;
     }
 
     public int getRowPointer() {
@@ -137,12 +149,21 @@ public class CachedSelectResult extends SelectQueryResult {
         return ResultSetType.SELECT;
     }
 
+    /**
+     * Is pointer before first row.
+     * @return true if pointer is before first row.
+     */
     public boolean isBeforeFirst() {
-        if (resultSet.size() == 0)
+        if (resultSet.size() == 0) {
             return false;
+        }
         return getRowPointer() == -1;
     }
 
+    /**
+     * Is pointer after last row.
+     * @return true if pointer is after last row
+     */
     public boolean isAfterLast() {
         if (resultSet.size() == 0) {
             return false;

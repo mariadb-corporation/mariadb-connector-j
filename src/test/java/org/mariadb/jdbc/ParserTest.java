@@ -14,7 +14,10 @@ import java.util.Properties;
 import static org.junit.Assert.*;
 
 public class ParserTest extends BaseTest {
-
+    /**
+     * Initialisation.
+     * @throws SQLException exception
+     */
     @BeforeClass()
     public static void initClass() throws SQLException {
         createTable("table1", "id1 int auto_increment primary key");
@@ -27,20 +30,20 @@ public class ParserTest extends BaseTest {
         Connection connection = null;
         try {
             connection = setConnection();
-            Field field = MySQLConnection.class.getDeclaredField("options");
+            Field field = MariaDbConnection.class.getDeclaredField("options");
             field.setAccessible(true);
             Options options = (Options) field.get(connection);
-            assertFalse(options.useSSL);
+            assertFalse(options.useSsl);
             connection.setClientInfo("useSSL", "true");
 
             options = (Options) field.get(connection);
-            assertTrue(options.useSSL);
+            assertTrue(options.useSsl);
 
             Properties prop = new Properties();
             prop.put("autoReconnect", "true");
             prop.put("useSSL", "false");
             connection.setClientInfo(prop);
-            assertFalse(options.useSSL);
+            assertFalse(options.useSsl);
             assertTrue(options.autoReconnect);
         } finally {
             connection.close();

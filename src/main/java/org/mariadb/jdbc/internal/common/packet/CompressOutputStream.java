@@ -12,7 +12,7 @@ public class CompressOutputStream extends OutputStream {
     private static final float MIN_COMPRESSION_RATIO = 0.9f;
 
     OutputStream baseStream;
-    byte header[] = new byte[7];
+    byte[] header = new byte[7];
     int seqNo = 0;
 
     public CompressOutputStream(OutputStream baseStream) {
@@ -27,8 +27,9 @@ public class CompressOutputStream extends OutputStream {
                 write(bytes, off, bytesToWrite);
                 off += bytesToWrite;
                 len -= bytesToWrite;
-                if (len == 0)
+                if (len == 0) {
                     return;
+                }
             }
         }
 
@@ -66,14 +67,15 @@ public class CompressOutputStream extends OutputStream {
 
     @Override
     public void write(byte[] bytes) throws IOException {
-        if (bytes.length < 3)
+        if (bytes.length < 3) {
             throw new AssertionError("Invalid call, at least 3 byte writes are required");
+        }
         write(bytes, 0, bytes.length);
 
     }
 
     @Override
-    public void write(int b) throws IOException {
+    public void write(int bytes) throws IOException {
         throw new AssertionError("Invalid call, at least 3 byte writes are required");
     }
 

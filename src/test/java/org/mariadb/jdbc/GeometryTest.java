@@ -13,7 +13,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class GeometryTest extends BaseTest {
-
+    /**
+     * Initialisation.
+     * @throws SQLException exception
+     */
     @BeforeClass()
     public static void initClass() throws SQLException {
         createTable("geom_test", "g geometry");
@@ -28,7 +31,6 @@ public class GeometryTest extends BaseTest {
             rs.next();
             geometryBinary = DatatypeConverter.printHexBinary(rs.getBytes(1));
         }
-        BigInteger geometryNumber = new BigInteger(geometryBinary, 16);
         String sql = "INSERT INTO geom_test VALUES (GeomFromText('" + geometryString + "'))";
         stmt.execute(sql);
         rs = stmt.executeQuery("SELECT AsText(g), AsBinary(g), g FROM geom_test");
@@ -36,8 +38,8 @@ public class GeometryTest extends BaseTest {
         // as text
         assertEquals(geometryString, rs.getString(1));
         // as binary
-        String returnWKB = DatatypeConverter.printHexBinary((byte[]) rs.getObject(2));
-        assertEquals(geometryBinary, returnWKB);
+        String returnWkb = DatatypeConverter.printHexBinary((byte[]) rs.getObject(2));
+        assertEquals(geometryBinary, returnWkb);
         // as object
         Object geometry = null;
         try {
@@ -47,6 +49,7 @@ public class GeometryTest extends BaseTest {
         }
         String returnGeometry = DatatypeConverter.printHexBinary((byte[]) geometry);
         BigInteger returnNumber = new BigInteger(returnGeometry, 16);
+        BigInteger geometryNumber = new BigInteger(geometryBinary, 16);
         assertEquals(geometryNumber, returnNumber);
         if (rs != null) {
             rs.close();
@@ -59,8 +62,8 @@ public class GeometryTest extends BaseTest {
     @Test
     public void pointTest() throws SQLException {
         String pointString = "POINT(1 1)";
-        String pointWKB = "0101000000000000000000F03F000000000000F03F";
-        geometryTest(pointString, pointWKB);
+        String pointWkb = "0101000000000000000000F03F000000000000F03F";
+        geometryTest(pointString, pointWkb);
     }
 
     @Test

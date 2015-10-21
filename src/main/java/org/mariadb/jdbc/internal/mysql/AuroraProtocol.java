@@ -50,10 +50,10 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.mysql;
 
 import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.JDBCUrl;
-import org.mariadb.jdbc.internal.SQLExceptionMapper;
+import org.mariadb.jdbc.UrlParser;
+import org.mariadb.jdbc.internal.ExceptionMapper;
 import org.mariadb.jdbc.internal.common.QueryException;
-import org.mariadb.jdbc.internal.common.query.MySQLQuery;
+import org.mariadb.jdbc.internal.common.query.MariaDbQuery;
 import org.mariadb.jdbc.internal.common.queryresults.SelectQueryResult;
 import org.mariadb.jdbc.internal.mysql.listener.impl.AuroraListener;
 import org.mariadb.jdbc.internal.mysql.listener.tools.SearchFilter;
@@ -65,15 +65,27 @@ import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class AuroraProtocol extends MastersSlavesProtocol {
-    public AuroraProtocol(final JDBCUrl url, final ReentrantLock lock) {
+    public AuroraProtocol(final UrlParser url, final ReentrantLock lock) {
         super(url, lock);
     }
 
-    public static void searchProbableMaster(AuroraListener listener, HostAddress probableMaster, Map<HostAddress, Long> blacklist, SearchFilter searchFilter) throws QueryException {
+    /**
+     * Connect aurora probable master.
+     * Aurora master change in time. The only way to check that a server is a master is to asked him.
+     *
+     * @param listener aurora listener to call back if master is found
+     * @param probableMaster probable master host
+     * @param blacklist current blacklist
+     * @param searchFilter search filter
+     * @throws QueryException exception
+     */
+    public static void searchProbableMaster(AuroraListener listener, HostAddress probableMaster, Map<HostAddress, Long> blacklist,
+                                            SearchFilter searchFilter) throws QueryException {
         /*if (log.isDebugEnabled()) {
-            log.debug("searching for master:" + searchFilter.isSearchForMaster() + " replica:" + searchFilter.isSearchForSlave() + " address:" + probableMaster + " blacklist:" + blacklist.keySet());
+            log.debug("searching for master:" + searchFilter.isSearchForMaster() + " replica:" + searchFilter.isSearchForSlave()
+            + " address:" + probableMaster + " blacklist:" + blacklist.keySet());
         }*/
-        AuroraProtocol protocol = getNewProtocol(listener.getProxy(), listener.getJdbcUrl());
+        AuroraProtocol protocol = getNewProtocol(listener.getProxy(), listener.getUrlParser());
         try {
 
             protocol.setHostAddress(probableMaster);
@@ -93,13 +105,14 @@ public class AuroraProtocol extends MastersSlavesProtocol {
                 //if (log.isDebugEnabled())
                 //    log.debug("close connection because unused : " + protocol.getHostAddress());
                 protocol.close();
-                protocol = getNewProtocol(listener.getProxy(), listener.getJdbcUrl());
+                protocol = getNewProtocol(listener.getProxy(), listener.getUrlParser());
             }
 
         } catch (QueryException e) {
             blacklist.put(protocol.getHostAddress(), System.currentTimeMillis());
 //            if (log.isDebugEnabled())
-//                log.debug("Could not connect to " + protocol.currentHost + " searching for master : " + searchFilter.isSearchForMaster() + " for replica :" + searchFilter.isSearchForSlave() + " error:" + e.getMessage());
+//                log.debug("Could not connect to " + protocol.currentHost + " searching for master : " + searchFilter.isSearchForMaster()
+// + " for replica :" + searchFilter.isSearchForSlave() + " error:" + e.getMessage());
         }
     }
 
@@ -112,9 +125,11 @@ public class AuroraProtocol extends MastersSlavesProtocol {
      * @param searchFilter search parameter
      * @throws QueryException if not found
      */
-    public static void loop(AuroraListener listener, final List<HostAddress> addresses, Map<HostAddress, Long> blacklist, SearchFilter searchFilter) throws QueryException {
+    public static void loop(AuroraListener listener, final List<HostAddress> addresses, Map<HostAddress, Long> blacklist, SearchFilter searchFilter)
+            throws QueryException {
 //        if (log.isDebugEnabled()) {
-//            log.debug("searching for master:" + searchFilter.isSearchForMaster() + " replica:" + searchFilter.isSearchForSlave() + " addresses:" + addresses);
+//            log.debug("searching for master:" + searchFilter.isSearchForMaster() + " replica:" + searchFilter.isSearchForSlave()
+// + " addresses:" + addresses);
 //        }
 
         AuroraProtocol protocol;
@@ -123,10 +138,11 @@ public class AuroraProtocol extends MastersSlavesProtocol {
         QueryException lastQueryException = null;
 
         while (!loopAddresses.isEmpty() || (!searchFilter.isUniqueLoop() && maxConnectionTry > 0)) {
-            protocol = getNewProtocol(listener.getProxy(), listener.getJdbcUrl());
+            protocol = getNewProtocol(listener.getProxy(), listener.getUrlParser());
 
-            if (listener.isExplicitClosed() || (!listener.isSecondaryHostFail() && !listener.isMasterHostFail()))
+            if (listener.isExplicitClosed() || (!listener.isSecondaryHostFail() && !listener.isMasterHostFail())) {
                 return;
+            }
             maxConnectionTry--;
 
             try {
@@ -136,18 +152,25 @@ public class AuroraProtocol extends MastersSlavesProtocol {
 //                if (log.isDebugEnabled()) log.debug("trying to connect to " + protocol.getHostAddress());
                 protocol.connect();
                 blacklist.remove(protocol.getHostAddress());
-//                if (log.isDebugEnabled()) log.debug("connected to " + (protocol.isMasterConnection()?"primary ":"replica ") + protocol.getHostAddress());
+//                if (log.isDebugEnabled()) log.debug("connected to " + (protocol.isMasterConnection()?"primary ":"replica ")
+// + protocol.getHostAddress());
 
                 if (searchFilter.isSearchForMaster() && protocol.isMasterConnection()) {
-                    if (foundMaster(listener, protocol, searchFilter)) return;
+                    if (foundMaster(listener, protocol, searchFilter)) {
+                        return;
+                    }
                 } else if (searchFilter.isSearchForSlave() && !protocol.isMasterConnection()) {
-                    if (foundSecondary(listener, protocol, searchFilter)) return;
+                    if (foundSecondary(listener, protocol, searchFilter)) {
+                        return;
+                    }
 
-                    HostAddress probableMasterHost = listener.searchByStartName(protocol, listener.getJdbcUrl().getHostAddresses());
+                    HostAddress probableMasterHost = listener.searchByStartName(protocol, listener.getUrlParser().getHostAddresses());
                     if (probableMasterHost != null) {
                         loopAddresses.remove(probableMasterHost);
                         AuroraProtocol.searchProbableMaster(listener, probableMasterHost, blacklist, searchFilter);
-                        if (!searchFilter.isSearchForMaster()) return;
+                        if (!searchFilter.isSearchForMaster()) {
+                            return;
+                        }
                     }
                 } else {
                     protocol.close();
@@ -155,22 +178,27 @@ public class AuroraProtocol extends MastersSlavesProtocol {
             } catch (QueryException e) {
                 lastQueryException = e;
                 blacklist.put(protocol.getHostAddress(), System.currentTimeMillis());
-//                if (log.isDebugEnabled()) log.debug("Could not connect to " + protocol.getHostAddress() + " searching: " + searchFilter + " error: " + e.getMessage());
+//                if (log.isDebugEnabled()) log.debug("Could not connect to " + protocol.getHostAddress() + " searching: "
+// + searchFilter + " error: " + e.getMessage());
             }
 
-            if (!searchFilter.isSearchForMaster() && !searchFilter.isSearchForSlave()) return;
+            if (!searchFilter.isSearchForMaster() && !searchFilter.isSearchForSlave()) {
+                return;
+            }
 
             //loop is set so
             if (loopAddresses.isEmpty() && !searchFilter.isUniqueLoop() && maxConnectionTry > 0) {
                 loopAddresses = new LinkedList<>(addresses);
-                listener.checkIfTypeHaveChanged(searchFilter);
+                listener.checkMasterStatus(searchFilter);
             }
 
         }
 
         if (searchFilter.isSearchForMaster() || searchFilter.isSearchForSlave()) {
             String error = "No active connection found for replica";
-            if (searchFilter.isSearchForMaster()) error = "No active connection found for master";
+            if (searchFilter.isSearchForMaster())  {
+                error = "No active connection found for master";
+            }
             if (lastQueryException != null) {
                 throw new QueryException(error, lastQueryException.getErrorCode(), lastQueryException.getSqlState(), lastQueryException);
             }
@@ -182,11 +210,14 @@ public class AuroraProtocol extends MastersSlavesProtocol {
         protocol.setMustBeMasterConnection(true);
         searchFilter.setSearchForMaster(false);
         listener.foundActiveMaster(protocol);
-        if (!searchFilter.isSearchForSlave()) return true;
-        else {
+        if (!searchFilter.isSearchForSlave()) {
+            return true;
+        } else {
             if (listener.isExplicitClosed()
                     || searchFilter.isFineIfFoundOnlyMaster()
-                    || !listener.isSecondaryHostFail()) return true;
+                    || !listener.isSecondaryHostFail()) {
+                return true;
+            }
         }
         return false;
     }
@@ -195,19 +226,28 @@ public class AuroraProtocol extends MastersSlavesProtocol {
         searchFilter.setSearchForSlave(false);
         protocol.setMustBeMasterConnection(false);
         listener.foundActiveSecondary(protocol);
-        if (!searchFilter.isSearchForMaster()) return true;
-        else {
+        if (!searchFilter.isSearchForMaster()) {
+            return true;
+        } else {
             if (listener.isExplicitClosed()
                     || searchFilter.isFineIfFoundOnlySlave()
-                    || !listener.isMasterHostFail()) return true;
+                    || !listener.isMasterHostFail()) {
+                return true;
+            }
 
 
         }
         return false;
     }
 
-    public static AuroraProtocol getNewProtocol(FailoverProxy proxy, JDBCUrl jdbcUrl) {
-        AuroraProtocol newProtocol = new AuroraProtocol(jdbcUrl, proxy.lock);
+    /**
+     * Initilize new protocol instance.
+     * @param proxy proxy
+     * @param urlParser connection string data's
+     * @return new AuroraProtocol
+     */
+    public static AuroraProtocol getNewProtocol(FailoverProxy proxy, UrlParser urlParser) {
+        AuroraProtocol newProtocol = new AuroraProtocol(urlParser, proxy.lock);
         newProtocol.setProxy(proxy);
         return newProtocol;
     }
@@ -218,7 +258,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
     }
 
     /**
-     * Aurora best way to check if a node is a master : is not in read-only mode
+     * Aurora best way to check if a node is a master : is not in read-only mode.
      *
      * @return indicate if master has been found
      */
@@ -226,7 +266,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
     public boolean checkIfMaster() throws QueryException {
         proxy.lock.lock();
         try {
-            SelectQueryResult queryResult = (SelectQueryResult) executeQuery(new MySQLQuery("show global variables like 'innodb_read_only'"));
+            SelectQueryResult queryResult = (SelectQueryResult) executeQuery(new MariaDbQuery("show global variables like 'innodb_read_only'"));
             if (queryResult != null) {
                 queryResult.next();
                 this.masterConnection = "OFF".equals(queryResult.getValueObject(1).getString());
@@ -238,8 +278,8 @@ public class AuroraProtocol extends MastersSlavesProtocol {
 
         } catch (IOException ioe) {
             //log.trace("exception during checking if master", ioe);
-            throw new QueryException("could not check the 'innodb_read_only' variable status on " + this.getHostAddress() +
-                    " : " + ioe.getMessage(), -1, SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(), ioe);
+            throw new QueryException("could not check the 'innodb_read_only' variable status on " + this.getHostAddress()
+                    + " : " + ioe.getMessage(), -1, ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(), ioe);
         } finally {
             proxy.lock.unlock();
         }

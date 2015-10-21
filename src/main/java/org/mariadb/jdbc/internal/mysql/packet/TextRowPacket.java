@@ -47,44 +47,61 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc;
+package org.mariadb.jdbc.internal.mysql.packet;
 
-import java.sql.SQLException;
-import java.sql.Savepoint;
+import org.mariadb.jdbc.internal.common.Options;
+import org.mariadb.jdbc.internal.common.PacketFetcher;
+import org.mariadb.jdbc.internal.common.ValueObject;
+import org.mariadb.jdbc.internal.common.packet.buffer.Reader;
+import org.mariadb.jdbc.internal.mysql.ColumnInformation;
+import org.mariadb.jdbc.internal.mysql.MariaDbValueObject;
 
-public class MySQLSavepoint implements Savepoint {
-    private final int savepointId;
-    private final String name;
+import java.io.IOException;
+import java.nio.ByteBuffer;
 
-    public MySQLSavepoint(final String name, final int savepointId) {
-        this.savepointId = savepointId;
-        this.name = name;
+
+public class TextRowPacket implements RowPacket {
+    private final ColumnInformation[] columnInformation;
+    private final Options options;
+    private final int columnInformationLength;
+
+    /**
+     * Constructor.
+     * @param columnInformation columns information's
+     * @param options session options
+     * @param columnInformationLength number of column
+     */
+    public TextRowPacket(ColumnInformation[] columnInformation, Options options, int columnInformationLength) {
+        this.columnInformationLength = columnInformationLength;
+        this.columnInformation = columnInformation;
+        this.options = options;
     }
 
     /**
-     * Retrieves the generated ID for the savepoint that this <code>Savepoint</code> object represents.
-     *
-     * @return the numeric ID of this savepoint
-     * @throws java.sql.SQLException if this is a named savepoint
-     * @since 1.4
+     * Read text row packet. (to fetch Resulset.next() datas)
+     * @param packetFetcher packetFetcher
+     * @param buffer current buffer
+     * @return datas object
+     * @throws IOException if any connection error occur
      */
-    public int getSavepointId() throws SQLException {
-        return savepointId;
+    public ValueObject[] getRow(PacketFetcher packetFetcher, ByteBuffer buffer) throws IOException {
+        ValueObject[] valueObjects = new ValueObject[columnInformationLength];
+        Reader reader = new Reader(buffer);
+        for (int i = 0; i < columnInformationLength; i++) {
+            while (reader.byteBuffer.remaining() == 0) {
+                reader.appendPacket(packetFetcher.getRawPacket());
+            }
+            long valueLen = reader.getLengthEncodedBinary();
+            if (valueLen == -1) {
+                valueObjects[i] = new MariaDbValueObject(null, columnInformation[i], options);
+            } else {
+                while (reader.byteBuffer.remaining() < valueLen) {
+                    reader.appendPacket(packetFetcher.getRawPacket());
+                }
+                valueObjects[i] = new MariaDbValueObject(reader.readRawBytes((int) valueLen), columnInformation[i], options);
+            }
+        }
+        return valueObjects;
     }
 
-    /**
-     * Retrieves the name of the savepoint that this <code>Savepoint</code> object represents.
-     *
-     * @return the name of this savepoint
-     * @throws java.sql.SQLException if this is an un-named savepoint
-     * @since 1.4
-     */
-    public String getSavepointName() throws SQLException {
-        return name;
-    }
-
-    @Override
-    public String toString() {
-        return name + savepointId;
-    }
 }

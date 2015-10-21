@@ -13,13 +13,18 @@ import java.util.Properties;
 
 import static org.junit.Assert.assertEquals;
 
-public class SSLValidationTest extends BaseTest {
+public class SslTest extends BaseTest {
     String serverCertificatePath;
 
+    /**
+     * Check requirement.
+     *
+     * @throws SQLException exception exception
+     */
     @Before
-    public void checkSSL() throws SQLException {
+    public void checkSsl() throws SQLException {
         boolean isJava7 = System.getProperty("java.version").contains("1.7.");
-        org.junit.Assume.assumeTrue(haveSSL(sharedConnection));
+        org.junit.Assume.assumeTrue(haveSsl(sharedConnection));
         //Skip SSL test on java 7 since SSL packet size JDK-6521495).
         org.junit.Assume.assumeFalse(isJava7);
         ResultSet rs = sharedConnection.createStatement().executeQuery("select @@ssl_cert");
@@ -47,6 +52,7 @@ public class SSLValidationTest extends BaseTest {
                 try {
                     br.close();
                 } catch (Exception e) {
+                    //eat exception
                 }
             }
         }
@@ -64,13 +70,14 @@ public class SSLValidationTest extends BaseTest {
                 try {
                     out.close();
                 } catch (Exception e) {
+                    //eat exception
                 }
             }
         }
     }
 
     private Connection createConnection(Properties info) throws SQLException {
-        String jdbcUrl = connURI;
+        String jdbcUrl = connUri;
         Properties connProps = new Properties(info);
         connProps.setProperty("user", username);
         if (password != null) {
@@ -79,7 +86,13 @@ public class SSLValidationTest extends BaseTest {
         return openNewConnection(jdbcUrl, connProps);
     }
 
-
+    /**
+     * Test connection.
+     *
+     * @param info connection properties
+     * @param sslExpected is SSL expected
+     * @throws SQLException exception
+     */
     public void testConnect(Properties info, boolean sslExpected) throws SQLException {
         Connection conn = null;
         Statement stmt = null;
@@ -102,7 +115,7 @@ public class SSLValidationTest extends BaseTest {
     }
 
     @Test
-    public void testConnectNonSSL() throws SQLException {
+    public void testConnectNonSsl() throws SQLException {
         Properties info = new Properties();
         testConnect(info, false);
     }

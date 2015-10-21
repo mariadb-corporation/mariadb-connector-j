@@ -49,7 +49,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal;
 
-import org.mariadb.jdbc.MySQLConnection;
+import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.internal.common.QueryException;
 
 import java.sql.SQLException;
@@ -57,13 +57,20 @@ import java.sql.SQLTimeoutException;
 import java.sql.SQLWarning;
 
 
-public class SQLExceptionMapper {
-    public static void throwException(QueryException e, MySQLConnection connection, java.sql.Statement statement) throws SQLException {
-        SQLException sqlException = get(e);
-        String sqlState = e.getSqlState();
-        SQLStates state = SQLStates.fromString(sqlState);
+public class ExceptionMapper {
+    /**
+     * Helper to throw exception.
+     * @param exception exception
+     * @param connection current connection
+     * @param statement current statement
+     * @throws SQLException exception
+     */
+    public static void throwException(QueryException exception, MariaDbConnection connection, java.sql.Statement statement) throws SQLException {
+        SQLException sqlException = get(exception);
+        String sqlState = exception.getSqlState();
+        SqlStates state = SqlStates.fromString(sqlState);
         if (connection != null) {
-            if (state.equals(SQLStates.CONNECTION_EXCEPTION)) {
+            if (state.equals(SqlStates.CONNECTION_EXCEPTION)) {
                 connection.setHostFailed();
                 if (connection.pooledConnection != null) {
                     connection.pooledConnection.fireConnectionErrorOccured(sqlException);
@@ -75,46 +82,46 @@ public class SQLExceptionMapper {
         throw sqlException;
     }
 
-    private static SQLException get(final QueryException e) {
-        final String sqlState = e.getSqlState();
-        final SQLStates state = SQLStates.fromString(sqlState);
+    private static SQLException get(final QueryException exception) {
+        final String sqlState = exception.getSqlState();
+        final SqlStates state = SqlStates.fromString(sqlState);
 
         switch (state) {
             case DATA_EXCEPTION:
-                return new java.sql.SQLDataException(e.getMessage(), sqlState, e.getErrorCode(), e);
+                return new java.sql.SQLDataException(exception.getMessage(), sqlState, exception.getErrorCode(), exception);
             case FEATURE_NOT_SUPPORTED:
-                return new java.sql.SQLFeatureNotSupportedException(e.getMessage(), sqlState, e.getErrorCode(), e);
+                return new java.sql.SQLFeatureNotSupportedException(exception.getMessage(), sqlState, exception.getErrorCode(), exception);
             case CONSTRAINT_VIOLATION:
-                return new java.sql.SQLIntegrityConstraintViolationException(e.getMessage(), sqlState, e.getErrorCode(), e);
+                return new java.sql.SQLIntegrityConstraintViolationException(exception.getMessage(), sqlState, exception.getErrorCode(), exception);
             case INVALID_AUTHORIZATION:
-                return new java.sql.SQLInvalidAuthorizationSpecException(e.getMessage(), sqlState, e.getErrorCode(), e);
+                return new java.sql.SQLInvalidAuthorizationSpecException(exception.getMessage(), sqlState, exception.getErrorCode(), exception);
             case CONNECTION_EXCEPTION:
-                return new java.sql.SQLNonTransientConnectionException(e.getMessage(), sqlState, e.getErrorCode(), e);
+                return new java.sql.SQLNonTransientConnectionException(exception.getMessage(), sqlState, exception.getErrorCode(), exception);
             case SYNTAX_ERROR_ACCESS_RULE:
-                return new java.sql.SQLSyntaxErrorException(e.getMessage(), sqlState, e.getErrorCode(), e);
+                return new java.sql.SQLSyntaxErrorException(exception.getMessage(), sqlState, exception.getErrorCode(), exception);
             case TRANSACTION_ROLLBACK:
-                return new java.sql.SQLTransactionRollbackException(e.getMessage(), sqlState, e.getErrorCode(), e);
+                return new java.sql.SQLTransactionRollbackException(exception.getMessage(), sqlState, exception.getErrorCode(), exception);
             case WARNING:
-                return new SQLWarning(e.getMessage(), sqlState, e.getErrorCode(), e);
+                return new SQLWarning(exception.getMessage(), sqlState, exception.getErrorCode(), exception);
             case INTERRUPTED_EXCEPTION:
-                return new java.sql.SQLTransientException(e.getMessage(), sqlState, e.getErrorCode(), e);
+                return new java.sql.SQLTransientException(exception.getMessage(), sqlState, exception.getErrorCode(), exception);
             case TIMEOUT_EXCEPTION:
-                return new SQLTimeoutException(e.getMessage(), sqlState, e.getErrorCode(), e);
+                return new SQLTimeoutException(exception.getMessage(), sqlState, exception.getErrorCode(), exception);
             default:
                 // DISTRIBUTED_TRANSACTION_ERROR,
-                return new SQLException(e.getMessage(), sqlState, e.getErrorCode(), e);
+                return new SQLException(exception.getMessage(), sqlState, exception.getErrorCode(), exception);
         }
     }
 
-    public static SQLException getSQLException(String message, Exception e) {
-        return new SQLException(message, e);
+    public static SQLException getSqlException(String message, Exception exception) {
+        return new SQLException(message, exception);
     }
 
-    public static SQLException getSQLException(String message, String sqlState, Exception e) {
-        return new SQLException(message, sqlState, 0, e);
+    public static SQLException getSqlException(String message, String sqlState, Exception exception) {
+        return new SQLException(message, sqlState, 0, exception);
     }
 
-    public static SQLException getSQLException(String message) {
+    public static SQLException getSqlException(String message) {
         return new SQLException(message);
     }
 
@@ -122,7 +129,12 @@ public class SQLExceptionMapper {
         return new java.sql.SQLFeatureNotSupportedException(message);
     }
 
-    public static String mapMySQLCodeToSQLState(int code) {
+    /**
+     * Mapp code to State.
+     * @param code code
+     * @return String
+     */
+    public static String mapMariaDbCodeToSqlState(int code) {
         switch (code) {
             case 1022: //ER_DUP_KEY
                 return "23000";
@@ -395,7 +407,7 @@ public class SQLExceptionMapper {
         }
     }
 
-    public enum SQLStates {
+    public enum SqlStates {
         WARNING("01"),
         NO_DATA("02"),
         CONNECTION_EXCEPTION("08"),
@@ -418,13 +430,17 @@ public class SQLExceptionMapper {
         private final String sqlStateGroup;
 
 
-        SQLStates(final String s) {
-            this.sqlStateGroup = s;
+        SqlStates(final String stateGroup) {
+            this.sqlStateGroup = stateGroup;
         }
 
-
-        public static SQLStates fromString(final String group) {
-            for (final SQLStates state : SQLStates.values()) {
+        /**
+         * Get sqlState from group.
+         * @param group group
+         * @return sqlState
+         */
+        public static SqlStates fromString(final String group) {
+            for (final SqlStates state : SqlStates.values()) {
                 if (group.startsWith(state.sqlStateGroup)) {
                     return state;
                 }

@@ -49,7 +49,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.SQLExceptionMapper;
+import org.mariadb.jdbc.internal.ExceptionMapper;
 import org.mariadb.jdbc.internal.common.Utils;
 
 import java.io.*;
@@ -57,7 +57,7 @@ import java.sql.Blob;
 import java.sql.SQLException;
 
 
-public class MySQLBlob implements Blob, Serializable {
+public class MariaDbBlob implements Blob, Serializable {
     private static final long serialVersionUID = 8557003556592493381L;
     /**
      * the actual blob content.
@@ -71,7 +71,7 @@ public class MySQLBlob implements Blob, Serializable {
     /**
      * creates an empty blob.
      */
-    public MySQLBlob() {
+    public MariaDbBlob() {
         blobContent = new byte[0];
     }
 
@@ -80,9 +80,10 @@ public class MySQLBlob implements Blob, Serializable {
      *
      * @param bytes the content for the blob.
      */
-    public MySQLBlob(byte[] bytes) {
-        if (bytes == null)
+    public MariaDbBlob(byte[] bytes) {
+        if (bytes == null) {
             throw new AssertionError("byte array is null");
+        }
         this.blobContent = bytes;
         this.actualSize = bytes.length;
     }
@@ -131,7 +132,7 @@ public class MySQLBlob implements Blob, Serializable {
      */
     public byte[] getBytes(final long pos, final int length) throws SQLException {
         if (pos < 1) {
-            throw SQLExceptionMapper.getSQLException("Pos starts at 1");
+            throw ExceptionMapper.getSqlException("Pos starts at 1");
         }
         final int arrayPos = (int) (pos - 1);
         return Utils.copyRange(blobContent, arrayPos, arrayPos + length);
@@ -149,6 +150,32 @@ public class MySQLBlob implements Blob, Serializable {
     }
 
     /**
+     * Returns an <code>InputStream</code> object that contains a partial <code>Blob</code> value, starting  with the
+     * byte specified by pos, which is length bytes in length.
+     *
+     * @param pos    the offset to the first byte of the partial value to be retrieved. The first byte in the
+     *               <code>Blob</code> is at position 1
+     * @param length the length in bytes of the partial value to be retrieved
+     * @return <code>InputStream</code> through which the partial <code>Blob</code> value can be read.
+     * @throws java.sql.SQLException if pos is less than 1 or if pos is greater than the number of bytes in the
+     *                               <code>Blob</code> or if pos + length is greater than the number of bytes in the
+     *                               <code>Blob</code>
+     */
+    public InputStream getBinaryStream(final long pos, final long length) throws SQLException {
+        if (pos < 1) {
+            throw ExceptionMapper.getSqlException("Out of range (position should be > 0)");
+        }
+        if (pos - 1 > actualSize) {
+            throw ExceptionMapper.getSqlException("Out of range (position > stream size)");
+        }
+        if (pos + length - 1 > actualSize) {
+            throw ExceptionMapper.getSqlException("Out of range (position + length - 1 > streamSize)");
+        }
+
+        return new ByteArrayInputStream(blobContent, (int) pos - 1, (int) length);
+    }
+
+    /**
      * Retrieves the byte position at which the specified byte array <code>pattern</code> begins within the
      * <code>BLOB</code> value that this <code>Blob</code> object represents.  The search for <code>pattern</code>
      * begins at position <code>start</code>.
@@ -159,10 +186,10 @@ public class MySQLBlob implements Blob, Serializable {
      */
     public long position(final byte[] pattern, final long start) throws SQLException {
         if (start < 1) {
-            throw SQLExceptionMapper.getSQLException("Start should be > 0, first position is 1.");
+            throw ExceptionMapper.getSqlException("Start should be > 0, first position is 1.");
         }
         if (start > actualSize) {
-            throw SQLExceptionMapper.getSQLException("Start should be <= " + actualSize);
+            throw ExceptionMapper.getSqlException("Start should be <= " + actualSize);
         }
         final long actualStart = start - 1;
         for (int i = (int) actualStart; i < actualSize; i++) {
@@ -202,7 +229,7 @@ public class MySQLBlob implements Blob, Serializable {
      * the existing bytes in the <code>Blob</code> object starting at the position <code>pos</code>.  If the end of the
      * <code>Blob</code> value is reached while writing the array of bytes, then the length of the <code>Blob</code>
      * value will be increased to accomodate the extra bytes.
-     *
+     * <p>
      * <b>Note:</b> If the value specified for <code>pos</code> is greater then the length+1 of the <code>BLOB</code>
      * value then the behavior is undefined. Some JDBC drivers may throw a <code>SQLException</code> while other drivers
      * may support this operation.
@@ -242,7 +269,7 @@ public class MySQLBlob implements Blob, Serializable {
      * The array of bytes will overwrite the existing bytes in the <code>Blob</code> object starting at the position
      * <code>pos</code>.  If the end of the <code>Blob</code> value is reached while writing the array of bytes, then
      * the length of the <code>Blob</code> value will be increased to accomodate the extra bytes.
-     *
+     * <p>
      * <b>Note:</b> If the value specified for <code>pos</code> is greater then the length+1 of the <code>BLOB</code>
      * value then the behavior is undefined. Some JDBC drivers may throw a <code>SQLException</code> while other drivers
      * may support this operation.
@@ -284,7 +311,7 @@ public class MySQLBlob implements Blob, Serializable {
      * existing bytes in the <code>Blob</code> object starting at the position <code>pos</code>.  If the end of the
      * <code>Blob</code> value is reached while writing to the stream, then the length of the <code>Blob</code> value
      * will be increased to accomodate the extra bytes.
-     *
+     * <p>
      * <b>Note:</b> If the value specified for <code>pos</code> is greater then the length+1 of the <code>BLOB</code>
      * value then the behavior is undefined. Some JDBC drivers may throw a <code>SQLException</code> while other drivers
      * may support this operation.
@@ -298,7 +325,7 @@ public class MySQLBlob implements Blob, Serializable {
      */
     public OutputStream setBinaryStream(final long pos) throws SQLException {
         if (pos < 1) {
-            throw SQLExceptionMapper.getSQLException("Invalid position in blob");
+            throw ExceptionMapper.getSqlException("Invalid position in blob");
         }
         return new BlobOutputStream(this, (int) (pos - 1));
     }
@@ -306,7 +333,7 @@ public class MySQLBlob implements Blob, Serializable {
     /**
      * Truncates the <code>BLOB</code> value that this <code>Blob</code> object represents to be <code>len</code> bytes
      * in length.
-     *
+     * <p>
      * <b>Note:</b> If the value specified for <code>pos</code> is greater then the length+1 of the <code>BLOB</code>
      * value then the behavior is undefined. Some JDBC drivers may throw a <code>SQLException</code> while other drivers
      * may support this operation.
@@ -324,7 +351,7 @@ public class MySQLBlob implements Blob, Serializable {
     /**
      * This method frees the <code>Blob</code> object and releases the resources that it holds. The object is invalid
      * once the <code>free</code> method is called.
-     *
+     * <p>
      * After <code>free</code> has been called, any attempt to invoke a method other than <code>free</code> will result
      * in a <code>SQLException</code> being thrown.  If <code>free</code> is called multiple times, the subsequent calls
      * to <code>free</code> are treated as a no-op.
@@ -334,78 +361,4 @@ public class MySQLBlob implements Blob, Serializable {
         this.actualSize = 0;
     }
 
-    /**
-     * Returns an <code>InputStream</code> object that contains a partial <code>Blob</code> value, starting  with the
-     * byte specified by pos, which is length bytes in length.
-     *
-     * @param pos    the offset to the first byte of the partial value to be retrieved. The first byte in the
-     *               <code>Blob</code> is at position 1
-     * @param length the length in bytes of the partial value to be retrieved
-     * @return <code>InputStream</code> through which the partial <code>Blob</code> value can be read.
-     * @throws java.sql.SQLException if pos is less than 1 or if pos is greater than the number of bytes in the
-     *                               <code>Blob</code> or if pos + length is greater than the number of bytes in the
-     *                               <code>Blob</code>
-     */
-    public InputStream getBinaryStream(final long pos, final long length) throws SQLException {
-        if (pos < 1) {
-            throw SQLExceptionMapper.getSQLException("Out of range (position should be > 0)");
-        }
-        if (pos - 1 > actualSize) {
-            throw SQLExceptionMapper.getSQLException("Out of range (position > stream size)");
-        }
-        if (pos + length - 1 > actualSize) {
-            throw SQLExceptionMapper.getSQLException("Out of range (position + length - 1 > streamSize)");
-        }
-
-        return new ByteArrayInputStream(blobContent, (int) pos - 1, (int) length);
-    }
-}
-
-/**
- * Output stream for the blob
- */
-class BlobOutputStream extends OutputStream {
-
-    int pos;
-    MySQLBlob blob;
-
-    public BlobOutputStream(MySQLBlob blob, int pos) {
-        this.blob = blob;
-        this.pos = pos;
-    }
-
-    @Override
-    public void write(int b) throws IOException {
-
-        if (this.pos >= blob.blobContent.length) {
-            byte[] tmp = new byte[2 * blob.blobContent.length + 1];
-            System.arraycopy(blob.blobContent, 0, tmp, 0, blob.blobContent.length);
-            blob.blobContent = tmp;
-        }
-        blob.blobContent[pos] = (byte) b;
-        pos++;
-        if (pos > blob.actualSize) {
-            blob.actualSize = pos;
-        }
-    }
-
-    @Override
-    public void write(byte[] buf, int off, int len) {
-        if (pos + len >= blob.blobContent.length) {
-            int newLen = Math.max(2 * (pos + len + 1), 1024);
-            byte[] tmp = new byte[newLen];
-            System.arraycopy(blob.blobContent, 0, tmp, 0, blob.blobContent.length);
-            blob.blobContent = tmp;
-        }
-        System.arraycopy(buf, off, blob.blobContent, pos, len);
-        pos += len;
-        if (pos > blob.actualSize) {
-            blob.actualSize = pos;
-        }
-    }
-
-    @Override
-    public void write(byte[] buf) {
-        write(buf, 0, buf.length);
-    }
 }

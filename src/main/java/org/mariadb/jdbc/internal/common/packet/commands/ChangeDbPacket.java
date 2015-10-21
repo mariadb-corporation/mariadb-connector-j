@@ -47,7 +47,7 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc.internal.mysql.packet.commands;
+package org.mariadb.jdbc.internal.common.packet.commands;
 
 import org.mariadb.jdbc.internal.common.packet.CommandPacket;
 import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
@@ -56,14 +56,25 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 
-public class MySQLPingPacket implements CommandPacket {
-    public MySQLPingPacket() {
+public class ChangeDbPacket implements CommandPacket {
+
+    String database;
+
+    public ChangeDbPacket(final String database) {
+        this.database = database;
     }
 
-    public int send(final OutputStream os) throws IOException {
-        PacketOutputStream pos = (PacketOutputStream) os;
+    /**
+     * Change Database.
+     * @param outputStream Write outputStream
+     * @return 0
+     * @throws IOException if connection problem occur
+     */
+    public int send(final OutputStream outputStream) throws IOException {
+        PacketOutputStream pos = (PacketOutputStream) outputStream;
         pos.startPacket(0);
-        pos.write(0x0e);
+        pos.write(0x02);
+        pos.write(database.getBytes("UTF-8"));
         pos.finishPacket();
         return 0;
     }
