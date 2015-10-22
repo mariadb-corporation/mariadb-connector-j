@@ -386,7 +386,7 @@ public class BaseTest {
 
 
     /**
-     * Cancel if database version match
+     * Cancel if database version match.
      * @param major db major version
      * @param minor db minor version
      * @param patch db patch version
@@ -395,7 +395,7 @@ public class BaseTest {
     public void cancelForVersion(int major, int minor, int patch) throws SQLException {
 
         String dbVersion = sharedConnection.getMetaData().getDatabaseProductVersion();
-        org.junit.Assume.assumeFalse(dbVersion.startsWith(major+"."+minor+"."+patch) );
+        org.junit.Assume.assumeFalse(dbVersion.startsWith(major + "." + minor + "." + patch));
 
     }
 

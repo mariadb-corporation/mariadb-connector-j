@@ -665,7 +665,8 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                     } else {
                         long longestFail = isMasterHostFail() ? (isSecondaryHostFail() ? Math.min(getMasterHostFailTimestamp(),
                                 getSecondaryHostFailTimestamp()) : getMasterHostFailTimestamp()) : getSecondaryHostFailTimestamp();
-                        long nextReconnectionTime = urlParser.getOptions().secondsBeforeRetryMaster * 1000 - (System.currentTimeMillis() - longestFail);
+                        long nextReconnectionTime = urlParser.getOptions().secondsBeforeRetryMaster * 1000
+                                - (System.currentTimeMillis() - longestFail);
                         if (urlParser.getOptions().secondsBeforeRetryMaster > 0) {
                             if (urlParser.getOptions().queriesBeforeRetryMaster > 0) {
                                 error += " Driver will try to reconnect " + (connectionTypeMaster ? "primary" : "secondary")
