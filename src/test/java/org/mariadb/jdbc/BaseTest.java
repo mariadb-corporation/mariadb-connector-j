@@ -384,6 +384,22 @@ public class BaseTest {
 
     }
 
+
+    /**
+     * Cancel if database version match
+     * @param major db major version
+     * @param minor db minor version
+     * @param patch db patch version
+     * @throws SQLException exception
+     */
+    public void cancelForVersion(int major, int minor, int patch) throws SQLException {
+
+        String dbVersion = sharedConnection.getMetaData().getDatabaseProductVersion();
+        org.junit.Assume.assumeFalse(dbVersion.startsWith(major+"."+minor+"."+patch) );
+
+    }
+
+
     void requireMinimumVersion(int major, int minor) throws SQLException {
         org.junit.Assume.assumeTrue(minVersion(major, minor));
 
