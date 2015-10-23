@@ -188,6 +188,7 @@ public class Reader {
     /**
      * Get next data bytes with unknown length.
      * @return the raw binary data
+     * @throws IOException if connection problem occur
      */
     public byte[] getLengthEncodedBytes() throws IOException {
         if (byteBuffer.remaining() == 0) {

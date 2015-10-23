@@ -513,6 +513,7 @@ public class PacketOutputStream extends OutputStream {
      * Write timestamp in binary format.
      * @param calendar session calendar
      * @param ts timestamp to send
+     * @param fractionalSeconds must fractionnal second be send to server
      * @return this
      */
     public PacketOutputStream writeTimestampLength(final Calendar calendar, Timestamp ts, boolean fractionalSeconds) {

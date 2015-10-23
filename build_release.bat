@@ -9,8 +9,8 @@ timeout 20
 call mvn exec:exec package -Dpackage-source
 call %BINDIR%\mysqladmin -uroot shutdown
 
-#deploy package
-#mvn install  -Dmaven.test.skip=true
-#generate javadoc : mvn javadoc:javadoc
-#mvn clean exec:exec deploy package -Dmaven.test.skip=true -Dpackage-source
+#packaging
+#mvn package -Dmaven.test.skip=true -Dpackage-source
 
+#deployment
+#mvn deploy -Dmaven.test.skip=true -Dpackage-source

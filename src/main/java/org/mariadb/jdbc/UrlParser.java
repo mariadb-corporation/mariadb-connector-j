@@ -60,8 +60,6 @@ import java.util.Properties;
 
 /**
  * <p>parse and verification of URL.</p>
- * <p>
- * <p>
  * <p>basic syntax :<br>
  * {@code jdbc:(mysql|mariadb):[replication:|failover|loadbalance:|aurora:]//<hostDescription>[,<hostDescription>]/[database>]
  * [?<key1>=<value1>[&<key2>=<value2>]] }

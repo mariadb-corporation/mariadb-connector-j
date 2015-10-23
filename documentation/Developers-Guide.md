@@ -41,9 +41,9 @@ You can launch a specific test by adding -Dfile
 When all test are passing, you can package project.
 Additional tests , like javadoc formatting, code style validation will be done : 
   
-    mvn package
+    mvn package -Dmaven.test.skip=true
     
-If opearation succeed, a new mariadb-java-client jar will be on the target folder.
+If operation succeed, a new mariadb-java-client jar will be on the target folder.
   
 # Run travis test
     

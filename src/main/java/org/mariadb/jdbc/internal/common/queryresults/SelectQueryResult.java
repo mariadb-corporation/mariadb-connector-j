@@ -114,6 +114,8 @@ public abstract class SelectQueryResult extends QueryResult {
      * Move pointer forward.
      *
      * @return true if there is another row
+     * @throws IOException ioException
+     * @throws QueryException queryException
      */
     public abstract boolean next() throws IOException, QueryException;
 

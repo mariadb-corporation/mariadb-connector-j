@@ -103,23 +103,14 @@
             <build>
                 <plugins>
                     <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-source-plugin</artifactId>
-                        <version>2.4</version>
-                        <executions>
-                            <execution>
-                                <id>attach-sources</id>
-                                <goals>
-                                    <goal>jar</goal>
-                                    <goal>jar-no-fork</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <plugin>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>exec-maven-plugin</artifactId>
                         <version>1.4.0</version>
+                        <executions>
+                            <execution>
+                                <phase>install</phase>
+                            </execution>
+                        </executions>
                         <configuration>
                             <executable>git</executable>
                             <arguments>
@@ -138,11 +129,7 @@
                         <version>1.6</version>
                         <executions>
                             <execution>
-                                <id>sign-artifacts</id>
                                 <phase>verify</phase>
-                                <goals>
-                                    <goal>sign</goal>
-                                </goals>
                             </execution>
                         </executions>
                     </plugin>
@@ -151,6 +138,11 @@
                         <artifactId>nexus-staging-maven-plugin</artifactId>
                         <version>1.6.6</version>
                         <extensions>true</extensions>
+                        <executions>
+                            <execution>
+                                <phase>deploy</phase>
+                            </execution>
+                        </executions>
                         <configuration>
                             <serverId>ossrh</serverId>
                             <nexusUrl>https://oss.sonatype.org/</nexusUrl>
@@ -177,8 +169,8 @@
                 </dependencies>
                 <executions>
                     <execution>
-                        <id>package</id>
-                        <phase>package</phase>
+                        <id>process-test-resources</id>
+                        <phase>prepare-package</phase>
                         <configuration>
                             <includeTestSourceDirectory>true</includeTestSourceDirectory>
                             <excludes>**/SharedMemorySocket.java,**/UnixDomainSocket.java</excludes>
@@ -210,6 +202,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
                 <version>2.6</version>
+                <!--phase package-->
                 <configuration>
                     <excludes>
                         <exclude>**/logging.properties</exclude>
@@ -235,6 +228,7 @@
                 <version>2.4</version>
                 <executions>
                     <execution>
+                        <!--package phase-->
                         <goals>
                             <goal>jar</goal>
                         </goals>
@@ -247,7 +241,9 @@
                 <version>1.9.1</version>
                 <executions>
                     <execution>
+                        <!--validate phase-->
                         <id>parse-version</id>
+                        <phase>prepare-package</phase>
                         <goals>
                             <goal>parse-version</goal>
                         </goals>
@@ -260,7 +256,7 @@
                 <version>1.5.3</version>
                 <executions>
                     <execution>
-                        <phase>process-sources</phase>
+                        <phase>prepare-package</phase>
                         <goals>
                             <goal>replace</goal>
                         </goals>
@@ -304,6 +300,7 @@
                 <executions>
                     <execution>
                         <id>attach-javadocs</id>
+                        <phase>prepare-package</phase>
                         <goals>
                             <goal>jar</goal>
                         </goals>

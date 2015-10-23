@@ -92,6 +92,69 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     }
 
     /**
+     * Retrieves a description of the primary key columns that are referenced by the given table's foreign key columns (the primary keys imported by a
+     * table).  They are ordered by PKTABLE_CAT, PKTABLE_SCHEM, PKTABLE_NAME, and KEY_SEQ.
+     * <P>Each primary key column description has the following columns: <OL> <LI><B>PKTABLE_CAT</B> String {@code =>} primary key table catalog being
+     * imported (may be <code>null</code>) <LI><B>PKTABLE_SCHEM</B> String {@code =>} primary key table schema being imported (may be
+     * <code>null</code>) <LI><B>PKTABLE_NAME</B> String {@code =>} primary key table name being imported <LI><B>PKCOLUMN_NAME</B> String {@code =>}
+     * primary key column name being imported <LI><B>FKTABLE_CAT</B> String {@code =>} foreign key table catalog (may be <code>null</code>)
+     * <LI><B>FKTABLE_SCHEM</B> String {@code =>} foreign key table schema (may be <code>null</code>) <LI><B>FKTABLE_NAME</B> String {@code =>}
+     * foreign key table name <LI><B>FKCOLUMN_NAME</B> String {@code =>} foreign key column name <LI><B>KEY_SEQ</B> short {@code =>} sequence number
+     * within a foreign key( a value of 1 represents the first column of the foreign key, a value of 2 would represent the second column within the
+     * foreign key). <LI><B>UPDATE_RULE</B> short {@code =>} What happens to a foreign key when the primary key is updated: <UL> <LI> importedNoAction
+     * - do not allow update of primary key if it has been imported <LI> importedKeyCascade - change imported key to agree with primary key update
+     * <LI> importedKeySetNull - change imported key to <code>NULL</code> if its primary key has been updated <LI> importedKeySetDefault - change
+     * imported key to default values if its primary key has been updated <LI> importedKeyRestrict - same as importedKeyNoAction (for ODBC 2.x
+     * compatibility) </UL> <LI><B>DELETE_RULE</B> short {@code =>} What happens to the foreign key when primary is deleted. <UL> <LI>
+     * importedKeyNoAction - do not allow delete of primary key if it has been imported <LI> importedKeyCascade - delete rows that import a deleted
+     * key <LI> importedKeySetNull - change imported key to NULL if its primary key has been deleted <LI> importedKeyRestrict - same as
+     * importedKeyNoAction (for ODBC 2.x compatibility) <LI> importedKeySetDefault - change imported key to default if its primary key has been
+     * deleted </UL> <LI><B>FK_NAME</B> String {@code =>} foreign key name (may be <code>null</code>) <LI><B>PK_NAME</B> String {@code =>} primary key
+     * name (may be <code>null</code>) <LI><B>DEFERRABILITY</B> short {@code =>} can the evaluation of foreign key constraints be deferred until
+     * commit <UL> <LI> importedKeyInitiallyDeferred - see SQL92 for definition <LI> importedKeyInitiallyImmediate - see SQL92 for definition <LI>
+     * importedKeyNotDeferrable - see SQL92 for definition </UL> </OL>
+     *
+     * @param catalog a catalog name; must match the catalog name as it is stored in the database; "" retrieves those without a catalog;
+     * <code>null</code> means that the catalog name should not be used to narrow the search
+     * @param schema a schema name; must match the schema name as it is stored in the database; "" retrieves those without a schema; <code>null</code>
+     * means that the schema name should not be used to narrow the search
+     * @param table a table name; must match the table name as it is stored in the database
+     * @return <code>ResultSet</code> - each row is a primary key column description
+     * @throws SQLException if a database access error occurs
+     * @see #getExportedKeys
+     */
+    public ResultSet getImportedKeys(String catalog, String schema, String table) throws SQLException {
+
+        // We avoid using information schema queries by default, because this appears to be an expensive
+        // query (CONJ-41).
+        if (table == null) {
+            throw new SQLException("'table' parameter in getImportedKeys cannot be null");
+        }
+
+        if (catalog == null && connection.nullCatalogMeansCurrent) {
+            /* Treat null catalog as current */
+            catalog = "";
+        }
+        if (catalog == null) {
+            return getImportedKeysUsingInformationSchema(catalog, schema, table);
+        }
+
+        if (catalog.equals("")) {
+            catalog = connection.getCatalog();
+            if (catalog == null || catalog.equals("")) {
+                return getImportedKeysUsingInformationSchema(catalog, schema, table);
+            }
+        }
+
+        try {
+            return getImportedKeysUsingShowCreateTable(catalog, schema, table);
+        } catch (Exception e) {
+            // Likely, parsing failed, try out I_S query.
+            return getImportedKeysUsingInformationSchema(catalog, schema, table);
+        }
+    }
+
+    /**
      * Get imported keys.
      *
      * @param tableDef table definiation
@@ -200,71 +263,6 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         });
         ResultSet ret = MariaDbResultSet.createResultSet(columnNames, columnTypes, arr, connection.getProtocol());
         return ret;
-    }
-
-
-    /**
-     * Retrieves a description of the primary key columns that are referenced by the given table's foreign key columns (the primary keys imported by a
-     * table).  They are ordered by PKTABLE_CAT, PKTABLE_SCHEM, PKTABLE_NAME, and KEY_SEQ.
-     * <p>
-     * <P>Each primary key column description has the following columns: <OL> <LI><B>PKTABLE_CAT</B> String {@code =>} primary key table catalog being
-     * imported (may be <code>null</code>) <LI><B>PKTABLE_SCHEM</B> String {@code =>} primary key table schema being imported (may be
-     * <code>null</code>) <LI><B>PKTABLE_NAME</B> String {@code =>} primary key table name being imported <LI><B>PKCOLUMN_NAME</B> String {@code =>}
-     * primary key column name being imported <LI><B>FKTABLE_CAT</B> String {@code =>} foreign key table catalog (may be <code>null</code>)
-     * <LI><B>FKTABLE_SCHEM</B> String {@code =>} foreign key table schema (may be <code>null</code>) <LI><B>FKTABLE_NAME</B> String {@code =>}
-     * foreign key table name <LI><B>FKCOLUMN_NAME</B> String {@code =>} foreign key column name <LI><B>KEY_SEQ</B> short {@code =>} sequence number
-     * within a foreign key( a value of 1 represents the first column of the foreign key, a value of 2 would represent the second column within the
-     * foreign key). <LI><B>UPDATE_RULE</B> short {@code =>} What happens to a foreign key when the primary key is updated: <UL> <LI> importedNoAction
-     * - do not allow update of primary key if it has been imported <LI> importedKeyCascade - change imported key to agree with primary key update
-     * <LI> importedKeySetNull - change imported key to <code>NULL</code> if its primary key has been updated <LI> importedKeySetDefault - change
-     * imported key to default values if its primary key has been updated <LI> importedKeyRestrict - same as importedKeyNoAction (for ODBC 2.x
-     * compatibility) </UL> <LI><B>DELETE_RULE</B> short {@code =>} What happens to the foreign key when primary is deleted. <UL> <LI>
-     * importedKeyNoAction - do not allow delete of primary key if it has been imported <LI> importedKeyCascade - delete rows that import a deleted
-     * key <LI> importedKeySetNull - change imported key to NULL if its primary key has been deleted <LI> importedKeyRestrict - same as
-     * importedKeyNoAction (for ODBC 2.x compatibility) <LI> importedKeySetDefault - change imported key to default if its primary key has been
-     * deleted </UL> <LI><B>FK_NAME</B> String {@code =>} foreign key name (may be <code>null</code>) <LI><B>PK_NAME</B> String {@code =>} primary key
-     * name (may be <code>null</code>) <LI><B>DEFERRABILITY</B> short {@code =>} can the evaluation of foreign key constraints be deferred until
-     * commit <UL> <LI> importedKeyInitiallyDeferred - see SQL92 for definition <LI> importedKeyInitiallyImmediate - see SQL92 for definition <LI>
-     * importedKeyNotDeferrable - see SQL92 for definition </UL> </OL>
-     *
-     * @param catalog a catalog name; must match the catalog name as it is stored in the database; "" retrieves those without a catalog;
-     * <code>null</code> means that the catalog name should not be used to narrow the search
-     * @param schema a schema name; must match the schema name as it is stored in the database; "" retrieves those without a schema; <code>null</code>
-     * means that the schema name should not be used to narrow the search
-     * @param table a table name; must match the table name as it is stored in the database
-     * @return <code>ResultSet</code> - each row is a primary key column description
-     * @throws SQLException if a database access error occurs
-     * @see #getExportedKeys
-     */
-    public ResultSet getImportedKeys(String catalog, String schema, String table) throws SQLException {
-
-        // We avoid using information schema queries by default, because this appears to be an expensive
-        // query (CONJ-41).
-        if (table == null) {
-            throw new SQLException("'table' parameter in getImportedKeys cannot be null");
-        }
-
-        if (catalog == null && connection.nullCatalogMeansCurrent) {
-            /* Treat null catalog as current */
-            catalog = "";
-        }
-        if (catalog == null) {
-            return getImportedKeysUsingInformationSchema(catalog, schema, table);
-        }
-
-        if (catalog.equals("")) {
-            catalog = connection.getCatalog();
-            if (catalog == null || catalog.equals("")) {
-                return getImportedKeysUsingInformationSchema(catalog, schema, table);
-            }
-        }
-
-        try {
-            return getImportedKeysUsingShowCreateTable(catalog, schema, table);
-        } catch (Exception e) {
-            // Likely, parsing failed, try out I_S query.
-            return getImportedKeysUsingInformationSchema(catalog, schema, table);
-        }
     }
 
     // Extract identifier quoted string from input String.
@@ -427,14 +425,10 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      *
      * @param columnName - column name in the information schema table
      * @param catalog - catalog name.
-     * <p>
      * This driver does not (always) follow JDBC standard for following special values, due to ConnectorJ compatibility
-     * <p>
      * 1. empty string ("") - matches current catalog (i.e database).JDBC standard says only tables without catalog should be returned - such tables
      * do not exist in MySQL. If there is no current catalog, then empty string matches any catalog.
-     * <p>
      * 2. null  - if nullCatalogMeansCurrent=true (which is the default), then the handling is the same as for "" . i.e return current catalog.
-     * <p>
      * JDBC-conforming way would be to match any catalog with null parameter. This can be switched with nullCatalogMeansCurrent=false in the
      * connection URL.
      * @return part of SQL query ,that restricts search for the catalog.
@@ -466,7 +460,6 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
 
     /**
      * Retrieves a description of the given table's primary key columns.  They are ordered by COLUMN_NAME.
-     * <p>
      * <P>Each primary key column description has the following columns: <OL> <LI><B>TABLE_CAT</B> String {@code =>} table catalog (may be
      * <code>null</code>) <LI><B>TABLE_SCHEM</B> String {@code =>} table schema (may be <code>null</code>) <LI><B>TABLE_NAME</B> String {@code =>}
      * table name <LI><B>COLUMN_NAME</B> String {@code =>} column name <LI><B>KEY_SEQ</B> short {@code =>} sequence number within primary key( a value
@@ -518,7 +511,6 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      * Retrieves a description of the tables available in the given catalog. Only table descriptions matching the catalog, schema, table name and type
      * criteria are returned.  They are ordered by <code>TABLE_TYPE</code>, <code>TABLE_CAT</code>, <code>TABLE_SCHEM</code> and
      * <code>TABLE_NAME</code>.
-     * <p>
      * Each table description has the following columns: <OL> <LI><B>TABLE_CAT</B> String {@code =>} table catalog (may be <code>null</code>)
      * <LI><B>TABLE_SCHEM</B> String {@code =>} table schema (may be <code>null</code>) <LI><B>TABLE_NAME</B> String {@code =>} table name
      * <LI><B>TABLE_TYPE</B> String {@code =>} table type.  Typical types are "TABLE", "VIEW", "SYSTEM TABLE", "GLOBAL TEMPORARY", "LOCAL TEMPORARY",
@@ -527,7 +519,6 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      * String {@code =>} type name (may be <code>null</code>) <LI><B>SELF_REFERENCING_COL_NAME</B> String {@code =>} name of the designated
      * "identifier" column of a typed table (may be <code>null</code>) <LI><B>REF_GENERATION</B> String {@code =>} specifies how values in
      * SELF_REFERENCING_COL_NAME are created. Values are "SYSTEM", "USER", "DERIVED". (may be <code>null</code>) </OL>
-     * <p>
      * <P><B>Note:</B> Some databases may not return information for all tables.
      *
      * @param catalog a catalog name; must match the catalog name as it is stored in the database; "" retrieves those without a catalog;
@@ -576,10 +567,8 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
 
     /**
      * Retrieves a description of table columns available in the specified catalog.
-     * <p>
      * <P>Only column descriptions matching the catalog, schema, table and column name criteria are returned.  They are ordered by
      * <code>TABLE_CAT</code>,<code>TABLE_SCHEM</code>, <code>TABLE_NAME</code>, and <code>ORDINAL_POSITION</code>.
-     * <p>
      * <P>Each column description has the following columns: <OL> <LI><B>TABLE_CAT</B> String {@code =>} table catalog (may be <code>null</code>)
      * <LI><B>TABLE_SCHEM</B> String {@code =>} table schema (may be <code>null</code>) <LI><B>TABLE_NAME</B> String {@code =>} table name
      * <LI><B>COLUMN_NAME</B> String {@code =>} column name <LI><B>DATA_TYPE</B> int {@code =>} SQL type from java.sql.Types <LI><B>TYPE_NAME</B>
@@ -603,7 +592,6 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      * incremented <LI> empty string  --- if it cannot be determined whether the column is auto incremented </UL> <LI><B>IS_GENERATEDCOLUMN</B> String
      * {@code =>} Indicates whether this is a generated column <UL> <LI> YES           --- if this a generated column <LI> NO            --- if this
      * not a generated column <LI> empty string  --- if it cannot be determined whether this is a generated column </UL> </OL>
-     * <p>
      * <p>The COLUMN_SIZE column specifies the column size for the given column. For numeric data, this is the maximum precision.  For character data,
      * this is the length in characters. For datetime datatypes, this is the length in characters of the String representation (assuming the maximum
      * allowed precision of the fractional seconds component). For binary data, this is the length in bytes.  For the ROWID datatype, this is the
@@ -654,7 +642,6 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     /**
      * Retrieves a description of the foreign key columns that reference the given table's primary key columns (the foreign keys exported by a table).
      * They are ordered by FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, and KEY_SEQ.
-     * <p>
      * <P>Each foreign key column description has the following columns: <OL> <LI><B>PKTABLE_CAT</B> String {@code =>} primary key table catalog (may
      * be <code>null</code>) <LI><B>PKTABLE_SCHEM</B> String {@code =>} primary key table schema (may be <code>null</code>) <LI><B>PKTABLE_NAME</B>
      * String {@code =>} primary key table name <LI><B>PKCOLUMN_NAME</B> String {@code =>} primary key column name <LI><B>FKTABLE_CAT</B> String
@@ -775,6 +762,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      * @param catalog catalog
      * @param schema schema
      * @param table table
+     * @return resultset
      * @throws SQLException exception
      */
     public ResultSet getImportedKeysUsingShowCreateTable(String catalog, String schema, String table) throws Exception {
@@ -795,7 +783,6 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
 
     /**
      * Retrieves a description of a table's optimal set of columns that uniquely identifies a row. They are ordered by SCOPE.
-     * <p>
      * <P>Each column description has the following columns: <OL> <LI><B>SCOPE</B> short {@code =>} actual scope of result <UL> <LI> bestRowTemporary
      * - very temporary, while using row <LI> bestRowTransaction - valid for remainder of current transaction <LI> bestRowSession - valid for
      * remainder of current session </UL> <LI><B>COLUMN_NAME</B> String {@code =>} column name <LI><B>DATA_TYPE</B> int {@code =>} SQL data type from
@@ -804,7 +791,6 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      * scale - Null is returned for data types where DECIMAL_DIGITS is not applicable. <LI><B>PSEUDO_COLUMN</B> short {@code =>} is this a pseudo
      * column like an Oracle ROWID <UL> <LI> bestRowUnknown - may or may not be pseudo column <LI> bestRowNotPseudo - is NOT a pseudo column <LI>
      * bestRowPseudo - is a pseudo column </UL> </OL>
-     * <p>
      * <p>The COLUMN_SIZE column represents the specified column size for the given column. For numeric data, this is the maximum precision.  For
      * character data, this is the length in characters. For datetime datatypes, this is the length in characters of the String representation
      * (assuming the maximum allowed precision of the fractional seconds component). For binary data, this is the length in bytes.  For the ROWID
@@ -851,10 +837,8 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      * columns may not always be stored within a table and are not visible in a ResultSet unless they are specified in the query's outermost SELECT
      * list. Pseudo or hidden columns may not necessarily be able to be modified. If there are no pseudo or hidden columns, an empty ResultSet is
      * returned.
-     * <p>
      * <P>Only column descriptions matching the catalog, schema, table and column name criteria are returned.  They are ordered by
      * <code>TABLE_CAT</code>,<code>TABLE_SCHEM</code>, <code>TABLE_NAME</code> and <code>COLUMN_NAME</code>.
-     * <p>
      * <P>Each column description has the following columns: <OL> <LI><B>TABLE_CAT</B> String {@code =>} table catalog (may be <code>null</code>)
      * <LI><B>TABLE_SCHEM</B> String {@code =>} table schema (may be <code>null</code>) <LI><B>TABLE_NAME</B> String {@code =>} table name
      * <LI><B>COLUMN_NAME</B> String {@code =>} column name <LI><B>DATA_TYPE</B> int {@code =>} SQL type from java.sql.Types <LI><B>COLUMN_SIZE</B>
@@ -865,7 +849,6 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      * <LI><B>CHAR_OCTET_LENGTH</B> int {@code =>} for char types the maximum number of bytes in the column <LI><B>IS_NULLABLE</B> String  {@code =>}
      * ISO rules are used to determine the nullability for a column. <UL> <LI> YES           --- if the column can include NULLs <LI> NO --- if the
      * column cannot include NULLs <LI> empty string  --- if the nullability for the column is unknown </UL> </OL>
-     * <p>
      * <p>The COLUMN_SIZE column specifies the column size for the given column. For numeric data, this is the maximum precision.  For character data,
      * this is the length in characters. For datetime datatypes, this is the length in characters of the String representation (assuming the maximum
      * allowed precision of the fractional seconds component). For binary data, this is the length in bytes.  For the ROWID datatype, this is the
@@ -1533,10 +1516,8 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
 
     /**
      * Retrieves a description of the stored procedures available in the given catalog.
-     * <p>
      * Only procedure descriptions matching the schema and procedure name criteria are returned.  They are ordered by <code>PROCEDURE_CAT</code>,
      * <code>PROCEDURE_SCHEM</code>, <code>PROCEDURE_NAME</code> and <code>SPECIFIC_ NAME</code>.
-     * <p>
      * <P>Each procedure description has the the following columns: <OL> <LI><B>PROCEDURE_CAT</B> String {@code =>} procedure catalog (may be
      * <code>null</code>) <LI><B>PROCEDURE_SCHEM</B> String {@code =>} procedure schema (may be <code>null</code>) <LI><B>PROCEDURE_NAME</B> String
      * {@code =>} procedure name <LI> reserved for future use <LI> reserved for future use <LI> reserved for future use <LI><B>REMARKS</B> String
@@ -1544,7 +1525,6 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      * - Cannot determine if  a return value will be returned <LI> procedureNoResult - Does not return a return value <LI> procedureReturnsResult -
      * Returns a return value </UL> <LI><B>SPECIFIC_NAME</B> String  {@code =>} The name which uniquely identifies this procedure within its schema.
      * </OL>
-     * <p>
      * A user may not have permissions to execute any of the procedures that are returned by <code>getProcedures</code>
      *
      * @param catalog a catalog name; must match the catalog name as it is stored in the database; "" retrieves those without a catalog;
@@ -1584,11 +1564,9 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
 
     /**
      * Retrieves a description of the given catalog's stored procedure parameter and result columns.
-     * <p>
      * <P>Only descriptions matching the schema, procedure and parameter name criteria are returned.  They are ordered by PROCEDURE_CAT,
      * PROCEDURE_SCHEM, PROCEDURE_NAME and SPECIFIC_NAME. Within this, the return value, if any, is first. Next are the parameter descriptions in call
      * order. The column descriptions follow in column number order.
-     * <p>
      * <P>Each row in the <code>ResultSet</code> is a parameter description or column description with the following fields: <OL>
      * <LI><B>PROCEDURE_CAT</B> String {@code =>} procedure catalog (may be <code>null</code>) <LI><B>PROCEDURE_SCHEM</B> String {@code =>} procedure
      * schema (may be <code>null</code>) <LI><B>PROCEDURE_NAME</B> String {@code =>} procedure name <LI><B>COLUMN_NAME</B> String {@code =>}
@@ -1611,9 +1589,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      * implementation defined. <LI><B>IS_NULLABLE</B> String  {@code =>} ISO rules are used to determine the nullability for a column. <UL> <LI> YES
      * --- if the column can include NULLs <LI> NO            --- if the column cannot include NULLs <LI> empty string  --- if the nullability for the
      * column is unknown </UL> <LI><B>SPECIFIC_NAME</B> String  {@code =>} the name which uniquely identifies this procedure within its schema. </OL>
-     * <p>
      * <P><B>Note:</B> Some databases may not return the column descriptions for a procedure.
-     * <p>
      * <p>The PRECISION column represents the specified column size for the given column. For numeric data, this is the maximum precision.  For
      * character data, this is the length in characters. For datetime datatypes, this is the length in characters of the String representation
      * (assuming the maximum allowed precision of the fractional seconds component). For binary data, this is the length in bytes.  For the ROWID
@@ -1676,11 +1652,9 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
 
     /**
      * Retrieves a description of the given catalog's system or user function parameters and return type.
-     * <p>
      * <P>Only descriptions matching the schema,  function and parameter name criteria are returned. They are ordered by <code>FUNCTION_CAT</code>,
      * <code>FUNCTION_SCHEM</code>, <code>FUNCTION_NAME</code> and <code>SPECIFIC_ NAME</code>. Within this, the return value, if any, is first. Next
      * are the parameter descriptions in call order. The column descriptions follow in column number order.
-     * <p>
      * <P>Each row in the <code>ResultSet</code> is a parameter description, column description or return type description with the following fields:
      * <OL> <LI><B>FUNCTION_CAT</B> String {@code =>} function catalog (may be <code>null</code>) <LI><B>FUNCTION_SCHEM</B> String {@code =>} function
      * schema (may be <code>null</code>) <LI><B>FUNCTION_NAME</B> String {@code =>} function name.  This is the name used to invoke the function
@@ -1700,7 +1674,6 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      * NO            --- if the parameter or column  cannot include NULLs <LI> empty string  --- if the nullability for the parameter  or column is
      * unknown </UL> <LI><B>SPECIFIC_NAME</B> String  {@code =>} the name which uniquely identifies this function within its schema.  This is a user
      * specified, or DBMS generated, name that may be different then the <code>FUNCTION_NAME</code> for example with overload functions </OL>
-     * <p>
      * <p>The PRECISION column represents the specified column size for the given parameter or column. For numeric data, this is the maximum
      * precision.  For character data, this is the length in characters. For datetime datatypes, this is the length in characters of the String
      * representation (assuming the maximum allowed precision of the fractional seconds component). For binary data, this is the length in bytes.  For
@@ -1780,9 +1753,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
 
     /**
      * Retrieves a description of the access rights for a table's columns.
-     * <p>
      * <P>Only privileges matching the column name criteria are returned.  They are ordered by COLUMN_NAME and PRIVILEGE.
-     * <p>
      * <P>Each privilege description has the following columns: <OL> <LI><B>TABLE_CAT</B> String {@code =>} table catalog (may be <code>null</code>)
      * <LI><B>TABLE_SCHEM</B> String {@code =>} table schema (may be <code>null</code>) <LI><B>TABLE_NAME</B> String {@code =>} table name
      * <LI><B>COLUMN_NAME</B> String {@code =>} column name <LI><B>GRANTOR</B> String {@code =>} grantor of access (may be <code>null</code>)
@@ -1824,10 +1795,8 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      * Retrieves a description of the access rights for each table available in a catalog. Note that a table privilege applies to one or more columns
      * in the table. It would be wrong to assume that this privilege applies to all columns (this may be true for some systems but is not true for
      * all.)
-     * <p>
      * <P>Only privileges matching the schema and table name criteria are returned.  They are ordered by <code>TABLE_CAT</code>,
      * <code>TABLE_SCHEM</code>, <code>TABLE_NAME</code>, and <code>PRIVILEGE</code>.
-     * <p>
      * <P>Each privilege description has the following columns: <OL> <LI><B>TABLE_CAT</B> String {@code =>} table catalog (may be <code>null</code>)
      * <LI><B>TABLE_SCHEM</B> String {@code =>} table schema (may be <code>null</code>) <LI><B>TABLE_NAME</B> String {@code =>} table name
      * <LI><B>GRANTOR</B> String {@code =>} grantor of access (may be <code>null</code>) <LI><B>GRANTEE</B> String {@code =>} grantee of access
@@ -1859,14 +1828,12 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
 
     /**
      * Retrieves a description of a table's columns that are automatically updated when any value in a row is updated.  They are unordered.
-     * <p>
      * <P>Each column description has the following columns: <OL> <LI><B>SCOPE</B> short {@code =>} is not used <LI><B>COLUMN_NAME</B> String {@code
      * =>} column name <LI><B>DATA_TYPE</B> int {@code =>} SQL data type from <code>java.sql.Types</code> <LI><B>TYPE_NAME</B> String {@code =>} Data
      * source-dependent type name <LI><B>COLUMN_SIZE</B> int {@code =>} precision <LI><B>BUFFER_LENGTH</B> int {@code =>} length of column value in
      * bytes <LI><B>DECIMAL_DIGITS</B> short  {@code =>} scale - Null is returned for data types where DECIMAL_DIGITS is not applicable.
      * <LI><B>PSEUDO_COLUMN</B> short {@code =>} whether this is pseudo column like an Oracle ROWID <UL> <LI> versionColumnUnknown - may or may not be
      * pseudo column <LI> versionColumnNotPseudo - is NOT a pseudo column <LI> versionColumnPseudo - is a pseudo column </UL> </OL>
-     * <p>
      * <p>The COLUMN_SIZE column represents the specified column size for the given column. For numeric data, this is the maximum precision.  For
      * character data, this is the length in characters. For datetime datatypes, this is the length in characters of the String representation
      * (assuming the maximum allowed precision of the fractional seconds component). For binary data, this is the length in bytes.  For the ROWID
@@ -1894,7 +1861,6 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      * Retrieves a description of the foreign key columns in the given foreign key table that reference the primary key or the columns representing a
      * unique constraint of the  parent table (could be the same or a different table). The number of columns returned from the parent table must
      * match the number of columns that make up the foreign key.  They are ordered by FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, and KEY_SEQ.
-     * <p>
      * <P>Each foreign key column description has the following columns: <OL> <LI><B>PKTABLE_CAT</B> String {@code =>} parent key table catalog (may
      * be <code>null</code>) <LI><B>PKTABLE_SCHEM</B> String {@code =>} parent key table schema (may be <code>null</code>) <LI><B>PKTABLE_NAME</B>
      * String {@code =>} parent key table name <LI><B>PKCOLUMN_NAME</B> String {@code =>} parent key column name <LI><B>FKTABLE_CAT</B> String {@code
@@ -1974,15 +1940,10 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     /**
      * Retrieves a description of all the data types supported by this database. They are ordered by DATA_TYPE and then by how closely the data type
      * maps to the corresponding JDBC SQL type.
-     * <p>
      * <P>If the database supports SQL distinct types, then getTypeInfo() will return a single row with a TYPE_NAME of DISTINCT and a DATA_TYPE of
      * Types.DISTINCT. If the database supports SQL structured types, then getTypeInfo() will return a single row with a TYPE_NAME of STRUCT and a
      * DATA_TYPE of Types.STRUCT.
-     * <p>
      * <P>If SQL distinct or structured types are supported, then information on the individual types may be obtained from the getUDTs() method.
-     * <p>
-     * <p>
-     * <p>
      * <P>Each type description has the following columns: <OL> <LI><B>TYPE_NAME</B> String {@code =>} Type name <LI><B>DATA_TYPE</B> int {@code =>}
      * SQL data type from java.sql.Types <LI><B>PRECISION</B> int {@code =>} maximum precision <LI><B>LITERAL_PREFIX</B> String {@code =>} prefix used
      * to quote a literal (may be <code>null</code>) <LI><B>LITERAL_SUFFIX</B> String {@code =>} suffix used to quote a literal (may be
@@ -1996,7 +1957,6 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      * version of type name (may be <code>null</code>) <LI><B>MINIMUM_SCALE</B> short {@code =>} minimum scale supported <LI><B>MAXIMUM_SCALE</B>
      * short {@code =>} maximum scale supported <LI><B>SQL_DATA_TYPE</B> int {@code =>} unused <LI><B>SQL_DATETIME_SUB</B> int {@code =>} unused
      * <LI><B>NUM_PREC_RADIX</B> int {@code =>} usually 2 or 10 </OL>
-     * <p>
      * <p>The PRECISION column represents the maximum column size that the server supports for the given datatype. For numeric data, this is the
      * maximum precision.  For character data, this is the length in characters. For datetime datatypes, this is the length in characters of the
      * String representation (assuming the maximum allowed precision of the fractional seconds component). For binary data, this is the length in
@@ -2074,7 +2034,6 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     /**
      * Retrieves a description of the given table's indices and statistics. They are ordered by NON_UNIQUE, TYPE, INDEX_NAME, and
      * ORDINAL_POSITION.<p>
-     * <p>
      * Each index column description has the following columns: <ol> <li><B>TABLE_CAT</B> String {@code =>} table catalog (may be
      * <code>null</code>)</li> <li><B>TABLE_SCHEM</B> String {@code =>} table schema (may be <code>null</code>)</li> <li><B>TABLE_NAME</B> String
      * {@code =>} table name</li> <li><B>NON_UNIQUE</B> boolean {@code =>} Can index values be non-unique. false when TYPE is tableIndexStatistic</li>
@@ -2170,11 +2129,9 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     /**
      * Retrieves a description of the user-defined types (UDTs) defined in a particular schema.  Schema-specific UDTs may have type
      * <code>JAVA_OBJECT</code>, <code>STRUCT</code>, or <code>DISTINCT</code>.<p>
-     * <p>
      * Only types matching the catalog, schema, type name and type criteria are returned.  They are ordered by <code>DATA_TYPE</code>,
      * <code>TYPE_CAT</code>, <code>TYPE_SCHEM</code>  and <code>TYPE_NAME</code>.  The type name parameter may be a fully-qualified name.  In this
      * case, the catalog and schemaPattern parameters are ignored.<p>
-     * <p>
      * Each type description has the following columns: <ol> <li><B>TYPE_CAT</B> String {@code =>} the type's catalog (may be <code>null</code>)</li>
      * <li><B>TYPE_SCHEM</B> String {@code =>} type's schema (may be <code>null</code>)</li> <li><B>TYPE_NAME</B> String {@code =>} type name</li>
      * <li><B>CLASS_NAME</B> String {@code =>} Java class name</li> <li><B>DATA_TYPE</B> int {@code =>} type value defined in java.sql.Types. One of
@@ -2182,7 +2139,6 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      * {@code =>} type code of the source type of a DISTINCT type or the type that implements the user-generated reference type of the
      * SELF_REFERENCING_COLUMN of a structured type as defined in java.sql.Types (<code>null</code> if DATA_TYPE is not DISTINCT or not STRUCT with
      * REFERENCE_GENERATION = USER_DEFINED)</li> </ol>
-     * <p>
      * <P><B>Note:</B> If the driver does not support UDTs, an empty result set is returned.
      *
      * @param catalog a catalog name; must match the catalog name as it is stored in the database; "" retrieves those without a catalog;
@@ -2229,17 +2185,14 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     /**
      * Retrieves a description of the user-defined type (UDT) hierarchies defined in a particular schema in this database. Only the immediate super
      * type/ sub type relationship is modeled.
-     * <p>
      * Only supertype information for UDTs matching the catalog, schema, and type name is returned. The type name parameter may be a fully-qualified
      * name. When the UDT name supplied is a fully-qualified name, the catalog and schemaPattern parameters are ignored.
-     * <p>
      * If a UDT does not have a direct super type, it is not listed here. A row of the <code>ResultSet</code> object returned by this method describes
      * the designated UDT and a direct supertype. A row has the following columns: <OL> <li><B>TYPE_CAT</B> String {@code =>} the UDT's catalog (may
      * be <code>null</code>) <li><B>TYPE_SCHEM</B> String {@code =>} UDT's schema (may be <code>null</code>) <li><B>TYPE_NAME</B> String {@code =>}
      * type name of the UDT <li><B>SUPERTYPE_CAT</B> String {@code =>} the direct super type's catalog (may be <code>null</code>)
      * <li><B>SUPERTYPE_SCHEM</B> String {@code =>} the direct super type's schema (may be <code>null</code>) <li><B>SUPERTYPE_NAME</B> String {@code
      * =>} the direct super type's name </OL>
-     * <p>
      * <P><B>Note:</B> If the driver does not support type hierarchies, an empty result set is returned.
      *
      * @param catalog a catalog name; "" retrieves those without a catalog; <code>null</code> means drop catalog name from the selection criteria
@@ -2261,16 +2214,13 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
 
     /**
      * Retrieves a description of the table hierarchies defined in a particular schema in this database.
-     * <p>
      * <P>Only supertable information for tables matching the catalog, schema and table name are returned. The table name parameter may be a fully-
      * qualified name, in which case, the catalog and schemaPattern parameters are ignored. If a table does not have a super table, it is not listed
      * here. Supertables have to be defined in the same catalog and schema as the sub tables. Therefore, the type description does not need to include
      * this information for the supertable.
-     * <p>
      * <P>Each type description has the following columns: <OL> <li><B>TABLE_CAT</B> String {@code =>} the type's catalog (may be <code>null</code>)
      * <li><B>TABLE_SCHEM</B> String {@code =>} type's schema (may be <code>null</code>) <li><B>TABLE_NAME</B> String {@code =>} type name
      * <li><B>SUPERTABLE_NAME</B> String {@code =>} the direct super type's name </OL>
-     * <p>
      * <P><B>Note:</B> If the driver does not support type hierarchies, an empty result set is returned.
      *
      * @param catalog a catalog name; "" retrieves those without a catalog; <code>null</code> means drop catalog name from the selection criteria
@@ -2291,11 +2241,9 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     /**
      * Retrieves a description of the given attribute of the given type for a user-defined type (UDT) that is available in the given schema and
      * catalog.
-     * <p>
      * Descriptions are returned only for attributes of UDTs matching the catalog, schema, type, and attribute name criteria. They are ordered by
      * <code>TYPE_CAT</code>, <code>TYPE_SCHEM</code>, <code>TYPE_NAME</code> and <code>ORDINAL_POSITION</code>. This description does not contain
      * inherited attributes.
-     * <p>
      * The <code>ResultSet</code> object that is returned has the following columns: <OL> <li><B>TYPE_CAT</B> String {@code =>} type catalog (may be
      * <code>null</code>) <li><B>TYPE_SCHEM</B> String {@code =>} type schema (may be <code>null</code>) <li><B>TYPE_NAME</B> String {@code =>} type
      * name <li><B>ATTR_NAME</B> String {@code =>} attribute name <li><B>DATA_TYPE</B> int {@code =>} attribute type SQL type from java.sql.Types
@@ -2401,10 +2349,8 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
 
     /**
      * Retrieves a description of the  system and user functions available in the given catalog.
-     * <p>
      * Only system and user function descriptions matching the schema and function name criteria are returned.  They are ordered by
      * <code>FUNCTION_CAT</code>, <code>FUNCTION_SCHEM</code>, <code>FUNCTION_NAME</code> and <code>SPECIFIC_ NAME</code>.
-     * <p>
      * <P>Each function description has the the following columns: <OL> <li><B>FUNCTION_CAT</B> String {@code =>} function catalog (may be
      * <code>null</code>) <li><B>FUNCTION_SCHEM</B> String {@code =>} function schema (may be <code>null</code>) <li><B>FUNCTION_NAME</B> String
      * {@code =>} function name.  This is the name used to invoke the function <li><B>REMARKS</B> String {@code =>} explanatory comment on the
@@ -2412,7 +2358,6 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      * table will be returned <li> functionNoTable- Does not return a table <li> functionReturnsTable - Returns a table </UL> <li><B>SPECIFIC_NAME</B>
      * String  {@code =>} the name which uniquely identifies this function within its schema.  This is a user specified, or DBMS generated, name that
      * may be different then the <code>FUNCTION_NAME</code> for example with overload functions </OL>
-     * <p>
      * A user may not have permission to execute any of the functions that are returned by <code>getFunctions</code>
      *
      * @param catalog a catalog name; must match the catalog name as it is stored in the database; "" retrieves those without a catalog;

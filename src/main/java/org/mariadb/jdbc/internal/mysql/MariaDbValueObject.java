@@ -66,9 +66,9 @@ import java.util.Calendar;
 
 /**
  * Contains the raw value returned from the server.
- * <p>
  * Is immutable
  */
+@SuppressWarnings("deprecation")
 public class MariaDbValueObject implements ValueObject {
     private final byte[] rawBytes;
     private final MariaDbType dataType;
