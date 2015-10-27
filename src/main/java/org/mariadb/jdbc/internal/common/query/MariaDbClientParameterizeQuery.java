@@ -58,18 +58,66 @@ import java.util.List;
 
 import static org.mariadb.jdbc.internal.common.Utils.createQueryParts;
 
-
+/**
+ * Client Parameterize query implementation.
+ *
+ * Example part :
+ * INSERT INTO MultiTestt3_dupp(col1, pkey,col2,col3,col4) VALUES (9, ?, 5, ?, 8) ON DUPLICATE KEY UPDATE pkey=pkey+10
+ * <ol>
+ * <li>queryParts array : [
+ * "INSERT INTO MultiTestt3_dupp(col1, pkey,col2,col3,col4) VALUES (9, ",
+ * ", 5, ",
+ * ", 8) ON DUPLICATE KEY UPDATE pkey=pkey+10"]</li>
+ * <li>rewriteFirstPart : "9, "</li>
+ * <li>rewriteRepeatLastPart : ", 8"</li>
+ * <li>rewriteNotRepeatLastPart : " ON DUPLICATE KEY UPDATE pkey=pkey+10"</li>
+ * <li></li>
+ * </ol>
+ * <p>if "allowMultiQueries" option active :
+ * Query will be rewritten as :
+ * queryParts[0]+parameter[0]+...queryParts[x]+parameter[x]+queryParts[x+1] + ";" + new query...
+ * "INSERT INTO MultiTestt3_dupp(col1, pkey,col2,col3,col4) VALUES (9, "+parameter0+", 5, "+parameter1+", 8) ON DUPLICATE KEY UPDATE pkey=pkey+10"</p>
+ * <p>if "rewriteBatchedStatements" option active :
+ * Query will be rewritten as :
+ * - queryParts[0]+parameter[0]+...queryParts[x]+parameter[x] + ... "("+rewriteFirstPart+parameter[0]+...queryParts[x]
+ * +parameter[x]-rewriteNotRepeatLastPart+")"+rewriteNotRepeatLastPart
+ * for the example
+ * "INSERT INTO MultiTestt3_dupp(col1, pkey,col2,col3,col4) VALUES (9, "+parameter0+", 5, "+parameter1+", 8)"+"("+"9, "+
+ * secondParameter0+", 5, "+secondParameter1"+", 8"+")"+" ON DUPLICATE KEY UPDATE pkey=pkey+10"
+ */
 public class MariaDbClientParameterizeQuery implements ParameterizeQuery {
 
     private ParameterHolder[] parameters;
     private int paramCount;
-    private String query;
     private byte[][] queryPartsArray;
 
     private byte[] rewriteFirstPart = null;
     private byte[] rewriteRepeatLastPart = null;
     private byte[] rewriteNotRepeatLastPart = null;
 
+    /**
+     * Return estimated query length.
+     * @return length
+     * @throws IOException if parameter approximated length launched exception (stream reading)
+     */
+    public int getQuerySize() throws IOException {
+        long size = queryPartsArray[0].length;
+        for (int i = 1; i < queryPartsArray.length; i++) {
+            size += parameters[i - 1].getApproximateTextProtocolLength();
+            if (queryPartsArray[i].length != 0) {
+                size += queryPartsArray[i].length;
+            }
+        }
+        return (int) size;
+    }
+
+    /**
+     * Return first identical length of all queries.
+     * @return length
+     */
+    public byte[] getRewriteFirstPart() {
+        return rewriteFirstPart;
+    }
 
     /**
      * Constructor.
@@ -79,7 +127,6 @@ public class MariaDbClientParameterizeQuery implements ParameterizeQuery {
      */
     public MariaDbClientParameterizeQuery(String query, boolean noBackslashEscapes, int rewriteOffset) {
         try {
-            this.query = query;
             List<String> queryParts = createQueryParts(query, noBackslashEscapes);
             if (rewriteOffset != -1) {
                 rewriteFirstPart = queryParts.get(0).substring(rewriteOffset + 1).getBytes("UTF-8");
@@ -117,7 +164,6 @@ public class MariaDbClientParameterizeQuery implements ParameterizeQuery {
             clientQuery.parameters[i] = parameters[i];
         }
         clientQuery.paramCount = paramCount;
-        clientQuery.query = query;
         clientQuery.queryPartsArray = queryPartsArray;
         clientQuery.rewriteFirstPart = rewriteFirstPart;
         clientQuery.rewriteRepeatLastPart = rewriteRepeatLastPart;
@@ -175,6 +221,7 @@ public class MariaDbClientParameterizeQuery implements ParameterizeQuery {
         }
     }
 
+
     /**
      * Write first common part into buffer.
      * @param os outputStream
@@ -207,6 +254,18 @@ public class MariaDbClientParameterizeQuery implements ParameterizeQuery {
     }
 
     /**
+     * Will return identical last part length.
+     * @return length
+     */
+    public int writeLastRewritePartLength() {
+        if (rewriteNotRepeatLastPart != null) {
+            return rewriteNotRepeatLastPart.length;
+        }
+        return 0;
+    }
+
+
+    /**
      * Write rewritable specific part of the query.
      * @param os outputStream
      * @param rewriteOffset for compatibility (not used)
@@ -230,6 +289,25 @@ public class MariaDbClientParameterizeQuery implements ParameterizeQuery {
         os.write(41); // ")" in UTF-8
     }
 
+    /**
+     * Will return rewrite part length.
+     * @param rewriteOffset the index position of content change between queries.
+     * @return length
+     * @throws IOException if parameter approximate length return exception
+     */
+    public int writeToRewritablePartLength(int rewriteOffset) throws IOException {
+        long length = 3 + rewriteFirstPart.length;
+        for (int i = 0; i < parameters.length; i++) {
+            length += parameters[i].getApproximateTextProtocolLength();
+            if (i < parameters.length - 1) {
+                length += queryPartsArray[i + 1].length;
+            } else {
+                length += rewriteRepeatLastPart.length;
+            }
+        }
+        return (int) length;
+    }
+
     private boolean containsNull(ParameterHolder[] parameters) {
         for (ParameterHolder ph : parameters) {
             if (ph == null) {
@@ -237,10 +315,6 @@ public class MariaDbClientParameterizeQuery implements ParameterizeQuery {
             }
         }
         return false;
-    }
-
-    public String getQuery() {
-        return query;
     }
 
     public byte[][] getQueryPartsArray() {
@@ -256,7 +330,16 @@ public class MariaDbClientParameterizeQuery implements ParameterizeQuery {
      * @return current sql String.
      */
     public String toString() {
-        StringBuffer sb = new StringBuffer("sql : '" + query + "'");
+        StringBuffer sb = new StringBuffer();
+
+        sb.append(new String(queryPartsArray[0]));
+        for (int i = 1; i < queryPartsArray.length; i++) {
+            sb.append("?");
+            if (queryPartsArray[i].length != 0) {
+                sb.append(new String(queryPartsArray[i]));
+            }
+        }
+
         if (parameters.length > 0) {
             sb.append(", parameters : [");
             for (int i = 0; i < parameters.length; i++) {

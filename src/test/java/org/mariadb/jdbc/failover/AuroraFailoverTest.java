@@ -512,7 +512,6 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
      */
     @Test
     public void socketTimeoutTest() throws SQLException {
-        int exceptionCount = 0;
         // set a short connection timeout
         connection = getNewConnection("&socketTimeout=4000", false);
 

@@ -52,8 +52,7 @@ OF SUCH DAMAGE.
 import java.nio.ByteBuffer;
 
 public class OkPacket extends ResultPacket {
-    @SuppressWarnings("unused")
-    private final byte fieldCount;
+
     private final long affectedRows;
     private final long insertId;
     private final short serverStatus;
@@ -66,7 +65,7 @@ public class OkPacket extends ResultPacket {
      */
     public OkPacket(ByteBuffer byteBuffer) {
         super(byteBuffer);
-        fieldCount = byteBuffer.get();
+        byteBuffer.get(); //fieldCount
         affectedRows = getLengthEncodedBinary();
         insertId = getLengthEncodedBinary();
         serverStatus = byteBuffer.getShort();

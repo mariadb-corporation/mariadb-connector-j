@@ -68,6 +68,10 @@ public class ByteParameter extends NotLongDataParameterHolder {
         os.write(String.valueOf(value).getBytes());
     }
 
+    public long getApproximateTextProtocolLength() {
+        return String.valueOf(value).getBytes().length * 2;
+    }
+
     public void writeBinary(PacketOutputStream writeBuffer) {
         writeBuffer.writeByte(value);
     }

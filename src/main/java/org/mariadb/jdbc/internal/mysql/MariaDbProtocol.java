@@ -51,15 +51,15 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.mysql;
 
 import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.MariaDbConnection;
+import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.ExceptionMapper;
 import org.mariadb.jdbc.internal.common.*;
 import org.mariadb.jdbc.internal.common.packet.*;
 import org.mariadb.jdbc.internal.common.packet.buffer.ReadUtil;
 import org.mariadb.jdbc.internal.common.packet.buffer.Reader;
-import org.mariadb.jdbc.internal.common.packet.commands.ClosePacket;
 import org.mariadb.jdbc.internal.common.packet.commands.ChangeDbPacket;
+import org.mariadb.jdbc.internal.common.packet.commands.ClosePacket;
 import org.mariadb.jdbc.internal.common.packet.commands.StreamedQueryPacket;
 import org.mariadb.jdbc.internal.common.query.MariaDbQuery;
 import org.mariadb.jdbc.internal.common.query.Query;
@@ -1037,6 +1037,8 @@ public class MariaDbProtocol implements Protocol {
 
     /**
      * Execute list of queries.
+     * This method is used when using text batch statement and using rewriting (allowMultiQueries || rewriteBatchedStatements).
+     * queries will be send to server according to max_allowed_packet size.
      *
      * @param queries list of queryes
      * @param streaming is streaming flag
@@ -1045,40 +1047,63 @@ public class MariaDbProtocol implements Protocol {
      * @return queryresult
      * @throws QueryException exception
      */
-    public QueryResult executeQuery(final List<Query> queries, boolean streaming, boolean isRewritable, int rewriteOffset) throws QueryException {
+    public QueryResult executeQuery(List<Query> queries, boolean streaming, boolean isRewritable, int rewriteOffset) throws QueryException {
         for (Query query : queries) {
             query.validate();
         }
         this.moreResults = false;
-        final StreamedQueryPacket packet = new StreamedQueryPacket(queries, isRewritable, rewriteOffset);
-        return executeQuery(queries, packet, streaming);
+        QueryResult result = null;
+
+        do {
+            final StreamedQueryPacket packet = new StreamedQueryPacket(queries, isRewritable, rewriteOffset);
+            int queriesSend = sendQuery(packet);
+            if (result == null) {
+                result = result(queries, streaming);
+            } else {
+                result.addResult(result(queries, streaming));
+            }
+
+            if (queries.size() == queriesSend) {
+                return result;
+            } else {
+                queries = queries.subList(queriesSend, queries.size());
+            }
+        } while (queries.size() > 0 );
+
+        return result;
     }
 
 
     private QueryResult executeQuery(Object queriesObj, StreamedQueryPacket packet, boolean streaming) throws QueryException {
+        sendQuery(packet);
+        return result(queriesObj, streaming);
+    }
+
+    private int sendQuery(StreamedQueryPacket packet)  throws QueryException {
         try {
-            packet.send(writer);
+            return packet.send(writer);
         } catch (MaxAllowedPacketException e) {
             if (e.isMustReconnect()) {
                 connect();
             }
-            throw new QueryException("Could not send query: " + e.getMessage(), -1,
-                    ExceptionMapper.SqlStates.INTERRUPTED_EXCEPTION.getSqlState(), e);
+            throw new QueryException("Could not send query: " + e.getMessage(), -1, ExceptionMapper.SqlStates.INTERRUPTED_EXCEPTION.getSqlState(), e);
         } catch (IOException e) {
-            throw new QueryException("Could not send query: " + e.getMessage(), -1,
-                    ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(), e);
+            throw new QueryException("Could not send query: " + e.getMessage(), -1, ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(), e);
         }
+    }
 
+    private QueryResult result(Object queriesObj, boolean streaming) throws QueryException {
         try {
             return getResult(queriesObj, streaming, false);
         } catch (QueryException qex) {
             if (qex.getCause() instanceof SocketTimeoutException) {
                 throw new QueryException("Connection timed out", -1, ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(), qex);
-            } else {
-                throw qex;
             }
+            throw qex;
         }
     }
+
+
 
     @Override
     public QueryResult getResult(Object queriesObj, boolean streaming, boolean binaryProtocol) throws QueryException {

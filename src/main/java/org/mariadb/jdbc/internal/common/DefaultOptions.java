@@ -309,7 +309,8 @@ public enum DefaultOptions {
 
     /**
      * useServerPrepStmts must prepared statements be prepared on server side, or just faked on client side.
-     * default to tue.
+     * if allowMultiQueries or rewriteBatchedStatements is set to true, this options will be set to false.
+     * default to true.
      */
     USESERVERPREPSTMTS("useServerPrepStmts", Boolean.TRUE, "1.3.0");
 

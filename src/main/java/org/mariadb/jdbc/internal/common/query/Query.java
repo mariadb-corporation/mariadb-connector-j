@@ -55,9 +55,13 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 public interface Query {
-    String getQuery();
+    int getQuerySize() throws IOException ;
 
     void writeTo(OutputStream os) throws IOException;
+
+    int writeLastRewritePartLength();
+
+    int writeToRewritablePartLength(int rewriteOffset) throws IOException;
 
     void writeFirstRewritePart(final OutputStream os) throws IOException;
 

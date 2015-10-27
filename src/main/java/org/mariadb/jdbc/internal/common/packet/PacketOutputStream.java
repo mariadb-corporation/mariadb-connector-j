@@ -22,6 +22,7 @@ public class PacketOutputStream extends OutputStream {
     int maxAllowedPacket;
     int maxPacketSize = MAX_PACKET_LENGTH;
     boolean checkPacketLength;
+    int maxRewritableLengthAllowed;
     boolean useCompression;
     private float increasing = 1.5f;
     private OutputStream outputStream;
@@ -214,13 +215,26 @@ public class PacketOutputStream extends OutputStream {
             int newCapacity = Math.max(len + buffer.position(), (int) (buffer.capacity() * increasing));
             increase(newCapacity);
         }
-        buffer.put(bytes, 0, len);
+        buffer.put(bytes, off, len);
     }
 
 
     @Override
     public void flush() throws IOException {
         throw new AssertionError("Do not call flush() on PacketOutputStream. use finishPacket() instead.");
+    }
+
+    /**
+     * Check that current buffer + length will not be superior to max_allowed_packet + header size.
+     * That permit to separate rewritable queries to be separate in multiple packet.
+     * @param length additionnal length
+     * @return true if with this additional length packet can be send in the same packet
+     */
+    public boolean checkRewritableLength(int length) {
+        if (checkPacketLength && buffer.position() + length > maxRewritableLengthAllowed) {
+            return false;
+        }
+        return true;
     }
 
     private void internalFlush() throws IOException {
@@ -353,6 +367,7 @@ public class PacketOutputStream extends OutputStream {
         this.maxAllowedPacket = maxAllowedPacket;
         if (maxAllowedPacket > 0) {
             maxPacketSize = Math.min(maxAllowedPacket - 1, MAX_PACKET_LENGTH);
+            maxRewritableLengthAllowed = (int) (maxAllowedPacket - 4 * Math.ceil(((double)maxAllowedPacket) / maxPacketSize));
         } else {
             maxPacketSize = MAX_PACKET_LENGTH;
         }

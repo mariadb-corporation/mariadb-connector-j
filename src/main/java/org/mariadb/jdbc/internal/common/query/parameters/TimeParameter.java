@@ -85,6 +85,10 @@ public class TimeParameter extends NotLongDataParameterHolder {
         ParameterWriter.writeTime(os, time, calendar, fractionalSeconds);
     }
 
+    public long getApproximateTextProtocolLength() throws IOException {
+        return 15;
+    }
+
     /**
      * Write time in binary format.
      * @param writeBuffer write buffer

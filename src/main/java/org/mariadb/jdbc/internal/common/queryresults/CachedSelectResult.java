@@ -63,6 +63,7 @@ public class CachedSelectResult extends SelectQueryResult {
     private List<ValueObject[]> resultSet;
     private int rowPointer;
 
+
     /**
      * Initialisation.
      * @param ci column informations
@@ -74,6 +75,18 @@ public class CachedSelectResult extends SelectQueryResult {
         this.resultSet = result;
         this.warningCount = warningCount;
         rowPointer = -1;
+    }
+
+    /**
+     * When using rewrite statement, there can be many insert/update command send to database, according to max_allowed_packet size.
+     * the result will be aggregate with this method to give only one result packet to client.
+     * @param other other QueryResult.
+     */
+    public void addResult(QueryResult other) {
+        if (other.prepareResult != null) {
+            prepareResult = other.prepareResult;
+        }
+        isClosed = other.isClosed();
     }
 
     /**

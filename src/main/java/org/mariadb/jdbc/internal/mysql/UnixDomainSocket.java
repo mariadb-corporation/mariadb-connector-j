@@ -28,11 +28,11 @@ public class UnixDomainSocket extends Socket {
         }
     }
 
-    String path;
-    InputStream is;
-    OutputStream os;
-    SockAddr sockaddr;
-    int fd;
+    private String path;
+    private InputStream is;
+    private OutputStream os;
+    private SockAddr sockaddr;
+    private int fd;
 
     public UnixDomainSocket(String path) throws IOException {
         if (Platform.isWindows() || Platform.isWindowsCE()) {

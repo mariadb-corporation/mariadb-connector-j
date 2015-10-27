@@ -59,17 +59,17 @@ import java.util.regex.Pattern;
 
 class CallableParameterMetaData implements ParameterMetaData {
 
-    static Pattern PARAMETER_PATTERN =
+    private static Pattern PARAMETER_PATTERN =
             Pattern.compile("\\s*(IN\\s+|OUT\\s+|INOUT\\s+)?([\\w\\d]+)\\s+(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*",
                     Pattern.CASE_INSENSITIVE);
-    static Pattern RETURN_PATTERN =
+    private static Pattern RETURN_PATTERN =
             Pattern.compile("\\s*(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*", Pattern.CASE_INSENSITIVE);
-    CallParameter[] params;
-    MariaDbConnection con;
-    String name;
-    boolean valid;
-    boolean isFunction;
-    boolean noAccessToMetadata;
+    private CallParameter[] params;
+    private MariaDbConnection con;
+    private String name;
+    private boolean valid;
+    private boolean isFunction;
+    private boolean noAccessToMetadata;
 
     public CallableParameterMetaData(CallParameter[] params, MariaDbConnection con, String name, boolean isFunction) {
         this.params = params;

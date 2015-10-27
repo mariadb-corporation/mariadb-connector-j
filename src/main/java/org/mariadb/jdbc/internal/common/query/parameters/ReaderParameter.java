@@ -52,13 +52,13 @@ package org.mariadb.jdbc.internal.common.query.parameters;
 import org.mariadb.jdbc.internal.common.packet.PacketOutputStream;
 import org.mariadb.jdbc.internal.mysql.MariaDbType;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.Reader;
+import java.io.*;
+import java.util.ArrayList;
 
 
 public class ReaderParameter extends LongDataParameterHolder {
     Reader reader;
+    ArrayList<char[]> readArrays = null;
     long length;
     boolean noBackslashEscapes;
 
@@ -84,12 +84,43 @@ public class ReaderParameter extends LongDataParameterHolder {
      * @throws IOException if any error occur when reading reader
      */
     public void writeTo(OutputStream os) throws IOException {
-        if (length == Long.MAX_VALUE) {
-            ParameterWriter.write(os, reader, noBackslashEscapes);
+        if (readArrays != null) {
+            ParameterWriter.write(os, readArrays, noBackslashEscapes);
         } else {
-            ParameterWriter.write(os, reader, length, noBackslashEscapes);
+            if (length == Long.MAX_VALUE) {
+                ParameterWriter.write(os, reader, noBackslashEscapes);
+            } else {
+                ParameterWriter.write(os, reader, length, noBackslashEscapes);
+            }
         }
     }
+
+    /**
+     * Return approximated data calculated length for rewriting queries
+     *
+     * @return approximated data length.
+     * @throws IOException if error reading stream
+     */
+    public long getApproximateTextProtocolLength() throws IOException {
+        if (length == Long.MAX_VALUE) {
+            readArrays = new ArrayList<>();
+            int length = 0;
+            int len;
+            char[] buffer = new char[1024];
+            while ((len = reader.read(buffer)) >= 0) {
+                readArrays.add(buffer);
+                buffer = new char[1024];
+                length += len;
+            }
+            reader = null;
+            //length * 2 due to escape done after
+            return 2 + length * 2;
+
+        } else {
+            return length;
+        }
+    }
+
 
     /**
      * Write reader to database in binary format.

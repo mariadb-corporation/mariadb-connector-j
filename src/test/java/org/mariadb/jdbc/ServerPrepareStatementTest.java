@@ -151,7 +151,7 @@ public class ServerPrepareStatementTest extends BaseTest {
             int prepareServerStatement = rs.getInt(2);
             log.debug("server side : " + prepareServerStatement);
 
-            PreparedStatement ps1 = connection.prepareStatement("INSERT INTO ServerPrepareStatementCacheSize3(test) "
+            connection.prepareStatement("INSERT INTO ServerPrepareStatementCacheSize3(test) "
                     + "VALUES (?)");
             rs = statement.executeQuery("show global status like 'Prepared_stmt_count'");
             rs.next();
@@ -213,11 +213,14 @@ public class ServerPrepareStatementTest extends BaseTest {
             ps.executeBatch();
 
             ResultSet rs = connection.createStatement().executeQuery("SELECT * from preparetestFactionnal");
-            rs.next();
-            //must be equal to time1 and not time0
-            assertEquals(rs.getTime(1), time1);
-            rs.next();
-            assertEquals(rs.getTime(1), time1);
+            if (rs.next()) {
+                //must be equal to time1 and not time0
+                assertEquals(rs.getTime(1), time1);
+                rs.next();
+                assertEquals(rs.getTime(1), time1);
+            } else {
+                fail("Error in query");
+            }
         } finally {
             connection.close();
         }
@@ -304,57 +307,59 @@ public class ServerPrepareStatementTest extends BaseTest {
         ps.addBatch();
         ps.executeBatch();
         ResultSet rs = sharedConnection.createStatement().executeQuery("SELECT * from preparetest");
-        rs.next();
-        assertEquals(rs.getBoolean(1), bit1);
-        assertEquals(rs.getByte(2), bit2);
-        assertEquals(rs.getByte(3), tinyint1);
-        assertEquals(rs.getShort(4), tinyint2);
-        assertEquals(rs.getBoolean(5), bool0);
-        assertEquals(rs.getShort(6), smallint0);
-        assertEquals(rs.getShort(7), smallintUnsigned);
-        assertEquals(rs.getInt(8), mediumint0);
-        assertEquals(rs.getInt(9), mediumintUnsigned);
-        assertEquals(rs.getInt(10), int0);
-        assertEquals(rs.getInt(11), intUnsigned);
-        assertEquals(rs.getInt(12), bigint0);
-        assertEquals(rs.getObject(13), bigintUnsigned);
-        assertEquals(rs.getFloat(14), float0, 10000);
-        assertEquals(rs.getDouble(15), double0, 10000);
-        assertEquals(rs.getBigDecimal(16), decimal0);
-        assertEquals(rs.getBigDecimal(17), decimal1);
-        Calendar cc = new GregorianCalendar();
-        cc.setTimeInMillis(date0.getTime());
-        System.out.println("date0 : " + date0.getTime() + " " + cc.get(Calendar.DAY_OF_MONTH) + " " + " "
-                + cc.get(Calendar.HOUR_OF_DAY));
-        cc.setTimeInMillis(date0.getTime());
-        System.out.println("rs.getDate(18) : " + rs.getDate(18).getTime() + " " + cc.get(Calendar.DAY_OF_MONTH)
-                + " " + " " + cc.get(Calendar.HOUR_OF_DAY));
-        assertEquals(rs.getDate(18), date0);
-        assertEquals(rs.getTimestamp(19), datetime0);
-        assertEquals(rs.getTimestamp(20), timestamp0);
-        assertEquals(rs.getTimestamp(21), timestamp1);
-        assertNull(rs.getTimestamp(22));
-        assertEquals(rs.getTime(23), time0);
-        if (isMariadbServer()) {
-            assertEquals(rs.getInt(24), year2);
-        } else {
-            if (minVersion(5, 6)) {
-                //year on 2 bytes is deprecated since 5.5.27
-                assertEquals(rs.getInt(24), 2030);
+        if (rs.next()) {
+            assertEquals(rs.getBoolean(1), bit1);
+            assertEquals(rs.getByte(2), bit2);
+            assertEquals(rs.getByte(3), tinyint1);
+            assertEquals(rs.getShort(4), tinyint2);
+            assertEquals(rs.getBoolean(5), bool0);
+            assertEquals(rs.getShort(6), smallint0);
+            assertEquals(rs.getShort(7), smallintUnsigned);
+            assertEquals(rs.getInt(8), mediumint0);
+            assertEquals(rs.getInt(9), mediumintUnsigned);
+            assertEquals(rs.getInt(10), int0);
+            assertEquals(rs.getInt(11), intUnsigned);
+            assertEquals(rs.getInt(12), bigint0);
+            assertEquals(rs.getObject(13), bigintUnsigned);
+            assertEquals(rs.getFloat(14), float0, 10000);
+            assertEquals(rs.getDouble(15), double0, 10000);
+            assertEquals(rs.getBigDecimal(16), decimal0);
+            assertEquals(rs.getBigDecimal(17), decimal1);
+            Calendar cc = new GregorianCalendar();
+            cc.setTimeInMillis(date0.getTime());
+            System.out.println("date0 : " + date0.getTime() + " " + cc.get(Calendar.DAY_OF_MONTH) + " " + " "
+                    + cc.get(Calendar.HOUR_OF_DAY));
+            cc.setTimeInMillis(date0.getTime());
+            System.out.println("rs.getDate(18) : " + rs.getDate(18).getTime() + " " + cc.get(Calendar.DAY_OF_MONTH)
+                    + " " + " " + cc.get(Calendar.HOUR_OF_DAY));
+            assertEquals(rs.getDate(18), date0);
+            assertEquals(rs.getTimestamp(19), datetime0);
+            assertEquals(rs.getTimestamp(20), timestamp0);
+            assertEquals(rs.getTimestamp(21), timestamp1);
+            assertNull(rs.getTimestamp(22));
+            assertEquals(rs.getTime(23), time0);
+            if (isMariadbServer()) {
+                assertEquals(rs.getInt(24), year2);
             } else {
-                assertEquals(rs.getInt(24), 30);
+                if (minVersion(5, 6)) {
+                    //year on 2 bytes is deprecated since 5.5.27
+                    assertEquals(rs.getInt(24), 2030);
+                } else {
+                    assertEquals(rs.getInt(24), 30);
+                }
             }
+            assertEquals(rs.getInt(25), year4);
+            assertEquals(rs.getString(26), char0);
+            assertEquals(rs.getString(27), charBinary);
+            assertEquals(rs.getString(28), varchar0);
+            assertEquals(rs.getString(29), varcharBinary);
+            assertEquals(new String(rs.getBytes(30), StandardCharsets.UTF_8),
+                    new String(binary0, StandardCharsets.UTF_8));
+            assertEquals(new String(rs.getBytes(31), StandardCharsets.UTF_8),
+                    new String(varbinary0, StandardCharsets.UTF_8));
+        } else {
+            fail();
         }
-        assertEquals(rs.getInt(25), year4);
-        assertEquals(rs.getString(26), char0);
-        assertEquals(rs.getString(27), charBinary);
-        assertEquals(rs.getString(28), varchar0);
-        assertEquals(rs.getString(29), varcharBinary);
-        assertEquals(new String(rs.getBytes(30), StandardCharsets.UTF_8),
-                new String(binary0, StandardCharsets.UTF_8));
-        assertEquals(new String(rs.getBytes(31), StandardCharsets.UTF_8),
-                new String(varbinary0, StandardCharsets.UTF_8));
-
     }
 
 

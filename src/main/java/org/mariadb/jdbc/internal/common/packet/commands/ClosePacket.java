@@ -58,9 +58,6 @@ import java.io.OutputStream;
 
 public class ClosePacket implements CommandPacket {
 
-    public ClosePacket() {
-    }
-
     /**
      * Send close packet to server.
      * @param os write outputStream

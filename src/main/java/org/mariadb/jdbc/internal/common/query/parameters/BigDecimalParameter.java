@@ -66,9 +66,10 @@ public class BigDecimalParameter extends NotLongDataParameterHolder {
         ParameterWriter.write(os, bigDecimal);
     }
 
-    /*public void writeBinary(PacketOutputStream outputStream) {
-        outputStream.writeStringLength(bigDecimal.toPlainString());
-    }*/
+    public long getApproximateTextProtocolLength() {
+        return bigDecimal.toPlainString().getBytes().length;
+    }
+
     public void writeBinary(PacketOutputStream writeBuffer) {
         writeBuffer.writeStringLength(bigDecimal.toPlainString());
     }

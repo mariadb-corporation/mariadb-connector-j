@@ -67,6 +67,10 @@ public class IntParameter extends NotLongDataParameterHolder {
         os.write(String.valueOf(value).getBytes());
     }
 
+    public long getApproximateTextProtocolLength() {
+        return String.valueOf(value).getBytes().length;
+    }
+
     public void writeBinary(PacketOutputStream writeBuffer) {
         writeBuffer.writeInt(value);
     }

@@ -41,7 +41,6 @@ public class SharedMemorySocket extends Socket {
     private Pointer view;
     private int bytesLeft;
     private int position;
-    private int connectNumber;
     private int timeout = Kernel32.INFINITE;
 
     /**
@@ -142,8 +141,7 @@ public class SharedMemorySocket extends Socket {
         try {
             is = new SharedMemoryInputStream();
             os = new SharedMemoryOutputStream();
-            connectNumber = getConnectNumber();
-            String prefix = memoryName + "_" + connectNumber;
+            String prefix = memoryName + "_" + getConnectNumber();
             clientRead = openEvent(prefix + "_CLIENT_READ");
             serverRead = openEvent(prefix + "_SERVER_READ");
             serverWrote = openEvent(prefix + "_SERVER_WROTE");

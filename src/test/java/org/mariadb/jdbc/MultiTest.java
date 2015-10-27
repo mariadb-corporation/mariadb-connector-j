@@ -216,14 +216,14 @@ public class MultiTest extends BaseTest {
     }
 
     /**
-     * CONJ-99: rewriteBatchedStatements parameter.
+     * Conj-99: rewriteBatchedStatements parameter.
      *
      * @throws SQLException exception
      */
     @Test
     public void rewriteBatchedStatementsDisabledInsertionTest() throws SQLException {
         log.debug("rewriteBatchedStatementsDisabledInsertionTest begin");
-        verifyInsertBehaviorBasedOnRewriteBatchedStatements(Boolean.FALSE, 3000);
+        verifyInsertBehaviorBasedOnRewriteBatchedStatements(Boolean.FALSE, 3000, 3000);
         log.debug("rewriteBatchedStatementsDisabledInsertionTest end");
     }
 
@@ -231,12 +231,33 @@ public class MultiTest extends BaseTest {
     public void rewriteBatchedStatementsEnabledInsertionTest() throws SQLException {
         log.debug("rewriteBatchedStatementsEnabledInsertionTest begin");
         //On batch mode, single insert query will be sent to MariaDB server.
-        verifyInsertBehaviorBasedOnRewriteBatchedStatements(Boolean.TRUE, 1);
+        verifyInsertBehaviorBasedOnRewriteBatchedStatements(Boolean.TRUE, 3000, 1);
         log.debug("rewriteBatchedStatementsEnabledInsertionTest end");
     }
 
+
+    /**
+     * Conj-206: rewriteBatchedStatements parameter take care of max_allowed_size.
+     *
+     * @throws SQLException exception
+     */
+    @Test
+    public void rewriteBatchedMaxAllowedSizeTest() throws SQLException {
+        log.debug("rewriteBatchedMaxAllowedSizeTest begin");
+        Statement st = sharedConnection.createStatement();
+        ResultSet rs = st.executeQuery("select @@max_allowed_packet");
+        rs.next();
+        double maxAllowedPacket = rs.getInt(1);
+        // request will be INSERT INTO MultiTestt6 VALUES ...(1000000, 'testValue1000000'),(1000001, 'testValue1000001')"
+        // average additional part size will be 30 characters (",(1000001, 'testValue1000001')")
+        // so there must be (8000000 * 30) / max_allowed_packet insert commands
+        int totalInsertCommands = (int) Math.ceil((1500000 * 30) / maxAllowedPacket );
+        verifyInsertBehaviorBasedOnRewriteBatchedStatements(Boolean.TRUE, 1500000, totalInsertCommands);
+        log.debug("rewriteBatchedMaxAllowedSizeTest end");
+    }
+
     private void verifyInsertBehaviorBasedOnRewriteBatchedStatements(Boolean rewriteBatchedStatements,
-                                                                     int totalInsertCommands) throws SQLException {
+                                                                     int cycles, int totalInsertCommands) throws SQLException {
         Properties props = new Properties();
         props.setProperty("rewriteBatchedStatements", rewriteBatchedStatements.toString());
         props.setProperty("allowMultiQueries", "true");
@@ -244,7 +265,6 @@ public class MultiTest extends BaseTest {
         try {
             tmpConnection = openNewConnection(connUri, props);
             verifyInsertCount(tmpConnection, 0);
-            int cycles = 3000;
             Statement statement = tmpConnection.createStatement();
             for (int i = 0; i < cycles; i++) {
                 statement.addBatch("INSERT INTO MultiTestt6 VALUES (" + i + ", 'testValue" + i + "')");
@@ -363,10 +383,11 @@ public class MultiTest extends BaseTest {
             sqlInsert.addBatch();
             updateCounts = sqlInsert.executeBatch();
 
-            // rewrite should NOT be possible. Therefore there should be 2 commands updating 1 row each.
-            Assert.assertEquals(2, updateCounts.length);
+            Assert.assertEquals(4, updateCounts.length);
             Assert.assertEquals(1, updateCounts[0]);
             Assert.assertEquals(1, updateCounts[1]);
+            Assert.assertEquals(1, updateCounts[2]);
+            Assert.assertEquals(1, updateCounts[3]);
 
             assertEquals(4, retrieveSessionVariableFromServer(tmpConnection, "Com_insert") - secondCurrentInsert);
 
@@ -541,10 +562,10 @@ public class MultiTest extends BaseTest {
 
             //Insert in prepare statement, cannot know the number og each one
             Assert.assertEquals(4, insertCounts.length);
-            Assert.assertEquals(1, insertCounts[0]);
-            Assert.assertEquals(0, insertCounts[1]);
-            Assert.assertEquals(1, insertCounts[2]);
-            Assert.assertEquals(1, insertCounts[3]);
+            Assert.assertEquals(Statement.SUCCESS_NO_INFO, insertCounts[0]);
+            Assert.assertEquals(Statement.SUCCESS_NO_INFO, insertCounts[1]);
+            Assert.assertEquals(Statement.SUCCESS_NO_INFO, insertCounts[2]);
+            Assert.assertEquals(Statement.SUCCESS_NO_INFO, insertCounts[3]);
 
 
             PreparedStatement sqlUpdate = tmpConnection.prepareStatement(

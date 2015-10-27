@@ -67,6 +67,8 @@ public abstract class ParameterHolder implements Cloneable {
      */
     public abstract void writeTo(OutputStream os) throws IOException;
 
+    public abstract long getApproximateTextProtocolLength() throws IOException;
+
     /**
      * Nice formatting of prepared statements using PreparedStatement.toString().
      * @return formatted value

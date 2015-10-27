@@ -7,6 +7,7 @@ import java.sql.*;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class MariaDbCompatibilityTest extends BaseTest {
     @BeforeClass()
@@ -30,8 +31,11 @@ public class MariaDbCompatibilityTest extends BaseTest {
         preparedStmt.close();
         ResultSet rs = stmt.executeQuery("SELECT * FROM datatypesTest");
         stmt.close();
-        rs.next();
-        assertEquals("longvarcharTest", rs.getString(1));
+        if (rs.next()) {
+            assertEquals("longvarcharTest", rs.getString(1));
+        } else {
+            fail();
+        }
     }
 
     /**

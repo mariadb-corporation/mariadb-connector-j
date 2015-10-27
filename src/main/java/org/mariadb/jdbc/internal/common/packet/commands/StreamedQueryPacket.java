@@ -92,39 +92,47 @@ public class StreamedQueryPacket implements CommandPacket {
 
     /**
      * Send queries to server.
-     * @param ostream write socket to server
-     * @return 0
+     * @param stream write socket to server
+     * @return number of send queries
      * @throws IOException if connection error occur
      * @throws QueryException when query rewrite error.
      */
-    public int send(final OutputStream ostream) throws IOException, QueryException {
-        PacketOutputStream pos = (PacketOutputStream) ostream;
+    public int send(final OutputStream stream) throws IOException, QueryException {
+        PacketOutputStream pos = (PacketOutputStream) stream;
         pos.startPacket(0);
         pos.write(0x03);
+        int queryNumberSend = 1;
         if (query != null) {
-            query.writeTo(ostream);
+            query.writeTo(stream);
         } else {
             if (queries.size() == 1) {
-                queries.get(0).writeTo(ostream);
+                queries.get(0).writeTo(stream);
             } else {
                 if (!isRewritable) {
-                    queries.get(0).writeTo(ostream);
+                    queries.get(0).writeTo(stream);
                     for (int i = 1; i < queries.size(); i++) {
-                        pos.write(';');
-                        queries.get(i).writeTo(ostream);
+                        if (pos.checkRewritableLength(queries.get(i).getQuerySize())) {
+                            pos.write(';');
+                            queries.get(i).writeTo(stream);
+                            queryNumberSend++;
+                        }
                     }
                 } else {
-                    queries.get(0).writeFirstRewritePart(ostream);
+                    queries.get(0).writeFirstRewritePart(stream);
+                    int lastPartLength = queries.get(0).writeLastRewritePartLength();
                     for (int i = 1; i < queries.size(); i++) {
-                        queries.get(i).writeToRewritablePart(ostream, rewriteOffset);
+                        if (pos.checkRewritableLength(queries.get(i).writeToRewritablePartLength(rewriteOffset) + lastPartLength)) {
+                            queries.get(i).writeToRewritablePart(stream, rewriteOffset);
+                            queryNumberSend++;
+                        }
                     }
-                    queries.get(0).writeLastRewritePart(ostream);
+                    queries.get(0).writeLastRewritePart(stream);
                 }
             }
         }
 
         pos.finishPacket();
-        return 0;
+        return queryNumberSend;
     }
 
 }

@@ -80,7 +80,7 @@ public interface ParameterizeQuery extends Query {
 
     ParameterHolder[] getParameters();
 
-    String getQuery();
-
     byte[][] getQueryPartsArray();
+
+    byte[] getRewriteFirstPart();
 }

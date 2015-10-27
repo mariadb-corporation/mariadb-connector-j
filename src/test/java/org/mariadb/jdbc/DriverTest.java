@@ -26,6 +26,8 @@ public class DriverTest extends BaseTest {
         createTable("tt1", "id int , name varchar(20)");
         createTable("tt2", "id int , name varchar(20)");
         createTable("Drivert2", "id int not null primary key auto_increment, test varchar(10)");
+        createTable("utente", "id int not null primary key auto_increment, test varchar(10)");
+
         createTable("Drivert3", "id int not null primary key auto_increment, test varchar(10)");
         createTable("Drivert30", "id int not null primary key auto_increment, test varchar(20)", "engine=innodb");
         createTable("Drivert4", "id int not null primary key auto_increment, test varchar(20)", "engine=innodb");
@@ -219,7 +221,7 @@ public class DriverTest extends BaseTest {
         assertEquals(1, rs.getInt(1));
         assertEquals(1, rs.getInt("insert_id"));
 
-        stmt.execute("INSERT INTO Drivert3 (test) VALUES ('aa')");
+        stmt.execute("INSERT INTO Drivert3 (test) VALUES ('aa')", Statement.RETURN_GENERATED_KEYS);
         rs = stmt.getGeneratedKeys();
         assertTrue(rs.next());
 
@@ -228,7 +230,7 @@ public class DriverTest extends BaseTest {
         
         
         /* multi-row inserts */
-        stmt.execute("INSERT INTO Drivert3 (test) VALUES ('bb'),('cc'),('dd')");
+        stmt.execute("INSERT INTO Drivert3 (test) VALUES ('bb'),('cc'),('dd')", Statement.RETURN_GENERATED_KEYS);
         rs = stmt.getGeneratedKeys();
         for (int i = 0; i < 3; i++) {
             assertTrue(rs.next());
@@ -254,6 +256,13 @@ public class DriverTest extends BaseTest {
             }
         }
     }
+
+    @Test
+    public void autoInc2Test() throws SQLException {
+        Statement stmt = sharedConnection.createStatement();
+        stmt.execute("ALTER TABLE `utente` AUTO_INCREMENT=1", Statement.RETURN_GENERATED_KEYS);
+    }
+
 
     @Test
     public void transactionTest() throws SQLException {
@@ -327,18 +336,6 @@ public class DriverTest extends BaseTest {
     @Test
     public void isValidTest() throws SQLException {
         assertEquals(true, sharedConnection.isValid(0));
-    }
-
-
-    @Test
-    public void testConnectNoDb() throws Exception {
-        Connection connection = null;
-        try {
-            connection = setConnection();
-            connection.close();
-        } finally {
-            connection.close();
-        }
     }
 
     @Test
@@ -504,12 +501,12 @@ public class DriverTest extends BaseTest {
         assertEquals(true, rsGen.next());
         assertEquals(1000, rsGen.getInt(1));
         stmt.execute("alter table test_big_autoinc2 auto_increment = " + Short.MAX_VALUE);
-        stmt.execute("insert into test_big_autoinc2 values (null, 'hej')");
+        stmt.execute("insert into test_big_autoinc2 values (null, 'hej')", Statement.RETURN_GENERATED_KEYS);
         rsGen = stmt.getGeneratedKeys();
         assertEquals(true, rsGen.next());
         assertEquals(Short.MAX_VALUE, rsGen.getInt(1));
         stmt.execute("alter table test_big_autoinc2 auto_increment = " + Integer.MAX_VALUE);
-        stmt.execute("insert into test_big_autoinc2 values (null, 'hej')");
+        stmt.execute("insert into test_big_autoinc2 values (null, 'hej')", Statement.RETURN_GENERATED_KEYS);
         rsGen = stmt.getGeneratedKeys();
         assertEquals(true, rsGen.next());
         assertEquals(Integer.MAX_VALUE, rsGen.getInt(1));
@@ -631,32 +628,35 @@ public class DriverTest extends BaseTest {
         ps.execute();
 
         ResultSet rs = sharedConnection.createStatement().executeQuery("select * from objecttest");
-        assertEquals(true, rs.next());
-        Object theInt = rs.getObject(1);
-        assertTrue(theInt instanceof Integer);
-        Object theInt2 = rs.getObject("int_test");
-        assertTrue(theInt2 instanceof Integer);
-        Object theString = rs.getObject(2);
-        assertTrue(theString instanceof String);
-        Object theTimestamp = rs.getObject(3);
-        assertTrue(theTimestamp instanceof Timestamp);
-        Object theBlob = rs.getObject(4);
-        assertNotNull(theBlob);
+        if (rs.next()) {
+            Object theInt = rs.getObject(1);
+            assertTrue(theInt instanceof Integer);
+            Object theInt2 = rs.getObject("int_test");
+            assertTrue(theInt2 instanceof Integer);
+            Object theString = rs.getObject(2);
+            assertTrue(theString instanceof String);
+            Object theTimestamp = rs.getObject(3);
+            assertTrue(theTimestamp instanceof Timestamp);
+            Object theBlob = rs.getObject(4);
+            assertNotNull(theBlob);
 
-        byte[] rawBytes = rs.getBytes(4);
-        ByteArrayInputStream bais = new ByteArrayInputStream(rawBytes);
-        ObjectInputStream ois = new ObjectInputStream(bais);
-        SerializableClass sc = (SerializableClass) ois.readObject();
+            byte[] rawBytes = rs.getBytes(4);
+            ByteArrayInputStream bais = new ByteArrayInputStream(rawBytes);
+            ObjectInputStream ois = new ObjectInputStream(bais);
+            SerializableClass sc = (SerializableClass) ois.readObject();
 
-        assertEquals(sc.getVal(), "testing");
-        assertEquals(sc.getVal2(), 8);
-        rawBytes = rs.getBytes("serial_test");
-        bais = new ByteArrayInputStream(rawBytes);
-        ois = new ObjectInputStream(bais);
-        sc = (SerializableClass) ois.readObject();
+            assertEquals(sc.getVal(), "testing");
+            assertEquals(sc.getVal2(), 8);
+            rawBytes = rs.getBytes("serial_test");
+            bais = new ByteArrayInputStream(rawBytes);
+            ois = new ObjectInputStream(bais);
+            sc = (SerializableClass) ois.readObject();
 
-        assertEquals(sc.getVal(), "testing");
-        assertEquals(sc.getVal2(), 8);
+            assertEquals(sc.getVal(), "testing");
+            assertEquals(sc.getVal2(), 8);
+        } else {
+            fail();
+        }
     }
 
     @Test
@@ -747,18 +747,26 @@ public class DriverTest extends BaseTest {
         ps.setBinaryStream(1, is);
         ps.execute();
         ResultSet rs = sharedConnection.createStatement().executeQuery("select bin1 from bintest2");
-        assertEquals(true, rs.next());
-        byte[] buf2 = rs.getBytes(1);
-        for (int i = 0; i < 1000000; i++) {
-            assertEquals((byte) i, buf2[i]);
-        }
+        if (rs.next()) {
+            byte[] buf2 = rs.getBytes(1);
+            for (int i = 0; i < 1000000; i++) {
+                assertEquals((byte) i, buf2[i]);
+            }
 
-        assertEquals(true, rs.next());
-        buf2 = rs.getBytes(1);
-        for (int i = 0; i < 1000000; i++) {
-            assertEquals((byte) i, buf2[i]);
+            if (rs.next()) {
+                buf2 = rs.getBytes(1);
+                for (int i = 0; i < 1000000; i++) {
+                    assertEquals((byte) i, buf2[i]);
+                }
+                if (rs.next()) {
+                    fail();
+                }
+            } else {
+                fail();
+            }
+        } else {
+            fail();
         }
-        assertEquals(false, rs.next());
     }
 
     @Test(expected = SQLIntegrityConstraintViolationException.class)

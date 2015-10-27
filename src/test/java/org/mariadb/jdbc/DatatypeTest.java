@@ -16,7 +16,7 @@ import static org.junit.Assert.assertEquals;
 
 public class DatatypeTest extends BaseTest {
 
-    ResultSet resultSet;
+    private     ResultSet resultSet;
 
     /**
      * Initialisation.

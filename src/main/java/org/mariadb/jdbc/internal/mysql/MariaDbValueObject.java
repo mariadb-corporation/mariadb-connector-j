@@ -719,7 +719,7 @@ public class MariaDbValueObject implements ValueObject {
             java.util.Date utilDate = sdf.parse(rawValue);
             return new Date(utilDate.getTime());
         } else {
-            return binaryDate(cal);
+            return binaryDate();
         }
     }
 
@@ -780,16 +780,13 @@ public class MariaDbValueObject implements ValueObject {
         }
     }
 
-    private Date binaryDate(Calendar cal) throws ParseException {
+    private Date binaryDate() throws ParseException {
         if (rawBytes.length == 0) {
             return null;
         }
-        int year = 1970;
-        int month = 1;
-        int day = 1;
-        int hour = 0;
-        int minutes = 0;
-        int seconds = 0;
+        int year;
+        int month;
+        int day;
 
         year = ((rawBytes[0] & 0xff) | (rawBytes[1] & 0xff) << 8);
         month = rawBytes[2];
@@ -819,11 +816,7 @@ public class MariaDbValueObject implements ValueObject {
         if (rawBytes.length == 0) {
             return null;
         }
-        boolean negative = (rawBytes[0] == 0x01);
-        int day = ((rawBytes[1] & 0xff)
-                | ((rawBytes[2] & 0xff) << 8)
-                | ((rawBytes[3] & 0xff) << 16)
-                | ((rawBytes[4] & 0xff) << 24));
+
         Calendar calendar = Calendar.getInstance();
         calendar.clear();
         if (options.useLegacyDatetimeCode) {
@@ -852,9 +845,9 @@ public class MariaDbValueObject implements ValueObject {
         if (rawBytes.length == 0) {
             return null;
         }
-        int year = 1970;
-        int month = 1;
-        int day = 1;
+        int year;
+        int month;
+        int day;
         int hour = 0;
         int minutes = 0;
         int seconds = 0;

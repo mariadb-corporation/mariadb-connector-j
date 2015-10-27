@@ -76,7 +76,7 @@ public class ParserTest extends BaseTest {
                 assertEquals(count, rs.getInt(2));
             }
         } catch (SQLException e) {
-            assertTrue(false);
+            fail();
         }
     }
 }

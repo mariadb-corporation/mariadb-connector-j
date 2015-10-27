@@ -80,10 +80,12 @@ public final class RawPacket {
      * Get the next packet from the stream
      *
      * @param is the input stream to read the next packet from
+     * @param headerBuffer reusable headBuffer
+     * @param reusableBuffer reusable main buffer
      * @return The next packet from the stream, or NULL if the stream is closed
      * @throws java.io.IOException if an error occurs while reading data
      */
-    static ByteBuffer nextBuffer(final InputStream is, byte[] headerBuffer, byte[] reusableBuffer) throws IOException {
+    public static ByteBuffer nextBuffer(final InputStream is, byte[] headerBuffer, byte[] reusableBuffer) throws IOException {
         ReadUtil.readFully(is, headerBuffer, 0, 4);
         int length = (headerBuffer[0] & 0xff) + ((headerBuffer[1] & 0xff) << 8) + ((headerBuffer[2] & 0xff) << 16);
 
@@ -98,7 +100,15 @@ public final class RawPacket {
         return ByteBuffer.wrap(rawBytes, 0, length).order(ByteOrder.LITTLE_ENDIAN);
     }
 
-    static RawPacket nextPacket(final InputStream is, byte[] headerBuffer, byte[] reusableBuffer) throws IOException {
+    /**
+     * Fetch next packet.
+     * @param is inputStream
+     * @param headerBuffer reusable headBuffer
+     * @param reusableBuffer reusable main buffer
+     * @return result in a rawPAcket
+     * @throws IOException if a connection error occur
+     */
+    public static RawPacket nextPacket(final InputStream is, byte[] headerBuffer, byte[] reusableBuffer) throws IOException {
         ReadUtil.readFully(is, headerBuffer, 0, 4);
 
         int length = (headerBuffer[0] & 0xff) + ((headerBuffer[1] & 0xff) << 8) + ((headerBuffer[2] & 0xff) << 16);

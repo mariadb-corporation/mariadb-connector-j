@@ -597,11 +597,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
 
         try {
             reconnectFailedConnection(new SearchFilter(true, true, true, true));
-            if (!isSecondaryHostFail()) {
-//                if (log.isDebugEnabled())
-//                    log.debug("SQL Secondary node [" + this.masterProtocol.getHostAddress().toString() + "] connection re-established");
-            } else {
-//                log.debug("switching to master connection");
+            if (isSecondaryHostFail()) {
                 syncConnection(this.secondaryProtocol, this.masterProtocol);
                 proxy.lock.lock();
                 try {
@@ -623,8 +619,8 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
      * @throws QueryException exception
      */
     public void checkMasterStatus(SearchFilter searchFilter) throws QueryException {
-        if (masterProtocol != null && masterProtocol.ping()) {
-//            log.trace("PingLoop master ping ok");
+        if (masterProtocol != null) {
+            masterProtocol.ping();
         }
     }
 

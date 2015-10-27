@@ -68,6 +68,11 @@ public class FloatParameter extends NotLongDataParameterHolder {
         os.write(String.valueOf(value).getBytes());
     }
 
+    public long getApproximateTextProtocolLength() {
+        return String.valueOf(value).getBytes().length;
+    }
+
+
     public void writeBinary(PacketOutputStream writeBuffer) {
         writeBuffer.writeInt(Float.floatToIntBits(value));
     }

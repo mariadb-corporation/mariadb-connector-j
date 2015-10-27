@@ -91,6 +91,11 @@ public class DateParameter extends NotLongDataParameterHolder {
         ParameterWriter.writeDate(os, calendar);
     }
 
+    public long getApproximateTextProtocolLength() {
+        return 16;
+    }
+
+
     /**
      * Write to server OutputStream in binary protocol.
      *

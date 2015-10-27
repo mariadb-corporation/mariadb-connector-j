@@ -7,7 +7,6 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
 public class LocalInfilePacket extends ResultPacket {
-    private long fieldCount;
     private String fileName;
 
     /**
@@ -17,7 +16,7 @@ public class LocalInfilePacket extends ResultPacket {
     public LocalInfilePacket(ByteBuffer byteBuffer) {
         super(byteBuffer);
         final Reader reader = new Reader(byteBuffer);
-        fieldCount = reader.getLengthEncodedBinary();
+        long fieldCount = reader.getLengthEncodedBinary();
         if (fieldCount != -1) {
             throw new AssertionError("field count must be -1");
         }

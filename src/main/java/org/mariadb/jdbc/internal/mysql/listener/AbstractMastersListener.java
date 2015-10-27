@@ -244,7 +244,7 @@ public abstract class AbstractMastersListener implements Listener {
         HandleErrorResult handleErrorResult = new HandleErrorResult(true);
         if (method != null) {
             if ("executeQuery".equals(method.getName())) {
-                String query = ((Query) args[0]).getQuery().toUpperCase();
+                String query = ((Query) args[0]).toString().toUpperCase();
                 if (!query.equals("ALTER SYSTEM CRASH")
                         && !query.startsWith("KILL")) {
                     handleErrorResult.resultObject = method.invoke(currentProtocol, args);

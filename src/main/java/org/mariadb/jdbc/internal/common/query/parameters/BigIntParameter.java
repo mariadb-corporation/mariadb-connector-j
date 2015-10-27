@@ -69,6 +69,11 @@ public class BigIntParameter extends NotLongDataParameterHolder {
         ParameterWriter.write(os, value);
     }
 
+    public long getApproximateTextProtocolLength() {
+        return value.toPlainString().getBytes().length;
+    }
+
+
     public void writeBinary(PacketOutputStream writeBuffer) {
         writeBuffer.writeStringLength(value.toPlainString());
     }

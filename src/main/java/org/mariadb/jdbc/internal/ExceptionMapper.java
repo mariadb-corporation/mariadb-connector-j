@@ -82,6 +82,30 @@ public class ExceptionMapper {
         throw sqlException;
     }
 
+    /**
+     * Helper to create exception from queryException.
+     * @param exception exception
+     * @param connection current connection
+     * @param statement current statement
+     * @return SQLException exception
+     */
+    public static SQLException createException(QueryException exception, MariaDbConnection connection, java.sql.Statement statement) {
+        SQLException sqlException = get(exception);
+        String sqlState = exception.getSqlState();
+        SqlStates state = SqlStates.fromString(sqlState);
+        if (connection != null) {
+            if (state.equals(SqlStates.CONNECTION_EXCEPTION)) {
+                connection.setHostFailed();
+                if (connection.pooledConnection != null) {
+                    connection.pooledConnection.fireConnectionErrorOccured(sqlException);
+                }
+            } else if (connection.pooledConnection != null && statement != null) {
+                connection.pooledConnection.fireStatementErrorOccured(statement, sqlException);
+            }
+        }
+        return sqlException;
+    }
+
     private static SQLException get(final QueryException exception) {
         final String sqlState = exception.getSqlState();
         final SqlStates state = SqlStates.fromString(sqlState);

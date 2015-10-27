@@ -67,6 +67,9 @@ public class ShortParameter extends NotLongDataParameterHolder {
         os.write(String.valueOf(value).getBytes());
     }
 
+    public long getApproximateTextProtocolLength() throws IOException {
+        return String.valueOf(value).getBytes().length;
+    }
 
     public void writeBinary(PacketOutputStream writeBuffer) {
         writeBuffer.writeShort(value);

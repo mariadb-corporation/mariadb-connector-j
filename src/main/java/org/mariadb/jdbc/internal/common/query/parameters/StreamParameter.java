@@ -55,12 +55,14 @@ import org.mariadb.jdbc.internal.mysql.MariaDbType;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 
 
 public class StreamParameter extends LongDataParameterHolder {
     InputStream is;
     long length;
     boolean noBackslashEscapes;
+    ArrayList<byte[]> readArrays = null;
 
     /**
      * Constructor.
@@ -84,10 +86,40 @@ public class StreamParameter extends LongDataParameterHolder {
      * @throws IOException if any error occur when reader stream
      */
     public void writeTo(final OutputStream os) throws IOException {
-        if (length == Long.MAX_VALUE) {
-            ParameterWriter.write(os, is, noBackslashEscapes);
+        if (readArrays != null) {
+            ParameterWriter.writeBytesArray(os, readArrays, noBackslashEscapes);
         } else {
-            ParameterWriter.write(os, is, length, noBackslashEscapes);
+            if (length == Long.MAX_VALUE) {
+                ParameterWriter.write(os, is, noBackslashEscapes);
+            } else {
+                ParameterWriter.write(os, is, length, noBackslashEscapes);
+            }
+        }
+    }
+
+    /**
+     * Return approximated data calculated length.
+     *
+     * @return approximated data length.
+     * @throws IOException if error reading stream
+     */
+    public long getApproximateTextProtocolLength() throws IOException {
+        if (length == Long.MAX_VALUE) {
+            readArrays = new ArrayList<>();
+            int length = 0;
+            int len;
+            byte[] buffer = new byte[1024];
+            while ((len = is.read(buffer)) >= 0) {
+                readArrays.add(buffer);
+                buffer = new byte[1024];
+                length += len;
+            }
+            is = null;
+            //length * 2 due to escape done after
+            return 2 + length * 2;
+
+        } else {
+            return length;
         }
     }
 

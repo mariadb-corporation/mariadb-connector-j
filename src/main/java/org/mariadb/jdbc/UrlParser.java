@@ -115,7 +115,7 @@ public class UrlParser {
     }
 
 
-    static boolean acceptsUrl(String url) {
+    public static boolean acceptsUrl(String url) {
         return (url != null) && (url.startsWith("jdbc:mariadb:") || url.startsWith("jdbc:mysql:"));
 
     }

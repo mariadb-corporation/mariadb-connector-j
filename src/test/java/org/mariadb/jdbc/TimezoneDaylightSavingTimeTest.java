@@ -275,8 +275,6 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
             st.setTime(2, timeParis2);
             ResultSet rs = st.executeQuery();
             rs.next();
-            Time t1 = rs.getTime(1);
-            Time t2 = timeParis;
             assertEquals(rs.getTime(1).getTime(), timeParis.getTime());
             assertEquals(rs.getTime(1), timeParis);
             assertEquals(rs.getTime(2).getTime(), timeParis2.getTime());

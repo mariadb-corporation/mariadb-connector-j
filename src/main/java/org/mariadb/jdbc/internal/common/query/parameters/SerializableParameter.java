@@ -61,15 +61,41 @@ import java.io.OutputStream;
 public class SerializableParameter extends LongDataParameterHolder {
     Object object;
     boolean noBackSlashEscapes;
+    byte[] loadedStream = null;
 
     public SerializableParameter(Object object, boolean noBackslashEscapes) throws IOException {
         this.object = object;
         this.noBackSlashEscapes = noBackslashEscapes;
     }
 
+    /**
+     * Write object to buffer for text protocol.
+     * @param os the stream to write to
+     * @throws IOException if error reading stream
+     */
     public void writeTo(OutputStream os) throws IOException {
-        ParameterWriter.writeObject(os, object, noBackSlashEscapes);
+        if (loadedStream != null) {
+            ParameterWriter.write(os, loadedStream, noBackSlashEscapes);
+        } else {
+            ParameterWriter.writeObject(os, object, noBackSlashEscapes);
+        }
     }
+
+    /**
+     * Return approximated data calculated length.
+     *
+     * @return approximated data length.
+     * @throws IOException if error reading stream
+     */
+    public long getApproximateTextProtocolLength() throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ObjectOutputStream oos = new ObjectOutputStream(baos);
+        oos.writeObject(object);
+        loadedStream = baos.toByteArray();
+        object = null;
+        return loadedStream.length;
+    }
+
 
     /**
      * Write data in binary format to buffer.

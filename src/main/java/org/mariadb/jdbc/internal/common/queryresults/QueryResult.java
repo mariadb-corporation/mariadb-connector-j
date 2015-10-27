@@ -53,8 +53,13 @@ import org.mariadb.jdbc.internal.mysql.ColumnInformation;
 
 
 public abstract class QueryResult {
-    private PrepareResult prepareResult = null;
-    private boolean isClosed;
+    protected PrepareResult prepareResult = null;
+    protected boolean isClosed;
+
+    public QueryResult() {
+    }
+
+    public abstract void addResult(QueryResult other) ;
 
     public abstract ResultSetType getResultSetType();
 
@@ -63,7 +68,7 @@ public abstract class QueryResult {
     }
 
     public void setFailureObject(PrepareResult resultObject) {
-        this.prepareResult = prepareResult;
+        this.prepareResult = resultObject;
     }
 
     public void close() {

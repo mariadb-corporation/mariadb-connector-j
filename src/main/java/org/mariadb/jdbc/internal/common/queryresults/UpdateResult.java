@@ -53,8 +53,8 @@ import org.mariadb.jdbc.internal.mysql.ColumnInformation;
 
 
 public class UpdateResult extends ModifyQueryResult {
-    private final long updateCount;
-    private final short warnings;
+    private long updateCount;
+    private short warnings;
     private final String message;
     private final long insertId;
 
@@ -70,6 +70,23 @@ public class UpdateResult extends ModifyQueryResult {
         this.warnings = warnings;
         this.message = message;
         this.insertId = insertId;
+    }
+
+    /**
+     * When using rewrite statement, there can be many insert/update command send to database, according to max_allowed_packet size.
+     * the result will be aggregate with this method to give only one result packet to client.
+     * @param other other QueryResult.
+     */
+    public void addResult(QueryResult other) {
+        if (other.prepareResult != null) {
+            prepareResult = other.prepareResult;
+        }
+        isClosed = other.isClosed();
+        if (other instanceof UpdateResult) {
+            UpdateResult updateResult = (UpdateResult) other;
+            this.updateCount += updateResult.getUpdateCount();
+            this.warnings += updateResult.getWarnings();
+        }
     }
 
     public long getUpdateCount() {

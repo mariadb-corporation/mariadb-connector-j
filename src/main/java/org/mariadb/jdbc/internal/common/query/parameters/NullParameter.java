@@ -71,6 +71,11 @@ public class NullParameter extends ParameterHolder {
         os.write(NULL);
     }
 
+    public long getApproximateTextProtocolLength() {
+        return 4;
+    }
+
+
     @Override
     public boolean isLongData() {
         return false;

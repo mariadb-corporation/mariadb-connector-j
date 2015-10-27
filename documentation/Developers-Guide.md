@@ -76,4 +76,4 @@ Please detail the operation done in your request.
 
 ## License
 
-Distributed under the terms of the LGPL License (AGPL).
+Distributed under the terms of the GNU Library or "Lesser" General Public License (LGPL).

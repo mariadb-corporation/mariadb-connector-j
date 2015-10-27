@@ -69,6 +69,11 @@ public class ByteArrayParameter extends NotLongDataParameterHolder {
         ParameterWriter.write(os, bytes, noBackslashEscapes);
     }
 
+
+    public long getApproximateTextProtocolLength() {
+        return bytes.length * 2;
+    }
+
     public void writeBinary(PacketOutputStream writeBuffer) {
         writeBuffer.writeByteArrayLength(bytes);
     }

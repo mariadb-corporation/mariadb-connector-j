@@ -61,13 +61,28 @@ public class LocalInfileInputStreamTest extends BaseTest {
     public void testLocalInfile() throws SQLException {
         Statement st = sharedConnection.createStatement();
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-        st.executeUpdate("LOAD DATA LOCAL INFILE '" + classLoader.getResource("test.txt").getPath()
-                + "' INTO TABLE tt_local "
-                + "  FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"'"
-                + "  LINES TERMINATED BY '\\n' "
-                + "  (id, test)");
+        ResultSet rs = st.executeQuery("select @@version_compile_os");
+        if (!rs.next()) {
+            return;
+        }
 
-        ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM tt_local");
+        String os = rs.getString(1);
+        if (os.toLowerCase().startsWith("win")) {
+            st.executeUpdate("LOAD DATA LOCAL INFILE '" + classLoader.getResource("test.txt").getPath()
+                    + "' INTO TABLE tt_local "
+                    + "  FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"'"
+                    + "  LINES TERMINATED BY '\\r\\n' "
+                    + "  (id, test)");
+        } else {
+            st.executeUpdate("LOAD DATA LOCAL INFILE '" + classLoader.getResource("test.txt").getPath()
+                    + "' INTO TABLE tt_local "
+                    + "  FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"'"
+                    + "  LINES TERMINATED BY '\\n' "
+                    + "  (id, test)");
+        }
+
+
+        rs = st.executeQuery("SELECT COUNT(*) FROM tt_local");
         boolean next = rs.next();
 
         Assert.assertTrue(next);

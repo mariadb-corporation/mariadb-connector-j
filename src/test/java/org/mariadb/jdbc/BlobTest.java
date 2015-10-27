@@ -9,6 +9,7 @@ import java.sql.*;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class BlobTest extends BaseTest {
     /**
@@ -126,11 +127,15 @@ public class BlobTest extends BaseTest {
         stmt.setClob(2, new StringReader(clob));
         stmt.execute();
         ResultSet rs = sharedConnection.createStatement().executeQuery("select * from BlobTestclobtest");
-        rs.next();
-        Reader readStuff = rs.getClob("strm").getCharacterStream();
-        char[] chars = new char[5];
-        readStuff.read(chars);
-        assertEquals(new String(chars), clob);
+        if (rs.next()) {
+            Reader readStuff = rs.getClob("strm").getCharacterStream();
+            char[] chars = new char[5];
+            readStuff.read(chars);
+            assertEquals(new String(chars), clob);
+        } else {
+            fail();
+        }
+
     }
 
     @Test

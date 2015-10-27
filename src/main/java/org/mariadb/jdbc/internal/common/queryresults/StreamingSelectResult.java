@@ -14,13 +14,13 @@ import java.nio.ByteBuffer;
 
 public class StreamingSelectResult extends SelectQueryResult {
     public ValueObject[] values;
-    PacketFetcher packetFetcher;
-    MariaDbProtocol protocol;
-    Options options;
-    boolean isEof;
-    boolean beforeFirst;
-    boolean binaryProtocol;
-    RowPacket rowPacket;
+    private PacketFetcher packetFetcher;
+    private MariaDbProtocol protocol;
+    private Options options;
+    private boolean isEof;
+    private boolean beforeFirst;
+    private boolean binaryProtocol;
+    private RowPacket rowPacket;
 
 
     /**
@@ -45,6 +45,10 @@ public class StreamingSelectResult extends SelectQueryResult {
         } else {
             rowPacket = new TextRowPacket(columnInformation, options, columnInformationLength);
         }
+    }
+
+    public void addResult(QueryResult other) {
+
     }
 
     /**

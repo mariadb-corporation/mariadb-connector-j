@@ -71,7 +71,6 @@ public final class ReadUtil {
      *                             java.io.EOFException of end of stream is hit.
      */
     public static void readFully(InputStream stream, byte[] bytes, int off, int len) throws IOException {
-        long start = System.nanoTime();
         int remaining = len;
         do {
             int count = stream.read(bytes, off, remaining);

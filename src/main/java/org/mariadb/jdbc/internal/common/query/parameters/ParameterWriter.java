@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 
 /**
@@ -142,6 +143,21 @@ public class ParameterWriter {
     }
 
     /**
+     * Write cached reader char array to buffer.
+     * @param out output buffer
+     * @param readArrays cache char array
+     * @param noBackslashEscapes backslash must be escape flag
+     * @throws IOException if error occur when writing to buffer
+     */
+    public static void write(OutputStream out, ArrayList<char[]> readArrays, boolean noBackslashEscapes) throws IOException {
+        out.write(QUOTE);
+        for (char[] charArray : readArrays) {
+            writeBytesEscaped(out, new String(charArray, 0, charArray.length).getBytes("UTF-8"), noBackslashEscapes);
+        }
+        out.write(QUOTE);
+    }
+
+    /**
      * Write reader in text format.
      * @param out database stream
      * @param reader reader to write
@@ -187,6 +203,22 @@ public class ParameterWriter {
     public static void write(OutputStream out, BigDecimal bd) throws IOException {
         out.write(bd.toPlainString().getBytes());
     }
+
+    /**
+     * Write cache byte array to buffer.
+     * @param out buffer
+     * @param readArrays cache byte array
+     * @param noBackslashEscapes must escape backslash flag
+     * @throws IOException if error occur writing buffer
+     */
+    public static void writeBytesArray(OutputStream out, ArrayList<byte[]> readArrays, boolean noBackslashEscapes) throws IOException {
+        out.write(QUOTE);
+        for (byte[] buffer : readArrays) {
+            writeBytesEscaped(out, buffer, buffer.length, noBackslashEscapes);
+        }
+        out.write(QUOTE);
+    }
+
 
     /**
      * Write date in text format.
