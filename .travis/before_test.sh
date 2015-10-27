@@ -29,7 +29,7 @@ remove_mysql(){
     sudo rm -rf /var/lib/mysql||true
 }
 
-if [ "x$MYSQL_VERSION" == "x5.6" ]
+if [ -n "$MYSQL_VERSION" ]
 then
 
     remove_mysql
