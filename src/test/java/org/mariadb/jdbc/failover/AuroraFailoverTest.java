@@ -1,7 +1,7 @@
 package org.mariadb.jdbc.failover;
 
 import org.junit.*;
-import org.mariadb.jdbc.internal.common.HaMode;
+import org.mariadb.jdbc.internal.util.constant.HaMode;
 
 import java.sql.*;
 import java.util.HashMap;

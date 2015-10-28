@@ -17,6 +17,7 @@ import static org.junit.Assert.*;
 
 
 public class DriverTest extends BaseTest {
+
     /**
      * Tables initialisation.
      * @throws SQLException exception
@@ -36,28 +37,15 @@ public class DriverTest extends BaseTest {
         createTable("test_float", "id int not null primary key auto_increment, a float");
         createTable("test_big_autoinc2", "id int not null primary key auto_increment, test varchar(10)");
         createTable("test_big_update", "id int primary key not null, updateme int");
-        createTable("Driverstreamtest", "id int not null primary key, strm text");
-        createTable("Driverstreamtest2", "id int primary key not null, strm text");
         createTable("sharedConnection", "id int");
-        createTable("objecttest", "int_test int primary key not null, string_test varchar(30), "
-                + "timestamp_test timestamp, serial_test blob");
-        createTable("bintest", "id int not null primary key auto_increment, bin1 varbinary(300), bin2 varbinary(300)");
-        createTable("genkeys", "priKey INT NOT NULL AUTO_INCREMENT, dataField VARCHAR(64), PRIMARY KEY (priKey)");
         createTable("extest", "id int not null primary key");
         createTable("rewritetest", "id int not null primary key, a varchar(10), b int", "engine=innodb");
         createTable("rewritetest2", "id int not null primary key, a varchar(10), b int", "engine=innodb");
         createTable("commentPreparedStatements", "id int not null primary key auto_increment, a varchar(10)");
         createTable("quotesPreparedStatements", "id int not null primary key auto_increment, a varchar(10) , "
                 + "b varchar(10)");
-        createTable("bigdectest", "id int not null primary key auto_increment, bd decimal", "engine=innodb");
-        createTable("bytetest", "id int not null primary key auto_increment, a int", "engine=innodb");
-        createTable("shorttest", "id int not null primary key auto_increment,a int", "engine=innodb");
-        createTable("doubletest", "id int not null primary key auto_increment,a double", "engine=innodb");
         createTable("ressetpos", "i int not null primary key", "engine=innodb");
-        createTable("blabla", "valsue varchar(20)");
         createTable("bug501452", "id int not null primary key, value varchar(20)");
-        createTable("test_setobjectconv", "id int not null primary key auto_increment, v1 varchar(40), v2 varchar(40)");
-        createTable("bittest", "id int not null primary key auto_increment, b int");
         createTable("streamingtest", "val varchar(20)");
         createTable("testBlob2", "a blob");
         createTable("testString2", "a varchar(10)");
@@ -65,7 +53,6 @@ public class DriverTest extends BaseTest {
         createTable("unsignedtest", "a int unsigned");
         createTable("conj25", "a VARCHAR(1024)");
         createTable("batchUpdateException", "i int,PRIMARY KEY (i)");
-        createTable("emptytest", "id int");
         createTable("DriverTestt1", "id int not null primary key auto_increment, test varchar(20)");
         createTable("DriverTestt2", "id int not null primary key auto_increment, test varchar(20)");
         createTable("DriverTestt3", "id int not null primary key auto_increment, test varchar(20)");
@@ -526,248 +513,6 @@ public class DriverTest extends BaseTest {
     }
 
 
-    @SuppressWarnings("deprecation")
-    @Test
-    public void testCharacterStreams() throws SQLException, IOException {
-        PreparedStatement stmt = sharedConnection.prepareStatement(
-                "insert into Driverstreamtest (id, strm) values (?,?)");
-        stmt.setInt(1, 2);
-        String toInsert = "abcdefgh\njklmn\"";
-        Reader reader = new StringReader(toInsert);
-        stmt.setCharacterStream(2, reader);
-        stmt.execute();
-        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from Driverstreamtest");
-        rs.next();
-        Reader rdr = rs.getCharacterStream("strm");
-        StringBuilder sb = new StringBuilder();
-        int ch;
-        while ((ch = rdr.read()) != -1) {
-            sb.append((char) ch);
-        }
-        assertEquals(sb.toString(), (toInsert));
-        rdr = rs.getCharacterStream(2);
-        sb = new StringBuilder();
-
-        while ((ch = rdr.read()) != -1) {
-            sb.append((char) ch);
-        }
-        assertEquals(sb.toString(), (toInsert));
-        InputStream is = rs.getAsciiStream("strm");
-        sb = new StringBuilder();
-
-        while ((ch = is.read()) != -1) {
-            sb.append((char) ch);
-        }
-        assertEquals(sb.toString(), (toInsert));
-        is = rs.getUnicodeStream("strm");
-        sb = new StringBuilder();
-
-        while ((ch = is.read()) != -1) {
-            sb.append((char) ch);
-        }
-        assertEquals(sb.toString(), (toInsert));
-    }
-
-    @Test
-    public void testCharacterStreamWithLength() throws SQLException, IOException {
-        PreparedStatement stmt = sharedConnection.prepareStatement(
-                "insert into Driverstreamtest2 (id, strm) values (?,?)");
-        stmt.setInt(1, 2);
-        String toInsert = "abcdefgh\njklmn\"";
-        Reader reader = new StringReader(toInsert);
-        stmt.setCharacterStream(2, reader, 5);
-        stmt.execute();
-        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from Driverstreamtest2");
-        rs.next();
-        Reader rdr = rs.getCharacterStream("strm");
-        StringBuilder sb = new StringBuilder();
-        int ch;
-        while ((ch = rdr.read()) != -1) {
-            sb.append((char) ch);
-        }
-        assertEquals(sb.toString(), toInsert.substring(0, 5));
-    }
-
-
-    @Test
-    public void testEmptyResultSet() throws SQLException {
-        Statement stmt = sharedConnection.createStatement();
-        assertEquals(true, stmt.execute("SELECT * FROM emptytest"));
-        assertEquals(false, stmt.getResultSet().next());
-    }
-
-    @Test
-    public void testLongColName() throws SQLException {
-        DatabaseMetaData dbmd = sharedConnection.getMetaData();
-        String str = "";
-        for (int i = 0; i < dbmd.getMaxColumnNameLength(); i++) {
-            str += "x";
-        }
-        createTable("longcol", str + " int not null primary key");
-        sharedConnection.createStatement().execute("insert into longcol values (1)");
-        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from longcol");
-        assertEquals(true, rs.next());
-        assertEquals(1, rs.getInt(1));
-        assertEquals(1, rs.getInt(str));
-    }
-
-    @Test(expected = SQLException.class)
-    public void testBadParamlist() throws SQLException {
-        PreparedStatement ps = null;
-        ps = sharedConnection.prepareStatement("insert into blah values (?)");
-        ps.execute();
-    }
-
-    @Test
-    public void setobjectTest() throws SQLException, IOException, ClassNotFoundException {
-        PreparedStatement ps = sharedConnection.prepareStatement("insert into objecttest values (?,?,?,?)");
-        ps.setObject(1, 5);
-        ps.setObject(2, "aaa");
-        ps.setObject(3, Timestamp.valueOf("2009-01-17 15:41:01"));
-        ps.setObject(4, new SerializableClass("testing", 8));
-        ps.execute();
-
-        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from objecttest");
-        if (rs.next()) {
-            Object theInt = rs.getObject(1);
-            assertTrue(theInt instanceof Integer);
-            Object theInt2 = rs.getObject("int_test");
-            assertTrue(theInt2 instanceof Integer);
-            Object theString = rs.getObject(2);
-            assertTrue(theString instanceof String);
-            Object theTimestamp = rs.getObject(3);
-            assertTrue(theTimestamp instanceof Timestamp);
-            Object theBlob = rs.getObject(4);
-            assertNotNull(theBlob);
-
-            byte[] rawBytes = rs.getBytes(4);
-            ByteArrayInputStream bais = new ByteArrayInputStream(rawBytes);
-            ObjectInputStream ois = new ObjectInputStream(bais);
-            SerializableClass sc = (SerializableClass) ois.readObject();
-
-            assertEquals(sc.getVal(), "testing");
-            assertEquals(sc.getVal2(), 8);
-            rawBytes = rs.getBytes("serial_test");
-            bais = new ByteArrayInputStream(rawBytes);
-            ois = new ObjectInputStream(bais);
-            sc = (SerializableClass) ois.readObject();
-
-            assertEquals(sc.getVal(), "testing");
-            assertEquals(sc.getVal2(), 8);
-        } else {
-            fail();
-        }
-    }
-
-    @Test
-    public void binTest() throws SQLException, IOException {
-        byte[] allBytes = new byte[256];
-        for (int i = 0; i < 256; i++) {
-            allBytes[i] = (byte) (i & 0xff);
-        }
-        ByteArrayInputStream bais = new ByteArrayInputStream(allBytes);
-        PreparedStatement ps = sharedConnection.prepareStatement("insert into bintest (bin1,bin2) values (?,?)");
-        ps.setBytes(1, allBytes);
-        ps.setBinaryStream(2, bais);
-        ps.execute();
-
-        ResultSet rs = sharedConnection.createStatement().executeQuery("select bin1,bin2 from bintest");
-        assertTrue(rs.next());
-        rs.getBlob(1);
-        InputStream is = rs.getBinaryStream(1);
-
-        for (int i = 0; i < 256; i++) {
-            int read = is.read();
-            assertEquals(i, read);
-        }
-        is = rs.getBinaryStream(2);
-
-        for (int i = 0; i < 256; i++) {
-            int read = is.read();
-            assertEquals(i, read);
-        }
-
-    }
-
-    /*
-     Test with different APIs that generated keys work. Also test that any name in generatedKeys.getXXX(String name)
-     can be passed and is equivalent to generatedKeys.getXXX(1). This might not be 100% compliant, but is a simple
-     and effective solution for MySQL that does not does not support more than a single autogenerated value.
-    */
-    @Test
-    public void generatedKeys() throws Exception {
-        Statement st = sharedConnection.createStatement();
-        st.executeUpdate("insert into genkeys(dataField) values('a')", Statement.RETURN_GENERATED_KEYS);
-        ResultSet rs = st.getGeneratedKeys();
-        assertTrue(rs.next());
-        assertEquals(rs.getInt(1), 1);
-        assertEquals(rs.getInt("priKey"), 1);
-        assertEquals(rs.getInt("foo"), 1);
-        int[] indexes = {1, 2, 3};
-        st.executeUpdate("insert into genkeys(dataField) values('b')", indexes);
-        rs = st.getGeneratedKeys();
-        assertTrue(rs.next());
-        assertEquals(rs.getInt(1), 2);
-        try {
-            assertEquals(rs.getInt(2), 2);
-            assertFalse("should never get here", true);
-        } catch (SQLException e) {
-            // eat
-        }
-
-        String[] columnNames = {"priKey", "Alice", "Bob"};
-        st.executeUpdate("insert into genkeys(dataField) values('c')", columnNames);
-        rs = st.getGeneratedKeys();
-        assertTrue(rs.next());
-        for (int i = 0; i < 3; i++) {
-            assertEquals(rs.getInt(columnNames[i]), 3);
-        }
-    }
-
-    @Test
-    public void binTest2() throws SQLException, IOException {
-
-
-        if (sharedConnection.getMetaData().getDatabaseProductName().toLowerCase().equals("mysql")) {
-            createTable("bintest2", "bin1 longblob", "engine=innodb");
-        } else {
-            createTable("bintest2", "id int not null primary key auto_increment, bin1 blob");
-        }
-
-        byte[] buf = new byte[1000000];
-        for (int i = 0; i < 1000000; i++) {
-            buf[i] = (byte) i;
-        }
-        InputStream is = new ByteArrayInputStream(buf);
-        PreparedStatement ps = sharedConnection.prepareStatement("insert into bintest2 (bin1) values (?)");
-        ps.setBinaryStream(1, is);
-        ps.execute();
-        ps = sharedConnection.prepareStatement("insert into bintest2 (bin1) values (?)");
-        is = new ByteArrayInputStream(buf);
-        ps.setBinaryStream(1, is);
-        ps.execute();
-        ResultSet rs = sharedConnection.createStatement().executeQuery("select bin1 from bintest2");
-        if (rs.next()) {
-            byte[] buf2 = rs.getBytes(1);
-            for (int i = 0; i < 1000000; i++) {
-                assertEquals((byte) i, buf2[i]);
-            }
-
-            if (rs.next()) {
-                buf2 = rs.getBytes(1);
-                for (int i = 0; i < 1000000; i++) {
-                    assertEquals((byte) i, buf2[i]);
-                }
-                if (rs.next()) {
-                    fail();
-                }
-            } else {
-                fail();
-            }
-        } else {
-            fail();
-        }
-    }
 
     @Test(expected = SQLIntegrityConstraintViolationException.class)
     public void testException1() throws SQLException {
@@ -841,81 +586,6 @@ public class DriverTest extends BaseTest {
         pstmt.execute();
     }
 
-    @Test
-    public void bigDecimalTest() throws SQLException {
-        requireMinimumVersion(5, 0);
-        BigDecimal bd = BigDecimal.TEN;
-        PreparedStatement ps = sharedConnection.prepareStatement("insert into bigdectest (bd) values (?)");
-        ps.setBigDecimal(1, bd);
-        ps.execute();
-
-        ResultSet rs = sharedConnection.createStatement().executeQuery("select bd from bigdectest");
-        assertTrue(rs.next());
-        Object bb = rs.getObject(1);
-        assertEquals(bd, bb);
-        BigDecimal bigD = rs.getBigDecimal(1);
-        BigDecimal bigD2 = rs.getBigDecimal("bd");
-        assertEquals(bd, bigD);
-        assertEquals(bd, bigD2);
-        bigD = rs.getBigDecimal("bd");
-        assertEquals(bd, bigD);
-    }
-
-
-    @Test
-    public void byteTest() throws SQLException {
-        PreparedStatement ps = sharedConnection.prepareStatement("insert into bytetest (a) values (?)");
-        ps.setByte(1, Byte.MAX_VALUE);
-        ps.execute();
-        ResultSet rs = sharedConnection.createStatement().executeQuery("select a from bytetest");
-        assertTrue(rs.next());
-
-        Byte bc = rs.getByte(1);
-        Byte bc2 = rs.getByte("a");
-
-        assertTrue(Byte.MAX_VALUE == bc);
-        assertEquals(bc2, bc);
-
-
-    }
-
-
-    @Test
-    public void shortTest() throws SQLException {
-        PreparedStatement ps = sharedConnection.prepareStatement("insert into shorttest (a) values (?)");
-        ps.setShort(1, Short.MAX_VALUE);
-        ps.execute();
-        ResultSet rs = sharedConnection.createStatement().executeQuery("select a from shorttest");
-        assertTrue(rs.next());
-
-        Short bc = rs.getShort(1);
-        Short bc2 = rs.getShort("a");
-
-        assertTrue(Short.MAX_VALUE == bc);
-        assertEquals(bc2, bc);
-
-
-    }
-
-    @Test
-    public void doubleTest() throws SQLException {
-        PreparedStatement ps = sharedConnection.prepareStatement("insert into doubletest (a) values (?)");
-        double sendDoubleValue = 1.5;
-        ps.setDouble(1, sendDoubleValue);
-        ps.execute();
-        ResultSet rs = sharedConnection.createStatement().executeQuery("select a from doubletest");
-        assertTrue(rs.next());
-        Object returnObject = rs.getObject(1);
-        assertEquals(returnObject.getClass(), Double.class);
-        Double bc = rs.getDouble(1);
-        Double bc2 = rs.getDouble("a");
-
-        assertTrue(sendDoubleValue == bc);
-        assertEquals(bc2, bc);
-
-
-    }
-
 
     @Test
     public void testResultSetPositions() throws SQLException {
@@ -974,41 +644,6 @@ public class DriverTest extends BaseTest {
     }
 
     @Test
-    public void getUrlTest() throws SQLException {
-        ResultSet rs = sharedConnection.createStatement().executeQuery("select 'http://mariadb.org' as url");
-        rs.next();
-        URL url = rs.getURL(1);
-        assertEquals("http://mariadb.org", url.toString());
-        url = rs.getURL("url");
-        assertEquals("http://mariadb.org", url.toString());
-
-    }
-
-    @Test(expected = SQLException.class)
-    public void getUrlFailTest() throws SQLException {
-        ResultSet rs = sharedConnection.createStatement().executeQuery("select 'asdf' as url");
-        rs.next();
-        URL url = rs.getURL(1);
-        assertNotNull(url);
-
-
-    }
-
-    @Test(expected = SQLException.class)
-    public void getUrlFailTest2() throws SQLException {
-        ResultSet rs = sharedConnection.createStatement().executeQuery("select 'asdf' as url");
-        rs.next();
-        URL url = rs.getURL("url");
-        assertNotNull(url);
-    }
-
-    @Test
-    public void setNull() throws SQLException {
-        PreparedStatement ps = sharedConnection.prepareStatement("insert blabla VALUE (?)");
-        ps.setString(1, null);
-    }
-
-    @Test
     public void testBug501452() throws SQLException {
         PreparedStatement ps = sharedConnection.prepareStatement("insert into bug501452 (id,value) values (?,?)");
         ps.setObject(1, 1);
@@ -1031,7 +666,7 @@ public class DriverTest extends BaseTest {
         assertFalse(sharedConnection.getAutoCommit());
         
         /* Check that autocommit value "false" , that driver derives from server status flags
-         * remains the same when EOF, ERROR or OK packet were received.
+         * remains the same when EOF, ERROR or OK stream were received.
          */
         sharedConnection.createStatement().executeQuery("select 1");
         assertFalse(sharedConnection.getAutoCommit());
@@ -1051,7 +686,7 @@ public class DriverTest extends BaseTest {
         sharedConnection.setAutoCommit(true);
         
         /* Check that autocommit value "true" , that driver derives from server status flags
-         * remains the same when EOF, ERROR or OK packet were received.
+         * remains the same when EOF, ERROR or OK stream were received.
          */
         assertTrue(sharedConnection.getAutoCommit());
         sharedConnection.createStatement().execute("set @a=1");
@@ -1092,30 +727,6 @@ public class DriverTest extends BaseTest {
     }
 
     @Test
-    public void testSetObject() throws SQLException {
-        PreparedStatement ps = sharedConnection.prepareStatement("insert into test_setobjectconv values (null, ?, ?)");
-        ps.setObject(1, "2009-01-01 00:00:00", Types.TIMESTAMP);
-        ps.setObject(2, "33", Types.DOUBLE);
-        ps.execute();
-    }
-
-    @Test
-    public void testBit() throws SQLException {
-        PreparedStatement stmt = sharedConnection.prepareStatement("insert into bittest values(null, ?)");
-        stmt.setBoolean(1, true);
-        stmt.execute();
-        stmt.setBoolean(1, false);
-        stmt.execute();
-
-        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from bittest");
-        Assert.assertTrue(rs.next());
-        Assert.assertTrue(rs.getBoolean("b"));
-        Assert.assertTrue(rs.next());
-        assertFalse(rs.getBoolean("b"));
-        assertFalse(rs.next());
-    }
-
-    @Test
     public void testConnectWithDb() throws SQLException {
         requireMinimumVersion(5, 0);
         try {
@@ -1137,33 +748,6 @@ public class DriverTest extends BaseTest {
             }
             assertTrue(foundDb);
             sharedConnection.createStatement().executeUpdate("drop database test_testdrop");
-        } finally {
-            connection.close();
-        }
-    }
-
-    @Test
-    public void testError() throws SQLException {
-        // check that maxAllowedPacket is big enough for the test
-        Assume.assumeTrue(checkMaxAllowedPacket("testError"));
-
-        Connection connection = null;
-        try {
-            connection = setConnection();
-            ResultSet rs = connection.createStatement().executeQuery("select @@max_allowed_packet");
-            rs.next();
-            int maxAllowedPacket = rs.getInt(1);
-
-            int selectSize = 9;
-            int packetHeader = 4 + 2; //packet header + 2 escape slash beacause of string escape
-            char[] arr = new char[16 * 1024 * 1024 - selectSize - packetHeader];
-            Arrays.fill(arr, 'a');
-            String request = "select '" + new String(arr) + "'";
-            System.out.println("request size : " + (request.length()) + " / " + maxAllowedPacket);
-
-            rs = connection.createStatement().executeQuery(request);
-            rs.next();
-            log.trace(String.valueOf(rs.getString(1).length()));
         } finally {
             connection.close();
         }
@@ -1308,18 +892,6 @@ public class DriverTest extends BaseTest {
     }
 
 
-    @Test
-    public void useSsl() throws Exception {
-        Assume.assumeTrue(haveSsl(sharedConnection));
-        //Skip SSL test on java 7 since SSL packet size JDK-6521495).
-        org.junit.Assume.assumeFalse(System.getProperty("java.version").contains("1.7."));
-        Connection connection = setConnection("&useSSL=true&trustServerCertificate=true");
-        try {
-            connection.createStatement().execute("select 1");
-        } finally {
-            connection.close();
-        }
-    }
 
     @Test
     // Bug in URL parser

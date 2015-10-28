@@ -49,10 +49,10 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.common.DefaultOptions;
-import org.mariadb.jdbc.internal.common.Options;
-import org.mariadb.jdbc.internal.common.ParameterConstant;
-import org.mariadb.jdbc.internal.common.HaMode;
+import org.mariadb.jdbc.internal.util.DefaultOptions;
+import org.mariadb.jdbc.internal.util.Options;
+import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
+import org.mariadb.jdbc.internal.util.constant.HaMode;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -162,17 +162,8 @@ public class UrlParser {
             if (separator == -1) {
                 throw new IllegalArgumentException("url parsing error : '//' is not present in the url " + url);
             }
-            String[] baseTokens = url.substring(0, separator).split(":");
 
-            //parse HA mode
-            urlParser.haMode = HaMode.NONE;
-            if (baseTokens.length > 2) {
-                try {
-                    urlParser.haMode = HaMode.valueOf(baseTokens[2].toUpperCase());
-                } catch (IllegalArgumentException i) {
-                    throw new IllegalArgumentException("url parameter error '" + baseTokens[2] + "' is a unknown parameter in the url " + url);
-                }
-            }
+            setHaMode(urlParser, url, separator);
 
             url = url.substring(separator + 2);
             String[] tokens = url.split("/");
@@ -194,20 +185,38 @@ public class UrlParser {
                     urlParser.options = DefaultOptions.parse(urlParser.haMode, "", properties);
                 }
             }
+            setDefaultHostAddressType(urlParser);
 
-            if (urlParser.haMode == HaMode.AURORA) {
-                for (HostAddress hostAddress : urlParser.addresses) {
-                    hostAddress.type = null;
-                }
-            } else {
-                for (HostAddress hostAddress : urlParser.addresses) {
-                    if (hostAddress.type == null) {
-                        hostAddress.type = ParameterConstant.TYPE_MASTER;
-                    }
-                }
-            }
         } catch (IllegalArgumentException i) {
             throw new SQLException(i.getMessage());
+        }
+    }
+
+    private static void setHaMode(UrlParser urlParser,String url, int separator) {
+        String[] baseTokens = url.substring(0, separator).split(":");
+
+        //parse HA mode
+        urlParser.haMode = HaMode.NONE;
+        if (baseTokens.length > 2) {
+            try {
+                urlParser.haMode = HaMode.valueOf(baseTokens[2].toUpperCase());
+            } catch (IllegalArgumentException i) {
+                throw new IllegalArgumentException("url parameter error '" + baseTokens[2] + "' is a unknown parameter in the url " + url);
+            }
+        }
+    }
+
+    private static void setDefaultHostAddressType(UrlParser urlParser) {
+        if (urlParser.haMode == HaMode.AURORA) {
+            for (HostAddress hostAddress : urlParser.addresses) {
+                hostAddress.type = null;
+            }
+        } else {
+            for (HostAddress hostAddress : urlParser.addresses) {
+                if (hostAddress.type == null) {
+                    hostAddress.type = ParameterConstant.TYPE_MASTER;
+                }
+            }
         }
     }
 

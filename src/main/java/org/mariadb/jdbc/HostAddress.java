@@ -1,7 +1,7 @@
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.common.ParameterConstant;
-import org.mariadb.jdbc.internal.common.HaMode;
+import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
+import org.mariadb.jdbc.internal.util.constant.HaMode;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -117,10 +117,9 @@ public class HostAddress {
                 result.host = value.replace("[", "").replace("]", "");
             } else if (key.equals("port")) {
                 result.port = Integer.parseInt(value);
-            } else if (key.equals("type")) {
-                if (value.equals(ParameterConstant.TYPE_MASTER) || value.equals(ParameterConstant.TYPE_SLAVE)) {
-                    result.type = value;
-                }
+            } else if (key.equals("type")
+                    && (value.equals(ParameterConstant.TYPE_MASTER) || value.equals(ParameterConstant.TYPE_SLAVE))) {
+                result.type = value;
             }
         }
         return result;

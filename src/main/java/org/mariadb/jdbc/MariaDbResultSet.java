@@ -49,14 +49,12 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.ExceptionMapper;
-import org.mariadb.jdbc.internal.common.QueryException;
-import org.mariadb.jdbc.internal.common.ValueObject;
-import org.mariadb.jdbc.internal.common.queryresults.*;
-import org.mariadb.jdbc.internal.mysql.ColumnInformation;
-import org.mariadb.jdbc.internal.mysql.MariaDbType;
-import org.mariadb.jdbc.internal.mysql.MariaDbValueObject;
-import org.mariadb.jdbc.internal.mysql.Protocol;
+import org.mariadb.jdbc.internal.queryresults.*;
+import org.mariadb.jdbc.internal.util.ExceptionMapper;
+import org.mariadb.jdbc.internal.util.dao.QueryException;
+import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
+import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.protocol.Protocol;
 
 import java.io.*;
 import java.math.BigDecimal;
@@ -73,7 +71,7 @@ public class MariaDbResultSet implements ResultSet {
     public static final MariaDbResultSet EMPTY = createEmptyResultSet();
     ColumnNameMap columnNameMap;
     Calendar cal;
-    private QueryResult queryResult;
+    private AbstractQueryResult queryResult;
     private MariaDbStatement statement;
     private Protocol protocol;
     private boolean lastGetWasNull;
@@ -89,7 +87,7 @@ public class MariaDbResultSet implements ResultSet {
      * @param statement parent statement
      * @param protocol protocol
      */
-    public MariaDbResultSet(QueryResult dqr, MariaDbStatement statement, Protocol protocol) {
+    public MariaDbResultSet(AbstractQueryResult dqr, MariaDbStatement statement, Protocol protocol) {
         this.queryResult = dqr;
         this.statement = statement;
         this.protocol = protocol;
@@ -100,7 +98,7 @@ public class MariaDbResultSet implements ResultSet {
     private static MariaDbResultSet createEmptyResultSet() {
         ColumnInformation[] colList = new ColumnInformation[0];
         List<ValueObject[]> voList = Collections.emptyList();
-        QueryResult qr = new CachedSelectResult(colList, voList, (short) 0);
+        AbstractQueryResult qr = new CachedSelectResult(colList, voList, (short) 0);
         return new MariaDbResultSet(qr, null, null);
     }
 
@@ -946,7 +944,7 @@ public class MariaDbResultSet implements ResultSet {
      * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed result set
      */
     public ResultSetMetaData getMetaData() throws SQLException {
-        return new MariaDbResultSetMetaData(queryResult.getColumnInformation(), protocol.getDatatypeMappingFlags(),
+        return new MariaDbResultSetMetaData(queryResult.getColumnInformation(), protocol.getDataTypeMappingFlags(),
                 protocol.getOptions().useOldAliasMetadataBehavior);
     }
 
@@ -970,7 +968,7 @@ public class MariaDbResultSet implements ResultSet {
      */
     public Object getObject(int columnIndex) throws SQLException {
         try {
-            return getValueObject(columnIndex).getObject(protocol.getDatatypeMappingFlags(), cal);
+            return getValueObject(columnIndex).getObject(protocol.getDataTypeMappingFlags(), cal);
         } catch (ParseException e) {
             throw ExceptionMapper.getSqlException("Could not get object: " + e.getMessage(), "S1009", e);
         }
@@ -1209,10 +1207,8 @@ public class MariaDbResultSet implements ResultSet {
         if (queryResult.getRows() == 0) {
             return false;
         }
-        if (queryResult.getResultSetType() == ResultSetType.SELECT) {
-            if (queryResult instanceof CachedSelectResult) {
-                return ((SelectQueryResult) queryResult).getRowPointer() == queryResult.getRows() - 1;
-            }
+        if (queryResult.getResultSetType() == ResultSetType.SELECT && queryResult instanceof CachedSelectResult) {
+            return ((SelectQueryResult) queryResult).getRowPointer() == queryResult.getRows() - 1;
         }
         throw new SQLFeatureNotSupportedException("isLast is not supported for TYPE_FORWARD_ONLY result sets");
     }

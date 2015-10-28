@@ -1,6 +1,7 @@
 package org.mariadb.jdbc;
 
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -25,13 +26,26 @@ public class SslTest extends BaseTest {
     public void checkSsl() throws SQLException {
         boolean isJava7 = System.getProperty("java.version").contains("1.7.");
         org.junit.Assume.assumeTrue(haveSsl(sharedConnection));
-        //Skip SSL test on java 7 since SSL packet size JDK-6521495).
+        //Skip SSL test on java 7 since SSL stream size JDK-6521495).
         org.junit.Assume.assumeFalse(isJava7);
         ResultSet rs = sharedConnection.createStatement().executeQuery("select @@ssl_cert");
         rs.next();
         serverCertificatePath = rs.getString(1);
         log.debug("Server certificate path: {}", serverCertificatePath);
         rs.close();
+    }
+
+    @Test
+    public void useSsl() throws Exception {
+        Assume.assumeTrue(haveSsl(sharedConnection));
+        //Skip SSL test on java 7 since SSL stream size JDK-6521495).
+        org.junit.Assume.assumeFalse(System.getProperty("java.version").contains("1.7."));
+        Connection connection = setConnection("&useSSL=true&trustServerCertificate=true");
+        try {
+            connection.createStatement().execute("select 1");
+        } finally {
+            connection.close();
+        }
     }
 
     private String getServerCertificate() {

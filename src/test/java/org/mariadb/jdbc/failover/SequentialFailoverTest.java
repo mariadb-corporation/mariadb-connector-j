@@ -3,8 +3,8 @@ package org.mariadb.jdbc.failover;
 import org.junit.*;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.UrlParser;
-import org.mariadb.jdbc.internal.common.HaMode;
-import org.mariadb.jdbc.internal.mysql.Protocol;
+import org.mariadb.jdbc.internal.util.constant.HaMode;
+import org.mariadb.jdbc.internal.protocol.Protocol;
 
 import java.sql.*;
 import java.util.Map;

@@ -4,7 +4,7 @@ import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
-import org.mariadb.jdbc.internal.common.HaMode;
+import org.mariadb.jdbc.internal.util.constant.HaMode;
 
 import java.sql.SQLException;
 import java.util.HashMap;

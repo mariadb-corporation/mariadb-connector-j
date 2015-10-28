@@ -4,7 +4,7 @@ import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
-import org.mariadb.jdbc.internal.common.HaMode;
+import org.mariadb.jdbc.internal.util.constant.HaMode;
 
 import java.sql.Connection;
 import java.sql.SQLException;

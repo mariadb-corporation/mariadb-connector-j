@@ -2,7 +2,7 @@ package org.mariadb.jdbc;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.mariadb.jdbc.internal.common.HaMode;
+import org.mariadb.jdbc.internal.util.constant.HaMode;
 
 import java.sql.SQLException;
 import java.util.Properties;
@@ -104,7 +104,7 @@ public class JdbcParserTest {
     @Test()
     public void testJdbcParserSimpleIpv4basic() throws SQLException {
         String url = "jdbc:mysql://master:3306,slave1:3307,slave2:3308/database";
-        UrlParser urlParser = UrlParser.parse(url);
+        UrlParser.parse(url);
     }
 
     @Test

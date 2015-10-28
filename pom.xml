@@ -14,7 +14,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <jna.version>3.3.0</jna.version>
         <version.template.file>src/main/resources/Version.java.template</version.template.file>
-        <version.file>src/main/java/org/mariadb/jdbc/Version.java</version.file>
+        <version.file>src/main/java/org/mariadb/jdbc/internal/util/constant/Version.java</version.file>
         <checkstyleVersion>6.11.2</checkstyleVersion>
         <checkstyle.plugin.version>2.16</checkstyle.plugin.version>
         <sevntu.checkstyle.plugin.version>1.15.0</sevntu.checkstyle.plugin.version>

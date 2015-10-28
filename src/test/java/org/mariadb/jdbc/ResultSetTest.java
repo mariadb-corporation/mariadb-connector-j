@@ -48,7 +48,6 @@ public class ResultSetTest extends BaseTest {
         } catch (SQLException e) {
             //Make sure an exception has been thrown informing us that the ResultSet was closed
             assertTrue(e.getMessage().contains("closed"));
-            assertTrue(e instanceof SQLException);
         }
     }
 

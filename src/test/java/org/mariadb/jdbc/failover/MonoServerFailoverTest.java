@@ -1,8 +1,8 @@
 package org.mariadb.jdbc.failover;
 
 import org.junit.*;
-import org.mariadb.jdbc.internal.common.HaMode;
-import org.mariadb.jdbc.internal.mysql.Protocol;
+import org.mariadb.jdbc.internal.util.constant.HaMode;
+import org.mariadb.jdbc.internal.protocol.Protocol;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;

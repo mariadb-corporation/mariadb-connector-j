@@ -49,11 +49,9 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-import org.mariadb.jdbc.internal.ExceptionMapper;
-import org.mariadb.jdbc.internal.common.Utils;
-import org.mariadb.jdbc.internal.common.query.IllegalParameterException;
-import org.mariadb.jdbc.internal.common.query.MariaDbClientParameterizeQuery;
-import org.mariadb.jdbc.internal.common.query.parameters.ParameterHolder;
+import org.mariadb.jdbc.internal.util.Utils;
+import org.mariadb.jdbc.internal.query.MariaDbClientParameterizeQuery;
+import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -163,7 +161,7 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
 
 
     /**
-     * Adds a set of parameters to this <code>PreparedStatement</code> object's batch of commands.
+     * Adds a set of parameters to this <code>PreparedStatement</code> object's batch of send.
      * <br>
      * <br>
      *
@@ -239,12 +237,8 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
 
 
     protected void setParameter(final int parameterIndex, final ParameterHolder holder) throws SQLException {
-        try {
-            query.setParameter(parameterIndex - 1, holder);
-            parametersCleared = false;
-        } catch (IllegalParameterException e) {
-            throw ExceptionMapper.getSqlException("Could not set parameter", e);
-        }
+        query.setParameter(parameterIndex - 1, holder);
+        parametersCleared = false;
     }
 
 

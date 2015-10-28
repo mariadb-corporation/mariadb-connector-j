@@ -180,7 +180,7 @@ public class ConnectionTest extends BaseTest {
     }
 
     /**
-     * Conj-116: Make SQLException prettier when too large packet is sent to the server.
+     * Conj-116: Make SQLException prettier when too large stream is sent to the server.
      *
      * @throws SQLException exception
      * @throws UnsupportedEncodingException exception
@@ -193,7 +193,7 @@ public class ConnectionTest extends BaseTest {
         int maxAllowedPacket = rs.getInt(2);
         log.debug("max_allowed_packet DB" + maxAllowedPacket);
 
-        //Create a SQL packet bigger than maxAllowedPacket
+        //Create a SQL stream bigger than maxAllowedPacket
         StringBuilder sb = new StringBuilder();
         String rowData = "('this is a dummy row values')";
         int rowsToWrite = (maxAllowedPacket / rowData.getBytes("UTF-8").length) + 1;
@@ -241,7 +241,7 @@ public class ConnectionTest extends BaseTest {
 
 
     @Test
-    public void isValid_testWorkingConnection() throws SQLException {
+    public void isValidTestWorkingConnection() throws SQLException {
         assertTrue(sharedConnection.isValid(0));
     }
 
@@ -251,7 +251,7 @@ public class ConnectionTest extends BaseTest {
      * @throws SQLException exception
      */
     @Test
-    public void isValid_closedConnection() throws SQLException {
+    public void isValidClosedConnection() throws SQLException {
         Connection connection = null;
         try {
             connection = setConnection();
@@ -270,7 +270,7 @@ public class ConnectionTest extends BaseTest {
      * @throws InterruptedException exception
      */
     @Test
-    public void isValid_connectionThatTimesOutByServer() throws SQLException, InterruptedException {
+    public void isValidConnectionThatTimesOutByServer() throws SQLException, InterruptedException {
         Connection connection = null;
         try {
             connection = setConnection();
