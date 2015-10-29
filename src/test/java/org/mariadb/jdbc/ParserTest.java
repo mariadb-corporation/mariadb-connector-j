@@ -2,7 +2,7 @@ package org.mariadb.jdbc;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mariadb.jdbc.internal.common.Options;
+import org.mariadb.jdbc.internal.util.Options;
 
 import java.lang.reflect.Field;
 import java.sql.Connection;

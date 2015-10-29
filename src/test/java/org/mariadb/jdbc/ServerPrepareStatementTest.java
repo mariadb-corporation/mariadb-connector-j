@@ -4,8 +4,8 @@ import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mariadb.jdbc.internal.common.queryresults.PrepareResult;
-import org.mariadb.jdbc.internal.mysql.Protocol;
+import org.mariadb.jdbc.internal.util.dao.PrepareResult;
+import org.mariadb.jdbc.internal.protocol.Protocol;
 
 import java.io.*;
 import java.math.BigDecimal;

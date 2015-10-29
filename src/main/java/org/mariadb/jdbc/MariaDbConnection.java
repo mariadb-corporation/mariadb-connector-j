@@ -49,12 +49,12 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.ExceptionMapper;
-import org.mariadb.jdbc.internal.common.DefaultOptions;
-import org.mariadb.jdbc.internal.common.Options;
-import org.mariadb.jdbc.internal.common.QueryException;
-import org.mariadb.jdbc.internal.common.Utils;
-import org.mariadb.jdbc.internal.mysql.Protocol;
+import org.mariadb.jdbc.internal.util.ExceptionMapper;
+import org.mariadb.jdbc.internal.util.DefaultOptions;
+import org.mariadb.jdbc.internal.util.Options;
+import org.mariadb.jdbc.internal.util.dao.QueryException;
+import org.mariadb.jdbc.internal.util.Utils;
+import org.mariadb.jdbc.internal.protocol.Protocol;
 
 import java.net.SocketException;
 import java.sql.*;
@@ -71,7 +71,7 @@ public final class MariaDbConnection implements Connection {
      * the protocol to communicate with.
      */
     private final Protocol protocol;
-    public Pattern requestWithoutComments = Pattern.compile("((?<![\\\\])['\"])((?:.(?!(?<![\\\\])\\1))*.?)\\1");
+    public Pattern requestWithoutComments = Pattern.compile("((?<![\\\\])['\"])((?:.(?!(?<![\\\\])\\1))*.?)\\1", Pattern.CASE_INSENSITIVE);
     public MariaDbPooledConnection pooledConnection;
     boolean noBackslashEscapes;
     boolean nullCatalogMeansCurrent = true;
@@ -740,7 +740,7 @@ public final class MariaDbConnection implements Connection {
             while (rs.next()) {
                 int code = rs.getInt(2);
                 String message = rs.getString(3);
-                SQLWarning warning = new SQLWarning(message, ExceptionMapper.mapMariaDbCodeToSqlState(code), code);
+                SQLWarning warning = new SQLWarning(message, ExceptionMapper.mapCodeToSqlState(code), code);
                 if (first == null) {
                     first = warning;
                     last = warning;

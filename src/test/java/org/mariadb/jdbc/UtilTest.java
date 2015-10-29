@@ -1,7 +1,7 @@
 package org.mariadb.jdbc;
 
 import org.junit.Test;
-import org.mariadb.jdbc.internal.common.Utils;
+import org.mariadb.jdbc.internal.util.Utils;
 
 import java.sql.SQLException;
 

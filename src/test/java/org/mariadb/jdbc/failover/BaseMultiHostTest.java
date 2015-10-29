@@ -10,8 +10,8 @@ import org.junit.runner.Description;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.MariaDbConnection;
-import org.mariadb.jdbc.internal.common.HaMode;
-import org.mariadb.jdbc.internal.mysql.Protocol;
+import org.mariadb.jdbc.internal.util.constant.HaMode;
+import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

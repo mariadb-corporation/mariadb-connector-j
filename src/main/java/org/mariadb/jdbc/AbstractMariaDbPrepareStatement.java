@@ -49,9 +49,9 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.ExceptionMapper;
-import org.mariadb.jdbc.internal.common.query.parameters.*;
-import org.mariadb.jdbc.internal.mysql.MariaDbType;
+import org.mariadb.jdbc.internal.packet.dao.parameters.*;
+import org.mariadb.jdbc.internal.util.ExceptionMapper;
+import org.mariadb.jdbc.internal.MariaDbType;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -448,7 +448,7 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      * <P><B>Note:</B> You must specify the parameter's SQL type.
      *
      * @param parameterIndex the first parameter is 1, the second is 2, ...
-     * @param mysqlType      the type code defined in <code> org.mariadb.jdbc.internal.mysql.MariaDbType</code>
+     * @param mysqlType      the type code defined in <code> MariaDbType</code>
      * @throws java.sql.SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
      *                                                  if a database access error occurs or this method is called on a closed
      *                                                  <code>PreparedStatement</code>

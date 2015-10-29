@@ -50,12 +50,12 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.ExceptionMapper;
-import org.mariadb.jdbc.internal.common.DefaultOptions;
-import org.mariadb.jdbc.internal.common.QueryException;
-import org.mariadb.jdbc.internal.common.HaMode;
-import org.mariadb.jdbc.internal.common.Utils;
-import org.mariadb.jdbc.internal.mysql.Protocol;
+import org.mariadb.jdbc.internal.util.ExceptionMapper;
+import org.mariadb.jdbc.internal.util.DefaultOptions;
+import org.mariadb.jdbc.internal.util.dao.QueryException;
+import org.mariadb.jdbc.internal.util.constant.HaMode;
+import org.mariadb.jdbc.internal.util.Utils;
+import org.mariadb.jdbc.internal.protocol.Protocol;
 
 import javax.sql.*;
 import java.io.PrintWriter;
@@ -347,7 +347,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      * @since 1.4
      */
     public void setLoginTimeout(final int seconds) throws SQLException {
-
+        return;
     }
 
     /**

@@ -1,6 +1,6 @@
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.common.Utils;
+import org.mariadb.jdbc.internal.util.Utils;
 
 import java.io.InputStream;
 import java.io.Reader;
@@ -1409,7 +1409,7 @@ public class MariaDbCallableStatement implements CallableStatement {
 
     /**
      * Adds a set of parameters to this <code>PreparedStatement</code>
-     * object's batch of commands.
+     * object's batch of send.
      *
      * @exception SQLException if a database access error occurs or
      * this method is called on a closed <code>PreparedStatement</code>
@@ -1433,8 +1433,8 @@ public class MariaDbCallableStatement implements CallableStatement {
     }
 
     /**
-     * Adds the given SQL command to the current list of commands for this
-     * <code>Statement</code> object. The commands in this list can be
+     * Adds the given SQL command to the current list of send for this
+     * <code>Statement</code> object. The send in this list can be
      * executed as a batch by calling the method <code>executeBatch</code>.
      * <P>
      *<strong>Note:</strong>This method cannot be called on a
@@ -1607,7 +1607,7 @@ public class MariaDbCallableStatement implements CallableStatement {
 
     /**
      * Empties this <code>Statement</code> object's current list of
-     * SQL commands.<p>
+     * SQL send.<p>
      * 
      * @exception SQLException if a database access error occurs,
      *  this method is called on a closed <code>Statement</code> or the
@@ -1628,10 +1628,10 @@ public class MariaDbCallableStatement implements CallableStatement {
     }
 
     /**
-     * Submits a batch of commands to the database for execution and
-     * if all commands execute successfully, returns an array of update counts.
+     * Submits a batch of send to the database for execution and
+     * if all send execute successfully, returns an array of update counts.
      * The <code>int</code> elements of the array that is returned are ordered
-     * to correspond to the commands in the batch, which are ordered
+     * to correspond to the send in the batch, which are ordered
      * according to the order in which they were added to the batch.
      * The elements in the array returned by the method <code>executeBatch</code>
      * may be one of the following:
@@ -1644,34 +1644,34 @@ public class MariaDbCallableStatement implements CallableStatement {
      * processed successfully but that the number of rows affected is
      * unknown
      * <P>
-     * If one of the commands in a batch update fails to execute properly,
+     * If one of the send in a batch update fails to execute properly,
      * this method throws a <code>BatchUpdateException</code>, and a JDBC
-     * driver may or may not continue to process the remaining commands in
+     * driver may or may not continue to process the remaining send in
      * the batch.  However, the driver's behavior must be consistent with a
-     * particular DBMS, either always continuing to process commands or never
-     * continuing to process commands.  If the driver continues processing
+     * particular DBMS, either always continuing to process send or never
+     * continuing to process send.  If the driver continues processing
      * after a failure, the array returned by the method
      * <code>BatchUpdateException.getUpdateCounts</code>
-     * will contain as many elements as there are commands in the batch, and
+     * will contain as many elements as there are send in the batch, and
      * at least one of the elements will be the following:
      *
      * <LI>A value of <code>EXECUTE_FAILED</code> -- indicates that the command failed
      * to execute successfully and occurs only if a driver continues to
-     * process commands after a command fails
+     * process send after a command fails
      * </OL>
      * <P>
      * The possible implementations and return values have been modified in
      * the Java 2 SDK, Standard Edition, version 1.3 to
-     * accommodate the option of continuing to process commands in a batch
+     * accommodate the option of continuing to process send in a batch
      * update after a <code>BatchUpdateException</code> object has been thrown.
      *
      * @return an array of update counts containing one element for each
      * command in the batch.  The elements of the array are ordered according
-     * to the order in which commands were added to the batch.
+     * to the order in which send were added to the batch.
      * @exception SQLException if a database access error occurs,
      * this method is called on a closed <code>Statement</code> or the
      * driver does not support batch statements. Throws {@link BatchUpdateException}
-     * (a subclass of <code>SQLException</code>) if one of the commands sent to the
+     * (a subclass of <code>SQLException</code>) if one of the send sent to the
      * database fails to execute properly or attempts to return a result set.
      * @throws SQLTimeoutException when the driver has determined that the
      * timeout value that was specified by the {@code setQueryTimeout}

@@ -57,7 +57,7 @@ public class PooledConnectionTest extends BaseTest {
             //eat Exception
         }
         pc.close();
-        //assertTrue(listener.closed);
+        //assertTrue(failover.closed);
     }
 
 

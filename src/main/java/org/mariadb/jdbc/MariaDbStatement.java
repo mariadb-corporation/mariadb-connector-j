@@ -49,15 +49,15 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.ExceptionMapper;
-import org.mariadb.jdbc.internal.common.QueryException;
-import org.mariadb.jdbc.internal.common.Utils;
-import org.mariadb.jdbc.internal.common.query.MariaDbQuery;
-import org.mariadb.jdbc.internal.common.query.Query;
-import org.mariadb.jdbc.internal.common.queryresults.ModifyQueryResult;
-import org.mariadb.jdbc.internal.common.queryresults.QueryResult;
-import org.mariadb.jdbc.internal.common.queryresults.ResultSetType;
-import org.mariadb.jdbc.internal.mysql.Protocol;
+import org.mariadb.jdbc.internal.util.ExceptionMapper;
+import org.mariadb.jdbc.internal.util.dao.QueryException;
+import org.mariadb.jdbc.internal.queryresults.AbstractQueryResult;
+import org.mariadb.jdbc.internal.util.Utils;
+import org.mariadb.jdbc.internal.query.MariaDbQuery;
+import org.mariadb.jdbc.internal.query.Query;
+import org.mariadb.jdbc.internal.queryresults.ModifyQueryResult;
+import org.mariadb.jdbc.internal.queryresults.ResultSetType;
+import org.mariadb.jdbc.internal.protocol.Protocol;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -81,7 +81,7 @@ public class MariaDbStatement implements Statement {
     /**
      * The actual query result.
      */
-    protected QueryResult queryResult;
+    protected AbstractQueryResult queryResult;
     protected TimerTask timerTask;
     protected boolean isRewriteable = true;
     protected String firstRewrite = null;
@@ -98,7 +98,7 @@ public class MariaDbStatement implements Statement {
     private int fetchSize;
     private boolean isStreaming = false;
     private int maxRows;
-    public static final Pattern deleteEndSemicolonPattern = Pattern.compile("[;][ ]*$");
+    public static final Pattern deleteEndSemicolonPattern = Pattern.compile("[;][ ]*$", Pattern.CASE_INSENSITIVE);
 
     /**
      * Creates a new Statement.
@@ -202,7 +202,7 @@ public class MariaDbStatement implements Statement {
         if (isStreaming()) {
             return;
         }
-        QueryResult saveResult = queryResult;
+        AbstractQueryResult saveResult = queryResult;
         for (; ; ) {
             try {
                 if (protocol.hasMoreResults()) {
@@ -867,7 +867,7 @@ public class MariaDbStatement implements Statement {
      * @since 1.6
      */
     public void setPoolable(final boolean poolable) throws SQLException {
-
+        return;
     }
 
     /**
@@ -940,7 +940,7 @@ public class MariaDbStatement implements Statement {
                 ExceptionMapper.throwException((QueryException) obj, connection, this);
             }
 
-            queryResult = (QueryResult) obj;
+            queryResult = (AbstractQueryResult) obj;
 
             if (batchResultSet != null) {
                 //permit to stored result after an executeBatch(), for statement.getGeneratedKeys() call
@@ -1023,7 +1023,7 @@ public class MariaDbStatement implements Statement {
      * @since 1.2
      */
     public void setFetchDirection(final int direction) throws SQLException {
-
+        return;
     }
 
     /**
@@ -1084,7 +1084,7 @@ public class MariaDbStatement implements Statement {
     }
 
     /**
-     * Adds the given SQL command to the current list of commmands for this <code>Statement</code> object. The commands in this list can be executed
+     * Adds the given SQL command to the current list of commmands for this <code>Statement</code> object. The send in this list can be executed
      * as a batch by calling the method <code>executeBatch</code>.
      *
      * @param sql typically this is a SQL <code>INSERT</code> or <code>UPDATE</code> statement
@@ -1130,7 +1130,6 @@ public class MariaDbStatement implements Statement {
      */
     protected int getInsertIncipit(String sql) {
         String sqlUpper = sql.toUpperCase();
-
         if (!sqlUpper.startsWith("INSERT") && !sqlUpper.startsWith("/*CLIENT*/ INSERT")) {
             return -1;
         }
@@ -1156,7 +1155,7 @@ public class MariaDbStatement implements Statement {
     }
 
     /**
-     * Empties this <code>Statement</code> object's current list of SQL commands.
+     * Empties this <code>Statement</code> object's current list of SQL send.
      *
      * @throws java.sql.SQLException if a database access error occurs, this method is called on a closed <code>Statement</code> or the driver does
      * not support batch updates
@@ -1173,29 +1172,29 @@ public class MariaDbStatement implements Statement {
     }
 
     /**
-     * <p>Submits a batch of commands to the database for execution and if all commands execute successfully, returns an array of update counts. The
-     * <code>int</code> elements of the array that is returned are ordered to correspond to the commands in the batch, which are ordered according to
+     * <p>Submits a batch of send to the database for execution and if all send execute successfully, returns an array of update counts. The
+     * <code>int</code> elements of the array that is returned are ordered to correspond to the send in the batch, which are ordered according to
      * the order in which they were added to the batch. The elements in the array returned by the method <code>executeBatch</code> may be one of the
      * following:</p>
      * <ol><li>A number greater than or equal to zero -- indicates that the command was processed successfully and is an update count
      * giving the number of rows in the database that were affected by the command's execution</li> <li>A value of <code>SUCCESS_NO_INFO</code> --
      * indicates that the command was processed successfully but that the number of rows affected is unknown</li></ol>
-     * <p>If one of the commands
+     * <p>If one of the send
      * in a batch update fails to execute properly, this method throws a <code>BatchUpdateException</code>, and a JDBC driver may or may not continue
-     * to process the remaining commands in the batch.  However, the driver's behavior must be consistent with a particular DBMS, either always
-     * continuing to process commands or never continuing to process commands.  If the driver continues processing after a failure, the array returned
-     * by the method <code>BatchUpdateException.getUpdateCounts</code> will contain as many elements as there are commands in the batch, and at least
+     * to process the remaining send in the batch.  However, the driver's behavior must be consistent with a particular DBMS, either always
+     * continuing to process send or never continuing to process send.  If the driver continues processing after a failure, the array returned
+     * by the method <code>BatchUpdateException.getUpdateCounts</code> will contain as many elements as there are send in the batch, and at least
      * one of the elements will be the following: </p>
      * <p>A value of <code>EXECUTE_FAILED</code> -- indicates that the command failed to execute
-     * successfully and occurs only if a driver continues to process commands after a command fails </p>
+     * successfully and occurs only if a driver continues to process send after a command fails </p>
      * <p>The possible implementations and return
-     * values have been modified in the Java 2 SDK, Standard Edition, version 1.3 to accommodate the option of continuing to proccess commands in a
+     * values have been modified in the Java 2 SDK, Standard Edition, version 1.3 to accommodate the option of continuing to proccess send in a
      * batch update after a <code>BatchUpdateException</code> object has been thrown.</p>
      *
      * @return an array of update counts containing one element for each command in the batch.  The elements of the array are ordered according to the
-     * order in which commands were added to the batch.
+     * order in which send were added to the batch.
      * @throws java.sql.SQLException if a database access error occurs, this method is called on a closed <code>Statement</code> or the driver does
-     * not support batch statements. Throws {@link java.sql.BatchUpdateException} (a subclass of <code>SQLException</code>) if one of the commands
+     * not support batch statements. Throws {@link java.sql.BatchUpdateException} (a subclass of <code>SQLException</code>) if one of the send
      * sent to the database fails to execute properly or attempts to return a result set.
      * @see #addBatch
      * @see java.sql.DatabaseMetaData#supportsBatchUpdates
@@ -1252,7 +1251,7 @@ public class MariaDbStatement implements Statement {
      * Retrieves the update counts for the batched statements rewritten as a multi query. The rewritten statement must have been executed already.
      *
      * @return an array of update counts containing one element for each command in the batch. The elements of the array are ordered according to the
-     * order in which commands were added to the batch.
+     * order in which send were added to the batch.
      * @throws SQLException if the connection has interruption
      */
     protected int[] getUpdateRewrittenCounts() throws SQLException {
@@ -1277,7 +1276,7 @@ public class MariaDbStatement implements Statement {
             if (obj instanceof QueryException) {
                 ExceptionMapper.throwException((QueryException) obj, connection, this);
             }
-            queryResult = (QueryResult) obj;
+            queryResult = (AbstractQueryResult) obj;
             updateCount = getUpdateCount();
             if (updateCount == -1) {
                 result[count++] = SUCCESS_NO_INFO;
@@ -1305,32 +1304,24 @@ public class MariaDbStatement implements Statement {
     protected int[] getUpdateCountsForReWrittenBatch(int size) throws SQLException {
         int totalUpdateCount = 0;
         int updateCount;
-        cachedResultSets.add(queryResult);
+        batchResultSet = getInternalGeneratedKeys();
+        updateCount = getUpdateCount();
+        totalUpdateCount += (updateCount != -1) ? updateCount : 0;
 
         while (!cachedResultSets.isEmpty()) {
             Object obj = cachedResultSets.remove();
             if (obj instanceof QueryException) {
                 ExceptionMapper.throwException((QueryException) obj, connection, this);
             }
-            queryResult = (QueryResult) obj;
+            queryResult = (AbstractQueryResult) obj;
             updateCount = getUpdateCount();
-            if (updateCount != -1) {
-                totalUpdateCount += updateCount;
-            }
+            totalUpdateCount += (updateCount != -1) ? updateCount : 0;
 
             if (autoGeneratedKeys) {
-                //permit to stored result after an executeBatch(), for statement.getGeneratedKeys() call
-                if (batchResultSet == null) {
-                    batchResultSet = getInternalGeneratedKeys();
-                } else {
-                    batchResultSet = ((MariaDbResultSet) batchResultSet).joinResultSets((MariaDbResultSet) getInternalGeneratedKeys());
-                }
+                batchResultSet = ((MariaDbResultSet) batchResultSet).joinResultSets((MariaDbResultSet) getInternalGeneratedKeys());
             }
         }
-
-        if (!autoGeneratedKeys) {
-            cachedResultSets.clear();
-        }
+        cachedResultSets.clear();
 
         int[] result = new int[size];
         int resultVal = totalUpdateCount == size ? 1 : SUCCESS_NO_INFO;

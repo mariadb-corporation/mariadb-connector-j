@@ -48,13 +48,13 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-import org.mariadb.jdbc.internal.ExceptionMapper;
-import org.mariadb.jdbc.internal.common.QueryException;
-import org.mariadb.jdbc.internal.common.query.parameters.ParameterHolder;
-import org.mariadb.jdbc.internal.common.queryresults.ModifyQueryResult;
-import org.mariadb.jdbc.internal.common.queryresults.PrepareResult;
-import org.mariadb.jdbc.internal.common.queryresults.ResultSetType;
-import org.mariadb.jdbc.internal.mysql.MariaDbType;
+import org.mariadb.jdbc.internal.util.ExceptionMapper;
+import org.mariadb.jdbc.internal.util.dao.QueryException;
+import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
+import org.mariadb.jdbc.internal.queryresults.ModifyQueryResult;
+import org.mariadb.jdbc.internal.util.dao.PrepareResult;
+import org.mariadb.jdbc.internal.queryresults.ResultSetType;
+import org.mariadb.jdbc.internal.MariaDbType;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -106,7 +106,7 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
             }
             returnTableAlias = protocol.getOptions().useOldAliasMetadataBehavior;
             metadata = new MariaDbResultSetMetaData(prepareResult.columns,
-                    protocol.getDatatypeMappingFlags(), returnTableAlias);
+                    protocol.getDataTypeMappingFlags(), returnTableAlias);
             parameterMetaData = new MariaDbParameterMetaData(prepareResult.columns);
         } catch (QueryException e) {
             try {
@@ -172,32 +172,32 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
 
 
     /**
-     * <p>Submits a batch of commands to the database for execution and if all commands execute successfully, returns an
+     * <p>Submits a batch of send to the database for execution and if all send execute successfully, returns an
      * array of update counts. The <code>int</code> elements of the array that is returned are ordered to correspond to
-     * the commands in the batch, which are ordered according to the order in which they were added to the batch. The
+     * the send in the batch, which are ordered according to the order in which they were added to the batch. The
      * elements in the array returned by the method <code>executeBatch</code> may be one of the following:</p>
      * <ol><li>A number greater than or equal to zero -- indicates that the command was processed successfully and is an update
      * count giving the number of rows in the database that were affected by the command's execution
      * <li>A value of <code>SUCCESS_NO_INFO</code> -- indicates that the command was processed successfully but that the number of rows
      * affected is unknown.
-     * If one of the commands in a batch update fails to execute properly, this method throws a
-     * <code>BatchUpdateException</code>, and a JDBC driver may or may not continue to process the remaining commands in
+     * If one of the send in a batch update fails to execute properly, this method throws a
+     * <code>BatchUpdateException</code>, and a JDBC driver may or may not continue to process the remaining send in
      * the batch.  However, the driver's behavior must be consistent with a particular DBMS, either always continuing to
-     * process commands or never continuing to process commands.  If the driver continues processing after a failure,
+     * process send or never continuing to process send.  If the driver continues processing after a failure,
      * the array returned by the method <code>BatchUpdateException.getUpdateCounts</code> will contain as many elements
-     * as there are commands in the batch, and at least one of the elements will be the following:
+     * as there are send in the batch, and at least one of the elements will be the following:
      * <li>A value of <code>EXECUTE_FAILED</code> -- indicates that the command failed to execute successfully and
-     * occurs only if a driver continues to process commands after a command fails </ol>
+     * occurs only if a driver continues to process send after a command fails </ol>
      * <p>The possible implementations and return values have been modified in the Java 2 SDK, Standard Edition, version
-     * 1.3 to accommodate the option of continuing to proccess commands in a batch update after a
+     * 1.3 to accommodate the option of continuing to proccess send in a batch update after a
      * <code>BatchUpdateException</code> object has been thrown.</p>
      *
      * @return an array of update counts containing one element for each command in the batch.  The elements of the
-     * array are ordered according to the order in which commands were added to the batch.
+     * array are ordered according to the order in which send were added to the batch.
      * @throws java.sql.SQLException if a database access error occurs, this method is called on a closed
      *                               <code>Statement</code> or the driver does not support batch statements. Throws
      *                               {@link java.sql.BatchUpdateException} (a subclass of <code>SQLException</code>) if
-     *                               one of the commands sent to the database fails to execute properly or attempts to
+     *                               one of the send sent to the database fails to execute properly or attempts to
      *                               return a result set.
      * @see #addBatch
      * @see java.sql.DatabaseMetaData#supportsBatchUpdates

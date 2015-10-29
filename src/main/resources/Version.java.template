@@ -1,4 +1,4 @@
-package org.mariadb.jdbc;
+package org.mariadb.jdbc.internal.util.constant;
 
 public final class Version {
     public static final String version = "@version";

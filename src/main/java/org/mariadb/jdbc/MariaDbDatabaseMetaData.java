@@ -49,10 +49,11 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.common.Utils;
-import org.mariadb.jdbc.internal.common.meta.Identifier;
-import org.mariadb.jdbc.internal.mysql.MariaDbType;
-import org.mariadb.jdbc.internal.mysql.MariaDbValueObject;
+import org.mariadb.jdbc.internal.util.Utils;
+import org.mariadb.jdbc.internal.queryresults.ValueObject;
+import org.mariadb.jdbc.internal.util.constant.Version;
+import org.mariadb.jdbc.internal.util.dao.Identifier;
+import org.mariadb.jdbc.internal.MariaDbType;
 
 import java.sql.*;
 import java.text.ParseException;
@@ -399,9 +400,9 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
                         + " WHEN 'binary' THEN " + Types.BINARY
                         + " WHEN 'time' THEN " + Types.TIME
                         + " WHEN 'timestamp' THEN " + Types.TIMESTAMP
-                        + " WHEN 'tinyint' THEN " + (((connection.getProtocol().getDatatypeMappingFlags() & MariaDbValueObject.TINYINT1_IS_BIT) == 0)
+                        + " WHEN 'tinyint' THEN " + (((connection.getProtocol().getDataTypeMappingFlags() & ValueObject.TINYINT1_IS_BIT) == 0)
                         ? Types.TINYINT : "IF(" + fullTypeColumnName + "='tinyint(1)'," + Types.BIT + "," + Types.TINYINT + ") ")
-                        + " WHEN 'year' THEN " + (((connection.getProtocol().getDatatypeMappingFlags() & MariaDbValueObject.YEAR_IS_DATE_TYPE) == 0)
+                        + " WHEN 'year' THEN " + (((connection.getProtocol().getDataTypeMappingFlags() & ValueObject.YEAR_IS_DATE_TYPE) == 0)
                         ? Types.SMALLINT : Types.DATE)
                         + " ELSE " + Types.OTHER
                         + " END ";

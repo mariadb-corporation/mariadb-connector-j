@@ -39,7 +39,7 @@ public class OldFailoverTest extends BaseTest {
         String falseUrl = "jdbc:mysql://localhost:1111/test";
 
         try {
-            Connection tmpConnection = openNewConnection(falseUrl);
+            openNewConnection(falseUrl);
             Assert.fail();
         } catch (Exception e) {
             //normal exception

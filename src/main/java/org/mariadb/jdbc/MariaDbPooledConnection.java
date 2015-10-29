@@ -66,7 +66,7 @@ public class MariaDbPooledConnection implements PooledConnection {
     }
 
     /**
-     * Registers the given event listener so that it will be notified
+     * Registers the given event failover so that it will be notified
      * when an event occurs on this <code>PooledConnection</code> object.
      *
      * @param listener a component, usually the connection pool manager,
@@ -80,7 +80,7 @@ public class MariaDbPooledConnection implements PooledConnection {
     }
 
     /**
-     * Removes the given event listener from the list of components that
+     * Removes the given event failover from the list of components that
      * will be notified when an event occurs on this
      * <code>PooledConnection</code> object.
      *
@@ -88,7 +88,7 @@ public class MariaDbPooledConnection implements PooledConnection {
      *                 that has implemented the
      *                 <code>ConnectionEventListener</code> interface and
      *                 been registered with this <code>PooledConnection</code> object as
-     *                 a listener
+     *                 a failover
      * @see #addConnectionEventListener
      */
     public void removeConnectionEventListener(ConnectionEventListener listener) {

@@ -225,7 +225,7 @@ public class MariaDbDriverTest extends BaseTest {
     }
 
     @Test
-    // Test query with length around max  packet length. Requires max_allowed_packet to be >16M
+    // Test query with length around max  stream length. Requires max_allowed_packet to be >16M
     public void largeQueryWrite() throws SQLException {
         Assume.assumeTrue(checkMaxAllowedPacket("largeQueryWrite"));
 
@@ -233,7 +233,7 @@ public class MariaDbDriverTest extends BaseTest {
         Arrays.fill(str, 'a');
         String prefix = "select length('";
         String suffix = "') as len";
-        int packetHeaderSize = 4 + 2; //packet head +2 escape for String parameter
+        int packetHeaderSize = 4 + 2; //stream head +2 escape for String parameter
 
         for (int i = 16 * 1024 * 1024 - prefix.length() - suffix.length() - 5 - packetHeaderSize;
              i < 16 * 1024 * 1024 - prefix.length() - suffix.length() - packetHeaderSize;
@@ -255,7 +255,7 @@ public class MariaDbDriverTest extends BaseTest {
         char[] str = new char[16 * 1024 * 1024];
         Arrays.fill(str, 'a');
         String sql = "select length(?) as len";
-        int packetHeaderSize = 4 + 2; //packet header + 2 because of string escape
+        int packetHeaderSize = 4 + 2; //stream header + 2 because of string escape
         PreparedStatement ps = sharedConnection.prepareStatement(sql);
         for (int i = 16 * 1024 * 1024 - sql.length() - 5 - packetHeaderSize;
              i < 16 * 1024 * 1024 - sql.length() - packetHeaderSize;

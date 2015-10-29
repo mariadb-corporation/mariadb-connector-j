@@ -58,7 +58,6 @@ public class DistributedTransaction extends BaseTest {
      */
     void test2PhaseCommit(boolean doCommit) throws Exception {
 
-
         int connectionNumber = 1;
 
         Xid parentXid = newXid();
@@ -76,21 +75,10 @@ public class DistributedTransaction extends BaseTest {
                 xids[i] = newXid(parentXid);
             }
 
-            for (int i = 0; i < connectionNumber; i++) {
-                xaResources[i].start(xids[i], XAResource.TMNOFLAGS);
-            }
-
-            for (int i = 0; i < connectionNumber; i++) {
-                connections[i].createStatement().executeUpdate("INSERT INTO xatable VALUES (" + i + ")");
-            }
-
-            for (int i = 0; i < connectionNumber; i++) {
-                xaResources[i].end(xids[i], XAResource.TMSUCCESS);
-            }
-
-            for (int i = 0; i < connectionNumber; i++) {
-                xaResources[i].prepare(xids[i]);
-            }
+            startAllResources(connectionNumber, xaResources, xids);
+            insertDatas(connectionNumber, connections);
+            endAllResources(connectionNumber, xaResources, xids);
+            prepareAllResources(connectionNumber, xaResources, xids);
 
             for (int i = 0; i < connectionNumber; i++) {
                 if (doCommit) {
@@ -100,7 +88,6 @@ public class DistributedTransaction extends BaseTest {
                 }
             }
 
-
             // check the completion
             ResultSet rs = sharedConnection.createStatement().executeQuery("SELECT * from xatable order by i");
             if (doCommit) {
@@ -109,7 +96,6 @@ public class DistributedTransaction extends BaseTest {
                     assertEquals(rs.getInt(1), i);
                 }
             } else {
-
                 assertFalse(rs.next());
             }
             rs.close();
@@ -125,6 +111,31 @@ public class DistributedTransaction extends BaseTest {
             }
         }
     }
+
+    private void startAllResources(int connectionNumber, XAResource[] xaResources, Xid[] xids) throws XAException {
+        for (int i = 0; i < connectionNumber; i++) {
+            xaResources[i].start(xids[i], XAResource.TMNOFLAGS);
+        }
+    }
+
+    private void endAllResources(int connectionNumber, XAResource[] xaResources, Xid[] xids) throws XAException {
+        for (int i = 0; i < connectionNumber; i++) {
+            xaResources[i].end(xids[i], XAResource.TMSUCCESS);
+        }
+    }
+
+    private void prepareAllResources(int connectionNumber, XAResource[] xaResources, Xid[] xids) throws XAException {
+        for (int i = 0; i < connectionNumber; i++) {
+            xaResources[i].prepare(xids[i]);
+        }
+    }
+
+    private void insertDatas(int connectionNumber, Connection[] connections) throws SQLException {
+        for (int i = 0; i < connectionNumber; i++) {
+            connections[i].createStatement().executeUpdate("INSERT INTO xatable VALUES (" + i + ")");
+        }
+    }
+
 
     @Test
     public void testCommit() throws Exception {
