@@ -228,7 +228,9 @@ public class StatementTest extends BaseTest {
                         + "LINES TERMINATED BY '\n' (c0, c2)");
                 fail("The above statement should result in an exception");
             } catch (SQLException sqlException) {
-                assertEquals(ER_LOAD_DATA_INVALID_COLUMN, sqlException.getErrorCode());
+                if (sqlException.getErrorCode() != ER_LOAD_DATA_INVALID_COLUMN && sqlException.getErrorCode() != ER_NONUPDATEABLE_COLUMN) {
+                    fail();
+                }
                 assertEquals(ER_LOAD_DATA_INVALID_COLUMN_STATE, sqlException.getSQLState());
             }
         } finally {

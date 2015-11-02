@@ -1134,7 +1134,7 @@ public class MariaDbStatement implements Statement {
             return -1;
         }
 
-        int idx = sqlUpper.indexOf(" VALUE");
+        int idx = sqlUpper.indexOf("VALUE");
         int startBracket = sqlUpper.indexOf("(", idx);
         int endBracket = sqlUpper.indexOf(")", startBracket);
 

@@ -26,46 +26,6 @@ public class DatatypeTest extends BaseTest {
      */
     @BeforeClass()
     public static void initClass() throws SQLException {
-        createTable("datatypetest",
-                "bit1 BIT(1) default 0,"
-                        + "bit2 BIT(2) default 1,"
-                        + "tinyint1 TINYINT(1) default 0,"
-                        + "tinyint2 TINYINT(2) default 1,"
-                        + "bool0 BOOL default 0,"
-                        + "smallint0 SMALLINT default 1,"
-                        + "smallint_unsigned SMALLINT UNSIGNED default 0,"
-                        + "mediumint0 MEDIUMINT default 1,"
-                        + "mediumint_unsigned MEDIUMINT UNSIGNED default 0,"
-                        + "int0 INT default 1,"
-                        + "int_unsigned INT UNSIGNED default 0,"
-                        + "bigint0 BIGINT default 1,"
-                        + "bigint_unsigned BIGINT UNSIGNED default 0,"
-                        + "float0 FLOAT default 0,"
-                        + "double0 DOUBLE default 1,"
-                        + "decimal0 DECIMAL default 0,"
-                        + "date0 DATE default '2001-01-01',"
-                        + "datetime0 DATETIME default '2001-01-01 00:00:00',"
-                        + "timestamp0 TIMESTAMP default  '2001-01-01 00:00:00',"
-                        + "timestamp_zero TIMESTAMP default '0000-00-00 00:00:00',"
-                        + "time0 TIME default '22:11:00',"
-                        + "year2 YEAR(2) default 99,"
-                        + "year4 YEAR(4) default 2011,"
-                        + "char0 CHAR(1) default '0',"
-                        + "char_binary CHAR (1) binary default '0',"
-                        + "varchar0 VARCHAR(1) default '1',"
-                        + "varchar_binary VARCHAR(10) BINARY default 0x1,"
-                        + "binary0 BINARY(10) default 0x1,"
-                        + "varbinary0 VARBINARY(10) default 0x1,"
-                        + "tinyblob0 TINYBLOB,"
-                        + "tinytext0 TINYTEXT,"
-                        + "blob0 BLOB,"
-                        + "text0 TEXT,"
-                        + "mediumblob0 MEDIUMBLOB,"
-                        + "mediumtext0 MEDIUMTEXT,"
-                        + "longblob0 LONGBLOB,"
-                        + "longtext0 LONGTEXT,"
-                        + "enum0 ENUM('a','b') default 'a',"
-                        + "set0 SET('a','b') default 'a' ");
         createTable("Driverstreamtest", "id int not null primary key, strm text");
         createTable("Driverstreamtest2", "id int primary key not null, strm text");
         createTable("objecttest", "int_test int primary key not null, string_test varchar(30), "
@@ -109,6 +69,48 @@ public class DatatypeTest extends BaseTest {
      */
     public void datatypes(Connection connection, boolean tinyInt1isBit, boolean yearIsDateType) throws Exception {
 
+        createTable("datatypetest",
+                "bit1 BIT(1) default 0,"
+                        + "bit2 BIT(2) default 1,"
+                        + "tinyint1 TINYINT(1) default 0,"
+                        + "tinyint2 TINYINT(2) default 1,"
+                        + "bool0 BOOL default 0,"
+                        + "smallint0 SMALLINT default 1,"
+                        + "smallint_unsigned SMALLINT UNSIGNED default 0,"
+                        + "mediumint0 MEDIUMINT default 1,"
+                        + "mediumint_unsigned MEDIUMINT UNSIGNED default 0,"
+                        + "int0 INT default 1,"
+                        + "int_unsigned INT UNSIGNED default 0,"
+                        + "bigint0 BIGINT default 1,"
+                        + "bigint_unsigned BIGINT UNSIGNED default 0,"
+                        + "float0 FLOAT default 0,"
+                        + "double0 DOUBLE default 1,"
+                        + "decimal0 DECIMAL default 0,"
+                        + "date0 DATE default '2001-01-01',"
+                        + "datetime0 DATETIME default '2001-01-01 00:00:00',"
+                        + "timestamp0 TIMESTAMP default  '2001-01-01 00:00:00',"
+                        + "timestamp_zero TIMESTAMP default '0000-00-00 00:00:00',"
+                        + "time0 TIME default '22:11:00',"
+                        + ((!isMariadbServer() && minVersion(5, 6))?"year2 YEAR(4) default 99,":"year2 YEAR(2) default 99,")
+                        + "year4 YEAR(4) default 2011,"
+                        + "char0 CHAR(1) default '0',"
+                        + "char_binary CHAR (1) binary default '0',"
+                        + "varchar0 VARCHAR(1) default '1',"
+                        + "varchar_binary VARCHAR(10) BINARY default 0x1,"
+                        + "binary0 BINARY(10) default 0x1,"
+                        + "varbinary0 VARBINARY(10) default 0x1,"
+                        + "tinyblob0 TINYBLOB,"
+                        + "tinytext0 TINYTEXT,"
+                        + "blob0 BLOB,"
+                        + "text0 TEXT,"
+                        + "mediumblob0 MEDIUMBLOB,"
+                        + "mediumtext0 MEDIUMTEXT,"
+                        + "longblob0 LONGBLOB,"
+                        + "longtext0 LONGTEXT,"
+                        + "enum0 ENUM('a','b') default 'a',"
+                        + "set0 SET('a','b') default 'a' ");
+
+
         connection.createStatement().execute("insert into datatypetest (tinyblob0,mediumblob0,blob0,longblob0,"
                 + "tinytext0,mediumtext0,text0, longtext0) values(0x1,0x1,0x1,0x1, 'a', 'a', 'a', 'a')");
 
@@ -141,9 +143,13 @@ public class DatatypeTest extends BaseTest {
         checkClass("time0", java.sql.Time.class, "TIME", Types.TIME);
         checkClass("timestamp0", java.sql.Timestamp.class, "TIMESTAMP", Types.TIMESTAMP);
         checkClass("timestamp_zero", java.sql.Timestamp.class, "TIMESTAMP", Types.TIMESTAMP);
-        checkClass("year2",
-                yearIsDateType ? java.sql.Date.class : Short.class, "YEAR",
-                yearIsDateType ? Types.DATE : Types.SMALLINT);
+
+        if (isMariadbServer() || !minVersion(5, 6)) {
+            //MySQL deprecated YEAR(2) since 5.6
+            checkClass("year2",
+                    yearIsDateType ? java.sql.Date.class : Short.class, "YEAR",
+                    yearIsDateType ? Types.DATE : Types.SMALLINT);
+        }
         checkClass("year4",
                 yearIsDateType ? java.sql.Date.class : Short.class, "YEAR",
                 yearIsDateType ? Types.DATE : Types.SMALLINT);

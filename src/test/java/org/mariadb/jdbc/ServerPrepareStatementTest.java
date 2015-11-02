@@ -35,39 +35,7 @@ public class ServerPrepareStatementTest extends BaseTest {
         createTable("ServerPrepareStatementCacheSize3", "id int not null primary key auto_increment, test boolean");
         createTable("ServerPrepareStatementCacheSize", "id int not null primary key auto_increment, test int");
         createTable("preparetestFactionnal", "time0 TIME(6) default '22:11:00'");
-        createTable("preparetest",
-                "bit1 BIT(1),"
-                        + "bit2 BIT(2),"
-                        + "tinyint1 TINYINT(1),"
-                        + "tinyint2 TINYINT(2),"
-                        + "bool0 BOOL default 1,"
-                        + "smallint0 SMALLINT default 1,"
-                        + "smallint_unsigned SMALLINT UNSIGNED default 0,"
-                        + "mediumint0 MEDIUMINT default 1,"
-                        + "mediumint_unsigned MEDIUMINT UNSIGNED default 0,"
-                        + "int0 INT default 1,"
-                        + "int_unsigned INT UNSIGNED default 0,"
-                        + "bigint0 BIGINT default 1,"
-                        + "bigint_unsigned BIGINT UNSIGNED default 0,"
-                        + "float0 FLOAT default 0,"
-                        + "double0 DOUBLE default 1,"
-                        + "decimal0 DECIMAL default 0,"
-                        + "decimal1 DECIMAL(15,4) default 0,"
-                        + "date0 DATE default '2001-01-01',"
-                        + "datetime0 DATETIME(6) default '2001-01-01 00:00:00',"
-                        + "timestamp0 TIMESTAMP(6) default  '2001-01-01 00:00:00',"
-                        + "timestamp1 TIMESTAMP(0) default  '2001-01-01 00:00:00',"
-                        + "timestamp_zero TIMESTAMP  null, "
-                        + "time0 TIME(6) default '22:11:00',"
-                        + "year2 YEAR(2) default 99,"
-                        + "year4 YEAR(4) default 2011,"
-                        + "char0 CHAR(1) default '0',"
-                        + "char_binary CHAR (1) binary default '0',"
-                        + "varchar0 VARCHAR(1) default '1',"
-                        + "varchar_binary VARCHAR(10) BINARY default 0x1,"
-                        + "binary0 BINARY(10) default 0x1,"
-                        + "varbinary0 VARBINARY(10) default 0x1"
-        );
+
         createTable("ServerPrepareStatementCacheSize2", "id int not null primary key auto_increment, test boolean");
         createTable("ServerPrepareStatementCacheSize3", "id int not null primary key auto_increment, test blob");
         createTable("ServerPrepareStatementParameters", "id int, id2 int");
@@ -227,8 +195,46 @@ public class ServerPrepareStatementTest extends BaseTest {
 
     }
 
+    private void prepareTestTable() throws SQLException {
+
+        createTable("preparetest",
+                "bit1 BIT(1),"
+                        + "bit2 BIT(2),"
+                        + "tinyint1 TINYINT(1),"
+                        + "tinyint2 TINYINT(2),"
+                        + "bool0 BOOL default 1,"
+                        + "smallint0 SMALLINT default 1,"
+                        + "smallint_unsigned SMALLINT UNSIGNED default 0,"
+                        + "mediumint0 MEDIUMINT default 1,"
+                        + "mediumint_unsigned MEDIUMINT UNSIGNED default 0,"
+                        + "int0 INT default 1,"
+                        + "int_unsigned INT UNSIGNED default 0,"
+                        + "bigint0 BIGINT default 1,"
+                        + "bigint_unsigned BIGINT UNSIGNED default 0,"
+                        + "float0 FLOAT default 0,"
+                        + "double0 DOUBLE default 1,"
+                        + "decimal0 DECIMAL default 0,"
+                        + "decimal1 DECIMAL(15,4) default 0,"
+                        + "date0 DATE default '2001-01-01',"
+                        + "datetime0 DATETIME(6) default '2001-01-01 00:00:00',"
+                        + "timestamp0 TIMESTAMP(6) default  '2001-01-01 00:00:00',"
+                        + "timestamp1 TIMESTAMP(0) default  '2001-01-01 00:00:00',"
+                        + "timestamp_zero TIMESTAMP  null, "
+                        + "time0 TIME(6) default '22:11:00',"
+                        + ((!isMariadbServer() && minVersion(5, 6))?"year2 YEAR(4) default 99,":"year2 YEAR(2) default 99,")
+                        + "year4 YEAR(4) default 2011,"
+                        + "char0 CHAR(1) default '0',"
+                        + "char_binary CHAR (1) binary default '0',"
+                        + "varchar0 VARCHAR(1) default '1',"
+                        + "varchar_binary VARCHAR(10) BINARY default 0x1,"
+                        + "binary0 BINARY(10) default 0x1,"
+                        + "varbinary0 VARBINARY(10) default 0x1"
+        );
+    }
+
     @Test
     public void dataConformityTest() throws SQLException {
+        prepareTestTable();
         PreparedStatement ps = sharedConnection.prepareStatement("INSERT INTO preparetest (bit1,bit2,tinyint1,"
                 + "tinyint2,bool0,smallint0,smallint_unsigned,mediumint0,mediumint_unsigned,int0,"
                 + "int_unsigned,bigint0,bigint_unsigned, float0, double0, decimal0,decimal1, date0,datetime0, "
@@ -543,8 +549,7 @@ public class ServerPrepareStatementTest extends BaseTest {
 
     @Test
     public void dataConformityTest2() throws SQLException {
-        sharedConnection.createStatement().execute("truncate preparetest");
-
+        prepareTestTable();
 
         PreparedStatement ps = sharedConnection.prepareStatement("INSERT INTO preparetest "
                 + "(bit1,bit2,tinyint1,tinyint2,bool0,smallint0,smallint_unsigned,mediumint0,mediumint_unsigned,int0,"

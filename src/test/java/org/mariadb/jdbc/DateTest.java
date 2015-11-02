@@ -22,7 +22,6 @@ public class DateTest extends BaseTest {
     public static void initClass() throws SQLException {
         createTable("dtest", "d date");
         createTable("date_test2", "id int not null primary key auto_increment, d_from datetime ,d_to datetime");
-        createTable("yeartest", "y1 year, y2 year(2)");
         createTable("timetest", "t time");
         createTable("timetest2", "t time");
         createTable("timestampzerotest", "ts timestamp, dt datetime, dd date");
@@ -140,6 +139,7 @@ public class DateTest extends BaseTest {
     @Test
     public void yearTest() throws SQLException {
         Assume.assumeTrue(isMariadbServer());
+        createTable("yeartest", "y1 year, y2 year(2)");
         sharedConnection.createStatement().execute("insert into yeartest values (null, null), (1901, 70), (0, 0), "
                 + "(2155, 69)");
         Statement stmt = sharedConnection.createStatement();

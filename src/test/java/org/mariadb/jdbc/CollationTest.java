@@ -31,17 +31,14 @@ public class CollationTest extends BaseTest {
         Connection connection = null;
         try {
             connection = setConnection("&useUnicode=yes&useConfigs=maxPerformance");
-
-            String sqlForCharset = "SELECT * FROM information_schema.global_variables WHERE variable_name = "
-                    + "'character_set_server'";
+            String sqlForCharset = "select @@character_set_server";
             ResultSet rs = connection.createStatement().executeQuery(sqlForCharset);
             assertTrue(rs.next());
-            final String serverCharacterSet = rs.getString(2);
-            sqlForCharset = "SELECT * FROM information_schema.global_variables WHERE variable_name = "
-                    + "'character_set_client'";
+            final String serverCharacterSet = rs.getString(1);
+            sqlForCharset = "select @@character_set_client";
             rs = connection.createStatement().executeQuery(sqlForCharset);
             assertTrue(rs.next());
-            String clientCharacterSet = rs.getString(2);
+            String clientCharacterSet = rs.getString(1);
             if ("utf8mb4".equalsIgnoreCase(serverCharacterSet)) {
                 assertTrue(serverCharacterSet.equalsIgnoreCase(clientCharacterSet));
             } else {
