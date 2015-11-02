@@ -9,22 +9,22 @@ export MYSQ_GPG_KEY=5072E1F5
 if [ "x$TRAVIS_JDK_VERSION" == "xoraclejdk7" ]
 then
     sudo add-apt-repository -y ppa:webupd8team/java
-    sudo apt-get update
-    sudo apt-get install oracle-java7-unlimited-jce-policy
+    sudo apt-get update -qq
+    sudo apt-get install oracle-java7-unlimited-jce-policy -qq
 
 else if [ "x$TRAVIS_JDK_VERSION" == "xoraclejdk8" ]
     then
         sudo add-apt-repository -y ppa:webupd8team/java
-        sudo apt-get update
-        sudo apt-get install oracle-java8-unlimited-jce-policy
+        sudo apt-get update -qq
+        sudo apt-get install oracle-java8-unlimited-jce-policy -qq
     fi
 fi
 
 remove_mysql(){
     sudo service mysql stop
     sudo apt-get remove --purge mysql-server mysql-client mysql-common
-    sudo apt-get autoremove
-    sudo apt-get autoclean
+    sudo apt-get autoremove -qq
+    sudo apt-get autoclean -qq
     sudo rm -rf /etc/mysql||true
     sudo rm -rf /var/lib/mysql||true
 }
@@ -41,22 +41,22 @@ END
 
     sudo apt-key adv --keyserver pool.sks-keyservers.net --recv-keys $MYSQ_GPG_KEY
 
-    sudo apt-get update
-    sudo apt-get install mysql-server
+    sudo apt-get update -qq
+    sudo apt-get install mysql-server -qq
 
     dpkg -l|grep ^ii|grep mysql-server|grep ${MYSQL_VERSION/-dmr/}
 
 else
     remove_mysql
 
-    sudo apt-get install python-software-properties
+    sudo apt-get install python-software-properties -qq
 
     sudo apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 0xcbcb082a1bb943db
     sudo add-apt-repository "deb http://nyc2.mirrors.digitalocean.com/mariadb/repo/${MARIA_VERSION}/ubuntu precise main"
 
-    sudo apt-get update
+    sudo apt-get update -qq
 
-    sudo apt-get install mariadb-server
+    sudo apt-get install mariadb-server -qq
 fi
 
 sudo tee /etc/mysql/conf.d/map.cnf << END

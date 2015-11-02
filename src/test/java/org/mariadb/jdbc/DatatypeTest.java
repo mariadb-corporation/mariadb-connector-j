@@ -91,7 +91,7 @@ public class DatatypeTest extends BaseTest {
                         + "timestamp0 TIMESTAMP default  '2001-01-01 00:00:00',"
                         + "timestamp_zero TIMESTAMP,"
                         + "time0 TIME default '22:11:00',"
-                        + ((!isMariadbServer() && minVersion(5, 6))?"year2 YEAR(4) default 99,":"year2 YEAR(2) default 99,")
+                        + ((!isMariadbServer() && minVersion(5, 6)) ? "year2 YEAR(4) default 99," : "year2 YEAR(2) default 99,")
                         + "year4 YEAR(4) default 2011,"
                         + "char0 CHAR(1) default '0',"
                         + "char_binary CHAR (1) binary default '0',"
