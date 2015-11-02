@@ -217,6 +217,7 @@ public class DateTest extends BaseTest {
 
     @Test
     public void timestampZeroTest() throws SQLException {
+        assertTrue(isMariadbServer());
         String timestampZero = "0000-00-00 00:00:00";
         String dateZero = "0000-00-00";
         sharedConnection.createStatement().execute("insert into timestampzerotest values ('"
@@ -349,10 +350,10 @@ public class DateTest extends BaseTest {
 
         boolean isMariadbServer = isMariadbServer();
         if (isMariadbServer) {
-            createTable("tt", "id decimal(10), create_time datetime(6) default 0");
+            createTable("tt", "id decimal(10), create_time datetime(6)");
             statement.execute("INSERT INTO tt (id, create_time) VALUES (1,'2013-07-18 13:44:22.123456')");
         } else {
-            createTable("tt", "id decimal(10), create_time datetime default 0");
+            createTable("tt", "id decimal(10), create_time datetime");
             statement.execute("INSERT INTO tt (id, create_time) VALUES (1,'2013-07-18 13:44:22')");
         }
         PreparedStatement ps = sharedConnection.prepareStatement("insert into tt (id, create_time) values (?,?)");
