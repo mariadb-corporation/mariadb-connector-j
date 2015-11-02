@@ -217,7 +217,7 @@ public class DateTest extends BaseTest {
 
     @Test
     public void timestampZeroTest() throws SQLException {
-        assertTrue(isMariadbServer());
+        Assume.assumeTrue(isMariadbServer());
         String timestampZero = "0000-00-00 00:00:00";
         String dateZero = "0000-00-00";
         sharedConnection.createStatement().execute("insert into timestampzerotest values ('"
