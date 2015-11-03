@@ -57,8 +57,8 @@ import java.io.OutputStream;
 
 public class ByteArrayParameter extends NotLongDataParameterHolder {
 
-    byte[] bytes;
-    boolean noBackslashEscapes;
+    private byte[] bytes;
+    private boolean noBackslashEscapes;
 
     public ByteArrayParameter(byte[] bytes, boolean noBackslashEscapes) {
         this.bytes = bytes;

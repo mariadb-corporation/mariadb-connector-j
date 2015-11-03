@@ -57,8 +57,8 @@ import java.io.OutputStream;
 
 
 public class StringParameter extends NotLongDataParameterHolder {
-    String string;
-    boolean noBackslashEscapes;
+    private String string;
+    private boolean noBackslashEscapes;
 
     public StringParameter(String string, boolean noBackslashEscapes) {
         this.string = string;

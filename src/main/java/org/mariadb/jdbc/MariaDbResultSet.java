@@ -3242,7 +3242,7 @@ public class MariaDbResultSet implements ResultSet {
      * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.6
      */
-    public java.sql.NClob getNClob(int columnIndex) throws SQLException {
+    public NClob getNClob(int columnIndex) throws SQLException {
         throw ExceptionMapper.getFeatureNotSupportedException("NClobs are not supported");
     }
 

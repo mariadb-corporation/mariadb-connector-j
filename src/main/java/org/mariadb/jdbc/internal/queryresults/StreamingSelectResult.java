@@ -53,8 +53,9 @@ public class StreamingSelectResult extends SelectQueryResult {
         }
     }
 
+    @Override
     public void addResult(AbstractQueryResult other) {
-        return;
+
     }
 
     /**

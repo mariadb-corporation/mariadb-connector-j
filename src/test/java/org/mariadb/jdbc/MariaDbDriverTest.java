@@ -396,9 +396,12 @@ public class MariaDbDriverTest extends BaseTest {
         cnt = ps.executeUpdate();
         assertEquals(cnt, 2);
         ResultSet rs = st.executeQuery("select count(*) from t_update_count where flag=0");
-        rs.next();
-        cnt = rs.getInt(1);
-        assertEquals(cnt, 2);
+        if (rs.next()) {
+            cnt = rs.getInt(1);
+            assertEquals(cnt, 2);
+        } else {
+            fail();
+        }
     }
 
     @Test
@@ -554,7 +557,7 @@ public class MariaDbDriverTest extends BaseTest {
         /* Check that attempt to use setMaxRows with negative limit fails */
         try {
             st.setMaxRows(-1);
-            assertTrue("setMaxRows(-1) succeeded", false);
+            fail("setMaxRows(-1) succeeded");
         } catch (SQLException e) {
             assertTrue(st.getMaxRows() == 3); /* limit should not change */
         }

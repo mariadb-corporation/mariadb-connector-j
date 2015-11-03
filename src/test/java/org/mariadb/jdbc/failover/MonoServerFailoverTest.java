@@ -121,7 +121,7 @@ public class MonoServerFailoverTest extends BaseMultiHostTest {
      * @throws Exception exception
      */
     @Test
-    public void isValid_connectionThatIsKilledExternally() throws Throwable {
+    public void isValidConnectionThatIsKilledExternally() throws Throwable {
         Connection killerConnection = null;
         try {
             connection = getNewConnection();

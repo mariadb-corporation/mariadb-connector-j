@@ -58,7 +58,7 @@ import java.io.OutputStream;
 
 
 public class ByteParameter extends NotLongDataParameterHolder {
-    byte value;
+    private byte value;
 
     public ByteParameter(byte value) {
         this.value = value;

@@ -201,14 +201,12 @@ public final class MariaDbConnection implements Connection {
         if (protocol.isExplicitClosed()) {
             throw new SQLException("createStatement() is called on closed connection");
         }
-        if (protocol.isClosed()) {
-            if (protocol.getProxy() != null) {
-                lock.lock();
-                try {
-                    protocol.getProxy().reconnect();
-                } finally {
-                    lock.unlock();
-                }
+        if (protocol.isClosed() && protocol.getProxy() != null) {
+            lock.lock();
+            try {
+                protocol.getProxy().reconnect();
+            } finally {
+                lock.unlock();
             }
         }
     }
@@ -832,10 +830,9 @@ public final class MariaDbConnection implements Connection {
      * @see #getHoldability
      * @see java.sql.DatabaseMetaData#getResultSetHoldability
      * @see java.sql.ResultSet
-     * @since 1.4
      */
+    @Override
     public void setHoldability(final int holdability) throws SQLException {
-
     }
 
     /**

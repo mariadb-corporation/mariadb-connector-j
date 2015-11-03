@@ -25,9 +25,9 @@ public class SslTest extends BaseTest {
     @Before
     public void checkSsl() throws SQLException {
         boolean isJava7 = System.getProperty("java.version").contains("1.7.");
-        org.junit.Assume.assumeTrue(haveSsl(sharedConnection));
+        Assume.assumeTrue(haveSsl(sharedConnection));
         //Skip SSL test on java 7 since SSL stream size JDK-6521495).
-        org.junit.Assume.assumeFalse(isJava7);
+        Assume.assumeFalse(isJava7);
         ResultSet rs = sharedConnection.createStatement().executeQuery("select @@ssl_cert");
         rs.next();
         serverCertificatePath = rs.getString(1);
@@ -39,7 +39,7 @@ public class SslTest extends BaseTest {
     public void useSsl() throws Exception {
         Assume.assumeTrue(haveSsl(sharedConnection));
         //Skip SSL test on java 7 since SSL stream size JDK-6521495).
-        org.junit.Assume.assumeFalse(System.getProperty("java.version").contains("1.7."));
+        Assume.assumeFalse(System.getProperty("java.version").contains("1.7."));
         Connection connection = setConnection("&useSSL=true&trustServerCertificate=true");
         try {
             connection.createStatement().execute("select 1");
@@ -168,7 +168,7 @@ public class SslTest extends BaseTest {
 
     @Test
     public void testServerCertClasspathFile() throws SQLException {
-        org.junit.Assume.assumeTrue(new File("target/classes").isDirectory());
+        Assume.assumeTrue(new File("target/classes").isDirectory());
         Properties info = new Properties();
         info.setProperty("useSSL", "true");
         // Copy the valid server certificate to a known location on the classpath:

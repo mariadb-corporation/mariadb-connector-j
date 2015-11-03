@@ -346,8 +346,8 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      * @see #getLoginTimeout
      * @since 1.4
      */
+    @Override
     public void setLoginTimeout(final int seconds) throws SQLException {
-        return;
     }
 
     /**

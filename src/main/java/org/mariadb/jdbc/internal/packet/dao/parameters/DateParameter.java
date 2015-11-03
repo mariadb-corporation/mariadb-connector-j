@@ -60,9 +60,9 @@ import java.sql.Date;
 import java.util.Calendar;
 
 public class DateParameter extends NotLongDataParameterHolder {
-    Date date;
-    Calendar calendar;
-    Options options;
+    private Date date;
+    private Calendar calendar;
+    private Options options;
 
     /**
      * Represents a date, constructed with time in millis since epoch.

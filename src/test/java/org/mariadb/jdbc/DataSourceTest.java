@@ -11,6 +11,7 @@ import java.sql.SQLException;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class DataSourceTest extends BaseTest {
     protected static final String defConnectToIP = null;
@@ -128,15 +129,24 @@ public class DataSourceTest extends BaseTest {
     public void setPropertiesTest() throws SQLException {
         MariaDbDataSource ds = new MariaDbDataSource(hostname, port, database);
         ds.setProperties("sessionVariables=sql_mode='PIPES_AS_CONCAT'");
-        Connection connection = ds.getConnection(username, password);
-        ResultSet rs = connection.createStatement().executeQuery("SELECT @@sql_mode");
-        assertTrue(rs.next());
-        assertEquals("PIPES_AS_CONCAT", rs.getString(1));
-        ds.setUrl(connUri + "&sessionVariables=sql_mode='ALLOW_INVALID_DATES'");
-        connection = ds.getConnection();
-        rs = connection.createStatement().executeQuery("SELECT @@sql_mode");
-        assertTrue(rs.next());
-        assertEquals("ALLOW_INVALID_DATES", rs.getString(1));
-        connection.close();
+        Connection connection = null;
+        try {
+            connection = ds.getConnection(username, password);
+            ResultSet rs = connection.createStatement().executeQuery("SELECT @@sql_mode");
+            if (rs.next()) {
+                assertEquals("PIPES_AS_CONCAT", rs.getString(1));
+                ds.setUrl(connUri + "&sessionVariables=sql_mode='ALLOW_INVALID_DATES'");
+                connection = ds.getConnection();
+                rs = connection.createStatement().executeQuery("SELECT @@sql_mode");
+                assertTrue(rs.next());
+                assertEquals("ALLOW_INVALID_DATES", rs.getString(1));
+                connection.close();
+            } else {
+                fail();
+            }
+        } finally {
+            connection.close();
+        }
+
     }
 }

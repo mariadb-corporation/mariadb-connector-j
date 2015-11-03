@@ -716,25 +716,20 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
             if (lastQueryTime + urlParser.getOptions().validConnectionTimeout * 1000 < System.currentTimeMillis() && !isMasterHostFail()) {
                 boolean masterFail = false;
                 try {
-
                     if (masterProtocol != null && masterProtocol.isConnected()) {
                         checkMasterStatus(null);
                     } else {
                         masterFail = true;
                     }
                 } catch (QueryException e) {
-//                        log.trace("PingLoop ping to master error", e);
                     masterFail = true;
                 }
 
-                if (masterFail) {
-//                        log.trace("PingLoop master failed -> will loop to found it");
-                    if (setMasterHostFail()) {
-                        try {
-                            listener.primaryFail(null, null);
-                        } catch (Throwable t) {
-                            //do nothing
-                        }
+                if (masterFail && setMasterHostFail()) {
+                    try {
+                        listener.primaryFail(null, null);
+                    } catch (Throwable t) {
+                        //do nothing
                     }
                 }
             }

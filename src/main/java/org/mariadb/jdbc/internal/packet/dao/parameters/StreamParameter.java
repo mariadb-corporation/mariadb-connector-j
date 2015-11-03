@@ -59,10 +59,10 @@ import java.util.ArrayList;
 
 
 public class StreamParameter extends LongDataParameterHolder {
-    InputStream is;
-    long length;
-    boolean noBackslashEscapes;
-    ArrayList<byte[]> readArrays = null;
+    private InputStream is;
+    private long length;
+    private boolean noBackslashEscapes;
+    private ArrayList<byte[]> readArrays = null;
 
     /**
      * Constructor.

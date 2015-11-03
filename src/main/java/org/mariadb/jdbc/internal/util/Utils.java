@@ -459,11 +459,9 @@ public class Utils {
                     break;
 
                 case '*':
-                    if (!inQuote && !inComment) {
-                        if (lastChar == '/') {
-                            inComment = true;
-                            isSlashSlashComment = false;
-                        }
+                    if (!inQuote && !inComment && lastChar == '/') {
+                        inComment = true;
+                        isSlashSlashComment = false;
                     }
                     break;
                 case '/':
@@ -490,17 +488,21 @@ public class Utils {
                     // skip SQL_xxx and SQL_TSI_xxx in functions
                     // This would convert e.g SQL_INTEGER => INTEGER, SQL_TSI_HOUR=>HOUR
 
-                    if (!inQuote && !inComment && inEscapeSeq > 0) {
-                        if (i + 4 < charArray.length && charArray[i + 1] == 'Q' && charArray[i + 2] == 'L' && charArray[i + 3] == 'L'
-                                && charArray[i + 4] == '_') {
-                            if (i + 8 < charArray.length && charArray[i + 5] == 'T' && charArray[i + 6] == 'S' && charArray[i + 7] == 'I'
-                                    && charArray[i + 8] == '_') {
-                                i += 8;
-                                continue;
-                            }
-                            i += 4;
+                    if (!inQuote && !inComment && inEscapeSeq > 0
+                            && i + 4 < charArray.length && charArray[i + 1] == 'Q'
+                            && charArray[i + 2] == 'L' && charArray[i + 3] == 'L'
+                            && charArray[i + 4] == '_') {
+
+                        if (i + 8 < charArray.length
+                                && charArray[i + 5] == 'T'
+                                && charArray[i + 6] == 'S'
+                                && charArray[i + 7] == 'I'
+                                && charArray[i + 8] == '_') {
+                            i += 8;
                             continue;
                         }
+                        i += 4;
+                        continue;
                     }
                     break;
                 case '\n':

@@ -57,7 +57,7 @@ public class DatabaseMetadataTest extends BaseTest {
         createTable("conj72", "t tinyint(1)");
     }
 
-    static void checkType(String name, int actualType, String colName, int expectedType) {
+    private static void checkType(String name, int actualType, String colName, int expectedType) {
         if (name.equals(colName)) {
             assertEquals(actualType, expectedType);
         }
@@ -374,7 +374,7 @@ public class DatabaseMetadataTest extends BaseTest {
                         columnType == java.sql.Types.VARCHAR
                                 || columnType == java.sql.Types.NULL
                                 || columnType == Types.LONGVARCHAR);
-            } else if (type.equals("int") || type.equals("short")) {
+            } else if ("int".equals(type) || "short".equals(type)) {
 
                 assertTrue("invalid type  " + columnType + "( " + rsmd.getColumnTypeName(col) + " ) for "
                                 + rsmd.getColumnLabel(col) + ",expected numeric",

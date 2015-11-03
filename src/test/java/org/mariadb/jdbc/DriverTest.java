@@ -85,8 +85,11 @@ public class DriverTest extends BaseTest {
         stmt.execute("insert into DriverTestt2 (test) values ('hej3')");
         stmt.execute("insert into DriverTestt2 (test) values (null)");
         ResultSet rs = stmt.executeQuery("select * from DriverTestt2");
-        rs.next();
-        rs.getInt("non_existing_column");
+        if (rs.next()) {
+            rs.getInt("non_existing_column");
+        } else {
+            fail();
+        }
     }
 
     @Test(expected = SQLException.class)
@@ -109,10 +112,10 @@ public class DriverTest extends BaseTest {
         stmt.execute("insert into tt2 values(1, 'two')");
         ResultSet rs = stmt.executeQuery("select tt1.*, tt2.* from tt1, tt2 where tt1.id = tt2.id");
         rs.next();
-        Assert.assertEquals(1, rs.getInt("tt1.id"));
-        Assert.assertEquals(1, rs.getInt("tt2.id"));
-        Assert.assertEquals("one", rs.getString("tt1.name"));
-        Assert.assertEquals("two", rs.getString("tt2.name"));
+        assertEquals(1, rs.getInt("tt1.id"));
+        assertEquals(1, rs.getInt("tt2.id"));
+        assertEquals("one", rs.getString("tt1.name"));
+        assertEquals("two", rs.getString("tt2.name"));
     }
 
     @Test(expected = SQLException.class)
@@ -372,8 +375,11 @@ public class DriverTest extends BaseTest {
             MariaDbConnection my = (MariaDbConnection) connection;
             assertTrue(my.getPort() == port);
             ResultSet rs = connection.createStatement().executeQuery("select 1");
-            rs.next();
-            assertEquals(rs.getInt(1), 1);
+            if (rs.next()) {
+                assertEquals(rs.getInt(1), 1);
+            } else {
+                fail();
+            }
         } finally {
             connection.close();
         }
@@ -608,7 +614,7 @@ public class DriverTest extends BaseTest {
         assertEquals(2, rs.getInt(1));
         rs.relative(2);
         assertEquals(4, rs.getInt(1));
-        assertTrue(!rs.next());
+        assertFalse(rs.next());
         rs.previous();
         assertEquals(4, rs.getInt(1));
         rs.relative(-3);

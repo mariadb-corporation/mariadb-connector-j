@@ -135,16 +135,12 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     @Override
     public PrepareResult prepare(String sql) throws QueryException {
         try {
-            if (urlParser.getOptions().cachePrepStmts) {
-                if (prepareStatementCache.containsKey(sql)) {
-//                    log.debug("using already cached prepared statement");
-                    PrepareResult pr = prepareStatementCache.get(sql);
-                    pr.addUse();
-                    return pr;
-                }
+            if (urlParser.getOptions().cachePrepStmts && prepareStatementCache.containsKey(sql)) {
+                PrepareResult pr = prepareStatementCache.get(sql);
+                pr.addUse();
+                return pr;
             }
 
-//            log.debug("creating new prepared statement");
             SendPrepareStatementPacket sendPrepareStatementPacket = new SendPrepareStatementPacket(sql);
             sendPrepareStatementPacket.send(writer);
 

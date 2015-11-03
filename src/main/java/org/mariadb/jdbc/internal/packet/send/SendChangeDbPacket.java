@@ -57,7 +57,7 @@ import java.io.OutputStream;
 
 public class SendChangeDbPacket implements InterfaceSendPacket {
 
-    String database;
+    private String database;
 
     public SendChangeDbPacket(final String database) {
         this.database = database;

@@ -58,7 +58,7 @@ import java.io.OutputStream;
 
 
 public class DoubleParameter extends NotLongDataParameterHolder {
-    double value;
+    private double value;
 
     public DoubleParameter(double value) {
         this.value = value;

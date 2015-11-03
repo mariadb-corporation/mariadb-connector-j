@@ -98,9 +98,8 @@ public class MariaDbQuery implements Query {
     }
 
 
-
+    @Override
     public void writeLastRewritePart(final OutputStream os) throws IOException {
-        return;
     }
 
     public int writeLastRewritePartLength() {
@@ -138,7 +137,7 @@ public class MariaDbQuery implements Query {
         return otherObj instanceof MariaDbQuery && (((MariaDbQuery) otherObj).queryToSend).equals(queryToSend);
     }
 
-
+    @Override
     public void validate() throws QueryException {
 
     }

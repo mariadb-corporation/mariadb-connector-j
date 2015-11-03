@@ -472,13 +472,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
      * @throws QueryException if connection failed
      */
     private void createDatabaseIfNotExist() throws QueryException {
-        if (checkIfMaster()) {
-            if (urlParser.getOptions().createDatabaseIfNotExist) {
-                // Try to create the database if it does not exist
-                String quotedDb = MariaDbConnection.quoteIdentifier(this.database);
-                executeQuery(new MariaDbQuery("CREATE DATABASE IF NOT EXISTS " + quotedDb));
-                executeQuery(new MariaDbQuery("USE " + quotedDb));
-            }
+        if (checkIfMaster() && urlParser.getOptions().createDatabaseIfNotExist) {
+            // Try to create the database if it does not exist
+            String quotedDb = MariaDbConnection.quoteIdentifier(this.database);
+            executeQuery(new MariaDbQuery("CREATE DATABASE IF NOT EXISTS " + quotedDb));
+            executeQuery(new MariaDbQuery("USE " + quotedDb));
         }
     }
 

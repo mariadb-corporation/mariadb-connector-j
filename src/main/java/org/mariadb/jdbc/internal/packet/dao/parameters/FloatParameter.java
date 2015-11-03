@@ -58,7 +58,7 @@ import java.io.OutputStream;
 
 
 public class FloatParameter extends NotLongDataParameterHolder {
-    float value;
+    private float value;
 
     public FloatParameter(float value) {
         this.value = value;

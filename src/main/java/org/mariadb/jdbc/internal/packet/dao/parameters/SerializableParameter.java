@@ -59,9 +59,9 @@ import java.io.OutputStream;
 
 
 public class SerializableParameter extends LongDataParameterHolder {
-    Object object;
-    boolean noBackSlashEscapes;
-    byte[] loadedStream = null;
+    private Object object;
+    private boolean noBackSlashEscapes;
+    private byte[] loadedStream = null;
 
     public SerializableParameter(Object object, boolean noBackslashEscapes) throws IOException {
         this.object = object;

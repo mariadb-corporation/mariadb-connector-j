@@ -127,8 +127,8 @@ public class MyX509TrustManager implements X509TrustManager {
      * @param string string
      * @throws CertificateException exception
      */
+    @Override
     public void checkClientTrusted(X509Certificate[] x509Certificates, String string) throws CertificateException {
-        return;
     }
 
     /**
@@ -137,6 +137,7 @@ public class MyX509TrustManager implements X509TrustManager {
      * @param string string
      * @throws CertificateException exception
      */
+    @Override
     public void checkServerTrusted(X509Certificate[] x509Certificates, String string) throws CertificateException {
         if (trustManager == null) {
             return;

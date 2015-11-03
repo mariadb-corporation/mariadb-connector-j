@@ -165,10 +165,10 @@ public class UrlParser {
 
             setHaMode(urlParser, url, separator);
 
-            url = url.substring(separator + 2);
-            String[] tokens = url.split("/");
+            String urlSecondPart = url.substring(separator + 2);
+            String[] tokens = urlSecondPart.split("/");
             String hostAddressesString = tokens[0];
-            String additionalParameters = (tokens.length > 1) ? url.substring(tokens[0].length() + 1) : null;
+            String additionalParameters = (tokens.length > 1) ? urlSecondPart.substring(tokens[0].length() + 1) : null;
 
             urlParser.addresses = HostAddress.parse(hostAddressesString, urlParser.haMode);
 

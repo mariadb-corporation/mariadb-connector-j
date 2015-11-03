@@ -465,14 +465,15 @@ public class DatatypeTest extends BaseTest {
         ps.setByte(1, Byte.MAX_VALUE);
         ps.execute();
         ResultSet rs = sharedConnection.createStatement().executeQuery("select a from bytetest");
-        assertTrue(rs.next());
+        if (rs.next()) {
+            Byte bc = rs.getByte(1);
+            Byte bc2 = rs.getByte("a");
 
-        Byte bc = rs.getByte(1);
-        Byte bc2 = rs.getByte("a");
-
-        assertTrue(Byte.MAX_VALUE == bc);
-        assertEquals(bc2, bc);
-
+            assertTrue(Byte.MAX_VALUE == bc);
+            assertEquals(bc2, bc);
+        } else {
+            fail();
+        }
 
     }
 

@@ -57,10 +57,10 @@ import java.util.ArrayList;
 
 
 public class ReaderParameter extends LongDataParameterHolder {
-    Reader reader;
-    ArrayList<char[]> readArrays = null;
-    long length;
-    boolean noBackslashEscapes;
+    private Reader reader;
+    private ArrayList<char[]> readArrays = null;
+    private long length;
+    private boolean noBackslashEscapes;
 
     /**
      * Constructor.

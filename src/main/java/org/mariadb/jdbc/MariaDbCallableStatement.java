@@ -1721,6 +1721,7 @@ public class MariaDbCallableStatement implements CallableStatement {
         return false;
     }
 
+    @Override
     public void setPoolable(boolean poolable) throws SQLException {
 
     }

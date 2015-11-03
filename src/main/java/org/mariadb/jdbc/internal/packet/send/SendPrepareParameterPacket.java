@@ -58,9 +58,9 @@ import java.io.OutputStream;
 
 public class SendPrepareParameterPacket implements InterfaceSendPacket {
 
-    LongDataParameterHolder parameter;
-    int statementId;
-    int parameterIndex;
+    private LongDataParameterHolder parameter;
+    private int statementId;
+    private int parameterIndex;
 
     /**
      * Initiate parameters.

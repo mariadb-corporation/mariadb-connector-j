@@ -62,10 +62,10 @@ import java.util.Calendar;
 
 
 public class TimeParameter extends NotLongDataParameterHolder {
-    Time time;
-    Calendar calendar;
-    boolean fractionalSeconds;
-    Options options;
+    private Time time;
+    private Calendar calendar;
+    private boolean fractionalSeconds;
+    private Options options;
 
     /**
      * Constructor.

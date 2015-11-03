@@ -57,7 +57,7 @@ import java.io.OutputStream;
 
 
 public class ShortParameter extends NotLongDataParameterHolder {
-    short value;
+    private short value;
 
     public ShortParameter(short value) {
         this.value = value;

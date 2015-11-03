@@ -56,7 +56,7 @@ import java.io.OutputStream;
 
 public class SendPrepareStatementPacket implements InterfaceSendPacket {
 
-    String sql;
+    private String sql;
 
     public SendPrepareStatementPacket(String sql) {
         this.sql = sql;

@@ -851,6 +851,7 @@ public class MariaDbStatement implements Statement {
      * @see java.sql.Statement#setPoolable(boolean) setPoolable(boolean)
      * @since 1.6
      */
+    @Override
     public boolean isPoolable() throws SQLException {
         return false;
     }
@@ -866,8 +867,8 @@ public class MariaDbStatement implements Statement {
      * @throws java.sql.SQLException if this method is called on a closed <code>Statement</code>
      * @since 1.6
      */
+    @Override
     public void setPoolable(final boolean poolable) throws SQLException {
-        return;
     }
 
     /**

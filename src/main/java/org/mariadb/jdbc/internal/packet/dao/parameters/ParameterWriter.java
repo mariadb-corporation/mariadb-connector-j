@@ -13,8 +13,8 @@ import java.util.Calendar;
  */
 //TODO integrate that text helper class to packetOutput that already has binary helper
 public class ParameterWriter {
-    static final byte[] BINARY_INTRODUCER = {'_', 'b', 'i', 'n', 'a', 'r', 'y', ' ', '\''};
-    static final byte[] QUOTE = {'\''};
+    private static final byte[] BINARY_INTRODUCER = {'_', 'b', 'i', 'n', 'a', 'r', 'y', ' ', '\''};
+    private static final byte[] QUOTE = {'\''};
 
     private static void writeBytesEscaped(OutputStream out, byte[] bytes, int count, boolean noBackslashEscapes)
             throws IOException {

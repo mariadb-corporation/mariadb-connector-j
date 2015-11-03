@@ -243,17 +243,18 @@ public class MultiTest extends BaseTest {
      */
     @Test
     public void rewriteBatchedMaxAllowedSizeTest() throws SQLException {
-        log.debug("rewriteBatchedMaxAllowedSizeTest begin");
         Statement st = sharedConnection.createStatement();
         ResultSet rs = st.executeQuery("select @@max_allowed_packet");
-        rs.next();
-        double maxAllowedPacket = rs.getInt(1);
-        // request will be INSERT INTO MultiTestt6 VALUES ...(1000000, 'testValue1000000'),(1000001, 'testValue1000001')"
-        // average additional part size will be 30 characters (",(1000001, 'testValue1000001')")
-        // so there must be (8000000 * 30) / max_allowed_packet insert send
-        int totalInsertCommands = (int) Math.ceil((1500000 * 30) / maxAllowedPacket );
-        verifyInsertBehaviorBasedOnRewriteBatchedStatements(Boolean.TRUE, 1500000, totalInsertCommands);
-        log.debug("rewriteBatchedMaxAllowedSizeTest end");
+        if (rs.next()) {
+            double maxAllowedPacket = rs.getInt(1);
+            // request will be INSERT INTO MultiTestt6 VALUES ...(1000000, 'testValue1000000'),(1000001, 'testValue1000001')"
+            // average additional part size will be 30 characters (",(1000001, 'testValue1000001')")
+            // so there must be (8000000 * 30) / max_allowed_packet insert send
+            int totalInsertCommands = (int) Math.ceil((1500000 * 30) / maxAllowedPacket );
+            verifyInsertBehaviorBasedOnRewriteBatchedStatements(Boolean.TRUE, 1500000, totalInsertCommands);
+        } else {
+            fail();
+        }
     }
 
     private void verifyInsertBehaviorBasedOnRewriteBatchedStatements(Boolean rewriteBatchedStatements,

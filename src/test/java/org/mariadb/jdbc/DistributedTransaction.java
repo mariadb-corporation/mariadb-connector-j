@@ -207,7 +207,7 @@ public class DistributedTransaction extends BaseTest {
             xaRes1.end(xid, XAResource.TMSUCCESS);
             try {
                 xaRes1.start(xid, XAResource.TMJOIN);
-                assertTrue(false); // without pinGlobalTxToPhysicalConnection=true
+                fail(); // without pinGlobalTxToPhysicalConnection=true
             } catch (XAException xaex) {
                 if (xaConn1 != null) {
                     xaConn1.close();

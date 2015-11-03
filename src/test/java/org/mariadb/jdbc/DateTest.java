@@ -295,9 +295,9 @@ public class DateTest extends BaseTest {
             assertEquals(currentDate.getMinutes(), rs.getTime(1).getMinutes());
             assertEquals(currentDate.getSeconds(), rs.getTime(1).getSeconds());
         } else {
-            //mysql 1 seconde precision
-            Assert.assertTrue(Math.abs(currentDate.getMinutes() - rs.getTime(1).getMinutes()) <= 1);
-            Assert.assertTrue(Math.abs(currentDate.getSeconds() - rs.getTime(1).getSeconds()) <= 1);
+            //mysql 5 seconde precision
+            Assert.assertTrue(Math.abs(currentDate.getMinutes() - rs.getTime(1).getMinutes()) <= 5);
+            Assert.assertTrue(Math.abs(currentDate.getSeconds() - rs.getTime(1).getSeconds()) <= 5);
         }
     }
 

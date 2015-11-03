@@ -56,7 +56,7 @@ import java.io.OutputStream;
 import java.math.BigDecimal;
 
 public class BigDecimalParameter extends NotLongDataParameterHolder {
-    BigDecimal bigDecimal;
+    private BigDecimal bigDecimal;
 
     public BigDecimalParameter(final BigDecimal bigDecimal) {
         this.bigDecimal = bigDecimal;
