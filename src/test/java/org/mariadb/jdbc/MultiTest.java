@@ -36,11 +36,11 @@ public class MultiTest extends BaseTest {
                 + "col5 VARCHAR(32)");
         createTable("MultiTesttest_table2", "col1 VARCHAR(32), col2 VARCHAR(32), col3 VARCHAR(32), col4 VARCHAR(32), "
                 + "col5 VARCHAR(32)");
+        createTable("MultiTestValues", "col1 VARCHAR(32), col2 VARCHAR(32)");
         Statement st = sharedConnection.createStatement();
         st.execute("insert into MultiTestt1 values(1,'a'),(2,'a')");
         st.execute("insert into MultiTestt2 values(1,'a'),(2,'a')");
         st.execute("insert into MultiTestt5 values(1,'a'),(2,'a'),(2,'b')");
-
     }
 
     @Test
@@ -679,5 +679,54 @@ public class MultiTest extends BaseTest {
         st.executeBatch();
     }
 
+
+    @Test
+    public void valuesWithoutSpace() throws Exception {
+        Properties props = new Properties();
+        props.setProperty("rewriteBatchedStatements", "true");
+        props.setProperty("allowMultiQueries", "true");
+        Connection tmpConnection = null;
+        try {
+            tmpConnection = openNewConnection(connUri, props);
+            PreparedStatement insertStmt = tmpConnection.prepareStatement("INSERT INTO MultiTestValues (col1, col2)VALUES (?, ?)");
+            insertStmt.setString(1, "a");
+            insertStmt.setString(2, "b");
+            insertStmt.addBatch();
+            insertStmt.setString(1, "c");
+            insertStmt.setString(2, "d");
+            insertStmt.addBatch();
+            insertStmt.executeBatch();
+        } finally {
+            if (tmpConnection != null) {
+                tmpConnection.close();
+            }
+        }
+    }
+
+    /**
+     * Conj-208 : Rewritten batch inserts can fail without a space before the VALUES clause.
+     * @throws Exception exception
+     */
+    @Test
+    public void valuesWithoutSpacewithoutRewrite() throws Exception {
+        Properties props = new Properties();
+        props.setProperty("rewriteBatchedStatements", "true");
+        Connection tmpConnection = null;
+        try {
+            tmpConnection = openNewConnection(connUri, props);
+            PreparedStatement insertStmt = tmpConnection.prepareStatement("INSERT INTO MultiTestValues (col1, col2)VALUES (?, ?)");
+            insertStmt.setString(1, "a");
+            insertStmt.setString(2, "b");
+            insertStmt.addBatch();
+            insertStmt.setString(1, "c");
+            insertStmt.setString(2, "d");
+            insertStmt.addBatch();
+            insertStmt.executeBatch();
+        } finally {
+            if (tmpConnection != null) {
+                tmpConnection.close();
+            }
+        }
+    }
 
 }
