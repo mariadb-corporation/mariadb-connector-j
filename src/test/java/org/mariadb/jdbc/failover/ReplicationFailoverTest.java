@@ -124,25 +124,8 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
     }
 
     @Test
-    public void failoverSlaveToMasterFail() throws Throwable {
-        connection = getNewConnection("&retriesAllDown=1&failOnReadOnly=true", true);
-        int masterServerId = getServerId(connection);
-        connection.setReadOnly(true);
-        int slaveServerId = getServerId(connection);
-        assertTrue(slaveServerId != masterServerId);
-        connection.setReadOnly(false);
-        stopProxy(masterServerId);
-
-        long failTime = System.currentTimeMillis();
-        connection.createStatement().execute("SELECT 1");
-        assertTrue(System.currentTimeMillis() - failTime < 100);
-        assertTrue(slaveServerId == getServerId(connection));
-    }
-
-    @Test
     public void pingReconnectAfterFailover() throws Throwable {
-        connection = getNewConnection("&retriesAllDown=1&secondsBeforeRetryMaster=5&failOnReadOnly=false"
-                + "&queriesBeforeRetryMaster=50000", true);
+        connection = getNewConnection("&retriesAllDown=1&secondsBeforeRetryMaster=5&queriesBeforeRetryMaster=50000", true);
         Statement st = connection.createStatement();
         final int masterServerId = getServerId(connection);
         stopProxy(masterServerId);
@@ -287,40 +270,6 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
     }
 
     @Test
-    public void checkReconnectionToMasterAfterQueryNumber() throws Throwable {
-        connection = getNewConnection("&retriesAllDown=1&secondsBeforeRetryMaster=3000&queriesBeforeRetryMaster=10"
-                + "&failOnReadOnly=true", true);
-        Statement st = connection.createStatement();
-        int masterServerId = getServerId(connection);
-        stopProxy(masterServerId);
-        try {
-            st.execute("SELECT 1");
-        } catch (SQLException e) {
-            fail();
-        }
-        assertTrue(connection.isReadOnly());
-
-        restartProxy(masterServerId);
-
-        //not in autoreconnect mode, so must wait for query more than queriesBeforeRetryMaster
-        for (int i = 1; i < 10; i++) {
-            try {
-                st.execute("SELECT 1");
-                log.debug("i=" + i);
-                assertTrue(connection.isReadOnly());
-            } catch (SQLException e) {
-                fail();
-            }
-        }
-        Thread.sleep(5000);
-        long startTime = System.currentTimeMillis();
-        connection.setReadOnly(false);
-        log.debug(" time = " + (System.currentTimeMillis() - startTime));
-        assertTrue(System.currentTimeMillis() - startTime < 4000);
-
-    }
-
-    @Test
     public void reconnectMasterAfterFailover() throws Throwable {
         connection = getNewConnection("&retriesAllDown=1", true);
         //if super user can write on slave
@@ -452,7 +401,7 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
 
     @Test
     public void testFailNotOnSlave() throws Throwable {
-        connection = getNewConnection("&retriesAllDown=1&autoReconnectMaster=true&failOnReadOnly=false", true);
+        connection = getNewConnection("&retriesAllDown=1&autoReconnectMaster=true", true);
         Statement stmt = connection.createStatement();
         int masterServerId = getServerId(connection);
         stopProxy(masterServerId);
@@ -463,20 +412,6 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
             //normal error
         }
         assertTrue(!connection.isReadOnly());
-    }
-
-    @Test
-    public void testAutoReconnectMasterFailSlave() throws Throwable {
-        connection = getNewConnection("&retriesAllDown=1&failOnReadOnly=true", true);
-        Statement stmt = connection.createStatement();
-        int masterServerId = getServerId(connection);
-        stopProxy(masterServerId);
-        try {
-            stmt.execute("SELECT 1");
-        } catch (SQLException e) {
-            fail();
-        }
-        assertTrue(connection.isReadOnly());
     }
 
     class MutableInt {

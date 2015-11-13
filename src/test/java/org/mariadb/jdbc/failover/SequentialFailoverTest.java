@@ -137,7 +137,7 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
 
     @Test
     public void pingReconnectAfterRestart() throws Throwable {
-        connection = getNewConnection("&retriesAllDown=1&secondsBeforeRetryMaster=1&failOnReadOnly=false"
+        connection = getNewConnection("&retriesAllDown=1&secondsBeforeRetryMaster=1"
                 + "&queriesBeforeRetryMaster=50000", true);
         Statement st = connection.createStatement();
         int masterServerId = getServerId(connection);
