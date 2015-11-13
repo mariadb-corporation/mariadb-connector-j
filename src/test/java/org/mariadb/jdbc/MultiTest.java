@@ -414,6 +414,31 @@ public class MultiTest extends BaseTest {
         return preparedStatement;
     }
 
+
+    /**
+     * Conj-215: Batched statements with rewriteBatchedStatements that end with a semicolon fails.
+     *
+     * @throws SQLException exception
+     */
+    @Test
+    public void semicolonTest() throws SQLException {
+        Properties props = new Properties();
+        props.setProperty("rewriteBatchedStatements", "true");
+        props.setProperty("allowMultiQueries", "true");
+        Connection tmpConnection = null;
+        try {
+            tmpConnection = openNewConnection(connUri, props);
+            Statement sqlInsert = tmpConnection.createStatement();
+            for (int i = 0; i < 100; i++) {
+                sqlInsert.addBatch("insert into prepsemi (text) values ('This is a test" + i + "');");
+            }
+            sqlInsert.executeBatch();
+        } finally {
+            tmpConnection.close();
+        }
+    }
+
+
     /**
      * Conj-99: rewriteBatchedStatements parameter.
      *

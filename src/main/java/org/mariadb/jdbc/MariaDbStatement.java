@@ -1099,8 +1099,15 @@ public class MariaDbStatement implements Statement {
         if (batchQueries == null) {
             batchQueries = new ArrayList<>();
         }
-        isInsertRewriteable(sql);
-        batchQueries.add(new MariaDbQuery(sql));
+        String sqlQuery;
+        if (protocol.getOptions().rewriteBatchedStatements || protocol.getOptions().allowMultiQueries) {
+            sqlQuery = deleteEndSemicolonPattern.matcher(sql).replaceAll("");
+            isInsertRewriteable(sqlQuery);
+        } else {
+            sqlQuery = sql;
+        }
+
+        batchQueries.add(new MariaDbQuery(sqlQuery));
     }
 
     /**
@@ -1220,7 +1227,7 @@ public class MariaDbStatement implements Statement {
                 int size = batchQueries.size();
                 batchResultSet = null;
                 boolean rewrittenBatch = isRewriteable && getProtocol().getOptions().rewriteBatchedStatements;
-                execute(batchQueries, rewrittenBatch, rewrittenBatch ? firstRewrite.length() : 0);
+                execute(batchQueries, rewrittenBatch, (rewrittenBatch && firstRewrite != null)? firstRewrite.length() : 0);
                 return rewrittenBatch ? getUpdateCountsForReWrittenBatch(size) : getUpdateRewrittenCounts();
             } else {
                 for (; batchQueriesCount < batchQueries.size(); batchQueriesCount++) {
@@ -1279,6 +1286,8 @@ public class MariaDbStatement implements Statement {
             Object obj = cachedResultSets.remove();
             if (obj instanceof QueryException) {
                 ExceptionMapper.throwException((QueryException) obj, connection, this);
+            } else if (obj instanceof SQLException) {
+                throw (SQLException) obj;
             }
             queryResult = (AbstractQueryResult) obj;
             updateCount = getUpdateCount();
