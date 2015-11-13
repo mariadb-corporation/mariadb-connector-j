@@ -460,7 +460,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(), ste);
         } catch (IOException e) {
             try {
-                if (writer != null) {
+                if (writer != null && rawPacket != null) {
                     writer.writeEmptyPacket(rawPacket.getPacketSeq() + 1);
                     ReadResultPacketFactory.createResultPacket(packetFetcher);
                 }
