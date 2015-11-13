@@ -37,6 +37,8 @@ public class MultiTest extends BaseTest {
         createTable("MultiTesttest_table2", "col1 VARCHAR(32), col2 VARCHAR(32), col3 VARCHAR(32), col4 VARCHAR(32), "
                 + "col5 VARCHAR(32)");
         createTable("MultiTestValues", "col1 VARCHAR(32), col2 VARCHAR(32)");
+
+        createTable("MultiTestprepsemi", "id int not null primary key auto_increment, text text");
         Statement st = sharedConnection.createStatement();
         st.execute("insert into MultiTestt1 values(1,'a'),(2,'a')");
         st.execute("insert into MultiTestt2 values(1,'a'),(2,'a')");
@@ -430,7 +432,7 @@ public class MultiTest extends BaseTest {
             tmpConnection = openNewConnection(connUri, props);
             Statement sqlInsert = tmpConnection.createStatement();
             for (int i = 0; i < 100; i++) {
-                sqlInsert.addBatch("insert into prepsemi (text) values ('This is a test" + i + "');");
+                sqlInsert.addBatch("insert into MultiTestprepsemi (text) values ('This is a test" + i + "');");
             }
             sqlInsert.executeBatch();
         } finally {

@@ -86,7 +86,7 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
             log.debug("Creating prepared statement for " + sql);
         }*/
         query = new MariaDbClientParameterizeQuery(Utils.nativeSql(sqlQuery, connection.noBackslashEscapes),
-                connection.noBackslashEscapes, (isRewriteable && firstRewrite != null)? firstRewrite.length() : -1);
+                connection.noBackslashEscapes, (isRewriteable && firstRewrite != null) ? firstRewrite.length() : -1);
         parametersCleared = true;
     }
 

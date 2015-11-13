@@ -1227,7 +1227,7 @@ public class MariaDbStatement implements Statement {
                 int size = batchQueries.size();
                 batchResultSet = null;
                 boolean rewrittenBatch = isRewriteable && getProtocol().getOptions().rewriteBatchedStatements;
-                execute(batchQueries, rewrittenBatch, (rewrittenBatch && firstRewrite != null)? firstRewrite.length() : 0);
+                execute(batchQueries, rewrittenBatch, (rewrittenBatch && firstRewrite != null) ? firstRewrite.length() : 0);
                 return rewrittenBatch ? getUpdateCountsForReWrittenBatch(size) : getUpdateRewrittenCounts();
             } else {
                 for (; batchQueriesCount < batchQueries.size(); batchQueriesCount++) {
