@@ -67,7 +67,7 @@ public class BaseTest {
         username = urlParser.getUsername();
         password = urlParser.getPassword();
 
-        log.debug("Properties parsed from JDBC URL - hostname: " + hostname + ", port: " + port + ", database: "
+        log.trace("Properties parsed from JDBC URL - hostname: " + hostname + ", port: " + port + ", database: "
                 + database + ", username: " + username + ", password: " + password);
 
         setUri();
