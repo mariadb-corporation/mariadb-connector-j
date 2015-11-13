@@ -44,7 +44,7 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
             connection.close();
         }
 
-        log.debug("test time : " + (System.currentTimeMillis() - testBeginTime) + "ms");
+        log.trace("test time : " + (System.currentTimeMillis() - testBeginTime) + "ms");
     }
 
     @Test
@@ -81,14 +81,14 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
         for (int i = 0; i < 20; i++) {
             connection = getNewConnection("&retriesAllDown=1", false);
             int serverId = getServerId(connection);
-            log.debug("master server found " + serverId);
+            log.trace("master server found " + serverId);
             if (i > 0) {
                 assertTrue(masterId == serverId);
             }
             masterId = serverId;
             connection.setReadOnly(true);
             int replicaId = getServerId(connection);
-            log.debug("++++++++++++slave  server found " + replicaId);
+            log.trace("++++++++++++slave  server found " + replicaId);
             MutableInt count = connectionMap.get(String.valueOf(replicaId));
             if (count == null) {
                 connectionMap.put(String.valueOf(replicaId), new MutableInt());
@@ -101,7 +101,7 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
         assertTrue(connectionMap.size() >= 2);
         for (String key : connectionMap.keySet()) {
             Integer connectionCount = connectionMap.get(key).get();
-            log.debug(" ++++ Server " + key + " : " + connectionCount + " connections ");
+            log.trace(" ++++ Server " + key + " : " + connectionCount + " connections ");
             assertTrue(connectionCount > 1);
         }
     }
@@ -117,7 +117,7 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
         connection.createStatement().execute("SELECT 1");
         int currentServerId = getServerId(connection);
 
-        log.debug("masterServerId = " + masterServerId + "/currentServerId = " + currentServerId);
+        log.trace("masterServerId = " + masterServerId + "/currentServerId = " + currentServerId);
         assertTrue(masterServerId == currentServerId);
 
         assertFalse(connection.isReadOnly());
@@ -152,10 +152,10 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
         while (loop) {
             try {
                 Thread.sleep(250);
-                log.debug("time : " + (System.currentTimeMillis() - stoppedTime) + "ms");
+                log.trace("time : " + (System.currentTimeMillis() - stoppedTime) + "ms");
                 int currentHost = getServerId(connection);
                 if (masterServerId == currentHost) {
-                    log.debug("reconnection with failover loop after : " + (System.currentTimeMillis() - stoppedTime)
+                    log.trace("reconnection with failover loop after : " + (System.currentTimeMillis() - stoppedTime)
                             + "ms");
                     assertTrue((System.currentTimeMillis() - stoppedTime) > 5 * 1000);
                     loop = false;
@@ -196,10 +196,10 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
     public void changeSlave() throws Throwable {
         connection = getNewConnection("&retriesAllDown=1", true);
         int masterServerId = getServerId(connection);
-        log.debug("master server_id = " + masterServerId);
+        log.trace("master server_id = " + masterServerId);
         connection.setReadOnly(true);
         int firstSlaveId = getServerId(connection);
-        log.debug("slave1 server_id = " + firstSlaveId);
+        log.trace("slave1 server_id = " + firstSlaveId);
 
         stopProxy(masterServerId);
         stopProxy(firstSlaveId);
@@ -215,10 +215,10 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
     public void masterWithoutFailover() throws Throwable {
         connection = getNewConnection("&retriesAllDown=1", true);
         int masterServerId = getServerId(connection);
-        log.debug("master server_id = " + masterServerId);
+        log.trace("master server_id = " + masterServerId);
         connection.setReadOnly(true);
         int firstSlaveId = getServerId(connection);
-        log.debug("slave1 server_id = " + firstSlaveId);
+        log.trace("slave1 server_id = " + firstSlaveId);
         connection.setReadOnly(false);
 
         stopProxy(masterServerId);
@@ -238,12 +238,12 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
 
         //search actual server_id for master and slave
         int masterServerId = getServerId(connection);
-        log.debug("master server_id = " + masterServerId);
+        log.trace("master server_id = " + masterServerId);
 
         connection.setReadOnly(true);
 
         int firstSlaveId = getServerId(connection);
-        log.debug("slave1 server_id = " + firstSlaveId);
+        log.trace("slave1 server_id = " + firstSlaveId);
 
         stopProxy(masterServerId);
         stopProxy(firstSlaveId);
@@ -251,7 +251,7 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
         //must reconnect to the second slave without error
         connection.createStatement().execute("SELECT 1");
         int currentSlaveId = getServerId(connection);
-        log.debug("currentSlaveId server_id = " + currentSlaveId);
+        log.trace("currentSlaveId server_id = " + currentSlaveId);
         assertTrue(currentSlaveId != firstSlaveId);
         assertTrue(currentSlaveId != masterServerId);
     }
@@ -334,7 +334,7 @@ public class ReplicationFailoverTest extends BaseMultiHostTest {
             Thread.sleep(250);
             try {
                 if (!connection.isReadOnly()) {
-                    log.debug("reconnection to master with failover loop after : " + (System.currentTimeMillis()
+                    log.trace("reconnection to master with failover loop after : " + (System.currentTimeMillis()
                             - stoppedTime) + "ms");
                     assertTrue((System.currentTimeMillis() - stoppedTime) > 10 * 1000);
                     loop = false;

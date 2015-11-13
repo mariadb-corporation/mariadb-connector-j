@@ -117,14 +117,14 @@ public class ServerPrepareStatementTest extends BaseTest {
             ResultSet rs = statement.executeQuery("show global status like 'Prepared_stmt_count'");
             rs.next();
             int prepareServerStatement = rs.getInt(2);
-            log.debug("server side : " + prepareServerStatement);
+            log.trace("server side : " + prepareServerStatement);
 
             connection.prepareStatement("INSERT INTO ServerPrepareStatementCacheSize3(test) "
                     + "VALUES (?)");
             rs = statement.executeQuery("show global status like 'Prepared_stmt_count'");
             rs.next();
             int prepareServerStatement2 = rs.getInt(2);
-            log.debug("server side before closing: " + prepareServerStatement2);
+            log.trace("server side before closing: " + prepareServerStatement2);
             assertTrue(prepareServerStatement2 == prepareServerStatement + 1);
 
         } finally {
@@ -141,7 +141,7 @@ public class ServerPrepareStatementTest extends BaseTest {
             PreparedStatement[] sts = new PreparedStatement[20];
             for (int i = 0; i < 20; i++) {
                 String sql = "INSERT INTO ServerPrepareStatementCacheSize(id, test) VALUES (" + (i + 1) + ",?)";
-                log.debug(sql);
+                log.trace(sql);
                 sts[i] = connection.prepareStatement(sql);
             }
             //check max cache size
@@ -693,15 +693,11 @@ public class ServerPrepareStatementTest extends BaseTest {
         public void run() {
             try {
                 Protocol protocol = getProtocolFromConnection(connection);
-                log.debug("before : contain key : " + protocol.prepareStatementCache().containsKey(sql));
                 if (protocol.prepareStatementCache().containsKey(sql)) {
                     PrepareResult ps = protocol.prepareStatementCache().get(sql);
-                    log.debug("before : ps : " + ps.getUseTime());
                 }
-                log.debug("after : contain key : " + protocol.prepareStatementCache().containsKey(sql));
                 if (protocol.prepareStatementCache().containsKey(sql)) {
                     PrepareResult ps2 = protocol.prepareStatementCache().get(sql);
-                    log.debug("after : ps : " + ps2.getUseTime());
                 }
                 PreparedStatement ps = connection.prepareStatement(sql);
                 Thread.sleep(firstWaitTime);
@@ -710,10 +706,8 @@ public class ServerPrepareStatementTest extends BaseTest {
                 ps.executeBatch();
                 Thread.sleep(secondWaitTime);
                 ps.close();
-                log.debug("after close : contain key : " + protocol.prepareStatementCache().containsKey(sql));
                 if (protocol.prepareStatementCache().containsKey(sql)) {
                     PrepareResult ps2 = protocol.prepareStatementCache().get(sql);
-                    log.debug("after close : ps : " + ps2.getUseTime());
                 }
             } catch (Throwable e) {
                 fail();

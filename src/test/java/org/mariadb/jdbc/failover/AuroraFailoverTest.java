@@ -85,14 +85,14 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
         for (int i = 0; i < 20; i++) {
             connection = getNewConnection(false);
             int serverId = getServerId(connection);
-            log.debug("master server found " + serverId);
+            log.trace("master server found " + serverId);
             if (i > 0) {
                 Assert.assertTrue(masterId == serverId);
             }
             masterId = serverId;
             connection.setReadOnly(true);
             int replicaId = getServerId(connection);
-            log.debug("++++++++++++slave  server found " + replicaId);
+            log.trace("++++++++++++slave  server found " + replicaId);
             MutableInt count = connectionMap.get(String.valueOf(replicaId));
             if (count == null) {
                 connectionMap.put(String.valueOf(replicaId), new MutableInt());
@@ -105,10 +105,10 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
         Assert.assertTrue(connectionMap.size() >= 2);
         for (String key : connectionMap.keySet()) {
             Integer connectionCount = connectionMap.get(key).get();
-            log.debug(" ++++ Server " + key + " : " + connectionCount + " connections ");
+            log.trace(" ++++ Server " + key + " : " + connectionCount + " connections ");
             Assert.assertTrue(connectionCount > 1);
         }
-        log.debug("randomConnection OK");
+        log.trace("randomConnection OK");
     }
 
 
@@ -123,7 +123,7 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
         connection.createStatement().execute("SELECT 1");
         int currentServerId = getServerId(connection);
 
-        log.debug("masterServerId = " + masterServerId + "/currentServerId = " + currentServerId);
+        log.trace("masterServerId = " + masterServerId + "/currentServerId = " + currentServerId);
         Assert.assertTrue(masterServerId == currentServerId);
 
         Assert.assertFalse(connection.isReadOnly());
@@ -168,7 +168,7 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
         boolean loop = true;
         while (loop) {
             if (!connection.isClosed()) {
-                log.debug("reconnection with failover loop after : "
+                log.trace("reconnection with failover loop after : "
                         + (System.currentTimeMillis() - stoppedTime) + "ms");
                 loop = false;
             }
@@ -216,10 +216,10 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
     public void failoverSlaveAndMasterWithoutAutoConnect() throws Throwable {
         connection = getNewConnection("&retriesAllDown=1", true);
         int masterServerId = getServerId(connection);
-        log.debug("master server_id = " + masterServerId);
+        log.trace("master server_id = " + masterServerId);
         connection.setReadOnly(true);
         int firstSlaveId = getServerId(connection);
-        log.debug("slave1 server_id = " + firstSlaveId);
+        log.trace("slave1 server_id = " + firstSlaveId);
 
         stopProxy(masterServerId);
         stopProxy(firstSlaveId);
@@ -238,12 +238,12 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
 
         //search actual server_id for master and slave
         int masterServerId = getServerId(connection);
-        log.debug("master server_id = " + masterServerId);
+        log.trace("master server_id = " + masterServerId);
 
         connection.setReadOnly(true);
 
         int firstSlaveId = getServerId(connection);
-        log.debug("slave1 server_id = " + firstSlaveId);
+        log.trace("slave1 server_id = " + firstSlaveId);
 
         stopProxy(masterServerId);
         stopProxy(firstSlaveId);
@@ -251,7 +251,7 @@ public class AuroraFailoverTest extends BaseMultiHostTest {
         //must reconnect to the second slave without error
         connection.createStatement().execute("SELECT 1");
         int currentSlaveId = getServerId(connection);
-        log.debug("currentSlaveId server_id = " + currentSlaveId);
+        log.trace("currentSlaveId server_id = " + currentSlaveId);
         Assert.assertTrue(currentSlaveId != firstSlaveId);
         Assert.assertTrue(currentSlaveId != masterServerId);
     }

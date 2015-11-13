@@ -31,7 +31,7 @@ public class SslTest extends BaseTest {
         ResultSet rs = sharedConnection.createStatement().executeQuery("select @@ssl_cert");
         rs.next();
         serverCertificatePath = rs.getString(1);
-        log.debug("Server certificate path: {}", serverCertificatePath);
+        log.trace("Server certificate path: {}", serverCertificatePath);
         rs.close();
     }
 

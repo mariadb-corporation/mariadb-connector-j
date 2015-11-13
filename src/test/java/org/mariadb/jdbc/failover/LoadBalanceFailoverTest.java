@@ -58,7 +58,7 @@ public class LoadBalanceFailoverTest extends BaseMultiHostTest {
         for (int i = 0; i < 20; i++) {
             connection = getNewConnection(false);
             int serverId = getServerId(connection);
-            log.debug("master server found " + serverId);
+            log.trace("master server found " + serverId);
             MutableInt count = connectionMap.get(String.valueOf(serverId));
             if (count == null) {
                 connectionMap.put(String.valueOf(serverId), new MutableInt());
@@ -71,10 +71,10 @@ public class LoadBalanceFailoverTest extends BaseMultiHostTest {
         Assert.assertTrue(connectionMap.size() >= 2);
         for (String key : connectionMap.keySet()) {
             Integer connectionCount = connectionMap.get(key).get();
-            log.debug(" ++++ Server " + key + " : " + connectionCount + " connections ");
+            log.trace(" ++++ Server " + key + " : " + connectionCount + " connections ");
             Assert.assertTrue(connectionCount > 1);
         }
-        log.debug("randomConnection OK");
+        log.trace("randomConnection OK");
     }
 
 

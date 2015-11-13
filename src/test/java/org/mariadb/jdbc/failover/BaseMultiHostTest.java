@@ -57,11 +57,11 @@ public class BaseMultiHostTest {
     public TestRule watcher = new TestWatcher() {
 
         protected void starting(Description description) {
-            log.debug("Starting test: " + description.getMethodName());
+            log.trace("Starting test: " + description.getMethodName());
         }
 
         protected void finished(Description description) {
-            log.debug("finished test: " + description.getMethodName());
+            log.trace("finished test: " + description.getMethodName());
         }
 
     };
@@ -127,7 +127,7 @@ public class BaseMultiHostTest {
             try {
                 hostAddress = tmpUrlParser.getHostAddresses().get(i);
                 tcpProxies[i] = new TcpProxy(hostAddress.host, hostAddress.port);
-                log.debug("creating socket " + proxyType + " : " + hostAddress.host + ":" + hostAddress.port
+                log.trace("creating socket " + proxyType + " : " + hostAddress.host + ":" + hostAddress.port
                         + " -> localhost:" + tcpProxies[i].getLocalPort());
                 sockethosts += ",address=(host=localhost)(port=" + tcpProxies[i].getLocalPort() + ")"
                         + ((hostAddress.type != null) ? "(type=" + hostAddress.type + ")" : "");
@@ -203,7 +203,7 @@ public class BaseMultiHostTest {
      * @param millissecond milliseconds
      */
     public void stopProxy(int hostNumber, long millissecond) {
-        log.debug("stopping host " + hostNumber);
+        log.trace("stopping host " + hostNumber);
         proxySet.get(currentType)[hostNumber - 1].restart(millissecond);
     }
 
@@ -212,7 +212,7 @@ public class BaseMultiHostTest {
      * @param hostNumber host number (first is 1)
      */
     public void stopProxy(int hostNumber) {
-        log.debug("stopping host " + hostNumber);
+        log.trace("stopping host " + hostNumber);
         proxySet.get(currentType)[hostNumber - 1].stop();
     }
 
@@ -221,7 +221,7 @@ public class BaseMultiHostTest {
      * @param hostNumber host number (first is  1)
      */
     public void restartProxy(int hostNumber) {
-        log.debug("restart host " + hostNumber);
+        log.trace("restart host " + hostNumber);
         if (hostNumber != -1) {
             proxySet.get(currentType)[hostNumber - 1].restart();
         }
@@ -274,7 +274,7 @@ public class BaseMultiHostTest {
         rs.close();
 
         if (superPrivilege) {
-            log.debug("test '" + testName + "' skipped because user '" + username + "' has SUPER privileges");
+            log.trace("test '" + testName + "' skipped because user '" + username + "' has SUPER privileges");
         }
 
         return superPrivilege;
