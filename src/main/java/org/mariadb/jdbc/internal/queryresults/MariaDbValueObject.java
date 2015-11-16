@@ -710,7 +710,7 @@ public class MariaDbValueObject implements ValueObject {
             java.util.Date utilDate = sdf.parse(rawValue);
             return new Date(utilDate.getTime());
         } else {
-            return binaryDate();
+            return binaryDate(cal);
         }
     }
 
@@ -733,6 +733,11 @@ public class MariaDbValueObject implements ValueObject {
         if (!this.isBinaryEncoded) {
             if (dataType == MariaDbType.TIMESTAMP || dataType == MariaDbType.DATETIME) {
                 return new Time(getTimestamp(cal).getTime());
+            } else if (dataType == MariaDbType.DATE) {
+                Calendar zeroCal = Calendar.getInstance();
+                zeroCal.set(1970, 0, 1, 0, 0, 0);
+                zeroCal.set(Calendar.MILLISECOND, 0);
+                return new Time(zeroCal.getTimeInMillis());
             } else {
                 if (!options.useLegacyDatetimeCode && (raw.startsWith("-") || raw.split(":").length != 3 || raw.indexOf(":") > 3)) {
                     throw new ParseException("Time format \"" + raw + "\" incorrect, must be HH:mm:ss", 0);
@@ -761,68 +766,86 @@ public class MariaDbValueObject implements ValueObject {
                 }
             }
         } else {
-            return binaryTime();
+            return binaryTime(cal);
         }
     }
 
-    private Date binaryDate() throws ParseException {
-        if (rawBytes.length == 0) {
-            return null;
+    private Date binaryDate(Calendar cal) throws ParseException {
+        switch (dataType) {
+            case TIMESTAMP:
+            case DATETIME:
+                return new Date(getTimestamp(cal).getTime());
+            default:
+                if (rawBytes.length == 0) {
+                    return null;
+                }
+                int year;
+                int month;
+                int day;
+
+                year = ((rawBytes[0] & 0xff) | (rawBytes[1] & 0xff) << 8);
+                month = rawBytes[2];
+                day = rawBytes[3];
+
+                Calendar calendar = Calendar.getInstance();
+                /*if (!options.useLegacyDatetimeCode) {
+                    c = cal;
+                }*/
+
+                Date dt;
+                synchronized (calendar) {
+                    calendar.clear();
+                    calendar.set(Calendar.YEAR, year);
+                    calendar.set(Calendar.MONTH, month - 1);
+                    calendar.set(Calendar.DAY_OF_MONTH, day);
+                    calendar.set(Calendar.HOUR_OF_DAY, 0);
+                    calendar.set(Calendar.MINUTE, 0);
+                    calendar.set(Calendar.SECOND, 0);
+                    calendar.set(Calendar.MILLISECOND, 0);
+                    dt = new Date(calendar.getTimeInMillis());
+                }
+                return dt;
         }
-        int year;
-        int month;
-        int day;
-
-        year = ((rawBytes[0] & 0xff) | (rawBytes[1] & 0xff) << 8);
-        month = rawBytes[2];
-        day = rawBytes[3];
-
-        Calendar calendar = Calendar.getInstance();
-        /*if (!options.useLegacyDatetimeCode) {
-            c = cal;
-        }*/
-
-        Date dt;
-        synchronized (calendar) {
-            calendar.clear();
-            calendar.set(Calendar.YEAR, year);
-            calendar.set(Calendar.MONTH, month - 1);
-            calendar.set(Calendar.DAY_OF_MONTH, day);
-            calendar.set(Calendar.HOUR_OF_DAY, 0);
-            calendar.set(Calendar.MINUTE, 0);
-            calendar.set(Calendar.SECOND, 0);
-            calendar.set(Calendar.MILLISECOND, 0);
-            dt = new Date(calendar.getTimeInMillis());
-        }
-        return dt;
     }
 
-    private Time binaryTime() {
+    private Time binaryTime(Calendar cal) throws ParseException {
         if (rawBytes.length == 0) {
             return null;
         }
+        switch (dataType) {
+            case TIMESTAMP:
+            case DATETIME:
+                Timestamp ts = binaryTimestamp(cal);
+                return new Time(ts.getTime());
+            case DATE:
+                Calendar tmpCalendar = Calendar.getInstance();
+                tmpCalendar.clear();
+                tmpCalendar.set(1970, 0, 1, 0, 0, 0);
+                tmpCalendar.set(Calendar.MILLISECOND, 0);
+                return new Time(tmpCalendar.getTimeInMillis());
+            default:
+                Calendar calendar = Calendar.getInstance();
+                calendar.clear();
+                if (options.useLegacyDatetimeCode) {
+                    calendar.setLenient(false);
+                }
+                int hour = rawBytes[5];
+                int minutes = rawBytes[6];
+                int seconds = rawBytes[7];
+                calendar.set(1970, 0, 1, hour, minutes, seconds);
 
-        Calendar calendar = Calendar.getInstance();
-        calendar.clear();
-        if (options.useLegacyDatetimeCode) {
-            calendar.setLenient(false);
+                int nanoseconds = 0;
+                if (rawBytes.length > 8) {
+                    nanoseconds = ((rawBytes[8] & 0xff)
+                            | (rawBytes[9] & 0xff) << 8
+                            | (rawBytes[10] & 0xff) << 16
+                            | (rawBytes[11] & 0xff) << 24);
+                }
+
+                calendar.set(Calendar.MILLISECOND, nanoseconds / 1000);
+
+                return new Time(calendar.getTimeInMillis());
         }
-        int hour = rawBytes[5];
-        int minutes = rawBytes[6];
-        int seconds = rawBytes[7];
-        calendar.set(1970, 0, 1, hour, minutes, seconds);
-
-        int nanoseconds = 0;
-        if (rawBytes.length > 8) {
-            nanoseconds = ((rawBytes[8] & 0xff)
-                    | (rawBytes[9] & 0xff) << 8
-                    | (rawBytes[10] & 0xff) << 16
-                    | (rawBytes[11] & 0xff) << 24);
-        }
-
-        calendar.set(Calendar.MILLISECOND, nanoseconds / 1000);
-
-        return new Time(calendar.getTimeInMillis());
     }
 
 
@@ -917,12 +940,18 @@ public class MariaDbValueObject implements ValueObject {
                     return tt;
                 default:
                     try {
+                        int hour = 0;
+                        int minutes = 0;
+                        int seconds = 0;
+
                         int year = Integer.parseInt(rawValue.substring(0, 4));
                         int month = Integer.parseInt(rawValue.substring(5, 7));
                         int day = Integer.parseInt(rawValue.substring(8, 10));
-                        int hour = Integer.parseInt(rawValue.substring(11, 13));
-                        int minutes = Integer.parseInt(rawValue.substring(14, 16));
-                        int seconds = Integer.parseInt(rawValue.substring(17, 19));
+                        if (rawValue.length() >= 19) {
+                            hour = Integer.parseInt(rawValue.substring(11, 13));
+                            minutes = Integer.parseInt(rawValue.substring(14, 16));
+                            seconds = Integer.parseInt(rawValue.substring(17, 19));
+                        }
                         int nanoseconds = extractNanos(rawValue);
                         Timestamp timestamp;
                         Calendar calendar = cal;

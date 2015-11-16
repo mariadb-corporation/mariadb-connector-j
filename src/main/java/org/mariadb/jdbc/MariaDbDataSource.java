@@ -78,7 +78,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      * @throws SQLException exception if connection failed
      */
     public MariaDbDataSource(String hostname, int port, String database) throws SQLException {
-        ArrayList<HostAddress> hostAddresses = new ArrayList<HostAddress>();
+        ArrayList<HostAddress> hostAddresses = new ArrayList<>();
         hostAddresses.add(new HostAddress(hostname, port));
         urlParser = new UrlParser(database, hostAddresses, DefaultOptions.defaultValues(HaMode.NONE), HaMode.NONE);
     }

@@ -63,17 +63,12 @@ public class TimeoutTest extends BaseTest {
                         bugReproduced = true;
                         break;
                     }
-                    if (i % 100 == 0) {
-                        System.out.println("->" + i);
-                    }
                     assertTrue(v1 == 1 && v2 == 2);
                     went++;
                 } catch (Exception e) {
                     exc++;
                 }
             }
-            System.out.println("exception=" + exc);
-            System.out.println("well=" + went);
             assertFalse(bugReproduced); // either Exception or fine
             assertTrue(went > 0);
             assertTrue(went + exc == 1000);
