@@ -21,12 +21,12 @@ import java.util.Properties;
 /**
  * Base util class.
  * For testing
- * mvn test -DdbUrl=jdbc:mysql://localhost:3306/test?user=root -DlogLevel=FINEST
+ * mvn test -DdbUrl=jdbc:mysql://localhost:3306/testj?user=root -DlogLevel=FINEST
  */
 @Ignore
 public class BaseTest {
     protected static final Logger log = LoggerFactory.getLogger(BaseTest.class);
-    protected static final String mDefUrl = "jdbc:mysql://localhost:3306/test?user=root";
+    protected static final String mDefUrl = "jdbc:mysql://localhost:3306/testj?user=root";
     protected static String connU;
     protected static String connUri;
     protected static String hostname;
@@ -43,11 +43,15 @@ public class BaseTest {
     @Rule
     public TestRule watcher = new TestWatcher() {
         protected void succeeded(Description description) {
-            log.trace("finished test success : " + description.getClassName() + "." + description.getMethodName());
+            if (testSingleHost) {
+                log.debug("finished test success : " + description.getClassName() + "." + description.getMethodName());
+            }
         }
 
         protected void failed(Throwable throwable, Description description) {
-            log.trace("finished test failed : " + description.getClassName() + "." + description.getMethodName());
+            if (testSingleHost) {
+                log.debug("finished test failed : " + description.getClassName() + "." + description.getMethodName());
+            }
         }
     };
 

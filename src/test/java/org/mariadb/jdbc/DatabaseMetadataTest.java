@@ -72,11 +72,11 @@ public class DatabaseMetadataTest extends BaseTest {
     @Test
     public void primaryKeysTest() throws SQLException {
         DatabaseMetaData dbmd = sharedConnection.getMetaData();
-        ResultSet rs = dbmd.getPrimaryKeys("test", null, "dbpk_test");
+        ResultSet rs = dbmd.getPrimaryKeys("testj", null, "dbpk_test");
         int counter = 0;
         while (rs.next()) {
             counter++;
-            assertEquals("test", rs.getString("table_cat"));
+            assertEquals("testj", rs.getString("table_cat"));
             assertEquals(null, rs.getString("table_schem"));
             assertEquals("dbpk_test", rs.getString("table_name"));
             assertEquals("id" + counter, rs.getString("column_name"));
@@ -96,11 +96,11 @@ public class DatabaseMetadataTest extends BaseTest {
                 + "references t1(id1))");
 
         DatabaseMetaData dbmd = sharedConnection.getMetaData();
-        ResultSet rs = dbmd.getPrimaryKeys("test", null, "t2");
+        ResultSet rs = dbmd.getPrimaryKeys("testj", null, "t2");
         int counter = 0;
         while (rs.next()) {
             counter++;
-            assertEquals("test", rs.getString("table_cat"));
+            assertEquals("testj", rs.getString("table_cat"));
             assertEquals(null, rs.getString("table_schem"));
             assertEquals("t2", rs.getString("table_name"));
             assertEquals(counter, rs.getShort("key_seq"));
@@ -199,9 +199,9 @@ public class DatabaseMetadataTest extends BaseTest {
              Get result sets using either method and compare (ignore minor differences INT vs SMALLINT
            */
         ResultSet rs1 = ((MariaDbDatabaseMetaData) sharedConnection.getMetaData())
-                .getImportedKeysUsingShowCreateTable("test", null, "product_order");
+                .getImportedKeysUsingShowCreateTable("testj", null, "product_order");
         ResultSet rs2 = ((MariaDbDatabaseMetaData) sharedConnection.getMetaData())
-                .getImportedKeysUsingInformationSchema("test", null, "product_order");
+                .getImportedKeysUsingInformationSchema("testj", null, "product_order");
         assertEquals(rs1.getMetaData().getColumnCount(), rs2.getMetaData().getColumnCount());
 
 
@@ -250,7 +250,7 @@ public class DatabaseMetadataTest extends BaseTest {
 
 
         DatabaseMetaData dbmd = sharedConnection.getMetaData();
-        ResultSet rs = dbmd.getExportedKeys("test", null, "prim_key");
+        ResultSet rs = dbmd.getExportedKeys("testj", null, "prim_key");
         int counter = 0;
         while (rs.next()) {
             assertEquals("id", rs.getString("pkcolumn_name"));
@@ -634,7 +634,7 @@ public class DatabaseMetadataTest extends BaseTest {
         ResultSet rs = dbmd.getCatalogs();
         boolean foundTestUnitsJdbc = false;
         while (rs.next()) {
-            if (rs.getString(1).equals("test")) {
+            if (rs.getString(1).equals("testj")) {
                 foundTestUnitsJdbc = true;
             }
         }

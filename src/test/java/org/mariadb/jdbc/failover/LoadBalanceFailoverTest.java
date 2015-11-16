@@ -13,41 +13,37 @@ import java.util.Map;
  * Exemple mvn test  -DdefaultLoadbalanceUrl=jdbc:mysql:loadbalance//localhost:3306,localhost:3307/test?user=root.
  */
 public class LoadBalanceFailoverTest extends BaseMultiHostTest {
-    private Connection connection;
+    /**
+     * Initialisation.
+     * @throws SQLException exception
+     */
+    @BeforeClass()
+    public static void beforeClass2() throws SQLException {
+        proxyUrl = proxyLoadbalanceUrl;
+        Assume.assumeTrue(initialLoadbalanceUrl != null);
+    }
 
     /**
-     * Initialisaton.
+     * Initialisation.
      * @throws SQLException exception
      */
     @Before
     public void init() throws SQLException {
+        defaultUrl = initialLoadbalanceUrl;
         currentType = HaMode.LOADBALANCE;
-        initialUrl = initialLoadbalanceUrl;
-        proxyUrl = proxyLoadbalanceUrl;
-        Assume.assumeTrue(initialLoadbalanceUrl != null);
-        connection = null;
     }
-
-    /**
-     * Assure status.
-     * @throws SQLException exception
-     */
-    @After
-    public void after() throws SQLException {
-        assureProxy();
-        assureBlackList(connection);
-        if (connection != null) {
-            connection.close();
-        }
-    }
-
 
     @Test(expected = SQLException.class)
     public void failover() throws Throwable {
-        connection = getNewConnection("&autoReconnect=true&retriesAllDown=1", true);
-        int master1ServerId = getServerId(connection);
-        stopProxy(master1ServerId);
-        connection.createStatement().execute("SELECT 1");
+        Connection connection = null;
+        try {
+            connection = getNewConnection("&autoReconnect=true&retriesAllDown=1", true);
+            int master1ServerId = getServerId(connection);
+            stopProxy(master1ServerId);
+            connection.createStatement().execute("SELECT 1");
+        } finally {
+            connection.close();
+        }
     }
 
 
@@ -56,7 +52,7 @@ public class LoadBalanceFailoverTest extends BaseMultiHostTest {
         Assume.assumeTrue(initialLoadbalanceUrl.contains("loadbalance"));
         Map<String, MutableInt> connectionMap = new HashMap<>();
         for (int i = 0; i < 20; i++) {
-            connection = getNewConnection(false);
+            Connection connection = getNewConnection(false);
             int serverId = getServerId(connection);
             log.trace("master server found " + serverId);
             MutableInt count = connectionMap.get(String.valueOf(serverId));
@@ -80,11 +76,16 @@ public class LoadBalanceFailoverTest extends BaseMultiHostTest {
 
     @Test
     public void testReadonly() throws SQLException {
-        connection = getNewConnection(false);
-        connection.setReadOnly(true);
-        Statement stmt = connection.createStatement();
-        stmt.execute("drop table  if exists multinode");
-        stmt.execute("create table multinode (id int not null primary key auto_increment, test VARCHAR(10))");
+        Connection connection = null;
+        try {
+            connection = getNewConnection(false);
+            connection.setReadOnly(true);
+            Statement stmt = connection.createStatement();
+            stmt.execute("drop table  if exists multinode");
+            stmt.execute("create table multinode (id int not null primary key auto_increment, test VARCHAR(10))");
+        } finally {
+            connection.close();
+        }
     }
 
     class MutableInt {

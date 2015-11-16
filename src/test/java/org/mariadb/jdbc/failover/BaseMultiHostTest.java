@@ -1,17 +1,14 @@
 package org.mariadb.jdbc.failover;
 
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Rule;
+import org.junit.*;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.MariaDbConnection;
-import org.mariadb.jdbc.internal.util.constant.HaMode;
+import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,7 +35,7 @@ public class BaseMultiHostTest {
     protected static String initialSequentialUrl;
     protected static String initialLoadbalanceUrl;
     protected static String initialUrl;
-
+    protected String defaultUrl;
 
     protected static String proxyGaleraUrl;
     protected static String proxySequentialUrl;
@@ -55,13 +52,11 @@ public class BaseMultiHostTest {
 
     @Rule
     public TestRule watcher = new TestWatcher() {
-
         protected void starting(Description description) {
-            log.trace("Starting test: " + description.getMethodName());
+            log.debug("Starting test: " + description.getMethodName());
         }
-
         protected void finished(Description description) {
-            log.trace("finished test: " + description.getMethodName());
+            log.debug("finished test: " + description.getMethodName());
         }
 
     };
@@ -92,12 +87,22 @@ public class BaseMultiHostTest {
         if (initialGaleraUrl != null) {
             proxyGaleraUrl = createProxies(initialGaleraUrl, HaMode.FAILOVER);
         }
-        if (initialSequentialUrl != null) {
+        if (initialGaleraUrl != null) {
             proxySequentialUrl = createProxies(initialGaleraUrl, HaMode.SEQUENTIAL);
         }
         if (initialAuroraUrl != null) {
             proxyAuroraUrl = createProxies(initialAuroraUrl, HaMode.AURORA);
         }
+    }
+
+    /**
+     * Delete table and procedure if created.
+     * Close connection if needed
+     * @throws SQLException exception
+     */
+    @After
+    public void afterBaseTest() throws SQLException {
+        assureProxy();
     }
 
     /**
@@ -181,7 +186,7 @@ public class BaseMultiHostTest {
         if (proxy) {
             String tmpProxyUrl = proxyUrl;
             if (forceNewProxy) {
-                tmpProxyUrl = createProxies(initialUrl, currentType);
+                tmpProxyUrl = createProxies(defaultUrl, currentType);
             }
             if (additionnalConnectionData == null) {
                 return DriverManager.getConnection(tmpProxyUrl);
@@ -190,9 +195,9 @@ public class BaseMultiHostTest {
             }
         } else {
             if (additionnalConnectionData == null) {
-                return DriverManager.getConnection(initialUrl);
+                return DriverManager.getConnection(defaultUrl);
             } else {
-                return DriverManager.getConnection(initialUrl + additionnalConnectionData);
+                return DriverManager.getConnection(defaultUrl + additionnalConnectionData);
             }
         }
     }
@@ -309,4 +314,6 @@ public class BaseMultiHostTest {
         DatabaseMetaData md = connection.getMetaData();
         return md.getDatabaseProductVersion().indexOf("MariaDB") != -1;
     }
+
+
 }
