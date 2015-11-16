@@ -25,14 +25,14 @@ Before downloading source, fork the project to your own repository, and use your
 # Run local test
 
 Before any submission :
-Run the test locally : by default, you need to have a MySQL/MariaDB server on localhost:3306 with a database named "test" and a user root without password.
+Run the test locally : by default, you need to have a MySQL/MariaDB server on localhost:3306 with a database named "testj" and a user root without password.
 so you can run 
     
     mvn test
     
 You can change those parameter by adding -DdbUrl parameter. like : 
  
-    mvn test -DdbUrl=jdbc:mariadb://127.0.0.1:3306/test?user=root&password=*****
+    mvn test -DdbUrl=jdbc:mariadb://127.0.0.1:3306/testj?user=root&password=*****
     
 You can launch a specific test by adding -Dfile
 
@@ -60,6 +60,7 @@ server :
 * MariaDB 10.0
 * MariaDB 10.1
 * MySQL 5.6
+* MySQL 5.7
 
 max_allowed_packet : 
 * 1M

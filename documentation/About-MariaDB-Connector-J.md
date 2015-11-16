@@ -36,7 +36,7 @@ Using maven :
 
 ## Requirements
 
-* Java 7 (until April 2015) or 8
+* Java 7 or 8 (Last compatible version with java 6 is [1.1.9](https://downloads.mariadb.org/connector-java/1.1.9/))
 * com.sun.JNA is used by some library functions and a jar is available at
   https://github.com/twall/jna
 ** only needed when connecting to the server with unix sockets or windows

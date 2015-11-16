@@ -134,7 +134,7 @@ eliminates concerns about SELECT privileges on the
 
 ### Optional JDBC classes
 Following optional interfaces are implemented by the
-org.mariadb.jdbc.MySQLDataSource class : javax.sql.DataSource,
+org.mariadb.jdbc.MariaDbDataSource class : javax.sql.DataSource,
 javax.sql.ConnectionPoolDataSource, javax.sql.XADataSource
 
 ## Usage examples
