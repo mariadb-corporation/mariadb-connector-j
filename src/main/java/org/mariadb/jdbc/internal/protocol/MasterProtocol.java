@@ -132,7 +132,7 @@ public class MasterProtocol extends AbstractQueryProtocol {
             }
         }
         if (lastQueryException != null) {
-            throw new QueryException("No active connection found for master", lastQueryException.getErrorCode(), lastQueryException.getSqlState(),
+            throw new QueryException("No active connection found for master : " + lastQueryException.getMessage(), lastQueryException.getErrorCode(), lastQueryException.getSqlState(),
                     lastQueryException);
         }
         throw new QueryException("No active connection found for master");

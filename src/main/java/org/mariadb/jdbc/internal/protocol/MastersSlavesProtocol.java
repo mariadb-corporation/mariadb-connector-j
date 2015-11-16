@@ -147,7 +147,7 @@ public class MastersSlavesProtocol extends MasterProtocol {
                 error = "No active connection found for master";
             }
             if (lastQueryException != null) {
-                throw new QueryException(error, lastQueryException.getErrorCode(), lastQueryException.getSqlState(), lastQueryException);
+                throw new QueryException(error + " : " + lastQueryException.getMessage(), lastQueryException.getErrorCode(), lastQueryException.getSqlState(), lastQueryException);
             }
             throw new QueryException(error);
         }
