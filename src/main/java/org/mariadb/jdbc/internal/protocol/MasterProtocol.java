@@ -98,8 +98,8 @@ public class MasterProtocol extends AbstractQueryProtocol {
      * @param searchFilter search parameter
      * @throws QueryException if not found
      */
-    public static void loop(Listener listener, final List<HostAddress> addresses, Map<HostAddress, Long> blacklist, SearchFilter searchFilter)
-            throws QueryException {
+    public static void loop(Listener listener, final List<HostAddress> addresses, Map<HostAddress, Long> blacklist,
+                            SearchFilter searchFilter) throws QueryException {
 
         MasterProtocol protocol;
         List<HostAddress> loopAddresses = new LinkedList<>(addresses);
@@ -132,8 +132,8 @@ public class MasterProtocol extends AbstractQueryProtocol {
             }
         }
         if (lastQueryException != null) {
-            throw new QueryException("No active connection found for master : " + lastQueryException.getMessage(), lastQueryException.getErrorCode(), lastQueryException.getSqlState(),
-                    lastQueryException);
+            throw new QueryException("No active connection found for master : " + lastQueryException.getMessage(),
+                    lastQueryException.getErrorCode(), lastQueryException.getSqlState(), lastQueryException);
         }
         throw new QueryException("No active connection found for master");
     }

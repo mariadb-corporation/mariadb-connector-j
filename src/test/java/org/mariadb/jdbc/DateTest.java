@@ -244,7 +244,6 @@ public class DateTest extends BaseTest {
 
     @Test
     public void timestampAsDate() throws SQLException {
-        Timestamp currentTimeStamp = new Timestamp(System.currentTimeMillis());
         Time currentTime = new Time(15,15,15);
 
         Calendar cal = Calendar.getInstance();
@@ -271,6 +270,7 @@ public class DateTest extends BaseTest {
         Time zeroTime = new Time(cal3.getTimeInMillis());
 
 
+        Timestamp currentTimeStamp = new Timestamp(System.currentTimeMillis());
         PreparedStatement preparedStatement1 = sharedConnection.prepareStatement("/*CLIENT*/ insert into timestampAsDate values (?, ?, ?)");
         preparedStatement1.setTimestamp(1, currentTimeStamp);
         preparedStatement1.setTimestamp(2, currentTimeStamp);

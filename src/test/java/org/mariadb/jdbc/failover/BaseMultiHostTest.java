@@ -55,6 +55,7 @@ public class BaseMultiHostTest {
         protected void starting(Description description) {
             log.debug("Starting test: " + description.getMethodName());
         }
+
         protected void finished(Description description) {
             log.debug("finished test: " + description.getMethodName());
         }
