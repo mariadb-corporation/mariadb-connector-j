@@ -11,6 +11,7 @@ import java.sql.Statement;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class GeometryTest extends BaseTest {
     /**
@@ -26,10 +27,11 @@ public class GeometryTest extends BaseTest {
         Statement stmt = sharedConnection.createStatement();
         stmt.execute("TRUNCATE geom_test");
         ResultSet rs;
-        if (geometryBinary == null) {
+        String tmpGeometryBinary = geometryBinary;
+        if (tmpGeometryBinary == null) {
             rs = stmt.executeQuery("SELECT AsWKB(GeomFromText('" + geometryString + "'))");
             rs.next();
-            geometryBinary = DatatypeConverter.printHexBinary(rs.getBytes(1));
+            tmpGeometryBinary = DatatypeConverter.printHexBinary(rs.getBytes(1));
         }
         String sql = "INSERT INTO geom_test VALUES (GeomFromText('" + geometryString + "'))";
         stmt.execute(sql);
@@ -39,17 +41,17 @@ public class GeometryTest extends BaseTest {
         assertEquals(geometryString, rs.getString(1));
         // as binary
         String returnWkb = DatatypeConverter.printHexBinary((byte[]) rs.getObject(2));
-        assertEquals(geometryBinary, returnWkb);
+        assertEquals(tmpGeometryBinary, returnWkb);
         // as object
         Object geometry = null;
         try {
             geometry = rs.getObject(3);
         } catch (Exception e) {
-            assertTrue(false);
+            fail();
         }
         String returnGeometry = DatatypeConverter.printHexBinary((byte[]) geometry);
         BigInteger returnNumber = new BigInteger(returnGeometry, 16);
-        BigInteger geometryNumber = new BigInteger(geometryBinary, 16);
+        BigInteger geometryNumber = new BigInteger(tmpGeometryBinary, 16);
         assertEquals(geometryNumber, returnNumber);
         if (rs != null) {
             rs.close();

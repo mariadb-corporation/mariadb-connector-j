@@ -65,7 +65,6 @@ public class TimeParameter extends NotLongDataParameterHolder {
     private Time time;
     private Calendar calendar;
     private boolean fractionalSeconds;
-    private Options options;
 
     /**
      * Constructor.
@@ -78,7 +77,6 @@ public class TimeParameter extends NotLongDataParameterHolder {
         this.time = time;
         this.calendar = cal;
         this.fractionalSeconds = fractionalSeconds;
-        this.options = options;
     }
 
     public void writeTo(final OutputStream os) throws IOException {
