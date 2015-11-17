@@ -2,6 +2,7 @@
 MariaDB Client for Java
 
 Copyright (c) 2012 Monty Program Ab.
+Copyright (c) 2015 Avaya Inc.
 
 This library is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License as published by the Free
@@ -57,6 +58,10 @@ public class Options {
     //divers
     public boolean trustServerCertificate;
     public String serverSslCert;
+    public String trustCertificateKeyStoreUrl;
+    public String trustCertificateKeyStorePassword;
+    public String clientCertificateKeyStoreUrl;
+    public String clientCertificateKeyStorePassword;
     public boolean useFractionalSeconds;
     public boolean pinGlobalTxToPhysicalConnection;
     public String socketFactory;
@@ -115,6 +120,10 @@ public class Options {
                 + ", serverSslCert='" + serverSslCert + '\''
                 + ", useFractionalSeconds=" + useFractionalSeconds
                 + ", pinGlobalTxToPhysicalConnection=" + pinGlobalTxToPhysicalConnection
+                + ", trustCertificateKeyStoreUrl='" + trustCertificateKeyStoreUrl + '\''
+                + ", trustCertificateKeyStorePassword='" + trustCertificateKeyStorePassword + '\''
+                + ", clientCertificateKeyStoreUrl='" + clientCertificateKeyStoreUrl + '\''
+                + ", clientCertificateKeyStorePassword='" + clientCertificateKeyStorePassword + '\''
                 + ", socketFactory='" + socketFactory + '\''
                 + ", connectTimeout=" + connectTimeout
                 + ", pipe='" + pipe + '\''

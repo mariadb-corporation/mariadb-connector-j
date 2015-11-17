@@ -31,6 +31,10 @@ main () {
   local certFile="${sslDir}/server.crt"
   local keyFile="${sslDir}/server.key"
   local csrFile=$(mktemp)
+  local clientCertFile="${sslDir}/client.crt"
+  local clientKeyFile="${sslDir}/client.key"
+  local clientKeystoreFile="${sslDir}/client-keystore.p12"
+  local clientReqFile=$(mktemp)
 
   log "Generating CA key"
   openssl genrsa -out "${caKeyFile}" 2048
@@ -72,8 +76,37 @@ main () {
     -signkey "${keyFile}" \
     -out "${certFile}"
 
+  log "Generating client certificate"
+  openssl req \
+    -batch \
+    -newkey rsa:2048 \
+    -days 3600 \
+    -subj "$(gen_cert_subject "$fqdn")" \
+    -nodes \
+    -keyout "${clientKeyFile}" \
+    -out "${clientReqFile}"
+
+  openssl x509 \
+    -req \
+    -in "${clientReqFile}" \
+    -days 3600 \
+    -CA "${caCertFile}" \
+    -CAkey "${caKeyFile}" \
+    -set_serial 01 \
+    -out "${clientCertFile}"
+
+  # Now generate a keystore with the client cert & key
+  openssl  pkcs12 \
+    -export \
+    -in "${clientCertFile}" \
+    -inkey "${clientKeyFile}" \
+    -out "${clientKeystoreFile}" \
+    -name "mysqlAlias" \
+    -passout pass:kspass
+
   # Clean up CSR file:
   rm "$csrFile"
+  rm "$clientReqFile"
 
   log "Generated key file and certificate in: ${sslDir}"
   ls -l "${sslDir}"
