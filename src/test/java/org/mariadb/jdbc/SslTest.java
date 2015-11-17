@@ -193,7 +193,7 @@ public class SslTest extends BaseTest {
             info.setProperty("serverSslCert", getServerCertificate());
             info.setProperty("useSSL", "true");
             Connection conn = createConnection(info);
-            assertEquals("test", conn.getCatalog());
+            assertEquals("testj", conn.getCatalog());
             conn.close();
         } catch (Exception e) {
             throw new RuntimeException(e);
