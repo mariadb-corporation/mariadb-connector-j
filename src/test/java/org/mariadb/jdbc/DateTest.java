@@ -31,7 +31,7 @@ public class DateTest extends BaseTest {
         createTable("dtest4", "d  time");
         createTable("date_test3", " x date");
         createTable("date_test4", "x date");
-
+        createTable("timestampAsDate", "ts timestamp(6), dt datetime(6), dd date");
 
     }
 
@@ -241,6 +241,80 @@ public class DateTest extends BaseTest {
         assertEquals(datetime, null);
         assertEquals(date, null);
     }
+
+    @Test
+    public void timestampAsDate() throws SQLException {
+        Time currentTime = new Time(15,15,15);
+
+        Calendar cal = Calendar.getInstance();
+        cal.set(Calendar.HOUR_OF_DAY, 0);
+        cal.set(Calendar.MINUTE, 0);
+        cal.set(Calendar.SECOND, 0);
+        cal.set(Calendar.MILLISECOND, 0);
+        Date dateWithoutTime = new Date(cal.getTimeInMillis());
+
+        Calendar cal2 = Calendar.getInstance();
+        cal2.set(Calendar.YEAR, 1970);
+        cal2.set(Calendar.MONTH, 0);
+        cal2.set(Calendar.DAY_OF_YEAR, 1);
+        Time timeWithoutDate = new Time(cal2.getTimeInMillis());
+
+        Calendar cal3 = Calendar.getInstance();
+        cal3.set(Calendar.HOUR_OF_DAY, 0);
+        cal3.set(Calendar.MINUTE, 0);
+        cal3.set(Calendar.SECOND, 0);
+        cal3.set(Calendar.MILLISECOND, 0);
+        cal3.set(Calendar.YEAR, 1970);
+        cal3.set(Calendar.MONTH, 0);
+        cal3.set(Calendar.DAY_OF_YEAR, 1);
+        Time zeroTime = new Time(cal3.getTimeInMillis());
+
+
+        Timestamp currentTimeStamp = new Timestamp(System.currentTimeMillis());
+        PreparedStatement preparedStatement1 = sharedConnection.prepareStatement("/*CLIENT*/ insert into timestampAsDate values (?, ?, ?)");
+        preparedStatement1.setTimestamp(1, currentTimeStamp);
+        preparedStatement1.setTimestamp(2, currentTimeStamp);
+        preparedStatement1.setDate(3, new Date(currentTimeStamp.getTime()));
+        preparedStatement1.addBatch();
+        preparedStatement1.execute();
+
+        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from timestampAsDate");
+        while (rs.next()) {
+            Assert.assertEquals(rs.getTimestamp(1), currentTimeStamp);
+            Assert.assertEquals(rs.getTimestamp(2), currentTimeStamp);
+            Assert.assertEquals(rs.getTimestamp(3), new Timestamp(cal.getTimeInMillis()));
+            Assert.assertEquals(rs.getDate(1), new Date(currentTimeStamp.getTime()));
+            Assert.assertEquals(rs.getDate(2), new Date(currentTimeStamp.getTime()));
+            Assert.assertEquals(rs.getDate(3), dateWithoutTime);
+            Assert.assertEquals(rs.getTime(1), new Time(currentTimeStamp.getTime()));
+            Assert.assertEquals(rs.getTime(2), new Time(currentTimeStamp.getTime()));
+            Assert.assertEquals(rs.getTime(3), zeroTime);
+        }
+
+        rs.close();
+        PreparedStatement pstmt = sharedConnection.prepareStatement("select * from timestampAsDate where 1 = ?");
+        pstmt.setInt(1,1);
+        pstmt.addBatch();
+        rs = pstmt.executeQuery();
+        while (rs.next()) {
+            Assert.assertEquals(rs.getTimestamp(1), currentTimeStamp);
+            Assert.assertEquals(rs.getTimestamp(2), currentTimeStamp);
+            Assert.assertEquals(rs.getTimestamp(3), new Timestamp(cal.getTimeInMillis()));
+            Date dd = rs.getDate(1);
+            Date dd2 = new Date(currentTimeStamp.getTime());
+            long diff = dd.getTime() - dd2.getTime();
+            Assert.assertEquals(rs.getDate(1), new Date(currentTimeStamp.getTime()));
+            Assert.assertEquals(rs.getDate(2), new Date(currentTimeStamp.getTime()));
+            Assert.assertEquals(rs.getDate(3), dateWithoutTime);
+            Assert.assertEquals(rs.getTime(1), new Time(currentTimeStamp.getTime()));
+            Assert.assertEquals(rs.getTime(2), new Time(currentTimeStamp.getTime()));
+            Assert.assertEquals(rs.getTime(3), zeroTime);
+        }
+        rs.close();
+
+    }
+
+
 
     @Test
     public void javaUtilDateInPreparedStatementAsTimeStamp() throws Exception {

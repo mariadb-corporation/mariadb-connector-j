@@ -191,7 +191,7 @@ public class ConnectionTest extends BaseTest {
         ResultSet rs = statement.executeQuery("show variables like 'max_allowed_packet'");
         rs.next();
         int maxAllowedPacket = rs.getInt(2);
-        log.debug("max_allowed_packet DB" + maxAllowedPacket);
+        log.trace("max_allowed_packet DB" + maxAllowedPacket);
 
         //Create a SQL stream bigger than maxAllowedPacket
         StringBuilder sb = new StringBuilder();
@@ -230,7 +230,7 @@ public class ConnectionTest extends BaseTest {
             log.warn("skip second test 'maxAllowedPackedExceptionIsPrettyTest' - not enough memory");
             Assume.assumeNoException(e);
         } catch (SQLException e) {
-            log.debug("normal SQlExeption " + e.getMessage());
+            log.trace("normal SQlExeption " + e.getMessage());
             assertTrue(e.getMessage().contains("max_allowed_packet"));
         } catch (Exception e) {
             fail("The previous statement should throw an SQLException not a general Exception");

@@ -1,17 +1,14 @@
 package org.mariadb.jdbc.failover;
 
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Rule;
+import org.junit.*;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.MariaDbConnection;
-import org.mariadb.jdbc.internal.util.constant.HaMode;
+import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,7 +35,7 @@ public class BaseMultiHostTest {
     protected static String initialSequentialUrl;
     protected static String initialLoadbalanceUrl;
     protected static String initialUrl;
-
+    protected String defaultUrl;
 
     protected static String proxyGaleraUrl;
     protected static String proxySequentialUrl;
@@ -55,7 +52,6 @@ public class BaseMultiHostTest {
 
     @Rule
     public TestRule watcher = new TestWatcher() {
-
         protected void starting(Description description) {
             log.debug("Starting test: " + description.getMethodName());
         }
@@ -92,12 +88,22 @@ public class BaseMultiHostTest {
         if (initialGaleraUrl != null) {
             proxyGaleraUrl = createProxies(initialGaleraUrl, HaMode.FAILOVER);
         }
-        if (initialSequentialUrl != null) {
+        if (initialGaleraUrl != null) {
             proxySequentialUrl = createProxies(initialGaleraUrl, HaMode.SEQUENTIAL);
         }
         if (initialAuroraUrl != null) {
             proxyAuroraUrl = createProxies(initialAuroraUrl, HaMode.AURORA);
         }
+    }
+
+    /**
+     * Delete table and procedure if created.
+     * Close connection if needed
+     * @throws SQLException exception
+     */
+    @After
+    public void afterBaseTest() throws SQLException {
+        assureProxy();
     }
 
     /**
@@ -127,7 +133,7 @@ public class BaseMultiHostTest {
             try {
                 hostAddress = tmpUrlParser.getHostAddresses().get(i);
                 tcpProxies[i] = new TcpProxy(hostAddress.host, hostAddress.port);
-                log.debug("creating socket " + proxyType + " : " + hostAddress.host + ":" + hostAddress.port
+                log.trace("creating socket " + proxyType + " : " + hostAddress.host + ":" + hostAddress.port
                         + " -> localhost:" + tcpProxies[i].getLocalPort());
                 sockethosts += ",address=(host=localhost)(port=" + tcpProxies[i].getLocalPort() + ")"
                         + ((hostAddress.type != null) ? "(type=" + hostAddress.type + ")" : "");
@@ -181,7 +187,7 @@ public class BaseMultiHostTest {
         if (proxy) {
             String tmpProxyUrl = proxyUrl;
             if (forceNewProxy) {
-                tmpProxyUrl = createProxies(initialUrl, currentType);
+                tmpProxyUrl = createProxies(defaultUrl, currentType);
             }
             if (additionnalConnectionData == null) {
                 return DriverManager.getConnection(tmpProxyUrl);
@@ -190,9 +196,9 @@ public class BaseMultiHostTest {
             }
         } else {
             if (additionnalConnectionData == null) {
-                return DriverManager.getConnection(initialUrl);
+                return DriverManager.getConnection(defaultUrl);
             } else {
-                return DriverManager.getConnection(initialUrl + additionnalConnectionData);
+                return DriverManager.getConnection(defaultUrl + additionnalConnectionData);
             }
         }
     }
@@ -203,7 +209,7 @@ public class BaseMultiHostTest {
      * @param millissecond milliseconds
      */
     public void stopProxy(int hostNumber, long millissecond) {
-        log.debug("stopping host " + hostNumber);
+        log.trace("stopping host " + hostNumber);
         proxySet.get(currentType)[hostNumber - 1].restart(millissecond);
     }
 
@@ -212,7 +218,7 @@ public class BaseMultiHostTest {
      * @param hostNumber host number (first is 1)
      */
     public void stopProxy(int hostNumber) {
-        log.debug("stopping host " + hostNumber);
+        log.trace("stopping host " + hostNumber);
         proxySet.get(currentType)[hostNumber - 1].stop();
     }
 
@@ -221,7 +227,7 @@ public class BaseMultiHostTest {
      * @param hostNumber host number (first is  1)
      */
     public void restartProxy(int hostNumber) {
-        log.debug("restart host " + hostNumber);
+        log.trace("restart host " + hostNumber);
         if (hostNumber != -1) {
             proxySet.get(currentType)[hostNumber - 1].restart();
         }
@@ -274,7 +280,7 @@ public class BaseMultiHostTest {
         rs.close();
 
         if (superPrivilege) {
-            log.debug("test '" + testName + "' skipped because user '" + username + "' has SUPER privileges");
+            log.trace("test '" + testName + "' skipped because user '" + username + "' has SUPER privileges");
         }
 
         return superPrivilege;
@@ -309,4 +315,6 @@ public class BaseMultiHostTest {
         DatabaseMetaData md = connection.getMetaData();
         return md.getDatabaseProductVersion().indexOf("MariaDB") != -1;
     }
+
+
 }

@@ -38,7 +38,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
             ResultSet rs = st.executeQuery("SELECT count(*) from mysql.time_zone_name "
                     + "where Name in ('Europe/Paris','Canada/Atlantic')");
             rs.next();
-            log.debug("time zone information : " + rs.getInt(1));
+            log.trace("time zone information : " + rs.getInt(1));
             if (rs.getInt(1) == 0) {
                 ResultSet rs2 = st.executeQuery("SELECT DATABASE()");
                 rs2.next();
@@ -81,6 +81,12 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
         createTable("daylightMysql", " tt DATE");
 
 
+    }
+
+    @AfterClass()
+    public static void endClass() throws SQLException {
+        TimeZone.setDefault(previousTimeZone);
+        Locale.setDefault(previousFormatLocale);
     }
 
     /**
@@ -397,7 +403,6 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
             Calendar test = Calendar.getInstance(TimeZone.getTimeZone("Canada/Atlantic"));
             test.set(2015, 2, 28, 22, 45, 0);
-            System.out.println(dateFormatIso8601.format(test.getTime()));
 
             Calendar quarterAfterChangingHour = Calendar.getInstance(TimeZone.getTimeZone("utc"));
             quarterAfterChangingHour.clear();
@@ -505,7 +510,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
                 st.executeQuery("SET GLOBAL time_zone = 'Europe/Paris'");
                 rs = st.executeQuery("SHOW GLOBAL VARIABLES LIKE 'time_zone';");
                 if (rs.next()) {
-                    System.out.println("new time_zone =" + rs.getString(2) + " was " + serverTimeZone);
+                    log.trace("new time_zone =" + rs.getString(2) + " was " + serverTimeZone);
                 }
 
                 createTable("daylightCanada", "id int, tt TIMESTAMP(6)");

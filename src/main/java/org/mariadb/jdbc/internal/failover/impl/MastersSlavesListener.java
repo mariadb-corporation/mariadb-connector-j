@@ -204,9 +204,8 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                 }
             }
 
-            if (isSecondaryHostFail()
-                && urlParser.getOptions().secondsBeforeRetryMaster > 0
-                && (now - getSecondaryHostFailTimestamp()) >= urlParser.getOptions().secondsBeforeRetryMaster * 1000) {
+            if (isSecondaryHostFail()) {
+                //Master connection is used as backup, we don't want master to have overload, so try to reconnect immediately to another slave
                 return true;
             }
         }

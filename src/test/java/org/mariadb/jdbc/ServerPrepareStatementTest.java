@@ -65,7 +65,6 @@ public class ServerPrepareStatementTest extends BaseTest {
 
             rs = statement.executeQuery("show global status like 'Prepared_stmt_count'");
             assertTrue(rs.next());
-            System.out.println("rs.getInt(2) = " + rs.getInt(2));
             assertTrue(rs.getInt(2) == nbStatementCount + 1);
         } finally {
             connection.close();
@@ -117,14 +116,14 @@ public class ServerPrepareStatementTest extends BaseTest {
             ResultSet rs = statement.executeQuery("show global status like 'Prepared_stmt_count'");
             rs.next();
             int prepareServerStatement = rs.getInt(2);
-            log.debug("server side : " + prepareServerStatement);
+            log.trace("server side : " + prepareServerStatement);
 
             connection.prepareStatement("INSERT INTO ServerPrepareStatementCacheSize3(test) "
                     + "VALUES (?)");
             rs = statement.executeQuery("show global status like 'Prepared_stmt_count'");
             rs.next();
             int prepareServerStatement2 = rs.getInt(2);
-            log.debug("server side before closing: " + prepareServerStatement2);
+            log.trace("server side before closing: " + prepareServerStatement2);
             assertTrue(prepareServerStatement2 == prepareServerStatement + 1);
 
         } finally {
@@ -141,7 +140,7 @@ public class ServerPrepareStatementTest extends BaseTest {
             PreparedStatement[] sts = new PreparedStatement[20];
             for (int i = 0; i < 20; i++) {
                 String sql = "INSERT INTO ServerPrepareStatementCacheSize(id, test) VALUES (" + (i + 1) + ",?)";
-                log.debug(sql);
+                log.trace(sql);
                 sts[i] = connection.prepareStatement(sql);
             }
             //check max cache size
@@ -234,140 +233,145 @@ public class ServerPrepareStatementTest extends BaseTest {
 
     @Test
     public void dataConformityTest() throws SQLException {
-        prepareTestTable();
-        PreparedStatement ps = sharedConnection.prepareStatement("INSERT INTO preparetest (bit1,bit2,tinyint1,"
-                + "tinyint2,bool0,smallint0,smallint_unsigned,mediumint0,mediumint_unsigned,int0,"
-                + "int_unsigned,bigint0,bigint_unsigned, float0, double0, decimal0,decimal1, date0,datetime0, "
-                + "timestamp0,timestamp1,timestamp_zero, time0,"
-                + "year2,year4,char0, char_binary, varchar0, varchar_binary, binary0, varbinary0)  "
-                + "VALUES (?,?,?,?,?,?,?,?,?,?,"
-                + "?,?,?,?,?,?,?,?,?,?,?,?,?,"
-                + "?,?,?,?,?,?,?,?)");
-        sharedConnection.createStatement().execute("truncate preparetest");
+        TimeZone defaultTimeZone = TimeZone.getDefault();
+        try {
+            prepareTestTable();
+            PreparedStatement ps = sharedConnection.prepareStatement("INSERT INTO preparetest (bit1,bit2,tinyint1,"
+                    + "tinyint2,bool0,smallint0,smallint_unsigned,mediumint0,mediumint_unsigned,int0,"
+                    + "int_unsigned,bigint0,bigint_unsigned, float0, double0, decimal0,decimal1, date0,datetime0, "
+                    + "timestamp0,timestamp1,timestamp_zero, time0,"
+                    + "year2,year4,char0, char_binary, varchar0, varchar_binary, binary0, varbinary0)  "
+                    + "VALUES (?,?,?,?,?,?,?,?,?,?,"
+                    + "?,?,?,?,?,?,?,?,?,?,?,?,?,"
+                    + "?,?,?,?,?,?,?,?)");
+            sharedConnection.createStatement().execute("truncate preparetest");
 
-        boolean bit1 = Boolean.FALSE;
-        ps.setBoolean(1, bit1);
-        byte bit2 = (byte) 3;
-        ps.setByte(2, bit2);
-        byte tinyint1 = (byte) 127;
-        ps.setByte(3, tinyint1);
-        short tinyint2 = 127;
-        ps.setShort(4, tinyint2);
-        boolean bool0 = Boolean.FALSE;
-        ps.setBoolean(5, bool0);
-        short smallint0 = 5;
-        ps.setShort(6, smallint0);
-        short smallintUnsigned = Short.MAX_VALUE;
-        ps.setShort(7, smallintUnsigned);
-        int mediumint0 = 55000;
-        ps.setInt(8, mediumint0);
-        int mediumintUnsigned = 55000;
-        ps.setInt(9, mediumintUnsigned);
-        int int0 = Integer.MAX_VALUE;
-        ps.setInt(10, int0);
-        int intUnsigned = Integer.MAX_VALUE;
-        ps.setInt(11, intUnsigned);
-        long bigint0 = 5000L;
-        ps.setLong(12, bigint0);
-        BigInteger bigintUnsigned = new BigInteger("3147483647");
-        ps.setObject(13, bigintUnsigned);
-        float float0 = 3147483647.7527F;
-        ps.setFloat(14, float0);
-        double double0 = 3147483647.8527D;
-        ps.setDouble(15, double0);
-        BigDecimal decimal0 = new BigDecimal("3147483647");
-        ps.setBigDecimal(16, decimal0);
-        BigDecimal decimal1 = new BigDecimal("3147483647.9527");
-        ps.setBigDecimal(17, decimal1);
-        TimeZone.setDefault(TimeZone.getTimeZone("GMT+00:00"));
-        Date date0 = new Date(1441238400000L);
-        ps.setDate(18, date0);
-        Timestamp datetime0 = new Timestamp(-2124690212000L);
-        datetime0.setNanos(392005000);
-        ps.setTimestamp(19, datetime0);
-        Timestamp timestamp0 = new Timestamp(1441290349000L);
-        timestamp0.setNanos(392005000);
-        ps.setTimestamp(20, timestamp0);
-        Timestamp timestamp1 = new Timestamp(1441290349000L);
-        ps.setTimestamp(21, timestamp1);
-        ps.setTimestamp(22, null);
-        Time time0 = new Time(55549392);
-        ps.setTime(23, time0);
-        short year2 = 30;
-        ps.setShort(24, year2);
-        int year4 = 2050;
-        ps.setInt(25, year4);
-        String char0 = "\n";
-        ps.setObject(26, char0, java.sql.Types.CHAR);
-        String charBinary = "\n";
-        ps.setString(27, charBinary);
-        String varchar0 = "\b";
-        ps.setString(28, varchar0);
-        String varcharBinary = "\b";
-        ps.setString(29, varcharBinary);
-        byte[] binary0 = "1234567890".getBytes();
-        ps.setBytes(30, binary0);
-        byte[] varbinary0 = "azerty".getBytes();
-        ps.setBytes(31, varbinary0);
+            boolean bit1 = Boolean.FALSE;
+            ps.setBoolean(1, bit1);
+            byte bit2 = (byte) 3;
+            ps.setByte(2, bit2);
+            byte tinyint1 = (byte) 127;
+            ps.setByte(3, tinyint1);
+            short tinyint2 = 127;
+            ps.setShort(4, tinyint2);
+            boolean bool0 = Boolean.FALSE;
+            ps.setBoolean(5, bool0);
+            short smallint0 = 5;
+            ps.setShort(6, smallint0);
+            short smallintUnsigned = Short.MAX_VALUE;
+            ps.setShort(7, smallintUnsigned);
+            int mediumint0 = 55000;
+            ps.setInt(8, mediumint0);
+            int mediumintUnsigned = 55000;
+            ps.setInt(9, mediumintUnsigned);
+            int int0 = Integer.MAX_VALUE;
+            ps.setInt(10, int0);
+            int intUnsigned = Integer.MAX_VALUE;
+            ps.setInt(11, intUnsigned);
+            long bigint0 = 5000L;
+            ps.setLong(12, bigint0);
+            BigInteger bigintUnsigned = new BigInteger("3147483647");
+            ps.setObject(13, bigintUnsigned);
+            float float0 = 3147483647.7527F;
+            ps.setFloat(14, float0);
+            double double0 = 3147483647.8527D;
+            ps.setDouble(15, double0);
+            BigDecimal decimal0 = new BigDecimal("3147483647");
+            ps.setBigDecimal(16, decimal0);
+            BigDecimal decimal1 = new BigDecimal("3147483647.9527");
+            ps.setBigDecimal(17, decimal1);
+            TimeZone.setDefault(TimeZone.getTimeZone("GMT+00:00"));
+            Date date0 = new Date(1441238400000L);
+            ps.setDate(18, date0);
+            Timestamp datetime0 = new Timestamp(-2124690212000L);
+            datetime0.setNanos(392005000);
+            ps.setTimestamp(19, datetime0);
+            Timestamp timestamp0 = new Timestamp(1441290349000L);
+            timestamp0.setNanos(392005000);
+            ps.setTimestamp(20, timestamp0);
+            Timestamp timestamp1 = new Timestamp(1441290349000L);
+            ps.setTimestamp(21, timestamp1);
+            ps.setTimestamp(22, null);
+            Time time0 = new Time(55549392);
+            ps.setTime(23, time0);
+            short year2 = 30;
+            ps.setShort(24, year2);
+            int year4 = 2050;
+            ps.setInt(25, year4);
+            String char0 = "\n";
+            ps.setObject(26, char0, java.sql.Types.CHAR);
+            String charBinary = "\n";
+            ps.setString(27, charBinary);
+            String varchar0 = "\b";
+            ps.setString(28, varchar0);
+            String varcharBinary = "\b";
+            ps.setString(29, varcharBinary);
+            byte[] binary0 = "1234567890".getBytes();
+            ps.setBytes(30, binary0);
+            byte[] varbinary0 = "azerty".getBytes();
+            ps.setBytes(31, varbinary0);
 
-        ps.addBatch();
-        ps.executeBatch();
-        ResultSet rs = sharedConnection.createStatement().executeQuery("SELECT * from preparetest");
-        if (rs.next()) {
-            assertEquals(rs.getBoolean(1), bit1);
-            assertEquals(rs.getByte(2), bit2);
-            assertEquals(rs.getByte(3), tinyint1);
-            assertEquals(rs.getShort(4), tinyint2);
-            assertEquals(rs.getBoolean(5), bool0);
-            assertEquals(rs.getShort(6), smallint0);
-            assertEquals(rs.getShort(7), smallintUnsigned);
-            assertEquals(rs.getInt(8), mediumint0);
-            assertEquals(rs.getInt(9), mediumintUnsigned);
-            assertEquals(rs.getInt(10), int0);
-            assertEquals(rs.getInt(11), intUnsigned);
-            assertEquals(rs.getInt(12), bigint0);
-            assertEquals(rs.getObject(13), bigintUnsigned);
-            assertEquals(rs.getFloat(14), float0, 10000);
-            assertEquals(rs.getDouble(15), double0, 10000);
-            assertEquals(rs.getBigDecimal(16), decimal0);
-            assertEquals(rs.getBigDecimal(17), decimal1);
-            Calendar cc = new GregorianCalendar();
-            cc.setTimeInMillis(date0.getTime());
-            System.out.println("date0 : " + date0.getTime() + " " + cc.get(Calendar.DAY_OF_MONTH) + " " + " "
-                    + cc.get(Calendar.HOUR_OF_DAY));
-            cc.setTimeInMillis(date0.getTime());
-            System.out.println("rs.getDate(18) : " + rs.getDate(18).getTime() + " " + cc.get(Calendar.DAY_OF_MONTH)
-                    + " " + " " + cc.get(Calendar.HOUR_OF_DAY));
-            assertEquals(rs.getDate(18), date0);
-            assertEquals(rs.getTimestamp(19), datetime0);
-            assertEquals(rs.getTimestamp(20), timestamp0);
-            assertEquals(rs.getTimestamp(21), timestamp1);
-            assertNull(rs.getTimestamp(22));
-            assertEquals(rs.getTime(23), time0);
-            if (isMariadbServer()) {
-                assertEquals(rs.getInt(24), year2);
+            ps.addBatch();
+            ps.executeBatch();
+            ResultSet rs = sharedConnection.createStatement().executeQuery("SELECT * from preparetest");
+            if (rs.next()) {
+                assertEquals(rs.getBoolean(1), bit1);
+                assertEquals(rs.getByte(2), bit2);
+                assertEquals(rs.getByte(3), tinyint1);
+                assertEquals(rs.getShort(4), tinyint2);
+                assertEquals(rs.getBoolean(5), bool0);
+                assertEquals(rs.getShort(6), smallint0);
+                assertEquals(rs.getShort(7), smallintUnsigned);
+                assertEquals(rs.getInt(8), mediumint0);
+                assertEquals(rs.getInt(9), mediumintUnsigned);
+                assertEquals(rs.getInt(10), int0);
+                assertEquals(rs.getInt(11), intUnsigned);
+                assertEquals(rs.getInt(12), bigint0);
+                assertEquals(rs.getObject(13), bigintUnsigned);
+                assertEquals(rs.getFloat(14), float0, 10000);
+                assertEquals(rs.getDouble(15), double0, 10000);
+                assertEquals(rs.getBigDecimal(16), decimal0);
+                assertEquals(rs.getBigDecimal(17), decimal1);
+                Calendar cc = new GregorianCalendar();
+                cc.setTimeInMillis(date0.getTime());
+                cc.setTimeInMillis(date0.getTime());
+                assertEquals(rs.getDate(18), date0);
+                assertEquals(rs.getTimestamp(19), datetime0);
+                assertEquals(rs.getTimestamp(20), timestamp0);
+                assertEquals(rs.getTimestamp(21), timestamp1);
+                assertNull(rs.getTimestamp(22));
+                assertEquals(rs.getTime(23), time0);
+                assertYear(rs, 24, year2);
+                assertEquals(rs.getInt(25), year4);
+                assertEquals(rs.getString(26), char0);
+                assertEquals(rs.getString(27), charBinary);
+                assertEquals(rs.getString(28), varchar0);
+                assertEquals(rs.getString(29), varcharBinary);
+                assertEquals(new String(rs.getBytes(30), StandardCharsets.UTF_8),
+                        new String(binary0, StandardCharsets.UTF_8));
+                assertEquals(new String(rs.getBytes(31), StandardCharsets.UTF_8),
+                        new String(varbinary0, StandardCharsets.UTF_8));
             } else {
-                if (minVersion(5, 6)) {
-                    //year on 2 bytes is deprecated since 5.5.27
-                    assertEquals(rs.getInt(24), 2030);
-                } else {
-                    assertEquals(rs.getInt(24), 30);
-                }
+                fail();
             }
-            assertEquals(rs.getInt(25), year4);
-            assertEquals(rs.getString(26), char0);
-            assertEquals(rs.getString(27), charBinary);
-            assertEquals(rs.getString(28), varchar0);
-            assertEquals(rs.getString(29), varcharBinary);
-            assertEquals(new String(rs.getBytes(30), StandardCharsets.UTF_8),
-                    new String(binary0, StandardCharsets.UTF_8));
-            assertEquals(new String(rs.getBytes(31), StandardCharsets.UTF_8),
-                    new String(varbinary0, StandardCharsets.UTF_8));
-        } else {
-            fail();
+
+        } finally {
+            TimeZone.setDefault(defaultTimeZone);
         }
     }
 
+    private void assertYear(ResultSet rs, int fieldNumber, int comparaison) throws SQLException {
+        if (isMariadbServer()) {
+            assertEquals(rs.getInt(fieldNumber), comparaison);
+        } else {
+            if (minVersion(5, 6)) {
+                //year on 2 bytes is deprecated since 5.5.27
+                assertEquals(rs.getInt(fieldNumber), 2030);
+            } else {
+                assertEquals(rs.getInt(fieldNumber), 30);
+            }
+        }
+    }
 
     @Test
     public void checkReusability() throws Throwable {
@@ -486,7 +490,7 @@ public class ServerPrepareStatementTest extends BaseTest {
         ps.execute();
         ResultSet rs = ps.executeQuery("select count(*) from ServerPrepareStatementParameters");
         rs.next();
-        Assert.assertEquals(rs.getInt(1), 1);
+        assertEquals(rs.getInt(1), 1);
     }
 
     @Test
@@ -495,7 +499,7 @@ public class ServerPrepareStatementTest extends BaseTest {
         ps.executeBatch();
         ResultSet rs = ps.executeQuery("select count(*) from ServerPrepareStatementParameters");
         rs.next();
-        Assert.assertEquals(rs.getInt(1), 3);
+        assertEquals(rs.getInt(1), 3);
     }
 
     private PreparedStatement prepareInsert() throws Throwable {
@@ -525,26 +529,7 @@ public class ServerPrepareStatementTest extends BaseTest {
         ps.execute();
         ResultSet rs = ps.executeQuery("select count(*) from ServerPrepareStatementParameters");
         rs.next();
-        Assert.assertEquals(rs.getInt(1), 1);
-    }
-
-    @Test
-    public void directExecuteNumber2() throws Throwable {
-        PreparedStatement stmt = sharedConnection.prepareStatement("insert into streamtest2 (id, strm) values (?,?)");
-        stmt.setInt(1, 2);
-        String toInsert = "\u00D8abcdefgh\njklmn\"";
-        Reader reader = new StringReader(toInsert);
-        stmt.setCharacterStream(2, reader);
-        stmt.execute();
-        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from streamtest2");
-        rs.next();
-        Reader rdr = rs.getCharacterStream("strm");
-        StringBuilder sb = new StringBuilder();
-        int ch;
-        while ((ch = rdr.read()) != -1) {
-            sb.append((char) ch);
-        }
-        assertEquals(toInsert, sb.toString());
+        assertEquals(rs.getInt(1), 1);
     }
 
     @Test
@@ -629,58 +614,52 @@ public class ServerPrepareStatementTest extends BaseTest {
         PreparedStatement prepStmt = sharedConnection.prepareStatement("SELECT * from preparetest where bit1 = ?");
         prepStmt.setBoolean(1, false);
         ResultSet rs = prepStmt.executeQuery();
-        rs.next();
-        assertEquals(rs.getBoolean(1), bit1);
-        assertEquals(rs.getByte(2), bit2);
-        assertEquals(rs.getByte(3), tinyint1);
-        assertEquals(rs.getShort(4), tinyint2);
-        assertEquals(rs.getBoolean(5), bool0);
-        assertEquals(rs.getShort(6), smallint0);
-        assertEquals(rs.getShort(7), smallintUnsigned);
-        assertEquals(rs.getInt(8), mediumint0);
-        assertEquals(rs.getInt(9), mediumintUnsigned);
-        assertEquals(rs.getInt(10), int0);
-        assertEquals(rs.getInt(11), intUnsigned);
-        assertEquals(rs.getInt(12), bigint0);
-        assertEquals(rs.getObject(13), bigintUnsigned);
-        assertEquals(rs.getFloat(14), float0, 10000);
-        assertEquals(rs.getDouble(15), double0, 10000);
-        assertEquals(rs.getBigDecimal(16), decimal0);
-        assertEquals(rs.getBigDecimal(17), decimal1);
-        assertEquals(rs.getDate(18), date0);
-        assertEquals(rs.getTimestamp(19), datetime0);
-        assertEquals(rs.getTimestamp(20), timestamp0);
-        assertEquals(rs.getTimestamp(21), timestamp1);
-        assertNull(rs.getTimestamp(22));
-        assertEquals(rs.getTime(23), time0);
-        if (isMariadbServer()) {
-            assertEquals(rs.getInt(24), year2);
-        } else {
-            if (minVersion(5, 6)) {
-                //year on 2 bytes is deprecated since 5.5.27
-                assertEquals(rs.getInt(24), 2030);
-            } else {
-                assertEquals(rs.getInt(24), 30);
-            }
-        }
-        assertEquals(rs.getInt(25), year4);
-        assertEquals(rs.getString(26), char0);
-        assertEquals(rs.getString(27), charBinary);
-        assertEquals(rs.getString(28), varchar0);
-        assertEquals(rs.getString(29), varcharBinary);
+        if (rs.next()) {
+            assertEquals(rs.getBoolean(1), bit1);
+            assertEquals(rs.getByte(2), bit2);
+            assertEquals(rs.getByte(3), tinyint1);
+            assertEquals(rs.getShort(4), tinyint2);
+            assertEquals(rs.getBoolean(5), bool0);
+            assertEquals(rs.getShort(6), smallint0);
+            assertEquals(rs.getShort(7), smallintUnsigned);
+            assertEquals(rs.getInt(8), mediumint0);
+            assertEquals(rs.getInt(9), mediumintUnsigned);
+            assertEquals(rs.getInt(10), int0);
+            assertEquals(rs.getInt(11), intUnsigned);
+            assertEquals(rs.getInt(12), bigint0);
+            assertEquals(rs.getObject(13), bigintUnsigned);
+            assertEquals(rs.getFloat(14), float0, 10000);
+            assertEquals(rs.getDouble(15), double0, 10000);
+            assertEquals(rs.getBigDecimal(16), decimal0);
+            assertEquals(rs.getBigDecimal(17), decimal1);
+            assertEquals(rs.getDate(18), date0);
+            assertEquals(rs.getTimestamp(19), datetime0);
+            assertEquals(rs.getTimestamp(20), timestamp0);
+            assertEquals(rs.getTimestamp(21), timestamp1);
+            assertNull(rs.getTimestamp(22));
+            assertEquals(rs.getTime(23), time0);
+            assertYear(rs, 24, year2);
+            assertEquals(rs.getInt(25), year4);
+            assertEquals(rs.getString(26), char0);
+            assertEquals(rs.getString(27), charBinary);
+            assertEquals(rs.getString(28), varchar0);
+            assertEquals(rs.getString(29), varcharBinary);
 
-        assertEquals(new String(rs.getBytes(30), StandardCharsets.UTF_8),
-                new String(binary0, StandardCharsets.UTF_8));
-        assertEquals(new String(rs.getBytes(31), StandardCharsets.UTF_8),
-                new String(varbinary0, StandardCharsets.UTF_8));
+            assertEquals(new String(rs.getBytes(30), StandardCharsets.UTF_8),
+                    new String(binary0, StandardCharsets.UTF_8));
+            assertEquals(new String(rs.getBytes(31), StandardCharsets.UTF_8),
+                    new String(varbinary0, StandardCharsets.UTF_8));
+        } else {
+            fail();
+        }
 
     }
 
     protected class CreatePrepareDouble implements Runnable {
-        String sql;
-        Connection connection;
-        long firstWaitTime;
-        long secondWaitTime;
+        private String sql;
+        private Connection connection;
+        private long firstWaitTime;
+        private long secondWaitTime;
 
 
         public CreatePrepareDouble(String sql, Connection connection, long firstWaitTime, long secondWaitTime) {
@@ -693,15 +672,11 @@ public class ServerPrepareStatementTest extends BaseTest {
         public void run() {
             try {
                 Protocol protocol = getProtocolFromConnection(connection);
-                log.debug("before : contain key : " + protocol.prepareStatementCache().containsKey(sql));
                 if (protocol.prepareStatementCache().containsKey(sql)) {
-                    PrepareResult ps = protocol.prepareStatementCache().get(sql);
-                    log.debug("before : ps : " + ps.getUseTime());
+                    protocol.prepareStatementCache().get(sql);
                 }
-                log.debug("after : contain key : " + protocol.prepareStatementCache().containsKey(sql));
                 if (protocol.prepareStatementCache().containsKey(sql)) {
-                    PrepareResult ps2 = protocol.prepareStatementCache().get(sql);
-                    log.debug("after : ps : " + ps2.getUseTime());
+                    protocol.prepareStatementCache().get(sql);
                 }
                 PreparedStatement ps = connection.prepareStatement(sql);
                 Thread.sleep(firstWaitTime);
@@ -710,10 +685,8 @@ public class ServerPrepareStatementTest extends BaseTest {
                 ps.executeBatch();
                 Thread.sleep(secondWaitTime);
                 ps.close();
-                log.debug("after close : contain key : " + protocol.prepareStatementCache().containsKey(sql));
                 if (protocol.prepareStatementCache().containsKey(sql)) {
-                    PrepareResult ps2 = protocol.prepareStatementCache().get(sql);
-                    log.debug("after close : ps : " + ps2.getUseTime());
+                    protocol.prepareStatementCache().get(sql);
                 }
             } catch (Throwable e) {
                 fail();

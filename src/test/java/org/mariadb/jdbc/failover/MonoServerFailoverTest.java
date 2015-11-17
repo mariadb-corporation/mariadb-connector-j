@@ -12,7 +12,14 @@ import java.sql.Statement;
 import static org.junit.Assert.assertFalse;
 
 public class MonoServerFailoverTest extends BaseMultiHostTest {
-    private Connection connection;
+    /**
+     * Initialisation.
+     * @throws SQLException exception
+     */
+    @BeforeClass()
+    public static void beforeClass2() throws SQLException {
+        Assume.assumeTrue(initialUrl != null);
+    }
 
     /**
      * Initialisation.
@@ -24,93 +31,93 @@ public class MonoServerFailoverTest extends BaseMultiHostTest {
         currentType = HaMode.NONE;
     }
 
-    /**
-     * Assure status.
-     * @throws SQLException exception
-     */
-    @After
-    public void after() throws SQLException {
-        assureProxy();
-        assureBlackList(connection);
-        if (connection != null) {
-            connection.close();
-        }
-    }
-
     @Test
     public void checkClosedConnectionAfterFailover() throws Throwable {
-        connection = getNewConnection("&autoReconnect=true&retriesAllDown=1", true);
+        Connection connection = null;
+        try {
+            connection = getNewConnection("&autoReconnect=true&retriesAllDown=1", true);
 
-        Statement st = connection.createStatement();
-        int masterServerId = getServerId(connection);
-        stopProxy(masterServerId);
-        try {
-            st.execute("SELECT 1");
-            Assert.fail();
-        } catch (SQLException e) {
-            //normal exception
-        }
-        Assert.assertTrue(st.isClosed());
-        restartProxy(masterServerId);
-        try {
-            st = connection.createStatement();
-            st.execute("SELECT 1");
-        } catch (SQLException e) {
-            Assert.fail();
+            Statement st = connection.createStatement();
+            int masterServerId = getServerId(connection);
+            stopProxy(masterServerId);
+            try {
+                st.execute("SELECT 1");
+                Assert.fail();
+            } catch (SQLException e) {
+                //normal exception
+            }
+            Assert.assertTrue(st.isClosed());
+            restartProxy(masterServerId);
+            try {
+                st = connection.createStatement();
+                st.execute("SELECT 1");
+            } catch (SQLException e) {
+                Assert.fail();
+            }
+        } finally {
+            connection.close();
         }
 
     }
 
     @Test
     public void checkErrorAfterDeconnection() throws Throwable {
-        connection = getNewConnection("&retriesAllDown=1", true);
-
-        Statement st = connection.createStatement();
-        int masterServerId = getServerId(connection);
-        stopProxy(masterServerId);
+        Connection connection = null;
         try {
-            st.execute("SELECT 1");
-            Assert.fail();
-        } catch (SQLException e) {
-            //normal exception
-        }
+            connection = getNewConnection("&retriesAllDown=1", true);
 
-        restartProxy(masterServerId);
-        try {
-            st.execute("SELECT 1");
-            Assert.fail();
-        } catch (SQLException e) {
-            //statement must be closed -> error
-        }
-        Assert.assertTrue(connection.isClosed());
+            Statement st = connection.createStatement();
+            int masterServerId = getServerId(connection);
+            stopProxy(masterServerId);
+            try {
+                st.execute("SELECT 1");
+                Assert.fail();
+            } catch (SQLException e) {
+                //normal exception
+            }
 
+            restartProxy(masterServerId);
+            try {
+                st.execute("SELECT 1");
+                Assert.fail();
+            } catch (SQLException e) {
+                //statement must be closed -> error
+            }
+            Assert.assertTrue(connection.isClosed());
+        } finally {
+            connection.close();
+        }
     }
 
 
     @Test
     public void checkAutoReconnectDeconnection() throws Throwable {
-        connection = getNewConnection("&autoReconnect=true&retriesAllDown=1", true);
-
-        Statement st = connection.createStatement();
-        int masterServerId = getServerId(connection);
-        stopProxy(masterServerId);
+        Connection connection = null;
         try {
-            st.execute("SELECT 1");
-            Assert.fail();
-        } catch (SQLException e) {
-            //normal exception
-        }
+            connection = connection = getNewConnection("&autoReconnect=true&retriesAllDown=1", true);
 
-        restartProxy(masterServerId);
-        try {
-            //with autoreconnect -> not closed
-            st = connection.createStatement();
-            st.execute("SELECT 1");
-        } catch (SQLException e) {
-            Assert.fail();
-        }
-        Assert.assertFalse(connection.isClosed());
+            Statement st = connection.createStatement();
+            int masterServerId = getServerId(connection);
+            stopProxy(masterServerId);
+            try {
+                st.execute("SELECT 1");
+                Assert.fail();
+            } catch (SQLException e) {
+                //normal exception
+            }
 
+            restartProxy(masterServerId);
+            try {
+                //with autoreconnect -> not closed
+                st = connection.createStatement();
+                st.execute("SELECT 1");
+            } catch (SQLException e) {
+                Assert.fail();
+            }
+            Assert.assertFalse(connection.isClosed());
+        } finally {
+            connection.close();
+        }
 
     }
 
@@ -123,6 +130,7 @@ public class MonoServerFailoverTest extends BaseMultiHostTest {
     @Test
     public void isValidConnectionThatIsKilledExternally() throws Throwable {
         Connection killerConnection = null;
+        Connection connection = null;
         try {
             connection = getNewConnection();
             connection.setCatalog("mysql");
@@ -136,69 +144,43 @@ public class MonoServerFailoverTest extends BaseMultiHostTest {
             assertFalse(isValid);
         } finally {
             killerConnection.close();
+            connection.close();
         }
     }
 
     @Test
     public void checkPrepareStatement() throws Throwable {
-        connection = getNewConnection("&autoReconnect=true&retriesAllDown=1", true);
-        Statement stmt = connection.createStatement();
-        stmt.execute("drop table  if exists failt1");
-        stmt.execute("create table failt1 (id int not null primary key auto_increment, tt int)");
-
-
-        PreparedStatement preparedStatement = connection.prepareStatement("insert into failt1(id, tt) values (?,?)");
-
-        int masterServerId = getServerId(connection);
-        stopProxy(masterServerId);
-
-        preparedStatement.setInt(1, 1);
-        preparedStatement.setInt(2, 1);
-        preparedStatement.addBatch();
+        Connection connection = null;
         try {
-            preparedStatement.executeBatch();
-            Assert.fail();
-        } catch (SQLException e) {
-            //normal exception
-        }
-        restartProxy(masterServerId);
-        try {
-            preparedStatement.executeBatch();
-        } catch (SQLException e) {
-            Assert.fail();
-        }
-    }
+            connection = getNewConnection("&autoReconnect=true&retriesAllDown=1", true);
+            Statement stmt = connection.createStatement();
+            stmt.execute("drop table  if exists failt1");
+            stmt.execute("create table failt1 (id int not null primary key auto_increment, tt int)");
 
-/*
-    @Test
-    public void failoverDuringStreamStatement() throws Throwable {
-        connection = getNewConnection("&autoReconnect=true", true);
-        Statement stmt = connection.createStatement();
-        stmt.execute("drop table  if exists failt2");
-        stmt.execute("create table failt2 (tt int)");
 
-        PreparedStatement preparedStatement = connection.prepareStatement("insert into failt2(tt) values (?)");
-        for (int i=0; i<100;i++) {
-            preparedStatement.setInt(1, i);
+            PreparedStatement preparedStatement = connection.prepareStatement("insert into failt1(id, tt) values (?,?)");
+
+            int masterServerId = getServerId(connection);
+            stopProxy(masterServerId);
+
+            preparedStatement.setInt(1, 1);
+            preparedStatement.setInt(2, 1);
             preparedStatement.addBatch();
-        }
-        preparedStatement.executeBatch();
-        stmt = connection.createStatement(java.sql.ResultSet.TYPE_FORWARD_ONLY, java.sql.ResultSet.CONCUR_READ_ONLY);
-        stmt.setFetchSize(Integer.MIN_VALUE);
-        ResultSet rs = stmt.executeQuery("SELECT * FROM failt2");
-        int masterServerId = getServerId(connection);
-        stopProxy(masterServerId);
-
-        int nbRead = 0;
-        try {
-            while (rs.next()) {
-                nbRead++;
-                log.debug("nbRead = "+nbRead + " rs="+rs.getInt(1));
+            try {
+                preparedStatement.executeBatch();
+                Assert.fail();
+            } catch (SQLException e) {
+                //normal exception
             }
-            Assert.fail();
-        } catch (SQLException e) {
-            Assert.assertTrue(nbRead == 10);
+            restartProxy(masterServerId);
+            try {
+                preparedStatement.executeBatch();
+            } catch (SQLException e) {
+                Assert.fail();
+            }
+        } finally {
+            connection.close();
         }
     }
-*/
+
 }

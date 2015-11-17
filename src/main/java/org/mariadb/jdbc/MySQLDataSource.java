@@ -47,60 +47,34 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
+package org.mariadb.jdbc;
 
-package org.mariadb.jdbc.internal.packet.dao.parameters;
+import java.sql.SQLException;
 
-
-import org.mariadb.jdbc.internal.MariaDbType;
-import org.mariadb.jdbc.internal.util.Options;
-import org.mariadb.jdbc.internal.stream.PacketOutputStream;
-
-import java.io.IOException;
-import java.io.OutputStream;
-import java.sql.Time;
-import java.util.Calendar;
-
-
-public class TimeParameter extends NotLongDataParameterHolder {
-    private Time time;
-    private Calendar calendar;
-    private boolean fractionalSeconds;
-
+/**
+ * Keep the class name for compatibility
+ * @deprecated use class MariaDbDataSource directly
+ */
+public class MySQLDataSource extends  MariaDbDataSource {
     /**
      * Constructor.
-     * @param time time to write
-     * @param cal session calendar
-     * @param fractionalSeconds must fractional seconds be send.
-     * @param options session options.
+     * @param hostname hostname (ipv4, ipv6, dns name)
+     * @param port server port
+     * @param database database name
+     * @throws SQLException exception if connection failed
      */
-    public TimeParameter(Time time, Calendar cal, boolean fractionalSeconds, Options options) {
-        this.time = time;
-        this.calendar = cal;
-        this.fractionalSeconds = fractionalSeconds;
+    public MySQLDataSource(String hostname, int port, String database) throws SQLException {
+        super(hostname, port, database);
     }
 
-    public void writeTo(final OutputStream os) throws IOException {
-        ParameterWriter.writeTime(os, time, calendar, fractionalSeconds);
-    }
-
-    public long getApproximateTextProtocolLength() throws IOException {
-        return 15;
+    public MySQLDataSource(String url) throws SQLException {
+        super(url);
     }
 
     /**
-     * Write time in binary format.
-     * @param writeBuffer write buffer
+     * Default constructor. hostname will be localhost, port 3306.
      */
-    public void writeBinary(PacketOutputStream writeBuffer) {
-        calendar = Calendar.getInstance();
-        calendar.setTime(time);
-        calendar.set(Calendar.DAY_OF_MONTH, 1);
-        writeBuffer.writeTimeLength(calendar, fractionalSeconds);
+    public MySQLDataSource() {
+        super();
     }
-
-    public MariaDbType getMariaDbType() {
-        return MariaDbType.TIME;
-    }
-
-
 }

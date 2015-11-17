@@ -37,6 +37,8 @@ public class MultiTest extends BaseTest {
         createTable("MultiTesttest_table2", "col1 VARCHAR(32), col2 VARCHAR(32), col3 VARCHAR(32), col4 VARCHAR(32), "
                 + "col5 VARCHAR(32)");
         createTable("MultiTestValues", "col1 VARCHAR(32), col2 VARCHAR(32)");
+
+        createTable("MultiTestprepsemi", "id int not null primary key auto_increment, text text");
         Statement st = sharedConnection.createStatement();
         st.execute("insert into MultiTestt1 values(1,'a'),(2,'a')");
         st.execute("insert into MultiTestt2 values(1,'a'),(2,'a')");
@@ -73,7 +75,7 @@ public class MultiTest extends BaseTest {
 
     @Test
     public void basicTest() throws SQLException {
-        log.debug("basicTest begin");
+        log.trace("basicTest begin");
         Connection connection = null;
         try {
             connection = setConnection("&allowMultiQueries=true");
@@ -92,7 +94,7 @@ public class MultiTest extends BaseTest {
             }
             assertTrue(count > 0);
             assertFalse(statement.getMoreResults());
-            log.debug("basicTest end");
+            log.trace("basicTest end");
         } finally {
             connection.close();
         }
@@ -100,7 +102,7 @@ public class MultiTest extends BaseTest {
 
     @Test
     public void updateTest() throws SQLException {
-        log.debug("updateTest begin");
+        log.trace("updateTest begin");
         Connection connection = null;
         try {
             connection = setConnection("&allowMultiQueries=true");
@@ -108,7 +110,7 @@ public class MultiTest extends BaseTest {
             statement.execute("update MultiTestt5 set test='a " + System.currentTimeMillis()
                     + "' where id = 2;select * from MultiTestt2;");
             int updateNb = statement.getUpdateCount();
-            log.debug("statement.getUpdateCount() " + updateNb);
+            log.trace("statement.getUpdateCount() " + updateNb);
             assertTrue(updateNb == 2);
             assertTrue(statement.getMoreResults());
             ResultSet rs = statement.getResultSet();
@@ -118,7 +120,7 @@ public class MultiTest extends BaseTest {
             }
             assertTrue(count > 0);
             assertFalse(statement.getMoreResults());
-            log.debug("updateTest end");
+            log.trace("updateTest end");
         } finally {
             connection.close();
         }
@@ -126,7 +128,7 @@ public class MultiTest extends BaseTest {
 
     @Test
     public void updateTest2() throws SQLException {
-        log.debug("updateTest2 begin");
+        log.trace("updateTest2 begin");
         Connection connection = null;
         try {
             connection = setConnection("&allowMultiQueries=true");
@@ -142,9 +144,9 @@ public class MultiTest extends BaseTest {
             statement.getMoreResults();
 
             int updateNb = statement.getUpdateCount();
-            log.debug("statement.getUpdateCount() " + updateNb);
+            log.trace("statement.getUpdateCount() " + updateNb);
             assertEquals(2, updateNb);
-            log.debug("updateTest2 end");
+            log.trace("updateTest2 end");
         } finally {
             connection.close();
         }
@@ -152,7 +154,7 @@ public class MultiTest extends BaseTest {
 
     @Test
     public void selectTest() throws SQLException {
-        log.debug("selectTest begin");
+        log.trace("selectTest begin");
         Connection connection = null;
         try {
             connection = setConnection("&allowMultiQueries=true");
@@ -170,7 +172,7 @@ public class MultiTest extends BaseTest {
                 count++;
             }
             assertTrue(count > 0);
-            log.debug("selectTest end");
+            log.trace("selectTest end");
         } finally {
             connection.close();
         }
@@ -178,7 +180,7 @@ public class MultiTest extends BaseTest {
 
     @Test
     public void setMaxRowsMulti() throws Exception {
-        log.debug("setMaxRowsMulti begin");
+        log.trace("setMaxRowsMulti begin");
         Connection connection = null;
         try {
             connection = setConnection("&allowMultiQueries=true");
@@ -209,7 +211,7 @@ public class MultiTest extends BaseTest {
             }
             rs.close();
             assertEquals(1, cnt);
-            log.debug("setMaxRowsMulti end");
+            log.trace("setMaxRowsMulti end");
         } finally {
             connection.close();
         }
@@ -222,17 +224,17 @@ public class MultiTest extends BaseTest {
      */
     @Test
     public void rewriteBatchedStatementsDisabledInsertionTest() throws SQLException {
-        log.debug("rewriteBatchedStatementsDisabledInsertionTest begin");
+        log.trace("rewriteBatchedStatementsDisabledInsertionTest begin");
         verifyInsertBehaviorBasedOnRewriteBatchedStatements(Boolean.FALSE, 3000, 3000);
-        log.debug("rewriteBatchedStatementsDisabledInsertionTest end");
+        log.trace("rewriteBatchedStatementsDisabledInsertionTest end");
     }
 
     @Test
     public void rewriteBatchedStatementsEnabledInsertionTest() throws SQLException {
-        log.debug("rewriteBatchedStatementsEnabledInsertionTest begin");
+        log.trace("rewriteBatchedStatementsEnabledInsertionTest begin");
         //On batch mode, single insert query will be sent to MariaDB server.
         verifyInsertBehaviorBasedOnRewriteBatchedStatements(Boolean.TRUE, 3000, 1);
-        log.debug("rewriteBatchedStatementsEnabledInsertionTest end");
+        log.trace("rewriteBatchedStatementsEnabledInsertionTest end");
     }
 
 
@@ -340,7 +342,7 @@ public class MultiTest extends BaseTest {
      */
     @Test
     public void rewriteBatchedStatementsSemicolon() throws SQLException {
-        log.debug("rewriteBatchedStatementsSemicolon begin");
+        log.trace("rewriteBatchedStatementsSemicolon begin");
         // set the rewrite batch statements parameter
         Properties props = new Properties();
         props.setProperty("rewriteBatchedStatements", "true");
@@ -393,7 +395,7 @@ public class MultiTest extends BaseTest {
             assertEquals(4, retrieveSessionVariableFromServer(tmpConnection, "Com_insert") - secondCurrentInsert);
 
         } finally {
-            log.debug("rewriteBatchedStatementsSemicolon end");
+            log.trace("rewriteBatchedStatementsSemicolon end");
             if (tmpConnection != null) {
                 tmpConnection.close();
             }
@@ -414,6 +416,31 @@ public class MultiTest extends BaseTest {
         return preparedStatement;
     }
 
+
+    /**
+     * Conj-215: Batched statements with rewriteBatchedStatements that end with a semicolon fails.
+     *
+     * @throws SQLException exception
+     */
+    @Test
+    public void semicolonTest() throws SQLException {
+        Properties props = new Properties();
+        props.setProperty("rewriteBatchedStatements", "true");
+        props.setProperty("allowMultiQueries", "true");
+        Connection tmpConnection = null;
+        try {
+            tmpConnection = openNewConnection(connUri, props);
+            Statement sqlInsert = tmpConnection.createStatement();
+            for (int i = 0; i < 100; i++) {
+                sqlInsert.addBatch("insert into MultiTestprepsemi (text) values ('This is a test" + i + "');");
+            }
+            sqlInsert.executeBatch();
+        } finally {
+            tmpConnection.close();
+        }
+    }
+
+
     /**
      * Conj-99: rewriteBatchedStatements parameter.
      *
@@ -421,7 +448,7 @@ public class MultiTest extends BaseTest {
      */
     @Test
     public void rewriteBatchedStatementsUpdateTest() throws SQLException {
-        log.debug("rewriteBatchedStatementsUpdateTest begin");
+        log.trace("rewriteBatchedStatementsUpdateTest begin");
         // set the rewrite batch statements parameter
         Properties props = new Properties();
         props.setProperty("rewriteBatchedStatements", "true");
@@ -451,7 +478,7 @@ public class MultiTest extends BaseTest {
             verifyUpdateCount(tmpConnection, cycles); //1000 update commande launched
             assertEquals(cycles * 2, totalUpdates); // 2000 rows updates
         } finally {
-            log.debug("rewriteBatchedStatementsUpdateTest end");
+            log.trace("rewriteBatchedStatementsUpdateTest end");
             if (tmpConnection != null) {
                 tmpConnection.close();
             }
@@ -466,7 +493,7 @@ public class MultiTest extends BaseTest {
      */
     @Test
     public void testMultipleExecuteBatch() throws SQLException {
-        log.debug("testMultipleExecuteBatch begin");
+        log.trace("testMultipleExecuteBatch begin");
         // set the rewrite batch statements parameter
         Properties props = new Properties();
         props.setProperty("rewriteBatchedStatements", "true");
@@ -496,7 +523,7 @@ public class MultiTest extends BaseTest {
             updateCounts = preparedStatement.executeBatch();
             assertEquals(1, updateCounts.length);
         } finally {
-            log.debug("testMultipleExecuteBatch end");
+            log.trace("testMultipleExecuteBatch end");
             if (tmpConnection != null) {
                 tmpConnection.close();
             }
@@ -505,7 +532,7 @@ public class MultiTest extends BaseTest {
 
     @Test
     public void rewriteBatchedStatementsInsertWithDuplicateRecordsTest() throws SQLException {
-        log.debug("rewriteBatchedStatementsInsertWithDuplicateRecordsTest begin");
+        log.trace("rewriteBatchedStatementsInsertWithDuplicateRecordsTest begin");
         Properties props = new Properties();
         props.setProperty("rewriteBatchedStatements", "true");
         props.setProperty("allowMultiQueries", "true");
@@ -529,7 +556,7 @@ public class MultiTest extends BaseTest {
             verifyInsertCount(tmpConnection, 1);
             verifyUpdateCount(tmpConnection, 0);
         } finally {
-            log.debug("rewriteBatchedStatementsInsertWithDuplicateRecordsTest end");
+            log.trace("rewriteBatchedStatementsInsertWithDuplicateRecordsTest end");
             if (tmpConnection != null) {
                 tmpConnection.close();
             }
@@ -538,7 +565,7 @@ public class MultiTest extends BaseTest {
 
     @Test
     public void updateCountTest() throws SQLException {
-        log.debug("updateCountTest begin");
+        log.trace("updateCountTest begin");
         Properties props = new Properties();
         props.setProperty("rewriteBatchedStatements", "true");
         props.setProperty("allowMultiQueries", "true");
@@ -588,7 +615,7 @@ public class MultiTest extends BaseTest {
             Assert.assertEquals(0, updateCounts[1]);
             Assert.assertEquals(2, updateCounts[2]);
         } finally {
-            log.debug("updateCountTest end");
+            log.trace("updateCountTest end");
             if (tmpConnection != null) {
                 tmpConnection.close();
             }

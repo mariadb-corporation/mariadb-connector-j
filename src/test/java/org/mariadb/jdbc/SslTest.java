@@ -31,7 +31,7 @@ public class SslTest extends BaseTest {
         ResultSet rs = sharedConnection.createStatement().executeQuery("select @@ssl_cert");
         rs.next();
         serverCertificatePath = rs.getString(1);
-        log.debug("Server certificate path: {}", serverCertificatePath);
+        log.trace("Server certificate path: {}", serverCertificatePath);
         rs.close();
     }
 
@@ -193,7 +193,7 @@ public class SslTest extends BaseTest {
             info.setProperty("serverSslCert", getServerCertificate());
             info.setProperty("useSSL", "true");
             Connection conn = createConnection(info);
-            assertEquals("test", conn.getCatalog());
+            assertEquals("testj", conn.getCatalog());
             conn.close();
         } catch (Exception e) {
             throw new RuntimeException(e);
