@@ -41,8 +41,8 @@ public class ReplicationFailoverTest extends BaseReplication {
             Statement stmt = connection.createStatement();
             assertTrue(connection.isReadOnly());
             try {
-                if (!isMariaDbServer(connection) || !requireMinimumVersion(connection, 10, 0)) {
-                    //on version > 10 use SESSION READ-ONLY, before no control
+                if (!isMariaDbServer(connection) || !requireMinimumVersion(connection, 5, 7)) {
+                    //on version >= 5.7 use SESSION READ-ONLY, before no control
                     Assume.assumeTrue(false);
                 }
                 stmt.execute("drop table  if exists multinode4");
