@@ -50,6 +50,7 @@ public class AuroraFailoverTest extends BaseReplication {
                 //normal exception
             }
         } finally {
+            assureBlackList(connection);
             connection.close();
         }
     }
@@ -72,6 +73,7 @@ public class AuroraFailoverTest extends BaseReplication {
             connection.setReadOnly(false);
             stmt.execute("drop table  if exists auroraReadSlave");
         } finally {
+            assureBlackList(connection);
             connection.close();
         }
     }
@@ -96,6 +98,7 @@ public class AuroraFailoverTest extends BaseReplication {
                 //normal exception
             }
         } finally {
+            assureBlackList(connection);
             connection.close();
         }
     }
@@ -131,6 +134,7 @@ public class AuroraFailoverTest extends BaseReplication {
                 Thread.sleep(250);
             }
         } finally {
+            assureBlackList(connection);
             connection.close();
         }
     }
@@ -153,38 +157,10 @@ public class AuroraFailoverTest extends BaseReplication {
             Assert.assertFalse(slaveServerId == masterServerId);
             Assert.assertTrue(connection.isReadOnly());
         } finally {
+            assureBlackList(connection);
             connection.close();
         }
     }
-
-
-    @Test
-    public void reconnectMasterAfterFailover() throws Throwable {
-        Connection connection = null;
-        try {
-            connection = getNewConnection("&retriesAllDown=1", true);
-            //if super user can write on slave
-            Assume.assumeTrue(!hasSuperPrivilege(connection, "reconnectMasterAfterFailover"));
-            Statement st = connection.createStatement();
-            st.execute("drop table  if exists multinode2");
-            st.execute("create table multinode2 (id int not null primary key , amount int not null) ENGINE = InnoDB");
-            st.execute("insert into multinode2 (id, amount) VALUE (1 , 100)");
-
-            int masterServerId = getServerId(connection);
-            long stopTime = System.currentTimeMillis();
-            stopProxy(masterServerId, 10000);
-            try {
-                st.execute("insert into multinode2 (id, amount) VALUE (2 , 100)");
-                Assert.assertTrue(System.currentTimeMillis() - stopTime > 10);
-                Assert.assertTrue(System.currentTimeMillis() - stopTime < 20);
-            } catch (SQLException e) {
-                //eat exception
-            }
-        } finally {
-            connection.close();
-        }
-    }
-
 
     @Test
     public void failoverMasterWithAutoConnectAndTransaction() throws Throwable {
@@ -218,6 +194,7 @@ public class AuroraFailoverTest extends BaseReplication {
                 Assert.fail();
             }
         } finally {
+            assureBlackList(connection);
             connection.close();
         }
     }
@@ -240,6 +217,7 @@ public class AuroraFailoverTest extends BaseReplication {
             Assert.assertTrue(!connection.isReadOnly());
             Assert.assertTrue(System.currentTimeMillis() - stopTime < 20 * 1000);
         } finally {
+            assureBlackList(connection);
             connection.close();
         }
     }
@@ -287,6 +265,7 @@ public class AuroraFailoverTest extends BaseReplication {
             // the connection should not be closed
             assertTrue(!connection.isClosed());
         } finally {
+            assureBlackList(connection);
             connection.close();
         }
     }

@@ -311,7 +311,7 @@ public class BaseMultiHostTest {
         return protocol.inTransaction();
     }
 
-    boolean isMariadbServer(Connection connection) throws SQLException {
+    boolean isMariaDbServer(Connection connection) throws SQLException {
         DatabaseMetaData md = connection.getMetaData();
         return md.getDatabaseProductVersion().indexOf("MariaDB") != -1;
     }

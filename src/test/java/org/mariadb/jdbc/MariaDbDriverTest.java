@@ -31,6 +31,7 @@ public class MariaDbDriverTest extends BaseTest {
         createTable("tdouble", "d double");
         createTable("biginttest", "i1 bigint, i2 bigint unsigned");
         createTable("warnings_test", "c char(2)");
+        createTable("warnings_trunk_test", "c char(2)");
         createTable("t_update_count", "flag int, k varchar(10),name varchar(10)");
         createTable("updatable", "i int primary key, a varchar(10)");
     }
@@ -383,6 +384,8 @@ public class MariaDbDriverTest extends BaseTest {
         st.clearWarnings();
         assertEquals(st.getWarnings(), null);
     }
+
+
 
     @Test
     public void testUpdateCount() throws SQLException {

@@ -6,8 +6,6 @@ import org.mariadb.jdbc.internal.util.constant.HaMode;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.HashMap;
-import java.util.Map;
 
 import static org.junit.Assert.*;
 
@@ -43,7 +41,7 @@ public class ReplicationFailoverTest extends BaseReplication {
             Statement stmt = connection.createStatement();
             assertTrue(connection.isReadOnly());
             try {
-                if (!isMariadbServer(connection) || !requireMinimumVersion(connection, 10, 0)) {
+                if (!isMariaDbServer(connection) || !requireMinimumVersion(connection, 10, 0)) {
                     //on version > 10 use SESSION READ-ONLY, before no control
                     Assume.assumeTrue(false);
                 }
@@ -54,6 +52,7 @@ public class ReplicationFailoverTest extends BaseReplication {
                 //normal exception
             }
         } finally {
+            assureBlackList(connection);
             connection.close();
         }
     }
@@ -107,6 +106,7 @@ public class ReplicationFailoverTest extends BaseReplication {
             }
         } finally {
             if (connection != null) {
+                assureBlackList(connection);
                 connection.close();
             }
         }
@@ -125,6 +125,7 @@ public class ReplicationFailoverTest extends BaseReplication {
             assertTrue(connection.isReadOnly());
         } finally {
             if (connection != null) {
+                assureBlackList(connection);
                 connection.close();
             }
         }
@@ -153,35 +154,7 @@ public class ReplicationFailoverTest extends BaseReplication {
             }
         } finally {
             if (connection != null) {
-                connection.close();
-            }
-        }
-    }
-
-    @Test
-    public void reconnectMasterAfterFailover() throws Throwable {
-        Connection connection = null;
-        try {
-            connection = getNewConnection("&retriesAllDown=1", true);
-            //if super user can write on slave
-            Assume.assumeTrue(!hasSuperPrivilege(connection, "reconnectMasterAfterFailover"));
-            Statement st = connection.createStatement();
-            st.execute("drop table  if exists multinode2");
-            st.execute("create table multinode2 (id int not null primary key , amount int not null) ENGINE = InnoDB");
-            st.execute("insert into multinode2 (id, amount) VALUE (1 , 100)");
-
-            int masterServerId = getServerId(connection);
-            long stopTime = System.currentTimeMillis();
-            stopProxy(masterServerId, 10000);
-            try {
-                st.execute("insert into multinode2 (id, amount) VALUE (2 , 100)");
-                assertTrue(System.currentTimeMillis() - stopTime > 10);
-                assertTrue(System.currentTimeMillis() - stopTime < 20);
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-        } finally {
-            if (connection != null) {
+                assureBlackList(connection);
                 connection.close();
             }
         }
@@ -224,6 +197,7 @@ public class ReplicationFailoverTest extends BaseReplication {
             }
         } finally {
             if (connection != null) {
+                assureBlackList(connection);
                 connection.close();
             }
         }
@@ -261,6 +235,7 @@ public class ReplicationFailoverTest extends BaseReplication {
             }
         } finally {
             if (connection != null) {
+                assureBlackList(connection);
                 connection.close();
             }
         }
@@ -283,6 +258,7 @@ public class ReplicationFailoverTest extends BaseReplication {
             assertTrue(!connection.isReadOnly());
         } finally {
             if (connection != null) {
+                assureBlackList(connection);
                 connection.close();
             }
         }

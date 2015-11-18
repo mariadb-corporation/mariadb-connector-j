@@ -10,7 +10,7 @@ import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
 
-public class BaseReplication extends BaseMultiHostTest {
+public abstract class BaseReplication extends BaseMultiHostTest {
 
     @Test
     public void testWriteOnMaster() throws SQLException {
@@ -22,6 +22,7 @@ public class BaseReplication extends BaseMultiHostTest {
             stmt.execute("create table auroraMultiNode (id int not null primary key auto_increment, test VARCHAR(10))");
             stmt.execute("drop table  if exists auroraMultiNode");
         } finally {
+            assureBlackList(connection);
             connection.close();
         }
     }
@@ -43,6 +44,7 @@ public class BaseReplication extends BaseMultiHostTest {
             Assert.assertTrue(masterServerId == currentServerId);
             Assert.assertFalse(connection.isReadOnly());
         } finally {
+            assureBlackList(connection);
             connection.close();
         }
     }
@@ -63,6 +65,7 @@ public class BaseReplication extends BaseMultiHostTest {
             Assert.assertFalse(slaveServerId == masterServerId);
             Assert.assertFalse(connection.isReadOnly());
         } finally {
+            assureBlackList(connection);
             connection.close();
         }
     }
@@ -87,6 +90,7 @@ public class BaseReplication extends BaseMultiHostTest {
                 Assert.fail();
             }
         } finally {
+            assureBlackList(connection);
             connection.close();
         }
     }
@@ -116,6 +120,7 @@ public class BaseReplication extends BaseMultiHostTest {
             Assert.assertTrue(currentSlaveId != firstSlaveId);
             Assert.assertTrue(currentSlaveId != masterServerId);
         } finally {
+            assureBlackList(connection);
             connection.close();
         }
     }
@@ -135,6 +140,7 @@ public class BaseReplication extends BaseMultiHostTest {
             Assert.assertTrue(currentServerId == masterServerId);
             Assert.assertFalse(connection.isReadOnly());
         } finally {
+            assureBlackList(connection);
             connection.close();
         }
     }
@@ -147,20 +153,21 @@ public class BaseReplication extends BaseMultiHostTest {
             //if super user can write on slave
             Assume.assumeTrue(!hasSuperPrivilege(connection, "writeToSlaveAfterFailover"));
             Statement st = connection.createStatement();
-            st.execute("drop table  if exists multinode2");
-            st.execute("create table multinode2 (id int not null primary key , amount int not null) ENGINE = InnoDB");
-            st.execute("insert into multinode2 (id, amount) VALUE (1 , 100)");
+            st.execute("drop table  if exists writeToSlave");
+            st.execute("create table writeToSlave (id int not null primary key , amount int not null) ENGINE = InnoDB");
+            st.execute("insert into writeToSlave (id, amount) VALUE (1 , 100)");
 
             int masterServerId = getServerId(connection);
 
             stopProxy(masterServerId);
             try {
-                st.execute("insert into multinode2 (id, amount) VALUE (2 , 100)");
+                st.execute("insert into writeToSlave (id, amount) VALUE (2 , 100)");
                 Assert.fail();
             } catch (SQLException e) {
                 //normal exception
             }
         } finally {
+            assureBlackList(connection);
             connection.close();
         }
     }
@@ -187,6 +194,7 @@ public class BaseReplication extends BaseMultiHostTest {
                 //normal exception
             }
         } finally {
+            assureBlackList(connection);
             connection.close();
         }
     }
@@ -217,6 +225,7 @@ public class BaseReplication extends BaseMultiHostTest {
                 }
             } finally {
                 if (connection != null) {
+                    assureBlackList(connection);
                     connection.close();
                 }
             }
