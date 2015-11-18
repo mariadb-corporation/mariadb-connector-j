@@ -81,6 +81,11 @@ sudo mysql -u root -e "SET GLOBAL innodb_fast_shutdown = 1"
 sudo mysql -u root -e "update mysql.user set plugin = 'mysql_native_password' where User = 'root' and Host = 'localhost'"
 
 sudo service mysql stop
+#Adding sleep time for clean shutdown
+if [ "x$MYSQL_VERSION" != "x" ]
+then
+    sleep 2
+fi
 sudo rm -f /var/lib/mysql/ib_logfile*
 sudo service mysql start
 
