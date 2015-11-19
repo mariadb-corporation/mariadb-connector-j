@@ -89,7 +89,7 @@ import java.util.Properties;
 public class UrlParser {
 
     private String database;
-    private Options options;
+    private Options options = null;
     private List<HostAddress> addresses;
     private HaMode haMode;
 
@@ -181,8 +181,10 @@ public class UrlParser {
                     urlParser.database = additionalParameters.substring(0, ind);
                     urlParser.options = DefaultOptions.parse(urlParser.haMode, additionalParameters.substring(ind + 1), properties);
                 } else {
-                    urlParser.database = additionalParameters;
-                    urlParser.options = DefaultOptions.parse(urlParser.haMode, "", properties);
+                    if (!"".equals(additionalParameters)) {
+                        urlParser.database = additionalParameters;
+                    }
+                    urlParser.options = DefaultOptions.parse(urlParser.haMode, "", properties, urlParser.options);
                 }
             }
             setDefaultHostAddressType(urlParser);
