@@ -39,6 +39,7 @@ public class DatatypeTest extends BaseTest {
         createTable("emptytest", "id int");
         createTable("test_setobjectconv", "id int not null primary key auto_increment, v1 varchar(40), v2 varchar(40)");
         createTable("blabla", "valsue varchar(20)");
+        createTable("TestBigIntType", "t1 bigint(20), t2 bigint(20), t3 bigint(20), t4 bigint(20)");
     }
 
     @Before
@@ -357,6 +358,44 @@ public class DatatypeTest extends BaseTest {
 
             assertEquals(sc.getVal(), "testing");
             assertEquals(sc.getVal2(), 8);
+        } else {
+            fail();
+        }
+    }
+
+    @Test
+    public void setObjectBitInt() throws SQLException, IOException {
+
+        PreparedStatement preparedStatement = sharedConnection.prepareStatement("INSERT INTO TestBigIntType "
+                + "(t1, t2, t3, t4) VALUES (?, ?, ?, ?)");
+
+        final long valueLong = System.currentTimeMillis();
+        final String maxValue = String.valueOf(Long.MAX_VALUE);
+
+        preparedStatement.setObject(1, valueLong, Types.BIGINT);
+        preparedStatement.setObject(2, maxValue, Types.BIGINT);
+        preparedStatement.setObject(3, valueLong);
+        preparedStatement.setObject(4, maxValue);
+        preparedStatement.executeUpdate();
+
+        Statement statement = sharedConnection.createStatement();
+        ResultSet rs = statement.executeQuery("SELECT * FROM TestBigIntType");
+        validateResultBigIntType(valueLong, maxValue, rs);
+
+
+        PreparedStatement ps = sharedConnection.prepareStatement("SELECT * FROM TestBigIntType Where 1 = ?");
+        ps.setInt(1, 1);
+        rs =  ps.executeQuery();
+        validateResultBigIntType(valueLong, maxValue, rs);
+
+    }
+
+    private void validateResultBigIntType(long valueLong, String maxValue, ResultSet resultSet) throws SQLException {
+        if (resultSet.next()) {
+            assertEquals(resultSet.getLong(1), valueLong);
+            assertEquals(resultSet.getLong(2), Long.parseLong(maxValue));
+            assertEquals(resultSet.getLong(3), valueLong);
+            assertEquals(resultSet.getLong(4), Long.parseLong(maxValue));
         } else {
             fail();
         }
