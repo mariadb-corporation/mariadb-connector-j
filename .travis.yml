@@ -7,6 +7,9 @@ jdk:
     - oraclejdk8
     - oraclejdk7
     - openjdk7
+cache:
+    directories:
+        - $HOME/.m2
 env:
     - MARIA_VERSION=5.5 MAX_ALLOWED_PACKET=8M INNODB_LOG_FILE_SIZE=32M
     - MARIA_VERSION=5.5 MAX_ALLOWED_PACKET=16M INNODB_LOG_FILE_SIZE=64M
