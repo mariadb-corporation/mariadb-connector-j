@@ -18,9 +18,9 @@ public abstract class BaseReplication extends BaseMultiHostTest {
         try {
             connection = getNewConnection(false);
             Statement stmt = connection.createStatement();
-            stmt.execute("drop table  if exists auroraMultiNode");
-            stmt.execute("create table auroraMultiNode (id int not null primary key auto_increment, test VARCHAR(10))");
-            stmt.execute("drop table  if exists auroraMultiNode");
+            stmt.execute("drop table  if exists auroraMultiNode" + jobId);
+            stmt.execute("create table auroraMultiNode" + jobId + " (id int not null primary key auto_increment, test VARCHAR(10))");
+            stmt.execute("drop table  if exists auroraMultiNode" + jobId);
         } finally {
             if (connection != null) {
                 connection.close();
@@ -159,15 +159,15 @@ public abstract class BaseReplication extends BaseMultiHostTest {
             //if super user can write on slave
             Assume.assumeTrue(!hasSuperPrivilege(connection, "writeToSlaveAfterFailover"));
             Statement st = connection.createStatement();
-            st.execute("drop table  if exists writeToSlave");
-            st.execute("create table writeToSlave (id int not null primary key , amount int not null) ENGINE = InnoDB");
-            st.execute("insert into writeToSlave (id, amount) VALUE (1 , 100)");
+            st.execute("drop table  if exists writeToSlave" + jobId);
+            st.execute("create table writeToSlave" + jobId + " (id int not null primary key , amount int not null) ENGINE = InnoDB");
+            st.execute("insert into writeToSlave" + jobId + " (id, amount) VALUE (1 , 100)");
 
             int masterServerId = getServerId(connection);
 
             stopProxy(masterServerId);
             try {
-                st.execute("insert into writeToSlave (id, amount) VALUE (2 , 100)");
+                st.execute("insert into writeToSlave" + jobId + " (id, amount) VALUE (2 , 100)");
                 Assert.fail();
             } catch (SQLException e) {
                 //normal exception
@@ -187,11 +187,11 @@ public abstract class BaseReplication extends BaseMultiHostTest {
             connection = getNewConnection("&retriesAllDown=1&autoReconnect=true", false);
             Statement st = connection.createStatement();
 
-            st.execute("drop table  if exists multinodeTransaction2");
-            st.execute("create table multinodeTransaction2 (id int not null primary key , amount int not null) "
+            st.execute("drop table  if exists multinodeTransaction2_" + jobId);
+            st.execute("create table multinodeTransaction2_" + jobId + " (id int not null primary key , amount int not null) "
                     + "ENGINE = InnoDB");
             connection.setAutoCommit(false);
-            st.execute("insert into multinodeTransaction2 (id, amount) VALUE (1 , 100)");
+            st.execute("insert into multinodeTransaction2_" + jobId + " (id, amount) VALUE (1 , 100)");
 
             try {
                 //in transaction, so must trow an error

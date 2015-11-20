@@ -44,6 +44,7 @@ public class BaseMultiHostTest {
     protected static String proxyReplicationUrl;
     protected static String proxyLoadbalanceUrl;
     protected static String proxyUrl;
+    protected static String jobId;
 
     protected static String username;
     private static String hostname;
@@ -76,6 +77,7 @@ public class BaseMultiHostTest {
         initialReplicationUrl = System.getProperty("defaultReplicationUrl");
         initialLoadbalanceUrl = System.getProperty("defaultLoadbalanceUrl");
         initialAuroraUrl = System.getProperty("defaultAuroraUrl");
+        jobId = System.getProperty("TRAVIS_JOB_ID", "_0");
 
         if (initialUrl != null) {
             proxyUrl = createProxies(initialUrl, HaMode.NONE);

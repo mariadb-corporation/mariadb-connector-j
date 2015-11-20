@@ -123,18 +123,10 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
      * @throws SQLException if error append during closing those connections.
      */
     public void preClose() throws SQLException {
-        setExplicitClosed(true);
-//        log.trace("preClose connections");
         proxy.lock.lock();
         try {
-            if (masterProtocol != null && this.masterProtocol.isConnected()) {
-                this.masterProtocol.close();
-            }
-            if (secondaryProtocol != null && this.secondaryProtocol.isConnected()) {
-                this.secondaryProtocol.close();
-            }
-        } finally {
-            proxy.lock.unlock();
+            setExplicitClosed(true);
+            //closing first additional thread if running to avoid connection creation before closing
             if (scheduledPing != null) {
                 scheduledPing.cancel(true);
             }
@@ -145,12 +137,21 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
             }
             executorService.shutdownNow();
             try {
-                executorService.awaitTermination(15, TimeUnit.SECONDS);
+                executorService.awaitTermination(15L, TimeUnit.SECONDS);
             } catch (InterruptedException e) {
-//                log.trace("executorService interrupted");
+
             }
+
+            //closing connections
+            if (masterProtocol != null && this.masterProtocol.isConnected()) {
+                this.masterProtocol.close();
+            }
+            if (secondaryProtocol != null && this.secondaryProtocol.isConnected()) {
+                this.secondaryProtocol.close();
+            }
+        } finally {
+            proxy.lock.unlock();
         }
-//        log.trace("preClose connections end");
     }
 
     @Override
@@ -204,8 +205,9 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                 }
             }
 
-            if (isSecondaryHostFail()) {
-                //Master connection is used as backup, we don't want master to have overload, so try to reconnect immediately to another slave
+            //we don't worry to bother slave until reconnect.
+            if (isSecondaryHostFail()
+                && (now - getSecondaryHostFailTimestamp()) >= 2000) {
                 return true;
             }
         }
@@ -712,7 +714,13 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
         }
 
         public void run() {
-            if (lastQueryTime + urlParser.getOptions().validConnectionTimeout * 1000 < System.currentTimeMillis() && !isMasterHostFail()) {
+            if (explicitClosed) {
+                //stop thread
+                if (scheduledPing != null) {
+                    scheduledPing.cancel(false);
+                }
+            } else if (lastQueryTime + urlParser.getOptions().validConnectionTimeout * 1000 < System.currentTimeMillis()
+                    && !isMasterHostFail()) {
                 boolean masterFail = false;
                 try {
                     if (masterProtocol != null && masterProtocol.isConnected()) {

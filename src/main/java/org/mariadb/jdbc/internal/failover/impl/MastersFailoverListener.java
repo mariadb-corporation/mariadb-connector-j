@@ -117,28 +117,28 @@ public class MastersFailoverListener extends AbstractMastersListener {
 
     @Override
     public void preClose() throws SQLException {
-        setExplicitClosed(true);
         proxy.lock.lock();
+        setExplicitClosed(true);
         try {
+            //closing first additional thread if running to avoid connection creation before closing
+            if (scheduledFailover != null) {
+                scheduledFailover.cancel(true);
+                isLooping.set(false);
+            }
+            executorService.shutdownNow();
+            try {
+                executorService.awaitTermination(15L, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                //executorService interrupted
+            }
+
+            //closing connection
             if (currentProtocol != null && this.currentProtocol.isConnected()) {
                 this.currentProtocol.close();
             }
         } finally {
-            if (!HaMode.NONE.equals(mode)) {
                 proxy.lock.unlock();
-                if (scheduledFailover != null) {
-                    scheduledFailover.cancel(true);
-                    isLooping.set(false);
-                }
-                executorService.shutdownNow();
-                try {
-                    executorService.awaitTermination(15, TimeUnit.SECONDS);
-                } catch (InterruptedException e) {
-//                    log.trace("executorService interrupted");
-                }
-            }
         }
-//        log.trace("preClose connections");
     }
 
     @Override

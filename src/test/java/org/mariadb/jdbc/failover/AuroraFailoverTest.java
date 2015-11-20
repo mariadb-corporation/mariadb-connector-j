@@ -64,17 +64,17 @@ public class AuroraFailoverTest extends BaseReplication {
         try {
             connection = getNewConnection(false);
             Statement stmt = connection.createStatement();
-            stmt.execute("drop table  if exists auroraReadSlave");
-            stmt.execute("create table auroraReadSlave (id int not null primary key auto_increment, test VARCHAR(10))");
+            stmt.execute("drop table  if exists auroraReadSlave" + jobId);
+            stmt.execute("create table auroraReadSlave" + jobId + " (id int not null primary key auto_increment, test VARCHAR(10))");
 
             //wait to be sure slave have replicate data
             Thread.sleep(200);
 
             connection.setReadOnly(true);
-            ResultSet rs = stmt.executeQuery("Select count(*) from auroraReadSlave");
+            ResultSet rs = stmt.executeQuery("Select count(*) from auroraReadSlave" + jobId);
             Assert.assertTrue(rs.next());
             connection.setReadOnly(false);
-            stmt.execute("drop table  if exists auroraReadSlave");
+            stmt.execute("drop table  if exists auroraReadSlave" + jobId);
         } finally {
             if (connection != null) {
                 connection.close();
@@ -177,17 +177,17 @@ public class AuroraFailoverTest extends BaseReplication {
             Statement st = connection.createStatement();
 
             final int masterServerId = getServerId(connection);
-            st.execute("drop table  if exists multinodeTransaction");
-            st.execute("create table multinodeTransaction (id int not null primary key , amount int not null) "
+            st.execute("drop table  if exists multinodeTransaction" + jobId);
+            st.execute("create table multinodeTransaction" + jobId + " (id int not null primary key , amount int not null) "
                     + "ENGINE = InnoDB");
             connection.setAutoCommit(false);
-            st.execute("insert into multinodeTransaction (id, amount) VALUE (1 , 100)");
+            st.execute("insert into multinodeTransaction" + jobId + " (id, amount) VALUE (1 , 100)");
             stopProxy(masterServerId);
             Assert.assertTrue(inTransaction(connection));
             try {
                 // will to execute the query. if there is a connection error, try a ping, if ok, good, query relaunched.
                 // If not good, transaction is considered be lost
-                st.execute("insert into multinodeTransaction (id, amount) VALUE (2 , 10)");
+                st.execute("insert into multinodeTransaction" + jobId + " (id, amount) VALUE (2 , 10)");
                 Assert.fail();
             } catch (SQLException e) {
                 log.trace("normal error : " + e.getMessage());
@@ -195,7 +195,7 @@ public class AuroraFailoverTest extends BaseReplication {
             restartProxy(masterServerId);
             try {
                 st = connection.createStatement();
-                st.execute("insert into multinodeTransaction (id, amount) VALUE (2 , 10)");
+                st.execute("insert into multinodeTransaction" + jobId + " (id, amount) VALUE (2 , 10)");
             } catch (SQLException e) {
                 e.printStackTrace();
                 Assert.fail();
