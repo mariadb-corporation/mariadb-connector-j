@@ -301,16 +301,16 @@ public class AuroraFailoverTest extends BaseReplication {
     public void testClearBlacklist() throws Throwable {
         Connection connection = null;
         try {
-            getNewConnection(true);
+            connection = getNewConnection(true);
             connection.setReadOnly(true);
             int current = getServerId(connection);
             stopProxy(current);
             Statement st = connection.createStatement();
             try {
                 st.execute("SELECT 1 ");
-                fail("must not have been here");
+                //switch connection to master -> slave blacklisted
             } catch (SQLException e) {
-                //normal
+                fail("must not have been here");
             }
 
             Protocol protocol = getProtocolFromConnection(connection);
@@ -318,7 +318,9 @@ public class AuroraFailoverTest extends BaseReplication {
             assureBlackList();
             Assert.assertTrue(protocol.getProxy().getListener().getBlacklist().size() == 0);
         } finally {
-            connection.close();
+            if (connection != null) {
+                connection.close();
+            }
         }
     }
 
