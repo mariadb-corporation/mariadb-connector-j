@@ -6,6 +6,8 @@ import org.junit.Test;
 
 import java.io.*;
 import java.sql.*;
+import java.util.Arrays;
+import java.util.Random;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -25,6 +27,7 @@ public class BlobTest extends BaseTest {
         createTable("BlobTestclobtest2", "strm text");
         createTable("BlobTestclobtest3", "id int not null primary key, strm text");
         createTable("BlobTestclobtest4", "id int not null primary key, strm text");
+        createTable("BlobTestclobtest5", "id int not null primary key, strm text");
         createTable("BlobTestblobtest", "id int not null primary key, strm blob");
         createTable("BlobTestblobtest2", "id int not null primary key, strm blob");
         createTable("conj77_test", "Name VARCHAR(100) NOT NULL,Archive LONGBLOB, PRIMARY KEY (Name)", "Engine=InnoDB DEFAULT CHARSET utf8");
@@ -119,6 +122,67 @@ public class BlobTest extends BaseTest {
         assertEquals(toInsert, sb.toString());
     }
 
+
+    @Test
+    public void testReaderWithLength() throws SQLException, IOException {
+        PreparedStatement stmt = sharedConnection.prepareStatement("insert into BlobTestclobtest5 (id, strm) values (?,?)");
+        byte[] arr = new byte[32000];
+        Arrays.fill(arr, (byte) 'b');
+
+        stmt.setInt(1, 1);
+        String clob = new String(arr);
+        stmt.setCharacterStream(2, new StringReader(clob), 20000);
+        stmt.execute();
+        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from BlobTestclobtest5");
+        rs.next();
+        Reader readStuff = rs.getCharacterStream("strm");
+
+        char[] chars = new char[50000];
+        readStuff.read(chars);
+
+        byte[] arrResult = new byte[20000];
+        Arrays.fill(arrResult, (byte) 'b');
+
+        for (int i = 0; i < chars.length; i++) {
+            if (i < 20000) {
+                assertEquals(arrResult[i], chars[i]);
+            } else {
+                assertEquals(chars[i], '\u0000');
+            }
+        }
+    }
+
+
+    @Test
+    public void testBlobWithLength() throws SQLException, IOException {
+        PreparedStatement stmt = sharedConnection.prepareStatement("insert into BlobTestblobtest2 (id, strm) values (?,?)");
+        byte[] arr = new byte[32000];
+        Random rand = new Random();
+        rand.nextBytes(arr);
+        InputStream stream = new ByteArrayInputStream(arr);
+        stmt.setInt(1, 1);
+        stmt.setBlob(2, stream, 20000);
+        stmt.execute();
+
+        //check what stream not read after length:
+        int remainRead = 0;
+        while (stream.read() >= 0) {
+            remainRead++;
+        }
+        assertEquals(12000, remainRead);
+
+        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from BlobTestblobtest2");
+        rs.next();
+        InputStream readStuff = rs.getBlob("strm").getBinaryStream();
+        int pos = 0;
+        int ch;
+        while ((ch = readStuff.read()) != -1) {
+            assertEquals(arr[pos++] & 0xff, ch);
+        }
+        assertEquals(20000, pos);
+
+    }
+
     @Test
     public void testClobWithLengthAndMultibyteCharacter() throws SQLException, IOException {
         PreparedStatement stmt = sharedConnection.prepareStatement("insert into BlobTestclobtest (id, strm) values (?,?)");
@@ -178,23 +242,6 @@ public class BlobTest extends BaseTest {
         }
     }
 
-    @Test
-    public void testBlobWithLength() throws SQLException, IOException {
-        PreparedStatement stmt = sharedConnection.prepareStatement("insert into BlobTestblobtest2 (id, strm) values (?,?)");
-        byte[] theBlob = {1, 2, 3, 4, 5, 6};
-        InputStream stream = new ByteArrayInputStream(theBlob);
-        stmt.setInt(1, 1);
-        stmt.setBlob(2, stream, 4);
-        stmt.execute();
-        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from BlobTestblobtest2");
-        rs.next();
-        InputStream readStuff = rs.getBlob("strm").getBinaryStream();
-        int ch;
-        int pos = 0;
-        while ((ch = readStuff.read()) != -1) {
-            assertEquals(theBlob[pos++], ch);
-        }
-    }
 
     @Test
     public void testClobWithLength() throws SQLException, IOException {

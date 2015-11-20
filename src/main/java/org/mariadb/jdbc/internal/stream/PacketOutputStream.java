@@ -131,13 +131,16 @@ public class PacketOutputStream extends OutputStream {
      * @throws IOException if any error occur during data send to server
      */
     public void sendStream(InputStream is, long readLength) throws IOException {
-        byte[] buffer = new byte[(int) readLength];
-        int len;
-        while ((len = is.read(buffer, 0, (int) readLength)) > 0) {
-            write(buffer, 0, len);
-            if (len >= readLength) {
+        byte[] buffer = new byte[8192];
+        long remainingReadLength = readLength;
+        int read;
+        while (remainingReadLength > 0) {
+            read = is.read(buffer, 0, Math.min((int)remainingReadLength, 8192));
+            if (read == -1) {
                 return;
             }
+            write(buffer, 0, read);
+            remainingReadLength -= read;
         }
     }
 
@@ -165,14 +168,18 @@ public class PacketOutputStream extends OutputStream {
      */
     public void sendStream(java.io.Reader reader, long readLength, MariaDbCharset charset) throws IOException {
         char[] buffer = new char[8192];
-        int len;
-        while ((len = reader.read(buffer, 0, (int) readLength)) > 0) {
-            byte[] bytes = new String(buffer, 0, len).getBytes(charset.javaIoCharsetName);
-            write(bytes, 0, bytes.length);
-            if (len >= readLength) {
+        long remainingReadLength = readLength;
+        int read;
+        while (remainingReadLength > 0) {
+            read = reader.read(buffer, 0, Math.min((int)remainingReadLength, 8192));
+            if (read == -1) {
                 return;
             }
+            byte[] bytes = new String(buffer, 0, read).getBytes(charset.javaIoCharsetName);
+            write(bytes, 0, bytes.length);
+            remainingReadLength -= read;
         }
+
     }
 
     /**
