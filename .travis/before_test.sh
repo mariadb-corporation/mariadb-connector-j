@@ -5,21 +5,6 @@ set -e
 
 export MYSQ_GPG_KEY=5072E1F5
 
-#add JCE
-if [ "x$TRAVIS_JDK_VERSION" == "xoraclejdk7" ]
-then
-    sudo add-apt-repository -y ppa:webupd8team/java
-    sudo apt-get -qq update
-    sudo apt-get -qq install oracle-java7-unlimited-jce-policy
-
-else if [ "x$TRAVIS_JDK_VERSION" == "xoraclejdk8" ]
-    then
-        sudo add-apt-repository -y ppa:webupd8team/java
-        sudo apt-get -qq update
-        sudo apt-get -qq install oracle-java8-unlimited-jce-policy
-    fi
-fi
-
 remove_mysql(){
     sudo service mysql stop
     sudo apt-get -qq remove --purge mysql-server mysql-client mysql-common
