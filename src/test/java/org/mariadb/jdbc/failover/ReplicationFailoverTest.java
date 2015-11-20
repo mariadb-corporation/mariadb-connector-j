@@ -52,8 +52,9 @@ public class ReplicationFailoverTest extends BaseReplication {
                 //normal exception
             }
         } finally {
-            assureBlackList(connection);
-            connection.close();
+            if (connection != null) {
+                connection.close();
+            }
         }
     }
 
@@ -106,7 +107,6 @@ public class ReplicationFailoverTest extends BaseReplication {
             }
         } finally {
             if (connection != null) {
-                assureBlackList(connection);
                 connection.close();
             }
         }
@@ -125,7 +125,6 @@ public class ReplicationFailoverTest extends BaseReplication {
             assertTrue(connection.isReadOnly());
         } finally {
             if (connection != null) {
-                assureBlackList(connection);
                 connection.close();
             }
         }
@@ -154,7 +153,6 @@ public class ReplicationFailoverTest extends BaseReplication {
             }
         } finally {
             if (connection != null) {
-                assureBlackList(connection);
                 connection.close();
             }
         }
@@ -197,7 +195,6 @@ public class ReplicationFailoverTest extends BaseReplication {
             }
         } finally {
             if (connection != null) {
-                assureBlackList(connection);
                 connection.close();
             }
         }
@@ -235,7 +232,6 @@ public class ReplicationFailoverTest extends BaseReplication {
             }
         } finally {
             if (connection != null) {
-                assureBlackList(connection);
                 connection.close();
             }
         }
@@ -258,7 +254,6 @@ public class ReplicationFailoverTest extends BaseReplication {
             assertTrue(!connection.isReadOnly());
         } finally {
             if (connection != null) {
-                assureBlackList(connection);
                 connection.close();
             }
         }

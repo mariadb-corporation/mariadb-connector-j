@@ -7,9 +7,7 @@ export MYSQ_GPG_KEY=5072E1F5
 
 remove_mysql(){
     sudo service mysql stop
-    sudo apt-get -qq remove --purge mysql-server mysql-client mysql-common
-    sudo apt-get -qq autoremove
-    sudo apt-get -qq autoclean
+    sudo apt-get -qq autoremove --purge mysql-server mysql-client mysql-common
     sudo rm -rf /etc/mysql||true
     sudo rm -rf /var/lib/mysql||true
 }

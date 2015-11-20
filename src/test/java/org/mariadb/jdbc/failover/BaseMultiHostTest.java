@@ -7,6 +7,7 @@ import org.junit.runner.Description;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.UrlParser;
+import org.mariadb.jdbc.internal.failover.AbstractMastersListener;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.slf4j.Logger;
@@ -104,6 +105,7 @@ public class BaseMultiHostTest {
     @After
     public void afterBaseTest() throws SQLException {
         assureProxy();
+        assureBlackList();
     }
 
     /**
@@ -246,15 +248,9 @@ public class BaseMultiHostTest {
 
     /**
      * Assure that blacklist is reset after each test.
-     * @param connection connection
      */
-    public void assureBlackList(Connection connection) {
-        try {
-            Protocol protocol = getProtocolFromConnection(connection);
-            protocol.getProxy().getListener().getBlacklist().clear();
-        } catch (Throwable e) {
-            //eat exception
-        }
+    public void assureBlackList() {
+        AbstractMastersListener.clearBlacklist();
     }
 
     /**

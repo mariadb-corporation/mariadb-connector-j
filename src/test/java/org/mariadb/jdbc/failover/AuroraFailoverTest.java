@@ -1,6 +1,7 @@
 package org.mariadb.jdbc.failover;
 
 import org.junit.*;
+import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 
 import java.sql.*;
@@ -8,6 +9,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class AuroraFailoverTest extends BaseReplication {
 
@@ -50,8 +52,9 @@ public class AuroraFailoverTest extends BaseReplication {
                 //normal exception
             }
         } finally {
-            assureBlackList(connection);
-            connection.close();
+            if (connection != null) {
+                connection.close();
+            }
         }
     }
 
@@ -73,8 +76,9 @@ public class AuroraFailoverTest extends BaseReplication {
             connection.setReadOnly(false);
             stmt.execute("drop table  if exists auroraReadSlave");
         } finally {
-            assureBlackList(connection);
-            connection.close();
+            if (connection != null) {
+                connection.close();
+            }
         }
     }
 
@@ -98,8 +102,9 @@ public class AuroraFailoverTest extends BaseReplication {
                 //normal exception
             }
         } finally {
-            assureBlackList(connection);
-            connection.close();
+            if (connection != null) {
+                connection.close();
+            }
         }
     }
 
@@ -134,8 +139,9 @@ public class AuroraFailoverTest extends BaseReplication {
                 Thread.sleep(250);
             }
         } finally {
-            assureBlackList(connection);
-            connection.close();
+            if (connection != null) {
+                connection.close();
+            }
         }
     }
 
@@ -157,8 +163,9 @@ public class AuroraFailoverTest extends BaseReplication {
             Assert.assertFalse(slaveServerId == masterServerId);
             Assert.assertTrue(connection.isReadOnly());
         } finally {
-            assureBlackList(connection);
-            connection.close();
+            if (connection != null) {
+                connection.close();
+            }
         }
     }
 
@@ -194,8 +201,9 @@ public class AuroraFailoverTest extends BaseReplication {
                 Assert.fail();
             }
         } finally {
-            assureBlackList(connection);
-            connection.close();
+            if (connection != null) {
+                connection.close();
+            }
         }
     }
 
@@ -217,8 +225,9 @@ public class AuroraFailoverTest extends BaseReplication {
             Assert.assertTrue(!connection.isReadOnly());
             Assert.assertTrue(System.currentTimeMillis() - stopTime < 20 * 1000);
         } finally {
-            assureBlackList(connection);
-            connection.close();
+            if (connection != null) {
+                connection.close();
+            }
         }
     }
 
@@ -265,8 +274,9 @@ public class AuroraFailoverTest extends BaseReplication {
             // the connection should not be closed
             assertTrue(!connection.isClosed());
         } finally {
-            assureBlackList(connection);
-            connection.close();
+            if (connection != null) {
+                connection.close();
+            }
         }
     }
 
@@ -285,6 +295,45 @@ public class AuroraFailoverTest extends BaseReplication {
             Assert.assertTrue("28000".equals(e.getSQLState()));
             Assert.assertTrue(1045 == e.getErrorCode());
         }
+    }
+
+    @Test
+    public void testClearBlacklist() throws Throwable {
+        Connection connection = null;
+        try {
+            getNewConnection(true);
+            connection.setReadOnly(true);
+            int current = getServerId(connection);
+            stopProxy(current);
+            Statement st = connection.createStatement();
+            try {
+                st.execute("SELECT 1 ");
+                fail("must not have been here");
+            } catch (SQLException e) {
+                //normal
+            }
+
+            Protocol protocol = getProtocolFromConnection(connection);
+            Assert.assertTrue(protocol.getProxy().getListener().getBlacklist().size() == 1);
+            assureBlackList();
+            Assert.assertTrue(protocol.getProxy().getListener().getBlacklist().size() == 0);
+        } finally {
+            connection.close();
+        }
+    }
+
+
+    @Test
+    public void testCloseFail() throws Throwable {
+        Connection connection = getNewConnection(true);
+        connection.setReadOnly(true);
+        int current = getServerId(connection);
+        Protocol protocol = getProtocolFromConnection(connection);
+        Assert.assertTrue(protocol.getProxy().getListener().getBlacklist().size() == 0);
+        stopProxy(current);
+        connection.close();
+        //check that after error connection have not been put to blacklist
+        Assert.assertTrue(protocol.getProxy().getListener().getBlacklist().size() == 0);
     }
 
 }

@@ -106,7 +106,9 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
             e.printStackTrace();
             Assert.fail();
         } finally {
-            connection.close();
+            if (connection != null) {
+                connection.close();
+            }
         }
     }
 
@@ -122,8 +124,6 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
             stmt.execute("create table multinode (id int not null primary key auto_increment, test VARCHAR(10))");
             log.trace("testMultiHostWriteOnMaster OK");
         } finally {
-            assureProxy();
-            assureBlackList(connection);
             log.trace("testMultiHostWriteOnMaster done");
             if (connection != null) {
                 connection.close();
@@ -162,7 +162,9 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
                 Thread.sleep(250);
             }
         } finally {
-            connection.close();
+            if (connection != null) {
+                connection.close();
+            }
         }
     }
 
