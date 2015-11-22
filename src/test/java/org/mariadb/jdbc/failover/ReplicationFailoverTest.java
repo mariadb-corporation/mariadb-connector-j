@@ -39,13 +39,15 @@ public class ReplicationFailoverTest extends BaseReplication {
             connection = getNewConnection("&assureReadOnly=true", false);
             connection.setReadOnly(true);
             Statement stmt = connection.createStatement();
+            stmt.execute("drop table  if exists replicationDelete" + jobId);
+            stmt.execute("create table replicationDelete" + jobId + " (id int not null primary key auto_increment, test VARCHAR(10))");
             assertTrue(connection.isReadOnly());
             try {
                 if (!isMariaDbServer(connection) || !requireMinimumVersion(connection, 5, 7)) {
                     //on version >= 5.7 use SESSION READ-ONLY, before no control
                     Assume.assumeTrue(false);
                 }
-                stmt.execute("drop table  if exists multinode4");
+                stmt.execute("drop table  if exists replicationDelete" + jobId);
                 log.error("ERROR - > must not be able to write on slave ");
                 fail();
             } catch (SQLException e) {

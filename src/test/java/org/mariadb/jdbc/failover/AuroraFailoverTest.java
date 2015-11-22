@@ -41,11 +41,13 @@ public class AuroraFailoverTest extends BaseReplication {
         Connection connection = null;
         try {
             connection = getNewConnection(false);
-            connection.setReadOnly(true);
             Statement stmt = connection.createStatement();
+            stmt.execute("drop table  if exists auroraDelete" + jobId);
+            stmt.execute("create table auroraDelete" + jobId + " (id int not null primary key auto_increment, test VARCHAR(10))");
+            connection.setReadOnly(true);
             Assert.assertTrue(connection.isReadOnly());
             try {
-                stmt.execute("drop table if exists multinode4");
+                stmt.execute("drop table if exists auroraDelete" + jobId);
                 log.error("ERROR - > must not be able to write on slave. check if you database is start with --read-only");
                 Assert.fail();
             } catch (SQLException e) {
