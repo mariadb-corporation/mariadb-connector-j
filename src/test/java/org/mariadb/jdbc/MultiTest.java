@@ -259,6 +259,31 @@ public class MultiTest extends BaseTest {
         }
     }
 
+    @Test
+    public void testServerPrepareMeta() throws Throwable {
+        Connection connection = null;
+        try {
+            connection = setConnection("&rewriteBatchedStatements=true");
+            createTable("insertSelectTable1", "tt int");
+            createTable("insertSelectTable2", "tt int");
+
+            PreparedStatement ps = connection.prepareStatement(
+                    "INSERT INTO insertSelectTable1 " +
+                            "SELECT a1.tt FROM insertSelectTable2 a1 " +
+                            "WHERE a1.tt = ? ");
+            ps.setInt(1, 1);
+            ps.addBatch();
+            ps.setInt(1, 2);
+            ps.addBatch();
+            ps.executeBatch();
+
+        } finally {
+            if (connection != null) {
+                connection.close();
+            }
+        }
+    }
+
     private void verifyInsertBehaviorBasedOnRewriteBatchedStatements(Boolean rewriteBatchedStatements,
                                                                      int cycles, int totalInsertCommands) throws SQLException {
         Properties props = new Properties();

@@ -1142,6 +1142,11 @@ public class MariaDbStatement implements Statement {
             return -1;
         }
 
+        // INSERT FROM SELECT Cannot be rewritten.
+        if (sqlUpper.indexOf("SELECT") != -1) {
+            return -1;
+        }
+
         int idx = sqlUpper.indexOf(" VALUE");
         if (idx == -1) {
             idx = sqlUpper.indexOf(")VALUE");
