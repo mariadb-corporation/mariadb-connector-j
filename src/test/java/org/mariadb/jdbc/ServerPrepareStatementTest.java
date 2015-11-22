@@ -35,17 +35,22 @@ public class ServerPrepareStatementTest extends BaseTest {
         createTable("ServerPrepareStatementCacheSize3", "id int not null primary key auto_increment, test boolean");
         createTable("ServerPrepareStatementCacheSize", "id int not null primary key auto_increment, test int");
         createTable("preparetestFactionnal", "time0 TIME(6) default '22:11:00'");
-
         createTable("ServerPrepareStatementCacheSize2", "id int not null primary key auto_increment, test boolean");
         createTable("ServerPrepareStatementCacheSize3", "id int not null primary key auto_increment, test blob");
         createTable("ServerPrepareStatementParameters", "id int, id2 int");
         createTable("ServerPrepareStatementCacheSize4", "id int not null primary key auto_increment, test LONGBLOB",
                 "ROW_FORMAT=COMPRESSED ENGINE=INNODB");
-
         createTable("streamtest2", "id int primary key not null, strm text");
-
+        createTable("testServerPrepareMeta", "id int not null primary key auto_increment, id2 int not null, id3 DEC(4,2), id4 BIGINT UNSIGNED ");
     }
 
+    @Test
+    public void testServerPrepareMeta() throws Throwable {
+        PreparedStatement ps = sharedConnection.prepareStatement(
+                "INSERT INTO testServerPrepareMeta(id2, id3, id4) VALUES (?, ?, ?)");
+        ParameterMetaData meta = ps.getParameterMetaData();
+        assertEquals(3, meta.getParameterCount());
+    }
 
     @Test
     public void serverExecutionTest() throws SQLException {
@@ -531,6 +536,7 @@ public class ServerPrepareStatementTest extends BaseTest {
         rs.next();
         assertEquals(rs.getInt(1), 1);
     }
+
 
     @Test
     public void dataConformityTest2() throws SQLException {
