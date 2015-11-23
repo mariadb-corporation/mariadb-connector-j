@@ -71,9 +71,8 @@ public class TimeParameter extends NotLongDataParameterHolder {
      * @param time time to write
      * @param cal session calendar
      * @param fractionalSeconds must fractional seconds be send.
-     * @param options session options.
      */
-    public TimeParameter(Time time, Calendar cal, boolean fractionalSeconds, Options options) {
+    public TimeParameter(Time time, Calendar cal, boolean fractionalSeconds) {
         this.time = time;
         this.calendar = cal;
         this.fractionalSeconds = fractionalSeconds;

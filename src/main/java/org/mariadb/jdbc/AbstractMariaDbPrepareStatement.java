@@ -375,7 +375,7 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
             setNull(parameterIndex, MariaDbType.TIME);
             return;
         }
-        setParameter(parameterIndex, new TimeParameter(time, cal, useFractionalSeconds(), protocol.getOptions()));
+        setParameter(parameterIndex, new TimeParameter(time, cal, useFractionalSeconds()));
     }
 
 
