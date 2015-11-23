@@ -268,9 +268,9 @@ public class MultiTest extends BaseTest {
             createTable("insertSelectTable2", "tt int");
 
             PreparedStatement ps = connection.prepareStatement(
-                    "INSERT INTO insertSelectTable1 " +
-                            "SELECT a1.tt FROM insertSelectTable2 a1 " +
-                            "WHERE a1.tt = ? ");
+                    "INSERT INTO insertSelectTable1 "
+                            + "SELECT a1.tt FROM insertSelectTable2 a1 "
+                            + "WHERE a1.tt = ? ");
             ps.setInt(1, 1);
             ps.addBatch();
             ps.setInt(1, 2);

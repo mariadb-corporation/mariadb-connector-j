@@ -15,7 +15,9 @@ import static org.junit.Assert.assertEquals;
 public class SslTest extends BaseTest {
     String serverCertificatePath;
 
-
+    /**
+     * Enable Crypto.
+     */
     @BeforeClass
     public static void enableCrypto() {
         try {

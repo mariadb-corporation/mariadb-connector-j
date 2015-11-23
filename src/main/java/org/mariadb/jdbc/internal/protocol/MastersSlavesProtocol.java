@@ -102,6 +102,11 @@ public class MastersSlavesProtocol extends MasterProtocol {
 //                if (log.isDebugEnabled()) log.debug("trying to connect to " + protocol.getHostAddress());
 
                 protocol.connect();
+                if (listener.isExplicitClosed()) {
+                    protocol.close();
+                    return;
+                }
+
                 blacklist.remove(protocol.getHostAddress());
 
                 if (searchFilter.isSearchForMaster() && protocol.isMasterConnection()) {

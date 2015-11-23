@@ -123,34 +123,37 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
      * @throws SQLException if error append during closing those connections.
      */
     public void preClose() throws SQLException {
-        proxy.lock.lock();
-        try {
-            setExplicitClosed(true);
-            //closing first additional thread if running to avoid connection creation before closing
-            if (scheduledPing != null) {
-                scheduledPing.cancel(true);
-            }
-
-            if (scheduledFailover != null) {
-                scheduledFailover.cancel(true);
-                isLooping.set(false);
-            }
-            executorService.shutdownNow();
+        if (!isExplicitClosed()) {
+            proxy.lock.lock();
             try {
-                executorService.awaitTermination(15L, TimeUnit.SECONDS);
-            } catch (InterruptedException e) {
+                setExplicitClosed(true);
 
-            }
+                //closing first additional thread if running to avoid connection creation before closing
+                if (scheduledPing != null) {
+                    scheduledPing.cancel(true);
+                }
 
-            //closing connections
-            if (masterProtocol != null && this.masterProtocol.isConnected()) {
-                this.masterProtocol.close();
+                if (scheduledFailover != null) {
+                    scheduledFailover.cancel(true);
+                    isLooping.set(false);
+                }
+                executorService.shutdownNow();
+                try {
+                    executorService.awaitTermination(15L, TimeUnit.SECONDS);
+                } catch (InterruptedException e) {
+
+                }
+
+                //closing connections
+                if (masterProtocol != null && this.masterProtocol.isConnected()) {
+                    this.masterProtocol.close();
+                }
+                if (secondaryProtocol != null && this.secondaryProtocol.isConnected()) {
+                    this.secondaryProtocol.close();
+                }
+            } finally {
+                proxy.lock.unlock();
             }
-            if (secondaryProtocol != null && this.secondaryProtocol.isConnected()) {
-                this.secondaryProtocol.close();
-            }
-        } finally {
-            proxy.lock.unlock();
         }
     }
 

@@ -151,6 +151,10 @@ public class AuroraProtocol extends MastersSlavesProtocol {
                 loopAddresses.remove(0);
 
                 protocol.connect();
+                if (listener.isExplicitClosed()) {
+                    protocol.close();
+                    return;
+                }
                 blacklist.remove(protocol.getHostAddress());
 
                 if (searchFilter.isSearchForMaster() && protocol.isMasterConnection()) {

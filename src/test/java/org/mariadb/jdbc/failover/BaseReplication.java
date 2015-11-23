@@ -3,12 +3,17 @@ package org.mariadb.jdbc.failover;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Test;
+import org.mariadb.jdbc.HostAddress;
+import org.mariadb.jdbc.internal.protocol.Protocol;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public abstract class BaseReplication extends BaseMultiHostTest {
 
@@ -50,7 +55,6 @@ public abstract class BaseReplication extends BaseMultiHostTest {
             }
         }
     }
-
 
     @Test
     public void failoverDuringSlaveSetReadOnly() throws Throwable {
@@ -263,4 +267,57 @@ public abstract class BaseReplication extends BaseMultiHostTest {
         }
     }
 
+    @Test
+    public void closeWhenInReconnectionLoop() throws Throwable {
+        Connection connection = null;
+        try {
+            connection = getNewConnection(true);
+            connection.setReadOnly(true);
+            int serverId = getServerId(connection);
+            stopProxy(serverId);
+
+            //trigger the failover, so a failover thread is launched
+            Statement stmt = connection.createStatement();
+            stmt.execute("SELECT 1");
+            //launch connection close
+            ExecutorService exec = Executors.newFixedThreadPool(2);
+            exec.execute(new CloseConnection(connection));
+
+            Thread.sleep(3000);
+            exec.shutdown();
+            try {
+                exec.awaitTermination(20, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+                Assert.fail();
+            }
+        } finally {
+            if (connection != null) {
+                if (connection != null) {
+                    connection.close();
+                }
+            }
+        }
+
+    }
+
+    protected class CloseConnection implements Runnable {
+        Connection connection;
+
+        public CloseConnection(Connection connection) {
+            this.connection = connection;
+        }
+
+        public void run() {
+            try {
+                long start = System.currentTimeMillis();
+                Thread.sleep(2400); // wait that slave reconnection loop is launched
+                connection.close();
+                log.trace("close take " + (System.currentTimeMillis() - start) + "ms");
+            } catch (Throwable e) {
+                e.printStackTrace();
+                Assert.fail();
+            }
+        }
+    }
 }
