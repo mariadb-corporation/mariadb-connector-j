@@ -251,7 +251,6 @@ public class DateTest extends BaseTest {
         cal.set(Calendar.MINUTE, 0);
         cal.set(Calendar.SECOND, 0);
         cal.set(Calendar.MILLISECOND, 0);
-        Date dateWithoutTime = new Date(cal.getTimeInMillis());
 
         Calendar cal2 = Calendar.getInstance();
         cal2.set(Calendar.YEAR, 1970);
@@ -266,7 +265,6 @@ public class DateTest extends BaseTest {
         cal3.set(Calendar.YEAR, 1970);
         cal3.set(Calendar.MONTH, 0);
         cal3.set(Calendar.DAY_OF_YEAR, 1);
-        Time zeroTime = new Time(cal3.getTimeInMillis());
 
 
         Timestamp currentTimeStamp = new Timestamp(System.currentTimeMillis());
@@ -276,6 +274,9 @@ public class DateTest extends BaseTest {
         preparedStatement1.setDate(3, new Date(currentTimeStamp.getTime()));
         preparedStatement1.addBatch();
         preparedStatement1.execute();
+
+        Date dateWithoutTime = new Date(cal.getTimeInMillis());
+        Time zeroTime = new Time(cal3.getTimeInMillis());
 
         ResultSet rs = sharedConnection.createStatement().executeQuery("select * from timestampAsDate");
         checkResult(rs, currentTimeStamp, cal, dateWithoutTime, zeroTime);
