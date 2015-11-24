@@ -911,7 +911,8 @@ public class MariaDbStatement implements Statement {
             }
             warningsCleared = false;
             connection.reenableWarnings();
-            return true;
+
+            return queryResult.getResultSetType() == ResultSetType.SELECT;
         } catch (QueryException e) {
             ExceptionMapper.throwException(e, connection, this);
             return false;
@@ -948,7 +949,7 @@ public class MariaDbStatement implements Statement {
                 batchResultSet = ((MariaDbResultSet) batchResultSet).joinResultSets((MariaDbResultSet) getInternalGeneratedKeys());
             }
 
-            return true;
+            return queryResult.getResultSetType() == ResultSetType.SELECT;
         }
         return getInternalMoreResults(false);
     }
