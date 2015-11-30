@@ -12,6 +12,7 @@ import java.util.TimeZone;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class DateTest extends BaseTest {
     /**
@@ -244,20 +245,17 @@ public class DateTest extends BaseTest {
 
     @Test
     public void timestampAsDate() throws SQLException {
-        Time currentTime = new Time(15,15,15);
 
         Calendar cal = Calendar.getInstance();
         cal.set(Calendar.HOUR_OF_DAY, 0);
         cal.set(Calendar.MINUTE, 0);
         cal.set(Calendar.SECOND, 0);
         cal.set(Calendar.MILLISECOND, 0);
-        Date dateWithoutTime = new Date(cal.getTimeInMillis());
 
         Calendar cal2 = Calendar.getInstance();
         cal2.set(Calendar.YEAR, 1970);
         cal2.set(Calendar.MONTH, 0);
         cal2.set(Calendar.DAY_OF_YEAR, 1);
-        Time timeWithoutDate = new Time(cal2.getTimeInMillis());
 
         Calendar cal3 = Calendar.getInstance();
         cal3.set(Calendar.HOUR_OF_DAY, 0);
@@ -267,7 +265,6 @@ public class DateTest extends BaseTest {
         cal3.set(Calendar.YEAR, 1970);
         cal3.set(Calendar.MONTH, 0);
         cal3.set(Calendar.DAY_OF_YEAR, 1);
-        Time zeroTime = new Time(cal3.getTimeInMillis());
 
 
         Timestamp currentTimeStamp = new Timestamp(System.currentTimeMillis());
@@ -278,42 +275,37 @@ public class DateTest extends BaseTest {
         preparedStatement1.addBatch();
         preparedStatement1.execute();
 
-        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from timestampAsDate");
-        while (rs.next()) {
-            Assert.assertEquals(rs.getTimestamp(1), currentTimeStamp);
-            Assert.assertEquals(rs.getTimestamp(2), currentTimeStamp);
-            Assert.assertEquals(rs.getTimestamp(3), new Timestamp(cal.getTimeInMillis()));
-            Assert.assertEquals(rs.getDate(1), new Date(currentTimeStamp.getTime()));
-            Assert.assertEquals(rs.getDate(2), new Date(currentTimeStamp.getTime()));
-            Assert.assertEquals(rs.getDate(3), dateWithoutTime);
-            Assert.assertEquals(rs.getTime(1), new Time(currentTimeStamp.getTime()));
-            Assert.assertEquals(rs.getTime(2), new Time(currentTimeStamp.getTime()));
-            Assert.assertEquals(rs.getTime(3), zeroTime);
-        }
+        Date dateWithoutTime = new Date(cal.getTimeInMillis());
+        Time zeroTime = new Time(cal3.getTimeInMillis());
 
-        rs.close();
+        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from timestampAsDate");
+        checkResult(rs, currentTimeStamp, cal, dateWithoutTime, zeroTime);
+
         PreparedStatement pstmt = sharedConnection.prepareStatement("select * from timestampAsDate where 1 = ?");
         pstmt.setInt(1,1);
         pstmt.addBatch();
         rs = pstmt.executeQuery();
-        while (rs.next()) {
+        checkResult(rs, currentTimeStamp, cal, dateWithoutTime, zeroTime);
+    }
+
+    private void checkResult(ResultSet rs, Timestamp currentTimeStamp, Calendar cal, Date dateWithoutTime, Time zeroTime) throws SQLException {
+        if (rs.next()) {
             Assert.assertEquals(rs.getTimestamp(1), currentTimeStamp);
             Assert.assertEquals(rs.getTimestamp(2), currentTimeStamp);
             Assert.assertEquals(rs.getTimestamp(3), new Timestamp(cal.getTimeInMillis()));
-            Date dd = rs.getDate(1);
-            Date dd2 = new Date(currentTimeStamp.getTime());
-            long diff = dd.getTime() - dd2.getTime();
+
             Assert.assertEquals(rs.getDate(1), new Date(currentTimeStamp.getTime()));
             Assert.assertEquals(rs.getDate(2), new Date(currentTimeStamp.getTime()));
             Assert.assertEquals(rs.getDate(3), dateWithoutTime);
             Assert.assertEquals(rs.getTime(1), new Time(currentTimeStamp.getTime()));
             Assert.assertEquals(rs.getTime(2), new Time(currentTimeStamp.getTime()));
             Assert.assertEquals(rs.getTime(3), zeroTime);
+        } else {
+            fail("Must have a result");
         }
         rs.close();
 
     }
-
 
 
     @Test

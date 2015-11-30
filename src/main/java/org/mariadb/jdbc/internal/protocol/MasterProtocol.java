@@ -118,6 +118,10 @@ public class MasterProtocol extends AbstractQueryProtocol {
                 loopAddresses.remove(0);
 
                 protocol.connect();
+                if (listener.isExplicitClosed()) {
+                    protocol.close();
+                    return;
+                }
                 blacklist.remove(protocol.getHostAddress());
                 listener.foundActiveMaster(protocol);
                 return;

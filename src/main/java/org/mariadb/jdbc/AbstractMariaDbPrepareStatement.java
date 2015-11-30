@@ -277,7 +277,7 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      */
     public void setClob(final int parameterIndex, final Reader reader, final long length) throws SQLException {
-        setClob(parameterIndex, reader);
+        setCharacterStream(parameterIndex, reader, length);
     }
 
     /**
@@ -375,7 +375,7 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
             setNull(parameterIndex, MariaDbType.TIME);
             return;
         }
-        setParameter(parameterIndex, new TimeParameter(time, cal, useFractionalSeconds(), protocol.getOptions()));
+        setParameter(parameterIndex, new TimeParameter(time, cal, useFractionalSeconds()));
     }
 
 
@@ -782,14 +782,14 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
                         setInt(parameterIndex, Integer.parseInt(str));
                         break;
                     case Types.DOUBLE:
+                    case Types.FLOAT:
                         setDouble(parameterIndex, Double.valueOf(str));
                         break;
                     case Types.REAL:
-                    case Types.FLOAT:
                         setFloat(parameterIndex, Float.valueOf(str));
                         break;
                     case Types.BIGINT:
-                        setBigInt(parameterIndex, new BigInteger(str));
+                        setLong(parameterIndex, Long.valueOf(str));
                         break;
                     case Types.DECIMAL:
                     case Types.NUMERIC:
@@ -830,13 +830,13 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
                     setInt(parameterIndex, bd.intValue());
                     break;
                 case Types.BIGINT:
-                    setBigInt(parameterIndex, (BigInteger) bd);
+                    setLong(parameterIndex, bd.longValue());
                     break;
+                case Types.FLOAT:
                 case Types.DOUBLE:
                     setDouble(parameterIndex, bd.doubleValue());
                     break;
                 case Types.REAL:
-                case Types.FLOAT:
                     setFloat(parameterIndex, bd.floatValue());
                     break;
                 case Types.DECIMAL:
@@ -886,7 +886,7 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
         } else if (obj instanceof Blob) {
             setBlob(parameterIndex, (Blob) obj);
         } else if (obj instanceof BigInteger) {
-            setBigInt(parameterIndex, (BigInteger) obj);
+            setString(parameterIndex, obj.toString());
         } else {
             throw ExceptionMapper.getSqlException("Could not set parameter in setObject, could not convert: " + obj.getClass() + " to "
                     + targetSqlType);
@@ -961,7 +961,7 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
         } else if (obj instanceof BigDecimal) {
             setBigDecimal(parameterIndex, (BigDecimal) obj);
         } else if (obj instanceof BigInteger) {
-            setBigInt(parameterIndex, (BigInteger) obj);
+            setString(parameterIndex, obj.toString());
         } else if (obj instanceof Clob) {
             setClob(parameterIndex, (Clob) obj);
         } else {
@@ -1329,15 +1329,6 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
         }
 
         setParameter(parameterIndex, new BigDecimalParameter(bigDecimal));
-    }
-
-
-    private void setBigInt(final int parameterIndex, final BigInteger bigInteger) throws SQLException {
-        if (bigInteger == null) {
-            setNull(parameterIndex, MariaDbType.VARSTRING);
-            return;
-        }
-        setParameter(parameterIndex, new BigIntParameter(bigInteger));
     }
 
 }

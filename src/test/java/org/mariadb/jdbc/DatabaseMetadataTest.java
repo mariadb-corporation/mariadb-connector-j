@@ -501,6 +501,7 @@ public class DatabaseMetadataTest extends BaseTest {
     @Test
     public void getColumnsBasic() throws SQLException {
         cancelForVersion(10, 1, 8); //due to server error MDEV-8984
+        cancelForVersion(10, 1, 9);
 
         testResultSetColumns(sharedConnection.getMetaData().getColumns(null, null, null, null),
                 "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,COLUMN_NAME String,"

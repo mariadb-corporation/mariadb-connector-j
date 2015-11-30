@@ -50,7 +50,6 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.util.constant.ColumnFlags;
 import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
 import org.mariadb.jdbc.internal.MariaDbType;
 
@@ -61,67 +60,66 @@ import java.sql.SQLException;
  * Very basic info about the parameterized query, only reliable method is getParameterCount().
  */
 public class MariaDbParameterMetaData implements ParameterMetaData {
-    private final ColumnInformation[] columnInformations;
+    private final ColumnInformation[] parametersInformation;
 
-    public MariaDbParameterMetaData(ColumnInformation[] columnInformations) {
-        this.columnInformations = columnInformations;
+    public MariaDbParameterMetaData(ColumnInformation[] parametersInformation) {
+        this.parametersInformation = parametersInformation;
     }
 
     @Override
     public int getParameterCount() throws SQLException {
-        return columnInformations.length;
+        return parametersInformation.length;
     }
 
-    private ColumnInformation getColumnInformation(int column) throws SQLException {
-        if (column >= 1 && column <= columnInformations.length) {
-            return columnInformations[column - 1];
+    private ColumnInformation getParameterInformation(int param) throws SQLException {
+        if (param >= 1 && param <= parametersInformation.length) {
+            return parametersInformation[param - 1];
         }
-        throw new SQLException("Parameter metadata out of range : param was " + column + " and must be 1 <= param <=" + columnInformations.length,
+        throw new SQLException("Parameter metadata out of range : param was " + param + " and must be 1 <= param <=" + parametersInformation.length,
                 "22003");
     }
 
     @Override
     public int isNullable(final int param) throws SQLException {
-        if ((getColumnInformation(param).getFlags() & ColumnFlags.NOT_NULL) == 0) {
-            return ParameterMetaData.parameterNullable;
-        } else {
+        if (getParameterInformation(param).isNotNull()) {
             return ParameterMetaData.parameterNoNulls;
+        } else {
+            return ParameterMetaData.parameterNullable;
         }
     }
 
     @Override
     public boolean isSigned(int param) throws SQLException {
-        return getColumnInformation(param).isSigned();
+        return getParameterInformation(param).isSigned();
     }
 
     @Override
     public int getPrecision(int param) throws SQLException {
-        //TODO check real length (with numeric)
-        long length = getColumnInformation(param).getLength();
+        long length = getParameterInformation(param).getLength();
         return (length > Integer.MAX_VALUE) ? Integer.MAX_VALUE : (int) length;
     }
 
     @Override
     public int getScale(int param) throws SQLException {
-        if (MariaDbType.isNumeric(getColumnInformation(param).getType())) {
-            return getColumnInformation(param).getDecimals();
+        if (MariaDbType.isNumeric(getParameterInformation(param).getType())) {
+            return getParameterInformation(param).getDecimals();
         }
         return 0;
     }
 
     @Override
     public int getParameterType(int param) throws SQLException {
-        return getColumnInformation(param).getType().getSqlType();
+        return getParameterInformation(param).getType().getSqlType();
     }
 
     @Override
     public String getParameterTypeName(int param) throws SQLException {
-        return getColumnInformation(param).getType().getTypeName();
+        return getParameterInformation(param).getType().getTypeName();
     }
 
     @Override
     public String getParameterClassName(int param) throws SQLException {
-        return getColumnInformation(param).getType().getClassName();
+        return getParameterInformation(param).getType().getClassName();
     }
 
     @Override

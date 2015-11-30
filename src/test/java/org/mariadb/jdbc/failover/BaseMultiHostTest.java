@@ -7,6 +7,7 @@ import org.junit.runner.Description;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.UrlParser;
+import org.mariadb.jdbc.internal.failover.AbstractMastersListener;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.slf4j.Logger;
@@ -43,6 +44,7 @@ public class BaseMultiHostTest {
     protected static String proxyReplicationUrl;
     protected static String proxyLoadbalanceUrl;
     protected static String proxyUrl;
+    protected static String jobId;
 
     protected static String username;
     private static String hostname;
@@ -75,6 +77,7 @@ public class BaseMultiHostTest {
         initialReplicationUrl = System.getProperty("defaultReplicationUrl");
         initialLoadbalanceUrl = System.getProperty("defaultLoadbalanceUrl");
         initialAuroraUrl = System.getProperty("defaultAuroraUrl");
+        jobId = System.getProperty("jobId", "_0");
 
         if (initialUrl != null) {
             proxyUrl = createProxies(initialUrl, HaMode.NONE);
@@ -104,6 +107,7 @@ public class BaseMultiHostTest {
     @After
     public void afterBaseTest() throws SQLException {
         assureProxy();
+        assureBlackList();
     }
 
     /**
@@ -246,15 +250,9 @@ public class BaseMultiHostTest {
 
     /**
      * Assure that blacklist is reset after each test.
-     * @param connection connection
      */
-    public void assureBlackList(Connection connection) {
-        try {
-            Protocol protocol = getProtocolFromConnection(connection);
-            protocol.getProxy().getListener().getBlacklist().clear();
-        } catch (Throwable e) {
-            //eat exception
-        }
+    public void assureBlackList() {
+        AbstractMastersListener.clearBlacklist();
     }
 
     /**
@@ -311,7 +309,7 @@ public class BaseMultiHostTest {
         return protocol.inTransaction();
     }
 
-    boolean isMariadbServer(Connection connection) throws SQLException {
+    boolean isMariaDbServer(Connection connection) throws SQLException {
         DatabaseMetaData md = connection.getMetaData();
         return md.getDatabaseProductVersion().indexOf("MariaDB") != -1;
     }

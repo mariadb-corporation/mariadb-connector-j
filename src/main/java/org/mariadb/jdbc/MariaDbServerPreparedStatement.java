@@ -107,7 +107,7 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
             returnTableAlias = protocol.getOptions().useOldAliasMetadataBehavior;
             metadata = new MariaDbResultSetMetaData(prepareResult.columns,
                     protocol.getDataTypeMappingFlags(), returnTableAlias);
-            parameterMetaData = new MariaDbParameterMetaData(prepareResult.columns);
+            parameterMetaData = new MariaDbParameterMetaData(prepareResult.parameters);
         } catch (QueryException e) {
             try {
                 this.close();

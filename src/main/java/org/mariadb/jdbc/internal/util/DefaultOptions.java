@@ -413,7 +413,15 @@ public enum DefaultOptions {
         return parse(haMode, urlParameters, properties, null);
     }
 
-    private static Options parse(HaMode haMode, String urlParameters, Properties properties, Options options) {
+    /**
+     * Parse additional properties .
+     * @param haMode current haMode.
+     * @param urlParameters options defined in url
+     * @param properties options defined by properties
+     * @param options initial options
+     * @return options
+     */
+    public static Options parse(HaMode haMode, String urlParameters, Properties properties, Options options) {
         if (!"".equals(urlParameters)) {
             String[] parameters = urlParameters.split("&");
             for (String parameter : parameters) {
@@ -439,20 +447,20 @@ public enum DefaultOptions {
         try {
             for (DefaultOptions o : DefaultOptions.values()) {
 
-                String propertieValue = properties.getProperty(o.name);
-                if (propertieValue == null) {
+                String propertyValue = properties.getProperty(o.name);
+                if (propertyValue == null) {
                     if (o.name.equals("createDatabaseIfNotExist")) {
-                        propertieValue = properties.getProperty("createDB");
+                        propertyValue = properties.getProperty("createDB");
                     } else if (o.name.equals("useSsl")) {
-                        propertieValue = properties.getProperty("useSSL");
+                        propertyValue = properties.getProperty("useSSL");
                     }
                 }
 
-                if (propertieValue != null) {
+                if (propertyValue != null) {
                     if (o.objType.equals(String.class)) {
-                        Options.class.getField(o.name).set(options, propertieValue);
+                        Options.class.getField(o.name).set(options, propertyValue);
                     } else if (o.objType.equals(Boolean.class)) {
-                        String value = propertieValue.toLowerCase();
+                        String value = propertyValue.toLowerCase();
                         if ("1".equals(value)) {
                             value = "true";
                         } else if ("0".equals(value)) {
@@ -460,20 +468,20 @@ public enum DefaultOptions {
                         }
                         if (!"true".equals(value) && !"false".equals(value)) {
                             throw new IllegalArgumentException("Optional parameter " + o.name + " must be boolean (true/false or 0/1) was \""
-                                    + propertieValue + "\"");
+                                    + propertyValue + "\"");
                         }
                         Options.class.getField(o.name).set(options, Boolean.valueOf(value));
                     } else if (o.objType.equals(Integer.class)) {
                         try {
-                            Integer value = Integer.parseInt(propertieValue);
+                            Integer value = Integer.parseInt(propertyValue);
                             if (value.compareTo((Integer) o.minValue) < 0 || value.compareTo((Integer) o.maxValue) > 0) {
                                 throw new IllegalArgumentException("Optional parameter " + o.name + " must be greater or equal to " + o.minValue
                                         + ((((Integer) o.maxValue).intValue() != Integer.MAX_VALUE) ? " and smaller than " + o.maxValue : " ")
-                                        + ", was \"" + propertieValue + "\"");
+                                        + ", was \"" + propertyValue + "\"");
                             }
                             Options.class.getField(o.name).set(options, value);
                         } catch (NumberFormatException n) {
-                            throw new IllegalArgumentException("Optional parameter " + o.name + " must be Integer, was \"" + propertieValue + "\"");
+                            throw new IllegalArgumentException("Optional parameter " + o.name + " must be Integer, was \"" + propertyValue + "\"");
                         }
                     }
                 } else {

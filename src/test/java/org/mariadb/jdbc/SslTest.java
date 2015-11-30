@@ -1,9 +1,6 @@
 package org.mariadb.jdbc;
 
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
 
 import java.io.*;
 import java.security.KeyStore;
@@ -12,6 +9,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
+import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -26,6 +24,20 @@ public class SslTest extends BaseTest {
     String serverCertificatePath;
     String clientKeystorePath;
     String clientKeystorePassword;
+
+    /**
+     * Enable Crypto.
+     */
+    @BeforeClass
+    public static void enableCrypto() {
+        try {
+            Field field = Class.forName("javax.crypto.JceSecurity").getDeclaredField("isRestricted");
+            field.setAccessible(true);
+            field.set(null, java.lang.Boolean.FALSE);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    }
 
     /**
      * Check requirement.

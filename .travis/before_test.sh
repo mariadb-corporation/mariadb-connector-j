@@ -5,26 +5,9 @@ set -e
 
 export MYSQ_GPG_KEY=5072E1F5
 
-#add JCE
-if [ "x$TRAVIS_JDK_VERSION" == "xoraclejdk7" ]
-then
-    sudo add-apt-repository -y ppa:webupd8team/java
-    sudo apt-get -qq update
-    sudo apt-get -qq install oracle-java7-unlimited-jce-policy
-
-else if [ "x$TRAVIS_JDK_VERSION" == "xoraclejdk8" ]
-    then
-        sudo add-apt-repository -y ppa:webupd8team/java
-        sudo apt-get -qq update
-        sudo apt-get -qq install oracle-java8-unlimited-jce-policy
-    fi
-fi
-
 remove_mysql(){
     sudo service mysql stop
-    sudo apt-get -qq remove --purge mysql-server mysql-client mysql-common
-    sudo apt-get -qq autoremove
-    sudo apt-get -qq autoclean
+    sudo apt-get -qq autoremove --purge mysql-server mysql-client mysql-common
     sudo rm -rf /etc/mysql||true
     sudo rm -rf /var/lib/mysql||true
 }
@@ -81,6 +64,11 @@ sudo mysql -u root -e "SET GLOBAL innodb_fast_shutdown = 1"
 sudo mysql -u root -e "update mysql.user set plugin = 'mysql_native_password' where User = 'root' and Host = 'localhost'"
 
 sudo service mysql stop
+#Adding sleep time for clean shutdown
+if [ "x$MYSQL_VERSION" != "x" ]
+then
+    sleep 2
+fi
 sudo rm -f /var/lib/mysql/ib_logfile*
 sudo service mysql start
 

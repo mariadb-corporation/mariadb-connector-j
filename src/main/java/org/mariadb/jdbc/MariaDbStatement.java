@@ -911,7 +911,8 @@ public class MariaDbStatement implements Statement {
             }
             warningsCleared = false;
             connection.reenableWarnings();
-            return true;
+
+            return queryResult.getResultSetType() == ResultSetType.SELECT;
         } catch (QueryException e) {
             ExceptionMapper.throwException(e, connection, this);
             return false;
@@ -948,7 +949,7 @@ public class MariaDbStatement implements Statement {
                 batchResultSet = ((MariaDbResultSet) batchResultSet).joinResultSets((MariaDbResultSet) getInternalGeneratedKeys());
             }
 
-            return true;
+            return queryResult.getResultSetType() == ResultSetType.SELECT;
         }
         return getInternalMoreResults(false);
     }
@@ -1139,6 +1140,11 @@ public class MariaDbStatement implements Statement {
     protected int getInsertIncipit(String sql) {
         String sqlUpper = sql.toUpperCase();
         if (!sqlUpper.startsWith("INSERT") && !sqlUpper.startsWith("/*CLIENT*/ INSERT")) {
+            return -1;
+        }
+
+        // INSERT FROM SELECT Cannot be rewritten.
+        if (sqlUpper.indexOf("SELECT") != -1) {
             return -1;
         }
 

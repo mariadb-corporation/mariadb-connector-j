@@ -55,7 +55,9 @@ public class MonoServerFailoverTest extends BaseMultiHostTest {
                 Assert.fail();
             }
         } finally {
-            connection.close();
+            if (connection != null) {
+                connection.close();
+            }
         }
 
     }
@@ -85,7 +87,9 @@ public class MonoServerFailoverTest extends BaseMultiHostTest {
             }
             Assert.assertTrue(connection.isClosed());
         } finally {
-            connection.close();
+            if (connection != null) {
+                connection.close();
+            }
         }
     }
 
@@ -116,7 +120,9 @@ public class MonoServerFailoverTest extends BaseMultiHostTest {
             }
             Assert.assertFalse(connection.isClosed());
         } finally {
-            connection.close();
+            if (connection != null) {
+                connection.close();
+            }
         }
 
     }
@@ -144,7 +150,9 @@ public class MonoServerFailoverTest extends BaseMultiHostTest {
             assertFalse(isValid);
         } finally {
             killerConnection.close();
-            connection.close();
+            if (connection != null) {
+                connection.close();
+            }
         }
     }
 
@@ -179,7 +187,9 @@ public class MonoServerFailoverTest extends BaseMultiHostTest {
                 Assert.fail();
             }
         } finally {
-            connection.close();
+            if (connection != null) {
+                connection.close();
+            }
         }
     }
 

@@ -1,6 +1,7 @@
 package org.mariadb.jdbc.failover;
 
 import org.junit.*;
+import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 
 import java.sql.*;
@@ -8,6 +9,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class AuroraFailoverTest extends BaseReplication {
 
@@ -39,18 +41,22 @@ public class AuroraFailoverTest extends BaseReplication {
         Connection connection = null;
         try {
             connection = getNewConnection(false);
-            connection.setReadOnly(true);
             Statement stmt = connection.createStatement();
+            stmt.execute("drop table  if exists auroraDelete" + jobId);
+            stmt.execute("create table auroraDelete" + jobId + " (id int not null primary key auto_increment, test VARCHAR(10))");
+            connection.setReadOnly(true);
             Assert.assertTrue(connection.isReadOnly());
             try {
-                stmt.execute("drop table if exists multinode4");
+                stmt.execute("drop table if exists auroraDelete" + jobId);
                 log.error("ERROR - > must not be able to write on slave. check if you database is start with --read-only");
                 Assert.fail();
             } catch (SQLException e) {
                 //normal exception
             }
         } finally {
-            connection.close();
+            if (connection != null) {
+                connection.close();
+            }
         }
     }
 
@@ -60,19 +66,21 @@ public class AuroraFailoverTest extends BaseReplication {
         try {
             connection = getNewConnection(false);
             Statement stmt = connection.createStatement();
-            stmt.execute("drop table  if exists auroraReadSlave");
-            stmt.execute("create table auroraReadSlave (id int not null primary key auto_increment, test VARCHAR(10))");
+            stmt.execute("drop table  if exists auroraReadSlave" + jobId);
+            stmt.execute("create table auroraReadSlave" + jobId + " (id int not null primary key auto_increment, test VARCHAR(10))");
 
             //wait to be sure slave have replicate data
             Thread.sleep(200);
 
             connection.setReadOnly(true);
-            ResultSet rs = stmt.executeQuery("Select count(*) from auroraReadSlave");
+            ResultSet rs = stmt.executeQuery("Select count(*) from auroraReadSlave" + jobId);
             Assert.assertTrue(rs.next());
             connection.setReadOnly(false);
-            stmt.execute("drop table  if exists auroraReadSlave");
+            stmt.execute("drop table  if exists auroraReadSlave" + jobId);
         } finally {
-            connection.close();
+            if (connection != null) {
+                connection.close();
+            }
         }
     }
 
@@ -96,7 +104,9 @@ public class AuroraFailoverTest extends BaseReplication {
                 //normal exception
             }
         } finally {
-            connection.close();
+            if (connection != null) {
+                connection.close();
+            }
         }
     }
 
@@ -131,7 +141,9 @@ public class AuroraFailoverTest extends BaseReplication {
                 Thread.sleep(250);
             }
         } finally {
-            connection.close();
+            if (connection != null) {
+                connection.close();
+            }
         }
     }
 
@@ -153,38 +165,11 @@ public class AuroraFailoverTest extends BaseReplication {
             Assert.assertFalse(slaveServerId == masterServerId);
             Assert.assertTrue(connection.isReadOnly());
         } finally {
-            connection.close();
-        }
-    }
-
-
-    @Test
-    public void reconnectMasterAfterFailover() throws Throwable {
-        Connection connection = null;
-        try {
-            connection = getNewConnection("&retriesAllDown=1", true);
-            //if super user can write on slave
-            Assume.assumeTrue(!hasSuperPrivilege(connection, "reconnectMasterAfterFailover"));
-            Statement st = connection.createStatement();
-            st.execute("drop table  if exists multinode2");
-            st.execute("create table multinode2 (id int not null primary key , amount int not null) ENGINE = InnoDB");
-            st.execute("insert into multinode2 (id, amount) VALUE (1 , 100)");
-
-            int masterServerId = getServerId(connection);
-            long stopTime = System.currentTimeMillis();
-            stopProxy(masterServerId, 10000);
-            try {
-                st.execute("insert into multinode2 (id, amount) VALUE (2 , 100)");
-                Assert.assertTrue(System.currentTimeMillis() - stopTime > 10);
-                Assert.assertTrue(System.currentTimeMillis() - stopTime < 20);
-            } catch (SQLException e) {
-                //eat exception
+            if (connection != null) {
+                connection.close();
             }
-        } finally {
-            connection.close();
         }
     }
-
 
     @Test
     public void failoverMasterWithAutoConnectAndTransaction() throws Throwable {
@@ -194,17 +179,17 @@ public class AuroraFailoverTest extends BaseReplication {
             Statement st = connection.createStatement();
 
             final int masterServerId = getServerId(connection);
-            st.execute("drop table  if exists multinodeTransaction");
-            st.execute("create table multinodeTransaction (id int not null primary key , amount int not null) "
+            st.execute("drop table  if exists multinodeTransaction" + jobId);
+            st.execute("create table multinodeTransaction" + jobId + " (id int not null primary key , amount int not null) "
                     + "ENGINE = InnoDB");
             connection.setAutoCommit(false);
-            st.execute("insert into multinodeTransaction (id, amount) VALUE (1 , 100)");
+            st.execute("insert into multinodeTransaction" + jobId + " (id, amount) VALUE (1 , 100)");
             stopProxy(masterServerId);
             Assert.assertTrue(inTransaction(connection));
             try {
                 // will to execute the query. if there is a connection error, try a ping, if ok, good, query relaunched.
                 // If not good, transaction is considered be lost
-                st.execute("insert into multinodeTransaction (id, amount) VALUE (2 , 10)");
+                st.execute("insert into multinodeTransaction" + jobId + " (id, amount) VALUE (2 , 10)");
                 Assert.fail();
             } catch (SQLException e) {
                 log.trace("normal error : " + e.getMessage());
@@ -212,13 +197,15 @@ public class AuroraFailoverTest extends BaseReplication {
             restartProxy(masterServerId);
             try {
                 st = connection.createStatement();
-                st.execute("insert into multinodeTransaction (id, amount) VALUE (2 , 10)");
+                st.execute("insert into multinodeTransaction" + jobId + " (id, amount) VALUE (2 , 10)");
             } catch (SQLException e) {
                 e.printStackTrace();
                 Assert.fail();
             }
         } finally {
-            connection.close();
+            if (connection != null) {
+                connection.close();
+            }
         }
     }
 
@@ -240,7 +227,9 @@ public class AuroraFailoverTest extends BaseReplication {
             Assert.assertTrue(!connection.isReadOnly());
             Assert.assertTrue(System.currentTimeMillis() - stopTime < 20 * 1000);
         } finally {
-            connection.close();
+            if (connection != null) {
+                connection.close();
+            }
         }
     }
 
@@ -287,7 +276,9 @@ public class AuroraFailoverTest extends BaseReplication {
             // the connection should not be closed
             assertTrue(!connection.isClosed());
         } finally {
-            connection.close();
+            if (connection != null) {
+                connection.close();
+            }
         }
     }
 
@@ -306,6 +297,47 @@ public class AuroraFailoverTest extends BaseReplication {
             Assert.assertTrue("28000".equals(e.getSQLState()));
             Assert.assertTrue(1045 == e.getErrorCode());
         }
+    }
+
+    @Test
+    public void testClearBlacklist() throws Throwable {
+        Connection connection = null;
+        try {
+            connection = getNewConnection(true);
+            connection.setReadOnly(true);
+            int current = getServerId(connection);
+            stopProxy(current);
+            Statement st = connection.createStatement();
+            try {
+                st.execute("SELECT 1 ");
+                //switch connection to master -> slave blacklisted
+            } catch (SQLException e) {
+                fail("must not have been here");
+            }
+
+            Protocol protocol = getProtocolFromConnection(connection);
+            Assert.assertTrue(protocol.getProxy().getListener().getBlacklist().size() == 1);
+            assureBlackList();
+            Assert.assertTrue(protocol.getProxy().getListener().getBlacklist().size() == 0);
+        } finally {
+            if (connection != null) {
+                connection.close();
+            }
+        }
+    }
+
+
+    @Test
+    public void testCloseFail() throws Throwable {
+        Connection connection = getNewConnection(true);
+        connection.setReadOnly(true);
+        int current = getServerId(connection);
+        Protocol protocol = getProtocolFromConnection(connection);
+        Assert.assertTrue(protocol.getProxy().getListener().getBlacklist().size() == 0);
+        stopProxy(current);
+        connection.close();
+        //check that after error connection have not been put to blacklist
+        Assert.assertTrue(protocol.getProxy().getListener().getBlacklist().size() == 0);
     }
 
 }

@@ -42,7 +42,9 @@ public class LoadBalanceFailoverTest extends BaseMultiHostTest {
             stopProxy(master1ServerId);
             connection.createStatement().execute("SELECT 1");
         } finally {
-            connection.close();
+            if (connection != null) {
+                connection.close();
+            }
         }
     }
 
@@ -84,7 +86,9 @@ public class LoadBalanceFailoverTest extends BaseMultiHostTest {
             stmt.execute("drop table  if exists multinode");
             stmt.execute("create table multinode (id int not null primary key auto_increment, test VARCHAR(10))");
         } finally {
-            connection.close();
+            if (connection != null) {
+                connection.close();
+            }
         }
     }
 

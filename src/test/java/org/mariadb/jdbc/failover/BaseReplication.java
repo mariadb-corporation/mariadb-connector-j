@@ -3,14 +3,19 @@ package org.mariadb.jdbc.failover;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Test;
+import org.mariadb.jdbc.HostAddress;
+import org.mariadb.jdbc.internal.protocol.Protocol;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
-public class BaseReplication extends BaseMultiHostTest {
+public abstract class BaseReplication extends BaseMultiHostTest {
 
     @Test
     public void testWriteOnMaster() throws SQLException {
@@ -18,11 +23,13 @@ public class BaseReplication extends BaseMultiHostTest {
         try {
             connection = getNewConnection(false);
             Statement stmt = connection.createStatement();
-            stmt.execute("drop table  if exists auroraMultiNode");
-            stmt.execute("create table auroraMultiNode (id int not null primary key auto_increment, test VARCHAR(10))");
-            stmt.execute("drop table  if exists auroraMultiNode");
+            stmt.execute("drop table  if exists auroraMultiNode" + jobId);
+            stmt.execute("create table auroraMultiNode" + jobId + " (id int not null primary key auto_increment, test VARCHAR(10))");
+            stmt.execute("drop table  if exists auroraMultiNode" + jobId);
         } finally {
-            connection.close();
+            if (connection != null) {
+                connection.close();
+            }
         }
     }
 
@@ -43,10 +50,11 @@ public class BaseReplication extends BaseMultiHostTest {
             Assert.assertTrue(masterServerId == currentServerId);
             Assert.assertFalse(connection.isReadOnly());
         } finally {
-            connection.close();
+            if (connection != null) {
+                connection.close();
+            }
         }
     }
-
 
     @Test
     public void failoverDuringSlaveSetReadOnly() throws Throwable {
@@ -63,7 +71,9 @@ public class BaseReplication extends BaseMultiHostTest {
             Assert.assertFalse(slaveServerId == masterServerId);
             Assert.assertFalse(connection.isReadOnly());
         } finally {
-            connection.close();
+            if (connection != null) {
+                connection.close();
+            }
         }
     }
 
@@ -87,7 +97,9 @@ public class BaseReplication extends BaseMultiHostTest {
                 Assert.fail();
             }
         } finally {
-            connection.close();
+            if (connection != null) {
+                connection.close();
+            }
         }
     }
 
@@ -116,7 +128,9 @@ public class BaseReplication extends BaseMultiHostTest {
             Assert.assertTrue(currentSlaveId != firstSlaveId);
             Assert.assertTrue(currentSlaveId != masterServerId);
         } finally {
-            connection.close();
+            if (connection != null) {
+                connection.close();
+            }
         }
     }
 
@@ -135,7 +149,9 @@ public class BaseReplication extends BaseMultiHostTest {
             Assert.assertTrue(currentServerId == masterServerId);
             Assert.assertFalse(connection.isReadOnly());
         } finally {
-            connection.close();
+            if (connection != null) {
+                connection.close();
+            }
         }
     }
 
@@ -147,21 +163,23 @@ public class BaseReplication extends BaseMultiHostTest {
             //if super user can write on slave
             Assume.assumeTrue(!hasSuperPrivilege(connection, "writeToSlaveAfterFailover"));
             Statement st = connection.createStatement();
-            st.execute("drop table  if exists multinode2");
-            st.execute("create table multinode2 (id int not null primary key , amount int not null) ENGINE = InnoDB");
-            st.execute("insert into multinode2 (id, amount) VALUE (1 , 100)");
+            st.execute("drop table  if exists writeToSlave" + jobId);
+            st.execute("create table writeToSlave" + jobId + " (id int not null primary key , amount int not null) ENGINE = InnoDB");
+            st.execute("insert into writeToSlave" + jobId + " (id, amount) VALUE (1 , 100)");
 
             int masterServerId = getServerId(connection);
 
             stopProxy(masterServerId);
             try {
-                st.execute("insert into multinode2 (id, amount) VALUE (2 , 100)");
+                st.execute("insert into writeToSlave" + jobId + " (id, amount) VALUE (2 , 100)");
                 Assert.fail();
             } catch (SQLException e) {
                 //normal exception
             }
         } finally {
-            connection.close();
+            if (connection != null) {
+                connection.close();
+            }
         }
     }
 
@@ -173,11 +191,11 @@ public class BaseReplication extends BaseMultiHostTest {
             connection = getNewConnection("&retriesAllDown=1&autoReconnect=true", false);
             Statement st = connection.createStatement();
 
-            st.execute("drop table  if exists multinodeTransaction2");
-            st.execute("create table multinodeTransaction2 (id int not null primary key , amount int not null) "
+            st.execute("drop table  if exists multinodeTransaction2_" + jobId);
+            st.execute("create table multinodeTransaction2_" + jobId + " (id int not null primary key , amount int not null) "
                     + "ENGINE = InnoDB");
             connection.setAutoCommit(false);
-            st.execute("insert into multinodeTransaction2 (id, amount) VALUE (1 , 100)");
+            st.execute("insert into multinodeTransaction2_" + jobId + " (id, amount) VALUE (1 , 100)");
 
             try {
                 //in transaction, so must trow an error
@@ -187,7 +205,9 @@ public class BaseReplication extends BaseMultiHostTest {
                 //normal exception
             }
         } finally {
-            connection.close();
+            if (connection != null) {
+                connection.close();
+            }
         }
     }
 
@@ -217,7 +237,9 @@ public class BaseReplication extends BaseMultiHostTest {
                 }
             } finally {
                 if (connection != null) {
-                    connection.close();
+                    if (connection != null) {
+                        connection.close();
+                    }
                 }
             }
         }
@@ -245,4 +267,57 @@ public class BaseReplication extends BaseMultiHostTest {
         }
     }
 
+    @Test
+    public void closeWhenInReconnectionLoop() throws Throwable {
+        Connection connection = null;
+        try {
+            connection = getNewConnection(true);
+            connection.setReadOnly(true);
+            int serverId = getServerId(connection);
+            stopProxy(serverId);
+
+            //trigger the failover, so a failover thread is launched
+            Statement stmt = connection.createStatement();
+            stmt.execute("SELECT 1");
+            //launch connection close
+            ExecutorService exec = Executors.newFixedThreadPool(2);
+            exec.execute(new CloseConnection(connection));
+
+            Thread.sleep(3000);
+            exec.shutdown();
+            try {
+                exec.awaitTermination(20, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+                Assert.fail();
+            }
+        } finally {
+            if (connection != null) {
+                if (connection != null) {
+                    connection.close();
+                }
+            }
+        }
+
+    }
+
+    protected class CloseConnection implements Runnable {
+        Connection connection;
+
+        public CloseConnection(Connection connection) {
+            this.connection = connection;
+        }
+
+        public void run() {
+            try {
+                long start = System.currentTimeMillis();
+                Thread.sleep(2400); // wait that slave reconnection loop is launched
+                connection.close();
+                log.trace("close take " + (System.currentTimeMillis() - start) + "ms");
+            } catch (Throwable e) {
+                e.printStackTrace();
+                Assert.fail();
+            }
+        }
+    }
 }

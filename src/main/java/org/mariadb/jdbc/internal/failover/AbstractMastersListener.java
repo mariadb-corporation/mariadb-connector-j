@@ -141,8 +141,7 @@ public abstract class AbstractMastersListener implements Listener {
      * @param hostAddress the HostAddress to add to blacklist
      */
     public void addToBlacklist(HostAddress hostAddress) {
-        if (hostAddress != null) {
-//            if (log.isTraceEnabled())log.trace("host " + hostAddress+" added to blacklist");
+        if (hostAddress != null && !explicitClosed) {
             blacklist.put(hostAddress, System.currentTimeMillis());
         }
     }
@@ -355,8 +354,7 @@ public abstract class AbstractMastersListener implements Listener {
         }
 
         public void run() {
-            if (hasHostFail()) {
-//                    if (log.isTraceEnabled()) log.trace("failLoop , failover.shouldReconnect() : "+failover.shouldReconnect());
+            if (!explicitClosed && hasHostFail()) {
                 if (listener.shouldReconnect()) {
                     try {
                         if (currentConnectionAttempts.get() >= urlParser.getOptions().failoverLoopRetries) {
@@ -368,19 +366,21 @@ public abstract class AbstractMastersListener implements Listener {
                         //reconnection done !
                         stopFailover();
                     } catch (Exception e) {
-//                            log.trace("FailLoop search connection failed", e);
+                        //FailLoop search connection failed
                     }
                 } else {
                     if (currentConnectionAttempts.get() > urlParser.getOptions().retriesAllDown) {
-//                            if (log.isDebugEnabled()) log.debug("stopping failover after too many attemps ("+currentConnectionAttempts+")");
+                        //stopping failover after too many attemps
                         stopFailover();
                     }
                 }
             } else {
                 stopFailover();
             }
-//                log.trace("end launched FailLoop");
         }
     }
 
+    public static void clearBlacklist() {
+        blacklist.clear();
+    }
 }
