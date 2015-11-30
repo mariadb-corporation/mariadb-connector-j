@@ -270,6 +270,7 @@ public class DatatypeTest extends BaseTest {
             sb.append((char) ch);
         }
         assertEquals(sb.toString(), (toInsert));
+        assertEquals(sb.toString(), rs.getString("strm"));
     }
 
     @Test
@@ -281,7 +282,11 @@ public class DatatypeTest extends BaseTest {
         Reader reader = new StringReader(toInsert);
         stmt.setCharacterStream(2, reader, 5);
         stmt.execute();
-        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from Driverstreamtest2");
+        testCharacterStreamWithLength(getResultSet("select * from Driverstreamtest2", false), toInsert);
+        testCharacterStreamWithLength(getResultSet("select * from Driverstreamtest2", true), toInsert);
+    }
+
+    private void testCharacterStreamWithLength(ResultSet rs, String toInsert) throws SQLException, IOException {
         rs.next();
         Reader rdr = rs.getCharacterStream("strm");
         StringBuilder sb = new StringBuilder();
@@ -290,6 +295,18 @@ public class DatatypeTest extends BaseTest {
             sb.append((char) ch);
         }
         assertEquals(sb.toString(), toInsert.substring(0, 5));
+        assertEquals(rs.getString("strm"), toInsert.substring(0, 5));
+
+    }
+
+    private ResultSet getResultSet(String query, boolean prepared) throws SQLException {
+        if (prepared) {
+            PreparedStatement preparedStatement = sharedConnection.prepareStatement(query + " WHERE 1 = ?");
+            preparedStatement.setInt(1, 1);
+            return preparedStatement.executeQuery();
+        } else {
+            return sharedConnection.createStatement().executeQuery(query);
+        }
     }
 
 
@@ -309,10 +326,20 @@ public class DatatypeTest extends BaseTest {
         }
         createTable("longcol", str + " int not null primary key");
         sharedConnection.createStatement().execute("insert into longcol values (1)");
-        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from longcol");
-        assertEquals(true, rs.next());
-        assertEquals(1, rs.getInt(1));
-        assertEquals(1, rs.getInt(str));
+
+        try (ResultSet rs = getResultSet("select * from longcol", false)) {
+            assertEquals(true, rs.next());
+            assertEquals(1, rs.getInt(1));
+            assertEquals(1, rs.getInt(str));
+            assertEquals("1", rs.getString(1));
+        }
+
+        try (ResultSet rs = getResultSet("select * from longcol", true)) {
+            assertEquals(true, rs.next());
+            assertEquals(1, rs.getInt(1));
+            assertEquals(1, rs.getInt(str));
+            assertEquals("1", rs.getString(1));
+        }
     }
 
     @Test(expected = SQLException.class)
@@ -323,7 +350,7 @@ public class DatatypeTest extends BaseTest {
     }
 
     @Test
-    public void setobjectTest() throws SQLException, IOException, ClassNotFoundException {
+    public void setObjectTest() throws SQLException, IOException, ClassNotFoundException {
         PreparedStatement ps = sharedConnection.prepareStatement("insert into objecttest values (?,?,?,?)");
         ps.setObject(1, 5);
         ps.setObject(2, "aaa");
@@ -331,36 +358,53 @@ public class DatatypeTest extends BaseTest {
         ps.setObject(4, new SerializableClass("testing", 8));
         ps.execute();
 
-        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from objecttest");
-        if (rs.next()) {
-            Object theInt = rs.getObject(1);
-            assertTrue(theInt instanceof Integer);
-            Object theInt2 = rs.getObject("int_test");
-            assertTrue(theInt2 instanceof Integer);
-            Object theString = rs.getObject(2);
-            assertTrue(theString instanceof String);
-            Object theTimestamp = rs.getObject(3);
-            assertTrue(theTimestamp instanceof Timestamp);
-            Object theBlob = rs.getObject(4);
-            assertNotNull(theBlob);
-
-            byte[] rawBytes = rs.getBytes(4);
-            ByteArrayInputStream bais = new ByteArrayInputStream(rawBytes);
-            ObjectInputStream ois = new ObjectInputStream(bais);
-            SerializableClass sc = (SerializableClass) ois.readObject();
-
-            assertEquals(sc.getVal(), "testing");
-            assertEquals(sc.getVal2(), 8);
-            rawBytes = rs.getBytes("serial_test");
-            bais = new ByteArrayInputStream(rawBytes);
-            ois = new ObjectInputStream(bais);
-            sc = (SerializableClass) ois.readObject();
-
-            assertEquals(sc.getVal(), "testing");
-            assertEquals(sc.getVal2(), 8);
-        } else {
-            fail();
+        try (ResultSet rs = getResultSet("select * from objecttest", false)) {
+            if (rs.next()) {
+                setObjectTestResult(rs);
+            } else {
+                fail();
+            }
         }
+        try (ResultSet rs = getResultSet("select * from objecttest", true)) {
+            if (rs.next()) {
+                setObjectTestResult(rs);
+            } else {
+                fail();
+            }
+        }
+    }
+
+    private void setObjectTestResult(ResultSet rs) throws SQLException, IOException, ClassNotFoundException {
+        assertEquals("5", rs.getString(1));
+        assertEquals("aaa", rs.getString(2));
+        assertEquals("2009-01-17 15:41:01.0", rs.getString(3));
+
+        Object theInt = rs.getObject(1);
+        assertTrue(theInt instanceof Integer);
+        Object theInt2 = rs.getObject("int_test");
+        assertTrue(theInt instanceof Integer);
+        Object theString = rs.getObject(2);
+        assertTrue(theString instanceof String);
+        Object theTimestamp = rs.getObject(3);
+        assertTrue(theTimestamp instanceof Timestamp);
+        Object theBlob = rs.getObject(4);
+        assertNotNull(theBlob);
+
+        byte[] rawBytes = rs.getBytes(4);
+        ByteArrayInputStream bais = new ByteArrayInputStream(rawBytes);
+        ObjectInputStream ois = new ObjectInputStream(bais);
+        SerializableClass sc = (SerializableClass) ois.readObject();
+
+        assertEquals(sc.getVal(), "testing");
+        assertEquals(sc.getVal2(), 8);
+        rawBytes = rs.getBytes("serial_test");
+        bais = new ByteArrayInputStream(rawBytes);
+        ois = new ObjectInputStream(bais);
+        sc = (SerializableClass) ois.readObject();
+
+        assertEquals(sc.getVal(), "testing");
+        assertEquals(sc.getVal2(), 8);
+
     }
 
     @Test
@@ -378,15 +422,13 @@ public class DatatypeTest extends BaseTest {
         preparedStatement.setObject(4, maxValue);
         preparedStatement.executeUpdate();
 
-        Statement statement = sharedConnection.createStatement();
-        ResultSet rs = statement.executeQuery("SELECT * FROM TestBigIntType");
-        validateResultBigIntType(valueLong, maxValue, rs);
+        try (ResultSet rs = getResultSet("select * from TestBigIntType", false)) {
+            validateResultBigIntType(valueLong, maxValue, rs);
+        }
 
-
-        PreparedStatement ps = sharedConnection.prepareStatement("SELECT * FROM TestBigIntType Where 1 = ?");
-        ps.setInt(1, 1);
-        rs =  ps.executeQuery();
-        validateResultBigIntType(valueLong, maxValue, rs);
+        try (ResultSet rs = getResultSet("select * from TestBigIntType", true)) {
+            validateResultBigIntType(valueLong, maxValue, rs);
+        }
 
     }
 
@@ -396,6 +438,10 @@ public class DatatypeTest extends BaseTest {
             assertEquals(resultSet.getLong(2), Long.parseLong(maxValue));
             assertEquals(resultSet.getLong(3), valueLong);
             assertEquals(resultSet.getLong(4), Long.parseLong(maxValue));
+            assertEquals(resultSet.getString(1), String.valueOf(valueLong));
+            assertEquals(resultSet.getString(2), String.valueOf(Long.parseLong(maxValue)));
+            assertEquals(resultSet.getString(3), String.valueOf(valueLong));
+            assertEquals(resultSet.getString(4), String.valueOf(Long.parseLong(maxValue)));
         } else {
             fail();
         }
@@ -413,24 +459,37 @@ public class DatatypeTest extends BaseTest {
         ps.setBinaryStream(2, bais);
         ps.execute();
 
-        ResultSet rs = sharedConnection.createStatement().executeQuery("select bin1,bin2 from bintest");
-        assertTrue(rs.next());
-        rs.getBlob(1);
-        InputStream is = rs.getBinaryStream(1);
-
-        for (int i = 0; i < 256; i++) {
-            int read = is.read();
-            assertEquals(i, read);
-        }
-        is = rs.getBinaryStream(2);
-
-        for (int i = 0; i < 256; i++) {
-            int read = is.read();
-            assertEquals(i, read);
+        try (ResultSet rs = getResultSet("select bin1,bin2 from bintest", false)) {
+            binTestResult(rs, allBytes);
         }
 
+        try (ResultSet rs = getResultSet("select bin1,bin2 from bintest", true)) {
+            binTestResult(rs, allBytes);
+        }
     }
 
+    private void binTestResult(ResultSet rs, byte[] allBytes) throws SQLException, IOException {
+        if (rs.next()) {
+            rs.getBlob(1);
+            InputStream is = rs.getBinaryStream(1);
+
+            for (int i = 0; i < 256; i++) {
+                int read = is.read();
+                assertEquals(i, read);
+            }
+            assertEquals(rs.getString(1), new String(allBytes, "UTF-8"));
+
+            is = rs.getBinaryStream(2);
+
+            for (int i = 0; i < 256; i++) {
+                int read = is.read();
+                assertEquals(i, read);
+            }
+            assertEquals(rs.getString(2), new String(allBytes, "UTF-8"));
+        } else {
+            fail("Must have result !");
+        }
+    }
 
     @Test
     public void binTest2() throws SQLException, IOException {
@@ -454,18 +513,30 @@ public class DatatypeTest extends BaseTest {
         is = new ByteArrayInputStream(buf);
         ps.setBinaryStream(1, is);
         ps.execute();
-        ResultSet rs = sharedConnection.createStatement().executeQuery("select bin1 from bintest2");
+
+        try (ResultSet rs = getResultSet("select bin1 from bintest2", false)) {
+            binTest2Result(rs, buf);
+        }
+
+        try (ResultSet rs = getResultSet("select bin1 from bintest2", true)) {
+            binTest2Result(rs, buf);
+        }
+    }
+
+    private void binTest2Result(ResultSet rs, byte[] buf) throws SQLException, IOException {
         if (rs.next()) {
             byte[] buf2 = rs.getBytes(1);
             for (int i = 0; i < 1000000; i++) {
                 assertEquals((byte) i, buf2[i]);
             }
+            assertEquals(rs.getString(1), new String(buf));
 
             if (rs.next()) {
                 buf2 = rs.getBytes(1);
                 for (int i = 0; i < 1000000; i++) {
                     assertEquals((byte) i, buf2[i]);
                 }
+                assertEquals(rs.getString(1), new String(buf));
                 if (rs.next()) {
                     fail();
                 }
@@ -485,53 +556,83 @@ public class DatatypeTest extends BaseTest {
         ps.setBigDecimal(1, bd);
         ps.execute();
 
-        ResultSet rs = sharedConnection.createStatement().executeQuery("select bd from bigdectest");
-        assertTrue(rs.next());
-        Object bb = rs.getObject(1);
-        assertEquals(bd, bb);
-        BigDecimal bigD = rs.getBigDecimal(1);
-        BigDecimal bigD2 = rs.getBigDecimal("bd");
-        assertEquals(bd, bigD);
-        assertEquals(bd, bigD2);
-        bigD = rs.getBigDecimal("bd");
-        assertEquals(bd, bigD);
+        try (ResultSet rs = getResultSet("select bd from bigdectest", false)) {
+            bigDecimalTestResult(rs, bd);
+        }
+        try (ResultSet rs = getResultSet("select bd from bigdectest", true)) {
+            bigDecimalTestResult(rs, bd);
+        }
+
     }
 
+    private void bigDecimalTestResult(ResultSet rs, BigDecimal bd) throws SQLException {
+        if (rs.next()) {
+            Object bb = rs.getObject(1);
+            assertEquals(bd, bb);
+            BigDecimal bigD = rs.getBigDecimal(1);
+            BigDecimal bigD2 = rs.getBigDecimal("bd");
+            assertEquals(bd, bigD);
+            assertEquals(bd, bigD2);
+            assertEquals(rs.getString(1), "10");
+            bigD = rs.getBigDecimal("bd");
+            assertEquals(bd, bigD);
+        } else {
+            fail("Must have resultset");
+        }
+
+    }
 
     @Test
     public void byteTest() throws SQLException {
         PreparedStatement ps = sharedConnection.prepareStatement("insert into bytetest (a) values (?)");
         ps.setByte(1, Byte.MAX_VALUE);
         ps.execute();
-        ResultSet rs = sharedConnection.createStatement().executeQuery("select a from bytetest");
+        try (ResultSet rs = getResultSet("select a from bytetest", false)) {
+            byteTestResult(rs);
+        }
+
+        try (ResultSet rs = getResultSet("select a from bytetest", true)) {
+            byteTestResult(rs);
+        }
+    }
+
+    private void byteTestResult(ResultSet rs) throws SQLException {
         if (rs.next()) {
             Byte bc = rs.getByte(1);
             Byte bc2 = rs.getByte("a");
 
             assertTrue(Byte.MAX_VALUE == bc);
             assertEquals(bc2, bc);
+            assertEquals(rs.getString(1), "127");
         } else {
             fail();
         }
-
     }
-
 
     @Test
     public void shortTest() throws SQLException {
         PreparedStatement ps = sharedConnection.prepareStatement("insert into shorttest (a) values (?)");
         ps.setShort(1, Short.MAX_VALUE);
         ps.execute();
-        ResultSet rs = sharedConnection.createStatement().executeQuery("select a from shorttest");
-        assertTrue(rs.next());
+        try (ResultSet rs = getResultSet("select a from shorttest", false)) {
+            shortTestResult(rs);
+        }
+        try (ResultSet rs = getResultSet("select a from shorttest", true)) {
+            shortTestResult(rs);
+        }
+    }
 
-        Short bc = rs.getShort(1);
-        Short bc2 = rs.getShort("a");
+    private void shortTestResult(ResultSet rs) throws SQLException {
+        if (rs.next()) {
+            Short bc = rs.getShort(1);
+            Short bc2 = rs.getShort("a");
 
-        assertTrue(Short.MAX_VALUE == bc);
-        assertEquals(bc2, bc);
-
-
+            assertTrue(Short.MAX_VALUE == bc);
+            assertEquals(bc2, bc);
+            assertEquals(rs.getString(1), "32767");
+        } else {
+            fail("must have result !");
+        }
     }
 
     @Test
@@ -540,52 +641,99 @@ public class DatatypeTest extends BaseTest {
         double sendDoubleValue = 1.5;
         ps.setDouble(1, sendDoubleValue);
         ps.execute();
-        ResultSet rs = sharedConnection.createStatement().executeQuery("select a from doubletest");
-        assertTrue(rs.next());
-        Object returnObject = rs.getObject(1);
-        assertEquals(returnObject.getClass(), Double.class);
-        Double bc = rs.getDouble(1);
-        Double bc2 = rs.getDouble("a");
-
-        assertTrue(sendDoubleValue == bc);
-        assertEquals(bc2, bc);
-
-
+        try (ResultSet rs = getResultSet("select a from doubletest", false)) {
+            doubleTestResult(rs, sendDoubleValue);
+        }
+        try (ResultSet rs = getResultSet("select a from doubletest", true)) {
+            doubleTestResult(rs, sendDoubleValue);
+        }
     }
+
+    private void doubleTestResult(ResultSet rs, Double sendDoubleValue) throws SQLException {
+        if (rs.next()) {
+            Object returnObject = rs.getObject(1);
+            assertEquals(returnObject.getClass(), Double.class);
+            Double bc = rs.getDouble(1);
+            Double bc2 = rs.getDouble("a");
+
+            assertTrue(sendDoubleValue.doubleValue() == bc);
+            assertEquals(bc2, bc);
+            assertEquals(rs.getString(1), "1.5");
+        } else {
+            fail("must have result !");
+        }
+    }
+
 
     @Test
     public void getUrlTest() throws SQLException {
-        ResultSet rs = sharedConnection.createStatement().executeQuery("select 'http://mariadb.org' as url");
-        rs.next();
-        URL url = rs.getURL(1);
-        assertEquals("http://mariadb.org", url.toString());
-        url = rs.getURL("url");
-        assertEquals("http://mariadb.org", url.toString());
-
+        try (ResultSet rs = getResultSet("select 'http://mariadb.org' as url FROM dual", false)) {
+            getUrlTestResult(rs);
+        }
+        try (ResultSet rs = getResultSet("select 'http://mariadb.org' as url FROM dual", true)) {
+            getUrlTestResult(rs);
+        }
     }
 
-    @Test(expected = SQLException.class)
+    private void getUrlTestResult(ResultSet rs) throws SQLException {
+        if (rs.next()) {
+            URL url = rs.getURL(1);
+            assertEquals("http://mariadb.org", url.toString());
+            url = rs.getURL("url");
+            assertEquals("http://mariadb.org", url.toString());
+            assertEquals("http://mariadb.org", rs.getString(1));
+        } else {
+            fail("must have result");
+        }
+    }
+
+
+    @Test
     public void getUrlFailTest() throws SQLException {
-        ResultSet rs = sharedConnection.createStatement().executeQuery("select 'asdf' as url");
-        rs.next();
-        URL url = rs.getURL(1);
-        assertNotNull(url);
-
-
+        try (ResultSet rs = getResultSet("select 'asdf' as url FROM dual", false)) {
+            getUrlFailTestResult(rs);
+        }
+        try (ResultSet rs = getResultSet("select 'asdf' as url FROM dual", true)) {
+            getUrlFailTestResult(rs);
+        }
     }
 
-    @Test(expected = SQLException.class)
-    public void getUrlFailTest2() throws SQLException {
-        ResultSet rs = sharedConnection.createStatement().executeQuery("select 'asdf' as url");
-        rs.next();
-        URL url = rs.getURL("url");
-        assertNotNull(url);
+    private void getUrlFailTestResult(ResultSet rs) throws SQLException {
+        if (rs.next()) {
+            try {
+                rs.getURL(1);
+                fail("must have thrown error");
+            } catch (SQLException e) {
+            }
+            try {
+                rs.getURL("url");
+            } catch (SQLException e) {
+            }
+        } else {
+            fail("must have result !");
+        }
     }
 
     @Test
     public void setNull() throws SQLException {
         PreparedStatement ps = sharedConnection.prepareStatement("insert blabla VALUE (?)");
         ps.setString(1, null);
+        ps.executeQuery();
+        try (ResultSet rs = getResultSet("select * from blabla", false)) {
+            setNullResult(rs);
+        }
+        try (ResultSet rs = getResultSet("select * from blabla", true)) {
+            setNullResult(rs);
+        }
+    }
+
+    private void setNullResult(ResultSet rs) throws SQLException {
+        if (rs.next()) {
+            assertNull(rs.getString(1));
+            assertNull(rs.getObject(1));
+        } else {
+            fail("must have result !");
+        }
     }
 
     @Test
@@ -604,13 +752,27 @@ public class DatatypeTest extends BaseTest {
         stmt.setBoolean(1, false);
         stmt.execute();
 
-        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from bittest");
-        Assert.assertTrue(rs.next());
-        Assert.assertTrue(rs.getBoolean("b"));
-        Assert.assertTrue(rs.next());
-        assertFalse(rs.getBoolean("b"));
-        assertFalse(rs.next());
+        try (ResultSet rs = getResultSet("select * from bittest", false)) {
+            testBitResult(rs);
+        }
+        try (ResultSet rs = getResultSet("select * from bittest", true)) {
+            testBitResult(rs);
+        }
     }
 
+    private void testBitResult(ResultSet rs) throws SQLException {
+        if (rs.next()) {
+            Assert.assertTrue(rs.getBoolean("b"));
+            Assert.assertEquals(rs.getString("b"), "1");
+            if (rs.next()) {
+                Assert.assertFalse(rs.getBoolean("b"));
+                Assert.assertEquals(rs.getString("b"), "0");
+            } else {
+                fail("must have result");
+            }
+        } else {
+            fail("must have result");
+        }
+    }
 
 }

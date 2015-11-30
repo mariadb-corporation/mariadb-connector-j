@@ -123,10 +123,32 @@ public class MariaDbValueObject implements ValueObject {
 
         switch (columnInfo.getType()) {
             case BIT:
-                if (columnInfo.getLength() == 1) {
+                if (options.tinyInt1isBit && columnInfo.getLength() == 1) {
                     return (rawBytes[0] == 0) ? "0" : "1";
                 }
                 break;
+            case TINYINT:
+                if (options.tinyInt1isBit && columnInfo.getLength() == 1) {
+                    return (rawBytes[0] == 0) ? "0" : "1";
+                }
+                return String.valueOf(getInt());
+            case SMALLINT:
+            case MEDIUMINT:
+                return String.valueOf(getInt());
+            case INTEGER:
+                if (!columnInfo.isSigned()) {
+                    return String.valueOf(getLong());
+                }
+                return String.valueOf(getInt());
+            case BIGINT:
+                if (!columnInfo.isSigned()) {
+                    return String.valueOf(getBigInteger());
+                }
+                return String.valueOf(getLong());
+            case DOUBLE:
+                return String.valueOf(getDouble());
+            case FLOAT:
+                return String.valueOf(getFloat());
             case TIME:
                 return getTimeString();
             case DATE:
@@ -137,17 +159,35 @@ public class MariaDbValueObject implements ValueObject {
                     }
                 }
                 break;
-            case TIMESTAMP:
-            case DATETIME:
-                if (isBinaryEncoded) {
+            case YEAR:
+                if (options.yearIsDateType) {
                     try {
-                        return getTimestamp(cal).toString();
+                        return getDate(cal).toString();
                     } catch (ParseException e) {
                     }
                 }
+                return String.valueOf(getShort());
+            case TIMESTAMP:
+            case DATETIME:
+                try {
+                    return getTimestamp(cal).toString();
+                } catch (ParseException e) {
+                }
                 break;
+            case DECIMAL:
+                return getBigDecimal().toString();
+            case BLOB:
+            case LONGBLOB:
+            case MEDIUMBLOB:
+            case TINYBLOB:
+            case GEOMETRY:
+                return new String(getBytes());
+            case NULL:
+                return null;
+            case OLDDECIMAL:
+                return getString();
             default:
-                break;
+                return new String(rawBytes, StandardCharsets.UTF_8);
         }
         return new String(rawBytes, StandardCharsets.UTF_8);
     }
@@ -212,6 +252,8 @@ public class MariaDbValueObject implements ValueObject {
         return (negative ? "-" : "") + (hourString + ":" + minuteString + ":" + secondString);
     }
 
+
+
     /**
      * Get byte from raw data.
      * @return byte
@@ -224,18 +266,7 @@ public class MariaDbValueObject implements ValueObject {
             if (dataType == MariaDbType.BIT) {
                 return rawBytes[0];
             }
-            try {
-                return Byte.valueOf(new String(rawBytes, StandardCharsets.UTF_8));
-            } catch (NumberFormatException nfe) {
-                BigDecimal value = new BigDecimal(new String(rawBytes, StandardCharsets.UTF_8));
-                if (value.compareTo(BigDecimal.valueOf(Byte.MIN_VALUE)) < 0) {
-                    return Byte.MIN_VALUE;
-                }
-                if (value.compareTo(BigDecimal.valueOf(Byte.MAX_VALUE)) > 0) {
-                    return Byte.MAX_VALUE;
-                }
-                return value.byteValue();
-            }
+            return parseByte();
         } else {
             switch (dataType) {
                 case BIT:
@@ -259,19 +290,23 @@ public class MariaDbValueObject implements ValueObject {
                 case DOUBLE:
                     return (byte) getDouble();
                 default:
-                    try {
-                        return Byte.valueOf(new String(rawBytes, StandardCharsets.UTF_8));
-                    } catch (NumberFormatException nfe) {
-                        BigDecimal value = new BigDecimal(new String(rawBytes, StandardCharsets.UTF_8));
-                        if (value.compareTo(BigDecimal.valueOf(Byte.MIN_VALUE)) < 0) {
-                            return Byte.MIN_VALUE;
-                        }
-                        if (value.compareTo(BigDecimal.valueOf(Byte.MAX_VALUE)) > 0) {
-                            return Byte.MAX_VALUE;
-                        }
-                        return value.byteValue();
-                    }
+                    return parseByte();
             }
+        }
+    }
+
+    private byte parseByte() {
+        try {
+            return Byte.valueOf(new String(rawBytes, StandardCharsets.UTF_8));
+        } catch (NumberFormatException nfe) {
+            BigDecimal value = new BigDecimal(new String(rawBytes, StandardCharsets.UTF_8));
+            if (value.compareTo(BigDecimal.valueOf(Byte.MIN_VALUE)) < 0) {
+                return Byte.MIN_VALUE;
+            }
+            if (value.compareTo(BigDecimal.valueOf(Byte.MAX_VALUE)) > 0) {
+                return Byte.MAX_VALUE;
+            }
+            return value.byteValue();
         }
     }
 
@@ -284,18 +319,7 @@ public class MariaDbValueObject implements ValueObject {
             return 0;
         }
         if (!this.isBinaryEncoded) {
-            try {
-                return Short.valueOf(new String(rawBytes, StandardCharsets.UTF_8));
-            } catch (NumberFormatException nfe) {
-                BigDecimal value = new BigDecimal(new String(rawBytes, StandardCharsets.UTF_8));
-                if (value.compareTo(BigDecimal.valueOf(Short.MIN_VALUE)) < 0) {
-                    return Short.MIN_VALUE;
-                }
-                if (value.compareTo(BigDecimal.valueOf(Short.MAX_VALUE)) > 0) {
-                    return Short.MAX_VALUE;
-                }
-                return value.shortValue();
-            }
+            return parseShort();
         } else {
             switch (dataType) {
                 case BIT:
@@ -320,20 +344,25 @@ public class MariaDbValueObject implements ValueObject {
                 case DOUBLE:
                     return (short) getDouble();
                 default:
-                    try {
-                        return Short.valueOf(new String(rawBytes, StandardCharsets.UTF_8));
-                    } catch (NumberFormatException nfe) {
-                        BigDecimal bigdecimal = new BigDecimal(new String(rawBytes, StandardCharsets.UTF_8));
-                        if (bigdecimal.compareTo(BigDecimal.valueOf(Short.MIN_VALUE)) < 0) {
-                            return Short.MIN_VALUE;
-                        }
-                        if (bigdecimal.compareTo(BigDecimal.valueOf(Short.MAX_VALUE)) > 0) {
-                            return Short.MAX_VALUE;
-                        }
-                        return bigdecimal.shortValue();
-                    }
+                    return parseShort();
             }
         }
+    }
+
+    private short parseShort() {
+        try {
+            return Short.valueOf(new String(rawBytes, StandardCharsets.UTF_8));
+        } catch (NumberFormatException nfe) {
+            BigDecimal bigdecimal = new BigDecimal(new String(rawBytes, StandardCharsets.UTF_8));
+            if (bigdecimal.compareTo(BigDecimal.valueOf(Short.MIN_VALUE)) < 0) {
+                return Short.MIN_VALUE;
+            }
+            if (bigdecimal.compareTo(BigDecimal.valueOf(Short.MAX_VALUE)) > 0) {
+                return Short.MAX_VALUE;
+            }
+            return bigdecimal.shortValue();
+        }
+
     }
 
     /**
@@ -345,18 +374,7 @@ public class MariaDbValueObject implements ValueObject {
             return 0;
         }
         if (!this.isBinaryEncoded) {
-            try {
-                return Integer.valueOf(new String(rawBytes, StandardCharsets.UTF_8));
-            } catch (NumberFormatException nfe) {
-                BigDecimal value = new BigDecimal(new String(rawBytes, StandardCharsets.UTF_8));
-                if (value.compareTo(BigDecimal.valueOf(Integer.MIN_VALUE)) < 0) {
-                    return Integer.MIN_VALUE;
-                }
-                if (value.compareTo(BigDecimal.valueOf(Integer.MAX_VALUE)) > 0) {
-                    return Integer.MAX_VALUE;
-                }
-                return value.intValue();
-            }
+            return parseInt();
         } else {
             switch (dataType) {
                 case BIT:
@@ -384,19 +402,23 @@ public class MariaDbValueObject implements ValueObject {
                 case DOUBLE:
                     return (int) getDouble();
                 default:
-                    try {
-                        return Integer.valueOf(new String(rawBytes, StandardCharsets.UTF_8));
-                    } catch (NumberFormatException nfe) {
-                        BigDecimal bigdecimal = new BigDecimal(new String(rawBytes, StandardCharsets.UTF_8));
-                        if (bigdecimal.compareTo(BigDecimal.valueOf(Integer.MIN_VALUE)) < 0) {
-                            return Integer.MIN_VALUE;
-                        }
-                        if (bigdecimal.compareTo(BigDecimal.valueOf(Integer.MAX_VALUE)) > 0) {
-                            return Integer.MAX_VALUE;
-                        }
-                        return bigdecimal.intValue();
-                    }
+                    return parseInt();
             }
+        }
+    }
+
+    private int parseInt() {
+        try {
+            return Integer.valueOf(new String(rawBytes, StandardCharsets.UTF_8));
+        } catch (NumberFormatException nfe) {
+            BigDecimal bigdecimal = new BigDecimal(new String(rawBytes, StandardCharsets.UTF_8));
+            if (bigdecimal.compareTo(BigDecimal.valueOf(Integer.MIN_VALUE)) < 0) {
+                return Integer.MIN_VALUE;
+            }
+            if (bigdecimal.compareTo(BigDecimal.valueOf(Integer.MAX_VALUE)) > 0) {
+                return Integer.MAX_VALUE;
+            }
+            return bigdecimal.intValue();
         }
     }
 
@@ -409,18 +431,7 @@ public class MariaDbValueObject implements ValueObject {
             return 0;
         }
         if (!this.isBinaryEncoded) {
-            try {
-                return Long.valueOf(new String(rawBytes, StandardCharsets.UTF_8));
-            } catch (NumberFormatException nfe) {
-                BigDecimal bigdecimal = new BigDecimal(new String(rawBytes, StandardCharsets.UTF_8));
-                if (bigdecimal.compareTo(BigDecimal.valueOf(Long.MIN_VALUE)) < 0) {
-                    return Long.MIN_VALUE;
-                }
-                if (bigdecimal.compareTo(BigDecimal.valueOf(Long.MAX_VALUE)) > 0) {
-                    return Long.MAX_VALUE;
-                }
-                return bigdecimal.longValue();
-            }
+            return parseLong();
         } else {
             switch (dataType) {
                 case BIT:
@@ -456,19 +467,23 @@ public class MariaDbValueObject implements ValueObject {
                 case DOUBLE:
                     return (long) getDouble();
                 default:
-                    try {
-                        return Long.valueOf(new String(rawBytes, StandardCharsets.UTF_8));
-                    } catch (NumberFormatException nfe) {
-                        BigDecimal bigdecimal = new BigDecimal(new String(rawBytes, StandardCharsets.UTF_8));
-                        if (bigdecimal.compareTo(BigDecimal.valueOf(Long.MIN_VALUE)) < 0) {
-                            return Long.MIN_VALUE;
-                        }
-                        if (bigdecimal.compareTo(BigDecimal.valueOf(Long.MAX_VALUE)) > 0) {
-                            return Long.MAX_VALUE;
-                        }
-                        return bigdecimal.longValue();
-                    }
+                    return parseLong();
             }
+        }
+    }
+
+    private long parseLong() {
+        try {
+            return Long.valueOf(new String(rawBytes, StandardCharsets.UTF_8));
+        } catch (NumberFormatException nfe) {
+            BigDecimal bigdecimal = new BigDecimal(new String(rawBytes, StandardCharsets.UTF_8));
+            if (bigdecimal.compareTo(BigDecimal.valueOf(Long.MIN_VALUE)) < 0) {
+                return Long.MIN_VALUE;
+            }
+            if (bigdecimal.compareTo(BigDecimal.valueOf(Long.MAX_VALUE)) > 0) {
+                return Long.MAX_VALUE;
+            }
+            return bigdecimal.longValue();
         }
     }
 
@@ -1072,7 +1087,7 @@ public class MariaDbValueObject implements ValueObject {
      * @throws ParseException if data cannot be parse
      */
     public Object getObject(int datatypeMappingFlags, Calendar cal) throws ParseException {
-        if (this.getBytes() == null) {
+        if (rawBytes == null) {
             return null;
         }
         switch (dataType) {
