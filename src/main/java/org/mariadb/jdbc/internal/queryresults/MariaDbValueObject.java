@@ -824,9 +824,6 @@ public class MariaDbValueObject implements ValueObject {
     }
 
     private Time binaryTime(Calendar cal) throws ParseException {
-        if (rawBytes.length == 0) {
-            return null;
-        }
         switch (dataType) {
             case TIMESTAMP:
             case DATETIME:
@@ -844,9 +841,14 @@ public class MariaDbValueObject implements ValueObject {
                 if (options.useLegacyDatetimeCode) {
                     calendar.setLenient(false);
                 }
-                int hour = rawBytes[5];
-                int minutes = rawBytes[6];
-                int seconds = rawBytes[7];
+                int hour = 0;
+                int minutes = 0;
+                int seconds = 0;
+                if (rawBytes.length > 7) {
+                    hour = rawBytes[5];
+                    minutes = rawBytes[6];
+                    seconds = rawBytes[7];
+                }
                 calendar.set(1970, 0, 1, hour, minutes, seconds);
 
                 int nanoseconds = 0;

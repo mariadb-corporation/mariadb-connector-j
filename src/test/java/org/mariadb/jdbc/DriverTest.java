@@ -4,11 +4,14 @@ import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mariadb.jdbc.internal.util.DefaultOptions;
+import org.mariadb.jdbc.internal.util.constant.HaMode;
 
 import java.io.*;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
@@ -341,6 +344,28 @@ public class DriverTest extends BaseTest {
         assertEquals(3307, url.getHostAddresses().get(0).port);
 
     }
+
+
+
+    @Test
+    public void testAliasReplication() throws SQLException {
+        UrlParser url = UrlParser.parse("jdbc:mysql:replication://localhost/test");
+        UrlParser url2 = UrlParser.parse("jdbc:mariadb:replication://localhost/test");
+        assertEquals(url, url2);
+    }
+
+    @Test
+    public void testAliasDataSource() throws SQLException {
+        ArrayList<HostAddress> hostAddresses = new ArrayList<>();
+        hostAddresses.add(new HostAddress(hostname, port));
+        UrlParser urlParser = new UrlParser(database, hostAddresses, DefaultOptions.defaultValues(HaMode.NONE), HaMode.NONE);
+        UrlParser urlParser2 = new UrlParser(database, hostAddresses, DefaultOptions.defaultValues(HaMode.NONE), HaMode.NONE);
+
+        urlParser.parseUrl("jdbc:mysql:replication://localhost/test");
+        urlParser2.parseUrl("jdbc:mariadb:replication://localhost/test");
+        assertEquals(urlParser, urlParser2);
+    }
+
 
     @Test
     public void testEscapes() throws SQLException {

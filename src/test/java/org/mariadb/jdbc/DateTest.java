@@ -433,7 +433,7 @@ public class DateTest extends BaseTest {
         if (isMariadbServer) {
             assertTrue("2013-07-18 13:44:22.123456".equals(rs.getString(2)));
         } else {
-            assertTrue("2013-07-18 13:44:22".equals(rs.getString(2)));
+            assertTrue("2013-07-18 13:44:22.0".equals(rs.getString(2)));
         }
         assertTrue(rs.next());
         Timestamp readTs = rs.getTimestamp(2);
