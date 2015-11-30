@@ -40,6 +40,8 @@ public class DatatypeTest extends BaseTest {
         createTable("test_setobjectconv", "id int not null primary key auto_increment, v1 varchar(40), v2 varchar(40)");
         createTable("blabla", "valsue varchar(20)");
         createTable("TestBigIntType", "t1 bigint(20), t2 bigint(20), t3 bigint(20), t4 bigint(20)");
+        createTable("time_period", "ID int unsigned NOT NULL, START time NOT NULL, END time NOT NULL, PRIMARY KEY (ID)");
+
     }
 
     @Before
@@ -775,4 +777,19 @@ public class DatatypeTest extends BaseTest {
         }
     }
 
+    @Test
+    public void testNullTimePreparedStatement() throws Exception {
+        sharedConnection.createStatement().execute("insert into time_period(id, start, end) values(1, '00:00:00', '08:00:00');");
+        final String sql = "SELECT id, start, end FROM time_period WHERE id=?";
+        PreparedStatement preparedStatement = sharedConnection.prepareStatement(sql);
+        preparedStatement.setInt(1, 1);
+        try (ResultSet resultSet = preparedStatement.executeQuery()) {
+            if (resultSet.next()) {
+                Time timeStart = resultSet.getTime(2);
+                Time timeEnd = resultSet.getTime(3);
+                assertEquals(timeStart, new Time(0, 0, 0));
+                assertEquals(timeEnd, new Time(8, 0, 0));
+            }
+        }
+    }
 }
