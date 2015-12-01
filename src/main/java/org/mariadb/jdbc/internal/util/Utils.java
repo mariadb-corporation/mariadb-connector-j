@@ -88,7 +88,7 @@ public class Utils {
         LexState state = LexState.Normal;
         char lastChar = '\0';
 
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
 
         boolean singleQuotes = false;
         boolean isParam = false;
@@ -302,7 +302,7 @@ public class Utils {
         }
 
         char[] input = functionString.toCharArray();
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         int index;
         for (index = 0; index < input.length; index++) {
             if (input[index] != ' ') {
@@ -425,8 +425,8 @@ public class Utils {
             return sql;
         }
 
-        StringBuffer escapeSequenceBuf = new StringBuffer();
-        StringBuffer sqlBuffer = new StringBuffer();
+        StringBuilder escapeSequenceBuf = new StringBuilder();
+        StringBuilder sqlBuffer = new StringBuilder();
 
         char[] charArray = sql.toCharArray();
         char lastChar = 0;
