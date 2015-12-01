@@ -361,9 +361,19 @@ public class DateTest extends BaseTest {
             assertEquals(currentDate.getMinutes(), rs.getTime(1).getMinutes());
             assertEquals(currentDate.getSeconds(), rs.getTime(1).getSeconds());
         } else {
-            //mysql 5 seconde precision
-            Assert.assertTrue(Math.abs(currentDate.getMinutes() - rs.getTime(1).getMinutes()) <= 5);
-            Assert.assertTrue(Math.abs(currentDate.getSeconds() - rs.getTime(1).getSeconds()) <= 5);
+            //mysql 5 seconds precision
+            try {
+                System.out.println(Math.abs(currentDate.getMinutes() - rs.getTime(1).getMinutes()));
+                System.out.println(Math.abs(currentDate.getSeconds() - rs.getTime(1).getSeconds()));
+                Assert.assertTrue(Math.abs(currentDate.getMinutes() - rs.getTime(1).getMinutes()) <= 5);
+                Assert.assertTrue(Math.abs(currentDate.getSeconds() - rs.getTime(1).getSeconds()) <= 5);
+            } catch (AssertionError a) {
+                System.out.println("currentDate:" + currentDate.toString() + " -> " + currentDate.getMinutes());
+                System.out.println("rs.getTime(1):" + currentDate.toString() + " -> " + rs.getTime(1).getMinutes());
+                System.out.println(Math.abs(currentDate.getMinutes() - rs.getTime(1).getMinutes()));
+                System.out.println(Math.abs(currentDate.getSeconds() - rs.getTime(1).getSeconds()));
+                throw a;
+            }
         }
     }
 
