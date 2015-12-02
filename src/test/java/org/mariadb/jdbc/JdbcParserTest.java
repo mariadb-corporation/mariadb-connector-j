@@ -12,12 +12,8 @@ public class JdbcParserTest {
     @Test
     public void testMariaAlias() throws Throwable {
         UrlParser jdbc = UrlParser.parse("jdbc:mariadb://localhost/test");
-        Assert.assertNull(jdbc.getOptions().connectTimeout);
-        Assert.assertTrue(jdbc.getOptions().validConnectionTimeout == 120);
-        Assert.assertFalse(jdbc.getOptions().autoReconnect);
-        Assert.assertNull(jdbc.getOptions().user);
-        Assert.assertFalse(jdbc.getOptions().createDatabaseIfNotExist);
-        Assert.assertNull(jdbc.getOptions().socketTimeout);
+        UrlParser jdbc2 = UrlParser.parse("jdbc:mysql://localhost/test");
+        Assert.assertEquals(jdbc, jdbc2);
     }
 
     @Test
@@ -30,6 +26,11 @@ public class JdbcParserTest {
 
         jdbc = UrlParser.parse("jdbc:mariadb://localhost/test");
         Assert.assertFalse(jdbc.getOptions().useSsl);
+    }
+    @Test
+    public void testNAmePipeUrl() throws Throwable {
+        UrlParser jdbc = UrlParser.parse("jdbc:mariadb:///test?useSSL=true");
+        Assert.assertTrue(jdbc.getOptions().useSsl);
     }
 
     @Test
