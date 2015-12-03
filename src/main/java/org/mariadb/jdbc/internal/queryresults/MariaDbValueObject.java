@@ -325,7 +325,7 @@ public class MariaDbValueObject implements ValueObject {
                 case BIT:
                     return rawBytes[0];
                 case TINYINT:
-                    return getByte();
+                    return columnInfo.isSigned() ? getByte() : (short) (rawBytes[0] & 0xff);
                 case SMALLINT:
                 case YEAR:
                     short value = (short) ((rawBytes[0] & 0xff) | ((rawBytes[1] & 0xff) << 8));
@@ -380,10 +380,15 @@ public class MariaDbValueObject implements ValueObject {
                 case BIT:
                     return rawBytes[0];
                 case TINYINT:
-                    return getByte();
+                    return columnInfo.isSigned() ? getByte() : (rawBytes[0] & 0xff);
                 case SMALLINT:
                 case YEAR:
-                    return getShort();
+                    if (columnInfo.isSigned()) {
+                        return (int) getShort();
+                    } else {
+                        int value = ((rawBytes[0] & 0xff) | (rawBytes[1] & 0xff) << 8);
+                        return (value & 0xffffffff);
+                    }
                 case INTEGER:
                 case MEDIUMINT:
                     int value = ((rawBytes[0] & 0xff)
@@ -437,13 +442,29 @@ public class MariaDbValueObject implements ValueObject {
                 case BIT:
                     return rawBytes[0];
                 case TINYINT:
-                    return getByte();
+                    return columnInfo.isSigned() ? getByte() : (rawBytes[0] & 0xff);
                 case SMALLINT:
                 case YEAR:
-                    return getShort();
+                    if (columnInfo.isSigned()) {
+                        return (long) getShort();
+                    } else {
+                        long value = ((rawBytes[0] & 0xff)
+                                | ((long) (rawBytes[1] & 0xff) << 8)
+                        );
+                        return (value & 0xffffffffffffffffL);
+                    }
                 case INTEGER:
                 case MEDIUMINT:
-                    return getInt();
+                    if (columnInfo.isSigned()) {
+                        return getInt();
+                    } else {
+                        long value = ((rawBytes[0] & 0xff)
+                                | ((long) (rawBytes[1] & 0xff) << 8)
+                                | ((long) (rawBytes[2] & 0xff) << 16)
+                                | ((long) (rawBytes[3] & 0xff) << 24)
+                        );
+                        return (value & 0xffffffffffffffffL);
+                    }
                 case BIGINT:
                     long value = ((rawBytes[0] & 0xff)
                             | ((long) (rawBytes[1] & 0xff) << 8)
