@@ -13,33 +13,33 @@ public interface ValueObject {
     public static final int TINYINT1_IS_BIT = 1;
     public static final int YEAR_IS_DATE_TYPE = 2;
 
-    String getString(Calendar cal);
+    String getString(Calendar cal) throws SQLException;
 
-    String getString();
+    String getString() throws SQLException;
 
-    long getLong();
+    long getLong() throws SQLException;
 
-    int getInt();
+    int getInt() throws SQLException;
 
-    short getShort();
+    short getShort() throws SQLException;
 
-    byte getByte();
+    byte getByte() throws SQLException;
 
     byte[] getBytes();
 
-    float getFloat();
+    float getFloat() throws SQLException;
 
-    double getDouble();
+    double getDouble() throws SQLException;
 
-    BigDecimal getBigDecimal();
+    BigDecimal getBigDecimal() throws SQLException;
 
-    BigInteger getBigInteger();
+    BigInteger getBigInteger() throws SQLException;
 
     InputStream getInputStream();
 
     InputStream getBinaryInputStream();
 
-    Object getObject(int datatypeMappingFlags, Calendar cal) throws ParseException;
+    Object getObject(int datatypeMappingFlags, Calendar cal) throws SQLException, ParseException;
 
     Date getDate(Calendar cal) throws ParseException;
 

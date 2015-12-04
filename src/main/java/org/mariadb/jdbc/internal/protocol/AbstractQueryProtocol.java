@@ -287,7 +287,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 AbstractResultPacket rs = ReadResultPacketFactory.createResultPacket(byteBuffer);
                 final ErrorPacket ep = (ErrorPacket) rs;
                 throw new QueryException("Could not select database '" + database + "' : " + ep.getMessage(),
-                		ep.getErrorNumber(), ep.getSqlState());
+                    ep.getErrorNumber(), ep.getSqlState());
             }
             this.database = database;
         } catch (IOException e) {

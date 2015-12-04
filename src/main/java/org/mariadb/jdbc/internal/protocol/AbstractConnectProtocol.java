@@ -531,6 +531,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 serverData.put("system_time_zone", qr.getValueObject(1).getString());
                 serverData.put("time_zone", qr.getValueObject(2).getString());
             }
+        } catch (SQLException sqle) {
+            throw new QueryException("could not load system variables", -1, ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(), sqle);
         } finally {
             if (qr != null) {
                 qr.close();

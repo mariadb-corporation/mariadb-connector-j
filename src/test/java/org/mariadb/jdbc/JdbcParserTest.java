@@ -27,6 +27,7 @@ public class JdbcParserTest {
         jdbc = UrlParser.parse("jdbc:mariadb://localhost/test");
         Assert.assertFalse(jdbc.getOptions().useSsl);
     }
+
     @Test
     public void testNAmePipeUrl() throws Throwable {
         UrlParser jdbc = UrlParser.parse("jdbc:mariadb:///test?useSSL=true");
