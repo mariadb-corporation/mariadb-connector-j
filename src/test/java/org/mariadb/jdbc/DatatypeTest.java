@@ -301,16 +301,34 @@ public class DatatypeTest extends BaseTest {
 
     }
 
-    private ResultSet getResultSet(String query, boolean prepared) throws SQLException {
+    /**
+     * Get a simple Statement or a PrepareStatement.
+     * @param query query
+     * @param prepared flag must be a prepare statement
+     * @return a statement
+     * @throws SQLException exception
+     */
+    public static ResultSet getResultSet(String query, boolean prepared) throws SQLException {
+        return getResultSet(query, prepared, sharedConnection);
+    }
+
+    /**
+     * Get a simple Statement or a PrepareStatement.
+     * @param query query
+     * @param prepared flag must be a prepare statement
+     * @param connection the connection to use
+     * @return a statement
+     * @throws SQLException exception
+     */
+    public static ResultSet getResultSet(String query, boolean prepared, Connection connection) throws SQLException {
         if (prepared) {
-            PreparedStatement preparedStatement = sharedConnection.prepareStatement(query + " WHERE 1 = ?");
+            PreparedStatement preparedStatement = connection.prepareStatement(query + " WHERE 1 = ?");
             preparedStatement.setInt(1, 1);
             return preparedStatement.executeQuery();
         } else {
-            return sharedConnection.createStatement().executeQuery(query);
+            return connection.createStatement().executeQuery(query);
         }
     }
-
 
     @Test
     public void testEmptyResultSet() throws SQLException {

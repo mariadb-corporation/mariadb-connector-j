@@ -60,6 +60,7 @@ import org.mariadb.jdbc.internal.failover.impl.AuroraListener;
 import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -276,8 +277,10 @@ public class AuroraProtocol extends MastersSlavesProtocol {
             this.readOnly = !this.masterConnection;
             return this.masterConnection;
 
+        } catch (SQLException sqle) {
+            throw new QueryException("could not check the 'innodb_read_only' variable status on " + this.getHostAddress()
+                    + " : " + sqle.getMessage(), -1, ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(), sqle);
         } catch (IOException ioe) {
-            //log.trace("exception during checking if master", ioe);
             throw new QueryException("could not check the 'innodb_read_only' variable status on " + this.getHostAddress()
                     + " : " + ioe.getMessage(), -1, ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(), ioe);
         } finally {
