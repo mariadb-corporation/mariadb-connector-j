@@ -250,7 +250,7 @@
                     <execution>
                         <!--validate phase-->
                         <id>parse-version</id>
-                        <phase>prepare-package</phase>
+                        <phase>generate-sources</phase>
                         <goals>
                             <goal>parse-version</goal>
                         </goals>
@@ -263,7 +263,7 @@
                 <version>1.5.3</version>
                 <executions>
                     <execution>
-                        <phase>prepare-package</phase>
+                        <phase>generate-sources</phase>
                         <goals>
                             <goal>replace</goal>
                         </goals>
