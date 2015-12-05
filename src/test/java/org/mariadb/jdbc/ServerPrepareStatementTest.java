@@ -77,30 +77,6 @@ public class ServerPrepareStatementTest extends BaseTest {
     }
 
     @Test
-    public void withoutParameterClientExecutionTest() throws SQLException {
-        Connection connection = null;
-        try {
-            connection = setConnection();
-            Statement statement = connection.createStatement();
-            ResultSet rs = statement.executeQuery("show global status like 'Prepared_stmt_count'");
-            assertTrue(rs.next());
-            final int nbStatementCount = rs.getInt(2);
-
-            PreparedStatement ps = connection.prepareStatement(
-                    "INSERT INTO ServerPrepareStatementTest (test) VALUES (1)");
-            ps.addBatch();
-            ps.execute();
-
-            rs = statement.executeQuery("show global status like 'Prepared_stmt_count'");
-            assertTrue(rs.next());
-            System.out.println("client : rs.getInt(2) = " + rs.getInt(2));
-            assertTrue(rs.getInt(2) == nbStatementCount);
-        } finally {
-            connection.close();
-        }
-    }
-
-    @Test
     public void serverCacheStatementTest() throws Throwable {
         Protocol protocol = getProtocolFromConnection(sharedConnection);
         int cacheSize = protocol.prepareStatementCache().size();
