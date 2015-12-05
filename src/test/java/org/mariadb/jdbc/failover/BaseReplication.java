@@ -3,8 +3,6 @@ package org.mariadb.jdbc.failover;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Test;
-import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.internal.protocol.Protocol;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -46,7 +44,6 @@ public abstract class BaseReplication extends BaseMultiHostTest {
             connection.createStatement().execute("SELECT 1");
             int currentServerId = getServerId(connection);
 
-            log.trace("masterServerId = " + masterServerId + "/currentServerId = " + currentServerId);
             Assert.assertTrue(masterServerId == currentServerId);
             Assert.assertFalse(connection.isReadOnly());
         } finally {
@@ -83,10 +80,8 @@ public abstract class BaseReplication extends BaseMultiHostTest {
         try {
             connection = getNewConnection("&retriesAllDown=1", true);
             int masterServerId = getServerId(connection);
-            log.trace("master server_id = " + masterServerId);
             connection.setReadOnly(true);
             int firstSlaveId = getServerId(connection);
-            log.trace("slave1 server_id = " + firstSlaveId);
 
             stopProxy(masterServerId);
             stopProxy(firstSlaveId);
@@ -111,12 +106,10 @@ public abstract class BaseReplication extends BaseMultiHostTest {
 
             //search actual server_id for master and slave
             int masterServerId = getServerId(connection);
-            log.trace("master server_id = " + masterServerId);
 
             connection.setReadOnly(true);
 
             int firstSlaveId = getServerId(connection);
-            log.trace("slave1 server_id = " + firstSlaveId);
 
             stopProxy(masterServerId);
             stopProxy(firstSlaveId);
@@ -124,7 +117,6 @@ public abstract class BaseReplication extends BaseMultiHostTest {
             //must reconnect to the second slave without error
             connection.createStatement().execute("SELECT 1");
             int currentSlaveId = getServerId(connection);
-            log.trace("currentSlaveId server_id = " + currentSlaveId);
             Assert.assertTrue(currentSlaveId != firstSlaveId);
             Assert.assertTrue(currentSlaveId != masterServerId);
         } finally {
@@ -221,14 +213,12 @@ public abstract class BaseReplication extends BaseMultiHostTest {
             try {
                 connection = getNewConnection(false);
                 int serverId = getServerId(connection);
-                log.trace("master server found " + serverId);
                 if (i > 0) {
                     Assert.assertTrue(masterId == serverId);
                 }
                 masterId = serverId;
                 connection.setReadOnly(true);
                 int replicaId = getServerId(connection);
-                log.trace("++++++++++++slave  server found " + replicaId);
                 MutableInt count = connectionMap.get(String.valueOf(replicaId));
                 if (count == null) {
                     connectionMap.put(String.valueOf(replicaId), new MutableInt());
@@ -247,10 +237,8 @@ public abstract class BaseReplication extends BaseMultiHostTest {
         Assert.assertTrue(connectionMap.size() >= 2);
         for (String key : connectionMap.keySet()) {
             Integer connectionCount = connectionMap.get(key).get();
-            log.trace(" ++++ Server " + key + " : " + connectionCount + " connections ");
             Assert.assertTrue(connectionCount > 1);
         }
-        log.trace("randomConnection OK");
 
     }
 
@@ -313,7 +301,6 @@ public abstract class BaseReplication extends BaseMultiHostTest {
                 long start = System.currentTimeMillis();
                 Thread.sleep(2400); // wait that slave reconnection loop is launched
                 connection.close();
-                log.trace("close take " + (System.currentTimeMillis() - start) + "ms");
             } catch (Throwable e) {
                 e.printStackTrace();
                 Assert.fail();

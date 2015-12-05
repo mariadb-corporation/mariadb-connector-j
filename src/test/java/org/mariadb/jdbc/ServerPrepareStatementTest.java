@@ -121,14 +121,12 @@ public class ServerPrepareStatementTest extends BaseTest {
             ResultSet rs = statement.executeQuery("show global status like 'Prepared_stmt_count'");
             rs.next();
             int prepareServerStatement = rs.getInt(2);
-            log.trace("server side : " + prepareServerStatement);
 
             connection.prepareStatement("INSERT INTO ServerPrepareStatementCacheSize3(test) "
                     + "VALUES (?)");
             rs = statement.executeQuery("show global status like 'Prepared_stmt_count'");
             rs.next();
             int prepareServerStatement2 = rs.getInt(2);
-            log.trace("server side before closing: " + prepareServerStatement2);
             assertTrue(prepareServerStatement2 == prepareServerStatement + 1);
 
         } finally {
@@ -145,7 +143,6 @@ public class ServerPrepareStatementTest extends BaseTest {
             PreparedStatement[] sts = new PreparedStatement[20];
             for (int i = 0; i < 20; i++) {
                 String sql = "INSERT INTO ServerPrepareStatementCacheSize(id, test) VALUES (" + (i + 1) + ",?)";
-                log.trace(sql);
                 sts[i] = connection.prepareStatement(sql);
             }
             //check max cache size
@@ -425,7 +422,7 @@ public class ServerPrepareStatementTest extends BaseTest {
             PreparedStatement ps = connection.prepareStatement(
                     "INSERT INTO ServerPrepareStatementCacheSize3(test) VALUES (?)");
             Reader reader = new BufferedReader(new InputStreamReader(
-                    ClassLoader.getSystemResourceAsStream("logback.xml")));
+                    ClassLoader.getSystemResourceAsStream("style.xml")));
 
             ps.setCharacterStream(1, reader);
             ps.addBatch();

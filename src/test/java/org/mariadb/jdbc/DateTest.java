@@ -398,7 +398,6 @@ public class DateTest extends BaseTest {
             java.sql.Timestamp ts = rs.getTimestamp(1);
             long differenceToServer = ts.getTime() - now.getTime();
             long diff = Math.abs(differenceToServer - totalOffset);
-            log.trace("diff : " + diff);
             /* query take less than a second but taking in account server and client time second diff ... */
             assertTrue(diff < 5000);
 

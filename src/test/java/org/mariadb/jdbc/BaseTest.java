@@ -6,8 +6,6 @@ import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Method;
 import java.net.InetAddress;
@@ -25,7 +23,6 @@ import java.util.Properties;
  */
 @Ignore
 public class BaseTest {
-    protected static final Logger log = LoggerFactory.getLogger(BaseTest.class);
     protected static final String mDefUrl = "jdbc:mysql://localhost:3306/testj?user=root";
     protected static String connU;
     protected static String connUri;
@@ -44,13 +41,13 @@ public class BaseTest {
     public TestRule watcher = new TestWatcher() {
         protected void succeeded(Description description) {
             if (testSingleHost) {
-                log.debug("finished test success : " + description.getClassName() + "." + description.getMethodName());
+                System.out.println("finished test success : " + description.getClassName() + "." + description.getMethodName());
             }
         }
 
         protected void failed(Throwable throwable, Description description) {
             if (testSingleHost) {
-                log.debug("finished test failed : " + description.getClassName() + "." + description.getMethodName());
+                System.out.println("finished test failed : " + description.getClassName() + "." + description.getMethodName());
             }
         }
     };
@@ -70,9 +67,6 @@ public class BaseTest {
         database = urlParser.getDatabase();
         username = urlParser.getUsername();
         password = urlParser.getPassword();
-
-        log.trace("Properties parsed from JDBC URL - hostname: " + hostname + ", port: " + port + ", database: "
-                + database + ", username: " + username + ", password: " + password);
 
         setUri();
 
@@ -126,7 +120,7 @@ public class BaseTest {
 
     // common function for logging information
     static void logInfo(String message) {
-        log.info(message);
+        System.out.println(message);
     }
 
     /**
@@ -282,11 +276,12 @@ public class BaseTest {
         int innodbLogFileSize = rs.getInt(1);
 
         if (maxAllowedPacket < 16 * 1024 * 1024) {
-            log.info("test '" + testName + "' skipped  due to server variable max_allowed_packet < 16M");
+
+            System.out.println("test '" + testName + "' skipped  due to server variable max_allowed_packet < 16M");
             return false;
         }
         if (innodbLogFileSize < 16 * 1024 * 1024) {
-            log.info("test '" + testName + "' skipped  due to server variable innodb_log_file_size < 16M");
+            System.out.println("test '" + testName + "' skipped  due to server variable innodb_log_file_size < 16M");
             return false;
         }
         return true;
@@ -304,11 +299,11 @@ public class BaseTest {
 
 
         if (maxAllowedPacket < 40 * 1024 * 1024) {
-            log.info("test '" + testName + "' skipped  due to server variable max_allowed_packet < 40M");
+            System.out.println("test '" + testName + "' skipped  due to server variable max_allowed_packet < 40M");
             return false;
         }
         if (innodbLogFileSize < 160 * 1024 * 1024) {
-            log.info("test '" + testName + "' skipped  due to server variable innodb_log_file_size < 160M");
+            System.out.println("test '" + testName + "' skipped  due to server variable innodb_log_file_size < 160M");
             return false;
         }
 
@@ -335,7 +330,7 @@ public class BaseTest {
         rs.close();
 
         if (!superPrivilege) {
-            log.info("test '" + testName + "' skipped because user '" + username + "' doesn't have SUPER privileges");
+            System.out.println("test '" + testName + "' skipped because user '" + username + "' doesn't have SUPER privileges");
         }
 
         return superPrivilege;
@@ -355,7 +350,7 @@ public class BaseTest {
         }
 
         if (isLocal == false) {
-            log.info("test '" + testName + "' skipped because connection is not local");
+            System.out.println("test '" + testName + "' skipped because connection is not local");
         }
 
         return isLocal;

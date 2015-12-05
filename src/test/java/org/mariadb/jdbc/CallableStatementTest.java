@@ -109,14 +109,13 @@ public class CallableStatementTest extends BaseTest {
         ResultSetMetaData md = rs.getMetaData();
 
         for (int i = 1; i <= md.getColumnCount(); i++) {
-            log.trace(md.getColumnLabel(i));
+            md.getColumnLabel(i);
         }
+
         while (rs.next()) {
-
             for (int i = 1; i <= rs.getMetaData().getColumnCount(); i++) {
-                log.trace(rs.getObject(i) + " ");
+                rs.getObject(i);
             }
-
         }
     }
 

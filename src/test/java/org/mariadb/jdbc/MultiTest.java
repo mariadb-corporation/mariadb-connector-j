@@ -75,7 +75,6 @@ public class MultiTest extends BaseTest {
 
     @Test
     public void basicTest() throws SQLException {
-        log.trace("basicTest begin");
         Connection connection = null;
         try {
             connection = setConnection("&allowMultiQueries=true");
@@ -94,7 +93,6 @@ public class MultiTest extends BaseTest {
             }
             assertTrue(count > 0);
             assertFalse(statement.getMoreResults());
-            log.trace("basicTest end");
         } finally {
             connection.close();
         }
@@ -102,7 +100,6 @@ public class MultiTest extends BaseTest {
 
     @Test
     public void updateTest() throws SQLException {
-        log.trace("updateTest begin");
         Connection connection = null;
         try {
             connection = setConnection("&allowMultiQueries=true");
@@ -110,7 +107,6 @@ public class MultiTest extends BaseTest {
             statement.execute("update MultiTestt5 set test='a " + System.currentTimeMillis()
                     + "' where id = 2;select * from MultiTestt2;");
             int updateNb = statement.getUpdateCount();
-            log.trace("statement.getUpdateCount() " + updateNb);
             assertTrue(updateNb == 2);
             assertTrue(statement.getMoreResults());
             ResultSet rs = statement.getResultSet();
@@ -120,7 +116,6 @@ public class MultiTest extends BaseTest {
             }
             assertTrue(count > 0);
             assertFalse(statement.getMoreResults());
-            log.trace("updateTest end");
         } finally {
             connection.close();
         }
@@ -128,7 +123,6 @@ public class MultiTest extends BaseTest {
 
     @Test
     public void updateTest2() throws SQLException {
-        log.trace("updateTest2 begin");
         Connection connection = null;
         try {
             connection = setConnection("&allowMultiQueries=true");
@@ -144,9 +138,7 @@ public class MultiTest extends BaseTest {
             statement.getMoreResults();
 
             int updateNb = statement.getUpdateCount();
-            log.trace("statement.getUpdateCount() " + updateNb);
             assertEquals(2, updateNb);
-            log.trace("updateTest2 end");
         } finally {
             connection.close();
         }
@@ -154,7 +146,6 @@ public class MultiTest extends BaseTest {
 
     @Test
     public void selectTest() throws SQLException {
-        log.trace("selectTest begin");
         Connection connection = null;
         try {
             connection = setConnection("&allowMultiQueries=true");
@@ -172,7 +163,6 @@ public class MultiTest extends BaseTest {
                 count++;
             }
             assertTrue(count > 0);
-            log.trace("selectTest end");
         } finally {
             connection.close();
         }
@@ -180,7 +170,6 @@ public class MultiTest extends BaseTest {
 
     @Test
     public void setMaxRowsMulti() throws Exception {
-        log.trace("setMaxRowsMulti begin");
         Connection connection = null;
         try {
             connection = setConnection("&allowMultiQueries=true");
@@ -211,7 +200,6 @@ public class MultiTest extends BaseTest {
             }
             rs.close();
             assertEquals(1, cnt);
-            log.trace("setMaxRowsMulti end");
         } finally {
             connection.close();
         }
@@ -224,17 +212,13 @@ public class MultiTest extends BaseTest {
      */
     @Test
     public void rewriteBatchedStatementsDisabledInsertionTest() throws SQLException {
-        log.trace("rewriteBatchedStatementsDisabledInsertionTest begin");
         verifyInsertBehaviorBasedOnRewriteBatchedStatements(Boolean.FALSE, 3000, 3000);
-        log.trace("rewriteBatchedStatementsDisabledInsertionTest end");
     }
 
     @Test
     public void rewriteBatchedStatementsEnabledInsertionTest() throws SQLException {
-        log.trace("rewriteBatchedStatementsEnabledInsertionTest begin");
         //On batch mode, single insert query will be sent to MariaDB server.
         verifyInsertBehaviorBasedOnRewriteBatchedStatements(Boolean.TRUE, 3000, 1);
-        log.trace("rewriteBatchedStatementsEnabledInsertionTest end");
     }
 
 
@@ -367,7 +351,6 @@ public class MultiTest extends BaseTest {
      */
     @Test
     public void rewriteBatchedStatementsSemicolon() throws SQLException {
-        log.trace("rewriteBatchedStatementsSemicolon begin");
         // set the rewrite batch statements parameter
         Properties props = new Properties();
         props.setProperty("rewriteBatchedStatements", "true");
@@ -420,7 +403,6 @@ public class MultiTest extends BaseTest {
             assertEquals(4, retrieveSessionVariableFromServer(tmpConnection, "Com_insert") - secondCurrentInsert);
 
         } finally {
-            log.trace("rewriteBatchedStatementsSemicolon end");
             if (tmpConnection != null) {
                 tmpConnection.close();
             }
@@ -473,7 +455,6 @@ public class MultiTest extends BaseTest {
      */
     @Test
     public void rewriteBatchedStatementsUpdateTest() throws SQLException {
-        log.trace("rewriteBatchedStatementsUpdateTest begin");
         // set the rewrite batch statements parameter
         Properties props = new Properties();
         props.setProperty("rewriteBatchedStatements", "true");
@@ -503,7 +484,6 @@ public class MultiTest extends BaseTest {
             verifyUpdateCount(tmpConnection, cycles); //1000 update commande launched
             assertEquals(cycles * 2, totalUpdates); // 2000 rows updates
         } finally {
-            log.trace("rewriteBatchedStatementsUpdateTest end");
             if (tmpConnection != null) {
                 tmpConnection.close();
             }
@@ -518,7 +498,6 @@ public class MultiTest extends BaseTest {
      */
     @Test
     public void testMultipleExecuteBatch() throws SQLException {
-        log.trace("testMultipleExecuteBatch begin");
         // set the rewrite batch statements parameter
         Properties props = new Properties();
         props.setProperty("rewriteBatchedStatements", "true");
@@ -548,7 +527,6 @@ public class MultiTest extends BaseTest {
             updateCounts = preparedStatement.executeBatch();
             assertEquals(1, updateCounts.length);
         } finally {
-            log.trace("testMultipleExecuteBatch end");
             if (tmpConnection != null) {
                 tmpConnection.close();
             }
@@ -557,7 +535,6 @@ public class MultiTest extends BaseTest {
 
     @Test
     public void rewriteBatchedStatementsInsertWithDuplicateRecordsTest() throws SQLException {
-        log.trace("rewriteBatchedStatementsInsertWithDuplicateRecordsTest begin");
         Properties props = new Properties();
         props.setProperty("rewriteBatchedStatements", "true");
         props.setProperty("allowMultiQueries", "true");
@@ -581,7 +558,6 @@ public class MultiTest extends BaseTest {
             verifyInsertCount(tmpConnection, 1);
             verifyUpdateCount(tmpConnection, 0);
         } finally {
-            log.trace("rewriteBatchedStatementsInsertWithDuplicateRecordsTest end");
             if (tmpConnection != null) {
                 tmpConnection.close();
             }
@@ -590,7 +566,6 @@ public class MultiTest extends BaseTest {
 
     @Test
     public void updateCountTest() throws SQLException {
-        log.trace("updateCountTest begin");
         Properties props = new Properties();
         props.setProperty("rewriteBatchedStatements", "true");
         props.setProperty("allowMultiQueries", "true");
@@ -634,13 +609,11 @@ public class MultiTest extends BaseTest {
             sqlUpdate.addBatch();
 
             int[] updateCounts = sqlUpdate.executeBatch();
-            log.trace("updateCounts : " + updateCounts.length);
             Assert.assertEquals(3, updateCounts.length);
             Assert.assertEquals(1, updateCounts[0]);
             Assert.assertEquals(0, updateCounts[1]);
             Assert.assertEquals(2, updateCounts[2]);
         } finally {
-            log.trace("updateCountTest end");
             if (tmpConnection != null) {
                 tmpConnection.close();
             }

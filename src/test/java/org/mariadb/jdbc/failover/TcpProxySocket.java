@@ -1,15 +1,11 @@
 package org.mariadb.jdbc.failover;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.*;
 import java.net.BindException;
 import java.net.ServerSocket;
 import java.net.Socket;
 
 public class TcpProxySocket implements Runnable {
-    protected static final Logger log = LoggerFactory.getLogger(TcpProxySocket.class);
 
     String host;
     int remoteport;
@@ -111,7 +107,6 @@ public class TcpProxySocket implements Runnable {
                             try {
                                 while ((bytesRead = fromClient.read(request)) != -1) {
                                     toServer.write(request, 0, bytesRead);
-                                    log.trace(bytesRead + "toServer--->" + new String(request, "UTF-8") + "<---");
                                     toServer.flush();
                                 }
                             } catch (IOException e) {
@@ -129,7 +124,6 @@ public class TcpProxySocket implements Runnable {
                         while ((bytesRead = fromServer.read(reply)) != -1) {
                             try {
                                 Thread.sleep(1);
-                                log.trace(bytesRead + " toClient--->" + new String(reply, "UTF-8") + "<---");
                             } catch (InterruptedException e) {
                                 e.printStackTrace();
                             }
