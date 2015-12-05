@@ -38,7 +38,6 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
             ResultSet rs = st.executeQuery("SELECT count(*) from mysql.time_zone_name "
                     + "where Name in ('Europe/Paris','Canada/Atlantic')");
             rs.next();
-            log.trace("time zone information : " + rs.getInt(1));
             if (rs.getInt(1) == 0) {
                 ResultSet rs2 = st.executeQuery("SELECT DATABASE()");
                 rs2.next();
@@ -509,10 +508,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
             try {
                 st.executeQuery("SET GLOBAL time_zone = 'Europe/Paris'");
                 rs = st.executeQuery("SHOW GLOBAL VARIABLES LIKE 'time_zone';");
-                if (rs.next()) {
-                    log.trace("new time_zone =" + rs.getString(2) + " was " + serverTimeZone);
-                }
-
+                rs.next();
                 createTable("daylightCanada", "id int, tt TIMESTAMP(6)");
 
                 Calendar quarterBeforeChangingHour = Calendar.getInstance(TimeZone.getTimeZone("Canada/Atlantic"));

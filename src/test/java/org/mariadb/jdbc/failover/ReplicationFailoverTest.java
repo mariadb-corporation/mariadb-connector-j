@@ -48,7 +48,6 @@ public class ReplicationFailoverTest extends BaseReplication {
                     Assume.assumeTrue(false);
                 }
                 stmt.execute("drop table  if exists replicationDelete" + jobId);
-                log.error("ERROR - > must not be able to write on slave ");
                 fail();
             } catch (SQLException e) {
                 //normal exception
@@ -92,11 +91,8 @@ public class ReplicationFailoverTest extends BaseReplication {
             while (loop) {
                 try {
                     Thread.sleep(250);
-                    log.trace("time : " + (System.currentTimeMillis() - stoppedTime) + "ms");
                     int currentHost = getServerId(connection);
                     if (masterServerId == currentHost) {
-                        log.trace("reconnection with failover loop after : " + (System.currentTimeMillis() - stoppedTime)
-                                + "ms");
                         assertTrue((System.currentTimeMillis() - stoppedTime) > 5 * 1000);
                         loop = false;
                     }
@@ -138,10 +134,8 @@ public class ReplicationFailoverTest extends BaseReplication {
         try {
             connection = getNewConnection("&retriesAllDown=1", true);
             int masterServerId = getServerId(connection);
-            log.trace("master server_id = " + masterServerId);
             connection.setReadOnly(true);
             int firstSlaveId = getServerId(connection);
-            log.trace("slave1 server_id = " + firstSlaveId);
             connection.setReadOnly(false);
 
             stopProxy(masterServerId);
@@ -183,8 +177,6 @@ public class ReplicationFailoverTest extends BaseReplication {
                 Thread.sleep(250);
                 try {
                     if (!connection.isReadOnly()) {
-                        log.trace("reconnection to master with failover loop after : " + (System.currentTimeMillis()
-                                - stoppedTime) + "ms");
                         assertTrue((System.currentTimeMillis() - stoppedTime) > 10 * 1000);
                         loop = false;
                     }

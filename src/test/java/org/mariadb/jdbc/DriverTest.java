@@ -1095,11 +1095,11 @@ public class DriverTest extends BaseTest {
             if (rs.getBoolean(1)) {
                 namedPipeName = rs.getString(2);
             } else {
-                log.info("test 'namedpipe' skipped");
+                System.out.println("test 'namedpipe' skipped");
             }
         } catch (SQLException e) {
             //named pipe not found,
-            log.info("test 'namedpipe' skipped");
+            System.out.println("test 'namedpipe' skipped");
         }
 
         //skip test if no namedPipeName was obtained because then we do not use a socket connection
@@ -1148,7 +1148,7 @@ public class DriverTest extends BaseTest {
         if (!rs.next()) {
             return;
         }
-        log.info("os:" + rs.getString(1) + " path:" + rs.getString(2));
+        System.out.println("os:" + rs.getString(1) + " path:" + rs.getString(2));
         String os = rs.getString(1);
         if (os.toLowerCase().startsWith("win")) {
             return;
