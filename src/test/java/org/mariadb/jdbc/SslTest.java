@@ -309,7 +309,6 @@ public class SslTest extends BaseTest {
         // You can create a keystore as follows:
         // echo "kspass" | openssl pkcs12 -export -in "${clientCertFile}" -inkey "${clientKeyFile}" -out "${clientKeystoreFile}" -name "mysqlAlias" -pass stdin
         Assume.assumeTrue(clientKeystorePathDefined());
-        log.trace("Client keystore path: {}", clientKeystorePath);
 
         String testUser = "testTsAndKs";
         // For this testcase, the testUser must be configured with ssl_type=X509
@@ -339,7 +338,6 @@ public class SslTest extends BaseTest {
         // You can create a keystore as follows:
         // echo "kspass" | openssl pkcs12 -export -in "${clientCertFile}" -inkey "${clientKeyFile}" -out "${clientKeystoreFile}" -name "mysqlAlias" -pass stdin
         Assume.assumeTrue(clientKeystorePathDefined());
-        log.trace("Client keystore path: {}", clientKeystorePath);
 
         String testUser = "testKeystore";
         // For this testcase, the testUser must be configured with ssl_type=X509
@@ -364,7 +362,6 @@ public class SslTest extends BaseTest {
         // You can create a keystore as follows:
         // echo "kspass" | openssl pkcs12 -export -in "${clientCertFile}" -inkey "${clientKeyFile}" -out "${clientKeystoreFile}" -name "mysqlAlias" -pass stdin
         Assume.assumeTrue(clientKeystorePathDefined());
-        log.trace("Client keystore path: {}", clientKeystorePath);
 
         String testUser = "testWrongPwd";
         // For this testcase, the testUser must be configured with ssl_type=X509
