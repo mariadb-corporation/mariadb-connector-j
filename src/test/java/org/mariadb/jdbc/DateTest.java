@@ -369,7 +369,7 @@ public class DateTest extends BaseTest {
                 Assert.assertTrue(Math.abs(currentDate.getSeconds() - rs.getTime(1).getSeconds()) <= 5);
             } catch (AssertionError a) {
                 System.out.println("currentDate:" + currentDate.toString() + " -> " + currentDate.getMinutes());
-                System.out.println("rs.getTime(1):" + currentDate.toString() + " -> " + rs.getTime(1).getMinutes());
+                System.out.println("rs.getTime(1):" + rs.getTime(1).toString() + " -> " + rs.getTime(1).getMinutes());
                 System.out.println(Math.abs(currentDate.getMinutes() - rs.getTime(1).getMinutes()));
                 System.out.println(Math.abs(currentDate.getSeconds() - rs.getTime(1).getSeconds()));
                 throw a;
