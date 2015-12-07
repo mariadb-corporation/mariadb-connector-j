@@ -59,6 +59,7 @@ import org.mariadb.jdbc.internal.protocol.AuroraProtocol;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -174,16 +175,15 @@ public class AuroraListener extends MastersSlavesListener {
                 String masterHostName = queryResult.getValueObject(0).getString();
                 for (int i = 0; i < loopAddress.size(); i++) {
                     if (loopAddress.get(i).host.startsWith(masterHostName)) {
-//                        if (log.isTraceEnabled()) log.trace("master probably " + loopAddress.get(i));
                         return loopAddress.get(i);
                     }
                 }
+            } catch (SQLException exception) {
+                //eat exception because cannot happen in this getString()
             } catch (IOException ioe) {
-//                log.trace("searchByStartName failed", ioe);
                 //eat exception
             } catch (QueryException qe) {
                 if (proxy.hasToHandleFailover(qe) && setSecondaryHostFail()) {
-//                  log.warn("SQL Secondary node [" + this.currentProtocol.getHostAddress().toString() + "] connection fail ");
                     addToBlacklist(currentProtocol.getHostAddress());
                 }
             } finally {

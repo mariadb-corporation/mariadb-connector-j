@@ -48,7 +48,7 @@ public class AuroraFailoverTest extends BaseReplication {
             Assert.assertTrue(connection.isReadOnly());
             try {
                 stmt.execute("drop table if exists auroraDelete" + jobId);
-                log.error("ERROR - > must not be able to write on slave. check if you database is start with --read-only");
+                System.out.println("ERROR - > must not be able to write on slave. check if you database is start with --read-only");
                 Assert.fail();
             } catch (SQLException e) {
                 //normal exception
@@ -131,8 +131,6 @@ public class AuroraFailoverTest extends BaseReplication {
             boolean loop = true;
             while (loop) {
                 if (!connection.isClosed()) {
-                    log.trace("reconnection with failover loop after : "
-                            + (System.currentTimeMillis() - stoppedTime) + "ms");
                     loop = false;
                 }
                 if (System.currentTimeMillis() - restartTime > 15 * 1000) {
@@ -192,7 +190,7 @@ public class AuroraFailoverTest extends BaseReplication {
                 st.execute("insert into multinodeTransaction" + jobId + " (id, amount) VALUE (2 , 10)");
                 Assert.fail();
             } catch (SQLException e) {
-                log.trace("normal error : " + e.getMessage());
+                 //normal error
             }
             restartProxy(masterServerId);
             try {

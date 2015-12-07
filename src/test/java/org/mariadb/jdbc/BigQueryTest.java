@@ -97,7 +97,7 @@ public class BigQueryTest extends BaseTest {
 
             rs = connection.createStatement().executeQuery(request);
             rs.next();
-            log.trace(String.valueOf(rs.getString(1).length()));
+            System.out.println(String.valueOf(rs.getString(1).length()));
         } finally {
             connection.close();
         }

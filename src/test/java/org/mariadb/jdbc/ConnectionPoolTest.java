@@ -111,7 +111,7 @@ public class ConnectionPoolTest extends BaseTest {
                     stmt.execute("insert into t3 values('hello" + Thread.currentThread().getId() + "-" + i + "')");
                     conn.close();
                 } catch (SQLException e) {
-                    log.debug(e.getSQLState());
+                    //eat exception
                 }
             }
         }

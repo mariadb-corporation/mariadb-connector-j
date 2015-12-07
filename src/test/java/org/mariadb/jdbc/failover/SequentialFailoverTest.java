@@ -75,7 +75,6 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
             //check blacklist size
             try {
                 Protocol protocol = getProtocolFromConnection(connection);
-                log.trace("backlist size : " + protocol.getProxy().getListener().getBlacklist().size());
                 Assert.assertTrue(protocol.getProxy().getListener().getBlacklist().size() == 1);
 
                 //replace proxified HostAddress by normal one
@@ -116,15 +115,12 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
     public void testMultiHostWriteOnMaster() throws Throwable {
         Assume.assumeTrue(initialGaleraUrl != null);
         Connection connection = null;
-        log.trace("testMultiHostWriteOnMaster begin");
         try {
             connection = getNewConnection();
             Statement stmt = connection.createStatement();
             stmt.execute("drop table  if exists multinode");
             stmt.execute("create table multinode (id int not null primary key auto_increment, test VARCHAR(10))");
-            log.trace("testMultiHostWriteOnMaster OK");
         } finally {
-            log.trace("testMultiHostWriteOnMaster done");
             if (connection != null) {
                 connection.close();
             }
@@ -152,8 +148,6 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
             boolean loop = true;
             while (loop) {
                 if (!connection.isClosed()) {
-                    log.trace("reconnection with failover loop after : " + (System.currentTimeMillis() - stoppedTime)
-                            + "ms");
                     loop = false;
                 }
                 if (System.currentTimeMillis() - restartTime > 15 * 1000) {
@@ -182,7 +176,6 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
             try {
                 connection2 = getNewConnection();
                 int otherServerId = getServerId(connection2);
-                log.trace("connected to server " + otherServerId);
                 Assert.assertTrue(otherServerId != firstServerId);
                 Protocol protocol = getProtocolFromConnection(connection2);
                 Assert.assertTrue(blacklist.keySet().toArray()[0].equals(protocol.getProxy().getListener()
