@@ -87,31 +87,6 @@ public class ServerPrepareStatementTest extends BaseTest {
     }
 
     @Test
-    public void prepStmtCacheSizeTest1() throws Throwable {
-        Connection connection = null;
-        try {
-            connection = setConnection("&prepStmtCacheSize=10");
-
-            Statement statement = connection.createStatement();
-
-            ResultSet rs = statement.executeQuery("show global status like 'Prepared_stmt_count'");
-            rs.next();
-            int prepareServerStatement = rs.getInt(2);
-
-            connection.prepareStatement("INSERT INTO ServerPrepareStatementCacheSize3(test) "
-                    + "VALUES (?)");
-            rs = statement.executeQuery("show global status like 'Prepared_stmt_count'");
-            rs.next();
-            int prepareServerStatement2 = rs.getInt(2);
-            assertTrue(prepareServerStatement2 == prepareServerStatement + 1);
-
-        } finally {
-            connection.close();
-        }
-    }
-
-
-    @Test
     public void prepStmtCacheSizeTest() throws Throwable {
         Connection connection = null;
         try {
