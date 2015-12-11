@@ -61,10 +61,9 @@ import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -79,7 +78,7 @@ public abstract class AbstractMastersListener implements Listener {
     /**
      * List the recent failedConnection.
      */
-    protected static Map<HostAddress, Long> blacklist = new HashMap<>();
+    protected static ConcurrentMap<HostAddress, Long> blacklist = new ConcurrentHashMap<>();
     /* =========================== Failover variables ========================================= */
     public final UrlParser urlParser;
     protected AtomicInteger currentConnectionAttempts = new AtomicInteger();
@@ -151,12 +150,12 @@ public abstract class AbstractMastersListener implements Listener {
      */
     public void resetOldsBlackListHosts() {
         long currentTime = System.currentTimeMillis();
-        Set<HostAddress> currentBlackListkeys = new HashSet<HostAddress>(blacklist.keySet());
-        for (HostAddress blackListHost : currentBlackListkeys) {
-            if (blacklist.get(blackListHost) < currentTime - urlParser.getOptions().loadBalanceBlacklistTimeout * 1000) {
-//                if (log.isTraceEnabled()) log.trace("host " + blackListHost+" remove of blacklist");
-                blacklist.remove(blackListHost);
-            }
+        for (Map.Entry<HostAddress, Long> blEntry : blacklist.entrySet()) {
+            long entryTime = blEntry.getValue();
+            if (entryTime < currentTime - urlParser.getOptions().loadBalanceBlacklistTimeout * 1000) {
+//              if (log.isTraceEnabled()) log.trace("host " + blackListHost+" remove of blacklist");
+              blacklist.remove(blEntry.getKey(), entryTime);
+          }
         }
     }
 
