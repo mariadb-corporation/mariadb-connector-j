@@ -70,7 +70,6 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 
 
 public abstract class AbstractMastersListener implements Listener {
@@ -90,7 +89,7 @@ public abstract class AbstractMastersListener implements Listener {
     protected long lastRetry = 0;
     protected boolean explicitClosed = false;
     protected ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
-    private AtomicLong masterHostFailTimestamp = new AtomicLong();
+    private volatile long masterHostFailNanos = 0;
     private AtomicBoolean masterHostFail = new AtomicBoolean();
 
     protected AbstractMastersListener(UrlParser urlParser) {
@@ -141,7 +140,7 @@ public abstract class AbstractMastersListener implements Listener {
      */
     public void addToBlacklist(HostAddress hostAddress) {
         if (hostAddress != null && !explicitClosed) {
-            blacklist.put(hostAddress, System.currentTimeMillis());
+            blacklist.put(hostAddress, System.nanoTime());
         }
     }
 
@@ -149,19 +148,20 @@ public abstract class AbstractMastersListener implements Listener {
      * Permit to remove Host to blacklist after loadBalanceBlacklistTimeout seconds.
      */
     public void resetOldsBlackListHosts() {
-        long currentTime = System.currentTimeMillis();
+        long currentTimeNanos = System.nanoTime();
         for (Map.Entry<HostAddress, Long> blEntry : blacklist.entrySet()) {
-            long entryTime = blEntry.getValue();
-            if (entryTime < currentTime - urlParser.getOptions().loadBalanceBlacklistTimeout * 1000) {
+            long entryNanos = blEntry.getValue();
+            long durationSeconds = TimeUnit.NANOSECONDS.toSeconds(currentTimeNanos - entryNanos);
+            if (durationSeconds >= urlParser.getOptions().loadBalanceBlacklistTimeout) {
 //              if (log.isTraceEnabled()) log.trace("host " + blackListHost+" remove of blacklist");
-              blacklist.remove(blEntry.getKey(), entryTime);
-          }
+                blacklist.remove(blEntry.getKey(), entryNanos);
+            }
         }
     }
 
     protected void resetMasterFailoverData() {
         if (masterHostFail.compareAndSet(true, false)) {
-            masterHostFailTimestamp.set(0);
+            masterHostFailNanos = 0;
         }
     }
 
@@ -194,8 +194,8 @@ public abstract class AbstractMastersListener implements Listener {
         return currentProtocol;
     }
 
-    public long getMasterHostFailTimestamp() {
-        return masterHostFailTimestamp.get();
+    public long getMasterHostFailNanos() {
+        return masterHostFailNanos;
     }
 
     /**
@@ -204,7 +204,7 @@ public abstract class AbstractMastersListener implements Listener {
      */
     public boolean setMasterHostFail() {
         if (masterHostFail.compareAndSet(false, true)) {
-            masterHostFailTimestamp.set(System.currentTimeMillis());
+            masterHostFailNanos = System.nanoTime();
             currentConnectionAttempts.set(0);
             return true;
         }

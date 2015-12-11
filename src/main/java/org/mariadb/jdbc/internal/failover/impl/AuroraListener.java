@@ -78,7 +78,6 @@ public class AuroraListener extends MastersSlavesListener {
         super(urlParser);
         masterProtocol = null;
         secondaryProtocol = null;
-        lastQueryTime = System.currentTimeMillis();
     }
 
     @Override

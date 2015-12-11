@@ -127,7 +127,7 @@ public class MasterProtocol extends AbstractQueryProtocol {
                 return;
 
             } catch (QueryException e) {
-                blacklist.put(protocol.getHostAddress(), System.currentTimeMillis());
+                blacklist.put(protocol.getHostAddress(), System.nanoTime());
                 lastQueryException = e;
             }
 

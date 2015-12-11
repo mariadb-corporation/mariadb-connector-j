@@ -7,6 +7,7 @@ import org.mariadb.jdbc.internal.util.constant.HaMode;
 import java.sql.*;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -119,21 +120,21 @@ public class AuroraFailoverTest extends BaseReplication {
             int masterServerId = getServerId(connection);
             stopProxy(masterServerId);
 
-            long stoppedTime = System.currentTimeMillis();
             try {
                 st.execute("SELECT 1");
             } catch (SQLException e) {
                 //normal exception
             }
             restartProxy(masterServerId);
-            long restartTime = System.currentTimeMillis();
+            long restartTime = System.nanoTime();
 
             boolean loop = true;
             while (loop) {
                 if (!connection.isClosed()) {
                     loop = false;
                 }
-                if (System.currentTimeMillis() - restartTime > 15 * 1000) {
+                long duration = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - restartTime);
+                if (duration > 15 * 1000) {
                     Assert.fail();
                 }
                 Thread.sleep(250);
@@ -215,7 +216,7 @@ public class AuroraFailoverTest extends BaseReplication {
             Statement stmt = connection.createStatement();
             int masterServerId = getServerId(connection);
             stopProxy(masterServerId);
-            long stopTime = System.currentTimeMillis();
+            long stopTime = System.nanoTime();
             try {
                 stmt.execute("SELECT 1");
                 Assert.fail();
@@ -223,7 +224,8 @@ public class AuroraFailoverTest extends BaseReplication {
                 //normal error
             }
             Assert.assertTrue(!connection.isReadOnly());
-            Assert.assertTrue(System.currentTimeMillis() - stopTime < 20 * 1000);
+            long duration = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - stopTime);
+            Assert.assertTrue(duration < 20 * 1000);
         } finally {
             if (connection != null) {
                 connection.close();

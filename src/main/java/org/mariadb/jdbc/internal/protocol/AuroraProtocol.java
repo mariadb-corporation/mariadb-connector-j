@@ -111,7 +111,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
             }
 
         } catch (QueryException e) {
-            blacklist.put(protocol.getHostAddress(), System.currentTimeMillis());
+            blacklist.put(protocol.getHostAddress(), System.nanoTime());
 //            if (log.isDebugEnabled())
 //                log.debug("Could not connect to " + protocol.currentHost + " searching for master : " + searchFilter.isSearchForMaster()
 // + " for replica :" + searchFilter.isSearchForSlave() + " error:" + e.getMessage());
@@ -180,7 +180,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
                 }
             } catch (QueryException e) {
                 lastQueryException = e;
-                blacklist.put(protocol.getHostAddress(), System.currentTimeMillis());
+                blacklist.put(protocol.getHostAddress(), System.nanoTime());
             }
 
             if (!searchFilter.isSearchForMaster() && !searchFilter.isSearchForSlave()) {

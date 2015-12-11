@@ -298,7 +298,6 @@ public abstract class BaseReplication extends BaseMultiHostTest {
 
         public void run() {
             try {
-                long start = System.currentTimeMillis();
                 Thread.sleep(2400); // wait that slave reconnection loop is launched
                 connection.close();
             } catch (Throwable e) {

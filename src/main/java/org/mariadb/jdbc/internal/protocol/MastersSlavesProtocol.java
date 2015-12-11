@@ -123,7 +123,7 @@ public class MastersSlavesProtocol extends MasterProtocol {
 
             } catch (QueryException e) {
                 lastQueryException = e;
-                blacklist.put(protocol.getHostAddress(), System.currentTimeMillis());
+                blacklist.put(protocol.getHostAddress(), System.nanoTime());
             }
 
             if (!searchFilter.isSearchForMaster() && !searchFilter.isSearchForSlave()) {
