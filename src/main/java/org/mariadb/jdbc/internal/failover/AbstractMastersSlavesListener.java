@@ -57,14 +57,13 @@ import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 import java.lang.reflect.Method;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 
 
 public abstract class AbstractMastersSlavesListener extends AbstractMastersListener {
 
     protected AtomicInteger queriesSinceFailover = new AtomicInteger();
     /* =========================== Failover variables ========================================= */
-    private AtomicLong secondaryHostFailTimestamp = new AtomicLong();
+    private volatile long secondaryHostFailNanos = 0;
     private AtomicBoolean secondaryHostFail = new AtomicBoolean();
 
     protected AbstractMastersSlavesListener(UrlParser urlParser) {
@@ -119,7 +118,7 @@ public abstract class AbstractMastersSlavesListener extends AbstractMastersListe
 
     protected void resetSecondaryFailoverData() {
         if (secondaryHostFail.compareAndSet(true, false)) {
-            secondaryHostFailTimestamp.set(0);
+            secondaryHostFailNanos = 0;
         }
 
         //if all connection are up, reset failovers timers
@@ -130,8 +129,8 @@ public abstract class AbstractMastersSlavesListener extends AbstractMastersListe
         }
     }
 
-    public long getSecondaryHostFailTimestamp() {
-        return secondaryHostFailTimestamp.get();
+    public long getSecondaryHostFailNanos() {
+        return secondaryHostFailNanos;
     }
 
     /**
@@ -140,7 +139,7 @@ public abstract class AbstractMastersSlavesListener extends AbstractMastersListe
      */
     public boolean setSecondaryHostFail() {
         if (secondaryHostFail.compareAndSet(false, true)) {
-            secondaryHostFailTimestamp.set(System.currentTimeMillis());
+            secondaryHostFailNanos = System.nanoTime();
             currentConnectionAttempts.set(0);
             return true;
         }

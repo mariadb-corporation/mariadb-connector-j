@@ -12,8 +12,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.assertTrue;
-
 /**
  * Test for sequential connection
  * exemple mvn test  -DdefaultGaleraUrl=jdbc:mysql:sequential//localhost:3306,localhost:3307/test?user=root.
@@ -80,7 +78,7 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
                 //replace proxified HostAddress by normal one
                 UrlParser urlParser = UrlParser.parse(defaultUrl);
                 protocol.getProxy().getListener().getBlacklist().put(urlParser.getHostAddresses().get(firstServerId - 1),
-                        System.currentTimeMillis());
+                        System.nanoTime());
             } catch (Throwable e) {
                 e.printStackTrace();
                 Assert.fail();
@@ -136,7 +134,6 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
             Statement st = connection.createStatement();
             int masterServerId = getServerId(connection);
             stopProxy(masterServerId);
-            long stoppedTime = System.currentTimeMillis();
 
             try {
                 st.execute("SELECT 1");
@@ -144,13 +141,14 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
                 //eat exception
             }
             restartProxy(masterServerId);
-            long restartTime = System.currentTimeMillis();
+            long restartTime = System.nanoTime();
             boolean loop = true;
             while (loop) {
                 if (!connection.isClosed()) {
                     loop = false;
                 }
-                if (System.currentTimeMillis() - restartTime > 15 * 1000) {
+                long duration = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - restartTime);
+                if (duration > 15 * 1000) {
                     Assert.fail();
                 }
                 Thread.sleep(250);

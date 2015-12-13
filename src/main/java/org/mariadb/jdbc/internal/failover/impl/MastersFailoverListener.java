@@ -268,7 +268,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
 //        if (log.isDebugEnabled()) {
 //            if (getMasterHostFailTimestamp() > 0) {
 //                log.debug("new primary node [" + currentProtocol.getHostAddress().toString() + "] connection established after "
-// + (System.currentTimeMillis() - getMasterHostFailTimestamp()));
+// + TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - getMasterHostFailNanos()));
 //            } else log.debug("new primary node [" + currentProtocol.getHostAddress().toString() + "] connection established");
 //        }
 

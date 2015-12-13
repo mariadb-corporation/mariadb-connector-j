@@ -6,6 +6,7 @@ import org.mariadb.jdbc.internal.util.constant.HaMode;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.*;
 
@@ -68,7 +69,7 @@ public class ReplicationFailoverTest extends BaseReplication {
             Statement st = connection.createStatement();
             final int masterServerId = getServerId(connection);
             stopProxy(masterServerId);
-            long stoppedTime = System.currentTimeMillis();
+            long stoppedTime = System.nanoTime();
 
             try {
                 st.execute("SELECT 1");
@@ -93,13 +94,15 @@ public class ReplicationFailoverTest extends BaseReplication {
                     Thread.sleep(250);
                     int currentHost = getServerId(connection);
                     if (masterServerId == currentHost) {
-                        assertTrue((System.currentTimeMillis() - stoppedTime) > 5 * 1000);
+                        long duration = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - stoppedTime);
+                        assertTrue(duration > 5 * 1000);
                         loop = false;
                     }
                 } catch (SQLException e) {
                     //eat exception
                 }
-                if (System.currentTimeMillis() - stoppedTime > 20 * 1000) {
+                long duration = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - stoppedTime);
+                if (duration > 20 * 1000) {
                     fail();
                 }
             }
@@ -170,20 +173,22 @@ public class ReplicationFailoverTest extends BaseReplication {
                 fail();
             }
 
-            long stoppedTime = System.currentTimeMillis();
+            long stoppedTime = System.nanoTime();
             restartProxy(masterServerId);
             boolean loop = true;
             while (loop) {
                 Thread.sleep(250);
                 try {
                     if (!connection.isReadOnly()) {
-                        assertTrue((System.currentTimeMillis() - stoppedTime) > 10 * 1000);
+                        long duration = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - stoppedTime);
+                        assertTrue(duration > 10 * 1000);
                         loop = false;
                     }
                 } catch (SQLException e) {
                     //eat exception
                 }
-                if (System.currentTimeMillis() - stoppedTime > 30 * 1000) {
+                long duration = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - stoppedTime);
+                if (duration > 30 * 1000) {
                     fail();
                 }
             }
