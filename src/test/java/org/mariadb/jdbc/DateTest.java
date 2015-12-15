@@ -354,23 +354,17 @@ public class DateTest extends BaseTest {
         ps.executeUpdate();
         ResultSet rs = sharedConnection.createStatement().executeQuery("select * from dtest4");
         rs.next();
-        assertEquals(currentDate.getHours(), rs.getTime(1).getHours());
 
-          /* Check that time is correct, up to seconds precision */
-        if (isMariadbServer()) {
-            assertEquals(currentDate.getMinutes(), rs.getTime(1).getMinutes());
-            assertEquals(currentDate.getSeconds(), rs.getTime(1).getSeconds());
-        } else {
-            //mysql 2 seconds precision ...
-            try {
-                Assert.assertTrue(Math.abs(currentDate.getTime() - rs.getTime(1).getTime()) <= 2000);
-            } catch (AssertionError a) {
-                System.out.println("currentDate:" + currentDate.toString() + " -> " + currentDate.getTime());
-                System.out.println("rs.getTime(1):" + rs.getTime(1).toString() + " -> " + rs.getTime(1).getTime());
-                throw a;
-            }
-        }
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(currentDate);
+        calendar.set(Calendar.YEAR, 1970);
+        calendar.set(Calendar.MONTH, 0);
+        calendar.set(Calendar.DAY_OF_MONTH, 1);
+
+        /* Check that time is correct, up to seconds precision */
+        Assert.assertTrue(Math.abs(calendar.getTimeInMillis() - rs.getTime(1).getTime()) <= 1000);
     }
+
 
     @Test
     public void serverTimezone() throws Exception {
