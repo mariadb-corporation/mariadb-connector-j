@@ -51,6 +51,8 @@ OF SUCH DAMAGE.
 
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.UrlParser;
+import org.mariadb.jdbc.internal.util.SchedulerServiceProviderHolder;
+import org.mariadb.jdbc.internal.util.SchedulerServiceProviderHolder.SchedulerProvider;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.query.MariaDbQuery;
 import org.mariadb.jdbc.internal.query.Query;
@@ -64,12 +66,13 @@ import java.sql.SQLException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.LockSupport;
 
 
 public abstract class AbstractMastersListener implements Listener {
@@ -82,19 +85,37 @@ public abstract class AbstractMastersListener implements Listener {
     public final UrlParser urlParser;
     protected AtomicInteger currentConnectionAttempts = new AtomicInteger();
     protected AtomicBoolean currentReadOnlyAsked = new AtomicBoolean();
-    protected AtomicBoolean isLooping = new AtomicBoolean();
-    protected ScheduledFuture scheduledFailover = null;
+    protected AtomicReference<FailLoop> runningFailLoop = new AtomicReference<>();
     protected Protocol currentProtocol = null;
     protected FailoverProxy proxy;
     protected long lastRetry = 0;
     protected boolean explicitClosed = false;
-    protected ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
+    private final SchedulerProvider schedulerProvider = SchedulerServiceProviderHolder.getSchedulerProvider();
+    protected final ScheduledExecutorService scheduler = schedulerProvider.getScheduler(2);
     private volatile long masterHostFailNanos = 0;
     private AtomicBoolean masterHostFail = new AtomicBoolean();
 
     protected AbstractMastersListener(UrlParser urlParser) {
         this.urlParser = urlParser;
         this.masterHostFail.set(true);
+    }
+    
+    protected void shutdownScheduler() {
+        schedulerProvider.shutdownScheduler(scheduler);
+        FailLoop runningLoop = stopFailover();
+        if (runningLoop != null) {
+            runningLoop.blockTillTerminated();
+        }
+    }
+    
+    @Override
+    protected void finalize() throws Throwable {
+        if (! scheduler.isShutdown()) {
+            // TODO - log warning that scheduler was not cleaned up?
+            // if we did not shutdown here, these threads would be leaked and never shutdown
+            shutdownScheduler();
+        }
+        super.finalize();
     }
 
     public FailoverProxy getProxy() {
@@ -171,10 +192,16 @@ public abstract class AbstractMastersListener implements Listener {
         }
     }
 
-    protected void stopFailover() {
-        if (isLooping.compareAndSet(true, false) && scheduledFailover != null) {
-            scheduledFailover.cancel(false);
+    protected FailLoop stopFailover() {
+        FailLoop loop;
+        while ((loop = runningFailLoop.get()) != null) {
+            if (runningFailLoop.compareAndSet(loop, null)) {
+                // compare and swap guards that only one thread invokes unschedule on a specific loop instance
+                loop.unscheduleTask();
+                return loop;
+            }
         }
+        return null;
     }
 
     /**
@@ -184,9 +211,11 @@ public abstract class AbstractMastersListener implements Listener {
      * @param now now will launch the loop immediatly, 250ms after if false
      */
     protected void launchFailLoopIfNotlaunched(boolean now) {
-        if (isLooping.compareAndSet(false, true) && urlParser.getOptions().failoverLoopRetries != 0) {
-            scheduledFailover = Executors.newSingleThreadScheduledExecutor().scheduleWithFixedDelay(
-                    new FailLoop(this), now ? 0 : 250, 250, TimeUnit.MILLISECONDS);
+        if (runningFailLoop.get() == null && urlParser.getOptions().failoverLoopRetries != 0) {
+            FailLoop loopRunner = new FailLoop(this);
+            if (runningFailLoop.compareAndSet(null, loopRunner)) {
+                loopRunner.scheduleSelf(scheduler, now);
+            }
         }
     }
 
@@ -340,11 +369,46 @@ public abstract class AbstractMastersListener implements Listener {
     public abstract void throwFailoverMessage(QueryException queryException, boolean reconnected) throws QueryException;
 
     public abstract void reconnect() throws QueryException;
+    
+    protected abstract static class TerminatableRunnable implements Runnable {
+        private final AtomicInteger runState = new AtomicInteger(0); // -1 = removed, 0 = idle, 1 = active
+        
+        protected abstract void unscheduleTask();
+        
+        protected abstract void doRun();
+        
+        @Override
+        public final void run() {
+            if (! runState.compareAndSet(0, 1)) {
+                // task has somehow either started to run in parallel (should not be possible)
+                // or more likely the task has now been set to terminate
+                return;
+            }
+            try {
+                doRun();
+            } finally {
+                runState.compareAndSet(1, 0);
+            }
+        }
+        
+        public void blockTillTerminated() {
+            unscheduleTask();
+            while (! runState.compareAndSet(0, -1)) {
+                // wait and retry
+                LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(10));
+                if (Thread.currentThread().isInterrupted()) {
+                    runState.set(-1);
+                    return;
+                }
+            }
+        }
+    }
 
     /**
      * Private class to permit a timer reconnection loop.
      */
-    protected class FailLoop implements Runnable {
+    protected class FailLoop extends TerminatableRunnable {
+        private volatile ScheduledFuture<?> scheduledFuture = null;
         Listener listener;
 
         public FailLoop(Listener listener) {
@@ -352,7 +416,28 @@ public abstract class AbstractMastersListener implements Listener {
             this.listener = listener;
         }
 
-        public void run() {
+        public void scheduleSelf(ScheduledExecutorService scheduler, boolean now) {
+            scheduledFuture = scheduler.scheduleWithFixedDelay(this, now ? 0 : 250, 250, 
+                                                               TimeUnit.MILLISECONDS);
+        }
+
+        // while scheduledFuture may be set from another thread
+        // it is expected only one thread will unschedule
+        @Override
+        public void unscheduleTask() {
+            while (true) {
+                if (scheduledFuture == null) {
+                    // not scheduled yet, should be a rare condition, just loop
+                    Thread.yield();
+                } else {
+                    scheduledFuture.cancel(false);
+                    scheduledFuture = null;
+                }
+            }
+        }
+
+        @Override
+        protected void doRun() {
             if (!explicitClosed && hasHostFail()) {
                 if (listener.shouldReconnect()) {
                     try {
