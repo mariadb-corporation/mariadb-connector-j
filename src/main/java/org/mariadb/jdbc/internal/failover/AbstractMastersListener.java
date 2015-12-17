@@ -85,7 +85,7 @@ public abstract class AbstractMastersListener implements Listener {
     public final UrlParser urlParser;
     protected AtomicInteger currentConnectionAttempts = new AtomicInteger();
     protected AtomicBoolean currentReadOnlyAsked = new AtomicBoolean();
-    protected AtomicReference<FailLoop> runningFailLoop = new AtomicReference<>();
+    private AtomicReference<FailLoop> runningFailLoop = new AtomicReference<>();
     protected Protocol currentProtocol = null;
     protected FailoverProxy proxy;
     protected long lastRetry = 0;
@@ -432,6 +432,7 @@ public abstract class AbstractMastersListener implements Listener {
                 } else {
                     scheduledFuture.cancel(false);
                     scheduledFuture = null;
+                    return;
                 }
             }
         }
