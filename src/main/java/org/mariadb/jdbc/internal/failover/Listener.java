@@ -70,8 +70,6 @@ public interface Listener {
 
     void preClose() throws SQLException;
 
-    boolean shouldReconnect();
-
     void reconnectFailedConnection(SearchFilter filter) throws QueryException;
 
     void switchReadOnlyConnection(Boolean readonly) throws QueryException;
@@ -90,7 +88,8 @@ public interface Listener {
 
     UrlParser getUrlParser();
 
-    void throwFailoverMessage(QueryException queryException, boolean reconnected) throws QueryException;
+    void throwFailoverMessage(HostAddress failHostAddress, boolean wasMaster, QueryException queryException,
+                              boolean reconnected) throws QueryException;
 
     boolean isAutoReconnect();
 
@@ -105,4 +104,8 @@ public interface Listener {
     boolean isReadOnly();
 
     boolean isClosed();
+
+    Protocol getCurrentProtocol();
+
+    boolean hasHostFail();
 }

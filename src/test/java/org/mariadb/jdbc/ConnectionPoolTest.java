@@ -41,7 +41,7 @@ public class ConnectionPoolTest extends BaseTest {
     @Test
     public void testConnectionWithSimululatedApacheDbcp() throws SQLException {
 
-        java.sql.Driver driver = new org.mariadb.jdbc.Driver();
+        java.sql.Driver driver = new Driver();
 
         Properties props = new Properties();
         props.put("user", username);

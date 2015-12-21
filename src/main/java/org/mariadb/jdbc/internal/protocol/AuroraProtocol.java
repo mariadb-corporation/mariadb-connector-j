@@ -61,9 +61,7 @@ import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class AuroraProtocol extends MastersSlavesProtocol {
@@ -83,17 +81,11 @@ public class AuroraProtocol extends MastersSlavesProtocol {
      */
     public static void searchProbableMaster(AuroraListener listener, HostAddress probableMaster, Map<HostAddress, Long> blacklist,
                                             SearchFilter searchFilter) throws QueryException {
-        /*if (log.isDebugEnabled()) {
-            log.debug("searching for master:" + searchFilter.isSearchForMaster() + " replica:" + searchFilter.isSearchForSlave()
-            + " address:" + probableMaster + " blacklist:" + blacklist.keySet());
-        }*/
         AuroraProtocol protocol = getNewProtocol(listener.getProxy(), listener.getUrlParser());
         try {
 
             protocol.setHostAddress(probableMaster);
-            //if (log.isTraceEnabled()) log.trace("trying to connect to " + protocol.getHostAddress());
             protocol.connect();
-            //if (log.isTraceEnabled()) log.trace("connected to " + protocol.getHostAddress());
 
             if (searchFilter.isSearchForMaster() && protocol.isMasterConnection()) {
                 searchFilter.setSearchForMaster(false);
@@ -104,17 +96,12 @@ public class AuroraProtocol extends MastersSlavesProtocol {
                 protocol.setMustBeMasterConnection(false);
                 listener.foundActiveSecondary(protocol);
             } else {
-                //if (log.isDebugEnabled())
-                //    log.debug("close connection because unused : " + protocol.getHostAddress());
                 protocol.close();
                 protocol = getNewProtocol(listener.getProxy(), listener.getUrlParser());
             }
 
         } catch (QueryException e) {
             blacklist.put(protocol.getHostAddress(), System.nanoTime());
-//            if (log.isDebugEnabled())
-//                log.debug("Could not connect to " + protocol.currentHost + " searching for master : " + searchFilter.isSearchForMaster()
-// + " for replica :" + searchFilter.isSearchForSlave() + " error:" + e.getMessage());
         }
     }
 
@@ -129,13 +116,9 @@ public class AuroraProtocol extends MastersSlavesProtocol {
      */
     public static void loop(AuroraListener listener, final List<HostAddress> addresses, Map<HostAddress, Long> blacklist, SearchFilter searchFilter)
             throws QueryException {
-//        if (log.isDebugEnabled()) {
-//            log.debug("searching for master:" + searchFilter.isSearchForMaster() + " replica:" + searchFilter.isSearchForSlave()
-// + " addresses:" + addresses);
-//        }
 
         AuroraProtocol protocol;
-        List<HostAddress> loopAddresses = new LinkedList<>(addresses);
+        ArrayDeque<HostAddress> loopAddresses = new ArrayDeque<>((!addresses.isEmpty()) ? addresses : blacklist.keySet());
         int maxConnectionTry = listener.getRetriesAllDown();
         QueryException lastQueryException = null;
 
@@ -148,25 +131,24 @@ public class AuroraProtocol extends MastersSlavesProtocol {
             maxConnectionTry--;
 
             try {
-                protocol.setHostAddress(loopAddresses.get(0));
-                loopAddresses.remove(0);
-
+                protocol.setHostAddress(loopAddresses.pollFirst());
                 protocol.connect();
+
                 if (listener.isExplicitClosed()) {
                     protocol.close();
                     return;
                 }
+
                 blacklist.remove(protocol.getHostAddress());
 
-                if (searchFilter.isSearchForMaster() && protocol.isMasterConnection()) {
+                if (listener.isMasterHostFail() && protocol.isMasterConnection()) {
                     if (foundMaster(listener, protocol, searchFilter)) {
                         return;
                     }
-                } else if (searchFilter.isSearchForSlave() && !protocol.isMasterConnection()) {
+                } else if (listener.isSecondaryHostFail() && !protocol.isMasterConnection()) {
                     if (foundSecondary(listener, protocol, searchFilter)) {
                         return;
                     }
-
                     HostAddress probableMasterHost = listener.searchByStartName(protocol, listener.getUrlParser().getHostAddresses());
                     if (probableMasterHost != null) {
                         loopAddresses.remove(probableMasterHost);
@@ -189,7 +171,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
 
             //loop is set so
             if (loopAddresses.isEmpty() && !searchFilter.isUniqueLoop() && maxConnectionTry > 0) {
-                loopAddresses = new LinkedList<>(addresses);
+                loopAddresses = new ArrayDeque<>(blacklist.keySet());
                 listener.checkMasterStatus(searchFilter);
             }
 
@@ -205,40 +187,6 @@ public class AuroraProtocol extends MastersSlavesProtocol {
             }
             throw new QueryException(error);
         }
-    }
-
-    private static boolean foundMaster(AuroraListener listener, AuroraProtocol protocol, SearchFilter searchFilter) {
-        protocol.setMustBeMasterConnection(true);
-        searchFilter.setSearchForMaster(false);
-        listener.foundActiveMaster(protocol);
-        if (!searchFilter.isSearchForSlave()) {
-            return true;
-        } else {
-            if (listener.isExplicitClosed()
-                    || searchFilter.isFineIfFoundOnlyMaster()
-                    || !listener.isSecondaryHostFail()) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static boolean foundSecondary(AuroraListener listener, AuroraProtocol protocol, SearchFilter searchFilter) throws QueryException {
-        searchFilter.setSearchForSlave(false);
-        protocol.setMustBeMasterConnection(false);
-        listener.foundActiveSecondary(protocol);
-        if (!searchFilter.isSearchForMaster()) {
-            return true;
-        } else {
-            if (listener.isExplicitClosed()
-                    || searchFilter.isFineIfFoundOnlySlave()
-                    || !listener.isMasterHostFail()) {
-                return true;
-            }
-
-
-        }
-        return false;
     }
 
     /**

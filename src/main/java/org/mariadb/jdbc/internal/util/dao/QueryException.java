@@ -129,12 +129,18 @@ public class QueryException extends Exception {
 
 
     /**
-     * S
-     * gets the sql state.
-     *
+     * Gets the sql state.
      * @return the sql state
      */
     public final String getSqlState() {
         return sqlState;
+    }
+
+    /**
+     * Sets the sql state.
+     * @param sqlState sqlState
+     */
+    public void setSqlState(String sqlState) {
+        this.sqlState = sqlState;
     }
 }

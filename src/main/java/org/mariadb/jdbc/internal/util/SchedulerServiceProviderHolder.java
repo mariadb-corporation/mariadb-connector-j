@@ -50,10 +50,7 @@ OF SUCH DAMAGE.
 */
 
 import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -155,6 +152,8 @@ public class SchedulerServiceProviderHolder {
                     return result;
                 }
             });
+            setKeepAliveTime(60, TimeUnit.SECONDS);
+            allowCoreThreadTimeOut(true);
         }
         
         protected void uncheckedShutdown() {

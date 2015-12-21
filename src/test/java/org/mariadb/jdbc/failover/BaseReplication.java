@@ -164,6 +164,8 @@ public abstract class BaseReplication extends BaseMultiHostTest {
                 Assert.fail();
             } catch (SQLException e) {
                 //normal exception
+                restartProxy(masterServerId);
+                st.execute("drop table  if exists writeToSlave" + jobId);
             }
         } finally {
             if (connection != null) {
@@ -192,6 +194,8 @@ public abstract class BaseReplication extends BaseMultiHostTest {
                 Assert.fail();
             } catch (SQLException e) {
                 //normal exception
+                connection.setReadOnly(false);
+                st.execute("drop table  if exists multinodeTransaction2_" + jobId);
             }
         } finally {
             if (connection != null) {

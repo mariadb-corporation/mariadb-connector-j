@@ -53,6 +53,8 @@ public class AuroraFailoverTest extends BaseReplication {
                 Assert.fail();
             } catch (SQLException e) {
                 //normal exception
+                connection.setReadOnly(false);
+                stmt.execute("drop table if exists auroraDelete" + jobId);
             }
         } finally {
             if (connection != null) {
@@ -197,6 +199,7 @@ public class AuroraFailoverTest extends BaseReplication {
             try {
                 st = connection.createStatement();
                 st.execute("insert into multinodeTransaction" + jobId + " (id, amount) VALUE (2 , 10)");
+                st.execute("drop table  if exists multinodeTransaction" + jobId);
             } catch (SQLException e) {
                 e.printStackTrace();
                 Assert.fail();

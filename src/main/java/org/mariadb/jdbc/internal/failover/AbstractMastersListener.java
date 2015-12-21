@@ -51,8 +51,11 @@ OF SUCH DAMAGE.
 
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.UrlParser;
+import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.util.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.SchedulerServiceProviderHolder;
 import org.mariadb.jdbc.internal.util.SchedulerServiceProviderHolder.SchedulerProvider;
+import org.mariadb.jdbc.internal.util.dao.PrepareResult;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.query.MariaDbQuery;
 import org.mariadb.jdbc.internal.query.Query;
@@ -64,11 +67,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.SQLException;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -90,8 +89,9 @@ public abstract class AbstractMastersListener implements Listener {
     protected FailoverProxy proxy;
     protected long lastRetry = 0;
     protected boolean explicitClosed = false;
-    private final SchedulerProvider schedulerProvider = SchedulerServiceProviderHolder.getSchedulerProvider();
-    protected final ScheduledExecutorService scheduler = schedulerProvider.getScheduler(2);
+
+    private static final SchedulerProvider schedulerProvider = SchedulerServiceProviderHolder.getSchedulerProvider();
+    protected static final ScheduledExecutorService scheduler = schedulerProvider.getScheduler(50);
     private volatile long masterHostFailNanos = 0;
     private AtomicBoolean masterHostFail = new AtomicBoolean();
 
@@ -101,23 +101,12 @@ public abstract class AbstractMastersListener implements Listener {
     }
     
     protected void shutdownScheduler() {
-        schedulerProvider.shutdownScheduler(scheduler);
         FailLoop runningLoop = stopFailover();
         if (runningLoop != null) {
             runningLoop.blockTillTerminated();
         }
     }
     
-    @Override
-    protected void finalize() throws Throwable {
-        if (! scheduler.isShutdown()) {
-            // TODO - log warning that scheduler was not cleaned up?
-            // if we did not shutdown here, these threads would be leaked and never shutdown
-            shutdownScheduler();
-        }
-        super.finalize();
-    }
-
     public FailoverProxy getProxy() {
         return this.proxy;
     }
@@ -204,13 +193,15 @@ public abstract class AbstractMastersListener implements Listener {
         return null;
     }
 
+    protected abstract FailLoop handleFailLoop(boolean now);
+
     /**
      * launch the scheduler loop every 250 milliseconds, to reconnect a failed connection.
      * Will verify if there is an existing scheduler
      *
      * @param now now will launch the loop immediatly, 250ms after if false
      */
-    protected void launchFailLoopIfNotlaunched(boolean now) {
+    protected void launchFailLoopIfNotLaunched(boolean now) {
         if (runningFailLoop.get() == null && urlParser.getOptions().failoverLoopRetries != 0) {
             FailLoop loopRunner = new FailLoop(this);
             if (runningFailLoop.compareAndSet(null, loopRunner)) {
@@ -253,8 +244,8 @@ public abstract class AbstractMastersListener implements Listener {
     }
 
     /**
-     * After a failover that has bean done, relaunche the operation that was in progress.
-     * In case of special operation that crash serveur, doesn't relaunched it;
+     * After a failover that has bean done, relaunch the operation that was in progress.
+     * In case of special operation that crash server, doesn't relaunched it;
      *
      * @param method the methode accessed
      * @param args   the parameters
@@ -276,7 +267,7 @@ public abstract class AbstractMastersListener implements Listener {
                 //the statementId has been discarded with previous session
                 try {
                     Method methodFailure = currentProtocol.getClass().getDeclaredMethod("executePreparedQueryAfterFailover",
-                            String.class, ParameterHolder[].class, boolean.class);
+                            String.class, ParameterHolder[].class, PrepareResult.class, MariaDbType[].class, boolean.class);
                     handleErrorResult.resultObject = methodFailure.invoke(currentProtocol, args);
                     handleErrorResult.mustThrowError = false;
                 } catch (Exception e) {
@@ -358,23 +349,59 @@ public abstract class AbstractMastersListener implements Listener {
 
     public abstract void preClose() throws SQLException;
 
-    public abstract boolean shouldReconnect();
-
     public abstract void reconnectFailedConnection(SearchFilter filter) throws QueryException;
 
     public abstract void switchReadOnlyConnection(Boolean readonly) throws QueryException;
 
     public abstract HandleErrorResult primaryFail(Method method, Object[] args) throws Throwable;
 
-    public abstract void throwFailoverMessage(QueryException queryException, boolean reconnected) throws QueryException;
+    /**
+     * Throw a human readable message after a failoverException.
+     *
+     * @param failHostAddress failedHostAddress
+     * @param wasMaster was failed connection master
+     * @param queryException internal error
+     * @param reconnected    connection status
+     * @throws QueryException error with failover information
+     */
+    @Override
+    public void throwFailoverMessage(HostAddress failHostAddress, boolean wasMaster, QueryException queryException,
+            boolean reconnected) throws QueryException {
+        String firstPart = Thread.currentThread().getName() + " - Communications link failure with "
+                + (wasMaster ? "primary" : "secondary")
+                + ((failHostAddress != null) ? " host " + failHostAddress.host + ":" + failHostAddress.port : "") + ". ";
+        String error = "";
+        if (reconnected) {
+            error += " Driver as reconnect connection";
+        } else {
+            if (currentConnectionAttempts.get() > urlParser.getOptions().retriesAllDown) {
+                error += " Driver will not try to reconnect (too much failure > " + urlParser.getOptions().retriesAllDown + ")";
+            }
+        }
+
+        if (queryException == null) {
+            queryException = new QueryException(firstPart + error, (short) -1, ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState());
+        } else {
+            error = queryException.getMessage() + ". " + error;
+            queryException.setMessage(firstPart + error);
+            throw queryException;
+        }
+
+        if (reconnected && queryException.getSqlState().startsWith("08")) {
+            //change sqlState to "Transaction has been rolled back", to transaction exception, since reconnection has succeed
+            queryException.setSqlState("25S03");
+        }
+        throw queryException;
+
+    }
 
     public abstract void reconnect() throws QueryException;
     
     protected abstract static class TerminatableRunnable implements Runnable {
         private final AtomicInteger runState = new AtomicInteger(0); // -1 = removed, 0 = idle, 1 = active
-        
-        protected abstract void unscheduleTask();
-        
+        protected final AtomicInteger scheduleState = new AtomicInteger(0); // 0 = not scheduled, 1 = scheduled, 2 = ended
+        protected volatile ScheduledFuture<?> scheduledFuture = null;
+
         protected abstract void doRun();
         
         @Override
@@ -390,7 +417,7 @@ public abstract class AbstractMastersListener implements Listener {
                 runState.compareAndSet(1, 0);
             }
         }
-        
+
         public void blockTillTerminated() {
             unscheduleTask();
             while (! runState.compareAndSet(0, -1)) {
@@ -402,49 +429,54 @@ public abstract class AbstractMastersListener implements Listener {
                 }
             }
         }
+
+        // while scheduledFuture may be set from another thread
+        // it is expected only one thread will unschedule
+        public void unscheduleTask() {
+            while (scheduleState.get() != 2) {
+                if (scheduledFuture == null) {
+                    if (scheduleState.compareAndSet(0, 2)) {
+                        return;
+                    }
+                    // not scheduled yet, should be a rare condition, just loop
+                    Thread.yield();
+                } else {
+                    if (scheduleState.compareAndSet(1, 2)) {
+                        scheduledFuture.cancel(false);
+                        scheduledFuture = null;
+                        return;
+                    }
+                }
+            }
+        }
+
     }
 
     /**
      * Private class to permit a timer reconnection loop.
      */
     protected class FailLoop extends TerminatableRunnable {
-        private volatile ScheduledFuture<?> scheduledFuture = null;
         Listener listener;
 
         public FailLoop(Listener listener) {
-//            log.trace("launched FailLoop");
             this.listener = listener;
         }
 
         public void scheduleSelf(ScheduledExecutorService scheduler, boolean now) {
-            scheduledFuture = scheduler.scheduleWithFixedDelay(this, now ? 0 : 250, 250, 
-                                                               TimeUnit.MILLISECONDS);
-        }
-
-        // while scheduledFuture may be set from another thread
-        // it is expected only one thread will unschedule
-        @Override
-        public void unscheduleTask() {
-            while (true) {
-                if (scheduledFuture == null) {
-                    // not scheduled yet, should be a rare condition, just loop
-                    Thread.yield();
-                } else {
-                    scheduledFuture.cancel(false);
-                    scheduledFuture = null;
-                    return;
-                }
+            if (scheduleState.compareAndSet(0, 1)) {
+                scheduledFuture = scheduler.scheduleWithFixedDelay(this, now ? 0 : 250, 250,
+                        TimeUnit.MILLISECONDS);
             }
         }
 
         @Override
         protected void doRun() {
-            if (!explicitClosed && hasHostFail()) {
-                if (listener.shouldReconnect()) {
+
+            if (!explicitClosed && listener.hasHostFail()) {
+                if (currentConnectionAttempts.get() > urlParser.getOptions().failoverLoopRetries) {
+                    stopFailover();
+                } else {
                     try {
-                        if (currentConnectionAttempts.get() >= urlParser.getOptions().failoverLoopRetries) {
-                            throw new QueryException("Too many reconnection attempts (" + urlParser.getOptions().retriesAllDown + ")");
-                        }
                         SearchFilter filter = getFilterForFailedHost();
                         filter.setUniqueLoop(true);
                         listener.reconnectFailedConnection(filter);
@@ -453,11 +485,6 @@ public abstract class AbstractMastersListener implements Listener {
                     } catch (Exception e) {
                         //FailLoop search connection failed
                     }
-                } else {
-                    if (currentConnectionAttempts.get() > urlParser.getOptions().retriesAllDown) {
-                        //stopping failover after too many attemps
-                        stopFailover();
-                    }
                 }
             } else {
                 stopFailover();
@@ -465,6 +492,9 @@ public abstract class AbstractMastersListener implements Listener {
         }
     }
 
+    /**
+     * Clear blacklist data.
+     */
     public static void clearBlacklist() {
         blacklist.clear();
     }

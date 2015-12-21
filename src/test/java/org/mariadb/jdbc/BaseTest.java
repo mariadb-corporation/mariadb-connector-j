@@ -394,13 +394,13 @@ public class BaseTest {
     public void cancelForVersion(int major, int minor, int patch) throws SQLException {
 
         String dbVersion = sharedConnection.getMetaData().getDatabaseProductVersion();
-        org.junit.Assume.assumeFalse(dbVersion.startsWith(major + "." + minor + "." + patch));
+        Assume.assumeFalse(dbVersion.startsWith(major + "." + minor + "." + patch));
 
     }
 
 
     void requireMinimumVersion(int major, int minor) throws SQLException {
-        org.junit.Assume.assumeTrue(minVersion(major, minor));
+        Assume.assumeTrue(minVersion(major, minor));
 
     }
 

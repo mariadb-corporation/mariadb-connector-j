@@ -87,14 +87,13 @@ public class AuroraListener extends MastersSlavesListener {
         try {
             reconnectFailedConnection(new SearchFilter(true, true, true));
         } catch (QueryException e) {
-//            log.debug("initializeConnection failed", e);
-            checkInitialConnection();
-            throw e;
+            //initializeConnection failed
+            checkInitialConnection(e);
         }
     }
 
     /**
-     * search a valid connection for failed one.
+     * Search a valid connection for failed one.
      * A Node can be a master or a replica depending on the cluster state.
      * so search for each host until found all the failed connection.
      * By default, search for the host not down, and recheck the down one after if not found valid connections.
@@ -103,41 +102,45 @@ public class AuroraListener extends MastersSlavesListener {
      */
     @Override
     public void reconnectFailedConnection(SearchFilter searchFilter) throws QueryException {
-//        if (log.isTraceEnabled()) log.trace("search connection searchFilter=" + searchFilter);
         currentConnectionAttempts.incrementAndGet();
         resetOldsBlackListHosts();
 
         //put the list in the following order
         // - random order not connected host
-        // - random order blacklist host
-        // - random order connected host
+        // - connected host at end.
         List<HostAddress> loopAddress = new LinkedList<>(urlParser.getHostAddresses());
         loopAddress.removeAll(blacklist.keySet());
         Collections.shuffle(loopAddress);
-        List<HostAddress> blacklistShuffle = new LinkedList<>(blacklist.keySet());
-        Collections.shuffle(blacklistShuffle);
-        loopAddress.addAll(blacklistShuffle);
 
         //put connected at end
         if (masterProtocol != null && !isMasterHostFail()) {
             loopAddress.remove(masterProtocol.getHostAddress());
-            //loopAddress.add(masterProtocol.getHostAddress());
+            loopAddress.add(masterProtocol.getHostAddress());
+            if (!masterProtocol.checkIfMaster()) {
+                //aurora master is now slave !
+                setMasterHostFail();
+                if (isSecondaryHostFail()) {
+                    foundActiveSecondary(masterProtocol);
+                }
+                if (searchFilter != null) {
+                    searchFilter.setSearchForSlave(false);
+                }
+            }
         }
 
         if (!isSecondaryHostFail()) {
             if (secondaryProtocol != null) {
                 loopAddress.remove(secondaryProtocol.getHostAddress());
-                //loopAddress.add(secondaryProtocol.getHostAddress());
-            }
-            if (isMasterHostFail()) {
-//                log.debug("searching probableMaster");
-                HostAddress probableMaster = searchByStartName(secondaryProtocol, loopAddress);
-
-                if (probableMaster != null) {
-                    loopAddress.remove(probableMaster);
-                    loopAddress.add(0, probableMaster);
+                loopAddress.add(masterProtocol.getHostAddress());
+                if (masterProtocol.checkIfMaster()) {
+                    setSecondaryHostFail();
+                    if (isMasterHostFail()) {
+                        foundActiveMaster(secondaryProtocol);
+                    }
+                    if (searchFilter != null) {
+                        searchFilter.setSearchForMaster(false);
+                    }
                 }
-//                else if (log.isTraceEnabled()) log.trace("probableMaster not found");
             }
         }
 
@@ -193,7 +196,7 @@ public class AuroraListener extends MastersSlavesListener {
     }
 
     @Override
-    public void checkMasterStatus(SearchFilter searchFilter) throws QueryException {
+    public boolean checkMasterStatus(SearchFilter searchFilter) throws QueryException {
         if (!isMasterHostFail()) {
             try {
                 if (masterProtocol != null && !masterProtocol.checkIfMaster()) {
@@ -205,7 +208,7 @@ public class AuroraListener extends MastersSlavesListener {
                     if (searchFilter != null) {
                         searchFilter.setSearchForSlave(false);
                     }
-                    launchFailLoopIfNotlaunched(false);
+                    return true;
                 }
             } catch (QueryException e) {
                 try {
@@ -221,7 +224,7 @@ public class AuroraListener extends MastersSlavesListener {
                         addToBlacklist(masterProtocol.getHostAddress());
                     }
                 }
-                launchFailLoopIfNotlaunched(false);
+                return true;
             }
         }
 
@@ -236,7 +239,7 @@ public class AuroraListener extends MastersSlavesListener {
                     if (searchFilter != null) {
                         searchFilter.setSearchForMaster(false);
                     }
-                    launchFailLoopIfNotlaunched(false);
+                    return true;
                 }
             } catch (QueryException e) {
                 try {
@@ -251,11 +254,12 @@ public class AuroraListener extends MastersSlavesListener {
                     if (setSecondaryHostFail()) {
                         addToBlacklist(this.secondaryProtocol.getHostAddress());
                     }
-                    launchFailLoopIfNotlaunched(false);
+                    return true;
                 }
-
             }
         }
+
+        return false;
     }
 
 }

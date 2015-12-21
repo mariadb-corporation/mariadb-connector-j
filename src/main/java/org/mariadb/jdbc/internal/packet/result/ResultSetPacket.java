@@ -79,7 +79,7 @@ public class ResultSetPacket extends AbstractResultPacket {
     }
 
     public ResultType getResultType() {
-        return AbstractResultPacket.ResultType.RESULTSET;
+        return ResultType.RESULTSET;
     }
 
     public long getFieldCount() {
