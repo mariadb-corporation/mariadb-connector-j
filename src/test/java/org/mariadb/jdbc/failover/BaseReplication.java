@@ -9,9 +9,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 public abstract class BaseReplication extends BaseMultiHostTest {
 
@@ -268,17 +265,7 @@ public abstract class BaseReplication extends BaseMultiHostTest {
             Statement stmt = connection.createStatement();
             stmt.execute("SELECT 1");
             //launch connection close
-            ExecutorService exec = Executors.newFixedThreadPool(2);
-            exec.execute(new CloseConnection(connection));
-
-            Thread.sleep(3000);
-            exec.shutdown();
-            try {
-                exec.awaitTermination(20, TimeUnit.SECONDS);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-                Assert.fail();
-            }
+            new CloseConnection(connection).run();
         } finally {
             if (connection != null) {
                 if (connection != null) {

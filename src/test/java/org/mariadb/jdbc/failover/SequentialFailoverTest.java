@@ -5,11 +5,10 @@ import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.threadly.test.concurrent.TestableScheduler;
 
 import java.sql.*;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -86,19 +85,14 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
 
             //add first Host to blacklist
             Protocol protocol = getProtocolFromConnection(connection);
-            ExecutorService exec = Executors.newFixedThreadPool(2);
+            TestableScheduler scheduler = new TestableScheduler();
 
             //check blacklist shared
-            exec.execute(new CheckBlacklist(firstServerId, protocol.getProxy().getListener().getBlacklist()));
-            exec.execute(new CheckBlacklist(firstServerId, protocol.getProxy().getListener().getBlacklist()));
-            //wait for thread endings
-
-            exec.shutdown();
-            try {
-                exec.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
-            } catch (InterruptedException e) {
-                //eat exception
-            }
+            scheduler.execute(new CheckBlacklist(firstServerId, protocol.getProxy().getListener().getBlacklist()));
+            scheduler.execute(new CheckBlacklist(firstServerId, protocol.getProxy().getListener().getBlacklist()));
+            
+            // deterministically execute CheckBlacklists
+            scheduler.tick();
         } catch (Throwable e) {
             e.printStackTrace();
             Assert.fail();
