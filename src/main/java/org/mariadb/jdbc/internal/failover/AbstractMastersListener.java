@@ -67,6 +67,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.SQLException;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -79,7 +80,7 @@ public abstract class AbstractMastersListener implements Listener {
     /**
      * List the recent failedConnection.
      */
-    protected static ConcurrentMap<HostAddress, Long> blacklist = new ConcurrentHashMap<>();
+    private static ConcurrentMap<HostAddress, Long> blacklist = new ConcurrentHashMap<>();
     /* =========================== Failover variables ========================================= */
     public final UrlParser urlParser;
     protected AtomicInteger currentConnectionAttempts = new AtomicInteger();
@@ -101,7 +102,7 @@ public abstract class AbstractMastersListener implements Listener {
     }
     
     protected void shutdownScheduler() {
-        FailLoop runningLoop = stopFailover();
+        FailLoop runningLoop = stopFailLoop();
         if (runningLoop != null) {
             runningLoop.blockTillTerminated();
         }
@@ -115,8 +116,8 @@ public abstract class AbstractMastersListener implements Listener {
         this.proxy = proxy;
     }
 
-    public Map<HostAddress, Long> getBlacklist() {
-        return blacklist;
+    public Set<HostAddress> getBlacklistKeys() {
+        return blacklist.keySet();
     }
 
     /**
@@ -155,6 +156,16 @@ public abstract class AbstractMastersListener implements Listener {
     }
 
     /**
+     * After a successfull connection, permit to remove a hostAddress from blacklist
+     * @param hostAddress
+     */
+    public void removeFromBlacklist(HostAddress hostAddress) {
+        if (hostAddress != null) {
+            blacklist.remove(hostAddress);
+        }
+    }
+
+    /**
      * Permit to remove Host to blacklist after loadBalanceBlacklistTimeout seconds.
      */
     public void resetOldsBlackListHosts() {
@@ -181,7 +192,7 @@ public abstract class AbstractMastersListener implements Listener {
         }
     }
 
-    protected FailLoop stopFailover() {
+    protected FailLoop stopFailLoop() {
         FailLoop loop;
         while ((loop = runningFailLoop.get()) != null) {
             if (runningFailLoop.compareAndSet(loop, null)) {
@@ -474,20 +485,20 @@ public abstract class AbstractMastersListener implements Listener {
 
             if (!explicitClosed && listener.hasHostFail()) {
                 if (currentConnectionAttempts.get() > urlParser.getOptions().failoverLoopRetries) {
-                    stopFailover();
+                    stopFailLoop();
                 } else {
                     try {
                         SearchFilter filter = getFilterForFailedHost();
                         filter.setUniqueLoop(true);
                         listener.reconnectFailedConnection(filter);
                         //reconnection done !
-                        stopFailover();
+                        stopFailLoop();
                     } catch (Exception e) {
                         //FailLoop search connection failed
                     }
                 }
             } else {
-                stopFailover();
+                stopFailLoop();
             }
         }
     }

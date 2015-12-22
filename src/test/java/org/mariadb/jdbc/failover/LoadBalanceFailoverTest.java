@@ -37,7 +37,7 @@ public class LoadBalanceFailoverTest extends BaseMultiHostTest {
     public void failover() throws Throwable {
         Connection connection = null;
         try {
-            connection = getNewConnection("&autoReconnect=true&retriesAllDown=1", true);
+            connection = getNewConnection("&autoReconnect=true&retriesAllDown=3", true);
             int master1ServerId = getServerId(connection);
             stopProxy(master1ServerId);
             connection.createStatement().execute("SELECT 1");

@@ -5,6 +5,7 @@ import org.junit.*;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
+import org.mariadb.jdbc.internal.failover.AbstractMastersListener;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 
 import java.lang.reflect.Method;
@@ -171,12 +172,7 @@ public class BaseTest {
      * @param connection connection
      */
     public void assureBlackList(Connection connection) {
-        try {
-            Protocol protocol = getProtocolFromConnection(connection);
-            protocol.getProxy().getListener().getBlacklist().clear();
-        } catch (Throwable e) {
-            //eat exception.
-        }
+        AbstractMastersListener.clearBlacklist();
     }
 
     protected Protocol getProtocolFromConnection(Connection conn) throws Throwable {

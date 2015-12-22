@@ -113,8 +113,8 @@ public class MastersFailoverListener extends AbstractMastersListener {
     public void preClose() throws SQLException {
         if (!isExplicitClosed()) {
             proxy.lock.lock();
-            setExplicitClosed(true);
             try {
+                setExplicitClosed(true);
                 shutdownScheduler();
 
                 //closing connection
@@ -161,7 +161,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
             return new HandleErrorResult(true);
         } catch (Exception e) {
             //we will throw a Connection exception that will close connection
-            stopFailover();
+            stopFailLoop();
             return new HandleErrorResult();
         }
     }
@@ -184,15 +184,15 @@ public class MastersFailoverListener extends AbstractMastersListener {
             // - random order not connected host
             // - random order blacklist host
             // - random order connected host
-            loopAddress.removeAll(blacklist.keySet());
+            loopAddress.removeAll(getBlacklistKeys());
             Collections.shuffle(loopAddress);
-            List<HostAddress> blacklistShuffle = new LinkedList<>(blacklist.keySet());
+            List<HostAddress> blacklistShuffle = new LinkedList<>(getBlacklistKeys());
             Collections.shuffle(blacklistShuffle);
             loopAddress.addAll(blacklistShuffle);
         } else {
             //order in sequence
-            loopAddress.removeAll(blacklist.keySet());
-            loopAddress.addAll(blacklist.keySet());
+            loopAddress.removeAll(getBlacklistKeys());
+            loopAddress.addAll(getBlacklistKeys());
         }
 
         //put connected at end
@@ -201,10 +201,10 @@ public class MastersFailoverListener extends AbstractMastersListener {
             //loopAddress.add(currentProtocol.getHostAddress());
         }
 
-        MasterProtocol.loop(this, loopAddress, blacklist, searchFilter);
+        MasterProtocol.loop(this, loopAddress, searchFilter);
         //close loop if all connection are retrieved
         if (!isMasterHostFail()) {
-            stopFailover();
+            stopFailLoop();
         }
 
         //if no error, reset failover variables
@@ -250,7 +250,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
         }
 
         resetMasterFailoverData();
-        stopFailover();
+        stopFailLoop();
     }
 
     public void reconnect() throws QueryException {
@@ -264,7 +264,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
                 launchFailLoopIfNotLaunched(now);
             }
         } else {
-            return stopFailover();
+            return stopFailLoop();
         }
         return null;
     }

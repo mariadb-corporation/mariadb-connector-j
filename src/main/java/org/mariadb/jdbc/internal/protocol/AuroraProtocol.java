@@ -75,11 +75,10 @@ public class AuroraProtocol extends MastersSlavesProtocol {
      *
      * @param listener aurora failover to call back if master is found
      * @param probableMaster probable master host
-     * @param blacklist current blacklist
      * @param searchFilter search filter
      * @throws QueryException exception
      */
-    public static void searchProbableMaster(AuroraListener listener, HostAddress probableMaster, Map<HostAddress, Long> blacklist,
+    public static void searchProbableMaster(AuroraListener listener, HostAddress probableMaster,
                                             SearchFilter searchFilter) throws QueryException {
         AuroraProtocol protocol = getNewProtocol(listener.getProxy(), listener.getUrlParser());
         try {
@@ -101,7 +100,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
             }
 
         } catch (QueryException e) {
-            blacklist.put(protocol.getHostAddress(), System.nanoTime());
+            listener.addToBlacklist(protocol.getHostAddress());
         }
     }
 
@@ -110,15 +109,14 @@ public class AuroraProtocol extends MastersSlavesProtocol {
      *
      * @param listener     current failover
      * @param addresses    list of HostAddress to loop
-     * @param blacklist    current blacklist
      * @param searchFilter search parameter
      * @throws QueryException if not found
      */
-    public static void loop(AuroraListener listener, final List<HostAddress> addresses, Map<HostAddress, Long> blacklist, SearchFilter searchFilter)
+    public static void loop(AuroraListener listener, final List<HostAddress> addresses, SearchFilter searchFilter)
             throws QueryException {
 
         AuroraProtocol protocol;
-        ArrayDeque<HostAddress> loopAddresses = new ArrayDeque<>((!addresses.isEmpty()) ? addresses : blacklist.keySet());
+        ArrayDeque<HostAddress> loopAddresses = new ArrayDeque<>((!addresses.isEmpty()) ? addresses : listener.getBlacklistKeys());
         int maxConnectionTry = listener.getRetriesAllDown();
         QueryException lastQueryException = null;
 
@@ -139,7 +137,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
                     return;
                 }
 
-                blacklist.remove(protocol.getHostAddress());
+                listener.removeFromBlacklist(protocol.getHostAddress());
 
                 if (listener.isMasterHostFail() && protocol.isMasterConnection()) {
                     if (foundMaster(listener, protocol, searchFilter)) {
@@ -152,7 +150,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
                     HostAddress probableMasterHost = listener.searchByStartName(protocol, listener.getUrlParser().getHostAddresses());
                     if (probableMasterHost != null) {
                         loopAddresses.remove(probableMasterHost);
-                        AuroraProtocol.searchProbableMaster(listener, probableMasterHost, blacklist, searchFilter);
+                        AuroraProtocol.searchProbableMaster(listener, probableMasterHost, searchFilter);
                         if (!searchFilter.isSearchForMaster()) {
                             return;
                         }
@@ -162,7 +160,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
                 }
             } catch (QueryException e) {
                 lastQueryException = e;
-                blacklist.put(protocol.getHostAddress(), System.nanoTime());
+                listener.addToBlacklist(protocol.getHostAddress());
             }
 
             if (!searchFilter.isSearchForMaster() && !searchFilter.isSearchForSlave()) {
@@ -171,7 +169,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
 
             //loop is set so
             if (loopAddresses.isEmpty() && !searchFilter.isUniqueLoop() && maxConnectionTry > 0) {
-                loopAddresses = new ArrayDeque<>(blacklist.keySet());
+                loopAddresses = new ArrayDeque<>(listener.getBlacklistKeys());
                 listener.checkMasterStatus(searchFilter);
             }
 

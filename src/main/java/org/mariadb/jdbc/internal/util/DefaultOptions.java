@@ -226,20 +226,6 @@ public enum DefaultOptions {
     FAIL_ON_READ_ONLY("failOnReadOnly", Boolean.FALSE, "1.2.0"),
 
     /**
-     * Number of seconds to issue before falling back to master when failed over (when using multi-host failover).
-     * Whichever condition is met first, 'queriesBeforeRetryMaster' or 'secondsBeforeRetryMaster' will cause an
-     * attempt to be made to reconnect to the master. Defaults to 50
-     */
-    SECONDS_BEFORE_RETRY_MASTER("secondsBeforeRetryMaster", new Integer(50), new Integer(0), Integer.MAX_VALUE, "1.2.0"),
-
-    /**
-     * Number of queries to issue before falling back to master when failed over (when using multi-host failover).
-     * Whichever condition is met first, 'queriesBeforeRetryMaster' or 'secondsBeforeRetryMaster' will cause an
-     * attempt to be made to reconnect to the master. Defaults to 30
-     */
-    QUERY_BEFORE_RETRY_MASTER("queriesBeforeRetryMaster", new Integer(30), new Integer(0), Integer.MAX_VALUE, "1.2.0"),
-
-    /**
      * When using loadbalancing, the number of times the driver should cycle through available hosts, attempting to connect.
      * Between cycles, the driver will pause for 250ms if no servers are available.
      */

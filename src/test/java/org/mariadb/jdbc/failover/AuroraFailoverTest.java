@@ -91,7 +91,7 @@ public class AuroraFailoverTest extends BaseReplication {
     public void failoverSlaveToMasterFail() throws Throwable {
         Connection connection = null;
         try {
-            connection = getNewConnection("&retriesAllDown=1&secondsBeforeRetryMaster=1", true);
+            connection = getNewConnection("&retriesAllDown=3", true);
             int masterServerId = getServerId(connection);
             connection.setReadOnly(true);
             int slaveServerId = getServerId(connection);
@@ -117,7 +117,7 @@ public class AuroraFailoverTest extends BaseReplication {
     public void pingReconnectAfterRestart() throws Throwable {
         Connection connection = null;
         try {
-            connection = getNewConnection("&retriesAllDown=1&secondsBeforeRetryMaster=1&queriesBeforeRetryMaster=50000", true);
+            connection = getNewConnection("&retriesAllDown=3", true);
             Statement st = connection.createStatement();
             int masterServerId = getServerId(connection);
             stopProxy(masterServerId);
@@ -134,6 +134,11 @@ public class AuroraFailoverTest extends BaseReplication {
             while (loop) {
                 if (!connection.isClosed()) {
                     loop = false;
+                }
+                try {
+                    connection.createStatement();
+                } catch (SQLException ee) {
+
                 }
                 long duration = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - restartTime);
                 if (duration > 15 * 1000) {
@@ -154,7 +159,7 @@ public class AuroraFailoverTest extends BaseReplication {
         Connection connection = null;
         try {
             int masterServerId = -1;
-            connection = getNewConnection("&retriesAllDown=1", true);
+            connection = getNewConnection("&retriesAllDown=3", true);
             masterServerId = getServerId(connection);
 
             stopProxy(masterServerId);
@@ -176,7 +181,7 @@ public class AuroraFailoverTest extends BaseReplication {
     public void failoverMasterWithAutoConnectAndTransaction() throws Throwable {
         Connection connection = null;
         try {
-            connection = getNewConnection("&autoReconnect=true&retriesAllDown=1", true);
+            connection = getNewConnection("&autoReconnect=true&retriesAllDown=3", true);
             Statement st = connection.createStatement();
 
             final int masterServerId = getServerId(connection);
@@ -215,7 +220,7 @@ public class AuroraFailoverTest extends BaseReplication {
     public void testFailMaster() throws Throwable {
         Connection connection = null;
         try {
-            connection = getNewConnection("&retriesAllDown=1&autoReconnect=true", true);
+            connection = getNewConnection("&retriesAllDown=3&autoReconnect=true", true);
             Statement stmt = connection.createStatement();
             int masterServerId = getServerId(connection);
             stopProxy(masterServerId);
@@ -294,7 +299,7 @@ public class AuroraFailoverTest extends BaseReplication {
     @Test
     public void testAccessDeniedErrorCode() throws SQLException {
         try {
-            DriverManager.getConnection(defaultUrl + "&retriesAllDown=1", "foouser", "foopwd");
+            DriverManager.getConnection(defaultUrl + "&retriesAllDown=3", "foouser", "foopwd");
             Assert.fail();
         } catch (SQLException e) {
             Assert.assertTrue("28000".equals(e.getSQLState()));
@@ -319,9 +324,9 @@ public class AuroraFailoverTest extends BaseReplication {
             }
 
             Protocol protocol = getProtocolFromConnection(connection);
-            Assert.assertTrue(protocol.getProxy().getListener().getBlacklist().size() == 1);
+            Assert.assertTrue(protocol.getProxy().getListener().getBlacklistKeys().size() == 1);
             assureBlackList();
-            Assert.assertTrue(protocol.getProxy().getListener().getBlacklist().size() == 0);
+            Assert.assertTrue(protocol.getProxy().getListener().getBlacklistKeys().size() == 0);
         } finally {
             if (connection != null) {
                 connection.close();
@@ -336,11 +341,11 @@ public class AuroraFailoverTest extends BaseReplication {
         connection.setReadOnly(true);
         int current = getServerId(connection);
         Protocol protocol = getProtocolFromConnection(connection);
-        Assert.assertTrue(protocol.getProxy().getListener().getBlacklist().size() == 0);
+        Assert.assertTrue(protocol.getProxy().getListener().getBlacklistKeys().size() == 0);
         stopProxy(current);
         connection.close();
         //check that after error connection have not been put to blacklist
-        Assert.assertTrue(protocol.getProxy().getListener().getBlacklist().size() == 0);
+        Assert.assertTrue(protocol.getProxy().getListener().getBlacklistKeys().size() == 0);
     }
 
 }

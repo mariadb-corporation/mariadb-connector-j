@@ -65,7 +65,6 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 
@@ -110,10 +109,11 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
 
     protected void checkInitialConnection(QueryException queryException) throws QueryException {
         boolean masterFail = false;
-        if (this.masterProtocol != null && !this.masterProtocol.isConnected()) {
+        if (this.masterProtocol == null || this.masterProtocol.isConnected()) {
             masterFail = true;
         }
-        if (this.secondaryProtocol != null && !this.secondaryProtocol.isConnected()) {
+
+        if (this.secondaryProtocol == null || !this.secondaryProtocol.isConnected()) {
             setSecondaryHostFail();
             if (!masterFail) {
                 //launched failLoop only if not throwing connection (connection will be closed).
@@ -122,7 +122,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
         }
         if (masterFail) {
             setMasterHostFail();
-            throwFailoverMessage(masterProtocol.getHostAddress(), true, queryException, false);
+            throwFailoverMessage(masterProtocol != null ? masterProtocol.getHostAddress() : null, true, queryException, false);
         }
     }
 
@@ -188,13 +188,13 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
         resetOldsBlackListHosts();
 
         //put the list in the following order
-        // - random order not connected host
+        // - random order not blacklist and not connected host
         // - random order blacklist host
-        // - random order connected host
+        // - connected host
         List<HostAddress> loopAddress = new LinkedList<>(urlParser.getHostAddresses());
-        loopAddress.removeAll(blacklist.keySet());
+        loopAddress.removeAll(getBlacklistKeys());
         Collections.shuffle(loopAddress);
-        List<HostAddress> blacklistShuffle = new LinkedList<>(blacklist.keySet());
+        List<HostAddress> blacklistShuffle = new LinkedList<>(getBlacklistKeys());
         Collections.shuffle(blacklistShuffle);
         loopAddress.addAll(blacklistShuffle);
 
@@ -211,12 +211,12 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
 
         if (((searchFilter.isSearchForMaster() && isMasterHostFail()) || (searchFilter.isSearchForSlave() && isSecondaryHostFail()))
                 || searchFilter.isInitialConnection()) {
-            MastersSlavesProtocol.loop(this, loopAddress, blacklist, searchFilter);
+            MastersSlavesProtocol.loop(this, loopAddress, searchFilter);
         }
 
         //close loop if all connection are retrieved
         if (!isMasterHostFail() && !isSecondaryHostFail()) {
-            stopFailover();
+            stopFailLoop();
         }
 
     }
@@ -279,7 +279,6 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
             try {
 
                 if (secondaryProtocol != null && !secondaryProtocol.isClosed()) {
-                    System.out.println(Thread.currentThread().getName() + " foundActiveSecondary -> secondaryProtocol.close");
                     secondaryProtocol.close();
                 }
 
@@ -385,7 +384,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                         return;
                     } catch (QueryException e) {
                         //stop failover, since we will throw a connection exception that will close the connection.
-                        stopFailover();
+                        stopFailLoop();
                         HostAddress failHost = (this.masterProtocol != null ) ? this.masterProtocol.getHostAddress() : null;
                         throwFailoverMessage(failHost, true, new QueryException("master "
                                 + masterProtocol.getHostAddress() + " connection failed"), false);
@@ -456,7 +455,8 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
             return new HandleErrorResult(true);
         } catch (Exception e) {
             //we will throw a Connection exception that will close connection
-            stopFailover();
+            setMasterHostFail();
+            stopFailLoop();
             return new HandleErrorResult();
         }
     }
@@ -578,7 +578,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
             return relaunchOperation(method, args); //now that we are reconnect, relaunched result if the result was not crashing the node
         } catch (Exception ee) {
             //we will throw a Connection exception that will close connection
-            stopFailover();
+            stopFailLoop();
             return new HandleErrorResult();
         }
     }
@@ -615,13 +615,13 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
 
         @Override
         protected void doRun() {
-            if (!explicitClosed) {
+            if (!listener.explicitClosed) {
                 long durationSeconds = TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - lastQueryNanos);
-                if (durationSeconds >= urlParser.getOptions().validConnectionTimeout
+                if (durationSeconds >= listener.urlParser.getOptions().validConnectionTimeout
                     && !isMasterHostFail()) {
                     boolean masterFail = false;
                     try {
-                        if (masterProtocol != null && masterProtocol.isConnected()) {
+                        if (listener.masterProtocol != null && listener.masterProtocol.isConnected()) {
                             checkMasterStatus(null);
                         } else {
                             masterFail = true;
@@ -630,7 +630,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                         masterFail = true;
                     }
     
-                    if (masterFail && setMasterHostFail()) {
+                    if (masterFail && listener.setMasterHostFail()) {
                         try {
                             listener.primaryFail(null, null);
                         } catch (Throwable t) {
@@ -648,7 +648,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                 launchFailLoopIfNotLaunched(now);
             }
         } else {
-            return stopFailover();
+            return stopFailLoop();
         }
         return null;
     }

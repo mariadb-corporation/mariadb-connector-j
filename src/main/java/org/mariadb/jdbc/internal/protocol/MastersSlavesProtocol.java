@@ -75,15 +75,14 @@ public class MastersSlavesProtocol extends MasterProtocol {
      *
      * @param listener     current failover
      * @param addresses    list of HostAddress to loop
-     * @param blacklist    current blacklist
      * @param searchFilter search parameter
      * @throws QueryException if not found
      */
     public static void loop(MastersSlavesListener listener, final List<HostAddress> addresses,
-                            Map<HostAddress, Long> blacklist, SearchFilter searchFilter) throws QueryException {
+                            SearchFilter searchFilter) throws QueryException {
 
         MastersSlavesProtocol protocol;
-        ArrayDeque<HostAddress> loopAddresses = new ArrayDeque<>((!addresses.isEmpty()) ? addresses : blacklist.keySet());
+        ArrayDeque<HostAddress> loopAddresses = new ArrayDeque<>((!addresses.isEmpty()) ? addresses : listener.getBlacklistKeys());
 
         int maxConnectionTry = listener.getRetriesAllDown();
         QueryException lastQueryException = null;
@@ -104,7 +103,7 @@ public class MastersSlavesProtocol extends MasterProtocol {
                     return;
                 }
 
-                blacklist.remove(protocol.getHostAddress());
+                listener.removeFromBlacklist(protocol.getHostAddress());
 
                 if (listener.isMasterHostFail() && protocol.isMasterConnection()) {
                     if (foundMaster(listener, protocol, searchFilter)) {
@@ -120,7 +119,7 @@ public class MastersSlavesProtocol extends MasterProtocol {
 
             } catch (QueryException e) {
                 lastQueryException = e;
-                blacklist.put(protocol.getHostAddress(), System.nanoTime());
+                listener.addToBlacklist(protocol.getHostAddress());
             }
 
             if (!searchFilter.isSearchForMaster() && !searchFilter.isSearchForSlave()) {
@@ -129,7 +128,7 @@ public class MastersSlavesProtocol extends MasterProtocol {
 
             //loop is set so
             if (loopAddresses.isEmpty() && !searchFilter.isUniqueLoop() && maxConnectionTry > 0) {
-                loopAddresses = new ArrayDeque<>(blacklist.keySet());
+                loopAddresses = new ArrayDeque<>(listener.getBlacklistKeys());
                 listener.checkMasterStatus(searchFilter);
             }
 

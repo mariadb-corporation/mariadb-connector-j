@@ -58,6 +58,7 @@ import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 import java.lang.reflect.Method;
 import java.sql.SQLException;
 import java.util.Map;
+import java.util.Set;
 
 public interface Listener {
     FailoverProxy getProxy();
@@ -82,7 +83,11 @@ public interface Listener {
 
     void foundActiveMaster(Protocol protocol) throws QueryException;
 
-    Map<HostAddress, Long> getBlacklist();
+    Set<HostAddress> getBlacklistKeys();
+
+    void addToBlacklist(HostAddress hostAddress);
+
+    void removeFromBlacklist(HostAddress hostAddress);
 
     void syncConnection(Protocol from, Protocol to) throws QueryException;
 

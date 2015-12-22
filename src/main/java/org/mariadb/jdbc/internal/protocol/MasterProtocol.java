@@ -94,15 +94,14 @@ public class MasterProtocol extends AbstractQueryProtocol {
      *
      * @param listener current failover
      * @param addresses list of HostAddress to loop
-     * @param blacklist current blacklist
      * @param searchFilter search parameter
      * @throws QueryException if not found
      */
-    public static void loop(Listener listener, final List<HostAddress> addresses, Map<HostAddress, Long> blacklist,
+    public static void loop(Listener listener, final List<HostAddress> addresses,
                             SearchFilter searchFilter) throws QueryException {
 
         MasterProtocol protocol;
-        ArrayDeque<HostAddress> loopAddresses = new ArrayDeque<>((!addresses.isEmpty()) ? addresses : blacklist.keySet());
+        ArrayDeque<HostAddress> loopAddresses = new ArrayDeque<>((!addresses.isEmpty()) ? addresses : listener.getBlacklistKeys());
         int maxConnectionTry = listener.getRetriesAllDown();
         QueryException lastQueryException = null;
         while (!loopAddresses.isEmpty() || (!searchFilter.isUniqueLoop() && maxConnectionTry > 0)) {
@@ -120,17 +119,17 @@ public class MasterProtocol extends AbstractQueryProtocol {
                     protocol.close();
                     return;
                 }
-                blacklist.remove(protocol.getHostAddress());
+                listener.removeFromBlacklist(protocol.getHostAddress());
                 listener.foundActiveMaster(protocol);
                 return;
 
             } catch (QueryException e) {
-                blacklist.put(protocol.getHostAddress(), System.nanoTime());
+                listener.addToBlacklist(protocol.getHostAddress());
                 lastQueryException = e;
             }
 
             if (loopAddresses.isEmpty() && !searchFilter.isUniqueLoop() && maxConnectionTry > 0) {
-                loopAddresses = new ArrayDeque<>(blacklist.keySet());
+                loopAddresses = new ArrayDeque<>(listener.getBlacklistKeys());
             }
         }
         if (lastQueryException != null) {

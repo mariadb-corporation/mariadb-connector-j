@@ -79,19 +79,6 @@ public class AuroraListener extends MastersSlavesListener {
         secondaryProtocol = null;
     }
 
-    @Override
-    public void initializeConnection() throws QueryException {
-        if (urlParser.getOptions().validConnectionTimeout != 0) {
-            pingLoop.scheduleSelf(scheduler, urlParser.getOptions().validConnectionTimeout);
-        }
-        try {
-            reconnectFailedConnection(new SearchFilter(true, true, true));
-        } catch (QueryException e) {
-            //initializeConnection failed
-            checkInitialConnection(e);
-        }
-    }
-
     /**
      * Search a valid connection for failed one.
      * A Node can be a master or a replica depending on the cluster state.
@@ -106,11 +93,15 @@ public class AuroraListener extends MastersSlavesListener {
         resetOldsBlackListHosts();
 
         //put the list in the following order
-        // - random order not connected host
+        // - random order not connected host and not blacklisted
+        // - random blacklisted host
         // - connected host at end.
         List<HostAddress> loopAddress = new LinkedList<>(urlParser.getHostAddresses());
-        loopAddress.removeAll(blacklist.keySet());
+        loopAddress.removeAll(getBlacklistKeys());
         Collections.shuffle(loopAddress);
+        List<HostAddress> blacklistShuffle = new LinkedList<>(getBlacklistKeys());
+        Collections.shuffle(blacklistShuffle);
+        loopAddress.addAll(blacklistShuffle);
 
         //put connected at end
         if (masterProtocol != null && !isMasterHostFail()) {
@@ -131,8 +122,8 @@ public class AuroraListener extends MastersSlavesListener {
         if (!isSecondaryHostFail()) {
             if (secondaryProtocol != null) {
                 loopAddress.remove(secondaryProtocol.getHostAddress());
-                loopAddress.add(masterProtocol.getHostAddress());
-                if (masterProtocol.checkIfMaster()) {
+                loopAddress.add(secondaryProtocol.getHostAddress());
+                if (secondaryProtocol.checkIfMaster()) {
                     setSecondaryHostFail();
                     if (isMasterHostFail()) {
                         foundActiveMaster(secondaryProtocol);
@@ -146,7 +137,7 @@ public class AuroraListener extends MastersSlavesListener {
 
         if (((searchFilter.isSearchForMaster() && isMasterHostFail())
                 || (searchFilter.isSearchForSlave() && isSecondaryHostFail())) || searchFilter.isInitialConnection()) {
-            AuroraProtocol.loop(this, loopAddress, blacklist, searchFilter);
+            AuroraProtocol.loop(this, loopAddress, searchFilter);
         }
     }
 

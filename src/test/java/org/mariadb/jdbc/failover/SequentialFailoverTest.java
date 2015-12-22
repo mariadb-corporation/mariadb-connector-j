@@ -9,6 +9,7 @@ import org.threadly.test.concurrent.TestableScheduler;
 
 import java.sql.*;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -72,12 +73,11 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
             //check blacklist size
             try {
                 Protocol protocol = getProtocolFromConnection(connection);
-                Assert.assertTrue(protocol.getProxy().getListener().getBlacklist().size() == 1);
+                Assert.assertTrue(protocol.getProxy().getListener().getBlacklistKeys().size() == 1);
 
                 //replace proxified HostAddress by normal one
                 UrlParser urlParser = UrlParser.parse(defaultUrl);
-                protocol.getProxy().getListener().getBlacklist().put(urlParser.getHostAddresses().get(firstServerId - 1),
-                        System.nanoTime());
+                protocol.getProxy().getListener().addToBlacklist(urlParser.getHostAddresses().get(firstServerId - 1));
             } catch (Throwable e) {
                 e.printStackTrace();
                 Assert.fail();
@@ -88,8 +88,8 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
             TestableScheduler scheduler = new TestableScheduler();
 
             //check blacklist shared
-            scheduler.execute(new CheckBlacklist(firstServerId, protocol.getProxy().getListener().getBlacklist()));
-            scheduler.execute(new CheckBlacklist(firstServerId, protocol.getProxy().getListener().getBlacklist()));
+            scheduler.execute(new CheckBlacklist(firstServerId, protocol.getProxy().getListener().getBlacklistKeys()));
+            scheduler.execute(new CheckBlacklist(firstServerId, protocol.getProxy().getListener().getBlacklistKeys()));
             
             // deterministically execute CheckBlacklists
             scheduler.tick();
@@ -123,8 +123,7 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
     public void pingReconnectAfterRestart() throws Throwable {
         Connection connection = null;
         try {
-            connection = getNewConnection("&retriesAllDown=1&secondsBeforeRetryMaster=1"
-                    + "&queriesBeforeRetryMaster=50000", true);
+            connection = getNewConnection("&retriesAllDown=3", true);
             Statement st = connection.createStatement();
             int masterServerId = getServerId(connection);
             stopProxy(masterServerId);
@@ -156,11 +155,11 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
 
     protected class CheckBlacklist implements Runnable {
         int firstServerId;
-        Map<HostAddress, Long> blacklist;
+        Set<HostAddress> blacklistKeys;
 
-        public CheckBlacklist(int firstServerId, Map<HostAddress, Long> blacklist) {
+        public CheckBlacklist(int firstServerId, Set<HostAddress> blacklistKeys) {
             this.firstServerId = firstServerId;
-            this.blacklist = blacklist;
+            this.blacklistKeys = blacklistKeys;
         }
 
         public void run() {
@@ -170,8 +169,8 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
                 int otherServerId = getServerId(connection2);
                 Assert.assertTrue(otherServerId != firstServerId);
                 Protocol protocol = getProtocolFromConnection(connection2);
-                Assert.assertTrue(blacklist.keySet().toArray()[0].equals(protocol.getProxy().getListener()
-                        .getBlacklist().keySet().toArray()[0]));
+                Assert.assertTrue(blacklistKeys.toArray()[0].equals(protocol.getProxy().getListener()
+                        .getBlacklistKeys().toArray()[0]));
 
             } catch (Throwable e) {
                 e.printStackTrace();
