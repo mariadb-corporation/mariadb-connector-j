@@ -32,6 +32,14 @@ public class PreparedStatementTest extends BaseTest {
                  "ENGINE=InnoDB DEFAULT CHARSET=utf8");
     }
 
+    @Test
+    public void testClosingError() throws Exception {
+        PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT ?");
+        preparedStatement.close();
+        preparedStatement.close();
+
+    }
+
     /**
      * Conj-90.
      *

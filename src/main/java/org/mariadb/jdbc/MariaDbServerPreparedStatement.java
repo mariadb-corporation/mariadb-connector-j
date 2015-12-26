@@ -404,7 +404,7 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
         // immediately garbage collected
         cachedResultSets.clear();
 
-        if (protocol.isConnected()) {
+        if (protocol != null && protocol.isConnected()) {
             try {
                 protocol.releasePrepareStatement(sql, prepareResult.statementId);
             } catch (QueryException e) {
