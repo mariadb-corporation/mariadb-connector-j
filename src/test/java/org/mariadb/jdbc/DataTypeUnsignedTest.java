@@ -210,7 +210,7 @@ public class DataTypeUnsignedTest extends BaseTest {
                 assertEquals(new BigDecimal("0"), rs.getBigDecimal(1));
                 assertEquals(binary ? "0" : "0000", rs.getString(1));
                 if (rs.next()) {
-                    nullTest(rs);
+                    nullTest(rs, false);
                 } else {
                     fail("must have result !");
                 }
@@ -605,7 +605,7 @@ public class DataTypeUnsignedTest extends BaseTest {
 
     private void oneNullTest(ResultSet rs, boolean decimal, boolean floatingPoint) throws SQLException {
         try {
-            if (!floatingPoint) {
+            if (!decimal && !floatingPoint) {
                 assertTrue(rs.getBoolean(1));
             }
             assertEquals(1, rs.getByte(1));
@@ -637,15 +637,17 @@ public class DataTypeUnsignedTest extends BaseTest {
         }
 
         if (rs.next()) {
-            nullTest(rs);
+            nullTest(rs, decimal);
         } else {
             fail("must have result !");
         }
     }
 
-    private void nullTest(ResultSet rs) throws SQLException {
+    private void nullTest(ResultSet rs, boolean decimal) throws SQLException {
         try {
-            assertFalse(rs.getBoolean(1));
+            if (!decimal) {
+                assertFalse(rs.getBoolean(1));
+            }
             assertEquals(0, rs.getByte(1));
             assertTrue(rs.wasNull());
             assertEquals(0, rs.getShort(1));

@@ -334,9 +334,10 @@ public class MariaDbValueObject implements ValueObject {
     private int getSmallInt() throws SQLException {
         int value = ((rawBytes[0] & 0xff) | ((rawBytes[1] & 0xff) << 8));
         if (!columnInfo.isSigned()) {
-            value = value & 0xffff;
+            return value & 0xffff;
         }
-        return value;
+        //short cast here is important : -1 will be received as -1, -1 -> 65535
+        return (short) value;
     }
 
     private long getMediumInt() throws SQLException {
@@ -1253,7 +1254,7 @@ public class MariaDbValueObject implements ValueObject {
             return false;
         }
         final String rawVal = new String(rawBytes, StandardCharsets.UTF_8);
-        return rawVal.equalsIgnoreCase("true") || rawVal.equals("1") || (rawBytes[0] & 0x1) == 1;
+        return rawVal.equalsIgnoreCase("true") || rawVal.equals("1") || (rawBytes[0] & 0xff) == 1;
     }
 
     /**
