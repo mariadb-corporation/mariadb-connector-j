@@ -41,16 +41,7 @@ public class TimeoutTest extends BaseTest {
             try {
                 connection = setConnection("&connectTimeout=5&socketTimeout=5");
             } catch (SQLException e) {
-                try {
-                    //depending on systems, 5 millisecond can be not enougth
-                    connection = setConnection("&connectTimeout=50&socketTimeout=50");
-                } catch (SQLException ee) {
-                    try {
-                        connection = setConnection("&connectTimeout=5000&socketTimeout=5000");
-                    } catch (SQLException ees) {
-                        connection = setConnection("&connectTimeout=50000&socketTimeout=50000");
-                    }
-                }
+                connection = setConnection("&connectTimeout=5000&socketTimeout=5000");
             }
             boolean bugReproduced = false;
             int exc = 0;

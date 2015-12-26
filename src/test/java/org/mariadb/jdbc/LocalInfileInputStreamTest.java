@@ -67,7 +67,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
         }
 
         String os = rs.getString(1);
-        if (os.toLowerCase().startsWith("win")) {
+        if (os.toLowerCase().startsWith("win") || System.getProperty("os.name").startsWith("Windows")) {
             st.executeUpdate("LOAD DATA LOCAL INFILE '" + classLoader.getResource("test.txt").getPath()
                     + "' INTO TABLE tt_local "
                     + "  FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"'"

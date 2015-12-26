@@ -31,12 +31,6 @@ public class DataTypeSignedTest extends BaseTest {
 
     @Test
     public void unsignedTinyIntTest() throws SQLException {
-        try {
-            sharedConnection.createStatement().execute("insert into signedTinyIntTest values (200)");
-            fail("200 > 128, must have thrown exception");
-        } catch (SQLException e) {
-            //normal Error
-        }
         sharedConnection.createStatement().execute("insert into signedTinyIntTest values (120)");
         sharedConnection.createStatement().execute("insert into signedTinyIntTest values (1)");
         sharedConnection.createStatement().execute("insert into signedTinyIntTest values (null)");
@@ -73,12 +67,6 @@ public class DataTypeSignedTest extends BaseTest {
 
     @Test
     public void signedSmallIntTest() throws SQLException {
-        try {
-            sharedConnection.createStatement().execute("insert into signedSmallIntTest values (65535)");
-            fail("must have thrown exception");
-        } catch (SQLException e) {
-            //normal Error
-        }
         sharedConnection.createStatement().execute("insert into signedSmallIntTest values (32767)");
         sharedConnection.createStatement().execute("insert into signedSmallIntTest values (1)");
         sharedConnection.createStatement().execute("insert into signedSmallIntTest values (null)");
@@ -117,12 +105,6 @@ public class DataTypeSignedTest extends BaseTest {
 
     @Test
     public void signedMediumIntTest() throws SQLException {
-        try {
-            sharedConnection.createStatement().execute("insert into signedMediumIntTest values (16777215)");
-            fail("must have thrown exception");
-        } catch (SQLException e) {
-            //normal Error
-        }
         sharedConnection.createStatement().execute("insert into signedMediumIntTest values (8388607)");
         sharedConnection.createStatement().execute("insert into signedMediumIntTest values (1)");
         sharedConnection.createStatement().execute("insert into signedMediumIntTest values (null)");
@@ -159,12 +141,6 @@ public class DataTypeSignedTest extends BaseTest {
 
     @Test
     public void signedIntTest() throws SQLException {
-        try {
-            sharedConnection.createStatement().execute("insert into signedIntTest values (4294967295)");
-            fail("must have thrown exception");
-        } catch (SQLException e) {
-            //normal Error
-        }
         sharedConnection.createStatement().execute("insert into signedIntTest values (2147483647)");
         sharedConnection.createStatement().execute("insert into signedIntTest values (1)");
         sharedConnection.createStatement().execute("insert into signedIntTest values (null)");
@@ -201,12 +177,6 @@ public class DataTypeSignedTest extends BaseTest {
 
     @Test
     public void signedBigIntTest() throws SQLException {
-        try {
-            sharedConnection.createStatement().execute("insert into signedBigIntTest values (18446744073709551615)");
-            fail("must have thrown exception");
-        } catch (SQLException e) {
-            //normal Error
-        }
         sharedConnection.createStatement().execute("insert into signedBigIntTest values (9223372036854775807)");
         sharedConnection.createStatement().execute("insert into signedBigIntTest values (1)");
         sharedConnection.createStatement().execute("insert into signedBigIntTest values (null)");

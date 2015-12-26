@@ -96,6 +96,7 @@ Following options are currently supported.
 |serverTimezone|Defined the server time zone.<br/>to use only if jre server as a different time implementation of the server.<br/>(best to have the same server time zone when possible). <br/>Since 1.1.7*|
 |rewriteBatchedStatements| rewrite batchedStatement to have only one server call.<br/>*Default: false. Since 1.1.8*|
 |useServerPrepStmts| if true, preparedStatement will be prepared on server side. If not, Prepared statements (parameter substitution) is handled by the driver, on the client side.<br/>*Default: true. Since 1.3.0*| 
+|connectTimeout| The connect  the timeout value, in milliseconds, or zero for no timeout.<br/>*Default: 0. Since 1.1.8*|
 
 
 

@@ -28,6 +28,7 @@ public class MonoServerFailoverTest extends BaseMultiHostTest {
     @Before
     public void init() throws SQLException {
         Assume.assumeTrue(initialUrl != null);
+        defaultUrl = initialUrl;
         currentType = HaMode.NONE;
     }
 
@@ -127,7 +128,6 @@ public class MonoServerFailoverTest extends BaseMultiHostTest {
 
     }
 
-
     /**
      * CONJ-120 Fix Connection.isValid method
      *
@@ -145,11 +145,12 @@ public class MonoServerFailoverTest extends BaseMultiHostTest {
             Statement killerStatement = killerConnection.createStatement();
             long threadId = protocol.getServerThreadId();
             killerStatement.execute("KILL CONNECTION " + threadId);
-            killerConnection.close();
             boolean isValid = connection.isValid(0);
             assertFalse(isValid);
         } finally {
-            killerConnection.close();
+            if (killerConnection != null) {
+                killerConnection.close();
+            }
             if (connection != null) {
                 connection.close();
             }
@@ -181,11 +182,6 @@ public class MonoServerFailoverTest extends BaseMultiHostTest {
                 //normal exception
             }
             restartProxy(masterServerId);
-            try {
-                preparedStatement.executeBatch();
-            } catch (SQLException e) {
-                Assert.fail();
-            }
         } finally {
             if (connection != null) {
                 connection.close();
