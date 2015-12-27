@@ -122,7 +122,7 @@ public class MastersSlavesProtocol extends MasterProtocol {
                 listener.addToBlacklist(protocol.getHostAddress());
             }
 
-            if (!searchFilter.isSearchForMaster() && !searchFilter.isSearchForSlave()) {
+            if (!listener.isMasterHostFail() && !listener.isSecondaryHostFail()) {
                 return;
             }
 
@@ -134,9 +134,9 @@ public class MastersSlavesProtocol extends MasterProtocol {
 
         }
 
-        if (searchFilter.isSearchForMaster() || searchFilter.isSearchForSlave()) {
+        if (listener.isMasterHostFail() || listener.isSecondaryHostFail()) {
             String error = "No active connection found for replica";
-            if (searchFilter.isSearchForMaster()) {
+            if (listener.isMasterHostFail()) {
                 error = "No active connection found for master";
             }
             if (lastQueryException != null) {
@@ -151,14 +151,13 @@ public class MastersSlavesProtocol extends MasterProtocol {
     protected static boolean foundMaster(MastersSlavesListener listener, MastersSlavesProtocol protocol,
                                          SearchFilter searchFilter) {
         protocol.setMustBeMasterConnection(true);
-        searchFilter.setSearchForMaster(false);
         if (listener.isMasterHostFail()) {
             listener.foundActiveMaster(protocol);
         } else {
             protocol.close();
         }
 
-        if (!searchFilter.isSearchForSlave()) {
+        if (!listener.isSecondaryHostFail()) {
             return true;
         } else {
             if (listener.isExplicitClosed()
@@ -172,7 +171,6 @@ public class MastersSlavesProtocol extends MasterProtocol {
 
     protected static boolean foundSecondary(MastersSlavesListener listener, MastersSlavesProtocol protocol,
                                             SearchFilter searchFilter) throws QueryException {
-        searchFilter.setSearchForSlave(false);
         protocol.setMustBeMasterConnection(false);
         if (listener.isSecondaryHostFail()) {
             listener.foundActiveSecondary(protocol);
@@ -180,7 +178,7 @@ public class MastersSlavesProtocol extends MasterProtocol {
             protocol.close();
         }
 
-        if (!searchFilter.isSearchForMaster()) {
+        if (!listener.isMasterHostFail()) {
             return true;
         } else {
             if (listener.isExplicitClosed()

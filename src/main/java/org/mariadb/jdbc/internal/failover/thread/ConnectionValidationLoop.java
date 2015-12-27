@@ -1,9 +1,7 @@
-package org.mariadb.jdbc.internal.failover.tools;
-
 /*
 MariaDB Client for Java
 
-Copyright (c) 2012 Monty Program Ab.
+Copyright (c) 2015 MariaDB.
 
 This library is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License as published by the Free
@@ -48,71 +46,68 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWIS
 ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
 OF SUCH DAMAGE.
 */
-public class SearchFilter {
-    boolean fineIfFoundOnlyMaster;
-    boolean fineIfFoundOnlySlave;
-    boolean initialConnection;
-    boolean uniqueLoop;
 
-    public SearchFilter() { }
+package org.mariadb.jdbc.internal.failover.thread;
 
-    /**
-     * Constructor.
-     * @param fineIfFoundOnlyMaster stop searching if master found
-     * @param fineIfFoundOnlySlave stop searching if slave found
-     */
-    public SearchFilter(boolean fineIfFoundOnlyMaster, boolean fineIfFoundOnlySlave) {
-        this.fineIfFoundOnlyMaster = fineIfFoundOnlyMaster;
-        this.fineIfFoundOnlySlave = fineIfFoundOnlySlave;
+import org.mariadb.jdbc.internal.failover.Listener;
+import org.mariadb.jdbc.internal.util.dao.QueryException;
+
+import java.util.ArrayDeque;
+import java.util.Iterator;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+public class ConnectionValidationLoop extends TerminatableRunnable {
+
+    private static final ConcurrentLinkedQueue<Listener> queue = new ConcurrentLinkedQueue<>();
+
+    public static void addListener(Listener listener) {
+        queue.add(listener);
     }
 
-    /**
-     * Constructor.
-     * @param initialConnection initial connection flag
-     */
-    public SearchFilter(boolean initialConnection) {
-        this.initialConnection = initialConnection;
+    public static void removeListener(Listener listener) {
+        queue.remove(listener);
     }
 
-    public boolean isInitialConnection() {
-        return initialConnection;
+    public static boolean hasListenerLeft() {
+        return queue.isEmpty();
     }
 
-    public void setInitialConnection(boolean initialConnection) {
-        this.initialConnection = initialConnection;
-    }
-
-    public boolean isFineIfFoundOnlyMaster() {
-        return fineIfFoundOnlyMaster;
-    }
-
-    public void setFineIfFoundOnlyMaster(boolean fineIfFoundOnlyMaster) {
-        this.fineIfFoundOnlyMaster = fineIfFoundOnlyMaster;
-    }
-
-    public boolean isFineIfFoundOnlySlave() {
-        return fineIfFoundOnlySlave;
-    }
-
-    public void setFineIfFoundOnlySlave(boolean fineIfFoundOnlySlave) {
-        this.fineIfFoundOnlySlave = fineIfFoundOnlySlave;
-    }
-
-    public boolean isUniqueLoop() {
-        return uniqueLoop;
-    }
-
-    public void setUniqueLoop(boolean uniqueLoop) {
-        this.uniqueLoop = uniqueLoop;
+    public ConnectionValidationLoop(ScheduledExecutorService scheduler, long scheduleMillis) {
+        super(scheduler, scheduleMillis, scheduleMillis, TimeUnit.MILLISECONDS);
     }
 
     @Override
-    public String toString() {
-        return "SearchFilter{"
-                + ", fineIfFoundOnlyMaster=" + fineIfFoundOnlyMaster
-                + ", fineIfFoundOnlySlave=" + fineIfFoundOnlySlave
-                + ", initialConnection=" + initialConnection
-                + ", uniqueLoop=" + uniqueLoop
-                + "}";
+    protected void doRun() {
+        Listener listener;
+        Iterator<Listener> tmpQueue = queue.iterator();
+        while (!isUnschedule() && tmpQueue.hasNext()) {
+            listener = tmpQueue.next();
+            if (!listener.isExplicitClosed()) {
+                long durationSeconds = TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - listener.getLastQueryNanos());
+                if (durationSeconds >= listener.getUrlParser().getOptions().validConnectionTimeout
+                        && !listener.isMasterHostFail()) {
+                    boolean masterFail = false;
+                    try {
+                        if (listener.isMasterConnected()) {
+                            listener.checkMasterStatus(null);
+                        } else {
+                            masterFail = true;
+                        }
+                    } catch (QueryException e) {
+                        masterFail = true;
+                    }
+
+                    if (masterFail && listener.setMasterHostFail()) {
+                        try {
+                            listener.primaryFail(null, null);
+                        } catch (Throwable t) {
+                            //do nothing
+                        }
+                    }
+                }
+            }
+        }
     }
 }

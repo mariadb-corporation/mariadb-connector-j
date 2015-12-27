@@ -85,13 +85,12 @@ public class AuroraProtocol extends MastersSlavesProtocol {
 
             protocol.setHostAddress(probableMaster);
             protocol.connect();
+            listener.removeFromBlacklist(protocol.getHostAddress());
 
-            if (searchFilter.isSearchForMaster() && protocol.isMasterConnection()) {
-                searchFilter.setSearchForMaster(false);
+            if (listener.isMasterHostFail() && protocol.isMasterConnection()) {
                 protocol.setMustBeMasterConnection(true);
                 listener.foundActiveMaster(protocol);
-            } else if (searchFilter.isSearchForSlave() && !protocol.isMasterConnection()) {
-                searchFilter.setSearchForSlave(false);
+            } else if (listener.isSecondaryHostFail() && !protocol.isMasterConnection()) {
                 protocol.setMustBeMasterConnection(false);
                 listener.foundActiveSecondary(protocol);
             } else {
@@ -151,7 +150,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
                     if (probableMasterHost != null) {
                         loopAddresses.remove(probableMasterHost);
                         AuroraProtocol.searchProbableMaster(listener, probableMasterHost, searchFilter);
-                        if (!searchFilter.isSearchForMaster()) {
+                        if (listener.isMasterHostFail() && searchFilter.isFineIfFoundOnlySlave()) {
                             return;
                         }
                     }
@@ -163,7 +162,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
                 listener.addToBlacklist(protocol.getHostAddress());
             }
 
-            if (!searchFilter.isSearchForMaster() && !searchFilter.isSearchForSlave()) {
+            if (!listener.isMasterHostFail() && !listener.isSecondaryHostFail()) {
                 return;
             }
 
@@ -175,9 +174,9 @@ public class AuroraProtocol extends MastersSlavesProtocol {
 
         }
 
-        if (searchFilter.isSearchForMaster() || searchFilter.isSearchForSlave()) {
+        if (listener.isMasterHostFail() || listener.isSecondaryHostFail()) {
             String error = "No active connection found for replica";
-            if (searchFilter.isSearchForMaster())  {
+            if (listener.isMasterHostFail())  {
                 error = "No active connection found for master";
             }
             if (lastQueryException != null) {

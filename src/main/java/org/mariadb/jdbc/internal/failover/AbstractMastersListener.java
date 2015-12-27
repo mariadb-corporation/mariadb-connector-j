@@ -52,9 +52,8 @@ OF SUCH DAMAGE.
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.failover.thread.ConnectionValidationLoop;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
-import org.mariadb.jdbc.internal.util.SchedulerServiceProviderHolder;
-import org.mariadb.jdbc.internal.util.SchedulerServiceProviderHolder.SchedulerProvider;
 import org.mariadb.jdbc.internal.util.dao.PrepareResult;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.query.MariaDbQuery;
@@ -62,6 +61,7 @@ import org.mariadb.jdbc.internal.query.Query;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
+import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -72,7 +72,7 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.LockSupport;
+import java.util.concurrent.locks.ReentrantLock;
 
 
 public abstract class AbstractMastersListener implements Listener {
@@ -80,34 +80,92 @@ public abstract class AbstractMastersListener implements Listener {
     /**
      * List the recent failedConnection.
      */
-    private static ConcurrentMap<HostAddress, Long> blacklist = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<HostAddress, Long> blacklist = new ConcurrentHashMap<>();
+    protected long lastQueryNanos = 0;
+    private static final AtomicReference<ScheduledThreadPoolExecutor> fixedSizedScheduler = new AtomicReference<>();
+    private static ConnectionValidationLoop connectionValidationLoop = null;
+
     /* =========================== Failover variables ========================================= */
     public final UrlParser urlParser;
     protected AtomicInteger currentConnectionAttempts = new AtomicInteger();
     protected AtomicBoolean currentReadOnlyAsked = new AtomicBoolean();
-    private AtomicReference<FailLoop> runningFailLoop = new AtomicReference<>();
     protected Protocol currentProtocol = null;
     protected FailoverProxy proxy;
     protected long lastRetry = 0;
     protected boolean explicitClosed = false;
-
-    private static final SchedulerProvider schedulerProvider = SchedulerServiceProviderHolder.getSchedulerProvider();
-    protected static final ScheduledExecutorService scheduler = schedulerProvider.getScheduler(50);
     private volatile long masterHostFailNanos = 0;
     private AtomicBoolean masterHostFail = new AtomicBoolean();
+    public final ReentrantLock reconnectionLock = new ReentrantLock();
+    public final ReentrantLock connectionValidationLock = new ReentrantLock();
+
 
     protected AbstractMastersListener(UrlParser urlParser) {
         this.urlParser = urlParser;
         this.masterHostFail.set(true);
+        this.lastQueryNanos = System.nanoTime();
     }
-    
-    protected void shutdownScheduler() {
-        FailLoop runningLoop = stopFailLoop();
-        if (runningLoop != null) {
-            runningLoop.blockTillTerminated();
+
+    /**
+     * Initialize Listener.
+     * This listener will be added to the connection validation loop according to option value so the connection
+     * will be verified periodically. (Important for aurora, for other, connection pool often have this functionality)
+     * @throws QueryException if any exception occur.
+     */
+    public void initializeConnection() throws QueryException {
+        if (urlParser.getOptions().validConnectionTimeout != 0) {
+            AbstractMastersListener.initConnectionValidation(urlParser.getOptions().validConnectionTimeout);
+            connectionValidationLock.lock();
+            try {
+                connectionValidationLoop.addListener(this);
+            } finally {
+                connectionValidationLock.unlock();
+            }
         }
     }
-    
+
+    /**
+     * Will initialize the connection validation loop and the associated pool if option "validConnectionTimeout" is
+     * not set to 0.
+     *
+     * @param validConnectionTimeout value of the option validConnectionTimeout.
+     */
+    public static void initConnectionValidation(int validConnectionTimeout) {
+        if (fixedSizedScheduler.compareAndSet(null, SchedulerServiceProviderHolder.getFixedSizeScheduler(1))) {
+            long scheduleMillis = TimeUnit.SECONDS.toMillis(validConnectionTimeout);
+            connectionValidationLoop = new ConnectionValidationLoop(fixedSizedScheduler.get(), scheduleMillis);
+        }
+    }
+
+    protected void removeListenerFromSchedulers() {
+        if (connectionValidationLoop != null) {
+            connectionValidationLoop.removeListener(this);
+            connectionValidationLock.lock();
+            try {
+                if (connectionValidationLoop.hasListenerLeft()) {
+                    connectionValidationLoop.unscheduleTask();
+                    connectionValidationLoop.blockTillTerminated();
+                    fixedSizedScheduler.get().shutdown();
+                    fixedSizedScheduler.set(null);
+                }
+            } finally {
+                connectionValidationLock.unlock();
+            }
+        }
+    }
+
+    protected void preAutoReconnect() throws QueryException {
+        if (!isExplicitClosed() && urlParser.getOptions().autoReconnect) {
+            try {
+                reconnectFailedConnection(new SearchFilter(!currentReadOnlyAsked.get(), currentReadOnlyAsked.get()));
+            } catch (QueryException e) {
+                //eat exception
+            }
+            handleFailLoop();
+        } else {
+            throw new QueryException("Connection is closed", (short) -1, ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState());
+        }
+    }
+
     public FailoverProxy getProxy() {
         return this.proxy;
     }
@@ -129,7 +187,7 @@ public abstract class AbstractMastersListener implements Listener {
      * </ol>
      *
      * @param method called method
-     * @param args methods parameters
+     * @param args   methods parameters
      * @return a HandleErrorResult object to indicate if query has been relaunched, and the exception if not
      * @throws Throwable when method and parameters does not exist.
      */
@@ -156,8 +214,9 @@ public abstract class AbstractMastersListener implements Listener {
     }
 
     /**
-     * After a successfull connection, permit to remove a hostAddress from blacklist
-     * @param hostAddress
+     * After a successfull connection, permit to remove a hostAddress from blacklist.
+     *
+     * @param hostAddress the host address tho be remove of blacklist
      */
     public void removeFromBlacklist(HostAddress hostAddress) {
         if (hostAddress != null) {
@@ -192,34 +251,7 @@ public abstract class AbstractMastersListener implements Listener {
         }
     }
 
-    protected FailLoop stopFailLoop() {
-        FailLoop loop;
-        while ((loop = runningFailLoop.get()) != null) {
-            if (runningFailLoop.compareAndSet(loop, null)) {
-                // compare and swap guards that only one thread invokes unschedule on a specific loop instance
-                loop.unscheduleTask();
-                return loop;
-            }
-        }
-        return null;
-    }
-
-    protected abstract FailLoop handleFailLoop(boolean now);
-
-    /**
-     * launch the scheduler loop every 250 milliseconds, to reconnect a failed connection.
-     * Will verify if there is an existing scheduler
-     *
-     * @param now now will launch the loop immediatly, 250ms after if false
-     */
-    protected void launchFailLoopIfNotLaunched(boolean now) {
-        if (runningFailLoop.get() == null && urlParser.getOptions().failoverLoopRetries != 0) {
-            FailLoop loopRunner = new FailLoop(this);
-            if (runningFailLoop.compareAndSet(null, loopRunner)) {
-                loopRunner.scheduleSelf(scheduler, now);
-            }
-        }
-    }
+    public abstract void handleFailLoop();
 
     public Protocol getCurrentProtocol() {
         return currentProtocol;
@@ -231,6 +263,7 @@ public abstract class AbstractMastersListener implements Listener {
 
     /**
      * Set master fail variables.
+     *
      * @return true if was already failed
      */
     public boolean setMasterHostFail() {
@@ -354,8 +387,6 @@ public abstract class AbstractMastersListener implements Listener {
         return urlParser;
     }
 
-    public abstract void initializeConnection() throws QueryException;
-
     public abstract void preExecute() throws QueryException;
 
     public abstract void preClose() throws SQLException;
@@ -370,14 +401,14 @@ public abstract class AbstractMastersListener implements Listener {
      * Throw a human readable message after a failoverException.
      *
      * @param failHostAddress failedHostAddress
-     * @param wasMaster was failed connection master
-     * @param queryException internal error
-     * @param reconnected    connection status
+     * @param wasMaster       was failed connection master
+     * @param queryException  internal error
+     * @param reconnected     connection status
      * @throws QueryException error with failover information
      */
     @Override
     public void throwFailoverMessage(HostAddress failHostAddress, boolean wasMaster, QueryException queryException,
-            boolean reconnected) throws QueryException {
+                                     boolean reconnected) throws QueryException {
         String firstPart = Thread.currentThread().getName() + " - Communications link failure with "
                 + (wasMaster ? "primary" : "secondary")
                 + ((failHostAddress != null) ? " host " + failHostAddress.host + ":" + failHostAddress.port : "") + ". ";
@@ -406,107 +437,24 @@ public abstract class AbstractMastersListener implements Listener {
 
     }
 
+    public boolean canRetryFailLoop() {
+        return currentConnectionAttempts.get() < urlParser.getOptions().failoverLoopRetries;
+    }
+
+
     public abstract void reconnect() throws QueryException;
-    
-    protected abstract static class TerminatableRunnable implements Runnable {
-        private final AtomicInteger runState = new AtomicInteger(0); // -1 = removed, 0 = idle, 1 = active
-        protected final AtomicInteger scheduleState = new AtomicInteger(0); // 0 = not scheduled, 1 = scheduled, 2 = ended
-        protected volatile ScheduledFuture<?> scheduledFuture = null;
 
-        protected abstract void doRun();
-        
-        @Override
-        public final void run() {
-            if (! runState.compareAndSet(0, 1)) {
-                // task has somehow either started to run in parallel (should not be possible)
-                // or more likely the task has now been set to terminate
-                return;
-            }
-            try {
-                doRun();
-            } finally {
-                runState.compareAndSet(1, 0);
-            }
-        }
+    public abstract boolean checkMasterStatus(SearchFilter searchFilter) throws QueryException;
 
-        public void blockTillTerminated() {
-            unscheduleTask();
-            while (! runState.compareAndSet(0, -1)) {
-                // wait and retry
-                LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(10));
-                if (Thread.currentThread().isInterrupted()) {
-                    runState.set(-1);
-                    return;
-                }
-            }
-        }
-
-        // while scheduledFuture may be set from another thread
-        // it is expected only one thread will unschedule
-        public void unscheduleTask() {
-            while (scheduleState.get() != 2) {
-                if (scheduledFuture == null) {
-                    if (scheduleState.compareAndSet(0, 2)) {
-                        return;
-                    }
-                    // not scheduled yet, should be a rare condition, just loop
-                    Thread.yield();
-                } else {
-                    if (scheduleState.compareAndSet(1, 2)) {
-                        scheduledFuture.cancel(false);
-                        scheduledFuture = null;
-                        return;
-                    }
-                }
-            }
-        }
-
-    }
-
-    /**
-     * Private class to permit a timer reconnection loop.
-     */
-    protected class FailLoop extends TerminatableRunnable {
-        Listener listener;
-
-        public FailLoop(Listener listener) {
-            this.listener = listener;
-        }
-
-        public void scheduleSelf(ScheduledExecutorService scheduler, boolean now) {
-            if (scheduleState.compareAndSet(0, 1)) {
-                scheduledFuture = scheduler.scheduleWithFixedDelay(this, now ? 0 : 250, 250,
-                        TimeUnit.MILLISECONDS);
-            }
-        }
-
-        @Override
-        protected void doRun() {
-
-            if (!explicitClosed && listener.hasHostFail()) {
-                if (currentConnectionAttempts.get() > urlParser.getOptions().failoverLoopRetries) {
-                    stopFailLoop();
-                } else {
-                    try {
-                        SearchFilter filter = getFilterForFailedHost();
-                        filter.setUniqueLoop(true);
-                        listener.reconnectFailedConnection(filter);
-                        //reconnection done !
-                        stopFailLoop();
-                    } catch (Exception e) {
-                        //FailLoop search connection failed
-                    }
-                }
-            } else {
-                stopFailLoop();
-            }
-        }
-    }
 
     /**
      * Clear blacklist data.
      */
     public static void clearBlacklist() {
         blacklist.clear();
+    }
+
+    public long getLastQueryNanos() {
+        return lastQueryNanos;
     }
 }

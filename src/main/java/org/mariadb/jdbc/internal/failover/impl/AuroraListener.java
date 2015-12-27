@@ -89,55 +89,63 @@ public class AuroraListener extends MastersSlavesListener {
      */
     @Override
     public void reconnectFailedConnection(SearchFilter searchFilter) throws QueryException {
-        currentConnectionAttempts.incrementAndGet();
-        resetOldsBlackListHosts();
-
-        //put the list in the following order
-        // - random order not connected host and not blacklisted
-        // - random blacklisted host
-        // - connected host at end.
-        List<HostAddress> loopAddress = new LinkedList<>(urlParser.getHostAddresses());
-        loopAddress.removeAll(getBlacklistKeys());
-        Collections.shuffle(loopAddress);
-        List<HostAddress> blacklistShuffle = new LinkedList<>(getBlacklistKeys());
-        Collections.shuffle(blacklistShuffle);
-        loopAddress.addAll(blacklistShuffle);
-
-        //put connected at end
-        if (masterProtocol != null && !isMasterHostFail()) {
-            loopAddress.remove(masterProtocol.getHostAddress());
-            loopAddress.add(masterProtocol.getHostAddress());
-            if (!masterProtocol.checkIfMaster()) {
-                //aurora master is now slave !
-                setMasterHostFail();
-                if (isSecondaryHostFail()) {
-                    foundActiveSecondary(masterProtocol);
-                }
-                if (searchFilter != null) {
-                    searchFilter.setSearchForSlave(false);
-                }
-            }
+        if (!searchFilter.isInitialConnection()
+                && (isExplicitClosed()
+                || (searchFilter.isFineIfFoundOnlyMaster() && !isMasterHostFail())
+                || searchFilter.isFineIfFoundOnlySlave() && !isSecondaryHostFail())) {
+            return;
         }
 
-        if (!isSecondaryHostFail()) {
-            if (secondaryProtocol != null) {
-                loopAddress.remove(secondaryProtocol.getHostAddress());
-                loopAddress.add(secondaryProtocol.getHostAddress());
-                if (secondaryProtocol.checkIfMaster()) {
-                    setSecondaryHostFail();
-                    if (isMasterHostFail()) {
-                        foundActiveMaster(secondaryProtocol);
-                    }
-                    if (searchFilter != null) {
-                        searchFilter.setSearchForMaster(false);
+        reconnectionLock.lock();
+        try {
+            currentConnectionAttempts.incrementAndGet();
+
+            resetOldsBlackListHosts();
+
+            //put the list in the following order
+            // - random order not connected host and not blacklisted
+            // - random blacklisted host
+            // - connected host at end.
+            List<HostAddress> loopAddress = new LinkedList<>(urlParser.getHostAddresses());
+            loopAddress.removeAll(getBlacklistKeys());
+            Collections.shuffle(loopAddress);
+            List<HostAddress> blacklistShuffle = new LinkedList<>(getBlacklistKeys());
+            Collections.shuffle(blacklistShuffle);
+            loopAddress.addAll(blacklistShuffle);
+
+            //put connected at end
+            if (masterProtocol != null && !isMasterHostFail()) {
+                loopAddress.remove(masterProtocol.getHostAddress());
+                loopAddress.add(masterProtocol.getHostAddress());
+                if (!masterProtocol.checkIfMaster()) {
+                    //aurora master is now slave !
+                    setMasterHostFail();
+                    if (isSecondaryHostFail()) {
+                        foundActiveSecondary(masterProtocol);
                     }
                 }
             }
-        }
 
-        if (((searchFilter.isSearchForMaster() && isMasterHostFail())
-                || (searchFilter.isSearchForSlave() && isSecondaryHostFail())) || searchFilter.isInitialConnection()) {
-            AuroraProtocol.loop(this, loopAddress, searchFilter);
+            if (!isSecondaryHostFail()) {
+                if (secondaryProtocol != null) {
+                    loopAddress.remove(secondaryProtocol.getHostAddress());
+                    loopAddress.add(secondaryProtocol.getHostAddress());
+                    if (secondaryProtocol.checkIfMaster()) {
+                        setSecondaryHostFail();
+                        if (isMasterHostFail()) {
+                            foundActiveMaster(secondaryProtocol);
+                        }
+                    }
+                }
+            }
+
+            if ((isMasterHostFail()
+                    || isSecondaryHostFail()) || searchFilter.isInitialConnection()) {
+                AuroraProtocol.loop(this, loopAddress, searchFilter);
+            }
+            return;
+        } finally {
+            reconnectionLock.unlock();
         }
     }
 
@@ -196,9 +204,6 @@ public class AuroraListener extends MastersSlavesListener {
                     if (isSecondaryHostFail()) {
                         foundActiveSecondary(masterProtocol);
                     }
-                    if (searchFilter != null) {
-                        searchFilter.setSearchForSlave(false);
-                    }
                     return true;
                 }
             } catch (QueryException e) {
@@ -226,9 +231,6 @@ public class AuroraListener extends MastersSlavesListener {
                     setSecondaryHostFail();
                     if (isMasterHostFail()) {
                         foundActiveMaster(secondaryProtocol);
-                    }
-                    if (searchFilter != null) {
-                        searchFilter.setSearchForMaster(false);
                     }
                     return true;
                 }

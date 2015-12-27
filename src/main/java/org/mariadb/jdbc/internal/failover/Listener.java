@@ -59,6 +59,7 @@ import java.lang.reflect.Method;
 import java.sql.SQLException;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ScheduledExecutorService;
 
 public interface Listener {
     FailoverProxy getProxy();
@@ -113,4 +114,19 @@ public interface Listener {
     Protocol getCurrentProtocol();
 
     boolean hasHostFail();
+
+    boolean canRetryFailLoop();
+
+    SearchFilter getFilterForFailedHost();
+
+    boolean isMasterConnected();
+
+    boolean setMasterHostFail();
+
+    boolean isMasterHostFail();
+
+    long getLastQueryNanos();
+
+    boolean checkMasterStatus(SearchFilter searchFilter) throws QueryException;
+
 }

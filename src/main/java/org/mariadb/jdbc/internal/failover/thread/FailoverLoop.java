@@ -1,9 +1,7 @@
-package org.mariadb.jdbc.internal.failover.tools;
-
 /*
 MariaDB Client for Java
 
-Copyright (c) 2012 Monty Program Ab.
+Copyright (c) 2015 MariaDB.
 
 This library is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License as published by the Free
@@ -48,71 +46,50 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWIS
 ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
 OF SUCH DAMAGE.
 */
-public class SearchFilter {
-    boolean fineIfFoundOnlyMaster;
-    boolean fineIfFoundOnlySlave;
-    boolean initialConnection;
-    boolean uniqueLoop;
 
-    public SearchFilter() { }
+package org.mariadb.jdbc.internal.failover.thread;
 
-    /**
-     * Constructor.
-     * @param fineIfFoundOnlyMaster stop searching if master found
-     * @param fineIfFoundOnlySlave stop searching if slave found
-     */
-    public SearchFilter(boolean fineIfFoundOnlyMaster, boolean fineIfFoundOnlySlave) {
-        this.fineIfFoundOnlyMaster = fineIfFoundOnlyMaster;
-        this.fineIfFoundOnlySlave = fineIfFoundOnlySlave;
+import org.mariadb.jdbc.internal.failover.Listener;
+import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
+
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+public class FailoverLoop extends TerminatableRunnable {
+
+    private static final ConcurrentLinkedQueue<Listener> queue = new ConcurrentLinkedQueue<>();
+
+    public static void addListener(Listener listener) {
+        queue.add(listener);
     }
 
-    /**
-     * Constructor.
-     * @param initialConnection initial connection flag
-     */
-    public SearchFilter(boolean initialConnection) {
-        this.initialConnection = initialConnection;
+    public static void removeListener(Listener listener) {
+        queue.remove(listener);
     }
 
-    public boolean isInitialConnection() {
-        return initialConnection;
-    }
-
-    public void setInitialConnection(boolean initialConnection) {
-        this.initialConnection = initialConnection;
-    }
-
-    public boolean isFineIfFoundOnlyMaster() {
-        return fineIfFoundOnlyMaster;
-    }
-
-    public void setFineIfFoundOnlyMaster(boolean fineIfFoundOnlyMaster) {
-        this.fineIfFoundOnlyMaster = fineIfFoundOnlyMaster;
-    }
-
-    public boolean isFineIfFoundOnlySlave() {
-        return fineIfFoundOnlySlave;
-    }
-
-    public void setFineIfFoundOnlySlave(boolean fineIfFoundOnlySlave) {
-        this.fineIfFoundOnlySlave = fineIfFoundOnlySlave;
-    }
-
-    public boolean isUniqueLoop() {
-        return uniqueLoop;
-    }
-
-    public void setUniqueLoop(boolean uniqueLoop) {
-        this.uniqueLoop = uniqueLoop;
+    public FailoverLoop(ScheduledExecutorService scheduler) {
+        super(scheduler, 100, 100, TimeUnit.MILLISECONDS);
     }
 
     @Override
-    public String toString() {
-        return "SearchFilter{"
-                + ", fineIfFoundOnlyMaster=" + fineIfFoundOnlyMaster
-                + ", fineIfFoundOnlySlave=" + fineIfFoundOnlySlave
-                + ", initialConnection=" + initialConnection
-                + ", uniqueLoop=" + uniqueLoop
-                + "}";
+    protected void doRun() {
+        Listener listener;
+        while (!isUnschedule() && (listener = queue.poll()) != null) {
+            if (!listener.isExplicitClosed() && listener.hasHostFail()) {
+                if (listener.canRetryFailLoop()) {
+                    try {
+                        SearchFilter filter = listener.getFilterForFailedHost();
+                        filter.setUniqueLoop(true);
+                        listener.reconnectFailedConnection(filter);
+                        //reconnection done !
+                    } catch (Exception e) {
+                        //FailoverLoop search connection failed
+                        queue.add(listener);
+                    }
+                }
+            }
+        }
     }
+
 }

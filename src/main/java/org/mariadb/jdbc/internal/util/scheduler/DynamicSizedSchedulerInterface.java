@@ -1,9 +1,7 @@
-package org.mariadb.jdbc.internal.failover.tools;
-
 /*
 MariaDB Client for Java
 
-Copyright (c) 2012 Monty Program Ab.
+Copyright (c) 2015 Monty Program Ab.
 
 This library is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License as published by the Free
@@ -48,71 +46,24 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWIS
 ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
 OF SUCH DAMAGE.
 */
-public class SearchFilter {
-    boolean fineIfFoundOnlyMaster;
-    boolean fineIfFoundOnlySlave;
-    boolean initialConnection;
-    boolean uniqueLoop;
 
-    public SearchFilter() { }
+package org.mariadb.jdbc.internal.util.scheduler;
+
+import java.util.concurrent.ScheduledExecutorService;
+
+public interface DynamicSizedSchedulerInterface extends ScheduledExecutorService {
+    /**
+     * Update the pool thread count with this new value.
+     *
+     * @param newSize New pool size that is superior to 0
+     * @return corePoolSize
+     */
+    public int setListenerSize(int newSize);
 
     /**
-     * Constructor.
-     * @param fineIfFoundOnlyMaster stop searching if master found
-     * @param fineIfFoundOnlySlave stop searching if slave found
+     * Get the pool ratio compare to listener number.
+     * @return ratio
      */
-    public SearchFilter(boolean fineIfFoundOnlyMaster, boolean fineIfFoundOnlySlave) {
-        this.fineIfFoundOnlyMaster = fineIfFoundOnlyMaster;
-        this.fineIfFoundOnlySlave = fineIfFoundOnlySlave;
-    }
+    public double getThreadRatio();
 
-    /**
-     * Constructor.
-     * @param initialConnection initial connection flag
-     */
-    public SearchFilter(boolean initialConnection) {
-        this.initialConnection = initialConnection;
-    }
-
-    public boolean isInitialConnection() {
-        return initialConnection;
-    }
-
-    public void setInitialConnection(boolean initialConnection) {
-        this.initialConnection = initialConnection;
-    }
-
-    public boolean isFineIfFoundOnlyMaster() {
-        return fineIfFoundOnlyMaster;
-    }
-
-    public void setFineIfFoundOnlyMaster(boolean fineIfFoundOnlyMaster) {
-        this.fineIfFoundOnlyMaster = fineIfFoundOnlyMaster;
-    }
-
-    public boolean isFineIfFoundOnlySlave() {
-        return fineIfFoundOnlySlave;
-    }
-
-    public void setFineIfFoundOnlySlave(boolean fineIfFoundOnlySlave) {
-        this.fineIfFoundOnlySlave = fineIfFoundOnlySlave;
-    }
-
-    public boolean isUniqueLoop() {
-        return uniqueLoop;
-    }
-
-    public void setUniqueLoop(boolean uniqueLoop) {
-        this.uniqueLoop = uniqueLoop;
-    }
-
-    @Override
-    public String toString() {
-        return "SearchFilter{"
-                + ", fineIfFoundOnlyMaster=" + fineIfFoundOnlyMaster
-                + ", fineIfFoundOnlySlave=" + fineIfFoundOnlySlave
-                + ", initialConnection=" + initialConnection
-                + ", uniqueLoop=" + uniqueLoop
-                + "}";
-    }
 }

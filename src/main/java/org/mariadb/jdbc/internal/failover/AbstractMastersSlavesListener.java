@@ -56,7 +56,6 @@ import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 
 import java.lang.reflect.Method;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 
 public abstract class AbstractMastersSlavesListener extends AbstractMastersListener {

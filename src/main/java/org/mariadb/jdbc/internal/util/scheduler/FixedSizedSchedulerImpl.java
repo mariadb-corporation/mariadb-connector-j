@@ -1,9 +1,7 @@
-package org.mariadb.jdbc.internal.failover.tools;
-
 /*
 MariaDB Client for Java
 
-Copyright (c) 2012 Monty Program Ab.
+Copyright (c) 2015 Monty Program Ab.
 
 This library is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License as published by the Free
@@ -48,71 +46,35 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWIS
 ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
 OF SUCH DAMAGE.
 */
-public class SearchFilter {
-    boolean fineIfFoundOnlyMaster;
-    boolean fineIfFoundOnlySlave;
-    boolean initialConnection;
-    boolean uniqueLoop;
 
-    public SearchFilter() { }
+package org.mariadb.jdbc.internal.util.scheduler;
 
-    /**
-     * Constructor.
-     * @param fineIfFoundOnlyMaster stop searching if master found
-     * @param fineIfFoundOnlySlave stop searching if slave found
-     */
-    public SearchFilter(boolean fineIfFoundOnlyMaster, boolean fineIfFoundOnlySlave) {
-        this.fineIfFoundOnlyMaster = fineIfFoundOnlyMaster;
-        this.fineIfFoundOnlySlave = fineIfFoundOnlySlave;
-    }
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicInteger;
+
+public class FixedSizedSchedulerImpl extends ScheduledThreadPoolExecutor {
+    private static final AtomicInteger POOL_ID = new AtomicInteger();
 
     /**
-     * Constructor.
-     * @param initialConnection initial connection flag
+     * Create scheduler with fixed size.
+     * @param corePoolSize core pool size
      */
-    public SearchFilter(boolean initialConnection) {
-        this.initialConnection = initialConnection;
-    }
+    public FixedSizedSchedulerImpl(int corePoolSize) {
+        super(corePoolSize, new ThreadFactory() {
+            private final int thisPoolId = POOL_ID.incrementAndGet();
+            // start from DefaultThread factory to get security groups and what not
+            private final ThreadFactory parentFactory = Executors.defaultThreadFactory();
+            private final AtomicInteger threadId = new AtomicInteger();
 
-    public boolean isInitialConnection() {
-        return initialConnection;
-    }
+            @Override
+            public Thread newThread(Runnable runnable) {
+                Thread result = parentFactory.newThread(runnable);
+                result.setName("mariaDb-connection-validity-" + thisPoolId + "-" + threadId.incrementAndGet());
 
-    public void setInitialConnection(boolean initialConnection) {
-        this.initialConnection = initialConnection;
-    }
-
-    public boolean isFineIfFoundOnlyMaster() {
-        return fineIfFoundOnlyMaster;
-    }
-
-    public void setFineIfFoundOnlyMaster(boolean fineIfFoundOnlyMaster) {
-        this.fineIfFoundOnlyMaster = fineIfFoundOnlyMaster;
-    }
-
-    public boolean isFineIfFoundOnlySlave() {
-        return fineIfFoundOnlySlave;
-    }
-
-    public void setFineIfFoundOnlySlave(boolean fineIfFoundOnlySlave) {
-        this.fineIfFoundOnlySlave = fineIfFoundOnlySlave;
-    }
-
-    public boolean isUniqueLoop() {
-        return uniqueLoop;
-    }
-
-    public void setUniqueLoop(boolean uniqueLoop) {
-        this.uniqueLoop = uniqueLoop;
-    }
-
-    @Override
-    public String toString() {
-        return "SearchFilter{"
-                + ", fineIfFoundOnlyMaster=" + fineIfFoundOnlyMaster
-                + ", fineIfFoundOnlySlave=" + fineIfFoundOnlySlave
-                + ", initialConnection=" + initialConnection
-                + ", uniqueLoop=" + uniqueLoop
-                + "}";
+                return result;
+            }
+        });
     }
 }

@@ -1,9 +1,7 @@
-package org.mariadb.jdbc.internal.failover.tools;
-
 /*
 MariaDB Client for Java
 
-Copyright (c) 2012 Monty Program Ab.
+Copyright (c) 2015 MariaDB.
 
 This library is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License as published by the Free
@@ -48,71 +46,73 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWIS
 ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
 OF SUCH DAMAGE.
 */
-public class SearchFilter {
-    boolean fineIfFoundOnlyMaster;
-    boolean fineIfFoundOnlySlave;
-    boolean initialConnection;
-    boolean uniqueLoop;
 
-    public SearchFilter() { }
+package org.mariadb.jdbc.internal.failover.thread;
 
-    /**
-     * Constructor.
-     * @param fineIfFoundOnlyMaster stop searching if master found
-     * @param fineIfFoundOnlySlave stop searching if slave found
-     */
-    public SearchFilter(boolean fineIfFoundOnlyMaster, boolean fineIfFoundOnlySlave) {
-        this.fineIfFoundOnlyMaster = fineIfFoundOnlyMaster;
-        this.fineIfFoundOnlySlave = fineIfFoundOnlySlave;
-    }
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.LockSupport;
 
-    /**
-     * Constructor.
-     * @param initialConnection initial connection flag
-     */
-    public SearchFilter(boolean initialConnection) {
-        this.initialConnection = initialConnection;
-    }
+public abstract class TerminatableRunnable implements Runnable {
+    private final AtomicInteger runState = new AtomicInteger(0); // -1 = removed, 0 = idle, 1 = active
+    private final AtomicBoolean unschedule = new AtomicBoolean();
+    private volatile ScheduledFuture<?> scheduledFuture = null;
 
-    public boolean isInitialConnection() {
-        return initialConnection;
-    }
+    protected abstract void doRun();
 
-    public void setInitialConnection(boolean initialConnection) {
-        this.initialConnection = initialConnection;
-    }
-
-    public boolean isFineIfFoundOnlyMaster() {
-        return fineIfFoundOnlyMaster;
-    }
-
-    public void setFineIfFoundOnlyMaster(boolean fineIfFoundOnlyMaster) {
-        this.fineIfFoundOnlyMaster = fineIfFoundOnlyMaster;
-    }
-
-    public boolean isFineIfFoundOnlySlave() {
-        return fineIfFoundOnlySlave;
-    }
-
-    public void setFineIfFoundOnlySlave(boolean fineIfFoundOnlySlave) {
-        this.fineIfFoundOnlySlave = fineIfFoundOnlySlave;
-    }
-
-    public boolean isUniqueLoop() {
-        return uniqueLoop;
-    }
-
-    public void setUniqueLoop(boolean uniqueLoop) {
-        this.uniqueLoop = uniqueLoop;
+    public TerminatableRunnable(ScheduledExecutorService scheduler,
+                                long initialDelay,
+                                long delay,
+                                TimeUnit unit) {
+        this.scheduledFuture = scheduler.scheduleWithFixedDelay(this, initialDelay, delay, unit);
     }
 
     @Override
-    public String toString() {
-        return "SearchFilter{"
-                + ", fineIfFoundOnlyMaster=" + fineIfFoundOnlyMaster
-                + ", fineIfFoundOnlySlave=" + fineIfFoundOnlySlave
-                + ", initialConnection=" + initialConnection
-                + ", uniqueLoop=" + uniqueLoop
-                + "}";
+    public final void run() {
+        if (!runState.compareAndSet(0, 1)) {
+            // task has somehow either started to run in parallel (should not be possible)
+            // or more likely the task has now been set to terminate
+            return;
+        }
+        try {
+            doRun();
+        } finally {
+            runState.compareAndSet(1, 0);
+        }
     }
+
+    /**
+     * Unschedule next launched, and wait for the current task to complete before closing it.
+     */
+    public void blockTillTerminated() {
+        unscheduleTask();
+        while (!runState.compareAndSet(0, -1)) {
+            // wait and retry
+            LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(10));
+            if (Thread.currentThread().isInterrupted()) {
+                runState.set(-1);
+                return;
+            }
+        }
+    }
+
+    public boolean isUnschedule() {
+        return unschedule.get();
+    }
+
+    /**
+     * Unschedule task if active.
+     */
+    public void unscheduleTask() {
+        if (unschedule.compareAndSet(false, true)) {
+            scheduledFuture.cancel(false);
+            scheduledFuture = null;
+            return;
+        }
+    }
+
 }
+
