@@ -52,7 +52,7 @@ OF SUCH DAMAGE.
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.MariaDbType;
-import org.mariadb.jdbc.internal.failover.thread.ConnectionValidationLoop;
+import org.mariadb.jdbc.internal.failover.thread.ConnectionValidator;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.dao.PrepareResult;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
@@ -61,7 +61,6 @@ import org.mariadb.jdbc.internal.query.Query;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
-import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -71,7 +70,6 @@ import java.util.Set;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 
 
@@ -81,9 +79,7 @@ public abstract class AbstractMastersListener implements Listener {
      * List the recent failedConnection.
      */
     private static final ConcurrentMap<HostAddress, Long> blacklist = new ConcurrentHashMap<>();
-    protected long lastQueryNanos = 0;
-    private static final AtomicReference<ScheduledThreadPoolExecutor> fixedSizedScheduler = new AtomicReference<>();
-    private static ConnectionValidationLoop connectionValidationLoop = null;
+    private static final ConnectionValidator connectionValidationLoop = new ConnectionValidator();
 
     /* =========================== Failover variables ========================================= */
     public final UrlParser urlParser;
@@ -96,7 +92,7 @@ public abstract class AbstractMastersListener implements Listener {
     private volatile long masterHostFailNanos = 0;
     private AtomicBoolean masterHostFail = new AtomicBoolean();
     public final ReentrantLock reconnectionLock = new ReentrantLock();
-    public final ReentrantLock connectionValidationLock = new ReentrantLock();
+    protected long lastQueryNanos = 0;
 
 
     protected AbstractMastersListener(UrlParser urlParser) {
@@ -112,45 +108,14 @@ public abstract class AbstractMastersListener implements Listener {
      * @throws QueryException if any exception occur.
      */
     public void initializeConnection() throws QueryException {
-        if (urlParser.getOptions().validConnectionTimeout != 0) {
-            AbstractMastersListener.initConnectionValidation(urlParser.getOptions().validConnectionTimeout);
-            connectionValidationLock.lock();
-            try {
-                connectionValidationLoop.addListener(this);
-            } finally {
-                connectionValidationLock.unlock();
-            }
-        }
-    }
-
-    /**
-     * Will initialize the connection validation loop and the associated pool if option "validConnectionTimeout" is
-     * not set to 0.
-     *
-     * @param validConnectionTimeout value of the option validConnectionTimeout.
-     */
-    public static void initConnectionValidation(int validConnectionTimeout) {
-        if (fixedSizedScheduler.compareAndSet(null, SchedulerServiceProviderHolder.getFixedSizeScheduler(1))) {
-            long scheduleMillis = TimeUnit.SECONDS.toMillis(validConnectionTimeout);
-            connectionValidationLoop = new ConnectionValidationLoop(fixedSizedScheduler.get(), scheduleMillis);
+        long connectionTimeoutMillis = TimeUnit.SECONDS.toMillis(urlParser.getOptions().validConnectionTimeout);
+        if (connectionTimeoutMillis > 0) {
+            connectionValidationLoop.addListener(this, connectionTimeoutMillis);
         }
     }
 
     protected void removeListenerFromSchedulers() {
-        if (connectionValidationLoop != null) {
-            connectionValidationLoop.removeListener(this);
-            connectionValidationLock.lock();
-            try {
-                if (connectionValidationLoop.hasListenerLeft()) {
-                    connectionValidationLoop.unscheduleTask();
-                    connectionValidationLoop.blockTillTerminated();
-                    fixedSizedScheduler.get().shutdown();
-                    fixedSizedScheduler.set(null);
-                }
-            } finally {
-                connectionValidationLock.unlock();
-            }
-        }
+        connectionValidationLoop.removeListener(this);
     }
 
     protected void preAutoReconnect() throws QueryException {
