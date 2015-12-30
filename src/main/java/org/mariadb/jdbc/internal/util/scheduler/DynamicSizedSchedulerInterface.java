@@ -56,14 +56,6 @@ public interface DynamicSizedSchedulerInterface extends ScheduledExecutorService
      * Update the pool thread count with this new value.
      *
      * @param newSize New pool size that is superior to 0
-     * @return corePoolSize
      */
-    public int setListenerSize(int newSize);
-
-    /**
-     * Get the pool ratio compare to listener number.
-     * @return ratio
-     */
-    public double getThreadRatio();
-
+    public void setPoolSize(int newSize);
 }

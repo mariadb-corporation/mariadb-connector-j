@@ -63,46 +63,67 @@ import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 
 import java.lang.reflect.Method;
 import java.sql.SQLException;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 
 /**
  * this class handle the operation when multiple hosts.
  */
 public class MastersSlavesListener extends AbstractMastersSlavesListener {
+    private static final double POOL_SIZE_TO_LISTENER_RATIO = 0.3d;
+    private static final double FAIL_LOOP_TO_LISTENER_RATIO = 0.3d;
 
     protected Protocol masterProtocol;
     protected Protocol secondaryProtocol;
-    private static final AtomicReference<DynamicSizedSchedulerInterface> dynamicSizedScheduler = new AtomicReference<>();
+    private static final DynamicSizedSchedulerInterface dynamicSizedScheduler;
     private static final AtomicInteger listenerCount = new AtomicInteger();
-    private static final ConcurrentLinkedQueue<FailoverLoop> failoverLoops = new ConcurrentLinkedQueue<>();
 
     static {
+        dynamicSizedScheduler = SchedulerServiceProviderHolder.getScheduler(0);
+        
         // pool decreases happen async
-        dynamicSizedScheduler.compareAndSet(null, SchedulerServiceProviderHolder.getScheduler(0));
-        getCurrentScheduler().scheduleWithFixedDelay(new Runnable() {
+        dynamicSizedScheduler.scheduleWithFixedDelay(new Runnable() {
             @Override
             public void run() {
-                int neededThread = (int) Math.ceil(listenerCount.get() * getCurrentScheduler().getThreadRatio());
-                while (neededThread < failoverLoops.size()) {
-                    FailoverLoop failoverLoop = failoverLoops.poll();
-                    failoverLoop.unscheduleTask();
-                    failoverLoop.blockTillTerminated();
-                }
-                getCurrentScheduler().setListenerSize(listenerCount.get());
-                if (listenerCount.get() == 0) {
-                    DynamicSizedSchedulerInterface scheduler = dynamicSizedScheduler.get();
-                    dynamicSizedScheduler.set(null);
-                    scheduler.shutdown();
+                dynamicSizedScheduler.setPoolSize((int)Math.ceil(listenerCount.get() * POOL_SIZE_TO_LISTENER_RATIO));
+            }
+        }, 2, 2, TimeUnit.HOURS);
+        
+        // fail loop scaling happens async and only from a single thread
+        dynamicSizedScheduler.scheduleWithFixedDelay(new Runnable() {
+            private final ArrayDeque<FailoverLoop> failoverLoops = new ArrayDeque<>(8);
+            
+            @Override
+            public void run() {
+                int desiredFailCount = (int)Math.ceil(listenerCount.get() * FAIL_LOOP_TO_LISTENER_RATIO);
+                int countChange = desiredFailCount - failoverLoops.size();
+                if (countChange > 0) {
+                    // start fail loops
+                    for (; countChange > 0; countChange--) {
+                        // loop is started in constructor
+                        failoverLoops.add(new FailoverLoop(dynamicSizedScheduler));
+                    }
+                } else if (countChange < 0) {
+                    // block on all removed loops after finished unscheduling to reduce blocking
+                    List<FailoverLoop> removedLoops = new ArrayList<>(-countChange);
+                    // terminate fail loops
+                    for (; countChange < 0; countChange++) {
+                        FailoverLoop failoverLoop = failoverLoops.remove();
+                        failoverLoop.unscheduleTask();
+                        removedLoops.add(failoverLoop);
+                    }
+                    for(FailoverLoop failoverLoop : removedLoops) {
+                        failoverLoop.blockTillTerminated();
+                    }
                 }
             }
-        }, 10, 10, TimeUnit.MINUTES);
+        }, 250, 250, TimeUnit.MILLISECONDS);
     }
 
     /**
@@ -111,23 +132,11 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
      */
     public MastersSlavesListener(final UrlParser urlParser) {
         super(urlParser);
-        int corePoolSize = dynamicSizedScheduler.get().setListenerSize(listenerCount.addAndGet(1));
-        handleFailoverLoopNumber(corePoolSize);
+        dynamicSizedScheduler.setPoolSize((int)Math.ceil(listenerCount.incrementAndGet() * POOL_SIZE_TO_LISTENER_RATIO));
         masterProtocol = null;
         secondaryProtocol = null;
         setMasterHostFail();
         setSecondaryHostFail();
-    }
-
-    private void handleFailoverLoopNumber(int corePoolSize) {
-        while (corePoolSize > failoverLoops.size()) {
-            FailoverLoop loopThread = new FailoverLoop(dynamicSizedScheduler.get());
-            failoverLoops.add(loopThread);
-        }
-    }
-
-    public static DynamicSizedSchedulerInterface getCurrentScheduler() {
-        return dynamicSizedScheduler.get();
     }
 
     protected void removeListenerFromSchedulers() {

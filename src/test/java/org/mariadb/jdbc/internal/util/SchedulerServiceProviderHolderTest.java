@@ -62,29 +62,6 @@ public class SchedulerServiceProviderHolderTest {
     }
 
     @Test
-    public void defaultProviderSchedulerShutdownFail() {
-        testShutdown(SchedulerServiceProviderHolder.getScheduler(1));
-        testShutdown(SchedulerServiceProviderHolder.getFixedSizeScheduler(1));
-    }
-
-    private void testShutdown(ScheduledExecutorService scheduler) {
-        try {
-            scheduler.shutdown();
-            fail("Exception should have thrown");
-        } catch (UnsupportedOperationException expected) {
-            // ignore
-        }
-        assertFalse(scheduler.isShutdown());
-        try {
-            scheduler.shutdownNow();
-            fail("Exception should have thrown");
-        } catch (UnsupportedOperationException expected) {
-            // ignore
-        }
-        assertFalse(scheduler.isShutdown());
-    }
-
-    @Test
     public void setAndGetProviderTest() {
         SchedulerProvider emptyProvider = new SchedulerProvider() {
             @Override

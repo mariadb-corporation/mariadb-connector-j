@@ -56,7 +56,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class DynamicSizedSchedulerImpl extends ScheduledThreadPoolExecutor implements DynamicSizedSchedulerInterface {
 
-    private static final double DEFAULT_FAIL_LOOP_RADIO = 0.3d;
     private static final AtomicInteger POOL_ID = new AtomicInteger();
 
     /**
@@ -80,19 +79,8 @@ public class DynamicSizedSchedulerImpl extends ScheduledThreadPoolExecutor imple
         });
     }
 
-    public double getThreadRatio() {
-        return DEFAULT_FAIL_LOOP_RADIO;
-    }
-
-    /**
-     * Set the number of listener, that permit to calculate the thread number.
-     * @param newSize New pool size that is superior to 0
-     * @return new core pool size calculated according to listener size.
-     */
     @Override
-    public int setListenerSize(int newSize) {
-        super.setCorePoolSize((int) Math.ceil(newSize * DEFAULT_FAIL_LOOP_RADIO));
-        return getCorePoolSize();
+    public void setPoolSize(int newSize) {
+        super.setCorePoolSize(newSize);
     }
-
 }

@@ -66,8 +66,8 @@ public class ConnectionValidator  {
     
     static {
         // set a rare thread timeout option to allow garbage collection in case class use is stopped
-        fixedSizedScheduler.allowCoreThreadTimeOut(true);
         fixedSizedScheduler.setKeepAliveTime(2, TimeUnit.HOURS);
+        fixedSizedScheduler.allowCoreThreadTimeOut(true);
     }
 
     private final ConcurrentLinkedQueue<Listener> queue = new ConcurrentLinkedQueue<>();
