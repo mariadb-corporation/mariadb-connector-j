@@ -65,7 +65,6 @@ import java.sql.SQLException;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 public class MastersFailoverListener extends AbstractMastersListener {
     private final HaMode mode;
@@ -121,17 +120,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
             proxy.lock.lock();
             setExplicitClosed(true);
             try {
-                //closing first additional thread if running to avoid connection creation before closing
-                if (scheduledFailover != null) {
-                    scheduledFailover.cancel(true);
-                    isLooping.set(false);
-                }
-                executorService.shutdownNow();
-                try {
-                    executorService.awaitTermination(15L, TimeUnit.SECONDS);
-                } catch (InterruptedException e) {
-                    //executorService interrupted
-                }
+                shutdownScheduler();
 
                 //closing connection
                 if (currentProtocol != null && this.currentProtocol.isConnected()) {

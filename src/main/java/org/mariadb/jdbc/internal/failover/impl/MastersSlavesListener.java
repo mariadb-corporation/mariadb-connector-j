@@ -64,6 +64,7 @@ import java.sql.SQLException;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -76,7 +77,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
     protected Protocol masterProtocol;
     protected Protocol secondaryProtocol;
     protected long lastQueryNanos = 0;
-    protected ScheduledFuture scheduledPing = null;
+    protected final PingLoop pingLoop;
 
     /**
      * Initialisation.
@@ -87,7 +88,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
         masterProtocol = null;
         secondaryProtocol = null;
         lastQueryNanos = System.nanoTime();
-
+        pingLoop = new PingLoop(this);
     }
 
     /**
@@ -96,8 +97,8 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
      */
     public void initializeConnection() throws QueryException {
         if (urlParser.getOptions().validConnectionTimeout != 0) {
-            scheduledPing = executorService.scheduleWithFixedDelay(new PingLoop(this), urlParser.getOptions().validConnectionTimeout,
-                    urlParser.getOptions().validConnectionTimeout, TimeUnit.SECONDS);
+            long scheduleMillis = TimeUnit.SECONDS.toMillis(urlParser.getOptions().validConnectionTimeout);
+            pingLoop.scheduleSelf(scheduler, scheduleMillis);
         }
         try {
             reconnectFailedConnection(new SearchFilter(true, true, true));
@@ -129,20 +130,8 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                 setExplicitClosed(true);
 
                 //closing first additional thread if running to avoid connection creation before closing
-                if (scheduledPing != null) {
-                    scheduledPing.cancel(true);
-                }
-
-                if (scheduledFailover != null) {
-                    scheduledFailover.cancel(true);
-                    isLooping.set(false);
-                }
-                executorService.shutdownNow();
-                try {
-                    executorService.awaitTermination(15L, TimeUnit.SECONDS);
-                } catch (InterruptedException e) {
-
-                }
+                pingLoop.blockTillTerminated();
+                shutdownScheduler();
 
                 //closing connections
                 if (masterProtocol != null && this.masterProtocol.isConnected()) {
@@ -710,19 +699,32 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
     /**
      * private class to chech of currents connections are still ok.
      */
-    protected class PingLoop implements Runnable {
+    protected class PingLoop extends TerminatableRunnable {
+        private volatile ScheduledFuture<?> scheduledFuture;
         MastersSlavesListener listener;
 
         public PingLoop(MastersSlavesListener listener) {
             this.listener = listener;
         }
 
-        public void run() {
+        public void scheduleSelf(ScheduledExecutorService scheduler, long scheduleMillis) {
+            scheduledFuture = scheduler.scheduleWithFixedDelay(this, scheduleMillis, scheduleMillis, 
+                                                               TimeUnit.MILLISECONDS);
+        }
+
+        @Override
+        protected void unscheduleTask() {
+            // only would be null if never scheduled
+            if (scheduledFuture != null) {
+                scheduledFuture.cancel(false);
+            }
+        }
+
+        @Override
+        protected void doRun() {
             if (explicitClosed) {
                 //stop thread
-                if (scheduledPing != null) {
-                    scheduledPing.cancel(false);
-                }
+                unscheduleTask();
             } else {
                 long durrationSeconds = TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - lastQueryNanos);
                 if (durrationSeconds >= urlParser.getOptions().validConnectionTimeout
