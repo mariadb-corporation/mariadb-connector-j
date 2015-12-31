@@ -30,6 +30,7 @@ public class PreparedStatementTest extends BaseTest {
                         + "`Seems:LikeParam?` bit(1) DEFAULT NULL,"
                         + "`Webinar10-TM/ProjComp` text",
                  "ENGINE=InnoDB DEFAULT CHARSET=utf8");
+        createTable("test_insert_select","`field1` varchar(20)");
     }
 
     @Test
@@ -38,6 +39,19 @@ public class PreparedStatementTest extends BaseTest {
         preparedStatement.close();
         preparedStatement.close();
 
+    }
+
+    /**
+     * Conj-238.
+     *
+     * @throws SQLException exception
+     */
+    @org.junit.Test
+    public void insertSelect() throws Exception {
+        PreparedStatement stmt = sharedConnection.prepareStatement(
+                "insert into test_insert_select ( field1) (select  TMP.field1 from (select ? `field1` from dual) TMP)");
+        stmt.setString(1, "test");
+        stmt.executeUpdate();
     }
 
     /**
