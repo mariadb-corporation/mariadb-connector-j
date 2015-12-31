@@ -56,7 +56,7 @@ import org.mariadb.jdbc.internal.failover.impl.MastersSlavesListener;
 import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 
-import java.util.LinkedList;
+import java.util.ArrayDeque;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
@@ -75,15 +75,15 @@ public class MastersSlavesProtocol extends MasterProtocol {
      *
      * @param listener     current failover
      * @param addresses    list of HostAddress to loop
-     * @param blacklist    current blacklist
      * @param searchFilter search parameter
      * @throws QueryException if not found
      */
     public static void loop(MastersSlavesListener listener, final List<HostAddress> addresses,
-                            Map<HostAddress, Long> blacklist, SearchFilter searchFilter) throws QueryException {
+                            SearchFilter searchFilter) throws QueryException {
 
         MastersSlavesProtocol protocol;
-        List<HostAddress> loopAddresses = new LinkedList<>(addresses);
+        ArrayDeque<HostAddress> loopAddresses = new ArrayDeque<>((!addresses.isEmpty()) ? addresses : listener.getBlacklistKeys());
+
         int maxConnectionTry = listener.getRetriesAllDown();
         QueryException lastQueryException = null;
 
@@ -96,24 +96,20 @@ public class MastersSlavesProtocol extends MasterProtocol {
             maxConnectionTry--;
 
             try {
-                protocol.setHostAddress(loopAddresses.get(0));
-                loopAddresses.remove(0);
-
-//                if (log.isDebugEnabled()) log.debug("trying to connect to " + protocol.getHostAddress());
-
+                protocol.setHostAddress(loopAddresses.pollFirst());
                 protocol.connect();
                 if (listener.isExplicitClosed()) {
                     protocol.close();
                     return;
                 }
 
-                blacklist.remove(protocol.getHostAddress());
+                listener.removeFromBlacklist(protocol.getHostAddress());
 
-                if (searchFilter.isSearchForMaster() && protocol.isMasterConnection()) {
+                if (listener.isMasterHostFail() && protocol.isMasterConnection()) {
                     if (foundMaster(listener, protocol, searchFilter)) {
                         return;
                     }
-                } else if (searchFilter.isSearchForSlave() && !protocol.isMasterConnection()) {
+                } else if (listener.isSecondaryHostFail() && !protocol.isMasterConnection()) {
                     if (foundSecondary(listener, protocol, searchFilter)) {
                         return;
                     }
@@ -123,24 +119,24 @@ public class MastersSlavesProtocol extends MasterProtocol {
 
             } catch (QueryException e) {
                 lastQueryException = e;
-                blacklist.put(protocol.getHostAddress(), System.nanoTime());
+                listener.addToBlacklist(protocol.getHostAddress());
             }
 
-            if (!searchFilter.isSearchForMaster() && !searchFilter.isSearchForSlave()) {
+            if (!listener.isMasterHostFail() && !listener.isSecondaryHostFail()) {
                 return;
             }
 
             //loop is set so
             if (loopAddresses.isEmpty() && !searchFilter.isUniqueLoop() && maxConnectionTry > 0) {
-                loopAddresses = new LinkedList<>(addresses);
+                loopAddresses = new ArrayDeque<>(listener.getBlacklistKeys());
                 listener.checkMasterStatus(searchFilter);
             }
 
         }
 
-        if (searchFilter.isSearchForMaster() || searchFilter.isSearchForSlave()) {
+        if (listener.isMasterHostFail() || listener.isSecondaryHostFail()) {
             String error = "No active connection found for replica";
-            if (searchFilter.isSearchForMaster()) {
+            if (listener.isMasterHostFail()) {
                 error = "No active connection found for master";
             }
             if (lastQueryException != null) {
@@ -152,12 +148,16 @@ public class MastersSlavesProtocol extends MasterProtocol {
 
     }
 
-    private static boolean foundMaster(MastersSlavesListener listener, MastersSlavesProtocol protocol,
-                                       SearchFilter searchFilter) {
+    protected static boolean foundMaster(MastersSlavesListener listener, MastersSlavesProtocol protocol,
+                                         SearchFilter searchFilter) {
         protocol.setMustBeMasterConnection(true);
-        searchFilter.setSearchForMaster(false);
-        listener.foundActiveMaster(protocol);
-        if (!searchFilter.isSearchForSlave()) {
+        if (listener.isMasterHostFail()) {
+            listener.foundActiveMaster(protocol);
+        } else {
+            protocol.close();
+        }
+
+        if (!listener.isSecondaryHostFail()) {
             return true;
         } else {
             if (listener.isExplicitClosed()
@@ -169,13 +169,16 @@ public class MastersSlavesProtocol extends MasterProtocol {
         return false;
     }
 
-    private static boolean foundSecondary(MastersSlavesListener listener, MastersSlavesProtocol protocol,
-                                          SearchFilter searchFilter)
-            throws QueryException {
-        searchFilter.setSearchForSlave(false);
+    protected static boolean foundSecondary(MastersSlavesListener listener, MastersSlavesProtocol protocol,
+                                            SearchFilter searchFilter) throws QueryException {
         protocol.setMustBeMasterConnection(false);
-        listener.foundActiveSecondary(protocol);
-        if (!searchFilter.isSearchForMaster()) {
+        if (listener.isSecondaryHostFail()) {
+            listener.foundActiveSecondary(protocol);
+        } else {
+            protocol.close();
+        }
+
+        if (!listener.isMasterHostFail()) {
             return true;
         } else {
             if (listener.isExplicitClosed()

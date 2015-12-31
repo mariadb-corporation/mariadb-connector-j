@@ -57,7 +57,7 @@ import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.failover.Listener;
 import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 
-import java.util.LinkedList;
+import java.util.ArrayDeque;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
@@ -94,15 +94,14 @@ public class MasterProtocol extends AbstractQueryProtocol {
      *
      * @param listener current failover
      * @param addresses list of HostAddress to loop
-     * @param blacklist current blacklist
      * @param searchFilter search parameter
      * @throws QueryException if not found
      */
-    public static void loop(Listener listener, final List<HostAddress> addresses, Map<HostAddress, Long> blacklist,
+    public static void loop(Listener listener, final List<HostAddress> addresses,
                             SearchFilter searchFilter) throws QueryException {
 
         MasterProtocol protocol;
-        List<HostAddress> loopAddresses = new LinkedList<>(addresses);
+        ArrayDeque<HostAddress> loopAddresses = new ArrayDeque<>((!addresses.isEmpty()) ? addresses : listener.getBlacklistKeys());
         int maxConnectionTry = listener.getRetriesAllDown();
         QueryException lastQueryException = null;
         while (!loopAddresses.isEmpty() || (!searchFilter.isUniqueLoop() && maxConnectionTry > 0)) {
@@ -114,25 +113,23 @@ public class MasterProtocol extends AbstractQueryProtocol {
             maxConnectionTry--;
 
             try {
-                protocol.setHostAddress(loopAddresses.get(0));
-                loopAddresses.remove(0);
-
+                protocol.setHostAddress(loopAddresses.pollFirst());
                 protocol.connect();
                 if (listener.isExplicitClosed()) {
                     protocol.close();
                     return;
                 }
-                blacklist.remove(protocol.getHostAddress());
+                listener.removeFromBlacklist(protocol.getHostAddress());
                 listener.foundActiveMaster(protocol);
                 return;
 
             } catch (QueryException e) {
-                blacklist.put(protocol.getHostAddress(), System.nanoTime());
+                listener.addToBlacklist(protocol.getHostAddress());
                 lastQueryException = e;
             }
 
             if (loopAddresses.isEmpty() && !searchFilter.isUniqueLoop() && maxConnectionTry > 0) {
-                loopAddresses = new LinkedList<>(addresses);
+                loopAddresses = new ArrayDeque<>(listener.getBlacklistKeys());
             }
         }
         if (lastQueryException != null) {

@@ -1,7 +1,7 @@
 /*
 MariaDB Client for Java
 
-Copyright (c) 2012 Monty Program Ab.
+Copyright (c) 2015 MariaDB.
 
 This library is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License as published by the Free
@@ -47,100 +47,72 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc.internal.util.dao;
+package org.mariadb.jdbc.internal.failover.thread;
 
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.LockSupport;
 
-public class QueryException extends Exception {
-    private static final long serialVersionUID = 974263994278018455L;
-    /**
-     * the internal code.
-     */
-    private int errorCode;
-    /**
-     * the sql state.
-     */
-    private String sqlState;
-    private String message;
+public abstract class TerminatableRunnable implements Runnable {
+    private final AtomicInteger runState = new AtomicInteger(0); // -1 = removed, 0 = idle, 1 = active
+    private final AtomicBoolean unschedule = new AtomicBoolean();
+    private volatile ScheduledFuture<?> scheduledFuture = null;
 
-    /**
-     * Creates a default query exception with errorCode -1 and sqlState HY0000.
-     *
-     * @param message the message to set
-     */
-    public QueryException(final String message) {
-        super(message);
-        this.message = message;
-        this.errorCode = -1;
-        this.sqlState = "HY0000";
+    protected abstract void doRun();
 
-    }
-
-    /**
-     * Creates a query exception with a message.
-     *
-     * @param message   the message
-     * @param errorCode the error code
-     * @param sqlState  the sqlstate
-     */
-    public QueryException(final String message,
-                          final int errorCode,
-                          final String sqlState) {
-        super(message);
-        this.message = message;
-        this.errorCode = errorCode;
-        this.sqlState = sqlState;
-    }
-
-    /**
-     * creates a query exception with a message and a cause.
-     *
-     * @param message   the exception message
-     * @param errorCode the error code
-     * @param sqlState  the sql state
-     * @param cause     the cause of the exception
-     */
-    public QueryException(String message,
-                          int errorCode,
-                          String sqlState,
-                          Throwable cause) {
-        super(message, cause);
-        this.message = message;
-        this.errorCode = errorCode;
-        this.sqlState = sqlState;
+    public TerminatableRunnable(ScheduledExecutorService scheduler,
+                                long initialDelay,
+                                long delay,
+                                TimeUnit unit) {
+        this.scheduledFuture = scheduler.scheduleWithFixedDelay(this, initialDelay, delay, unit);
     }
 
     @Override
-    public String getMessage() {
-        return message;
-    }
-
-    public void setMessage(String message) {
-        this.message = message;
-    }
-
-    /**
-     * returns the error code.
-     *
-     * @return the error code
-     */
-    public final int getErrorCode() {
-        return errorCode;
-    }
-
-
-    /**
-     * Gets the sql state.
-     * @return the sql state
-     */
-    public final String getSqlState() {
-        return sqlState;
+    public final void run() {
+        if (!runState.compareAndSet(0, 1)) {
+            // task has somehow either started to run in parallel (should not be possible)
+            // or more likely the task has now been set to terminate
+            return;
+        }
+        try {
+            doRun();
+        } finally {
+            runState.compareAndSet(1, 0);
+        }
     }
 
     /**
-     * Sets the sql state.
-     * @param sqlState sqlState
+     * Unschedule next launched, and wait for the current task to complete before closing it.
      */
-    public void setSqlState(String sqlState) {
-        this.sqlState = sqlState;
+    public void blockTillTerminated() {
+        unscheduleTask();
+        while (!runState.compareAndSet(0, -1)) {
+            // wait and retry
+            LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(10));
+            if (Thread.currentThread().isInterrupted()) {
+                runState.set(-1);
+                return;
+            }
+        }
     }
+
+    public boolean isUnschedule() {
+        return unschedule.get();
+    }
+
+    /**
+     * Unschedule task if active.
+     */
+    public void unscheduleTask() {
+        if (unschedule.compareAndSet(false, true)) {
+            scheduledFuture.cancel(false);
+            scheduledFuture = null;
+            return;
+        }
+    }
+
 }
+

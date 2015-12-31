@@ -56,12 +56,10 @@ import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 
 import java.lang.reflect.Method;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 
 public abstract class AbstractMastersSlavesListener extends AbstractMastersListener {
 
-    protected AtomicInteger queriesSinceFailover = new AtomicInteger();
     /* =========================== Failover variables ========================================= */
     private volatile long secondaryHostFailNanos = 0;
     private AtomicBoolean secondaryHostFail = new AtomicBoolean();
@@ -84,20 +82,14 @@ public abstract class AbstractMastersSlavesListener extends AbstractMastersListe
         }
         if (currentProtocol.mustBeMasterConnection()) {
             if (setMasterHostFail()) {
-//                log.warn("SQL Primary node [" + this.currentProtocol.getHostAddress().toString() + "] connection fail ");
+                //SQL Primary node connection fail ");
                 addToBlacklist(currentProtocol.getHostAddress());
-                if (FailoverProxy.METHOD_EXECUTE_QUERY.equals(method.getName())) {
-                    queriesSinceFailover.incrementAndGet();
-                }
             }
             return primaryFail(method, args);
         } else {
             if (setSecondaryHostFail()) {
-//                log.warn("SQL Secondary node [" + this.currentProtocol.getHostAddress().toString() + "] connection fail ");
+                //SQL secondary node connection fail ");
                 addToBlacklist(currentProtocol.getHostAddress());
-                if (FailoverProxy.METHOD_EXECUTE_QUERY.equals(method.getName())) {
-                    queriesSinceFailover.incrementAndGet();
-                }
             }
             return secondaryFail(method, args);
         }
@@ -111,8 +103,6 @@ public abstract class AbstractMastersSlavesListener extends AbstractMastersListe
         if (!secondaryHostFail.get()) {
             currentConnectionAttempts.set(0);
             lastRetry = 0;
-            queriesSinceFailover.set(0);
-            ;
         }
     }
 
@@ -125,7 +115,6 @@ public abstract class AbstractMastersSlavesListener extends AbstractMastersListe
         if (!isMasterHostFail()) {
             currentConnectionAttempts.set(0);
             lastRetry = 0;
-            queriesSinceFailover.set(0);
         }
     }
 

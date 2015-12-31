@@ -52,7 +52,9 @@ package org.mariadb.jdbc.internal.failover.impl;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.failover.AbstractMastersSlavesListener;
-import org.mariadb.jdbc.internal.util.ExceptionMapper;
+import org.mariadb.jdbc.internal.failover.thread.FailoverLoop;
+import org.mariadb.jdbc.internal.util.scheduler.DynamicSizedSchedulerInterface;
+import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.failover.HandleErrorResult;
 import org.mariadb.jdbc.internal.protocol.MastersSlavesProtocol;
@@ -61,22 +63,68 @@ import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 
 import java.lang.reflect.Method;
 import java.sql.SQLException;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 
 /**
  * this class handle the operation when multiple hosts.
  */
 public class MastersSlavesListener extends AbstractMastersSlavesListener {
+    private static final double POOL_SIZE_TO_LISTENER_RATIO = 0.3d;
+    private static final double FAIL_LOOP_TO_LISTENER_RATIO = 0.3d;
 
     protected Protocol masterProtocol;
     protected Protocol secondaryProtocol;
-    protected long lastQueryNanos = 0;
-    protected ScheduledFuture scheduledPing = null;
+    private static final DynamicSizedSchedulerInterface dynamicSizedScheduler;
+    private static final AtomicInteger listenerCount = new AtomicInteger();
+
+    static {
+        dynamicSizedScheduler = SchedulerServiceProviderHolder.getScheduler(0);
+        
+        // pool decreases happen async
+        dynamicSizedScheduler.scheduleWithFixedDelay(new Runnable() {
+            @Override
+            public void run() {
+                dynamicSizedScheduler.setPoolSize((int)Math.ceil(listenerCount.get() * POOL_SIZE_TO_LISTENER_RATIO));
+            }
+        }, 2, 2, TimeUnit.HOURS);
+        
+        // fail loop scaling happens async and only from a single thread
+        dynamicSizedScheduler.scheduleWithFixedDelay(new Runnable() {
+            private final ArrayDeque<FailoverLoop> failoverLoops = new ArrayDeque<>(8);
+            
+            @Override
+            public void run() {
+                int desiredFailCount = (int)Math.ceil(listenerCount.get() * FAIL_LOOP_TO_LISTENER_RATIO);
+                int countChange = desiredFailCount - failoverLoops.size();
+                if (countChange > 0) {
+                    // start fail loops
+                    for (; countChange > 0; countChange--) {
+                        // loop is started in constructor
+                        failoverLoops.add(new FailoverLoop(dynamicSizedScheduler));
+                    }
+                } else if (countChange < 0) {
+                    // block on all removed loops after finished unscheduling to reduce blocking
+                    List<FailoverLoop> removedLoops = new ArrayList<>(-countChange);
+                    // terminate fail loops
+                    for (; countChange < 0; countChange++) {
+                        FailoverLoop failoverLoop = failoverLoops.remove();
+                        failoverLoop.unscheduleTask();
+                        removedLoops.add(failoverLoop);
+                    }
+                    for(FailoverLoop failoverLoop : removedLoops) {
+                        failoverLoop.blockTillTerminated();
+                    }
+                }
+            }
+        }, 250, 250, TimeUnit.MILLISECONDS);
+    }
 
     /**
      * Initialisation.
@@ -84,38 +132,51 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
      */
     public MastersSlavesListener(final UrlParser urlParser) {
         super(urlParser);
+        dynamicSizedScheduler.setPoolSize((int)Math.ceil(listenerCount.incrementAndGet() * POOL_SIZE_TO_LISTENER_RATIO));
         masterProtocol = null;
         secondaryProtocol = null;
-        lastQueryNanos = System.nanoTime();
+        setMasterHostFail();
+        setSecondaryHostFail();
+    }
 
+    protected void removeListenerFromSchedulers() {
+        super.removeListenerFromSchedulers();
+        FailoverLoop.removeListener(this);
+        listenerCount.addAndGet(-1);
     }
 
     /**
      * Initialize connections.
      * @throws QueryException if a connection error append.
      */
+    @Override
     public void initializeConnection() throws QueryException {
-        if (urlParser.getOptions().validConnectionTimeout != 0) {
-            scheduledPing = executorService.scheduleWithFixedDelay(new PingLoop(this), urlParser.getOptions().validConnectionTimeout,
-                    urlParser.getOptions().validConnectionTimeout, TimeUnit.SECONDS);
-        }
+        super.initializeConnection();
         try {
-            reconnectFailedConnection(new SearchFilter(true, true, true));
+            reconnectFailedConnection(new SearchFilter(true));
         } catch (QueryException e) {
-//            log.trace("initializeConnection failed", e);
-            checkInitialConnection();
-            throwFailoverMessage(e, false);
+            //initializeConnection failed
+            checkInitialConnection(e);
         }
     }
 
-    protected void checkInitialConnection() {
-        if (this.masterProtocol != null && !this.masterProtocol.isConnected()) {
-            setMasterHostFail();
+    protected void checkInitialConnection(QueryException queryException) throws QueryException {
+        boolean masterFail = false;
+        if (this.masterProtocol == null || this.masterProtocol.isConnected()) {
+            masterFail = true;
         }
-        if (this.secondaryProtocol != null && !this.secondaryProtocol.isConnected()) {
+
+        if (this.secondaryProtocol == null || !this.secondaryProtocol.isConnected()) {
             setSecondaryHostFail();
+            if (!masterFail) {
+                //launched failLoop only if not throwing connection (connection will be closed).
+                handleFailLoop();
+            }
         }
-        launchFailLoopIfNotlaunched(false);
+        if (masterFail) {
+            setMasterHostFail();
+            throwFailoverMessage(masterProtocol != null ? masterProtocol.getHostAddress() : null, true, queryException, false);
+        }
     }
 
     /**
@@ -127,22 +188,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
             proxy.lock.lock();
             try {
                 setExplicitClosed(true);
-
-                //closing first additional thread if running to avoid connection creation before closing
-                if (scheduledPing != null) {
-                    scheduledPing.cancel(true);
-                }
-
-                if (scheduledFailover != null) {
-                    scheduledFailover.cancel(true);
-                    isLooping.set(false);
-                }
-                executorService.shutdownNow();
-                try {
-                    executorService.awaitTermination(15L, TimeUnit.SECONDS);
-                } catch (InterruptedException e) {
-
-                }
+                removeListenerFromSchedulers();
 
                 //closing connections
                 if (masterProtocol != null && this.masterProtocol.isConnected()) {
@@ -159,65 +205,13 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
 
     @Override
     public void preExecute() throws QueryException {
+        lastQueryNanos = System.nanoTime();
         //if connection is closed or failed on slave
         if (this.currentProtocol != null
                 && (this.currentProtocol.isClosed() || (!currentReadOnlyAsked.get() && !currentProtocol.isMasterConnection()))) {
-            queriesSinceFailover.incrementAndGet();
-            if (!isExplicitClosed() && urlParser.getOptions().autoReconnect) {
-                try {
-                    reconnectFailedConnection(new SearchFilter(isMasterHostFail(), isSecondaryHostFail(),
-                            !currentReadOnlyAsked.get(), currentReadOnlyAsked.get()));
-                } catch (QueryException e) {
-                    //eat exception
-                }
-            } else {
-                throw new QueryException("Connection is closed", (short) -1, ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState());
-            }
-        }
-        if (isMasterHostFail() || isSecondaryHostFail()) {
-            queriesSinceFailover.incrementAndGet();
-        }
-
-        if (urlParser.getOptions().validConnectionTimeout != 0) {
-            lastQueryNanos = System.nanoTime();
+            preAutoReconnect();
         }
     }
-
-
-    /**
-     * When failing to a different type of host, when to retry
-     * So he doesn't appear here.
-     *
-     * @return true if should reconnect.
-     */
-    public boolean shouldReconnect() {
-        if (isMasterHostFail() || isSecondaryHostFail()) {
-            if (currentConnectionAttempts.get() > urlParser.getOptions().retriesAllDown) {
-                return false;
-            }
-            long nowNanos = System.nanoTime();
-
-            if (isMasterHostFail()) {
-                if (urlParser.getOptions().queriesBeforeRetryMaster > 0
-                        && queriesSinceFailover.get() >= urlParser.getOptions().queriesBeforeRetryMaster) {
-                    return true;
-                }
-                long durationSeconds = TimeUnit.NANOSECONDS.toSeconds(nowNanos - getMasterHostFailNanos());
-                if (urlParser.getOptions().secondsBeforeRetryMaster > 0
-                        && durationSeconds >= urlParser.getOptions().secondsBeforeRetryMaster) {
-                    return true;
-                }
-            }
-
-            //we don't worry to bother slave until reconnect.
-            if (isSecondaryHostFail()
-                && TimeUnit.NANOSECONDS.toMillis(nowNanos - getSecondaryHostFailNanos()) >= 2000) {
-                return true;
-            }
-        }
-        return false;
-    }
-
 
     /**
      * Loop to connect.
@@ -226,35 +220,53 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
      * @throws QueryException sqlException
      */
     public void reconnectFailedConnection(SearchFilter searchFilter) throws QueryException {
-//        if (log.isTraceEnabled()) log.trace("search connection searchFilter=" + searchFilter);
-        currentConnectionAttempts.incrementAndGet();
-        resetOldsBlackListHosts();
-
-        //put the list in the following order
-        // - random order not connected host
-        // - random order blacklist host
-        // - random order connected host
-        List<HostAddress> loopAddress = new LinkedList<>(urlParser.getHostAddresses());
-        loopAddress.removeAll(blacklist.keySet());
-        Collections.shuffle(loopAddress);
-        List<HostAddress> blacklistShuffle = new LinkedList<>(blacklist.keySet());
-        Collections.shuffle(blacklistShuffle);
-        loopAddress.addAll(blacklistShuffle);
-
-        //put connected at end
-        if (masterProtocol != null && !isMasterHostFail()) {
-            loopAddress.remove(masterProtocol.getHostAddress());
-            //loopAddress.add(masterProtocol.getHostAddress());
+        if (!searchFilter.isInitialConnection()
+                && (isExplicitClosed()
+                || (searchFilter.isFineIfFoundOnlyMaster() && !isMasterHostFail())
+                || searchFilter.isFineIfFoundOnlySlave() && !isSecondaryHostFail())) {
+            return;
         }
 
-        if (secondaryProtocol != null && !isSecondaryHostFail()) {
-            loopAddress.remove(secondaryProtocol.getHostAddress());
-            //loopAddress.add(secondaryProtocol.getHostAddress());
-        }
 
-        if (((searchFilter.isSearchForMaster() && isMasterHostFail()) || (searchFilter.isSearchForSlave() && isSecondaryHostFail()))
-                || searchFilter.isInitialConnection()) {
-            MastersSlavesProtocol.loop(this, loopAddress, blacklist, searchFilter);
+        reconnectionLock.lock();
+        try {
+            currentConnectionAttempts.incrementAndGet();
+            resetOldsBlackListHosts();
+
+            //put the list in the following order
+            // - random order not blacklist and not connected host
+            // - random order blacklist host
+            // - connected host
+            List<HostAddress> loopAddress = new LinkedList<>(urlParser.getHostAddresses());
+            loopAddress.removeAll(getBlacklistKeys());
+            Collections.shuffle(loopAddress);
+            List<HostAddress> blacklistShuffle = new LinkedList<>(getBlacklistKeys());
+            Collections.shuffle(blacklistShuffle);
+            loopAddress.addAll(blacklistShuffle);
+
+            //put connected at end
+            if (masterProtocol != null && !isMasterHostFail()) {
+                loopAddress.remove(masterProtocol.getHostAddress());
+                loopAddress.add(masterProtocol.getHostAddress());
+            }
+
+            if (secondaryProtocol != null && !isSecondaryHostFail()) {
+                loopAddress.remove(secondaryProtocol.getHostAddress());
+                loopAddress.add(secondaryProtocol.getHostAddress());
+            }
+
+            if ((isMasterHostFail() || isSecondaryHostFail())
+                    || searchFilter.isInitialConnection()) {
+                MastersSlavesProtocol.loop(this, loopAddress, searchFilter);
+            }
+
+            //close loop if all connection are retrieved
+            if (!isMasterHostFail() && !isSecondaryHostFail()) {
+                FailoverLoop.removeListener(this);
+            }
+            return;
+        } finally {
+            reconnectionLock.unlock();
         }
     }
 
@@ -264,41 +276,38 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
      * @param newMasterProtocol the new active connection
      */
     public void foundActiveMaster(Protocol newMasterProtocol) {
-        if (isExplicitClosed()) {
-            newMasterProtocol.close();
-            return;
-        }
-        proxy.lock.lock();
-        try {
-            if (masterProtocol != null && !masterProtocol.isClosed()) {
-                masterProtocol.close();
-            }
-            this.masterProtocol = (MastersSlavesProtocol) newMasterProtocol;
-            if (!currentReadOnlyAsked.get() || isSecondaryHostFail()) {
-                //actually on a secondary read-only because master was unknown.
-                //So select master as currentConnection
-                try {
-                    syncConnection(currentProtocol, this.masterProtocol);
-                } catch (Exception e) {
-//                    log.debug("Some error append during connection parameter synchronisation : ", e);
-                }
-//                log.trace("switching current connection to master connection");
-                currentProtocol = this.masterProtocol;
+        if (isMasterHostFail()) {
+            if (isExplicitClosed()) {
+                newMasterProtocol.close();
+                return;
             }
 
-//            if (log.isDebugEnabled()) {
-//                if (getMasterHostFailTimestamp() > 0) {
-//                    log.debug("new primary node [" + newMasterProtocol.getHostAddress().toString() + "] connection established"
-//                                + " after " + TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - getMasterHostFailNanos()));
-//                } else
-//                    log.debug("new primary node [" + newMasterProtocol.getHostAddress().toString() + "] connection established");
-//            }
-            resetMasterFailoverData();
-            if (!isSecondaryHostFail()) {
-                stopFailover();
+            proxy.lock.lock();
+            try {
+
+                if (masterProtocol != null && !masterProtocol.isClosed()) {
+                    masterProtocol.close();
+                }
+
+                if (!currentReadOnlyAsked.get() || isSecondaryHostFail()) {
+                    //actually on a secondary read-only because master was unknown.
+                    //So select master as currentConnection
+                    try {
+                        syncConnection(currentProtocol, newMasterProtocol);
+                    } catch (Exception e) {
+                        //Some error append during connection parameter synchronisation
+                    }
+                    //switching current connection to master connection
+                    currentProtocol = newMasterProtocol;
+                }
+
+                this.masterProtocol = newMasterProtocol;
+                resetMasterFailoverData();
+            } finally {
+                proxy.lock.unlock();
             }
-        } finally {
-            proxy.lock.unlock();
+        } else {
+            newMasterProtocol.close();
         }
 
     }
@@ -310,48 +319,40 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
      * @param newSecondaryProtocol the new active connection
      */
     public void foundActiveSecondary(Protocol newSecondaryProtocol) throws QueryException {
-        if (isExplicitClosed()) {
-            newSecondaryProtocol.close();
-            return;
-        }
-
-        proxy.lock.lock();
-        try {
-            if (secondaryProtocol != null && !secondaryProtocol.isClosed()) {
-                secondaryProtocol.close();
+        if (isSecondaryHostFail()) {
+            if (isExplicitClosed()) {
+                newSecondaryProtocol.close();
+                return;
             }
+            proxy.lock.lock();
+            try {
 
-//            log.trace("found active secondary connection");
-            this.secondaryProtocol = newSecondaryProtocol;
-
-            //if asked to be on read only connection, switching to this new connection
-            if (currentReadOnlyAsked.get() || (urlParser.getOptions().failOnReadOnly && !currentReadOnlyAsked.get() && isMasterHostFail())) {
-                try {
-                    syncConnection(currentProtocol, this.secondaryProtocol);
-                } catch (Exception e) {
-//                    log.debug("Some error append during connection parameter synchronisation : ", e);
+                if (secondaryProtocol != null && !secondaryProtocol.isClosed()) {
+                    secondaryProtocol.close();
                 }
-                currentProtocol = this.secondaryProtocol;
-            }
-            if (urlParser.getOptions().assureReadOnly) {
-                setSessionReadOnly(true, this.secondaryProtocol);
-            }
 
-//            if (log.isDebugEnabled()) {
-//                if (getSecondaryHostFailTimestamp() > 0) {
-//                    log.debug("new active secondary node [" + newSecondaryProtocol.getHostAddress().toString() + "] connection"
-//                            + " established after " + TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - getSecondaryHostFailNanos()));
-//                } else
-//                    log.debug("new active secondary node [" + newSecondaryProtocol.getHostAddress().toString() + "] connection
-// established");
-//
-//            }
-            resetSecondaryFailoverData();
-            if (!isMasterHostFail()) {
-                stopFailover();
+                //if asked to be on read only connection, switching to this new connection
+                if (currentReadOnlyAsked.get() || (urlParser.getOptions().failOnReadOnly && !currentReadOnlyAsked.get() && isMasterHostFail())) {
+                    try {
+                        syncConnection(currentProtocol, newSecondaryProtocol);
+                    } catch (Exception e) {
+                        //Some error append during connection parameter synchronisation
+                    }
+                    currentProtocol = newSecondaryProtocol;
+                }
+
+                //set new found connection as slave connection.
+                this.secondaryProtocol = newSecondaryProtocol;
+                if (urlParser.getOptions().assureReadOnly) {
+                    setSessionReadOnly(true, this.secondaryProtocol);
+                }
+
+                resetSecondaryFailoverData();
+            } finally {
+                proxy.lock.unlock();
             }
-        } finally {
-            proxy.lock.unlock();
+        } else {
+            newSecondaryProtocol.close();
         }
     }
 
@@ -363,7 +364,6 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
      */
     @Override
     public void switchReadOnlyConnection(Boolean mustBeReadOnly) throws QueryException {
-//        if (log.isTraceEnabled()) log.trace("switching to mustBeReadOnly = " + mustBeReadOnly + " mode");
         if (mustBeReadOnly != currentReadOnlyAsked.get() && currentProtocol.inTransaction()) {
             throw new QueryException("Trying to set to read-only mode during a transaction");
         }
@@ -374,13 +374,13 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                     if (!isSecondaryHostFail()) {
                         proxy.lock.lock();
                         try {
-//                            log.trace("switching to secondary connection");
+                            //switching to secondary connection
                             syncConnection(this.masterProtocol, this.secondaryProtocol);
                             currentProtocol = this.secondaryProtocol;
-//                            log.trace("current connection is now secondary");
+                            //current connection is now secondary
                             return;
                         } catch (QueryException e) {
-//                            log.trace("switching to secondary connection failed", e);
+                            //switching to secondary connection failed
                             if (setSecondaryHostFail()) {
                                 addToBlacklist(secondaryProtocol.getHostAddress());
                             }
@@ -388,23 +388,22 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                             proxy.lock.unlock();
                         }
                     }
-                    launchFailLoopIfNotlaunched(false);
-                    throwFailoverMessage(new QueryException("master " + masterProtocol.getHostAddress() + " connection failed"), false);
+                    //stay on master connection, since slave connection is fail
+                    FailoverLoop.addListener(this);
                 }
             } else {
                 if (!currentProtocol.isMasterConnection()) {
                     //must change to master connection
                     if (!isMasterHostFail()) {
-
                         proxy.lock.lock();
                         try {
-//                            log.trace("switching to master connection");
+                            //switching to master connection
                             syncConnection(this.secondaryProtocol, this.masterProtocol);
                             currentProtocol = this.masterProtocol;
-//                            log.debug("current connection is now master");
+                            //current connection is now master
                             return;
                         } catch (QueryException e) {
-//                            log.debug("switching to master connection failed", e);
+                            //switching to master connection failed
                             if (setMasterHostFail()) {
                                 addToBlacklist(masterProtocol.getHostAddress());
                             }
@@ -412,22 +411,32 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                             proxy.lock.unlock();
                         }
                     }
-                    if (urlParser.getOptions().autoReconnect) {
-                        reconnectFailedConnection(new SearchFilter(false, true, false, true));
+
+                    try {
+                        reconnectFailedConnection(new SearchFilter(true, false));
+                        handleFailLoop();
                         //connection established, no need to send Exception !
-//                        log.trace("switching to master connection");
+                        //switching to master connection
                         proxy.lock.lock();
                         try {
                             syncConnection(this.secondaryProtocol, this.masterProtocol);
                             currentProtocol = this.masterProtocol;
+                        } catch (QueryException e) {
+                            //switching to master connection failed
+                            if (setMasterHostFail()) {
+                                addToBlacklist(masterProtocol.getHostAddress());
+                            }
                         } finally {
                             proxy.lock.unlock();
                         }
-//                        log.debug("current connection is now master");
-                        return;
+                    } catch (QueryException e) {
+                        //stop failover, since we will throw a connection exception that will close the connection.
+                        FailoverLoop.removeListener(this);
+                        HostAddress failHost = (this.masterProtocol != null ) ? this.masterProtocol.getHostAddress() : null;
+                        throwFailoverMessage(failHost, true, new QueryException("master "
+                                + masterProtocol.getHostAddress() + " connection failed"), false);
                     }
-                    launchFailLoopIfNotlaunched(false);
-                    throwFailoverMessage(new QueryException("master " + masterProtocol.getHostAddress() + " connection failed"), false);
+
                 }
             }
         }
@@ -453,7 +462,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
         if (urlParser.getOptions().failOnReadOnly && !isSecondaryHostFail()) {
             try {
                 if (this.secondaryProtocol != null && this.secondaryProtocol.ping()) {
-//                        log.trace("switching to secondary connection");
+                    //switching to secondary connection
                     syncConnection(masterProtocol, this.secondaryProtocol);
                     proxy.lock.lock();
                     try {
@@ -461,41 +470,45 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                     } finally {
                         proxy.lock.unlock();
                     }
-                    launchFailLoopIfNotlaunched(false);
+                    FailoverLoop.addListener(this);
                     try {
                         return relaunchOperation(method, args);
                     } catch (Exception e) {
-//                            log.trace("relaunchOperation failed", e);
+                        //relaunchOperation failed
                     }
                     return new HandleErrorResult();
                 }
             } catch (Exception e) {
                 if (setSecondaryHostFail()) {
-                    addToBlacklist(this.secondaryProtocol.getHostAddress());
-                }
-                if (secondaryProtocol.isConnected()) {
-                    proxy.lock.lock();
-                    try {
-                        secondaryProtocol.close();
-                    } finally {
-                        proxy.lock.unlock();
-                    }
+                    blackListAndCloseConnection(this.secondaryProtocol);
                 }
             }
         }
 
         try {
-            reconnectFailedConnection(new SearchFilter(true, urlParser.getOptions().failOnReadOnly, true, urlParser.getOptions().failOnReadOnly));
-            if (isMasterHostFail()) {
-                launchFailLoopIfNotlaunched(true);
-            }
-            if (alreadyClosed) {
+            reconnectFailedConnection(new SearchFilter(true, urlParser.getOptions().failOnReadOnly));
+            handleFailLoop();
+            if (alreadyClosed || currentReadOnlyAsked.get()) {
                 return relaunchOperation(method, args);
             }
             return new HandleErrorResult(true);
         } catch (Exception e) {
-            launchFailLoopIfNotlaunched(true);
+            //we will throw a Connection exception that will close connection
+            setMasterHostFail();
+            FailoverLoop.removeListener(this);
             return new HandleErrorResult();
+        }
+    }
+
+    private void blackListAndCloseConnection(Protocol protocol) {
+        addToBlacklist(protocol.getHostAddress());
+        if (protocol.isConnected()) {
+            proxy.lock.lock();
+            try {
+                protocol.close();
+            } finally {
+                proxy.lock.unlock();
+            }
         }
     }
 
@@ -506,20 +519,17 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
     public void reconnect() throws QueryException {
         SearchFilter filter;
         if (currentReadOnlyAsked.get()) {
-            filter = new SearchFilter(true, true, true, true);
+            filter = new SearchFilter(true, true);
         } else {
-            filter = new SearchFilter(true, urlParser.getOptions().failOnReadOnly, true, urlParser.getOptions().failOnReadOnly);
+            filter = new SearchFilter(true, urlParser.getOptions().failOnReadOnly);
         }
         reconnectFailedConnection(filter);
+        handleFailLoop();
     }
 
     private boolean tryPingOnMaster() {
         try {
             if (masterProtocol != null && masterProtocol.isConnected() && masterProtocol.ping()) {
-//                if (log.isDebugEnabled())
-//                    log.debug("Primary node [" + masterProtocol.getHostAddress().toString() + "] connection re-established");
-
-                // if in transaction cannot be sure that the last query has been received by server of not, so rollback.
                 if (masterProtocol.inTransaction()) {
                     masterProtocol.rollback();
                 }
@@ -577,7 +587,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
             try {
                 if (masterProtocol != null) {
                     this.masterProtocol.ping(); //check that master is on before switching to him
-//                    log.trace("switching to master connection");
+                    //switching to master connection
                     syncConnection(secondaryProtocol, masterProtocol);
                     proxy.lock.lock();
                     try {
@@ -585,27 +595,20 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                     } finally {
                         proxy.lock.unlock();
                     }
-                    launchFailLoopIfNotlaunched(true); //launch reconnection loop
+                    FailoverLoop.addListener(this);
                     return relaunchOperation(method, args); //now that we are on master, relaunched result if the result was not crashing the master
                 }
             } catch (Exception e) {
-//                log.trace("ping fail on master");
+                //ping fail on master
                 if (setMasterHostFail()) {
-                    addToBlacklist(masterProtocol.getHostAddress());
-                    if (masterProtocol.isConnected()) {
-                        proxy.lock.lock();
-                        try {
-                            masterProtocol.close();
-                        } finally {
-                            proxy.lock.unlock();
-                        }
-                    }
+                    blackListAndCloseConnection(masterProtocol);
                 }
             }
         }
 
         try {
-            reconnectFailedConnection(new SearchFilter(true, true, true, true));
+            reconnectFailedConnection(new SearchFilter(true, true));
+            handleFailLoop();
             if (isSecondaryHostFail()) {
                 syncConnection(this.secondaryProtocol, this.masterProtocol);
                 proxy.lock.lock();
@@ -617,136 +620,39 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
             }
             return relaunchOperation(method, args); //now that we are reconnect, relaunched result if the result was not crashing the node
         } catch (Exception ee) {
-            launchFailLoopIfNotlaunched(false);
+            //we will throw a Connection exception that will close connection
+            FailoverLoop.removeListener(this);
             return new HandleErrorResult();
         }
+    }
+
+    @Override
+    public void handleFailLoop() {
+        if (isMasterHostFail() || isSecondaryHostFail()) {
+            if (!isExplicitClosed()) {
+                FailoverLoop.addListener(this);
+            }
+        } else {
+            FailoverLoop.removeListener(this);
+        }
+    }
+
+    @Override
+    public boolean isMasterConnected() {
+        return masterProtocol != null && masterProtocol.isConnected();
     }
 
     /**
      * Check master status.
      * @param searchFilter search filter
+     * @return has some status changed
      * @throws QueryException exception
      */
-    public void checkMasterStatus(SearchFilter searchFilter) throws QueryException {
+    @Override
+    public boolean checkMasterStatus(SearchFilter searchFilter) throws QueryException {
         if (masterProtocol != null) {
             masterProtocol.ping();
         }
-    }
-
-    /**
-     * Throw a human readable message after a failoverException.
-     *
-     * @param queryException internal error
-     * @param reconnected    connection status
-     * @throws QueryException error with failover information
-     */
-    @Override
-    public void throwFailoverMessage(QueryException queryException, boolean reconnected) throws QueryException {
-        boolean connectionTypeMaster = true;
-        HostAddress hostAddress = (masterProtocol != null) ? masterProtocol.getHostAddress() : null;
-        if (currentReadOnlyAsked.get()) {
-            connectionTypeMaster = false;
-            hostAddress = (secondaryProtocol != null) ? secondaryProtocol.getHostAddress() : null;
-        }
-
-        String firstPart = "Communications link failure with " + (connectionTypeMaster ? "primary" : "secondary")
-                + ((hostAddress != null) ? " host " + hostAddress.host + ":" + hostAddress.port : "") + ". ";
-        String error = "";
-        if (urlParser.getOptions().autoReconnect || (!isMasterHostFail() && !isSecondaryHostFail())) {
-            if ((connectionTypeMaster && isMasterHostFail()) || (!connectionTypeMaster && isSecondaryHostFail())) {
-                error += "  Driver will reconnect automatically in a few millisecond or during next query if append before";
-            } else {
-                error += " Driver as successfully reconnect connection";
-            }
-        } else {
-            if (reconnected) {
-                error += " Driver as reconnect connection";
-            } else {
-                if (currentConnectionAttempts.get() > urlParser.getOptions().retriesAllDown) {
-                    error += " Driver will not try to reconnect (too much failure > " + urlParser.getOptions().retriesAllDown + ")";
-                } else {
-                    if (shouldReconnect()) {
-                        error += " Driver will try to reconnect automatically in a few millisecond or during next query if append before";
-                    } else {
-                        error += addErrorMessageNotReconnected(connectionTypeMaster);
-                    }
-
-                }
-            }
-        }
-        if (queryException == null) {
-            throw new QueryException(firstPart + error, (short) -1, ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState());
-        } else {
-            error = queryException.getMessage() + ". " + error;
-            queryException.setMessage(firstPart + error);
-            throw queryException;
-        }
-    }
-
-
-    private String addErrorMessageNotReconnected(boolean connectionTypeMaster) {
-        long longestFailNanos = isMasterHostFail() ? (isSecondaryHostFail() ? Math.min(getMasterHostFailNanos(),
-                getSecondaryHostFailNanos()) : getMasterHostFailNanos()) : getSecondaryHostFailNanos();
-        long failDuration = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - longestFailNanos);
-        long nextReconnectionTime = urlParser.getOptions().secondsBeforeRetryMaster * 1000 - failDuration;
-        if (urlParser.getOptions().secondsBeforeRetryMaster > 0) {
-            if (urlParser.getOptions().queriesBeforeRetryMaster > 0) {
-                return " Driver will try to reconnect " + (connectionTypeMaster ? "primary" : "secondary")
-                        + " after " + nextReconnectionTime + " milliseconds or after "
-                        + (urlParser.getOptions().queriesBeforeRetryMaster - queriesSinceFailover.get()) + " query(s)";
-            } else {
-                return " Driver will try to reconnect " + (connectionTypeMaster ? "primary" : "secondary")
-                        + " after " + nextReconnectionTime + " milliseconds";
-            }
-        } else {
-            if (urlParser.getOptions().queriesBeforeRetryMaster > 0) {
-                return " Driver will try to reconnect " + (connectionTypeMaster ? "primary" : "secondary")
-                        + " after " + (urlParser.getOptions().queriesBeforeRetryMaster - queriesSinceFailover.get()) + " query(s)";
-            } else {
-                return " Driver will not try to reconnect automatically";
-            }
-        }
-    }
-    /**
-     * private class to chech of currents connections are still ok.
-     */
-    protected class PingLoop implements Runnable {
-        MastersSlavesListener listener;
-
-        public PingLoop(MastersSlavesListener listener) {
-            this.listener = listener;
-        }
-
-        public void run() {
-            if (explicitClosed) {
-                //stop thread
-                if (scheduledPing != null) {
-                    scheduledPing.cancel(false);
-                }
-            } else {
-                long durrationSeconds = TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - lastQueryNanos);
-                if (durrationSeconds >= urlParser.getOptions().validConnectionTimeout
-                    && !isMasterHostFail()) {
-                    boolean masterFail = false;
-                    try {
-                        if (masterProtocol != null && masterProtocol.isConnected()) {
-                            checkMasterStatus(null);
-                        } else {
-                            masterFail = true;
-                        }
-                    } catch (QueryException e) {
-                        masterFail = true;
-                    }
-    
-                    if (masterFail && setMasterHostFail()) {
-                        try {
-                            listener.primaryFail(null, null);
-                        } catch (Throwable t) {
-                            //do nothing
-                        }
-                    }
-                }
-            }
-        }
+        return false;
     }
 }

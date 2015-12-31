@@ -51,6 +51,10 @@ OF SUCH DAMAGE.
 
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.UrlParser;
+import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.failover.thread.ConnectionValidator;
+import org.mariadb.jdbc.internal.util.ExceptionMapper;
+import org.mariadb.jdbc.internal.util.dao.PrepareResult;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.query.MariaDbQuery;
 import org.mariadb.jdbc.internal.query.Query;
@@ -62,14 +66,11 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.SQLException;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
+import java.util.Set;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
 
 
 public abstract class AbstractMastersListener implements Listener {
@@ -77,24 +78,57 @@ public abstract class AbstractMastersListener implements Listener {
     /**
      * List the recent failedConnection.
      */
-    protected static ConcurrentMap<HostAddress, Long> blacklist = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<HostAddress, Long> blacklist = new ConcurrentHashMap<>();
+    private static final ConnectionValidator connectionValidationLoop = new ConnectionValidator();
+
     /* =========================== Failover variables ========================================= */
     public final UrlParser urlParser;
     protected AtomicInteger currentConnectionAttempts = new AtomicInteger();
     protected AtomicBoolean currentReadOnlyAsked = new AtomicBoolean();
-    protected AtomicBoolean isLooping = new AtomicBoolean();
-    protected ScheduledFuture scheduledFailover = null;
     protected Protocol currentProtocol = null;
     protected FailoverProxy proxy;
     protected long lastRetry = 0;
     protected boolean explicitClosed = false;
-    protected ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
     private volatile long masterHostFailNanos = 0;
     private AtomicBoolean masterHostFail = new AtomicBoolean();
+    public final ReentrantLock reconnectionLock = new ReentrantLock();
+    protected long lastQueryNanos = 0;
+
 
     protected AbstractMastersListener(UrlParser urlParser) {
         this.urlParser = urlParser;
         this.masterHostFail.set(true);
+        this.lastQueryNanos = System.nanoTime();
+    }
+
+    /**
+     * Initialize Listener.
+     * This listener will be added to the connection validation loop according to option value so the connection
+     * will be verified periodically. (Important for aurora, for other, connection pool often have this functionality)
+     * @throws QueryException if any exception occur.
+     */
+    public void initializeConnection() throws QueryException {
+        long connectionTimeoutMillis = TimeUnit.SECONDS.toMillis(urlParser.getOptions().validConnectionTimeout);
+        if (connectionTimeoutMillis > 0) {
+            connectionValidationLoop.addListener(this, connectionTimeoutMillis);
+        }
+    }
+
+    protected void removeListenerFromSchedulers() {
+        connectionValidationLoop.removeListener(this);
+    }
+
+    protected void preAutoReconnect() throws QueryException {
+        if (!isExplicitClosed() && urlParser.getOptions().autoReconnect) {
+            try {
+                reconnectFailedConnection(new SearchFilter(!currentReadOnlyAsked.get(), currentReadOnlyAsked.get()));
+            } catch (QueryException e) {
+                //eat exception
+            }
+            handleFailLoop();
+        } else {
+            throw new QueryException("Connection is closed", (short) -1, ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState());
+        }
     }
 
     public FailoverProxy getProxy() {
@@ -105,8 +139,8 @@ public abstract class AbstractMastersListener implements Listener {
         this.proxy = proxy;
     }
 
-    public Map<HostAddress, Long> getBlacklist() {
-        return blacklist;
+    public Set<HostAddress> getBlacklistKeys() {
+        return blacklist.keySet();
     }
 
     /**
@@ -118,7 +152,7 @@ public abstract class AbstractMastersListener implements Listener {
      * </ol>
      *
      * @param method called method
-     * @param args methods parameters
+     * @param args   methods parameters
      * @return a HandleErrorResult object to indicate if query has been relaunched, and the exception if not
      * @throws Throwable when method and parameters does not exist.
      */
@@ -141,6 +175,17 @@ public abstract class AbstractMastersListener implements Listener {
     public void addToBlacklist(HostAddress hostAddress) {
         if (hostAddress != null && !explicitClosed) {
             blacklist.put(hostAddress, System.nanoTime());
+        }
+    }
+
+    /**
+     * After a successfull connection, permit to remove a hostAddress from blacklist.
+     *
+     * @param hostAddress the host address tho be remove of blacklist
+     */
+    public void removeFromBlacklist(HostAddress hostAddress) {
+        if (hostAddress != null) {
+            blacklist.remove(hostAddress);
         }
     }
 
@@ -171,24 +216,7 @@ public abstract class AbstractMastersListener implements Listener {
         }
     }
 
-    protected void stopFailover() {
-        if (isLooping.compareAndSet(true, false) && scheduledFailover != null) {
-            scheduledFailover.cancel(false);
-        }
-    }
-
-    /**
-     * launch the scheduler loop every 250 milliseconds, to reconnect a failed connection.
-     * Will verify if there is an existing scheduler
-     *
-     * @param now now will launch the loop immediatly, 250ms after if false
-     */
-    protected void launchFailLoopIfNotlaunched(boolean now) {
-        if (isLooping.compareAndSet(false, true) && urlParser.getOptions().failoverLoopRetries != 0) {
-            scheduledFailover = Executors.newSingleThreadScheduledExecutor().scheduleWithFixedDelay(
-                    new FailLoop(this), now ? 0 : 250, 250, TimeUnit.MILLISECONDS);
-        }
-    }
+    public abstract void handleFailLoop();
 
     public Protocol getCurrentProtocol() {
         return currentProtocol;
@@ -200,6 +228,7 @@ public abstract class AbstractMastersListener implements Listener {
 
     /**
      * Set master fail variables.
+     *
      * @return true if was already failed
      */
     public boolean setMasterHostFail() {
@@ -224,8 +253,8 @@ public abstract class AbstractMastersListener implements Listener {
     }
 
     /**
-     * After a failover that has bean done, relaunche the operation that was in progress.
-     * In case of special operation that crash serveur, doesn't relaunched it;
+     * After a failover that has bean done, relaunch the operation that was in progress.
+     * In case of special operation that crash server, doesn't relaunched it;
      *
      * @param method the methode accessed
      * @param args   the parameters
@@ -247,7 +276,7 @@ public abstract class AbstractMastersListener implements Listener {
                 //the statementId has been discarded with previous session
                 try {
                     Method methodFailure = currentProtocol.getClass().getDeclaredMethod("executePreparedQueryAfterFailover",
-                            String.class, ParameterHolder[].class, boolean.class);
+                            String.class, ParameterHolder[].class, PrepareResult.class, MariaDbType[].class, boolean.class);
                     handleErrorResult.resultObject = methodFailure.invoke(currentProtocol, args);
                     handleErrorResult.mustThrowError = false;
                 } catch (Exception e) {
@@ -323,13 +352,9 @@ public abstract class AbstractMastersListener implements Listener {
         return urlParser;
     }
 
-    public abstract void initializeConnection() throws QueryException;
-
     public abstract void preExecute() throws QueryException;
 
     public abstract void preClose() throws SQLException;
-
-    public abstract boolean shouldReconnect();
 
     public abstract void reconnectFailedConnection(SearchFilter filter) throws QueryException;
 
@@ -337,49 +362,64 @@ public abstract class AbstractMastersListener implements Listener {
 
     public abstract HandleErrorResult primaryFail(Method method, Object[] args) throws Throwable;
 
-    public abstract void throwFailoverMessage(QueryException queryException, boolean reconnected) throws QueryException;
+    /**
+     * Throw a human readable message after a failoverException.
+     *
+     * @param failHostAddress failedHostAddress
+     * @param wasMaster       was failed connection master
+     * @param queryException  internal error
+     * @param reconnected     connection status
+     * @throws QueryException error with failover information
+     */
+    @Override
+    public void throwFailoverMessage(HostAddress failHostAddress, boolean wasMaster, QueryException queryException,
+                                     boolean reconnected) throws QueryException {
+        String firstPart = Thread.currentThread().getName() + " - Communications link failure with "
+                + (wasMaster ? "primary" : "secondary")
+                + ((failHostAddress != null) ? " host " + failHostAddress.host + ":" + failHostAddress.port : "") + ". ";
+        String error = "";
+        if (reconnected) {
+            error += " Driver as reconnect connection";
+        } else {
+            if (currentConnectionAttempts.get() > urlParser.getOptions().retriesAllDown) {
+                error += " Driver will not try to reconnect (too much failure > " + urlParser.getOptions().retriesAllDown + ")";
+            }
+        }
+
+        if (queryException == null) {
+            queryException = new QueryException(firstPart + error, (short) -1, ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState());
+        } else {
+            error = queryException.getMessage() + ". " + error;
+            queryException.setMessage(firstPart + error);
+            throw queryException;
+        }
+
+        if (reconnected && queryException.getSqlState().startsWith("08")) {
+            //change sqlState to "Transaction has been rolled back", to transaction exception, since reconnection has succeed
+            queryException.setSqlState("25S03");
+        }
+        throw queryException;
+
+    }
+
+    public boolean canRetryFailLoop() {
+        return currentConnectionAttempts.get() < urlParser.getOptions().failoverLoopRetries;
+    }
+
 
     public abstract void reconnect() throws QueryException;
 
+    public abstract boolean checkMasterStatus(SearchFilter searchFilter) throws QueryException;
+
+
     /**
-     * Private class to permit a timer reconnection loop.
+     * Clear blacklist data.
      */
-    protected class FailLoop implements Runnable {
-        Listener listener;
-
-        public FailLoop(Listener listener) {
-//            log.trace("launched FailLoop");
-            this.listener = listener;
-        }
-
-        public void run() {
-            if (!explicitClosed && hasHostFail()) {
-                if (listener.shouldReconnect()) {
-                    try {
-                        if (currentConnectionAttempts.get() >= urlParser.getOptions().failoverLoopRetries) {
-                            throw new QueryException("Too many reconnection attempts (" + urlParser.getOptions().retriesAllDown + ")");
-                        }
-                        SearchFilter filter = getFilterForFailedHost();
-                        filter.setUniqueLoop(true);
-                        listener.reconnectFailedConnection(filter);
-                        //reconnection done !
-                        stopFailover();
-                    } catch (Exception e) {
-                        //FailLoop search connection failed
-                    }
-                } else {
-                    if (currentConnectionAttempts.get() > urlParser.getOptions().retriesAllDown) {
-                        //stopping failover after too many attemps
-                        stopFailover();
-                    }
-                }
-            } else {
-                stopFailover();
-            }
-        }
-    }
-
     public static void clearBlacklist() {
         blacklist.clear();
+    }
+
+    public long getLastQueryNanos() {
+        return lastQueryNanos;
     }
 }

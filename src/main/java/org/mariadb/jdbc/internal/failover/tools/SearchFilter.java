@@ -49,41 +49,28 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 public class SearchFilter {
-    boolean searchForMaster;
-    boolean searchForSlave;
     boolean fineIfFoundOnlyMaster;
     boolean fineIfFoundOnlySlave;
     boolean initialConnection;
     boolean uniqueLoop;
 
-    public SearchFilter(boolean searchForMaster, boolean searchForSlave) {
-        this.searchForMaster = searchForMaster;
-        this.searchForSlave = searchForSlave;
-    }
+    public SearchFilter() { }
 
     /**
      * Constructor.
-     * @param searchForMaster must search for master flag
-     * @param searchForSlave must search for slave flag
      * @param fineIfFoundOnlyMaster stop searching if master found
      * @param fineIfFoundOnlySlave stop searching if slave found
      */
-    public SearchFilter(boolean searchForMaster, boolean searchForSlave, boolean fineIfFoundOnlyMaster, boolean fineIfFoundOnlySlave) {
-        this.searchForMaster = searchForMaster;
-        this.searchForSlave = searchForSlave;
+    public SearchFilter(boolean fineIfFoundOnlyMaster, boolean fineIfFoundOnlySlave) {
         this.fineIfFoundOnlyMaster = fineIfFoundOnlyMaster;
         this.fineIfFoundOnlySlave = fineIfFoundOnlySlave;
     }
 
     /**
      * Constructor.
-     * @param searchForMaster must search for master flag
-     * @param searchForSlave must search for slave flag
      * @param initialConnection initial connection flag
      */
-    public SearchFilter(boolean searchForMaster, boolean searchForSlave, boolean initialConnection) {
-        this.searchForMaster = searchForMaster;
-        this.searchForSlave = searchForSlave;
+    public SearchFilter(boolean initialConnection) {
         this.initialConnection = initialConnection;
     }
 
@@ -111,22 +98,6 @@ public class SearchFilter {
         this.fineIfFoundOnlySlave = fineIfFoundOnlySlave;
     }
 
-    public boolean isSearchForMaster() {
-        return searchForMaster;
-    }
-
-    public void setSearchForMaster(boolean searchForMaster) {
-        this.searchForMaster = searchForMaster;
-    }
-
-    public boolean isSearchForSlave() {
-        return searchForSlave;
-    }
-
-    public void setSearchForSlave(boolean searchForSlave) {
-        this.searchForSlave = searchForSlave;
-    }
-
     public boolean isUniqueLoop() {
         return uniqueLoop;
     }
@@ -138,8 +109,6 @@ public class SearchFilter {
     @Override
     public String toString() {
         return "SearchFilter{"
-                + "searchForMaster=" + searchForMaster
-                + ", searchForSlave=" + searchForSlave
                 + ", fineIfFoundOnlyMaster=" + fineIfFoundOnlyMaster
                 + ", fineIfFoundOnlySlave=" + fineIfFoundOnlySlave
                 + ", initialConnection=" + initialConnection

@@ -98,8 +98,6 @@ public class Options {
     public boolean assureReadOnly;
     public boolean autoReconnect;
     public boolean failOnReadOnly;
-    public int secondsBeforeRetryMaster;
-    public int queriesBeforeRetryMaster;
     public int retriesAllDown;
     public int validConnectionTimeout;
     public int loadBalanceBlacklistTimeout;
@@ -146,8 +144,6 @@ public class Options {
                 + ", prepStmtCacheSqlLimit=" + prepStmtCacheSqlLimit
                 + ", autoReconnect=" + autoReconnect
                 + ", failOnReadOnly=" + failOnReadOnly
-                + ", secondsBeforeRetryMaster=" + secondsBeforeRetryMaster
-                + ", queriesBeforeRetryMaster=" + queriesBeforeRetryMaster
                 + ", retriesAllDown=" + retriesAllDown
                 + ", validConnectionTimeout=" + validConnectionTimeout
                 + ", loadBalanceBlacklistTimeout=" + loadBalanceBlacklistTimeout
@@ -245,12 +241,6 @@ public class Options {
             return false;
         }
         if (failOnReadOnly != options.failOnReadOnly) {
-            return false;
-        }
-        if (secondsBeforeRetryMaster != options.secondsBeforeRetryMaster) {
-            return false;
-        }
-        if (queriesBeforeRetryMaster != options.queriesBeforeRetryMaster) {
             return false;
         }
         if (retriesAllDown != options.retriesAllDown) {

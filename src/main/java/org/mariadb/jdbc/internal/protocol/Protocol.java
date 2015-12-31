@@ -185,12 +185,12 @@ public interface Protocol {
     void setHostFailedWithoutProxy();
 
     AbstractQueryResult executePreparedQuery(String sql, ParameterHolder[] parameters, PrepareResult prepareResult, MariaDbType[] parameterTypeHeader,
-                                     boolean isStreaming) throws QueryException;
+                                             boolean isStreaming) throws QueryException;
 
     void releasePrepareStatement(String sql, int statementId) throws QueryException;
 
     AbstractQueryResult executePreparedQueryAfterFailover(String sql, ParameterHolder[] parameters, PrepareResult oldPrepareResult,
-                                                  MariaDbType[] parameterTypeHeader, boolean isStreaming) throws QueryException; //used
+                                                          MariaDbType[] parameterTypeHeader, boolean isStreaming) throws QueryException; //used
 
     PrepareStatementCache prepareStatementCache();
 

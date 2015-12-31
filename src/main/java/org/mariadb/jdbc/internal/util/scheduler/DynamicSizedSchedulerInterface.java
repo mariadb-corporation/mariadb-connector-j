@@ -1,7 +1,7 @@
 /*
 MariaDB Client for Java
 
-Copyright (c) 2012 Monty Program Ab.
+Copyright (c) 2015 Monty Program Ab.
 
 This library is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License as published by the Free
@@ -47,100 +47,15 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc.internal.util.dao;
+package org.mariadb.jdbc.internal.util.scheduler;
 
+import java.util.concurrent.ScheduledExecutorService;
 
-public class QueryException extends Exception {
-    private static final long serialVersionUID = 974263994278018455L;
+public interface DynamicSizedSchedulerInterface extends ScheduledExecutorService {
     /**
-     * the internal code.
-     */
-    private int errorCode;
-    /**
-     * the sql state.
-     */
-    private String sqlState;
-    private String message;
-
-    /**
-     * Creates a default query exception with errorCode -1 and sqlState HY0000.
+     * Update the pool thread count with this new value.
      *
-     * @param message the message to set
+     * @param newSize New pool size that is superior to 0
      */
-    public QueryException(final String message) {
-        super(message);
-        this.message = message;
-        this.errorCode = -1;
-        this.sqlState = "HY0000";
-
-    }
-
-    /**
-     * Creates a query exception with a message.
-     *
-     * @param message   the message
-     * @param errorCode the error code
-     * @param sqlState  the sqlstate
-     */
-    public QueryException(final String message,
-                          final int errorCode,
-                          final String sqlState) {
-        super(message);
-        this.message = message;
-        this.errorCode = errorCode;
-        this.sqlState = sqlState;
-    }
-
-    /**
-     * creates a query exception with a message and a cause.
-     *
-     * @param message   the exception message
-     * @param errorCode the error code
-     * @param sqlState  the sql state
-     * @param cause     the cause of the exception
-     */
-    public QueryException(String message,
-                          int errorCode,
-                          String sqlState,
-                          Throwable cause) {
-        super(message, cause);
-        this.message = message;
-        this.errorCode = errorCode;
-        this.sqlState = sqlState;
-    }
-
-    @Override
-    public String getMessage() {
-        return message;
-    }
-
-    public void setMessage(String message) {
-        this.message = message;
-    }
-
-    /**
-     * returns the error code.
-     *
-     * @return the error code
-     */
-    public final int getErrorCode() {
-        return errorCode;
-    }
-
-
-    /**
-     * Gets the sql state.
-     * @return the sql state
-     */
-    public final String getSqlState() {
-        return sqlState;
-    }
-
-    /**
-     * Sets the sql state.
-     * @param sqlState sqlState
-     */
-    public void setSqlState(String sqlState) {
-        this.sqlState = sqlState;
-    }
+    public void setPoolSize(int newSize);
 }

@@ -53,8 +53,8 @@ import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.failover.AbstractMastersListener;
 import org.mariadb.jdbc.internal.failover.HandleErrorResult;
+import org.mariadb.jdbc.internal.failover.thread.FailoverLoop;
 import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
-import org.mariadb.jdbc.internal.util.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.protocol.MasterProtocol;
@@ -65,7 +65,6 @@ import java.sql.SQLException;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 public class MastersFailoverListener extends AbstractMastersListener {
     private final HaMode mode;
@@ -77,19 +76,19 @@ public class MastersFailoverListener extends AbstractMastersListener {
     public MastersFailoverListener(final UrlParser urlParser) {
         super(urlParser);
         this.mode = urlParser.getHaMode();
-
+        setMasterHostFail();
     }
 
     /**
      * Connect to database.
      * @throws QueryException if connection is on error.
      */
+    @Override
     public void initializeConnection() throws QueryException {
+        super.initializeConnection();
         this.currentProtocol = null;
-//        log.trace("launching initial loop");
+        //launching initial loop
         reconnectFailedConnection(new SearchFilter(true, false));
-//        log.trace("launching initial loop end");
-
     }
 
     /**
@@ -97,41 +96,21 @@ public class MastersFailoverListener extends AbstractMastersListener {
      * @throws QueryException if connection has been explicitly closed.
      */
     public void preExecute() throws QueryException {
+        lastQueryNanos = System.nanoTime();
         //if connection is closed or failed on slave
         if (this.currentProtocol != null && this.currentProtocol.isClosed()) {
-            if (!isExplicitClosed() && urlParser.getOptions().autoReconnect) {
-                try {
-                    reconnectFailedConnection(new SearchFilter(isMasterHostFail(), false, !currentReadOnlyAsked.get(), currentReadOnlyAsked.get()));
-                } catch (QueryException e) {
-                    //eat exception
-                }
-            } else {
-                throw new QueryException("Connection is closed", (short) -1, ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState());
-            }
+            preAutoReconnect();
         }
     }
 
-    public boolean shouldReconnect() {
-        return isMasterHostFail();
-    }
 
     @Override
     public void preClose() throws SQLException {
         if (!isExplicitClosed()) {
             proxy.lock.lock();
-            setExplicitClosed(true);
             try {
-                //closing first additional thread if running to avoid connection creation before closing
-                if (scheduledFailover != null) {
-                    scheduledFailover.cancel(true);
-                    isLooping.set(false);
-                }
-                executorService.shutdownNow();
-                try {
-                    executorService.awaitTermination(15L, TimeUnit.SECONDS);
-                } catch (InterruptedException e) {
-                    //executorService interrupted
-                }
+                setExplicitClosed(true);
+                removeListenerFromSchedulers();
 
                 //closing connection
                 if (currentProtocol != null && this.currentProtocol.isConnected()) {
@@ -148,10 +127,9 @@ public class MastersFailoverListener extends AbstractMastersListener {
         boolean alreadyClosed = !currentProtocol.isConnected();
         try {
             if (currentProtocol != null && currentProtocol.isConnected() && currentProtocol.ping()) {
-//                if (log.isDebugEnabled())
-//                    log.debug("Primary node [" + currentProtocol.getHostAddress().toString() + "] connection re-established");
-
-                // if in transaction cannot be sure that the last query has been received by server of not, so rollback.
+                //connection re-established
+                //if in transaction cannot be sure that the last query has been received by server of not,
+                // so rollback.and throw exception
                 if (currentProtocol.inTransaction()) {
                     currentProtocol.rollback();
                 }
@@ -171,17 +149,14 @@ public class MastersFailoverListener extends AbstractMastersListener {
 
         try {
             reconnectFailedConnection(new SearchFilter(true, false));
-            if (!HaMode.NONE.equals(mode)) {
-                launchFailLoopIfNotlaunched(true);
-            }
+            handleFailLoop();
             if (alreadyClosed) {
                 return relaunchOperation(method, args);
             }
             return new HandleErrorResult(true);
         } catch (Exception e) {
-            if (!HaMode.NONE.equals(mode)) {
-                launchFailLoopIfNotlaunched(true);
-            }
+            //we will throw a Connection exception that will close connection
+            FailoverLoop.removeListener(this);
             return new HandleErrorResult();
         }
     }
@@ -194,37 +169,51 @@ public class MastersFailoverListener extends AbstractMastersListener {
      */
     @Override
     public void reconnectFailedConnection(SearchFilter searchFilter) throws QueryException {
-//        if (log.isTraceEnabled()) log.trace("search connection searchFilter=" + searchFilter);
-        currentConnectionAttempts.incrementAndGet();
-        resetOldsBlackListHosts();
+        reconnectionLock.lock();
+        try {
+            if (!searchFilter.isInitialConnection()
+                    && (isExplicitClosed() || !isMasterHostFail())) {
+                return;
+            }
 
-        List<HostAddress> loopAddress = new LinkedList<>(urlParser.getHostAddresses());
-        if (HaMode.FAILOVER.equals(mode)) {
-            //put the list in the following order
-            // - random order not connected host
-            // - random order blacklist host
-            // - random order connected host
-            loopAddress.removeAll(blacklist.keySet());
-            Collections.shuffle(loopAddress);
-            List<HostAddress> blacklistShuffle = new LinkedList<>(blacklist.keySet());
-            Collections.shuffle(blacklistShuffle);
-            loopAddress.addAll(blacklistShuffle);
-        } else {
-            //order in sequence
-            loopAddress.removeAll(blacklist.keySet());
-            loopAddress.addAll(blacklist.keySet());
+            currentConnectionAttempts.incrementAndGet();
+            resetOldsBlackListHosts();
+
+            List<HostAddress> loopAddress = new LinkedList<>(urlParser.getHostAddresses());
+            if (HaMode.FAILOVER.equals(mode)) {
+                //put the list in the following order
+                // - random order not connected host
+                // - random order blacklist host
+                // - random order connected host
+                loopAddress.removeAll(getBlacklistKeys());
+                Collections.shuffle(loopAddress);
+                List<HostAddress> blacklistShuffle = new LinkedList<>(getBlacklistKeys());
+                Collections.shuffle(blacklistShuffle);
+                loopAddress.addAll(blacklistShuffle);
+            } else {
+                //order in sequence
+                loopAddress.removeAll(getBlacklistKeys());
+                loopAddress.addAll(getBlacklistKeys());
+            }
+
+            //put connected at end
+            if (currentProtocol != null && !isMasterHostFail()) {
+                loopAddress.remove(currentProtocol.getHostAddress());
+                //loopAddress.add(currentProtocol.getHostAddress());
+            }
+
+            MasterProtocol.loop(this, loopAddress, searchFilter);
+            //close loop if all connection are retrieved
+            if (!isMasterHostFail()) {
+                FailoverLoop.removeListener(this);
+            }
+
+            //if no error, reset failover variables
+            resetMasterFailoverData();
+            return;
+        } finally {
+            reconnectionLock.unlock();
         }
-
-        //put connected at end
-        if (currentProtocol != null && !isMasterHostFail()) {
-            loopAddress.remove(currentProtocol.getHostAddress());
-            //loopAddress.add(currentProtocol.getHostAddress());
-        }
-
-        MasterProtocol.loop(this, loopAddress, blacklist, searchFilter);
-
-        //if no error, reset failover variables
-        resetMasterFailoverData();
     }
 
     /**
@@ -265,58 +254,45 @@ public class MastersFailoverListener extends AbstractMastersListener {
             proxy.lock.unlock();
         }
 
-//        if (log.isDebugEnabled()) {
-//            if (getMasterHostFailTimestamp() > 0) {
-//                log.debug("new primary node [" + currentProtocol.getHostAddress().toString() + "] connection established after "
-// + TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - getMasterHostFailNanos()));
-//            } else log.debug("new primary node [" + currentProtocol.getHostAddress().toString() + "] connection established");
-//        }
-
         resetMasterFailoverData();
-        stopFailover();
+        FailoverLoop.removeListener(this);
     }
-
-
-    /**
-     * Throw a human readable message after a failoverException.
-     *
-     * @param queryException internal error
-     * @param reconnected    connection status
-     * @throws QueryException error with failover information
-     */
-    @Override
-    public void throwFailoverMessage(QueryException queryException, boolean reconnected) throws QueryException {
-        HostAddress hostAddress = (currentProtocol != null) ? currentProtocol.getHostAddress() : null;
-
-        String firstPart = "Communications link failure with primary" + ((hostAddress != null) ? " host " + hostAddress.host
-                + ":" + hostAddress.port : "") + ". ";
-        String error = "";
-        if (urlParser.getOptions().autoReconnect) {
-            if (isMasterHostFail()) {
-                error += " Driver will reconnect automatically in a few millisecond or during next query if append before";
-            } else {
-                error += " Driver as successfully reconnect connection";
-            }
-        } else {
-            if (reconnected) {
-                error += " Driver as reconnect connection";
-            } else {
-                if (shouldReconnect()) {
-                    error += " Driver will try to reconnect automatically in a few millisecond or during next query if append before";
-                }
-            }
-        }
-        if (queryException == null) {
-            throw new QueryException(firstPart + error, (short) -1, ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState());
-        } else {
-            error = queryException.getMessage() + ". " + error;
-            queryException.setMessage(firstPart + error);
-            throw queryException;
-        }
-    }
-
 
     public void reconnect() throws QueryException {
         reconnectFailedConnection(new SearchFilter(true, false));
+        handleFailLoop();
+    }
+
+    /**
+     * Add listener to FailoverLoop if master connection is not active, so a reconnection will be done.
+     * (the reconnection will be done by failover or if append before by the next query/method that will use
+     * the failed connection)
+     * Remove listener from FailoverLoop is master connection is active.
+     */
+    public void handleFailLoop() {
+        if (isMasterHostFail()) {
+            if (!isExplicitClosed()) {
+                FailoverLoop.addListener(this);
+            }
+        } else {
+            FailoverLoop.removeListener(this);
+        }
+    }
+
+    public boolean isMasterConnected() {
+        return currentProtocol != null && currentProtocol.isConnected();
+    }
+
+    /**
+     * Check master status.
+     * @param searchFilter search filter
+     * @return has some status changed
+     * @throws QueryException exception
+     */
+    public boolean checkMasterStatus(SearchFilter searchFilter) throws QueryException {
+        if (currentProtocol != null) {
+            currentProtocol.ping();
+        }
+        return false;
     }
 }

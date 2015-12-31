@@ -38,17 +38,17 @@ public class ReplicationFailoverTest extends BaseReplication {
         Connection connection = null;
         try {
             connection = getNewConnection("&assureReadOnly=true", false);
-            connection.setReadOnly(true);
             Statement stmt = connection.createStatement();
             stmt.execute("drop table  if exists replicationDelete" + jobId);
             stmt.execute("create table replicationDelete" + jobId + " (id int not null primary key auto_increment, test VARCHAR(10))");
+            connection.setReadOnly(true);
             assertTrue(connection.isReadOnly());
             try {
                 if (!isMariaDbServer(connection) || !requireMinimumVersion(connection, 5, 7)) {
                     //on version >= 5.7 use SESSION READ-ONLY, before no control
                     Assume.assumeTrue(false);
                 }
-                stmt.execute("drop table  if exists replicationDelete" + jobId);
+                connection.createStatement().execute("drop table  if exists replicationDelete" + jobId);
                 fail();
             } catch (SQLException e) {
                 //normal exception
@@ -65,7 +65,7 @@ public class ReplicationFailoverTest extends BaseReplication {
     public void pingReconnectAfterFailover() throws Throwable {
         Connection connection = null;
         try {
-            connection = getNewConnection("&retriesAllDown=1&secondsBeforeRetryMaster=5&queriesBeforeRetryMaster=50000", true);
+            connection = getNewConnection("&retriesAllDown=3", true);
             Statement st = connection.createStatement();
             final int masterServerId = getServerId(connection);
             stopProxy(masterServerId);
@@ -82,30 +82,10 @@ public class ReplicationFailoverTest extends BaseReplication {
             restartProxy(masterServerId);
             try {
                 connection.setReadOnly(false);
-                fail();
             } catch (SQLException e) {
-                //normal exception
+                fail();
             }
 
-
-            boolean loop = true;
-            while (loop) {
-                try {
-                    Thread.sleep(250);
-                    int currentHost = getServerId(connection);
-                    if (masterServerId == currentHost) {
-                        long duration = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - stoppedTime);
-                        assertTrue(duration > 5 * 1000);
-                        loop = false;
-                    }
-                } catch (SQLException e) {
-                    //eat exception
-                }
-                long duration = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - stoppedTime);
-                if (duration > 20 * 1000) {
-                    fail();
-                }
-            }
         } finally {
             if (connection != null) {
                 connection.close();
@@ -117,7 +97,7 @@ public class ReplicationFailoverTest extends BaseReplication {
     public void failoverDuringMasterSetReadOnly() throws Throwable {
         Connection connection = null;
         try {
-            connection = getNewConnection("&retriesAllDown=1", true);
+            connection = getNewConnection("&retriesAllDown=3", true);
             int masterServerId = getServerId(connection);
             stopProxy(masterServerId);
             connection.setReadOnly(true);
@@ -135,7 +115,7 @@ public class ReplicationFailoverTest extends BaseReplication {
     public void masterWithoutFailover() throws Throwable {
         Connection connection = null;
         try {
-            connection = getNewConnection("&retriesAllDown=1", true);
+            connection = getNewConnection("&retriesAllDown=3", true);
             int masterServerId = getServerId(connection);
             connection.setReadOnly(true);
             int firstSlaveId = getServerId(connection);
@@ -161,7 +141,7 @@ public class ReplicationFailoverTest extends BaseReplication {
     public void checkBackOnMasterOnSlaveFail() throws Throwable {
         Connection connection = null;
         try {
-            connection = getNewConnection("&retriesAllDown=1&secondsBeforeRetryMaster=10&failOnReadOnly=true", true);
+            connection = getNewConnection("&retriesAllDown=3&failOnReadOnly=true", true);
             Statement st = connection.createStatement();
             int masterServerId = getServerId(connection);
             stopProxy(masterServerId);
@@ -180,15 +160,13 @@ public class ReplicationFailoverTest extends BaseReplication {
                 Thread.sleep(250);
                 try {
                     if (!connection.isReadOnly()) {
-                        long duration = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - stoppedTime);
-                        assertTrue(duration > 10 * 1000);
                         loop = false;
                     }
                 } catch (SQLException e) {
                     //eat exception
                 }
                 long duration = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - stoppedTime);
-                if (duration > 30 * 1000) {
+                if (duration > 15 * 1000) {
                     fail();
                 }
             }
@@ -203,7 +181,7 @@ public class ReplicationFailoverTest extends BaseReplication {
     public void failoverMasterWithAutoConnectAndTransaction() throws Throwable {
         Connection connection = null;
         try {
-            connection = getNewConnection("&retriesAllDown=1&autoReconnect=true", true);
+            connection = getNewConnection("&retriesAllDown=3&autoReconnect=true", true);
             Statement st = connection.createStatement();
 
             final int masterServerId = getServerId(connection);
@@ -240,7 +218,7 @@ public class ReplicationFailoverTest extends BaseReplication {
     public void testFailNotOnSlave() throws Throwable {
         Connection connection = null;
         try {
-            connection = getNewConnection("&retriesAllDown=1&autoReconnectMaster=true", true);
+            connection = getNewConnection("&retriesAllDown=3&autoReconnectMaster=true", true);
             Statement stmt = connection.createStatement();
             int masterServerId = getServerId(connection);
             stopProxy(masterServerId);

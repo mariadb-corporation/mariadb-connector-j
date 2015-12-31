@@ -1,7 +1,7 @@
 /*
 MariaDB Client for Java
 
-Copyright (c) 2012 Monty Program Ab.
+Copyright (c) 2015 Monty Program Ab.
 
 This library is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License as published by the Free
@@ -47,100 +47,40 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc.internal.util.dao;
+package org.mariadb.jdbc.internal.util.scheduler;
 
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicInteger;
 
-public class QueryException extends Exception {
-    private static final long serialVersionUID = 974263994278018455L;
-    /**
-     * the internal code.
-     */
-    private int errorCode;
-    /**
-     * the sql state.
-     */
-    private String sqlState;
-    private String message;
+public class DynamicSizedSchedulerImpl extends ScheduledThreadPoolExecutor implements DynamicSizedSchedulerInterface {
+
+    private static final AtomicInteger POOL_ID = new AtomicInteger();
 
     /**
-     * Creates a default query exception with errorCode -1 and sqlState HY0000.
-     *
-     * @param message the message to set
+     * Initialize a scheduler with dynamic pool size.
+     * @param corePoolSize initial Core pool size
      */
-    public QueryException(final String message) {
-        super(message);
-        this.message = message;
-        this.errorCode = -1;
-        this.sqlState = "HY0000";
+    public DynamicSizedSchedulerImpl(int corePoolSize) {
+        super(corePoolSize, new ThreadFactory() {
+            private final int thisPoolId = POOL_ID.incrementAndGet();
+            // start from DefaultThread factory to get security groups and what not
+            private final ThreadFactory parentFactory = Executors.defaultThreadFactory();
+            private final AtomicInteger threadId = new AtomicInteger();
 
-    }
+            @Override
+            public Thread newThread(Runnable runnable) {
+                Thread result = parentFactory.newThread(runnable);
+                result.setName("mariaDb-reconnection-" + thisPoolId + "-" + threadId.incrementAndGet());
 
-    /**
-     * Creates a query exception with a message.
-     *
-     * @param message   the message
-     * @param errorCode the error code
-     * @param sqlState  the sqlstate
-     */
-    public QueryException(final String message,
-                          final int errorCode,
-                          final String sqlState) {
-        super(message);
-        this.message = message;
-        this.errorCode = errorCode;
-        this.sqlState = sqlState;
-    }
-
-    /**
-     * creates a query exception with a message and a cause.
-     *
-     * @param message   the exception message
-     * @param errorCode the error code
-     * @param sqlState  the sql state
-     * @param cause     the cause of the exception
-     */
-    public QueryException(String message,
-                          int errorCode,
-                          String sqlState,
-                          Throwable cause) {
-        super(message, cause);
-        this.message = message;
-        this.errorCode = errorCode;
-        this.sqlState = sqlState;
+                return result;
+            }
+        });
     }
 
     @Override
-    public String getMessage() {
-        return message;
-    }
-
-    public void setMessage(String message) {
-        this.message = message;
-    }
-
-    /**
-     * returns the error code.
-     *
-     * @return the error code
-     */
-    public final int getErrorCode() {
-        return errorCode;
-    }
-
-
-    /**
-     * Gets the sql state.
-     * @return the sql state
-     */
-    public final String getSqlState() {
-        return sqlState;
-    }
-
-    /**
-     * Sets the sql state.
-     * @param sqlState sqlState
-     */
-    public void setSqlState(String sqlState) {
-        this.sqlState = sqlState;
+    public void setPoolSize(int newSize) {
+        super.setCorePoolSize(newSize);
     }
 }

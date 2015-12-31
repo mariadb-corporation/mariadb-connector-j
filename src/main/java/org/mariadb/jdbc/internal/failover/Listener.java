@@ -58,6 +58,8 @@ import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 import java.lang.reflect.Method;
 import java.sql.SQLException;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ScheduledExecutorService;
 
 public interface Listener {
     FailoverProxy getProxy();
@@ -69,8 +71,6 @@ public interface Listener {
     void preExecute() throws QueryException;
 
     void preClose() throws SQLException;
-
-    boolean shouldReconnect();
 
     void reconnectFailedConnection(SearchFilter filter) throws QueryException;
 
@@ -84,13 +84,18 @@ public interface Listener {
 
     void foundActiveMaster(Protocol protocol) throws QueryException;
 
-    Map<HostAddress, Long> getBlacklist();
+    Set<HostAddress> getBlacklistKeys();
+
+    void addToBlacklist(HostAddress hostAddress);
+
+    void removeFromBlacklist(HostAddress hostAddress);
 
     void syncConnection(Protocol from, Protocol to) throws QueryException;
 
     UrlParser getUrlParser();
 
-    void throwFailoverMessage(QueryException queryException, boolean reconnected) throws QueryException;
+    void throwFailoverMessage(HostAddress failHostAddress, boolean wasMaster, QueryException queryException,
+                              boolean reconnected) throws QueryException;
 
     boolean isAutoReconnect();
 
@@ -105,4 +110,23 @@ public interface Listener {
     boolean isReadOnly();
 
     boolean isClosed();
+
+    Protocol getCurrentProtocol();
+
+    boolean hasHostFail();
+
+    boolean canRetryFailLoop();
+
+    SearchFilter getFilterForFailedHost();
+
+    boolean isMasterConnected();
+
+    boolean setMasterHostFail();
+
+    boolean isMasterHostFail();
+
+    long getLastQueryNanos();
+
+    boolean checkMasterStatus(SearchFilter searchFilter) throws QueryException;
+
 }
