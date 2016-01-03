@@ -26,9 +26,13 @@ The load-balancing will includes a pooling mechanism.
 Example: when creating a pool of 60 connections, each one will use a random host. With 3 master hosts, the pool will have about 20 connections to each host.
 
 ## Master/slave distributed load
-For a cluster composed of master hosts only, the load will be distributed due to the random distribution of connections.
 
-For a cluster composed of masters and slaves on connection  initialization, there will be 2 underlying connections: one with a master host, another with a slave host. Only one connection is used at a time.<br/>
+For a cluster composed of masters and slaves on connection initialization, there will be 2 underlying connections: one with a master host, another with a slave host. Only one connection is used at a time. <br/>
+For a cluster composed of master hosts only, each connection has only one underlying connection. <br/>
+The load will be distributed due to the random distribution of connections..<br/>
+
+## Master/slave connection selection
+
 It’s the application that has to decide to use master or slave connection (the master connection is set by default).<br/>
 Switching the type of connection is done by using JDBC [connection.setReadOnly(boolean readOnly)](http://docs.oracle.com/javase/7/docs/api/java/sql/Connection.html#setReadOnly(boolean)) method. Setting read-only to true will use the slave connection, false, the master connection.\\\\
 
@@ -58,7 +62,7 @@ public void createContacts() {
 
 Generated Spring Data repository objects use the same logic: the find* method will use the slave connection, other use master connection without having to explicitly set that for each method.
 
-On a cluster with master hosts only, the use of connection.setReadOnly(true) does not change the connection, but if the database version is 10.0.0 or higher, the session is set to readOnly, which means that any write query will throw an exception.
+On a cluster with master hosts only, the use of connection.setReadOnly(true) does not change the connection, but if the database version is 10.0.0 or higher, the session is set to readOnly is option assureReadOnly is set to ture, which means that any write query will throw an exception.
 
 #Failover behaviour
 ##Basic failover 
