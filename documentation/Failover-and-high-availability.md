@@ -62,7 +62,7 @@ public void createContacts() {
 
 Generated Spring Data repository objects use the same logic: the find* method will use the slave connection, other use master connection without having to explicitly set that for each method.
 
-On a cluster with master hosts only, the use of connection.setReadOnly(true) does not change the connection, but if the database version is 10.0.0 or higher, the session is set to readOnly is option assureReadOnly is set to ture, which means that any write query will throw an exception.
+On a cluster with master hosts only, the use of connection.setReadOnly(true) does not change the connection, but if the database version is 10.0.0 or higher, the session is set to readOnly if option assureReadOnly is set to true, which means that any write query will throw an exception.
 
 #Failover behaviour
 ##Basic failover 
