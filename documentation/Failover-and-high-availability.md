@@ -34,7 +34,7 @@ The load will be distributed due to the random distribution of connections..<br/
 ## Master/slave connection selection
 
 It’s the application that has to decide to use master or slave connection (the master connection is set by default).<br/>
-Switching the type of connection is done by using JDBC [connection.setReadOnly(boolean readOnly)](http://docs.oracle.com/javase/7/docs/api/java/sql/Connection.html#setReadOnly(boolean)) method. Setting read-only to true will use the slave connection, false, the master connection.\\\\
+Switching the type of connection is done by using JDBC [connection.setReadOnly(boolean readOnly)](http://docs.oracle.com/javase/7/docs/api/java/sql/Connection.html#setReadOnly(boolean)) method. Setting read-only to true will use the slave connection, false, the master connection.<br/>
 
 Example in standard java:
 ``` java
