@@ -74,12 +74,17 @@ public class ConnectionValidator  {
     private final AtomicLong currentScheduledFrequency = new AtomicLong(-1);
     private final ListenerChecker checker = new ListenerChecker();
 
+    /**
+     * Add listener to validation list.
+     * @param listener listener
+     * @param listenerCheckMillis schedule time
+     */
     public void addListener(Listener listener, long listenerCheckMillis) {
         queue.add(listener);
         
         while (true) {
             long casFrequency = currentScheduledFrequency.get();
-            if (casFrequency == listenerCheckMillis || casFrequency <= MINIMUM_CHECK_DELAY_MILLIS) {
+            if (casFrequency == listenerCheckMillis || (casFrequency != -1 && casFrequency <= MINIMUM_CHECK_DELAY_MILLIS)) {
                 // common path...only one listener check frequency configured
                 break;
             } else if (casFrequency == -1) {
@@ -104,6 +109,10 @@ public class ConnectionValidator  {
         }
     }
 
+    /**
+     * Remove listener to validation list.
+     * @param listener listener
+     */
     public void removeListener(Listener listener) {
         queue.remove(listener);
         
@@ -141,16 +150,12 @@ public class ConnectionValidator  {
                     if (durationSeconds >= listener.getUrlParser().getOptions().validConnectionTimeout
                             && !listener.isMasterHostFail()) {
                         boolean masterFail = false;
-                        try {
-                            if (listener.isMasterConnected()) {
-                                listener.checkMasterStatus(null);
-                            } else {
-                                masterFail = true;
-                            }
-                        } catch (QueryException e) {
+                        if (listener.isMasterConnected()) {
+                            listener.checkMasterStatus(null);
+                        } else {
                             masterFail = true;
                         }
-    
+
                         if (masterFail && listener.setMasterHostFail()) {
                             try {
                                 listener.primaryFail(null, null);

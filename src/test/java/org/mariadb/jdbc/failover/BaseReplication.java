@@ -299,4 +299,83 @@ public abstract class BaseReplication extends BaseMultiHostTest {
             }
         }
     }
+
+
+    @Test
+    public void relaunchWithoutErrorWhenAutocommit() throws Throwable {
+        Connection connection = null;
+        try {
+            connection = getNewConnection(true);
+            Statement st = connection.createStatement();
+            int masterServerId = getServerId(connection);
+            stopProxy(masterServerId);
+            long startTime = System.currentTimeMillis();
+            try {
+                ProxyRestartAfter10s proxyRestartAfter10s = new ProxyRestartAfter10s(masterServerId);
+                Thread thread1 = new Thread(proxyRestartAfter10s);
+                thread1.start();
+                st.execute("SELECT 1");
+                if (System.currentTimeMillis() - startTime < 10 * 1000) {
+                    Assert.fail("Auto-reconnection must have been done after 10000ms but was " + (System.currentTimeMillis() - startTime));
+                }
+            } catch (SQLException e) {
+                Assert.fail("must not have thrown error");
+            }
+        } finally {
+            if (connection != null) {
+                connection.close();
+            }
+        }
+    }
+
+    @Test
+    public void relaunchWithErrorWhenInTransaction() throws Throwable {
+        Connection connection = null;
+        try {
+            connection = getNewConnection(true);
+            Statement st = connection.createStatement();
+            st.execute("drop table if exists baseReplicationTransaction" + jobId);
+            st.execute("create table baseReplicationTransaction" + jobId + " (id int not null primary key auto_increment, test VARCHAR(10))");
+
+            connection.setAutoCommit(false);
+            st.execute("INSERT INTO baseReplicationTransaction" + jobId + "(test) VALUES ('test')");
+            int masterServerId = getServerId(connection);
+            st.execute("SELECT 1");
+            stopProxy(masterServerId);
+            try {
+                ProxyRestartAfter10s proxyRestartAfter10s = new ProxyRestartAfter10s(masterServerId);
+                Thread thread1 = new Thread(proxyRestartAfter10s);
+                thread1.start();
+                st.execute("SELECT 1");
+                Assert.fail("must not have thrown error");
+            } catch (SQLException e) {
+                Assert.assertEquals("error type not normal", "25S03", e.getSQLState());
+            }
+            st.execute("drop table if exists baseReplicationTransaction" + jobId);
+        } finally {
+            if (connection != null) {
+                connection.close();
+            }
+        }
+    }
+
+
+    protected class ProxyRestartAfter10s implements Runnable {
+        int serverId;
+
+        public ProxyRestartAfter10s(int serverId) {
+            this.serverId = serverId;
+        }
+
+        public void run() {
+            try {
+                Thread.sleep(10000); // wait that slave reconnection loop is launched
+                restartProxy(serverId);
+            } catch (Throwable e) {
+                e.printStackTrace();
+                Assert.fail();
+            }
+        }
+    }
+
 }

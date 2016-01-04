@@ -223,12 +223,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
     @Override
     public boolean inTransaction() {
-        lock.lock();
-        try {
-            return ((serverStatus & ServerStatus.IN_TRANSACTION) != 0);
-        } finally {
-            lock.unlock();
-        }
+        return ((serverStatus & ServerStatus.IN_TRANSACTION) != 0);
     }
 
 

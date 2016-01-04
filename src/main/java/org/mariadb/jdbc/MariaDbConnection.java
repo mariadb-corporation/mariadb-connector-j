@@ -563,9 +563,14 @@ public final class MariaDbConnection implements Connection {
      */
     public void close() throws SQLException {
         if (pooledConnection != null) {
-            if (protocol != null && protocol.inTransaction()) {
-                /* Rollback transaction prior to returning physical connection to the pool */
-                rollback();
+            lock.lock();
+            try {
+                if (protocol != null && protocol.inTransaction()) {
+                    /* Rollback transaction prior to returning physical connection to the pool */
+                    rollback();
+                }
+            } finally {
+                lock.unlock();
             }
             pooledConnection.fireConnectionClosed();
             return;

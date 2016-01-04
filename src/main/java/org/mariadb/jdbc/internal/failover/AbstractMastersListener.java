@@ -88,12 +88,10 @@ public abstract class AbstractMastersListener implements Listener {
     protected Protocol currentProtocol = null;
     protected FailoverProxy proxy;
     protected long lastRetry = 0;
-    protected boolean explicitClosed = false;
+    protected AtomicBoolean explicitClosed = new AtomicBoolean(false);
     private volatile long masterHostFailNanos = 0;
     private AtomicBoolean masterHostFail = new AtomicBoolean();
-    public final ReentrantLock reconnectionLock = new ReentrantLock();
     protected long lastQueryNanos = 0;
-
 
     protected AbstractMastersListener(UrlParser urlParser) {
         this.urlParser = urlParser;
@@ -109,6 +107,7 @@ public abstract class AbstractMastersListener implements Listener {
      */
     public void initializeConnection() throws QueryException {
         long connectionTimeoutMillis = TimeUnit.SECONDS.toMillis(urlParser.getOptions().validConnectionTimeout);
+        lastQueryNanos = System.nanoTime();
         if (connectionTimeoutMillis > 0) {
             connectionValidationLoop.addListener(this, connectionTimeoutMillis);
         }
@@ -119,7 +118,7 @@ public abstract class AbstractMastersListener implements Listener {
     }
 
     protected void preAutoReconnect() throws QueryException {
-        if (!isExplicitClosed() && urlParser.getOptions().autoReconnect) {
+        if (!isExplicitClosed()) {
             try {
                 reconnectFailedConnection(new SearchFilter(!currentReadOnlyAsked.get(), currentReadOnlyAsked.get()));
             } catch (QueryException e) {
@@ -157,7 +156,7 @@ public abstract class AbstractMastersListener implements Listener {
      * @throws Throwable when method and parameters does not exist.
      */
     public HandleErrorResult handleFailover(Method method, Object[] args) throws Throwable {
-        if (explicitClosed) {
+        if (isExplicitClosed()) {
             throw new QueryException("Connection has been closed !");
         }
         if (setMasterHostFail()) {
@@ -173,7 +172,7 @@ public abstract class AbstractMastersListener implements Listener {
      * @param hostAddress the HostAddress to add to blacklist
      */
     public void addToBlacklist(HostAddress hostAddress) {
-        if (hostAddress != null && !explicitClosed) {
+        if (hostAddress != null && !isExplicitClosed()) {
             blacklist.put(hostAddress, System.nanoTime());
         }
     }
@@ -333,11 +332,7 @@ public abstract class AbstractMastersListener implements Listener {
     }
 
     public boolean isExplicitClosed() {
-        return explicitClosed;
-    }
-
-    public void setExplicitClosed(boolean explicitClosed) {
-        this.explicitClosed = explicitClosed;
+        return explicitClosed.get();
     }
 
     public int getRetriesAllDown() {
@@ -379,7 +374,7 @@ public abstract class AbstractMastersListener implements Listener {
                 + ((failHostAddress != null) ? " host " + failHostAddress.host + ":" + failHostAddress.port : "") + ". ";
         String error = "";
         if (reconnected) {
-            error += " Driver as reconnect connection";
+            error += " Driver has reconnect connection";
         } else {
             if (currentConnectionAttempts.get() > urlParser.getOptions().retriesAllDown) {
                 error += " Driver will not try to reconnect (too much failure > " + urlParser.getOptions().retriesAllDown + ")";
@@ -391,7 +386,6 @@ public abstract class AbstractMastersListener implements Listener {
         } else {
             error = queryException.getMessage() + ". " + error;
             queryException.setMessage(firstPart + error);
-            throw queryException;
         }
 
         if (reconnected && queryException.getSqlState().startsWith("08")) {
@@ -409,7 +403,7 @@ public abstract class AbstractMastersListener implements Listener {
 
     public abstract void reconnect() throws QueryException;
 
-    public abstract boolean checkMasterStatus(SearchFilter searchFilter) throws QueryException;
+    public abstract boolean checkMasterStatus(SearchFilter searchFilter);
 
 
     /**
@@ -421,5 +415,23 @@ public abstract class AbstractMastersListener implements Listener {
 
     public long getLastQueryNanos() {
         return lastQueryNanos;
+    }
+
+    protected boolean pingMasterProtocol(Protocol protocol) {
+        try {
+            protocol.ping();
+            return true;
+        } catch (QueryException e) {
+            proxy.lock.lock();
+            try {
+                protocol.close();
+            } finally {
+                proxy.lock.unlock();
+            }
+            if (setMasterHostFail()) {
+                addToBlacklist(protocol.getHostAddress());
+            }
+        }
+        return false;
     }
 }

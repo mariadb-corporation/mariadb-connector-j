@@ -141,8 +141,8 @@ public class AuroraFailoverTest extends BaseReplication {
 
                 }
                 long duration = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - restartTime);
-                if (duration > 15 * 1000) {
-                    Assert.fail();
+                if (duration > 20 * 1000) {
+                    Assert.fail("Auto-reconnection not done after " + duration);
                 }
                 Thread.sleep(250);
             }

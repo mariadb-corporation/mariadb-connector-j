@@ -71,6 +71,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
 
     /**
      * Initialisation.
+     *
      * @param urlParser url options.
      */
     public MastersFailoverListener(final UrlParser urlParser) {
@@ -81,6 +82,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
 
     /**
      * Connect to database.
+     *
      * @throws QueryException if connection is on error.
      */
     @Override
@@ -89,10 +91,12 @@ public class MastersFailoverListener extends AbstractMastersListener {
         this.currentProtocol = null;
         //launching initial loop
         reconnectFailedConnection(new SearchFilter(true, false));
+        resetMasterFailoverData();
     }
 
     /**
      * Before executing query, reconnect if connection is closed, and autoReconnect option is set.
+     *
      * @throws QueryException if connection has been explicitly closed.
      */
     public void preExecute() throws QueryException {
@@ -106,10 +110,9 @@ public class MastersFailoverListener extends AbstractMastersListener {
 
     @Override
     public void preClose() throws SQLException {
-        if (!isExplicitClosed()) {
+        if (explicitClosed.compareAndSet(false, true)) {
             proxy.lock.lock();
             try {
-                setExplicitClosed(true);
                 removeListenerFromSchedulers();
 
                 //closing connection
@@ -125,6 +128,8 @@ public class MastersFailoverListener extends AbstractMastersListener {
     @Override
     public HandleErrorResult primaryFail(Method method, Object[] args) throws Throwable {
         boolean alreadyClosed = !currentProtocol.isConnected();
+        boolean inTransaction = currentProtocol != null && currentProtocol.inTransaction();
+
         try {
             if (currentProtocol != null && currentProtocol.isConnected() && currentProtocol.ping()) {
                 //connection re-established
@@ -150,7 +155,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
         try {
             reconnectFailedConnection(new SearchFilter(true, false));
             handleFailLoop();
-            if (alreadyClosed) {
+            if (alreadyClosed || !inTransaction) {
                 return relaunchOperation(method, args);
             }
             return new HandleErrorResult(true);
@@ -169,7 +174,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
      */
     @Override
     public void reconnectFailedConnection(SearchFilter searchFilter) throws QueryException {
-        reconnectionLock.lock();
+        proxy.lock.lock();
         try {
             if (!searchFilter.isInitialConnection()
                     && (isExplicitClosed() || !isMasterHostFail())) {
@@ -212,12 +217,13 @@ public class MastersFailoverListener extends AbstractMastersListener {
             resetMasterFailoverData();
             return;
         } finally {
-            reconnectionLock.unlock();
+            proxy.lock.unlock();
         }
     }
 
     /**
      * Force session to read-only according to options.
+     *
      * @param mustBeReadOnly is read-only flag
      * @throws QueryException if a connection error occur
      */
@@ -285,14 +291,15 @@ public class MastersFailoverListener extends AbstractMastersListener {
 
     /**
      * Check master status.
+     *
      * @param searchFilter search filter
      * @return has some status changed
-     * @throws QueryException exception
      */
-    public boolean checkMasterStatus(SearchFilter searchFilter) throws QueryException {
+    public boolean checkMasterStatus(SearchFilter searchFilter) {
         if (currentProtocol != null) {
-            currentProtocol.ping();
+            pingMasterProtocol(currentProtocol);
         }
         return false;
     }
+
 }

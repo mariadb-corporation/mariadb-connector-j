@@ -116,6 +116,9 @@ public class AuroraProtocol extends MastersSlavesProtocol {
 
         AuroraProtocol protocol;
         ArrayDeque<HostAddress> loopAddresses = new ArrayDeque<>((!addresses.isEmpty()) ? addresses : listener.getBlacklistKeys());
+        if (loopAddresses.isEmpty()) {
+            loopAddresses.addAll(listener.getUrlParser().getHostAddresses());
+        }
         int maxConnectionTry = listener.getRetriesAllDown();
         QueryException lastQueryException = null;
 
@@ -128,7 +131,12 @@ public class AuroraProtocol extends MastersSlavesProtocol {
             maxConnectionTry--;
 
             try {
-                protocol.setHostAddress(loopAddresses.pollFirst());
+                HostAddress host = loopAddresses.pollFirst();
+                if (host == null) {
+                    loopAddresses.addAll(listener.getUrlParser().getHostAddresses());
+                    host = loopAddresses.pollFirst();
+                }
+                protocol.setHostAddress(host);
                 protocol.connect();
 
                 if (listener.isExplicitClosed()) {
@@ -168,8 +176,10 @@ public class AuroraProtocol extends MastersSlavesProtocol {
 
             //loop is set so
             if (loopAddresses.isEmpty() && !searchFilter.isUniqueLoop() && maxConnectionTry > 0) {
-                loopAddresses = new ArrayDeque<>(listener.getBlacklistKeys());
+                //check if connected connection have status change
                 listener.checkMasterStatus(searchFilter);
+                //use blacklist if all server has been connected and no result
+                loopAddresses = new ArrayDeque<>(listener.getBlacklistKeys());
             }
 
         }

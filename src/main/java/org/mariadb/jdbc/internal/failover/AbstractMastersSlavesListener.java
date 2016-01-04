@@ -77,7 +77,7 @@ public abstract class AbstractMastersSlavesListener extends AbstractMastersListe
      * @throws Throwable if method with parameters doesn't exist
      */
     public HandleErrorResult handleFailover(Method method, Object[] args) throws Throwable {
-        if (explicitClosed) {
+        if (isExplicitClosed()) {
             throw new QueryException("Connection has been closed !");
         }
         if (currentProtocol.mustBeMasterConnection()) {

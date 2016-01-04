@@ -102,6 +102,9 @@ public class MasterProtocol extends AbstractQueryProtocol {
 
         MasterProtocol protocol;
         ArrayDeque<HostAddress> loopAddresses = new ArrayDeque<>((!addresses.isEmpty()) ? addresses : listener.getBlacklistKeys());
+        if (loopAddresses.isEmpty()) {
+            loopAddresses.addAll(listener.getUrlParser().getHostAddresses());
+        }
         int maxConnectionTry = listener.getRetriesAllDown();
         QueryException lastQueryException = null;
         while (!loopAddresses.isEmpty() || (!searchFilter.isUniqueLoop() && maxConnectionTry > 0)) {
@@ -113,7 +116,12 @@ public class MasterProtocol extends AbstractQueryProtocol {
             maxConnectionTry--;
 
             try {
-                protocol.setHostAddress(loopAddresses.pollFirst());
+                HostAddress host = loopAddresses.pollFirst();
+                if (host == null) {
+                    loopAddresses.addAll(listener.getUrlParser().getHostAddresses());
+                    host = loopAddresses.pollFirst();
+                }
+                protocol.setHostAddress(host);
                 protocol.connect();
                 if (listener.isExplicitClosed()) {
                     protocol.close();

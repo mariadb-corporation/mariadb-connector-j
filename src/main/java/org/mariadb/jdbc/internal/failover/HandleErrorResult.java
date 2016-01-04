@@ -61,4 +61,13 @@ public class HandleErrorResult {
     public HandleErrorResult(boolean isReconnected) {
         this.isReconnected = isReconnected;
     }
+
+    @Override
+    public String toString() {
+        return "HandleErrorResult{"
+                + "mustThrowError=" + mustThrowError
+                + ", isReconnected=" + isReconnected
+                + ", resultObject=" + resultObject
+                + "}";
+    }
 }

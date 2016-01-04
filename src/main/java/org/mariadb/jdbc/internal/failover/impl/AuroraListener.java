@@ -96,7 +96,7 @@ public class AuroraListener extends MastersSlavesListener {
             return;
         }
 
-        reconnectionLock.lock();
+        proxy.lock.lock();
         try {
             currentConnectionAttempts.incrementAndGet();
 
@@ -117,12 +117,18 @@ public class AuroraListener extends MastersSlavesListener {
             if (masterProtocol != null && !isMasterHostFail()) {
                 loopAddress.remove(masterProtocol.getHostAddress());
                 loopAddress.add(masterProtocol.getHostAddress());
-                if (!masterProtocol.checkIfMaster()) {
-                    //aurora master is now slave !
-                    setMasterHostFail();
-                    if (isSecondaryHostFail()) {
-                        foundActiveSecondary(masterProtocol);
+                try {
+                    if (!masterProtocol.checkIfMaster()) {
+                        //aurora master is now slave !
+                        setMasterHostFail();
+                        if (isSecondaryHostFail()) {
+                            foundActiveSecondary(masterProtocol);
+                        }
                     }
+                } catch (QueryException e) {
+                    System.out.println(Thread.currentThread().getName() + " reconnectFailedConnection 7");
+
+                    setMasterHostFail();
                 }
             }
 
@@ -130,11 +136,15 @@ public class AuroraListener extends MastersSlavesListener {
                 if (secondaryProtocol != null) {
                     loopAddress.remove(secondaryProtocol.getHostAddress());
                     loopAddress.add(secondaryProtocol.getHostAddress());
-                    if (secondaryProtocol.checkIfMaster()) {
-                        setSecondaryHostFail();
-                        if (isMasterHostFail()) {
-                            foundActiveMaster(secondaryProtocol);
+                    try {
+                        if (secondaryProtocol.checkIfMaster()) {
+                            setSecondaryHostFail();
+                            if (isMasterHostFail()) {
+                                foundActiveMaster(secondaryProtocol);
+                            }
                         }
+                    } catch (QueryException e) {
+                        setSecondaryHostFail();
                     }
                 }
             }
@@ -145,7 +155,7 @@ public class AuroraListener extends MastersSlavesListener {
             }
             return;
         } finally {
-            reconnectionLock.unlock();
+            proxy.lock.unlock();
         }
     }
 
@@ -195,7 +205,7 @@ public class AuroraListener extends MastersSlavesListener {
     }
 
     @Override
-    public boolean checkMasterStatus(SearchFilter searchFilter) throws QueryException {
+    public boolean checkMasterStatus(SearchFilter searchFilter) {
         if (!isMasterHostFail()) {
             try {
                 if (masterProtocol != null && !masterProtocol.checkIfMaster()) {

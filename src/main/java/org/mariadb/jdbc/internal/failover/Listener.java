@@ -103,8 +103,6 @@ public interface Listener {
 
     boolean isExplicitClosed();
 
-    void setExplicitClosed(boolean explicitClosed);
-
     void reconnect() throws QueryException;
 
     boolean isReadOnly();
@@ -127,6 +125,6 @@ public interface Listener {
 
     long getLastQueryNanos();
 
-    boolean checkMasterStatus(SearchFilter searchFilter) throws QueryException;
+    boolean checkMasterStatus(SearchFilter searchFilter);
 
 }
