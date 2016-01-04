@@ -311,7 +311,7 @@ public abstract class BaseReplication extends BaseMultiHostTest {
             stopProxy(masterServerId);
             long startTime = System.currentTimeMillis();
             try {
-                ProxyRestartAfter10s proxyRestartAfter10s = new ProxyRestartAfter10s(masterServerId);
+                ProxyRestartAfterTimeout proxyRestartAfter10s = new ProxyRestartAfterTimeout(masterServerId, 10000);
                 Thread thread1 = new Thread(proxyRestartAfter10s);
                 thread1.start();
                 st.execute("SELECT 1");
@@ -343,8 +343,8 @@ public abstract class BaseReplication extends BaseMultiHostTest {
             st.execute("SELECT 1");
             stopProxy(masterServerId);
             try {
-                ProxyRestartAfter10s proxyRestartAfter10s = new ProxyRestartAfter10s(masterServerId);
-                Thread thread1 = new Thread(proxyRestartAfter10s);
+                ProxyRestartAfterTimeout proxyRestartAfter2s = new ProxyRestartAfterTimeout(masterServerId, 2000);
+                Thread thread1 = new Thread(proxyRestartAfter2s);
                 thread1.start();
                 st.execute("SELECT 1");
                 Assert.fail("must not have thrown error");
@@ -360,16 +360,18 @@ public abstract class BaseReplication extends BaseMultiHostTest {
     }
 
 
-    protected class ProxyRestartAfter10s implements Runnable {
+    protected class ProxyRestartAfterTimeout implements Runnable {
         int serverId;
+        long timeout;
 
-        public ProxyRestartAfter10s(int serverId) {
+        public ProxyRestartAfterTimeout(int serverId, long timeout) {
             this.serverId = serverId;
+            this.timeout = timeout;
         }
 
         public void run() {
             try {
-                Thread.sleep(10000); // wait that slave reconnection loop is launched
+                Thread.sleep(timeout); // wait that slave reconnection loop is launched
                 restartProxy(serverId);
             } catch (Throwable e) {
                 e.printStackTrace();
