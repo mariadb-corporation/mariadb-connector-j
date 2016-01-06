@@ -96,67 +96,74 @@ public class AuroraListener extends MastersSlavesListener {
             return;
         }
 
-        proxy.lock.lock();
-        try {
-            currentConnectionAttempts.incrementAndGet();
+        //check if a connection has been retrieved by failoverLoop during lock
+        if (!searchFilter.isFailoverLoop()) {
+            checkWaitingConnection();
+            if ((searchFilter.isFineIfFoundOnlyMaster() && !isMasterHostFail())
+                    || searchFilter.isFineIfFoundOnlySlave() && !isSecondaryHostFail()) {
+                return;
+            }
+        }
 
-            resetOldsBlackListHosts();
 
-            //put the list in the following order
-            // - random order not connected host and not blacklisted
-            // - random blacklisted host
-            // - connected host at end.
-            List<HostAddress> loopAddress = new LinkedList<>(urlParser.getHostAddresses());
-            loopAddress.removeAll(getBlacklistKeys());
-            Collections.shuffle(loopAddress);
-            List<HostAddress> blacklistShuffle = new LinkedList<>(getBlacklistKeys());
-            Collections.shuffle(blacklistShuffle);
-            loopAddress.addAll(blacklistShuffle);
+        currentConnectionAttempts.incrementAndGet();
 
-            //put connected at end
-            if (masterProtocol != null && !isMasterHostFail()) {
-                loopAddress.remove(masterProtocol.getHostAddress());
-                loopAddress.add(masterProtocol.getHostAddress());
+        resetOldsBlackListHosts();
+
+        //put the list in the following order
+        // - random order not connected host and not blacklisted
+        // - random blacklisted host
+        // - connected host at end.
+        List<HostAddress> loopAddress = new LinkedList<>(urlParser.getHostAddresses());
+        loopAddress.removeAll(getBlacklistKeys());
+        Collections.shuffle(loopAddress);
+        List<HostAddress> blacklistShuffle = new LinkedList<>(getBlacklistKeys());
+        Collections.shuffle(blacklistShuffle);
+        loopAddress.addAll(blacklistShuffle);
+
+        //put connected at end
+        if (masterProtocol != null && !isMasterHostFail()) {
+            loopAddress.remove(masterProtocol.getHostAddress());
+            loopAddress.add(masterProtocol.getHostAddress());
+            try {
+                if (!masterProtocol.checkIfMaster()) {
+                    //aurora master is now slave !
+                    setMasterHostFail();
+                    if (isSecondaryHostFail()) {
+                        foundActiveSecondary(masterProtocol);
+                    }
+                }
+            } catch (QueryException e) {
+                setMasterHostFail();
+            }
+        }
+
+        if (!isSecondaryHostFail()) {
+            if (secondaryProtocol != null) {
+                loopAddress.remove(secondaryProtocol.getHostAddress());
+                loopAddress.add(secondaryProtocol.getHostAddress());
                 try {
-                    if (!masterProtocol.checkIfMaster()) {
-                        //aurora master is now slave !
-                        setMasterHostFail();
-                        if (isSecondaryHostFail()) {
-                            foundActiveSecondary(masterProtocol);
+                    if (secondaryProtocol.checkIfMaster()) {
+                        setSecondaryHostFail();
+                        if (isMasterHostFail()) {
+                            foundActiveMaster(secondaryProtocol);
                         }
                     }
                 } catch (QueryException e) {
-                    System.out.println(Thread.currentThread().getName() + " reconnectFailedConnection 7");
-
-                    setMasterHostFail();
+                    setSecondaryHostFail();
                 }
             }
-
-            if (!isSecondaryHostFail()) {
-                if (secondaryProtocol != null) {
-                    loopAddress.remove(secondaryProtocol.getHostAddress());
-                    loopAddress.add(secondaryProtocol.getHostAddress());
-                    try {
-                        if (secondaryProtocol.checkIfMaster()) {
-                            setSecondaryHostFail();
-                            if (isMasterHostFail()) {
-                                foundActiveMaster(secondaryProtocol);
-                            }
-                        }
-                    } catch (QueryException e) {
-                        setSecondaryHostFail();
-                    }
-                }
-            }
-
-            if ((isMasterHostFail()
-                    || isSecondaryHostFail()) || searchFilter.isInitialConnection()) {
-                AuroraProtocol.loop(this, loopAddress, searchFilter);
-            }
-            return;
-        } finally {
-            proxy.lock.unlock();
         }
+
+        if ((isMasterHostFail() || isSecondaryHostFail())
+                || searchFilter.isInitialConnection()) {
+            AuroraProtocol.loop(this, loopAddress, searchFilter);
+            if (!searchFilter.isFailoverLoop()) {
+                checkWaitingConnection();
+            }
+        }
+        return;
+
     }
 
 

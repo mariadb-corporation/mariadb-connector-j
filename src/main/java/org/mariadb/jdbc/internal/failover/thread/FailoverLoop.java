@@ -80,7 +80,7 @@ public class FailoverLoop extends TerminatableRunnable {
                 if (listener.canRetryFailLoop()) {
                     try {
                         SearchFilter filter = listener.getFilterForFailedHost();
-                        filter.setUniqueLoop(true);
+                        filter.setFailoverLoop(true);
                         listener.reconnectFailedConnection(filter);
                         //reconnection done !
                     } catch (Exception e) {

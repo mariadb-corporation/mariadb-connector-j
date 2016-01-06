@@ -114,11 +114,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
             proxy.lock.lock();
             try {
                 removeListenerFromSchedulers();
-
-                //closing connection
-                if (currentProtocol != null && this.currentProtocol.isConnected()) {
-                    this.currentProtocol.close();
-                }
+                closeConnection(currentProtocol);
             } finally {
                 proxy.lock.unlock();
             }

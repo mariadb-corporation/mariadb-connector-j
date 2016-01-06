@@ -56,6 +56,7 @@ import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 
 import java.lang.reflect.Method;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 
 public abstract class AbstractMastersSlavesListener extends AbstractMastersListener {
@@ -63,6 +64,13 @@ public abstract class AbstractMastersSlavesListener extends AbstractMastersListe
     /* =========================== Failover variables ========================================= */
     private volatile long secondaryHostFailNanos = 0;
     private AtomicBoolean secondaryHostFail = new AtomicBoolean();
+
+    //These reference are when failloop reconnect failing connection, but lock is already held by
+    //another thread (query in progress), so switching the connection wait for the query to be finish.
+    //next query will reconnect those during preExecute method, or if actual used connection failed
+    //during reconnection phase.
+    protected AtomicReference<Protocol> waitNewSecondaryProtocol = new AtomicReference<>();
+    protected AtomicReference<Protocol> waitNewMasterProtocol = new AtomicReference<>();
 
     protected AbstractMastersSlavesListener(UrlParser urlParser) {
         super(urlParser);
@@ -139,8 +147,17 @@ public abstract class AbstractMastersSlavesListener extends AbstractMastersListe
         return secondaryHostFail.get();
     }
 
+    public boolean isSecondaryHostFailReconnect() {
+        return secondaryHostFail.get() && waitNewSecondaryProtocol.get() == null;
+    }
+
+    public boolean isMasterHostFailReconnect() {
+        return isMasterHostFail() && waitNewMasterProtocol.get() == null;
+    }
+
+
     public boolean hasHostFail() {
-        return isMasterHostFail() || isSecondaryHostFail();
+        return isSecondaryHostFailReconnect() || isMasterHostFailReconnect();
     }
 
     public SearchFilter getFilterForFailedHost() {

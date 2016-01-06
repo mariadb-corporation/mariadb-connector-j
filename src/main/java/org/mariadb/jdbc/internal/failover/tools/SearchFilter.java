@@ -52,7 +52,7 @@ public class SearchFilter {
     boolean fineIfFoundOnlyMaster;
     boolean fineIfFoundOnlySlave;
     boolean initialConnection;
-    boolean uniqueLoop;
+    boolean failoverLoop;
 
     public SearchFilter() { }
 
@@ -78,32 +78,20 @@ public class SearchFilter {
         return initialConnection;
     }
 
-    public void setInitialConnection(boolean initialConnection) {
-        this.initialConnection = initialConnection;
-    }
-
     public boolean isFineIfFoundOnlyMaster() {
         return fineIfFoundOnlyMaster;
-    }
-
-    public void setFineIfFoundOnlyMaster(boolean fineIfFoundOnlyMaster) {
-        this.fineIfFoundOnlyMaster = fineIfFoundOnlyMaster;
     }
 
     public boolean isFineIfFoundOnlySlave() {
         return fineIfFoundOnlySlave;
     }
 
-    public void setFineIfFoundOnlySlave(boolean fineIfFoundOnlySlave) {
-        this.fineIfFoundOnlySlave = fineIfFoundOnlySlave;
+    public boolean isFailoverLoop() {
+        return failoverLoop;
     }
 
-    public boolean isUniqueLoop() {
-        return uniqueLoop;
-    }
-
-    public void setUniqueLoop(boolean uniqueLoop) {
-        this.uniqueLoop = uniqueLoop;
+    public void setFailoverLoop(boolean failoverLoop) {
+        this.failoverLoop = failoverLoop;
     }
 
     @Override
@@ -112,7 +100,7 @@ public class SearchFilter {
                 + ", fineIfFoundOnlyMaster=" + fineIfFoundOnlyMaster
                 + ", fineIfFoundOnlySlave=" + fineIfFoundOnlySlave
                 + ", initialConnection=" + initialConnection
-                + ", uniqueLoop=" + uniqueLoop
+                + ", failoverLoop=" + failoverLoop
                 + "}";
     }
 }

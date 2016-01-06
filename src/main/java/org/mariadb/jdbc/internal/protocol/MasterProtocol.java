@@ -59,7 +59,6 @@ import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 
 import java.util.ArrayDeque;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
 
@@ -107,7 +106,7 @@ public class MasterProtocol extends AbstractQueryProtocol {
         }
         int maxConnectionTry = listener.getRetriesAllDown();
         QueryException lastQueryException = null;
-        while (!loopAddresses.isEmpty() || (!searchFilter.isUniqueLoop() && maxConnectionTry > 0)) {
+        while (!loopAddresses.isEmpty() || (!searchFilter.isFailoverLoop() && maxConnectionTry > 0)) {
             protocol = getNewProtocol(listener.getProxy(), listener.getUrlParser());
 
             if (listener.isExplicitClosed()) {
@@ -136,7 +135,7 @@ public class MasterProtocol extends AbstractQueryProtocol {
                 lastQueryException = e;
             }
 
-            if (loopAddresses.isEmpty() && !searchFilter.isUniqueLoop() && maxConnectionTry > 0) {
+            if (loopAddresses.isEmpty() && !searchFilter.isFailoverLoop() && maxConnectionTry > 0) {
                 loopAddresses = new ArrayDeque<>(listener.getBlacklistKeys());
             }
         }

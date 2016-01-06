@@ -50,7 +50,6 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.failover.thread;
 
 import org.mariadb.jdbc.internal.failover.Listener;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 
 import java.math.BigInteger;

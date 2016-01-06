@@ -70,7 +70,6 @@ import java.util.Set;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.ReentrantLock;
 
 
 public abstract class AbstractMastersListener implements Listener {
@@ -173,7 +172,7 @@ public abstract class AbstractMastersListener implements Listener {
      */
     public void addToBlacklist(HostAddress hostAddress) {
         if (hostAddress != null && !isExplicitClosed()) {
-            blacklist.put(hostAddress, System.nanoTime());
+            blacklist.putIfAbsent(hostAddress, System.nanoTime());
         }
     }
 
@@ -193,11 +192,11 @@ public abstract class AbstractMastersListener implements Listener {
      */
     public void resetOldsBlackListHosts() {
         long currentTimeNanos = System.nanoTime();
-        for (Map.Entry<HostAddress, Long> blEntry : blacklist.entrySet()) {
+        Set<Map.Entry<HostAddress, Long>> entries = blacklist.entrySet();
+        for (Map.Entry<HostAddress, Long> blEntry : entries) {
             long entryNanos = blEntry.getValue();
             long durationSeconds = TimeUnit.NANOSECONDS.toSeconds(currentTimeNanos - entryNanos);
             if (durationSeconds >= urlParser.getOptions().loadBalanceBlacklistTimeout) {
-//              if (log.isTraceEnabled()) log.trace("host " + blackListHost+" remove of blacklist");
                 blacklist.remove(blEntry.getKey(), entryNanos);
             }
         }
@@ -425,13 +424,24 @@ public abstract class AbstractMastersListener implements Listener {
             proxy.lock.lock();
             try {
                 protocol.close();
+                if (setMasterHostFail()) {
+                    addToBlacklist(protocol.getHostAddress());
+                }
             } finally {
                 proxy.lock.unlock();
-            }
-            if (setMasterHostFail()) {
-                addToBlacklist(protocol.getHostAddress());
             }
         }
         return false;
     }
+
+    /**
+     * Utility to close existing connection.
+     * @param protocol connection to close.
+     */
+    public void closeConnection(Protocol protocol) {
+        if (protocol != null && protocol.isConnected()) {
+            protocol.close();
+        }
+    }
+
 }
