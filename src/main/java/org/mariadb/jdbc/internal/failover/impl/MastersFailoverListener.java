@@ -152,7 +152,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
         try {
             reconnectFailedConnection(new SearchFilter(true, false));
             handleFailLoop();
-            if (alreadyClosed || !inTransaction) {
+            if (alreadyClosed || (!alreadyClosed && !inTransaction && isQueryRelaunchable(method, args))) {
                 return relaunchOperation(method, args);
             }
             return new HandleErrorResult(true);

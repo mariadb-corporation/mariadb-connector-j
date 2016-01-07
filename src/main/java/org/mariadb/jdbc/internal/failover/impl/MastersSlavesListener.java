@@ -340,6 +340,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
      * Use the parameter newMasterProtocol as new current master connection.
      *
      * @param newMasterProtocol new master connection
+     * @throws ReconnectDuringTransactionException if there was an active transaction.
      */
     public void lockAndSwitchMaster(Protocol newMasterProtocol) throws ReconnectDuringTransactionException {
         if (masterProtocol != null && !masterProtocol.isClosed()) {
@@ -578,9 +579,9 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
             handleFailLoop();
             if (currentReadOnlyAsked.get() //use master connection temporary in replacement of slave
                     || alreadyClosed //connection was already close
-                    || (!alreadyClosed && !inTransaction)) { //connection was not in transaction
+                    || (!alreadyClosed && !inTransaction && isQueryRelaunchable(method, args) )) { //connection was not in transaction
 
-                //can relaunch query
+                    //can relaunch query
                 return relaunchOperation(method, args);
             }
             //throw Exception because must inform client, even if connection is reconnected

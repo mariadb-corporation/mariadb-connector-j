@@ -287,6 +287,16 @@ public abstract class AbstractMastersListener implements Listener {
         return handleErrorResult;
     }
 
+    public boolean isQueryRelaunchable(Method method, Object[] args) throws IllegalAccessException, InvocationTargetException {
+        if (method != null && "executeQuery".equals(method.getName())) {
+            if (args[0] instanceof Query) {
+                return ((Query) args[0]).toString().toUpperCase().startsWith("SELECT");
+            }
+        }
+        return false;
+    }
+
+
     public Object invoke(Method method, Object[] args) throws Throwable {
         return method.invoke(currentProtocol, args);
     }

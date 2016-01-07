@@ -360,36 +360,65 @@ public abstract class BaseReplication extends BaseMultiHostTest {
     }
 
     @Test
-    public void failoverMasterWithAutoConnectAndTransaction() throws Throwable {
+    public void failoverRelaunchedWhenSelect() throws Throwable {
         Connection connection = null;
         try {
             connection = getNewConnection("&connectTimeout=1000&socketTimeout=1000&retriesAllDown=3", true);
             Statement st = connection.createStatement();
 
             final int masterServerId = getServerId(connection);
-            st.execute("drop table  if exists multinodeTransaction" + jobId);
-            st.execute("create table multinodeTransaction" + jobId + " (id int not null primary key , amount int not null) "
+            st.execute("drop table if exists selectFailover" + jobId);
+            st.execute("create table selectFailover" + jobId + " (id int not null primary key , amount int not null) "
+                    + "ENGINE = InnoDB");
+            stopProxy(masterServerId, 2);
+            try {
+                st.execute("SELECT * from selectFailover" + jobId);
+            } catch (SQLException e) {
+                Assert.fail("must not have thrown error");
+            }
+
+            stopProxy(masterServerId, 2);
+            try {
+                st.execute("INSERT INTO selectFailover" + jobId + " VALUES (1,2)");
+                Assert.fail("not have thrown error !");
+            } catch (SQLException e) {
+                Assert.assertEquals("error type not normal", "25S03", e.getSQLState());
+            }
+        } finally {
+            if (connection != null) {
+                connection.close();
+            }
+        }
+    }
+
+
+    @Test
+    public void failoverRelaunchedWhenInTransaction() throws Throwable {
+        Connection connection = null;
+        try {
+            connection = getNewConnection("&connectTimeout=1000&socketTimeout=1000&retriesAllDown=3", true);
+            Statement st = connection.createStatement();
+
+            final int masterServerId = getServerId(connection);
+            st.execute("drop table if exists selectFailover" + jobId);
+            st.execute("create table selectFailover" + jobId + " (id int not null primary key , amount int not null) "
                     + "ENGINE = InnoDB");
             connection.setAutoCommit(false);
-            st.execute("insert into multinodeTransaction" + jobId + " (id, amount) VALUE (1 , 100)");
-            stopProxy(masterServerId);
-            Assert.assertTrue(inTransaction(connection));
+            st.execute("INSERT INTO selectFailover" + jobId + " VALUES (0,0)");
+            stopProxy(masterServerId, 2);
             try {
-                // will to execute the query. if there is a connection error, try a ping, if ok, good, query relaunched.
-                // If not good, transaction is considered be lost
-                st.execute("insert into multinodeTransaction" + jobId + " (id, amount) VALUE (2 , 10)");
-                Assert.fail();
+                st.execute("SELECT * from selectFailover" + jobId);
+                Assert.fail("not have thrown error !");
             } catch (SQLException e) {
-                //normal error
+                Assert.assertEquals("error type not normal", "25S03", e.getSQLState());
             }
-            restartProxy(masterServerId);
+
+            stopProxy(masterServerId, 2);
             try {
-                st = connection.createStatement();
-                Assert.fail("reconnect must have thrown error since there was a transaction");
+                st.execute("INSERT INTO selectFailover" + jobId + " VALUES (1,2)");
+                Assert.fail("not have thrown error !");
             } catch (SQLException e) {
-                Assert.assertEquals(e.getSQLState(), "25S03");
-                st = connection.createStatement();
-                st.execute("drop table  if exists multinodeTransaction" + jobId);
+                Assert.assertEquals("error type not normal", "25S03", e.getSQLState());
             }
         } finally {
             if (connection != null) {
