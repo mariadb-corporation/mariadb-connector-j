@@ -224,8 +224,14 @@ public class MastersFailoverListener extends AbstractMastersListener {
      * @throws QueryException if a connection error occur
      */
     public void switchReadOnlyConnection(Boolean mustBeReadOnly) throws QueryException {
-        if (urlParser.getOptions().assureReadOnly && currentReadOnlyAsked.compareAndSet(!mustBeReadOnly, mustBeReadOnly)) {
-            setSessionReadOnly(mustBeReadOnly, currentProtocol);
+        if (urlParser.getOptions().assureReadOnly && currentReadOnlyAsked != mustBeReadOnly) {
+            synchronized (currentReadOnlyUpdateLock) {
+                // verify not updated now that hold lock, double check safe due to volatile
+                if (currentReadOnlyAsked != mustBeReadOnly) {
+                    currentReadOnlyAsked = mustBeReadOnly;
+                    setSessionReadOnly(mustBeReadOnly, currentProtocol);
+                }
+            }
         }
     }
 

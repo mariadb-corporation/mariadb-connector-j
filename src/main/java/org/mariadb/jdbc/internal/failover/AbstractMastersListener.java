@@ -83,7 +83,9 @@ public abstract class AbstractMastersListener implements Listener {
     /* =========================== Failover variables ========================================= */
     public final UrlParser urlParser;
     protected AtomicInteger currentConnectionAttempts = new AtomicInteger();
-    protected AtomicBoolean currentReadOnlyAsked = new AtomicBoolean();
+    protected final Object currentReadOnlyUpdateLock = new Object();
+    // currentReadOnlyAsked is volatile so can be queried with lock, but can only be updated when lock is synchronized
+    protected volatile boolean currentReadOnlyAsked = false;
     protected Protocol currentProtocol = null;
     protected FailoverProxy proxy;
     protected long lastRetry = 0;
@@ -119,7 +121,9 @@ public abstract class AbstractMastersListener implements Listener {
     protected void preAutoReconnect() throws QueryException {
         if (!isExplicitClosed()) {
             try {
-                reconnectFailedConnection(new SearchFilter(!currentReadOnlyAsked.get(), currentReadOnlyAsked.get()));
+                // save to local value in case updated while constructing SearchFilter
+                boolean currentReadOnlyAsked = this.currentReadOnlyAsked;
+                reconnectFailedConnection(new SearchFilter(!currentReadOnlyAsked, currentReadOnlyAsked));
             } catch (QueryException e) {
                 //eat exception
             }
@@ -327,7 +331,7 @@ public abstract class AbstractMastersListener implements Listener {
     }
 
     public boolean isReadOnly() {
-        return currentReadOnlyAsked.get();
+        return currentReadOnlyAsked;
     }
 
     public boolean isExplicitClosed() {
