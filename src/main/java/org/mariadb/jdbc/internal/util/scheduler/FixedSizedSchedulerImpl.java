@@ -52,6 +52,7 @@ package org.mariadb.jdbc.internal.util.scheduler;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class FixedSizedSchedulerImpl extends ScheduledThreadPoolExecutor {
@@ -76,5 +77,9 @@ public class FixedSizedSchedulerImpl extends ScheduledThreadPoolExecutor {
                 return result;
             }
         });
+
+        // set a rare thread timeout option to allow garbage collection
+        setKeepAliveTime(2, TimeUnit.HOURS);
+        allowCoreThreadTimeOut(true);
     }
 }
