@@ -368,7 +368,7 @@ public abstract class AbstractMastersListener implements Listener {
     @Override
     public void throwFailoverMessage(HostAddress failHostAddress, boolean wasMaster, QueryException queryException,
                                      boolean reconnected) throws QueryException {
-        String firstPart = Thread.currentThread().getName() + " - Communications link failure with "
+        String firstPart = "Communications link failure with "
                 + (wasMaster ? "primary" : "secondary")
                 + ((failHostAddress != null) ? " host " + failHostAddress.host + ":" + failHostAddress.port : "") + ". ";
         String error = "";

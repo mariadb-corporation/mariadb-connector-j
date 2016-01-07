@@ -113,7 +113,11 @@ public class FailoverProxy implements InvocationHandler {
                 try {
                     this.listener.preExecute();
                 } catch (QueryException e) {
-                    return handleFailOver(e, method, args);
+                    //handle failover only if connection error
+                    //normal error can be thrown upon reconnection if there was a transaction in progress.
+                    if (hasToHandleFailover(e)) {
+                        return handleFailOver(e, method, args);
+                    }
                 }
                 break;
             case METHOD_SET_READ_ONLY:

@@ -57,6 +57,7 @@ import org.mariadb.jdbc.internal.query.MariaDbQuery;
 import org.mariadb.jdbc.internal.queryresults.SelectQueryResult;
 import org.mariadb.jdbc.internal.protocol.AuroraProtocol;
 import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.util.dao.ReconnectDuringTransactionException;
 
 import java.io.IOException;
 import java.sql.SQLException;
@@ -96,15 +97,18 @@ public class AuroraListener extends MastersSlavesListener {
             return;
         }
 
-        //check if a connection has been retrieved by failoverLoop during lock
         if (!searchFilter.isFailoverLoop()) {
-            checkWaitingConnection();
-            if ((searchFilter.isFineIfFoundOnlyMaster() && !isMasterHostFail())
-                    || searchFilter.isFineIfFoundOnlySlave() && !isSecondaryHostFail()) {
+            try {
+                checkWaitingConnection();
+                if ((searchFilter.isFineIfFoundOnlyMaster() && !isMasterHostFail())
+                        || searchFilter.isFineIfFoundOnlySlave() && !isSecondaryHostFail()) {
+                    return;
+                }
+            } catch (ReconnectDuringTransactionException e) {
+                //don't throw an exception for this specific exception
                 return;
             }
         }
-
 
         currentConnectionAttempts.incrementAndGet();
 
@@ -125,33 +129,12 @@ public class AuroraListener extends MastersSlavesListener {
         if (masterProtocol != null && !isMasterHostFail()) {
             loopAddress.remove(masterProtocol.getHostAddress());
             loopAddress.add(masterProtocol.getHostAddress());
-            try {
-                if (!masterProtocol.checkIfMaster()) {
-                    //aurora master is now slave !
-                    setMasterHostFail();
-                    if (isSecondaryHostFail()) {
-                        foundActiveSecondary(masterProtocol);
-                    }
-                }
-            } catch (QueryException e) {
-                setMasterHostFail();
-            }
         }
 
         if (!isSecondaryHostFail()) {
             if (secondaryProtocol != null) {
                 loopAddress.remove(secondaryProtocol.getHostAddress());
                 loopAddress.add(secondaryProtocol.getHostAddress());
-                try {
-                    if (secondaryProtocol.checkIfMaster()) {
-                        setSecondaryHostFail();
-                        if (isMasterHostFail()) {
-                            foundActiveMaster(secondaryProtocol);
-                        }
-                    }
-                } catch (QueryException e) {
-                    setSecondaryHostFail();
-                }
             }
         }
 
@@ -159,10 +142,13 @@ public class AuroraListener extends MastersSlavesListener {
                 || searchFilter.isInitialConnection()) {
             AuroraProtocol.loop(this, loopAddress, searchFilter);
             if (!searchFilter.isFailoverLoop()) {
-                checkWaitingConnection();
+                try {
+                    checkWaitingConnection();
+                } catch (ReconnectDuringTransactionException e) {
+                    //don't throw an exception for this specific exception
+                }
             }
         }
-        return;
 
     }
 

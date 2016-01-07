@@ -178,49 +178,10 @@ public class AuroraFailoverTest extends BaseReplication {
     }
 
     @Test
-    public void failoverMasterWithAutoConnectAndTransaction() throws Throwable {
-        Connection connection = null;
-        try {
-            connection = getNewConnection("&autoReconnect=true&retriesAllDown=3", true);
-            Statement st = connection.createStatement();
-
-            final int masterServerId = getServerId(connection);
-            st.execute("drop table  if exists multinodeTransaction" + jobId);
-            st.execute("create table multinodeTransaction" + jobId + " (id int not null primary key , amount int not null) "
-                    + "ENGINE = InnoDB");
-            connection.setAutoCommit(false);
-            st.execute("insert into multinodeTransaction" + jobId + " (id, amount) VALUE (1 , 100)");
-            stopProxy(masterServerId);
-            Assert.assertTrue(inTransaction(connection));
-            try {
-                // will to execute the query. if there is a connection error, try a ping, if ok, good, query relaunched.
-                // If not good, transaction is considered be lost
-                st.execute("insert into multinodeTransaction" + jobId + " (id, amount) VALUE (2 , 10)");
-                Assert.fail();
-            } catch (SQLException e) {
-                 //normal error
-            }
-            restartProxy(masterServerId);
-            try {
-                st = connection.createStatement();
-                st.execute("insert into multinodeTransaction" + jobId + " (id, amount) VALUE (2 , 10)");
-                st.execute("drop table  if exists multinodeTransaction" + jobId);
-            } catch (SQLException e) {
-                e.printStackTrace();
-                Assert.fail();
-            }
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
-        }
-    }
-
-    @Test
     public void testFailMaster() throws Throwable {
         Connection connection = null;
         try {
-            connection = getNewConnection("&retriesAllDown=3&autoReconnect=true", true);
+            connection = getNewConnection("&retriesAllDown=3&connectTimeout=1000", true);
             Statement stmt = connection.createStatement();
             int masterServerId = getServerId(connection);
             stopProxy(masterServerId);

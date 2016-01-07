@@ -32,7 +32,7 @@ public abstract class BaseReplication extends BaseMultiHostTest {
     public void failoverSlaveToMaster() throws Throwable {
         Connection connection = null;
         try {
-            connection = getNewConnection("&retriesAllDown=3", true);
+            connection = getNewConnection("&retriesAllDown=3&connectTimeout=1000&socketTimeout=1000", true);
             int masterServerId = getServerId(connection);
             connection.setReadOnly(true);
             int slaveServerId = getServerId(connection);
@@ -54,7 +54,7 @@ public abstract class BaseReplication extends BaseMultiHostTest {
     public void failoverDuringSlaveSetReadOnly() throws Throwable {
         Connection connection = null;
         try {
-            connection = getNewConnection(true);
+            connection = getNewConnection("&socketTimeout=3000", true);
             connection.setReadOnly(true);
             int slaveServerId = getServerId(connection);
 
@@ -65,6 +65,7 @@ public abstract class BaseReplication extends BaseMultiHostTest {
             Assert.assertFalse(slaveServerId == masterServerId);
             Assert.assertFalse(connection.isReadOnly());
         } finally {
+            Thread.sleep(2500); //for not interfering with other tests
             if (connection != null) {
                 connection.close();
             }
@@ -75,7 +76,7 @@ public abstract class BaseReplication extends BaseMultiHostTest {
     public void failoverSlaveAndMasterWithoutAutoConnect() throws Throwable {
         Connection connection = null;
         try {
-            connection = getNewConnection("&retriesAllDown=3", true);
+            connection = getNewConnection("&retriesAllDown=3&connectTimeout=1000&socketTimeout=1000", true);
             int masterServerId = getServerId(connection);
             connection.setReadOnly(true);
             int firstSlaveId = getServerId(connection);
@@ -100,7 +101,7 @@ public abstract class BaseReplication extends BaseMultiHostTest {
     public void reconnectSlaveAndMasterWithAutoConnect() throws Throwable {
         Connection connection = null;
         try {
-            connection = getNewConnection("&retriesAllDown=3&autoReconnect=true", true);
+            connection = getNewConnection("&retriesAllDown=3&connectTimeout=1000&socketTimeout=1000", true);
 
             //search actual server_id for master and slave
             int masterServerId = getServerId(connection);
@@ -129,7 +130,7 @@ public abstract class BaseReplication extends BaseMultiHostTest {
     public void failoverMasterWithAutoConnect() throws Throwable {
         Connection connection = null;
         try {
-            connection = getNewConnection("&retriesAllDown=3&autoReconnect=true", true);
+            connection = getNewConnection("&retriesAllDown=3&connectTimeout=1000&socketTimeout=1000", true);
             int masterServerId = getServerId(connection);
 
             stopProxy(masterServerId, 250);
@@ -139,6 +140,7 @@ public abstract class BaseReplication extends BaseMultiHostTest {
             Assert.assertTrue(currentServerId == masterServerId);
             Assert.assertFalse(connection.isReadOnly());
         } finally {
+            Thread.sleep(500); //for not interfering with other tests
             if (connection != null) {
                 connection.close();
             }
@@ -149,7 +151,7 @@ public abstract class BaseReplication extends BaseMultiHostTest {
     public void writeToSlaveAfterFailover() throws Throwable {
         Connection connection = null;
         try {
-            connection = getNewConnection("&retriesAllDown=3", true);
+            connection = getNewConnection("&retriesAllDown=3&connectTimeout=1000&socketTimeout=1000", true);
             //if super user can write on slave
             Assume.assumeTrue(!hasSuperPrivilege(connection, "writeToSlaveAfterFailover"));
             Statement st = connection.createStatement();
@@ -181,7 +183,7 @@ public abstract class BaseReplication extends BaseMultiHostTest {
     public void checkNoSwitchConnectionDuringTransaction() throws Throwable {
         Connection connection = null;
         try {
-            connection = getNewConnection("&retriesAllDown=3&autoReconnect=true", false);
+            connection = getNewConnection("&retriesAllDown=3&connectTimeout=1000&socketTimeout=1000", false);
             Statement st = connection.createStatement();
 
             st.execute("drop table  if exists multinodeTransaction2_" + jobId);
@@ -262,7 +264,7 @@ public abstract class BaseReplication extends BaseMultiHostTest {
     public void closeWhenInReconnectionLoop() throws Throwable {
         Connection connection = null;
         try {
-            connection = getNewConnection(true);
+            connection = getNewConnection("&connectTimeout=1000&socketTimeout=1000", true);
             connection.setReadOnly(true);
             int serverId = getServerId(connection);
             stopProxy(serverId);
@@ -305,15 +307,12 @@ public abstract class BaseReplication extends BaseMultiHostTest {
     public void relaunchWithoutErrorWhenAutocommit() throws Throwable {
         Connection connection = null;
         try {
-            connection = getNewConnection(true);
+            connection = getNewConnection("&connectTimeout=1000&socketTimeout=1000", true);
             Statement st = connection.createStatement();
             int masterServerId = getServerId(connection);
-            stopProxy(masterServerId);
             long startTime = System.currentTimeMillis();
+            stopProxy(masterServerId, 10000);
             try {
-                ProxyRestartAfterTimeout proxyRestartAfter10s = new ProxyRestartAfterTimeout(masterServerId, 10000);
-                Thread thread1 = new Thread(proxyRestartAfter10s);
-                thread1.start();
                 st.execute("SELECT 1");
                 if (System.currentTimeMillis() - startTime < 10 * 1000) {
                     Assert.fail("Auto-reconnection must have been done after 10000ms but was " + (System.currentTimeMillis() - startTime));
@@ -332,7 +331,7 @@ public abstract class BaseReplication extends BaseMultiHostTest {
     public void relaunchWithErrorWhenInTransaction() throws Throwable {
         Connection connection = null;
         try {
-            connection = getNewConnection(true);
+            connection = getNewConnection("&connectTimeout=1000&socketTimeout=1000", true);
             Statement st = connection.createStatement();
             st.execute("drop table if exists baseReplicationTransaction" + jobId);
             st.execute("create table baseReplicationTransaction" + jobId + " (id int not null primary key auto_increment, test VARCHAR(10))");
@@ -341,15 +340,16 @@ public abstract class BaseReplication extends BaseMultiHostTest {
             st.execute("INSERT INTO baseReplicationTransaction" + jobId + "(test) VALUES ('test')");
             int masterServerId = getServerId(connection);
             st.execute("SELECT 1");
-            stopProxy(masterServerId);
+            long startTime = System.currentTimeMillis();;
+            stopProxy(masterServerId, 2000);
             try {
-                ProxyRestartAfterTimeout proxyRestartAfter2s = new ProxyRestartAfterTimeout(masterServerId, 2000);
-                Thread thread1 = new Thread(proxyRestartAfter2s);
-                thread1.start();
                 st.execute("SELECT 1");
+                if (System.currentTimeMillis() - startTime < 2000) {
+                    Assert.fail("Auto-reconnection must have been done after 2000ms but was " + (System.currentTimeMillis() - startTime));
+                }
                 Assert.fail("must not have thrown error");
             } catch (SQLException e) {
-                Assert.assertEquals("error type not normal", "25S03", e.getSQLState());
+                Assert.assertEquals("error type not normal after " + (System.currentTimeMillis() - startTime) + "ms", "25S03", e.getSQLState());
             }
             st.execute("drop table if exists baseReplicationTransaction" + jobId);
         } finally {
@@ -359,23 +359,41 @@ public abstract class BaseReplication extends BaseMultiHostTest {
         }
     }
 
+    @Test
+    public void failoverMasterWithAutoConnectAndTransaction() throws Throwable {
+        Connection connection = null;
+        try {
+            connection = getNewConnection("&connectTimeout=1000&socketTimeout=1000&retriesAllDown=3", true);
+            Statement st = connection.createStatement();
 
-    protected class ProxyRestartAfterTimeout implements Runnable {
-        int serverId;
-        long timeout;
-
-        public ProxyRestartAfterTimeout(int serverId, long timeout) {
-            this.serverId = serverId;
-            this.timeout = timeout;
-        }
-
-        public void run() {
+            final int masterServerId = getServerId(connection);
+            st.execute("drop table  if exists multinodeTransaction" + jobId);
+            st.execute("create table multinodeTransaction" + jobId + " (id int not null primary key , amount int not null) "
+                    + "ENGINE = InnoDB");
+            connection.setAutoCommit(false);
+            st.execute("insert into multinodeTransaction" + jobId + " (id, amount) VALUE (1 , 100)");
+            stopProxy(masterServerId);
+            Assert.assertTrue(inTransaction(connection));
             try {
-                Thread.sleep(timeout); // wait that slave reconnection loop is launched
-                restartProxy(serverId);
-            } catch (Throwable e) {
-                e.printStackTrace();
+                // will to execute the query. if there is a connection error, try a ping, if ok, good, query relaunched.
+                // If not good, transaction is considered be lost
+                st.execute("insert into multinodeTransaction" + jobId + " (id, amount) VALUE (2 , 10)");
                 Assert.fail();
+            } catch (SQLException e) {
+                //normal error
+            }
+            restartProxy(masterServerId);
+            try {
+                st = connection.createStatement();
+                Assert.fail("reconnect must have thrown error since there was a transaction");
+            } catch (SQLException e) {
+                Assert.assertEquals(e.getSQLState(), "25S03");
+                st = connection.createStatement();
+                st.execute("drop table  if exists multinodeTransaction" + jobId);
+            }
+        } finally {
+            if (connection != null) {
+                connection.close();
             }
         }
     }

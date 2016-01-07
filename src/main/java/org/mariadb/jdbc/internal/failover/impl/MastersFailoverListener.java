@@ -59,6 +59,7 @@ import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.protocol.MasterProtocol;
 import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.util.dao.ReconnectDuringTransactionException;
 
 import java.lang.reflect.Method;
 import java.sql.SQLException;
@@ -163,10 +164,10 @@ public class MastersFailoverListener extends AbstractMastersListener {
     }
 
     /**
-     * Loop to connect.
+     * Loop to connect failed hosts.
      *
+     * @param searchFilter search parameters.
      * @throws QueryException if there is any error during reconnection
-     * @throws QueryException sqlException
      */
     @Override
     public void reconnectFailedConnection(SearchFilter searchFilter) throws QueryException {
@@ -211,7 +212,6 @@ public class MastersFailoverListener extends AbstractMastersListener {
 
             //if no error, reset failover variables
             resetMasterFailoverData();
-            return;
         } finally {
             proxy.lock.unlock();
         }
@@ -260,9 +260,18 @@ public class MastersFailoverListener extends AbstractMastersListener {
         FailoverLoop.removeListener(this);
     }
 
+    /**
+     * Try to reconnect connection.
+     *
+     * @throws QueryException if reconnect a new connection but there was an active transaction.
+     */
     public void reconnect() throws QueryException {
+        boolean inTransaction = currentProtocol != null && currentProtocol.inTransaction();;
         reconnectFailedConnection(new SearchFilter(true, false));
         handleFailLoop();
+        if (inTransaction) {
+            throw new ReconnectDuringTransactionException("Connection reconnect automatically during an active transaction", 1401, "25S03");
+        }
     }
 
     /**

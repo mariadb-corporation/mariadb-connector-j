@@ -65,7 +65,7 @@ public class ReplicationFailoverTest extends BaseReplication {
     public void pingReconnectAfterFailover() throws Throwable {
         Connection connection = null;
         try {
-            connection = getNewConnection("&retriesAllDown=3", true);
+            connection = getNewConnection("&retriesAllDown=3&connectTimeout=1000&socketTimeout=1000", true);
             Statement st = connection.createStatement();
             final int masterServerId = getServerId(connection);
             stopProxy(masterServerId);
@@ -97,7 +97,7 @@ public class ReplicationFailoverTest extends BaseReplication {
     public void failoverDuringMasterSetReadOnly() throws Throwable {
         Connection connection = null;
         try {
-            connection = getNewConnection("&retriesAllDown=3", true);
+            connection = getNewConnection("&retriesAllDown=3&connectTimeout=1000&socketTimeout=1000", true);
             int masterServerId = getServerId(connection);
             stopProxy(masterServerId);
             connection.setReadOnly(true);
@@ -115,7 +115,7 @@ public class ReplicationFailoverTest extends BaseReplication {
     public void masterWithoutFailover() throws Throwable {
         Connection connection = null;
         try {
-            connection = getNewConnection("&retriesAllDown=3", true);
+            connection = getNewConnection("&retriesAllDown=3&connectTimeout=1000&socketTimeout=1000", true);
             int masterServerId = getServerId(connection);
             connection.setReadOnly(true);
             int firstSlaveId = getServerId(connection);
@@ -141,7 +141,7 @@ public class ReplicationFailoverTest extends BaseReplication {
     public void checkBackOnMasterOnSlaveFail() throws Throwable {
         Connection connection = null;
         try {
-            connection = getNewConnection("&retriesAllDown=3&failOnReadOnly=true", true);
+            connection = getNewConnection("&retriesAllDown=3&failOnReadOnly=true&connectTimeout=1000&socketTimeout=1000", true);
             Statement st = connection.createStatement();
             int masterServerId = getServerId(connection);
             stopProxy(masterServerId);
@@ -159,9 +159,8 @@ public class ReplicationFailoverTest extends BaseReplication {
             while (loop) {
                 Thread.sleep(250);
                 try {
-                    if (!connection.isReadOnly()) {
-                        loop = false;
-                    }
+                    connection.setReadOnly(true);
+                    loop = false;
                 } catch (SQLException e) {
                     //eat exception
                 }
@@ -177,48 +176,12 @@ public class ReplicationFailoverTest extends BaseReplication {
         }
     }
 
-    @Test
-    public void failoverMasterWithAutoConnectAndTransaction() throws Throwable {
-        Connection connection = null;
-        try {
-            connection = getNewConnection("&retriesAllDown=3&autoReconnect=true", true);
-            Statement st = connection.createStatement();
-
-            final int masterServerId = getServerId(connection);
-            st.execute("drop table  if exists multinodeTransaction");
-            st.execute("create table multinodeTransaction (id int not null primary key , amount int not null) "
-                    + "ENGINE = InnoDB");
-            connection.setAutoCommit(false);
-            st.execute("insert into multinodeTransaction (id, amount) VALUE (1 , 100)");
-            stopProxy(masterServerId);
-            assertTrue(inTransaction(connection));
-            try {
-                //with autoreconnect but in transaction, query must throw an error
-                st.execute("insert into multinodeTransaction (id, amount) VALUE (2 , 10)");
-                fail();
-            } catch (SQLException e) {
-                //normal exception
-            }
-            restartProxy(masterServerId);
-            try {
-                st = connection.createStatement();
-                // will try a ping, if ok, if not, transaction is considered be lost
-                st.execute("insert into multinodeTransaction (id, amount) VALUE (2 , 10)");
-            } catch (SQLException e) {
-                fail();
-            }
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
-        }
-    }
 
     @Test
     public void testFailNotOnSlave() throws Throwable {
         Connection connection = null;
         try {
-            connection = getNewConnection("&retriesAllDown=3&autoReconnectMaster=true", true);
+            connection = getNewConnection("&retriesAllDown=3&connectTimeout=1000&socketTimeout=1000", true);
             Statement stmt = connection.createStatement();
             int masterServerId = getServerId(connection);
             stopProxy(masterServerId);
