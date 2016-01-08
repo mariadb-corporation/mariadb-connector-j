@@ -4,6 +4,7 @@ package org.mariadb.jdbc.internal.protocol;
 MariaDB Client for Java
 
 Copyright (c) 2012 Monty Program Ab.
+Copyright (c) 2015 Avaya Inc.
 
 This library is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License as published by the Free
@@ -82,16 +83,21 @@ import org.mariadb.jdbc.internal.packet.send.SendSslConnectionRequestPacket;
 import org.mariadb.jdbc.internal.stream.DecompressInputStream;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.X509TrustManager;
+
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.URL;
 import java.nio.ByteBuffer;
+import java.security.KeyStore;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
@@ -222,19 +228,50 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     private SSLSocketFactory getSslSocketFactory() throws QueryException {
         if (!urlParser.getOptions().trustServerCertificate
-                && urlParser.getOptions().serverSslCert == null) {
+                && urlParser.getOptions().serverSslCert == null
+                && urlParser.getOptions().trustCertificateKeyStoreUrl == null
+                && urlParser.getOptions().clientCertificateKeyStoreUrl == null) {
             return (SSLSocketFactory) SSLSocketFactory.getDefault();
         }
 
         try {
             SSLContext sslContext = SSLContext.getInstance("TLS");
-            X509TrustManager[] trustManager = {new MyX509TrustManager(urlParser.getOptions())};
-            sslContext.init(null, trustManager, null);
+
+            X509TrustManager[] trustManager = null;
+            if (urlParser.getOptions().trustServerCertificate || urlParser.getOptions().serverSslCert != null
+                    || urlParser.getOptions().trustCertificateKeyStoreUrl != null) {
+                trustManager = new X509TrustManager[]{new MyX509TrustManager(urlParser.getOptions())};
+            }
+
+            KeyManager[] keyManager = null;
+            String clientCertKeystoreUrl = urlParser.getOptions().clientCertificateKeyStoreUrl;
+            if (clientCertKeystoreUrl != null && !clientCertKeystoreUrl.isEmpty()) {
+                keyManager = loadClientCerts(clientCertKeystoreUrl, urlParser.getOptions().clientCertificateKeyStorePassword);
+            }
+
+            sslContext.init(keyManager, trustManager, null);
             return sslContext.getSocketFactory();
         } catch (Exception e) {
             throw new QueryException(e.getMessage(), 0, "HY000", e);
         }
 
+    }
+
+    private KeyManager[] loadClientCerts(String keystoreUrl, String keystorePassword) throws Exception {
+        KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        InputStream inStream = null;
+        try {
+            char[] certKeystorePassword = keystorePassword == null ? null : keystorePassword.toCharArray();
+            inStream = new URL(keystoreUrl).openStream();
+            KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
+            ks.load(inStream, certKeystorePassword);
+            keyManagerFactory.init(ks, certKeystorePassword);
+        } finally {
+            if (inStream != null) {
+                inStream.close();
+            }
+        }
+        return keyManagerFactory.getKeyManagers();
     }
 
     /**

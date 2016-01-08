@@ -2,6 +2,7 @@
 MariaDB Client for Java
 
 Copyright (c) 2012 Monty Program Ab.
+Copyright (c) 2015 Avaya Inc.
 
 This library is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License as published by the Free
@@ -203,9 +204,9 @@ public enum DefaultOptions {
     TRUST_SERVER_CERTIFICATE("trustServerCertificate", Boolean.FALSE, "1.1.1"),
 
     /**
-     * Server's certificatem in DER form, or server's CA certificate. Can be used in one of 3 forms, sslServerCert=/path/to/cert.pem
+     * Server's certificate in DER form, or server's CA certificate. Can be used in one of 3 forms, sslServerCert=/path/to/cert.pem
      * (full path to certificate), sslServerCert=classpath:relative/cert.pem (relative to current classpath), or as verbatim DER-encoded certificate
-     * string "------BEGING CERTIFICATE-----".
+     * string "-----BEGIN CERTIFICATE-----".
      */
     SERVER_SSL_CERT("serverSslCert", "1.1.3"),
 
@@ -300,8 +301,27 @@ public enum DefaultOptions {
      * if allowMultiQueries or rewriteBatchedStatements is set to true, this options will be set to false.
      * default to true.
      */
-    USESERVERPREPSTMTS("useServerPrepStmts", Boolean.TRUE, "1.3.0");
+    USESERVERPREPSTMTS("useServerPrepStmts", Boolean.TRUE, "1.3.0"),
 
+    /**
+     * Use the specified keystore for trusted root certificates. Overrides serverSslCert.
+     */
+    TRUST_CERTIFICATE_KEYSTORE_URL("trustCertificateKeyStoreUrl", "1.3.0"),
+
+    /**
+     * Password for the trusted root certificate keystore.
+     */
+    TRUST_CERTIFICATE_KEYSTORE_PASSWORD("trustCertificateKeyStorePassword", "1.3.0"),
+
+    /**
+     * Use the specified keystore for client certificates (can be the same as the trusted root certificate keystore).
+     */
+    CLIENT_CERTIFICATE_KEYSTORE_URL("clientCertificateKeyStoreUrl", "1.3.0"),
+
+    /**
+     * Password for the client certificate keystore.
+     */
+    CLIENT_CERTIFICATE_KEYSTORE_PASSWORD("clientCertificateKeyStorePassword", "1.3.0");
 
     protected final String name;
     protected final Object objType;
