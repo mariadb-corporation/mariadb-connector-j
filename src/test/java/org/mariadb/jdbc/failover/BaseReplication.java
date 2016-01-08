@@ -9,6 +9,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 public abstract class BaseReplication extends BaseMultiHostTest {
 
@@ -178,37 +179,6 @@ public abstract class BaseReplication extends BaseMultiHostTest {
         }
     }
 
-
-    @Test()
-    public void checkNoSwitchConnectionDuringTransaction() throws Throwable {
-        Connection connection = null;
-        try {
-            connection = getNewConnection("&retriesAllDown=3&connectTimeout=1000&socketTimeout=1000", false);
-            Statement st = connection.createStatement();
-
-            st.execute("drop table  if exists multinodeTransaction2_" + jobId);
-            st.execute("create table multinodeTransaction2_" + jobId + " (id int not null primary key , amount int not null) "
-                    + "ENGINE = InnoDB");
-            connection.setAutoCommit(false);
-            st.execute("insert into multinodeTransaction2_" + jobId + " (id, amount) VALUE (1 , 100)");
-
-            try {
-                //in transaction, so must trow an error
-                connection.setReadOnly(true);
-                Assert.fail();
-            } catch (SQLException e) {
-                //normal exception
-                connection.setReadOnly(false);
-                st.execute("drop table  if exists multinodeTransaction2_" + jobId);
-            }
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
-        }
-    }
-
-
     @Test
     public void randomConnection() throws Throwable {
         Connection connection = null;
@@ -344,10 +314,7 @@ public abstract class BaseReplication extends BaseMultiHostTest {
             stopProxy(masterServerId, 2000);
             try {
                 st.execute("SELECT 1");
-                if (System.currentTimeMillis() - startTime < 2000) {
-                    Assert.fail("Auto-reconnection must have been done after 2000ms but was " + (System.currentTimeMillis() - startTime));
-                }
-                Assert.fail("must not have thrown error");
+                Assert.fail("must have thrown error since in transaction that is lost");
             } catch (SQLException e) {
                 Assert.assertEquals("error type not normal after " + (System.currentTimeMillis() - startTime) + "ms", "25S03", e.getSQLState());
             }
@@ -427,4 +394,92 @@ public abstract class BaseReplication extends BaseMultiHostTest {
         }
     }
 
+    @Test
+    public void pingReconnectAfterRestart() throws Throwable {
+        Connection connection = null;
+        try {
+            connection = getNewConnection("&connectTimeout=1000&socketTimeout=1000&retriesAllDown=3", true);
+            Statement st = connection.createStatement();
+            int masterServerId = getServerId(connection);
+            stopProxy(masterServerId);
+
+            try {
+                st.execute("SELECT 1");
+            } catch (SQLException e) {
+                //normal exception
+            }
+            restartProxy(masterServerId);
+            long restartTime = System.nanoTime();
+
+            boolean loop = true;
+            while (loop) {
+                if (!connection.isClosed()) {
+                    loop = false;
+                }
+                try {
+                    connection.createStatement();
+                } catch (SQLException ee) {
+
+                }
+                long duration = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - restartTime);
+                if (duration > 20 * 1000) {
+                    Assert.fail("Auto-reconnection not done after " + duration);
+                }
+                Thread.sleep(250);
+            }
+        } finally {
+            if (connection != null) {
+                connection.close();
+            }
+        }
+    }
+
+    @Test
+    public void failoverSlaveToMasterFail() throws Throwable {
+        Connection connection = null;
+        try {
+            connection = getNewConnection("&connectTimeout=1000&socketTimeout=1000&retriesAllDown=3", true);
+            int masterServerId = getServerId(connection);
+            connection.setReadOnly(true);
+            int slaveServerId = getServerId(connection);
+            Assert.assertTrue(slaveServerId != masterServerId);
+
+            connection.setCatalog("mysql"); //to be sure there will be a query, and so an error when switching connection
+            stopProxy(masterServerId);
+            try {
+                //must throw error
+                connection.setReadOnly(false);
+                Assert.fail();
+            } catch (SQLException e) {
+                //normal exception
+            }
+        } finally {
+            if (connection != null) {
+                connection.close();
+            }
+        }
+    }
+
+    @Test
+    public void failoverDuringMasterSetReadOnly() throws Throwable {
+        Connection connection = null;
+        try {
+            int masterServerId = -1;
+            connection = getNewConnection("&retriesAllDown=3", true);
+            masterServerId = getServerId(connection);
+
+            stopProxy(masterServerId);
+
+            connection.setReadOnly(true);
+
+            int slaveServerId = getServerId(connection);
+
+            Assert.assertFalse(slaveServerId == masterServerId);
+            Assert.assertTrue(connection.isReadOnly());
+        } finally {
+            if (connection != null) {
+                connection.close();
+            }
+        }
+    }
 }
