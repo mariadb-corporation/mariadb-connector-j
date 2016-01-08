@@ -439,7 +439,8 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
         }
         checkWaitingConnection();
         if (currentReadOnlyAsked != mustBeReadOnly) {
-            synchronized (currentReadOnlyUpdateLock) {
+            proxy.lock.lock();
+            try {
                 if (currentReadOnlyAsked == mustBeReadOnly) {
                     // someone else updated state
                     return;
@@ -473,7 +474,6 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                     if (!currentProtocol.isMasterConnection()) {
                         //must change to master connection
                         if (!isMasterHostFail()) {
-                            proxy.lock.lock();
                             try {
                                 //switching to master connection
                                 syncConnection(this.secondaryProtocol, this.masterProtocol);
@@ -485,8 +485,6 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                                 if (setMasterHostFail()) {
                                     addToBlacklist(masterProtocol.getHostAddress());
                                 }
-                            } finally {
-                                proxy.lock.unlock();
                             }
                         }
     
@@ -495,7 +493,6 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                             handleFailLoop();
                             //connection established, no need to send Exception !
                             //switching to master connection
-                            proxy.lock.lock();
                             try {
                                 syncConnection(this.secondaryProtocol, this.masterProtocol);
                                 currentProtocol = this.masterProtocol;
@@ -504,8 +501,6 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                                 if (setMasterHostFail()) {
                                     addToBlacklist(masterProtocol.getHostAddress());
                                 }
-                            } finally {
-                                proxy.lock.unlock();
                             }
                         } catch (QueryException e) {
                             //stop failover, since we will throw a connection exception that will close the connection.
@@ -517,6 +512,8 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
     
                     }
                 }
+            } finally {
+                proxy.lock.unlock();
             }
         }
     }

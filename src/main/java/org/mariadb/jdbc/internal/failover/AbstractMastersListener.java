@@ -83,8 +83,7 @@ public abstract class AbstractMastersListener implements Listener {
     /* =========================== Failover variables ========================================= */
     public final UrlParser urlParser;
     protected AtomicInteger currentConnectionAttempts = new AtomicInteger();
-    protected final Object currentReadOnlyUpdateLock = new Object();
-    // currentReadOnlyAsked is volatile so can be queried with lock, but can only be updated when lock is synchronized
+    // currentReadOnlyAsked is volatile so can be queried without lock, but can only be updated when proxy.lock is locked
     protected volatile boolean currentReadOnlyAsked = false;
     protected Protocol currentProtocol = null;
     protected FailoverProxy proxy;

@@ -225,12 +225,15 @@ public class MastersFailoverListener extends AbstractMastersListener {
      */
     public void switchReadOnlyConnection(Boolean mustBeReadOnly) throws QueryException {
         if (urlParser.getOptions().assureReadOnly && currentReadOnlyAsked != mustBeReadOnly) {
-            synchronized (currentReadOnlyUpdateLock) {
+            proxy.lock.lock();
+            try {
                 // verify not updated now that hold lock, double check safe due to volatile
                 if (currentReadOnlyAsked != mustBeReadOnly) {
                     currentReadOnlyAsked = mustBeReadOnly;
                     setSessionReadOnly(mustBeReadOnly, currentProtocol);
                 }
+            } finally {
+                proxy.lock.unlock();
             }
         }
     }
