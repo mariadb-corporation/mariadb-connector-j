@@ -1,3 +1,8 @@
+
+> **This guide will teach you:**
+> * The load balancing and high availability concepts in Mariadb java connector
+> * the different options
+
 Failover and high availability were introduced in 1.2.0.
 
 
@@ -8,7 +13,7 @@ For example, server A has the current connection. After a failure (server crash,
 Load balancing allows load (read and write) to be distributed over multiple servers.
 <br/>
 # Replication cluster type
-In MariaDB (and MySQL) [[replication]], there are 2 different replication roles:
+In MariaDB (and MySQL) replication, there are 2 different replication roles:
 * Master role: Database server that permits read and write operations
 * Slave role: Database server that permits only read operations
 
@@ -69,7 +74,7 @@ On a cluster with master hosts only, the use of connection.setReadOnly(true) doe
 When no failover/high availability parameter is set, the failover support is basic. Before executing a query, if the connection with the host is discarded, the connection will be reinitialized if parameter “autoReconnect” is set to true.
 
 ##Standard failover
-When a failover /high availability parameter is set.Check the [[#configuration|configuration]] section for an overview on how to set the parameters.
+When a failover /high availability parameter is set.Check the [configuration](#configuration) section for an overview on how to set the parameters.
 
 There can be multiple fail causes. When a failure occurs many things will be done: 
 * The fail host address will be put on a blacklist (shared by JVM). This host will not be used for the amount of time defined by the “loadBalanceBlacklistTimeout” parameter (default to 50 seconds). The only time a blacklisted address can be used is if all host of the same type (master/slave) are blacklisted.
@@ -77,21 +82,19 @@ There can be multiple fail causes. When a failure occurs many things will be don
 * If the failure relates to a slave connection
   *     If the master connection is still active, the master connection will be used immediately. 
         The query that was read-only will be relaunched and the connector will not throw any exception. 
-        A “failover” thread will be launched to attempt to reconnect a slave host. 
+        A "failover" thread will be launched to attempt to reconnect a slave host. 
         (if the query was a prepared query, this query will be re-prepared before execution)
   *     If the master connection is not active, the driver will attempt to create a new master or slave connection with a [connection loop](#connection-loop).
         if any connection is found, the query will be relaunched, if not, an SQLException with sqlState like “08XXX” will be thrown.  
 * If the failure relates to a master connection, the driver will attempt to create a new master connection with a [connection loop](#connection-loop), so the connection object will be immediately reusable.<br>
-  *     If there is no active transaction 
-        if a new master is found, query will be executed transparently.
-        if no new master connection is found, an SQLException with sqlState like “08XXX” will be thrown.
-  *     If there is an active transaction  
-        if a new connection is retrieved, an SQLException with sqlState like “25S03” ("invalid transaction state-transaction is rolled back") will be thrown.
-        if a no new master connection is retrieved, an SQLException with sqlState like “08XXX” will be thrown. A connection pool will detect SQLException due to connection error (SQLState begin with "08"), and this connection will be discarded.
-* If after the connection loop no connection has been established, the connection will be marked as closed. 
-* A “failover” thread will be launched to attempt to reconnect failing connection.  
+  *       on failure, an SQLException with be thrown with SQLState "08XXX". If using a pool, this connection will be discarded.
+  *       on success,    
+    *       if possible query will be relaunched without throwing error (if was using a slave connection, or was a SELECT query not in a transaction for example).
+    *       if not possible, an SQLException with be thrown with SQLState "25S03".  
+* When throwing an SQLException with SQLState "08XXX", the connection will be marked as closed. 
+* A “failover” thread will be launched to attempt to reconnect failing connection if connection is not closed.  
 
-It’s up to the application to take measures to handle SQLException. See details in [[#application-concerns|application concerns].
+It’s up to the application to take measures to handle SQLException. See details in [application concerns](#application-concerns).
 
 #Connection loop
 When initializing a connection or after a failure, the driver will launch a connection loop the only case when this connection loop will not be executed is when the failure occurred on a slave with an active master.
@@ -111,12 +114,14 @@ For a slave connection :
 The sequence stops as soon as all the underlying needed connections are found. Every time an attempt fails, the host will be blacklisted. 
 If after an entire loop a master connection is missing, the connection will be marked as closed. 
 
-#Failover additionnal threads
+#Additional threads
 
-##Failover loop
+##Failover reconnection threads
 A thread pool is created in case of a master/slave cluster, the size is defined according to the number of connection.  
 After a failure on a slave connection, readonly operations are temporary executed on the master connection. Some “failover threads” will try to reconnect the failed underlying connections.
-When a new slave connection is retrieved, this one will be immediatly used if connection was still in read-only mode. 
+When a new slave connection is retrieved, this one will be immediately used if connection was still in read-only mode.<br> 
+More details in [Failover loop threads](./Failover_loop).
+
 
 ##Connection validation thread
 An additional thread is created when setting the option "validConnectionTimeout".
@@ -124,27 +129,29 @@ This thread will very that connections are all active.
 This is normally done by pool that call [Connection.isValid()](https://docs.oracle.com/javase/7/docs/api/java/sql/Connection.html#isValid(int)).
  
 #Application concerns
-When a failover happen a SQLException with sqlState like “08XXX” or "25S03" may be thrown.
+When a failover happen a SQLException with sqlState like "08XXX" or "25S03" may be thrown.
 
 Here are the different connection error codes:
 
 |Code       |Condition |
 |-----------|:----------|
-|08000       | connection exception|
-|08001|SQL client unable to establish SQL connection|
-|08002|connection name in use|
-|08003|connection does not exist|
-|08004|SQL server rejected SQL connection|
-|08006|connection failure|
-|08007|transaction resolution unknown|
+|08000      | connection exception|
+|08001      |SQL client unable to establish SQL connection|
+|08002      |connection name in use|
+|08003      |connection does not exist|
+|08004      |SQL server rejected SQL connection|
+|08006      |connection failure|
+|08007      |transaction resolution unknown|
 |-----------|:----------|
-|25S03|invalid transaction state-transaction is rolled back|
+|25S03      |invalid transaction state-transaction is rolled back|
 
-The SQLException with SQLState "25S03" is thrown when a master connection failed and a new master connection has been created during a transaction.
+A connection pool will detect connection error in SQLException (SQLState begin with "08"), and this connection will be discarded from pool.<br/>
 
-When this happens the connector cannot know if the last request has been received by the database server and executed. Applications may have failover design to handle these particular cases: 
+When a failover occur the connector cannot know if the last request has been received by the database server and executed. Applications may have failover design to handle these particular cases: 
 If the application was in autoCommit mode (not recommended), the last query may have been executed and committed. The application will have no possibility to know that but the application will be functional.
 If not in autoCommit mode, the query has been launched in a transaction that will not be committed. Depending of what caused the exception, the host may have the connection open on his side during a certain amount of time. Take care of [transaction isolation](https://mariadb.com/kb/en/mariadb/set-transaction/) level that may lock too much rows.
+  
+
 
 #Configuration
 
@@ -156,7 +163,7 @@ jdbc:(mysql|mariadb):[replication:|failover:|loadbalance:|aurora:]//<hostDescrip
 
 The standard option "connectTimeout" defined the socket connection timeout. by default, these option is set to 0 (no timeout).<br>
 Since there are many servers, setting this option to a small amount of time make sense.<br>
-During the [[#connection-loop|connection loop phase]], the driver will try to connect to server sequentially until the creation of an active connection.
+During the [connection loop phase](#connection-loop), the driver will try to connect to server sequentially until the creation of an active connection.
 Set this option to a small value (like 2000ms - to be set according to your environment) will permit to reject faulty server quickly.   
 
 
@@ -240,7 +247,7 @@ The loop will retry until the connections are found or parameter “retriesAllDo
 Without any query during the time defined by the parameter validConnectionTimeout (default to 120s) and if not set to 0, a verification will be done that the replication role of the underlying connections haven’t changed.
 
 ##Aurora connection validation thread
-Aurora as a specific [[#Connection validation thread|connection validation thread]] implementation. 
+Aurora as a specific [connection validation thread](#connection-validation-thread) implementation. 
 Since role of each instance can change over time, this will validate that connection are active AND role have not changed.
 
  

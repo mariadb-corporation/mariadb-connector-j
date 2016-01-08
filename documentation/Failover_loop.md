@@ -1,0 +1,43 @@
+
+> **This guide will teach you:**
+> * The goal of the failover threads
+
+# Failover reconnection  
+
+> ** This concern only master/slave cluster ** 
+
+On a master/slave cluster, driver will use underlying 2 connections: one to a master instance, one to a slave instance. 
+When one of the connection fail, if driver does need it at once, it will create a new connection immediately before re-executing query if possible.<br/>
+If the failed connection is not needed immediately, this driver will subscribe to the "failover reconnection" that will be handle in other threads.
+Failover threads will attempt to create new connection to replace failing ones, so the interruption is minimal for the queries in progress.
+When client asked to use a failed connection, the new connection created by failover thread will replace the failed one. 
+
+Example: after a failure on a slave connection, readonly operations are temporary executed on the master connection to avoid interruption client side. 
+Failover thread will then create a new slave connection that will replace the failed one. Next query will use the new slave connection.
+
+A pool of threads is initialized when using a master/slave configuration. The pool size evolves according to the number of connection. 
+
+## Illustration
+
+Here is an example of a failover on a aurora cluster of 3 instances (one master and 2 slaves).<br/>
+(Source code https://github.com/rusher/connector-aurora-fail-test/tree/master)
+
+We can see 2 kinds of threads : 
+* Threads named "test-thread-XXX" do 130 queries "SELECT 1". 1/3 use master connection, 2/3 slave connection.
+* Threads "mariaDb-reconnection-XXX" are created by the driver to handle failover.
+
+#### Colour signification: 
+"test-thread-XXX" threads: 
+* blue: querying
+* red: blocked waiting to connect
+
+"mariaDb-reconnection-XXX" threads:  
+* yellow: waiting (idle) 
+* blue: working (recreating connection)
+* red: blocked waiting to connect
+ 
+When the failover occur, most of the wasted time to reconnect is supported by the reconnection thread.
+Most of query will be executed normally, only a few query executions will have a small additional delay (red block on "test-thread-XXX" threads).    
+    
+<a href="./misc/images/telemetry.png" style="width:100%"><img height="707" width="637" border="0" hspace="0" vspace="0" src="./misc/images/aurora_fail_extract.png" /></a>
+ 

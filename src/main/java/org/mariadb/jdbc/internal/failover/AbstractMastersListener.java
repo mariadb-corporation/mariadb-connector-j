@@ -287,7 +287,13 @@ public abstract class AbstractMastersListener implements Listener {
         return handleErrorResult;
     }
 
-    public boolean isQueryRelaunchable(Method method, Object[] args) throws IllegalAccessException, InvocationTargetException {
+    /**
+     * Check if query can be re-executed.
+     * @param method invoke method
+     * @param args invoke arguments
+     * @return true if can be re-executed
+     */
+    public boolean isQueryRelaunchable(Method method, Object[] args) {
         if (method != null && "executeQuery".equals(method.getName())) {
             if (args[0] instanceof Query) {
                 return ((Query) args[0]).toString().toUpperCase().startsWith("SELECT");
