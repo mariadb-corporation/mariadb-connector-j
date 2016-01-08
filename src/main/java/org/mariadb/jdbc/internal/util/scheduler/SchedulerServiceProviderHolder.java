@@ -118,7 +118,7 @@ public class SchedulerServiceProviderHolder {
      * @param initialThreadCount Number of threads scheduler is allowed to grow to
      * @return Scheduler capable of providing the needed thread count
      */
-    public static ScheduledThreadPoolExecutor getFixedSizeScheduler(int initialThreadCount) {
+    public static ScheduledExecutorService getFixedSizeScheduler(int initialThreadCount) {
         return getSchedulerProvider().getFixedSizeScheduler(initialThreadCount);
     }
 
@@ -135,7 +135,7 @@ public class SchedulerServiceProviderHolder {
          */
         public DynamicSizedSchedulerInterface getScheduler(int minimumThreads);
 
-        public ScheduledThreadPoolExecutor getFixedSizeScheduler(int minimumThreads);
+        public ScheduledExecutorService getFixedSizeScheduler(int minimumThreads);
     }
 
 

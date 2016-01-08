@@ -55,19 +55,13 @@ import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 import java.math.BigInteger;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class ConnectionValidator  {
-    private static final ScheduledThreadPoolExecutor fixedSizedScheduler = SchedulerServiceProviderHolder.getFixedSizeScheduler(1);
+    private static final ScheduledExecutorService fixedSizedScheduler = SchedulerServiceProviderHolder.getFixedSizeScheduler(1);
     private static final int MINIMUM_CHECK_DELAY_MILLIS = 100;
-    
-    static {
-        // set a rare thread timeout option to allow garbage collection in case class use is stopped
-        fixedSizedScheduler.setKeepAliveTime(2, TimeUnit.HOURS);
-        fixedSizedScheduler.allowCoreThreadTimeOut(true);
-    }
 
     private final ConcurrentLinkedQueue<Listener> queue = new ConcurrentLinkedQueue<>();
     private final AtomicLong currentScheduledFrequency = new AtomicLong(-1);
