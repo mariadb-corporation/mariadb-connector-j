@@ -207,7 +207,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
         checkWaitingConnection();
         //if connection is closed or failed on slave
         if (this.currentProtocol != null
-                && (this.currentProtocol.isClosed() || (!currentReadOnlyAsked.get() && !currentProtocol.isMasterConnection()))) {
+                && (this.currentProtocol.isClosed() || (!currentReadOnlyAsked && !currentProtocol.isMasterConnection()))) {
             preAutoReconnect();
         }
     }
@@ -347,7 +347,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
             masterProtocol.close();
         }
 
-        if (!currentReadOnlyAsked.get() || isSecondaryHostFail()) {
+        if (!currentReadOnlyAsked || isSecondaryHostFail()) {
             //actually on a secondary read-only because master was unknown.
             //So select master as currentConnection
             try {
@@ -409,7 +409,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
         }
 
         //if asked to be on read only connection, switching to this new connection
-        if (currentReadOnlyAsked.get() || (urlParser.getOptions().failOnReadOnly && !currentReadOnlyAsked.get() && isMasterHostFail())) {
+        if (currentReadOnlyAsked || (urlParser.getOptions().failOnReadOnly && !currentReadOnlyAsked && isMasterHostFail())) {
             try {
                 syncConnection(currentProtocol, newSecondaryProtocol);
             } catch (Exception e) {
@@ -435,81 +435,86 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
      */
     @Override
     public void switchReadOnlyConnection(Boolean mustBeReadOnly) throws QueryException {
-        if (mustBeReadOnly != currentReadOnlyAsked.get() && currentProtocol.inTransaction()) {
+        if (mustBeReadOnly != currentReadOnlyAsked && currentProtocol.inTransaction()) {
             throw new QueryException("Trying to set to read-only mode during a transaction");
         }
         checkWaitingConnection();
-        if (currentReadOnlyAsked.compareAndSet(!mustBeReadOnly, mustBeReadOnly)) {
-            if (currentReadOnlyAsked.get()) {
-                if (currentProtocol.isMasterConnection()) {
-                    //must change to replica connection
-                    if (!isSecondaryHostFail()) {
-                        proxy.lock.lock();
-                        try {
-                            //switching to secondary connection
-                            syncConnection(this.masterProtocol, this.secondaryProtocol);
-                            currentProtocol = this.secondaryProtocol;
-                            //current connection is now secondary
-                            return;
-                        } catch (QueryException e) {
-                            //switching to secondary connection failed
-                            if (setSecondaryHostFail()) {
-                                addToBlacklist(secondaryProtocol.getHostAddress());
-                            }
-                        } finally {
-                            proxy.lock.unlock();
-                        }
-                    }
-                    //stay on master connection, since slave connection is fail
-                    FailoverLoop.addListener(this);
+        if (currentReadOnlyAsked != mustBeReadOnly) {
+            proxy.lock.lock();
+            try {
+                if (currentReadOnlyAsked == mustBeReadOnly) {
+                    // someone else updated state
+                    return;
+                } else {
+                    currentReadOnlyAsked = mustBeReadOnly;
                 }
-            } else {
-                if (!currentProtocol.isMasterConnection()) {
-                    //must change to master connection
-                    if (!isMasterHostFail()) {
-                        proxy.lock.lock();
+                if (currentReadOnlyAsked) {
+                    if (currentProtocol.isMasterConnection()) {
+                        //must change to replica connection
+                        if (!isSecondaryHostFail()) {
+                            proxy.lock.lock();
+                            try {
+                                //switching to secondary connection
+                                syncConnection(this.masterProtocol, this.secondaryProtocol);
+                                currentProtocol = this.secondaryProtocol;
+                                //current connection is now secondary
+                                return;
+                            } catch (QueryException e) {
+                                //switching to secondary connection failed
+                                if (setSecondaryHostFail()) {
+                                    addToBlacklist(secondaryProtocol.getHostAddress());
+                                }
+                            } finally {
+                                proxy.lock.unlock();
+                            }
+                        }
+                        //stay on master connection, since slave connection is fail
+                        FailoverLoop.addListener(this);
+                    }
+                } else {
+                    if (!currentProtocol.isMasterConnection()) {
+                        //must change to master connection
+                        if (!isMasterHostFail()) {
+                            try {
+                                //switching to master connection
+                                syncConnection(this.secondaryProtocol, this.masterProtocol);
+                                currentProtocol = this.masterProtocol;
+                                //current connection is now master
+                                return;
+                            } catch (QueryException e) {
+                                //switching to master connection failed
+                                if (setMasterHostFail()) {
+                                    addToBlacklist(masterProtocol.getHostAddress());
+                                }
+                            }
+                        }
+    
                         try {
+                            reconnectFailedConnection(new SearchFilter(true, false));
+                            handleFailLoop();
+                            //connection established, no need to send Exception !
                             //switching to master connection
-                            syncConnection(this.secondaryProtocol, this.masterProtocol);
-                            currentProtocol = this.masterProtocol;
-                            //current connection is now master
-                            return;
-                        } catch (QueryException e) {
-                            //switching to master connection failed
-                            if (setMasterHostFail()) {
-                                addToBlacklist(masterProtocol.getHostAddress());
+                            try {
+                                syncConnection(this.secondaryProtocol, this.masterProtocol);
+                                currentProtocol = this.masterProtocol;
+                            } catch (QueryException e) {
+                                //switching to master connection failed
+                                if (setMasterHostFail()) {
+                                    addToBlacklist(masterProtocol.getHostAddress());
+                                }
                             }
-                        } finally {
-                            proxy.lock.unlock();
-                        }
-                    }
-
-                    try {
-                        reconnectFailedConnection(new SearchFilter(true, false));
-                        handleFailLoop();
-                        //connection established, no need to send Exception !
-                        //switching to master connection
-                        proxy.lock.lock();
-                        try {
-                            syncConnection(this.secondaryProtocol, this.masterProtocol);
-                            currentProtocol = this.masterProtocol;
                         } catch (QueryException e) {
-                            //switching to master connection failed
-                            if (setMasterHostFail()) {
-                                addToBlacklist(masterProtocol.getHostAddress());
-                            }
-                        } finally {
-                            proxy.lock.unlock();
+                            //stop failover, since we will throw a connection exception that will close the connection.
+                            FailoverLoop.removeListener(this);
+                            HostAddress failHost = (this.masterProtocol != null) ? this.masterProtocol.getHostAddress() : null;
+                            throwFailoverMessage(failHost, true, new QueryException("master "
+                                    + masterProtocol.getHostAddress() + " connection failed"), false);
                         }
-                    } catch (QueryException e) {
-                        //stop failover, since we will throw a connection exception that will close the connection.
-                        FailoverLoop.removeListener(this);
-                        HostAddress failHost = (this.masterProtocol != null) ? this.masterProtocol.getHostAddress() : null;
-                        throwFailoverMessage(failHost, true, new QueryException("master "
-                                + masterProtocol.getHostAddress() + " connection failed"), false);
+    
                     }
-
                 }
+            } finally {
+                proxy.lock.unlock();
             }
         }
     }
@@ -577,7 +582,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
         try {
             reconnectFailedConnection(new SearchFilter(true, urlParser.getOptions().failOnReadOnly));
             handleFailLoop();
-            if (currentReadOnlyAsked.get() //use master connection temporary in replacement of slave
+            if (currentReadOnlyAsked //use master connection temporary in replacement of slave
                     || alreadyClosed //connection was already close
                     || (!alreadyClosed && !inTransaction && isQueryRelaunchable(method, args) )) { //connection was not in transaction
 
@@ -614,7 +619,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
     public void reconnect() throws QueryException {
         SearchFilter filter;
         boolean inTransaction = false;
-        if (currentReadOnlyAsked.get()) {
+        if (currentReadOnlyAsked) {
             filter = new SearchFilter(true, true);
         } else {
             inTransaction = masterProtocol != null && masterProtocol.inTransaction();
