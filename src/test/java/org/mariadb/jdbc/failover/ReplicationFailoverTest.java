@@ -69,7 +69,6 @@ public class ReplicationFailoverTest extends BaseReplication {
             Statement st = connection.createStatement();
             final int masterServerId = getServerId(connection);
             stopProxy(masterServerId);
-            long stoppedTime = System.nanoTime();
 
             try {
                 st.execute("SELECT 1");

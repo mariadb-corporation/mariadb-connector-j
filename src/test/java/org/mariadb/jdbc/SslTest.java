@@ -139,6 +139,15 @@ public class SslTest extends BaseTest {
         testConnect(info, sslExpected, username, password);
     }
 
+    /**
+     * Test connection.
+     *
+     * @param info connection properties
+     * @param sslExpected is SSL expected
+     * @param user user
+     * @param pwd password
+     * @throws SQLException if exception occur
+     */
     public void testConnect(Properties info, boolean sslExpected, String user, String pwd) throws SQLException {
         Connection conn = null;
         Statement stmt = null;
@@ -268,7 +277,8 @@ public class SslTest extends BaseTest {
     }
 
     @Test(expected = SQLException.class)
-    public void testTruststoreWithWrongPassword() throws IOException, KeyStoreException, CertificateException, NoSuchAlgorithmException, SQLException {
+    public void testTruststoreWithWrongPassword() throws IOException, KeyStoreException, CertificateException, NoSuchAlgorithmException,
+            SQLException {
         // generate a truststore from the canned serverCertificate
         File tempKeystore = File.createTempFile("keystore", ".tmp");
         String keystorePath = tempKeystore.getAbsolutePath();
@@ -304,10 +314,12 @@ public class SslTest extends BaseTest {
     }
 
     @Test
-    public void testTruststoreAndClientKeystore() throws SQLException, IOException, KeyStoreException, CertificateException, NoSuchAlgorithmException {
+    public void testTruststoreAndClientKeystore() throws SQLException, IOException, KeyStoreException, CertificateException,
+            NoSuchAlgorithmException {
         // This test only runs if a client keystore and password have been passed in as properties (-DkeystorePath and -DkeystorePassword)
         // You can create a keystore as follows:
-        // echo "kspass" | openssl pkcs12 -export -in "${clientCertFile}" -inkey "${clientKeyFile}" -out "${clientKeystoreFile}" -name "mysqlAlias" -pass stdin
+        // echo "kspass" | openssl pkcs12 -export -in "${clientCertFile}" -inkey "${clientKeyFile}" -out "${clientKeystoreFile}"
+        //   -name "mysqlAlias" -pass stdin
         Assume.assumeTrue(clientKeystorePathDefined());
 
         String testUser = "testTsAndKs";
@@ -336,7 +348,8 @@ public class SslTest extends BaseTest {
     public void testClientKeystore() throws SQLException, IOException, KeyStoreException, CertificateException, NoSuchAlgorithmException {
         // This test only runs if a client keystore and password have been passed in as properties (-DkeystorePath and -DkeystorePassword)
         // You can create a keystore as follows:
-        // echo "kspass" | openssl pkcs12 -export -in "${clientCertFile}" -inkey "${clientKeyFile}" -out "${clientKeystoreFile}" -name "mysqlAlias" -pass stdin
+        // echo "kspass" | openssl pkcs12 -export -in "${clientCertFile}" -inkey "${clientKeyFile}" -out "${clientKeystoreFile}"
+        //   -name "mysqlAlias" -pass stdin
         Assume.assumeTrue(clientKeystorePathDefined());
 
         String testUser = "testKeystore";
@@ -360,7 +373,8 @@ public class SslTest extends BaseTest {
             NoSuchAlgorithmException {
         // This test only runs if a client keystore and password have been passed in as properties (-DkeystorePath and -DkeystorePassword)
         // You can create a keystore as follows:
-        // echo "kspass" | openssl pkcs12 -export -in "${clientCertFile}" -inkey "${clientKeyFile}" -out "${clientKeystoreFile}" -name "mysqlAlias" -pass stdin
+        // echo "kspass" | openssl pkcs12 -export -in "${clientCertFile}" -inkey "${clientKeyFile}"
+        // -out "${clientKeystoreFile}" -name "mysqlAlias" -pass stdin
         Assume.assumeTrue(clientKeystorePathDefined());
 
         String testUser = "testWrongPwd";
@@ -399,7 +413,8 @@ public class SslTest extends BaseTest {
         st.execute("drop user '" + user + "'@'localhost'");
     }
 
-    private void generateKeystoreFromFile(String certificateFile, String keystoreFile, String password) throws KeyStoreException, CertificateException,
+    private void generateKeystoreFromFile(String certificateFile, String keystoreFile, String password)
+            throws KeyStoreException, CertificateException,
             IOException, NoSuchAlgorithmException {
         InputStream inStream = null;
         KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());

@@ -402,7 +402,7 @@ public class DatatypeTest extends BaseTest {
         Object theInt = rs.getObject(1);
         assertTrue(theInt instanceof Integer);
         Object theInt2 = rs.getObject("int_test");
-        assertTrue(theInt instanceof Integer);
+        assertTrue(theInt2 instanceof Integer);
         Object theString = rs.getObject(2);
         assertTrue(theString instanceof String);
         Object theTimestamp = rs.getObject(3);
