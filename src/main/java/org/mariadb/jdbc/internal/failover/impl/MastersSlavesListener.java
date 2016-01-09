@@ -435,9 +435,6 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
      */
     @Override
     public void switchReadOnlyConnection(Boolean mustBeReadOnly) throws QueryException {
-        if (mustBeReadOnly != currentReadOnlyAsked && currentProtocol.inTransaction()) {
-            throw new QueryException("Trying to set to read-only mode during a transaction");
-        }
         checkWaitingConnection();
         if (currentReadOnlyAsked != mustBeReadOnly) {
             proxy.lock.lock();

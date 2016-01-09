@@ -508,16 +508,14 @@ public final class MariaDbConnection implements Connection {
     public void commit() throws SQLException {
         lock.lock();
         try {
-            if (getAutoCommit()) {
-                throw new SQLException("Error : committing transaction on a autocommit connection", "HY012");
+            if (!getAutoCommit()) {
+                Statement st = createStatement();
+                try {
+                    st.execute("COMMIT");
+                } finally {
+                    st.close();
+                }
             }
-            Statement st = createStatement();
-            try {
-                st.execute("COMMIT");
-            } finally {
-                st.close();
-            }
-
         } finally {
             lock.unlock();
         }
