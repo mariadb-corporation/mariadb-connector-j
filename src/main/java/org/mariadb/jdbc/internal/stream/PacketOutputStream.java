@@ -377,7 +377,7 @@ public class PacketOutputStream extends OutputStream {
     @Override
     public void close() throws IOException {
         outputStream.close();
-        buffer = ByteBuffer.allocate(0);
+        buffer = null;
     }
 
     /**
