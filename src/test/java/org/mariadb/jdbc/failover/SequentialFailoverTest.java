@@ -123,7 +123,7 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
     public void pingReconnectAfterRestart() throws Throwable {
         Connection connection = null;
         try {
-            connection = getNewConnection("&retriesAllDown=3", true);
+            connection = getNewConnection("&retriesAllDown=6", true);
             Statement st = connection.createStatement();
             int masterServerId = getServerId(connection);
             stopProxy(masterServerId);

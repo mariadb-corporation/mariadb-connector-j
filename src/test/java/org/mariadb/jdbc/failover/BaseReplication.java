@@ -33,7 +33,7 @@ public abstract class BaseReplication extends BaseMultiHostTest {
     public void failoverSlaveToMaster() throws Throwable {
         Connection connection = null;
         try {
-            connection = getNewConnection("&retriesAllDown=3&connectTimeout=1000&socketTimeout=1000", true);
+            connection = getNewConnection("&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000", true);
             int masterServerId = getServerId(connection);
             connection.setReadOnly(true);
             int slaveServerId = getServerId(connection);
@@ -77,7 +77,7 @@ public abstract class BaseReplication extends BaseMultiHostTest {
     public void failoverSlaveAndMasterWithoutAutoConnect() throws Throwable {
         Connection connection = null;
         try {
-            connection = getNewConnection("&retriesAllDown=3&connectTimeout=1000&socketTimeout=1000", true);
+            connection = getNewConnection("&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000", true);
             int masterServerId = getServerId(connection);
             connection.setReadOnly(true);
             int firstSlaveId = getServerId(connection);
@@ -102,7 +102,7 @@ public abstract class BaseReplication extends BaseMultiHostTest {
     public void reconnectSlaveAndMasterWithAutoConnect() throws Throwable {
         Connection connection = null;
         try {
-            connection = getNewConnection("&retriesAllDown=3&connectTimeout=1000&socketTimeout=1000", true);
+            connection = getNewConnection("&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000", true);
 
             //search actual server_id for master and slave
             int masterServerId = getServerId(connection);
@@ -131,7 +131,7 @@ public abstract class BaseReplication extends BaseMultiHostTest {
     public void failoverMasterWithAutoConnect() throws Throwable {
         Connection connection = null;
         try {
-            connection = getNewConnection("&retriesAllDown=3&connectTimeout=1000&socketTimeout=1000", true);
+            connection = getNewConnection("&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000", true);
             int masterServerId = getServerId(connection);
 
             stopProxy(masterServerId, 250);
@@ -152,7 +152,7 @@ public abstract class BaseReplication extends BaseMultiHostTest {
     public void writeToSlaveAfterFailover() throws Throwable {
         Connection connection = null;
         try {
-            connection = getNewConnection("&retriesAllDown=3&connectTimeout=1000&socketTimeout=1000", true);
+            connection = getNewConnection("&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000", true);
             //if super user can write on slave
             Assume.assumeTrue(!hasSuperPrivilege(connection, "writeToSlaveAfterFailover"));
             Statement st = connection.createStatement();
@@ -330,7 +330,7 @@ public abstract class BaseReplication extends BaseMultiHostTest {
     public void failoverRelaunchedWhenSelect() throws Throwable {
         Connection connection = null;
         try {
-            connection = getNewConnection("&connectTimeout=1000&socketTimeout=1000&retriesAllDown=3", true);
+            connection = getNewConnection("&connectTimeout=1000&socketTimeout=1000&retriesAllDown=6", true);
             Statement st = connection.createStatement();
 
             final int masterServerId = getServerId(connection);
@@ -363,7 +363,7 @@ public abstract class BaseReplication extends BaseMultiHostTest {
     public void failoverRelaunchedWhenInTransaction() throws Throwable {
         Connection connection = null;
         try {
-            connection = getNewConnection("&connectTimeout=1000&socketTimeout=1000&retriesAllDown=3", true);
+            connection = getNewConnection("&connectTimeout=1000&socketTimeout=1000&retriesAllDown=6", true);
             Statement st = connection.createStatement();
 
             final int masterServerId = getServerId(connection);
@@ -398,7 +398,7 @@ public abstract class BaseReplication extends BaseMultiHostTest {
     public void pingReconnectAfterRestart() throws Throwable {
         Connection connection = null;
         try {
-            connection = getNewConnection("&connectTimeout=1000&socketTimeout=1000&retriesAllDown=3", true);
+            connection = getNewConnection("&connectTimeout=1000&socketTimeout=1000&retriesAllDown=6", true);
             Statement st = connection.createStatement();
             int masterServerId = getServerId(connection);
             stopProxy(masterServerId);
@@ -438,7 +438,7 @@ public abstract class BaseReplication extends BaseMultiHostTest {
     public void failoverSlaveToMasterFail() throws Throwable {
         Connection connection = null;
         try {
-            connection = getNewConnection("&connectTimeout=1000&socketTimeout=1000&retriesAllDown=3", true);
+            connection = getNewConnection("&connectTimeout=1000&socketTimeout=1000&retriesAllDown=6", true);
             int masterServerId = getServerId(connection);
             connection.setReadOnly(true);
             int slaveServerId = getServerId(connection);
@@ -465,7 +465,7 @@ public abstract class BaseReplication extends BaseMultiHostTest {
         Connection connection = null;
         try {
             int masterServerId = -1;
-            connection = getNewConnection("&retriesAllDown=3", true);
+            connection = getNewConnection("&retriesAllDown=6", true);
             masterServerId = getServerId(connection);
 
             stopProxy(masterServerId);

@@ -65,7 +65,7 @@ public class ReplicationFailoverTest extends BaseReplication {
     public void pingReconnectAfterFailover() throws Throwable {
         Connection connection = null;
         try {
-            connection = getNewConnection("&retriesAllDown=3&connectTimeout=1000&socketTimeout=1000", true);
+            connection = getNewConnection("&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000", true);
             Statement st = connection.createStatement();
             final int masterServerId = getServerId(connection);
             stopProxy(masterServerId);
@@ -96,7 +96,7 @@ public class ReplicationFailoverTest extends BaseReplication {
     public void failoverDuringMasterSetReadOnly() throws Throwable {
         Connection connection = null;
         try {
-            connection = getNewConnection("&retriesAllDown=3&connectTimeout=1000&socketTimeout=1000", true);
+            connection = getNewConnection("&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000", true);
             int masterServerId = getServerId(connection);
             stopProxy(masterServerId);
             connection.setReadOnly(true);
@@ -114,7 +114,7 @@ public class ReplicationFailoverTest extends BaseReplication {
     public void masterWithoutFailover() throws Throwable {
         Connection connection = null;
         try {
-            connection = getNewConnection("&retriesAllDown=3&connectTimeout=1000&socketTimeout=1000", true);
+            connection = getNewConnection("&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000", true);
             int masterServerId = getServerId(connection);
             connection.setReadOnly(true);
             int firstSlaveId = getServerId(connection);
@@ -140,7 +140,7 @@ public class ReplicationFailoverTest extends BaseReplication {
     public void checkBackOnMasterOnSlaveFail() throws Throwable {
         Connection connection = null;
         try {
-            connection = getNewConnection("&retriesAllDown=3&failOnReadOnly=true&connectTimeout=1000&socketTimeout=1000", true);
+            connection = getNewConnection("&retriesAllDown=6&failOnReadOnly=true&connectTimeout=1000&socketTimeout=1000", true);
             Statement st = connection.createStatement();
             int masterServerId = getServerId(connection);
             stopProxy(masterServerId);
@@ -180,7 +180,7 @@ public class ReplicationFailoverTest extends BaseReplication {
     public void testFailNotOnSlave() throws Throwable {
         Connection connection = null;
         try {
-            connection = getNewConnection("&retriesAllDown=3&connectTimeout=1000&socketTimeout=1000", true);
+            connection = getNewConnection("&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000", true);
             Statement stmt = connection.createStatement();
             int masterServerId = getServerId(connection);
             stopProxy(masterServerId);
