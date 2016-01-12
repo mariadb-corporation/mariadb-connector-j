@@ -303,15 +303,20 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
 
         if ((isMasterHostFail() || isSecondaryHostFail())
                 || searchFilter.isInitialConnection()) {
-            MastersSlavesProtocol.loop(this, loopAddress, searchFilter);
-            //close loop if all connection are retrieved
-            if (!searchFilter.isFailoverLoop()) {
-                try {
-                    checkWaitingConnection();
-                } catch (ReconnectDuringTransactionException e) {
-                    //don't throw an exception for this specific exception
+            //while permit to avoid case when succeeded creating a new Master connection
+            //and ping master connection fail a few millissecond after,
+            //resulting a masterConnection not initialized.
+            do {
+                MastersSlavesProtocol.loop(this, loopAddress, searchFilter);
+                //close loop if all connection are retrieved
+                if (!searchFilter.isFailoverLoop()) {
+                    try {
+                        checkWaitingConnection();
+                    } catch (ReconnectDuringTransactionException e) {
+                        //don't throw an exception for this specific exception
+                    }
                 }
-            }
+            } while (searchFilter.isInitialConnection() && masterProtocol == null);
         }
 
     }

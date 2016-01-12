@@ -140,16 +140,20 @@ public class AuroraListener extends MastersSlavesListener {
 
         if ((isMasterHostFail() || isSecondaryHostFail())
                 || searchFilter.isInitialConnection()) {
-            AuroraProtocol.loop(this, loopAddress, searchFilter);
-            if (!searchFilter.isFailoverLoop()) {
-                try {
-                    checkWaitingConnection();
-                } catch (ReconnectDuringTransactionException e) {
-                    //don't throw an exception for this specific exception
+            //while permit to avoid case when succeeded creating a new Master connection
+            //and ping master connection fail a few millissecond after,
+            //resulting a masterConnection not initialized.
+            do {
+                AuroraProtocol.loop(this, loopAddress, searchFilter);
+                if (!searchFilter.isFailoverLoop()) {
+                    try {
+                        checkWaitingConnection();
+                    } catch (ReconnectDuringTransactionException e) {
+                        //don't throw an exception for this specific exception
+                    }
                 }
-            }
+            } while (searchFilter.isInitialConnection() && masterProtocol == null);
         }
-
     }
 
 
