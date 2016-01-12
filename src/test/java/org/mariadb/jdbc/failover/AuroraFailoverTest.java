@@ -94,7 +94,7 @@ public class AuroraFailoverTest extends BaseReplication {
     public void testFailMaster() throws Throwable {
         Connection connection = null;
         try {
-            connection = getNewConnection("&retriesAllDown=6&connectTimeout=1000", true);
+            connection = getNewConnection("&retriesAllDown=3&connectTimeout=1000", true);
             Statement stmt = connection.createStatement();
             int masterServerId = getServerId(connection);
             stopProxy(masterServerId);

@@ -560,6 +560,13 @@ public class Utils {
     public static Protocol retrieveProxy(final UrlParser urlParser, final ReentrantLock lock) throws QueryException, SQLException {
         switch (urlParser.getHaMode()) {
             case AURORA:
+                if (urlParser.getHostAddresses().size() == 1) {
+                    //single node cluster consider like "FAILOVER"
+                    return (Protocol) Proxy.newProxyInstance(
+                            MasterProtocol.class.getClassLoader(),
+                            new Class[]{Protocol.class},
+                            new FailoverProxy(new MastersFailoverListener(urlParser), lock));
+                }
                 return (Protocol) Proxy.newProxyInstance(
                         AuroraProtocol.class.getClassLoader(),
                         new Class[]{Protocol.class},

@@ -193,7 +193,11 @@ Each parameter corresponds to a specific use case:
 
 #Specifics for Amazon Aurora
 
-Amazon Aurora is a Master/Slaves cluster composed of one master instance with a maximum of 15 slave instances. Amazon Aurora includes automatic promotion of a slave instance in case of the master instance failing. The MariaDB connector/J implementation for Aurora is specific to handle this automatic failover.
+Amazon Aurora is a Master/Slaves cluster composed of one master instance with a maximum of 15 slave instances. Amazon Aurora includes automatic promotion of a slave instance in case of the master instance failing. The MariaDB connector/J implementation for Aurora is specific to handle this automatic failover.<br/>
+
+To permit development/integration on a single-node cluster, only one host can be defined.  
+In this case, the driver behaves as for the configuration **failover**. 
+    
 
 ##Aurora failover implementation
 Aurora failover management steps : 

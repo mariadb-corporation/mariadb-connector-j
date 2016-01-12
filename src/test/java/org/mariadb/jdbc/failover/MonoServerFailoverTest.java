@@ -11,7 +11,8 @@ import java.sql.Statement;
 
 import static org.junit.Assert.assertFalse;
 
-public class MonoServerFailoverTest extends BaseMultiHostTest {
+public class MonoServerFailoverTest extends BaseMonoServer {
+
     /**
      * Initialisation.
      * @throws SQLException exception
@@ -36,7 +37,7 @@ public class MonoServerFailoverTest extends BaseMultiHostTest {
     public void checkClosedConnectionAfterFailover() throws Throwable {
         Connection connection = null;
         try {
-            connection = getNewConnection("&autoReconnect=true&retriesAllDown=6", true);
+            connection = getNewConnection("&retriesAllDown=6", true);
 
             Statement st = connection.createStatement();
             int masterServerId = getServerId(connection);
@@ -99,7 +100,7 @@ public class MonoServerFailoverTest extends BaseMultiHostTest {
     public void checkAutoReconnectDeconnection() throws Throwable {
         Connection connection = null;
         try {
-            connection = getNewConnection("&autoReconnect=true&retriesAllDown=6", true);
+            connection = getNewConnection("&retriesAllDown=6", true);
 
             Statement st = connection.createStatement();
             int masterServerId = getServerId(connection);
@@ -161,7 +162,7 @@ public class MonoServerFailoverTest extends BaseMultiHostTest {
     public void checkPrepareStatement() throws Throwable {
         Connection connection = null;
         try {
-            connection = getNewConnection("&autoReconnect=true&retriesAllDown=6", true);
+            connection = getNewConnection("&retriesAllDown=6", true);
             Statement stmt = connection.createStatement();
             stmt.execute("drop table  if exists failt1");
             stmt.execute("create table failt1 (id int not null primary key auto_increment, tt int)");
