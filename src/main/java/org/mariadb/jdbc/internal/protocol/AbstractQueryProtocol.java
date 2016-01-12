@@ -380,7 +380,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
     private int sendQuery(SendTextQueryPacket packet)  throws QueryException {
     	if (!connected) {
-    		throw new QueryException("Could not send query: Connection is closed", -1, ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState());
+    	    throw new QueryException("Could not send query: Connection is closed", -1, 
+    	        ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState());
     	}
         try {
             return packet.send(writer);
