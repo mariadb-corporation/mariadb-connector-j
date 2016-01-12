@@ -122,7 +122,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     protected ReadPacketFetcher packetFetcher;
     protected HostAddress currentHost;
     protected FailoverProxy proxy;
-    protected boolean connected = false;
+    protected volatile boolean connected = false;
     protected boolean explicitClosed = false;
     protected String database;
     protected long serverThreadId;
@@ -175,6 +175,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         if (lock != null) {
             lock.lock();
         }
+        this.connected = false;
         try {
             /* If a streaming result set is open, close it.*/
             skip();
@@ -189,8 +190,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
         } catch (Exception e) {
             // socket is closed, so it is ok to ignore exception
         } finally {
-            this.connected = false;
-
             if (lock != null) {
                 lock.unlock();
             }
@@ -358,6 +357,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
             writer.setUseCompression(true);
             packetFetcher = new ReadPacketFetcher(new DecompressInputStream(socket.getInputStream()));
         }
+        connected = true;
 
         setSessionOptions();
         loadServerData();
@@ -370,7 +370,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
         activeResult = null;
         moreResults = false;
         hasWarnings = false;
-        connected = true;
         hostFailed = false;
     }
 

@@ -134,6 +134,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
     @Override
     public PrepareResult prepare(String sql) throws QueryException {
+        checkClose();
         try {
             if (urlParser.getOptions().cachePrepStmts && prepareStatementCache.containsKey(sql)) {
                 PrepareResult pr = prepareStatementCache.get(sql);
@@ -274,8 +275,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     @Override
     public void setCatalog(final String database) throws QueryException {
         lock.lock();
-        final SendChangeDbPacket packet = new SendChangeDbPacket(database);
         try {
+            checkClose();
+            final SendChangeDbPacket packet = new SendChangeDbPacket(database);
             packet.send(writer);
             final ByteBuffer byteBuffer = packetFetcher.getReusableBuffer();
             if (byteBuffer.get(0) == ReadResultPacketFactory.ERROR) {
@@ -299,6 +301,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     public boolean ping() throws QueryException {
         lock.lock();
         try {
+            checkClose();
             final SendPingPacket pingPacket = new SendPingPacket();
             try {
                 pingPacket.send(writer);
@@ -379,6 +382,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     }
 
     private int sendQuery(SendTextQueryPacket packet)  throws QueryException {
+        checkClose();
         try {
             return packet.send(writer);
         } catch (MaxAllowedPacketException e) {
@@ -515,6 +519,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      */
     public AbstractQueryResult executeBatch(final List<Query> queries, boolean streaming, boolean isRewritable, int rewriteOffset)
             throws QueryException {
+        checkClose();
         for (Query query : queries) {
             query.validate();
         }
@@ -557,6 +562,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     @Override
     public AbstractQueryResult executePreparedQuery(String sql, ParameterHolder[] parameters, PrepareResult prepareResult,
                                                     MariaDbType[] parameterTypeHeader, boolean isStreaming) throws QueryException {
+        checkClose();
         this.moreResults = false;
         try {
             int parameterCount = parameters.length;
@@ -597,14 +603,13 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
     @Override
     public void releasePrepareStatement(String sql, int statementId) throws QueryException {
-//        if (log.isDebugEnabled()) log.debug("Closing prepared statement "+statementId);
+        checkClose();
         lock.lock();
         try {
             if (urlParser.getOptions().cachePrepStmts && prepareStatementCache.containsKey(sql)) {
                 PrepareResult pr = prepareStatementCache.get(sql);
                 pr.removeUse();
                 if (!pr.hasToBeClose()) {
-//                        log.debug("closing aborded, prepared statement used in another statement");
                     return;
                 }
                 prepareStatementCache.remove(sql);
@@ -754,6 +759,11 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         return transactionIsolationLevel;
     }
 
+    private void checkClose() throws QueryException {
+        if (!this.connected) {
+            throw new QueryException("Connection is close", 1220, "08000");
+        }
+    }
     /**
      * Close active result.
      */

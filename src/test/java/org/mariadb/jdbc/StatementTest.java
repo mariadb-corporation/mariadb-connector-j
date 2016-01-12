@@ -1,11 +1,13 @@
 package org.mariadb.jdbc;
 
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.UnsupportedEncodingException;
 import java.sql.*;
+import java.util.Properties;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.*;
@@ -237,4 +239,29 @@ public class StatementTest extends BaseTest {
             statement.execute("drop view if exists v2");
         }
     }
+
+    @Test
+    public void statementClose() throws SQLException {
+        Properties infos = new Properties();
+        infos.put("socketTimeout", 1000);
+        try (Connection connection = createProxyConnection(infos)) {
+            Statement statement = connection.createStatement();
+            Statement otherStatement = null;
+            try {
+                otherStatement = connection.createStatement();
+                stopProxy();
+                otherStatement.execute("SELECT 1");
+            } catch (SQLException e) {
+                Assert.assertTrue(otherStatement.isClosed());
+                Assert.assertTrue(connection.isClosed());
+                try {
+                    statement.execute("SELECT 1");
+                } catch (SQLException ee) {
+                    Assert.assertTrue(statement.isClosed());
+                    Assert.assertEquals("must be an SQLState 08000 exception", "08000", ee.getSQLState());
+                }
+            }
+        }
+    }
+
 }

@@ -5,9 +5,12 @@ import org.junit.*;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
+import org.mariadb.jdbc.failover.TcpProxy;
 import org.mariadb.jdbc.internal.failover.AbstractMastersListener;
 import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.util.constant.HaMode;
 
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -37,6 +40,7 @@ public class BaseTest {
     protected static Connection sharedConnection;
     private static List<String> tempTableList = new ArrayList<>();
     private static List<String> tempProcedureList = new ArrayList<>();
+    private static TcpProxy proxy = null;
 
     @Rule
     public TestRule watcher = new TestWatcher() {
@@ -52,6 +56,65 @@ public class BaseTest {
             }
         }
     };
+
+    /**
+     * Create a connection with proxy.
+     * @param info additionnal properties
+     * @return a proxyfied connection
+     * @throws SQLException if any error occur
+     */
+    public Connection createProxyConnection(Properties info) throws SQLException {
+        UrlParser tmpUrlParser = UrlParser.parse(connUri);
+        username = tmpUrlParser.getUsername();
+        hostname = tmpUrlParser.getHostAddresses().get(0).host;
+        String sockethosts = "";
+        HostAddress hostAddress;
+        try {
+            hostAddress = tmpUrlParser.getHostAddresses().get(0);
+            proxy = new TcpProxy(hostAddress.host, hostAddress.port);
+            sockethosts += "address=(host=localhost)(port=" + proxy.getLocalPort() + ")"
+                    + ((hostAddress.type != null) ? "(type=" + hostAddress.type + ")" : "");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return openConnection("jdbc:mysql://" + sockethosts + "/" + connUri.split("/")[3], info);
+
+    }
+
+    /**
+     * Stop proxy, and restart it after a certain amount of time.
+     * @param millissecond milliseconds
+     */
+    public void stopProxy(long millissecond) {
+        proxy.restart(millissecond);
+    }
+
+    /**
+     * Stop proxy.
+     */
+    public void stopProxy() {
+        proxy.stop();
+    }
+
+    /**
+     * Restart proxy.
+     */
+    public void restartProxy() {
+        proxy.restart();
+    }
+
+    /**
+     * Clean proxies.
+     * @throws SQLException exception
+     */
+    public void closeProxy() throws SQLException {
+        try {
+            proxy.stop();
+        } catch (Exception e) {
+            //Eat exception
+        }
+    }
 
     /**
      * Initialization.
