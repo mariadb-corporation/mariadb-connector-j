@@ -131,9 +131,6 @@ public class MariaDbValueObject implements ValueObject {
                 }
                 break;
             case TINYINT:
-                if (options.tinyInt1isBit && columnInfo.getLength() == 1) {
-                    return (rawBytes[0] == 0) ? "0" : "1";
-                }
                 if (this.isBinaryEncoded) {
                     return String.valueOf(getTinyInt());
                 }
