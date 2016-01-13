@@ -134,6 +134,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
     @Override
     public PrepareResult prepare(String sql) throws QueryException {
+    	checkConnected();
         try {
             if (urlParser.getOptions().cachePrepStmts && prepareStatementCache.containsKey(sql)) {
                 PrepareResult pr = prepareStatementCache.get(sql);
@@ -276,6 +277,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         lock.lock();
         final SendChangeDbPacket packet = new SendChangeDbPacket(database);
         try {
+    	    checkConnected();
+    	
             packet.send(writer);
             final ByteBuffer byteBuffer = packetFetcher.getReusableBuffer();
             if (byteBuffer.get(0) == ReadResultPacketFactory.ERROR) {
@@ -299,6 +302,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     public boolean ping() throws QueryException {
         lock.lock();
         try {
+    	    checkConnected();
+    	    
             final SendPingPacket pingPacket = new SendPingPacket();
             try {
                 pingPacket.send(writer);
@@ -347,7 +352,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * @throws QueryException exception
      */
     public AbstractQueryResult executeQuery(List<Query> queries, boolean streaming, boolean isRewritable, int rewriteOffset) throws QueryException {
-        for (Query query : queries) {
+        checkConnected();
+        
+    	for (Query query : queries) {
             query.validate();
         }
         this.moreResults = false;
@@ -515,6 +522,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      */
     public AbstractQueryResult executeBatch(final List<Query> queries, boolean streaming, boolean isRewritable, int rewriteOffset)
             throws QueryException {
+    	checkConnected();
+    	
         for (Query query : queries) {
             query.validate();
         }
@@ -557,6 +566,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     @Override
     public AbstractQueryResult executePreparedQuery(String sql, ParameterHolder[] parameters, PrepareResult prepareResult,
                                                     MariaDbType[] parameterTypeHeader, boolean isStreaming) throws QueryException {
+    	checkConnected();
+    	
         this.moreResults = false;
         try {
             int parameterCount = parameters.length;
@@ -765,6 +776,13 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
     public PrepareStatementCache prepareStatementCache() {
         return prepareStatementCache;
+    }
+
+    protected void checkConnected() throws QueryException {
+    	if (!this.isConnected()) {
+            throw new QueryException("Could not send query: has not connected to server", -1,
+                    ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState());
+    	}
     }
 
 
