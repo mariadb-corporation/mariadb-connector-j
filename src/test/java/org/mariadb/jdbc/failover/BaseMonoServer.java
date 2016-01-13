@@ -30,18 +30,18 @@ public abstract class BaseMonoServer extends BaseMultiHostTest {
     }
 
     @Test
-    public void relaunchWithoutErrorWhenAutocommit() throws Throwable {
+    public void relaunchWithoutError() throws Throwable {
         Connection connection = null;
         try {
             connection = getNewConnection("&connectTimeout=1000&socketTimeout=1000", true);
             Statement st = connection.createStatement();
             int masterServerId = getServerId(connection);
             long startTime = System.currentTimeMillis();
-            stopProxy(masterServerId, 10000);
+            stopProxy(masterServerId, 4000);
             try {
                 st.execute("SELECT 1");
-                if (System.currentTimeMillis() - startTime < 10 * 1000) {
-                    Assert.fail("Auto-reconnection must have been done after 10000ms but was " + (System.currentTimeMillis() - startTime));
+                if (System.currentTimeMillis() - startTime < 4 * 1000) {
+                    Assert.fail("Auto-reconnection must have been done after 4000ms but was " + (System.currentTimeMillis() - startTime));
                 }
             } catch (SQLException e) {
                 Assert.fail("must not have thrown error");

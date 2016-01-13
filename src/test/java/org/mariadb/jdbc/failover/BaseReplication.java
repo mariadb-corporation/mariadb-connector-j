@@ -219,39 +219,22 @@ public abstract class BaseReplication extends BaseMonoServer {
         Connection connection = null;
         try {
             connection = getNewConnection("&connectTimeout=1000&socketTimeout=1000", true);
+            int masterId = getServerId(connection);
             connection.setReadOnly(true);
-            int serverId = getServerId(connection);
-            stopProxy(serverId);
+            //close all slave proxy
+            stopProxyButParameter(masterId);
 
             //trigger the failover, so a failover thread is launched
             Statement stmt = connection.createStatement();
             stmt.execute("SELECT 1");
-            //launch connection close
-            new CloseConnection(connection).run();
+
+            //launch connection close during failover must not throw error
+            Thread.sleep(200);
+            connection.close();
+            connection = null;
         } finally {
             if (connection != null) {
-                if (connection != null) {
-                    connection.close();
-                }
-            }
-        }
-
-    }
-
-    protected class CloseConnection implements Runnable {
-        Connection connection;
-
-        public CloseConnection(Connection connection) {
-            this.connection = connection;
-        }
-
-        public void run() {
-            try {
-                Thread.sleep(2400); // wait that slave reconnection loop is launched
                 connection.close();
-            } catch (Throwable e) {
-                e.printStackTrace();
-                Assert.fail();
             }
         }
     }
@@ -275,6 +258,7 @@ public abstract class BaseReplication extends BaseMonoServer {
             } catch (SQLException e) {
                 //normal exception
             }
+            restartProxy(masterServerId);
         } finally {
             if (connection != null) {
                 connection.close();
@@ -298,6 +282,7 @@ public abstract class BaseReplication extends BaseMonoServer {
 
             Assert.assertFalse(slaveServerId == masterServerId);
             Assert.assertTrue(connection.isReadOnly());
+            restartProxy(masterServerId);
         } finally {
             if (connection != null) {
                 connection.close();

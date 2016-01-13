@@ -212,6 +212,20 @@ public class BaseMultiHostTest {
     }
 
     /**
+     * Stop all proxy but the one in parameter.
+     * @param hostNumber the proxy to not close
+     */
+    public void stopProxyButParameter(int hostNumber) {
+        TcpProxy[] proxies = proxySet.get(currentType);
+        for (int i = 0 ; i < proxies.length ; i++) {
+            if (i != hostNumber - 1) {
+                proxies[i].stop();
+            }
+        }
+    }
+
+
+    /**
      * Stop proxy.
      * @param hostNumber host number (first is 1)
      */
