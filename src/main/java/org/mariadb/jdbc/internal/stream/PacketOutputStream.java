@@ -26,6 +26,7 @@ public class PacketOutputStream extends OutputStream {
     boolean useCompression;
     private float increasing = 1.5f;
     private OutputStream outputStream;
+    private volatile boolean closed = false;
 
     /**
      * Initialization with server outputStream.
@@ -61,6 +62,9 @@ public class PacketOutputStream extends OutputStream {
      * @throws IOException if any error occur during data send to server
      */
     public void startPacket(int seqNo, boolean checkPacketLength) throws IOException {
+        if (closed){
+            throw new IOException("Stream has already closed");
+        }
         if (this.seqNo != -1) {
             throw new IOException("Last stream not finished");
         }
@@ -378,6 +382,7 @@ public class PacketOutputStream extends OutputStream {
     public void close() throws IOException {
         outputStream.close();
         buffer = null;
+        closed = true;
     }
 
     /**
