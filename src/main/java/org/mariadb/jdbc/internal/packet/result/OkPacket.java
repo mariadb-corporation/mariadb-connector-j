@@ -57,20 +57,17 @@ public class OkPacket extends AbstractResultPacket {
     private final long insertId;
     private final short serverStatus;
     private final short warnings;
-    private final String message;
 
     /**
      * Read Ok stream result.
      * @param byteBuffer current stream's byteBuffer
      */
     public OkPacket(ByteBuffer byteBuffer) {
-        super(byteBuffer);
         byteBuffer.get(); //fieldCount
-        affectedRows = getLengthEncodedBinary();
-        insertId = getLengthEncodedBinary();
+        affectedRows = getLengthEncodedBinary(byteBuffer);
+        insertId = getLengthEncodedBinary(byteBuffer);
         serverStatus = byteBuffer.getShort();
         warnings = byteBuffer.getShort();
-        message = getStringLengthEncodedBytes();
     }
 
     public ResultType getResultType() {
@@ -86,9 +83,7 @@ public class OkPacket extends AbstractResultPacket {
                 + "&serverStatus="
                 + serverStatus
                 + "&warnings="
-                + warnings
-                + "&message="
-                + message;
+                + warnings;
     }
 
     public long getAffectedRows() {
@@ -105,9 +100,5 @@ public class OkPacket extends AbstractResultPacket {
 
     public short getWarnings() {
         return warnings;
-    }
-
-    public String getMessage() {
-        return message;
     }
 }

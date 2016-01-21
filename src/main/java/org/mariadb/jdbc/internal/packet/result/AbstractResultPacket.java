@@ -53,28 +53,22 @@ package org.mariadb.jdbc.internal.packet.result;
 import java.nio.ByteBuffer;
 
 public abstract class AbstractResultPacket {
-    ByteBuffer byteBuffer;
-
-    public AbstractResultPacket(ByteBuffer byteBuffer) {
-        this.byteBuffer = byteBuffer;
-    }
 
     public abstract ResultType getResultType();
 
     /**
      * Get next binary data encoded length.
+     *
+     * @param byteBuffer bytebuffer
      * @return length
      */
-    public long getLengthEncodedBinary() {
-        /*if (byteBuffer.remaining() == 0) {
-            return 0;
-        }*/
+    public static long getLengthEncodedBinary(ByteBuffer byteBuffer) {
         final int type = byteBuffer.get() & 0xff;
         switch (type) {
             case 252:
                 return (long) 0xffff & byteBuffer.getShort();
             case 253:
-                return 0xffffff & read24bitword();
+                return 0xffffff & read24bitword(byteBuffer);
             case 254:
                 return byteBuffer.getLong();
             case 255:
@@ -85,58 +79,15 @@ public abstract class AbstractResultPacket {
     }
 
     /**
-     * Get next data length encoded binary.
-     * @return length of next data.
-     */
-    public byte[] getLengthEncodedBytes() {
-        if (byteBuffer.remaining() == 0) {
-            return new byte[0];
-        }
-        final long encLength = getLengthEncodedBinary();
-        if (encLength == -1) {
-            return null;
-        }
-        final byte[] tmpBuf = new byte[(int) encLength];
-        byteBuffer.get(tmpBuf);
-        return tmpBuf;
-    }
-
-    /**
-     * Read next binary String encoded.
-     * @return String value
-     */
-    public String getStringLengthEncodedBytes() {
-        if (byteBuffer.remaining() == 0) {
-            return null;
-        }
-        final long encLength = getLengthEncodedBinary();
-        if (encLength == 0) {
-            return "";
-        }
-        if (encLength != -1) {
-            final byte[] tmpBuf = new byte[(int) encLength];
-            byteBuffer.get(tmpBuf);
-            return new String(tmpBuf);
-        }
-        return null;
-    }
-
-    public short readShort() {
-        return byteBuffer.getShort();
-    }
-
-    /**
      * Read 24 bit integer.
+     *
+     * @param byteBuffer bytebuffer
      * @return length
      */
-    public int read24bitword() {
+    public static int read24bitword(ByteBuffer byteBuffer) {
         final byte[] tmpArr = new byte[3];
         byteBuffer.get(tmpArr);
         return (tmpArr[0] & 0xff) + ((tmpArr[1] & 0xff) << 8) + ((tmpArr[2] & 0xff) << 16);
-    }
-
-    public long readLong() {
-        return byteBuffer.getLong();
     }
 
     public enum ResultType {

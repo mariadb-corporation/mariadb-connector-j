@@ -52,14 +52,13 @@ package org.mariadb.jdbc.internal.protocol;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
+import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.query.MariaDbQuery;
-import org.mariadb.jdbc.internal.queryresults.SelectQueryResult;
 import org.mariadb.jdbc.internal.failover.impl.AuroraListener;
 import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 
-import java.io.IOException;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
@@ -220,10 +219,10 @@ public class AuroraProtocol extends MastersSlavesProtocol {
     public boolean checkIfMaster() throws QueryException {
         proxy.lock.lock();
         try {
-            SelectQueryResult queryResult = (SelectQueryResult) executeQuery(new MariaDbQuery("show global variables like 'innodb_read_only'"));
+            MariaSelectResultSet queryResult = executeQuery(new MariaDbQuery("show global variables like 'innodb_read_only'")).getResult();
             if (queryResult != null) {
                 queryResult.next();
-                this.masterConnection = "OFF".equals(queryResult.getValueObject(1).getString());
+                this.masterConnection = "OFF".equals(queryResult.getString(1));
             } else {
                 this.masterConnection = false;
             }
@@ -233,9 +232,6 @@ public class AuroraProtocol extends MastersSlavesProtocol {
         } catch (SQLException sqle) {
             throw new QueryException("could not check the 'innodb_read_only' variable status on " + this.getHostAddress()
                     + " : " + sqle.getMessage(), -1, ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(), sqle);
-        } catch (IOException ioe) {
-            throw new QueryException("could not check the 'innodb_read_only' variable status on " + this.getHostAddress()
-                    + " : " + ioe.getMessage(), -1, ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(), ioe);
         } finally {
             proxy.lock.unlock();
         }

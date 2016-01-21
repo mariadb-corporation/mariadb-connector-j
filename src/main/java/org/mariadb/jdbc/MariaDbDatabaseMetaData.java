@@ -49,8 +49,9 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
+import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
+import org.mariadb.jdbc.internal.queryresults.resultset.value.ValueObject;
 import org.mariadb.jdbc.internal.util.Utils;
-import org.mariadb.jdbc.internal.queryresults.ValueObject;
 import org.mariadb.jdbc.internal.util.constant.Version;
 import org.mariadb.jdbc.internal.util.dao.Identifier;
 import org.mariadb.jdbc.internal.MariaDbType;
@@ -262,7 +263,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
                 return result;
             }
         });
-        ResultSet ret = MariaDbResultSet.createResultSet(columnNames, columnTypes, arr, connection.getProtocol());
+        ResultSet ret = MariaSelectResultSet.createResultSet(columnNames, columnTypes, arr, connection.getProtocol());
         return ret;
     }
 
@@ -409,8 +410,9 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     }
 
     private ResultSet executeQuery(String sql) throws SQLException {
-        MariaDbResultSet rs = (MariaDbResultSet) connection.createStatement().executeQuery(sql);
+        MariaSelectResultSet rs = (MariaSelectResultSet) connection.createStatement().executeQuery(sql);
         rs.setStatement(null); // bypass Hibernate statement tracking (CONJ-49)
+        rs.setReturnTableAlias(true);
         return rs;
     }
 
@@ -1475,7 +1477,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         return true;
     }
 
-            
+
     /* Helper to generate  information schema with "equality" condition (typically on catalog name)
      */
 
@@ -1697,7 +1699,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         String sql;
         if (haveInformationSchemaParameters()) {
 
-            sql = "SELECT SPECIFIC_SCHEMA FUNCTION_CAT, NULL FUNCTION_SCHEM, SPECIFIC_NAME FUNCTION_NAME,"
+            sql = "SELECT SPECIFIC_SCHEMA `FUNCTION_CAT`, NULL `FUNCTION_SCHEM`, SPECIFIC_NAME FUNCTION_NAME,"
                     + " PARAMETER_NAME COLUMN_NAME, "
                     + " CASE PARAMETER_MODE "
                     + "  WHEN 'IN' THEN " + functionColumnIn
@@ -1715,7 +1717,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
                     + " AND " + patternCond("SPECIFIC_NAME", functionNamePattern)
                     + " AND " + patternCond("PARAMETER_NAME", columnNamePattern)
                     + " AND ROUTINE_TYPE='FUNCTION'"
-                    + " ORDER BY SPECIFIC_SCHEMA, SPECIFIC_NAME, ORDINAL_POSITION";
+                    + " ORDER BY FUNCTION_CAT, SPECIFIC_NAME, ORDINAL_POSITION";
         } else {
             /*
              * No information_schema.parameters
@@ -2029,7 +2031,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
                 {"TIMESTAMP", "93", "27", "'", "'", "[(M)]", "1", "0", "3", "0", "0", "0", "TIMESTAMP", "0", "0", "0", "0", "10"}
         };
 
-        return MariaDbResultSet.createResultSet(columnNames, columnTypes, data, connection.getProtocol());
+        return MariaSelectResultSet.createResultSet(columnNames, columnTypes, data, connection.getProtocol());
     }
 
     /**
@@ -2080,11 +2082,11 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     }
 
     public boolean supportsResultSetType(int type) throws SQLException {
-        return true;
+        return (type == ResultSet.TYPE_SCROLL_INSENSITIVE || type == ResultSet.TYPE_FORWARD_ONLY);
     }
 
     public boolean supportsResultSetConcurrency(int type, int concurrency) throws SQLException {
-        return concurrency == ResultSet.CONCUR_READ_ONLY;
+        return (type == ResultSet.TYPE_SCROLL_INSENSITIVE || type == ResultSet.TYPE_FORWARD_ONLY) && concurrency == ResultSet.CONCUR_READ_ONLY;
     }
 
     public boolean ownUpdatesAreVisible(int type) throws SQLException {
@@ -2340,7 +2342,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     }
 
     public boolean autoCommitFailureClosesAllResultSets() throws SQLException {
-        return false; //TODO: look into this
+        return false;
     }
 
     public ResultSet getClientInfoProperties() throws SQLException {

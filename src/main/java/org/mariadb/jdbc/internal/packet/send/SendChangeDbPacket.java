@@ -66,15 +66,13 @@ public class SendChangeDbPacket implements InterfaceSendPacket {
     /**
      * Change Database.
      * @param outputStream Write outputStream
-     * @return 0
      * @throws IOException if connection problem occur
      */
-    public int send(final OutputStream outputStream) throws IOException {
+    public void send(final OutputStream outputStream) throws IOException {
         PacketOutputStream pos = (PacketOutputStream) outputStream;
         pos.startPacket(0);
         pos.write(0x02);
         pos.write(database.getBytes("UTF-8"));
         pos.finishPacket();
-        return 0;
     }
 }

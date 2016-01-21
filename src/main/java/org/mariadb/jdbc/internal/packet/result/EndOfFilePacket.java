@@ -65,12 +65,10 @@ public class EndOfFilePacket extends AbstractResultPacket {
      * @param byteBuffer stream byteBuffer
      */
     public EndOfFilePacket(ByteBuffer byteBuffer)  {
-        super(byteBuffer);
-        final Reader reader = new Reader(byteBuffer);
         packetSeq = 0;
-        reader.readByte();
-        warningCount = reader.readShort();
-        statusFlags = reader.readShort();
+        byteBuffer.get();
+        warningCount = byteBuffer.getShort();
+        statusFlags = byteBuffer.getShort();
     }
 
     public ResultType getResultType() {

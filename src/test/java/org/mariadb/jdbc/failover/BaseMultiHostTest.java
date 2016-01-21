@@ -212,6 +212,14 @@ public class BaseMultiHostTest {
     }
 
     /**
+     * Stop proxy.
+     * @param hostNumber host number (first is 1)
+     */
+    public void stopProxy(int hostNumber) {
+        proxySet.get(currentType)[hostNumber - 1].stop();
+    }
+
+    /**
      * Stop all proxy but the one in parameter.
      * @param hostNumber the proxy to not close
      */
@@ -224,14 +232,6 @@ public class BaseMultiHostTest {
         }
     }
 
-
-    /**
-     * Stop proxy.
-     * @param hostNumber host number (first is 1)
-     */
-    public void stopProxy(int hostNumber) {
-        proxySet.get(currentType)[hostNumber - 1].stop();
-    }
 
     /**
      * Restart proxy.

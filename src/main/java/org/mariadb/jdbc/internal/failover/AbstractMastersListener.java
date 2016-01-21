@@ -212,7 +212,7 @@ public abstract class AbstractMastersListener implements Listener {
     }
 
     protected void setSessionReadOnly(boolean readOnly, Protocol protocol) throws QueryException {
-        if (protocol.versionGreaterOrEqual(10, 0, 0)) {
+        if (protocol.versionGreaterOrEqual(5, 6, 5)) {
             protocol.executeQuery(new MariaDbQuery("SET SESSION TRANSACTION " + (readOnly ? "READ ONLY" : "READ WRITE")));
         }
     }

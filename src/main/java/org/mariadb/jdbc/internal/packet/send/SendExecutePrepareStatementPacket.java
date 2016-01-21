@@ -82,10 +82,9 @@ public class SendExecutePrepareStatementPacket implements InterfaceSendPacket {
     /**
      * Send a prepare statement binary stream.
      * @param os database socket
-     * @return 0 if all when well
      * @throws IOException if a connection error occur
      */
-    public int send(final OutputStream os) throws IOException {
+    public void send(final OutputStream os) throws IOException {
         PacketOutputStream buffer = (PacketOutputStream) os;
         buffer.startPacket(0, true);
         buffer.buffer.put((byte) 0x17);
@@ -134,6 +133,5 @@ public class SendExecutePrepareStatementPacket implements InterfaceSendPacket {
             }
         }
         buffer.finishPacket();
-        return 0;
     }
 }

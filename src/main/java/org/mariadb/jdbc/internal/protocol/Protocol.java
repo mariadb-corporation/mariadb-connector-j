@@ -53,10 +53,11 @@ import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
+import org.mariadb.jdbc.internal.queryresults.ExecutionResult;
+import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.PrepareStatementCache;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
-import org.mariadb.jdbc.internal.queryresults.AbstractQueryResult;
 import org.mariadb.jdbc.internal.query.Query;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.util.dao.PrepareResult;
@@ -64,8 +65,10 @@ import org.mariadb.jdbc.internal.util.dao.PrepareResult;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.SocketException;
+import java.sql.SQLException;
 import java.util.Calendar;
-import java.util.List;
+import java.util.Deque;
+import java.util.concurrent.locks.ReentrantLock;
 
 public interface Protocol {
     PrepareResult prepare(String sql) throws QueryException;
@@ -128,17 +131,26 @@ public interface Protocol {
 
     boolean ping() throws QueryException;
 
-    AbstractQueryResult executeQuery(Query query) throws QueryException;
+    ExecutionResult executeQuery(Query query) throws QueryException;
 
-    AbstractQueryResult executeQuery(final List<Query> queries, boolean streaming, boolean isRewritable, int rewriteOffset) throws QueryException;
+    void executeQuery(ExecutionResult executionResult, Query query, int resultSetScrollType, int fetchSize) throws QueryException;
 
-    AbstractQueryResult executeQuery(Query query, boolean streaming) throws QueryException;
+    void executeMultiQueries(ExecutionResult executionResult, final Deque<Query> queries, int fetchSize, boolean isRewritable, int rewriteOffset)
+            throws QueryException;
 
-    AbstractQueryResult getResult(Object queryObj, boolean streaming, boolean binaryProtocol) throws QueryException;
+    void executeQueries(ExecutionResult executionResult, Deque<Query> queries, int resultSetScrollType) throws QueryException;
+
+    void executePreparedQuery(ExecutionResult executionResult, String sql, ParameterHolder[] parameters, PrepareResult prepareResult,
+                              MariaDbType[] parameterTypeHeader, int resultSetScrollType) throws QueryException;
+
+    void executePreparedQueryAfterFailover(ExecutionResult executionResult, String sql, ParameterHolder[] parameters, PrepareResult prepareResult,
+                                           MariaDbType[] parameterTypeHeader, int resultSetScrollType) throws QueryException;
+
+    void getResult(ExecutionResult executionResult, int resultSetScrollType, boolean binaryProtocol) throws QueryException;
 
     void cancelCurrentQuery() throws QueryException, IOException;
 
-    AbstractQueryResult getMoreResults(boolean streaming) throws QueryException;
+    void skip() throws SQLException, QueryException;
 
     boolean hasUnreadData();
 
@@ -176,7 +188,7 @@ public interface Protocol {
 
     boolean isExplicitClosed();
 
-    void closeIfActiveResult();
+    void closeIfActiveResult() throws SQLException;
 
     void connectWithoutProxy() throws QueryException;
 
@@ -184,13 +196,7 @@ public interface Protocol {
 
     void setHostFailedWithoutProxy();
 
-    AbstractQueryResult executePreparedQuery(String sql, ParameterHolder[] parameters, PrepareResult prepareResult, MariaDbType[] parameterTypeHeader,
-                                             boolean isStreaming) throws QueryException;
-
     void releasePrepareStatement(String sql, int statementId) throws QueryException;
-
-    AbstractQueryResult executePreparedQueryAfterFailover(String sql, ParameterHolder[] parameters, PrepareResult oldPrepareResult,
-                                                          MariaDbType[] parameterTypeHeader, boolean isStreaming) throws QueryException; //used
 
     PrepareStatementCache prepareStatementCache();
 
@@ -198,5 +204,17 @@ public interface Protocol {
     String getServerData(String code);
 
     Calendar getCalendar();
+
+    void setHasWarnings(boolean hasWarnings);
+
+    MariaSelectResultSet getActiveResult();
+
+    void setActiveResult(MariaSelectResultSet mariaSelectResultSet);
+
+    ReentrantLock getLock();
+
+    void getMoreResults(ExecutionResult executionResult) throws QueryException;
+
+    void setMoreResults(boolean moreResults);
 
 }

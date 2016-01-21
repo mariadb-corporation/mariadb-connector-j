@@ -32,12 +32,26 @@ public class ReplicationFailoverTest extends BaseReplication {
         currentType = HaMode.REPLICATION;
     }
 
+    @Test
+    public void readOnlyPropagatesToServerAlias() throws SQLException {
+        assureReadOnly(true);
+    }
 
     @Test
-    public void testErrorWriteOnSlave() throws SQLException {
+    public void assureReadOnly() throws SQLException {
+        assureReadOnly(false);
+    }
+
+    /**
+     * Test assureReadOnly / readOnlyPropagatesToServer alias.
+     *
+     * @param useAlias use alias readOnlyPropagatesToServer ?
+     * @throws SQLException if any exception
+     */
+    public void assureReadOnly(boolean useAlias) throws SQLException {
         Connection connection = null;
         try {
-            connection = getNewConnection("&assureReadOnly=true", false);
+            connection = getNewConnection(useAlias ? "&readOnlyPropagatesToServer=true" : "&assureReadOnly=true", false);
             Statement stmt = connection.createStatement();
             stmt.execute("drop table  if exists replicationDelete" + jobId);
             stmt.execute("create table replicationDelete" + jobId + " (id int not null primary key auto_increment, test VARCHAR(10))");

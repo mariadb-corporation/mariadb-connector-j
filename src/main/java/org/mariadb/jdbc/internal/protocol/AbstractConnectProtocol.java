@@ -58,8 +58,9 @@ import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.MyX509TrustManager;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
 import org.mariadb.jdbc.internal.packet.send.SendOldPasswordAuthPacket;
-import org.mariadb.jdbc.internal.queryresults.AbstractQueryResult;
+import org.mariadb.jdbc.internal.queryresults.*;
 import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
+import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 import org.mariadb.jdbc.internal.util.*;
 import org.mariadb.jdbc.internal.util.buffer.ReadUtil;
 import org.mariadb.jdbc.internal.packet.read.RawPacket;
@@ -68,14 +69,12 @@ import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
 import org.mariadb.jdbc.internal.packet.read.ReadResultPacketFactory;
 import org.mariadb.jdbc.internal.query.MariaDbQuery;
 import org.mariadb.jdbc.internal.query.Query;
-import org.mariadb.jdbc.internal.queryresults.SelectQueryResult;
-import org.mariadb.jdbc.internal.queryresults.StreamingSelectResult;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.util.constant.MariaDbCharset;
 import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
 import org.mariadb.jdbc.internal.util.constant.ServerStatus;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
-import org.mariadb.jdbc.internal.queryresults.ValueObject;
+import org.mariadb.jdbc.internal.queryresults.resultset.value.ValueObject;
 import org.mariadb.jdbc.internal.packet.result.*;
 import org.mariadb.jdbc.internal.packet.send.SendClosePacket;
 import org.mariadb.jdbc.internal.packet.send.SendHandshakeResponsePacket;
@@ -98,6 +97,7 @@ import java.net.Socket;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.security.KeyStore;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
@@ -131,7 +131,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     public boolean moreResults = false;
     public boolean hasWarnings = false;
-    public StreamingSelectResult activeResult = null;
+    public MariaSelectResultSet activeResult = null;
     public int dataTypeMappingFlags;
     public short serverStatus;
 
@@ -154,20 +154,29 @@ public abstract class AbstractConnectProtocol implements Protocol {
         setDataTypeMappingFlags();
     }
 
-
-    private void skip() throws IOException, QueryException {
+    /**
+     * Skip packets not read that are not needed.
+     * Packets are read according to needs.
+     * If some data have not been read before next execution, skip it.
+     *
+     * @throws QueryException exception
+     */
+    public void skip() throws SQLException, QueryException {
         if (activeResult != null) {
             activeResult.close();
         }
 
         while (moreResults) {
-            getMoreResults(true);
+            SingleExecutionResult execution = new SingleExecutionResult(null, 0, true);
+            getMoreResults(execution);
         }
-
     }
 
-    public abstract AbstractQueryResult getMoreResults(boolean streaming) throws QueryException;
+    public abstract void getMoreResults(ExecutionResult executionResult) throws QueryException;
 
+    public void setMoreResults(boolean moreResults) {
+        this.moreResults = moreResults;
+    }
     /**
      * Closes socket and stream readers/writers Attempts graceful shutdown.
      */
@@ -359,8 +368,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
         connected = true;
 
-        setSessionOptions();
         loadServerData();
+        setSessionOptions();
         writer.setMaxAllowedPacket(Integer.parseInt(serverData.get("max_allowed_packet")));
 
         createDatabaseIfNotExist();
@@ -383,12 +392,25 @@ public abstract class AbstractConnectProtocol implements Protocol {
     }
 
     private void setSessionOptions()  throws QueryException {
+        String sessionOption = "";
         // In JDBC, connection must start in autocommit mode.
         if ((serverStatus & ServerStatus.AUTOCOMMIT) == 0) {
-            executeQuery(new MariaDbQuery("set autocommit=1"));
+            sessionOption += ",autocommit=1";
+        }
+        if (urlParser.getOptions().jdbcCompliantTruncation) {
+            if (serverData.get("sql_mode") == null || "".equals(serverData.get("sql_mode"))) {
+                sessionOption += ",sql_mode='STRICT_TRANS_TABLES'";
+            } else {
+                if (!serverData.get("sql_mode").contains("STRICT_TRANS_TABLES")) {
+                    sessionOption += ",sql_mode='" + serverData.get("sql_mode") + ",STRICT_TRANS_TABLES'";
+                }
+            }
         }
         if (urlParser.getOptions().sessionVariables != null) {
-            executeQuery(new MariaDbQuery("set session " + urlParser.getOptions().sessionVariables));
+            sessionOption += "," + urlParser.getOptions().sessionVariables;
+        }
+        if (!"".equals(sessionOption)) {
+            executeQuery(new MariaDbQuery("set session " + sessionOption.substring(1)));
         }
     }
 
@@ -556,23 +578,22 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     private void loadServerData() throws QueryException, IOException {
         serverData = new TreeMap<>();
-        SelectQueryResult qr = null;
+        MariaSelectResultSet qr = null;
         try {
             qr = executeSingleInternalQuery(new MariaDbQuery("SELECT "
                     + "@@max_allowed_packet, "
                     + "@@system_time_zone, "
-                    + "@@time_zone"));
+                    + "@@time_zone, "
+                    + "@@sql_mode"));
+
             if (qr.next()) {
-                serverData.put("max_allowed_packet", qr.getValueObject(0).getString());
-                serverData.put("system_time_zone", qr.getValueObject(1).getString());
-                serverData.put("time_zone", qr.getValueObject(2).getString());
+                serverData.put("max_allowed_packet", qr.getString(1));
+                serverData.put("system_time_zone", qr.getString(2));
+                serverData.put("time_zone", qr.getString(3));
+                serverData.put("sql_mode", qr.getString(4));
             }
         } catch (SQLException sqle) {
             throw new QueryException("could not load system variables", -1, ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(), sqle);
-        } finally {
-            if (qr != null) {
-                qr.close();
-            }
         }
     }
 
@@ -730,7 +751,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     }
 
 
-    private SelectQueryResult executeSingleInternalQuery(Query query) throws QueryException {
+    private MariaSelectResultSet executeSingleInternalQuery(Query query) throws QueryException {
         try {
             writer.startPacket(0);
             writer.write(0x03);
@@ -751,7 +772,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
                     throw new QueryException("Packets out of order when reading field packets, expected was EOF stream. "
                             + "Packet contents (hex) = " + MasterProtocol.hexdump(bufferEof, 0));
                 }
-                return new StreamingSelectResult(ci, this, packetFetcher, false);
+                MariaSelectResultSet resultSet = new MariaSelectResultSet(ci, null, this, packetFetcher, false, ResultSet.TYPE_FORWARD_ONLY, 0);
+                resultSet.initFetch();
+                return resultSet;
             } catch (IOException e) {
                 throw new QueryException("Could not read result set: " + e.getMessage(), -1,
                         ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(), e);
@@ -882,6 +905,24 @@ public abstract class AbstractConnectProtocol implements Protocol {
         return urlParser.getOptions();
     }
 
-    public abstract AbstractQueryResult executeQuery(Query query) throws QueryException;
+    public abstract ExecutionResult executeQuery(Query query) throws QueryException;
 
+    public void setHasWarnings(boolean hasWarnings) {
+        this.hasWarnings = hasWarnings;
+    }
+
+    @Override
+    public MariaSelectResultSet getActiveResult() {
+        return activeResult;
+    }
+
+    @Override
+    public void setActiveResult(MariaSelectResultSet activeResult) {
+        this.activeResult = activeResult;
+    }
+
+    @Override
+    public ReentrantLock getLock() {
+        return lock;
+    }
 }

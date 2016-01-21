@@ -50,6 +50,8 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.util.dao;
 
 
+import org.mariadb.jdbc.internal.util.ExceptionCode;
+
 public class QueryException extends Exception {
     private static final long serialVersionUID = 974263994278018455L;
     /**
@@ -92,7 +94,20 @@ public class QueryException extends Exception {
     }
 
     /**
-     * creates a query exception with a message and a cause.
+     * Creates a query exception with a message.
+     *
+     * @param message   the message
+     * @param exceptionCode exceptionCode
+     */
+    public QueryException(final String message, ExceptionCode exceptionCode) {
+        super(message);
+        this.message = message;
+        this.errorCode = -1;
+        this.sqlState = exceptionCode.sqlState;
+    }
+
+    /**
+     * Creates a query exception with a message and a cause.
      *
      * @param message   the exception message
      * @param errorCode the error code
@@ -130,6 +145,7 @@ public class QueryException extends Exception {
 
     /**
      * Gets the sql state.
+     *
      * @return the sql state
      */
     public final String getSqlState() {
@@ -138,6 +154,7 @@ public class QueryException extends Exception {
 
     /**
      * Sets the sql state.
+     *
      * @param sqlState sqlState
      */
     public void setSqlState(String sqlState) {

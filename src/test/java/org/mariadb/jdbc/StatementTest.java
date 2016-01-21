@@ -50,8 +50,7 @@ public class StatementTest extends BaseTest {
 
     @Test
     public void wrapperTest() throws SQLException {
-        MariaDbStatement mysqlStatement = new MariaDbStatement((MariaDbConnection) sharedConnection,
-                Statement.NO_GENERATED_KEYS);
+        MariaDbStatement mysqlStatement = new MariaDbStatement((MariaDbConnection) sharedConnection, ResultSet.TYPE_FORWARD_ONLY);
         assertTrue(mysqlStatement.isWrapperFor(Statement.class));
         assertFalse(mysqlStatement.isWrapperFor(SQLException.class));
         assertThat(mysqlStatement.unwrap(Statement.class), equalTo((Statement) mysqlStatement));

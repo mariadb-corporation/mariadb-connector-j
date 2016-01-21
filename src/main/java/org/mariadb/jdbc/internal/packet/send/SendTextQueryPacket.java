@@ -55,13 +55,15 @@ import org.mariadb.jdbc.internal.query.Query;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.List;
 
 
 public class SendTextQueryPacket implements InterfaceSendPacket {
 
     private Query query;
-    private List<Query> queries;
+    private Deque<Query> queries;
     private boolean isRewritable;
     private int rewriteOffset;
 
@@ -71,7 +73,7 @@ public class SendTextQueryPacket implements InterfaceSendPacket {
      * @param isRewritable are queries rewritable.
      * @param rewriteOffset initial common offset
      */
-    public SendTextQueryPacket(final List<Query> queries, boolean isRewritable, int rewriteOffset) {
+    public SendTextQueryPacket(final Deque<Query> queries, boolean isRewritable, int rewriteOffset) {
         this.queries = queries;
         this.query = null;
         this.isRewritable = isRewritable;
@@ -92,46 +94,44 @@ public class SendTextQueryPacket implements InterfaceSendPacket {
     /**
      * Send queries to server.
      * @param stream write socket to server
-     * @return number of send queries
      * @throws IOException if connection error occur
      * @throws QueryException when query rewrite error.
      */
-    public int send(final OutputStream stream) throws IOException, QueryException {
+    public void send(final OutputStream stream) throws IOException, QueryException {
         PacketOutputStream pos = (PacketOutputStream) stream;
         pos.startPacket(0);
         pos.write(0x03);
-        int queryNumberSend = 1;
         if (query != null) {
             query.writeTo(stream);
         } else {
             if (queries.size() == 1) {
-                queries.get(0).writeTo(stream);
+                queries.poll().writeTo(stream);
             } else {
                 if (!isRewritable) {
-                    queries.get(0).writeTo(stream);
-                    for (int i = 1; i < queries.size(); i++) {
-                        if (pos.checkRewritableLength(queries.get(i).getQuerySize())) {
+                    queries.poll().writeTo(stream);
+                    while (!queries.isEmpty()) {
+                        Query query = queries.poll();
+                        if (pos.checkRewritableLength(query.getQuerySize())) {
                             pos.write(';');
-                            queries.get(i).writeTo(stream);
-                            queryNumberSend++;
+                            query.writeTo(stream);
                         }
                     }
                 } else {
-                    queries.get(0).writeFirstRewritePart(stream);
-                    int lastPartLength = queries.get(0).writeLastRewritePartLength();
-                    for (int i = 1; i < queries.size(); i++) {
-                        if (pos.checkRewritableLength(queries.get(i).writeToRewritablePartLength(rewriteOffset) + lastPartLength)) {
-                            queries.get(i).writeToRewritablePart(stream, rewriteOffset);
-                            queryNumberSend++;
-                        }
+                    Query firstQuery = queries.poll();
+                    firstQuery.writeFirstRewritePart(stream);
+                    int lastPartLength = firstQuery.writeLastRewritePartLength();
+                    Query query;
+                    while ((query = queries.peekFirst()) != null
+                            && pos.checkRewritableLength(query.writeToRewritablePartLength(rewriteOffset) + lastPartLength)) {
+                        queries.pollFirst();
+                        query.writeToRewritablePart(stream, rewriteOffset);
                     }
-                    queries.get(0).writeLastRewritePart(stream);
+                    firstQuery.writeLastRewritePart(stream);
                 }
             }
         }
 
         pos.finishPacket();
-        return queryNumberSend;
     }
 
 }

@@ -43,6 +43,8 @@ public class MultiTest extends BaseTest {
         st.execute("insert into MultiTestt1 values(1,'a'),(2,'a')");
         st.execute("insert into MultiTestt2 values(1,'a'),(2,'a')");
         st.execute("insert into MultiTestt5 values(1,'a'),(2,'a'),(2,'b')");
+        createTable("MultiTestt9", "id int not null primary key");
+
     }
 
     @Test
@@ -236,7 +238,7 @@ public class MultiTest extends BaseTest {
             // request will be INSERT INTO MultiTestt6 VALUES ...(1000000, 'testValue1000000'),(1000001, 'testValue1000001')"
             // average additional part size will be 30 characters (",(1000001, 'testValue1000001')")
             // so there must be (8000000 * 30) / max_allowed_packet insert send
-            int totalInsertCommands = (int) Math.ceil((1500000 * 30) / maxAllowedPacket );
+            int totalInsertCommands = (int) Math.ceil((1500000 * 30) / maxAllowedPacket);
             verifyInsertBehaviorBasedOnRewriteBatchedStatements(Boolean.TRUE, 1500000, totalInsertCommands);
         } else {
             fail();
@@ -731,6 +733,7 @@ public class MultiTest extends BaseTest {
 
     /**
      * Conj-208 : Rewritten batch inserts can fail without a space before the VALUES clause.
+     *
      * @throws Exception exception
      */
     @Test
@@ -751,6 +754,39 @@ public class MultiTest extends BaseTest {
         } finally {
             if (tmpConnection != null) {
                 tmpConnection.close();
+            }
+        }
+    }
+
+    @Test
+    public void continueOnBatchError() throws SQLException {
+        continueOnBatchError(true, 9, true, false);
+        continueOnBatchError(false, 5, true, false);
+        continueOnBatchError(true, 9, false, false);
+        continueOnBatchError(false, 5, false, false);
+        continueOnBatchError(true, 0, false, true);
+        continueOnBatchError(false, 0, false, true);
+    }
+
+    private void continueOnBatchError(boolean continueBatch, int waitedResult, boolean server, boolean rewrite) throws SQLException {
+        try (Connection connection = setConnection("&continueBatchOnError=" + continueBatch + "&rewriteBatchedStatements=" + rewrite)) {
+            connection.createStatement().execute("TRUNCATE TABLE MultiTestt9");
+            PreparedStatement pstmt = connection.prepareStatement(((server || rewrite) ? "" : "/*CLIENT*/ ")
+                    + "INSERT INTO MultiTestt9 (id) VALUES (?)");
+            for (int i = 0; i < 10; i++) {
+                pstmt.setInt(1, (i == 5) ? 0 : i);
+                pstmt.addBatch();
+            }
+            try {
+                pstmt.executeBatch();
+                fail("Must have thrown SQLException");
+            } catch (SQLException e) {
+                ResultSet rs = connection.createStatement().executeQuery("SELECT COUNT(*) FROM MultiTestt9");
+                if (rs.next()) {
+                    assertEquals(waitedResult, rs.getInt(1));
+                } else {
+                    fail("Must have one result");
+                }
             }
         }
     }

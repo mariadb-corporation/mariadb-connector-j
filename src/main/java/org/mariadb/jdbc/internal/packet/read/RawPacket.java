@@ -77,30 +77,6 @@ public final class RawPacket {
     }
 
     /**
-     * Get the next stream from the stream
-     *
-     * @param is the input stream to read the next stream from
-     * @param headerBuffer reusable headBuffer
-     * @param reusableBuffer reusable main buffer
-     * @return The next stream from the stream, or NULL if the stream is closed
-     * @throws java.io.IOException if an error occurs while reading data
-     */
-    public static ByteBuffer nextBuffer(final InputStream is, byte[] headerBuffer, byte[] reusableBuffer) throws IOException {
-        ReadUtil.readFully(is, headerBuffer, 0, 4);
-        int length = (headerBuffer[0] & 0xff) + ((headerBuffer[1] & 0xff) << 8) + ((headerBuffer[2] & 0xff) << 16);
-
-        byte[] rawBytes;
-        if (length < ReadPacketFetcher.AVOID_CREATE_BUFFER_LENGTH) {
-            rawBytes = reusableBuffer;
-        } else {
-            rawBytes = new byte[length];
-        }
-
-        ReadUtil.readFully(is, rawBytes, 0, length);
-        return ByteBuffer.wrap(rawBytes, 0, length).order(ByteOrder.LITTLE_ENDIAN);
-    }
-
-    /**
      * Fetch next stream.
      * @param is inputStream
      * @param headerBuffer reusable headBuffer
@@ -108,12 +84,11 @@ public final class RawPacket {
      * @return result in a rawPAcket
      * @throws IOException if a connection error occur
      */
-    public static RawPacket nextPacket(final InputStream is, byte[] headerBuffer, byte[] reusableBuffer) throws IOException {
+    public static RawPacket nextReusablePacket(final InputStream is, byte[] headerBuffer, byte[] reusableBuffer) throws IOException {
         ReadUtil.readFully(is, headerBuffer, 0, 4);
 
         int length = (headerBuffer[0] & 0xff) + ((headerBuffer[1] & 0xff) << 8) + ((headerBuffer[2] & 0xff) << 16);
         int packetSeq = headerBuffer[3];
-
 
         byte[] rawBytes;
         if (length < ReadPacketFetcher.AVOID_CREATE_BUFFER_LENGTH) {
@@ -122,9 +97,7 @@ public final class RawPacket {
             rawBytes = new byte[length];
         }
 
-
         ReadUtil.readFully(is, rawBytes, 0, length);
-
 
         RawPacket raw = new RawPacket(ByteBuffer.wrap(rawBytes, 0, length).order(ByteOrder.LITTLE_ENDIAN),
                 packetSeq);

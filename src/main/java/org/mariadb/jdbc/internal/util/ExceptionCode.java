@@ -47,41 +47,15 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc.internal.queryresults;
+package org.mariadb.jdbc.internal.util;
 
-import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
-import org.mariadb.jdbc.internal.util.dao.PrepareResult;
+public enum ExceptionCode {
+    CREATE_RESULTSET_DURING_ACTIVE_RESULT("01001"),
+    WRONG_NUMBER_OF_ARGUMENT("07001"),
+    INVALID_PARAMETER_VALUE("22023");
 
-
-public abstract class AbstractQueryResult {
-    protected PrepareResult prepareResult = null;
-    protected boolean isClosed;
-
-    public abstract void addResult(AbstractQueryResult other) ;
-
-    public abstract ResultSetType getResultSetType();
-
-    public PrepareResult getFailureObject() {
-        return this.prepareResult;
+    public final String sqlState;
+    ExceptionCode(String sqlState) {
+        this.sqlState = sqlState;
     }
-
-    public void setFailureObject(PrepareResult resultObject) {
-        this.prepareResult = resultObject;
-    }
-
-    public void close() {
-        isClosed = true;
-    }
-
-    public boolean isClosed() {
-        return isClosed;
-    }
-
-    public abstract short getWarnings();
-
-    public abstract String getMessage();
-
-    public abstract ColumnInformation[] getColumnInformation();
-
-    public abstract int getRows();
 }

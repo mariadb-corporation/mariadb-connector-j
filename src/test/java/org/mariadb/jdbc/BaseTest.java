@@ -206,7 +206,7 @@ public class BaseTest {
      */
     public static void createTable(String tableName, String tableColumns, String engine) throws SQLException {
         Statement stmt = sharedConnection.createStatement();
-        stmt.execute("drop table  if exists " + tableName);
+        stmt.execute("drop table if exists " + tableName);
         stmt.execute("create table " + tableName + " (" + tableColumns + ") " + ((engine != null) ? engine : ""));
         tempTableList.add(tableName);
     }

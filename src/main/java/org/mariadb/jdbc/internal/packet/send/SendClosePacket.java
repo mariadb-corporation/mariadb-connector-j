@@ -60,14 +60,12 @@ public class SendClosePacket implements InterfaceSendPacket {
     /**
      * Send close stream to server.
      * @param os write outputStream
-     * @return 0
      * @throws IOException if connection problem occur
      */
-    public int send(final OutputStream os) throws IOException {
+    public void send(final OutputStream os) throws IOException {
         PacketOutputStream pos = (PacketOutputStream) os;
         pos.startPacket(0);
         pos.write(0x01);
         pos.finishPacket();
-        return 0;
     }
 }

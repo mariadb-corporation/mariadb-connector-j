@@ -67,14 +67,12 @@ public class SendSslConnectionRequestPacket implements InterfaceSendPacket {
     /**
      * Send capabilities.
      * @param os database stream.
-     * @return 1
      * @throws IOException if any connection error occur
      */
-    public int send(final OutputStream os) throws IOException {
+    public void send(final OutputStream os) throws IOException {
         PacketOutputStream pos = (PacketOutputStream) os;
         pos.startPacket(1);
         pos.writeInt(this.clientCapabilities);
         pos.finishPacket();
-        return 1;
     }
 }

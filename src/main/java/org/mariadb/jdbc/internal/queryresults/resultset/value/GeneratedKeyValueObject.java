@@ -47,73 +47,122 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc.internal.queryresults;
+package org.mariadb.jdbc.internal.queryresults.resultset.value;
 
-import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
+import java.io.InputStream;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.sql.Blob;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.text.ParseException;
+import java.util.Calendar;
 
+public class GeneratedKeyValueObject implements ValueObject {
+    Long insertId;
 
-public class UpdateResult extends ModifyQueryResult {
-    private long updateCount;
-    private short warnings;
-    private final String message;
-    private final long insertId;
-
-    /**
-     * Create Update result object.
-     * @param updateCount updateCount
-     * @param warnings warnings
-     * @param message message
-     * @param insertId insertId
-     */
-    public UpdateResult(final long updateCount, final short warnings, final String message, final long insertId) {
-        this.updateCount = updateCount;
-        this.warnings = warnings;
-        this.message = message;
+    public GeneratedKeyValueObject(long insertId) {
         this.insertId = insertId;
     }
 
-    /**
-     * When using rewrite statement, there can be many insert/update command send to database, according to max_allowed_packet size.
-     * the result will be aggregate with this method to give only one result stream to client.
-     * @param other other AbstractQueryResult.
-     */
-    public void addResult(AbstractQueryResult other) {
-        if (other.prepareResult != null) {
-            prepareResult = other.prepareResult;
-        }
-        isClosed = other.isClosed();
-        if (other instanceof UpdateResult) {
-            UpdateResult updateResult = (UpdateResult) other;
-            this.updateCount += updateResult.getUpdateCount();
-            this.warnings += updateResult.getWarnings();
-        }
+    @Override
+    public String getString(Calendar cal) {
+        return insertId.toString();
     }
 
-    public long getUpdateCount() {
-        return updateCount;
+    @Override
+    public String getString() {
+        return insertId.toString();
     }
 
-    public ResultSetType getResultSetType() {
-        return ResultSetType.MODIFY;
+    @Override
+    public long getLong() {
+        return insertId;
     }
 
-    public short getWarnings() {
-        return warnings;
+    @Override
+    public int getInt() {
+        return insertId.intValue();
     }
 
-    public String getMessage() {
-        return message;
+    @Override
+    public short getShort() {
+        return insertId.shortValue();
     }
 
-    public ColumnInformation[] getColumnInformation() {
+    @Override
+    public byte getByte() {
+        return insertId.byteValue();
+    }
+
+    @Override
+    public byte[] getBytes() {
+        return insertId.toString().getBytes();
+    }
+
+    @Override
+    public float getFloat() {
+        return insertId.floatValue();
+    }
+
+    @Override
+    public double getDouble() {
+        return insertId.doubleValue();
+    }
+
+    @Override
+    public BigDecimal getBigDecimal() {
+        return new BigDecimal(insertId);
+    }
+
+    @Override
+    public BigInteger getBigInteger() {
+        return new BigInteger(insertId.toString());
+    }
+
+    @Override
+    public InputStream getInputStream() {
         return null;
     }
 
-    public int getRows() {
-        return 0;
+    @Override
+    public InputStream getBinaryInputStream() {
+        return null;
     }
 
-    public long getInsertId() {
+    @Override
+    public Object getObject(int datatypeMappingFlags, Calendar cal) throws ParseException {
         return insertId;
+    }
+
+    @Override
+    public Date getDate(Calendar cal) throws ParseException {
+        return null;
+    }
+
+    @Override
+    public Time getTime(Calendar cal) throws ParseException {
+        return null;
+    }
+
+    @Override
+    public Timestamp getTimestamp(Calendar cal) throws ParseException {
+        return null;
+    }
+
+    @Override
+    public boolean getBoolean() {
+        return insertId == 1;
+    }
+
+    @Override
+    public boolean isNull() {
+        return insertId == null;
+    }
+
+    @Override
+    public Blob getBlob() {
+        return null;
     }
 }

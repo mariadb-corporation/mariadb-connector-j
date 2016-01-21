@@ -4,6 +4,7 @@ import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.packet.result.*;
 import org.mariadb.jdbc.internal.packet.send.*;
 import org.mariadb.jdbc.internal.queryresults.*;
+import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 import org.mariadb.jdbc.internal.stream.MaxAllowedPacketException;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.PrepareStatementCache;
@@ -29,7 +30,10 @@ import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.sql.Connection;
-import java.util.List;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.concurrent.locks.ReentrantLock;
 
 /*
@@ -91,7 +95,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * Get a protocol instance.
      *
      * @param urlParser connection URL infos
-     * @param lock the lock for thread synchronisation
+     * @param lock      the lock for thread synchronisation
      */
 
     public AbstractQueryProtocol(final UrlParser urlParser, final ReentrantLock lock) {
@@ -119,7 +123,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     /**
      * Hexdump.
      *
-     * @param bb bytebuffer
+     * @param bb     bytebuffer
      * @param offset offset
      * @return String
      */
@@ -254,24 +258,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         }
     }
 
-    /**
-     * create a CachedSelectResult - precondition is that a result set packet has been read
-     *
-     * @param packet the result set packet from the server
-     * @return a CachedSelectResult
-     * @throws java.io.IOException when something goes wrong while reading/writing from the server
-     */
-    private SelectQueryResult createQueryResult(final ResultSetPacket packet, boolean streaming, boolean binaryProtocol)
-            throws IOException, QueryException {
-
-        StreamingSelectResult streamingResult = StreamingSelectResult.createStreamingSelectResult(packet, packetFetcher, this, binaryProtocol);
-        if (streaming) {
-            return streamingResult;
-        }
-
-        return CachedSelectResult.createCachedSelectResult(streamingResult);
-    }
-
     @Override
     public void setCatalog(final String database) throws QueryException {
         lock.lock();
@@ -284,7 +270,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 AbstractResultPacket rs = ReadResultPacketFactory.createResultPacket(byteBuffer);
                 final ErrorPacket ep = (ErrorPacket) rs;
                 throw new QueryException("Could not select database '" + database + "' : " + ep.getMessage(),
-                    ep.getErrorNumber(), ep.getSqlState());
+                        ep.getErrorNumber(), ep.getSqlState());
             }
             this.database = database;
         } catch (IOException e) {
@@ -316,25 +302,33 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         }
     }
 
-    @Override
-    public AbstractQueryResult executeQuery(Query query) throws QueryException {
-        return executeQuery(query, false);
-    }
-
     /**
      * Execute query.
      *
      * @param query the query to execute
-     * @param streaming is streaming flag
      * @return queryResult
      * @throws QueryException exception
      */
     @Override
-    public AbstractQueryResult executeQuery(final Query query, boolean streaming) throws QueryException {
+    public ExecutionResult executeQuery(Query query) throws QueryException {
         query.validate();
-        this.moreResults = false;
-        final SendTextQueryPacket packet = new SendTextQueryPacket(query);
-        return executeQuery(query, packet, streaming);
+        ExecutionResult executionResult = new SingleExecutionResult(null, 0, true);
+        executeQueryInternal(executionResult, new SendTextQueryPacket(query), ResultSet.TYPE_FORWARD_ONLY, query);
+        return executionResult;
+    }
+
+    /**
+     * Execute Query.
+     *
+     * @param executionResult     result
+     * @param query               query
+     * @param resultSetScrollType one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
+     *                            <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @throws QueryException if error occur
+     */
+    public void executeQuery(ExecutionResult executionResult, Query query, int resultSetScrollType, int fetchSize) throws QueryException {
+        query.validate();
+        executeQueryInternal(executionResult, new SendTextQueryPacket(query), resultSetScrollType, query);
     }
 
     /**
@@ -342,49 +336,96 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * This method is used when using text batch statement and using rewriting (allowMultiQueries || rewriteBatchedStatements).
      * queries will be send to server according to max_allowed_packet size.
      *
-     * @param queries list of queryes
-     * @param streaming is streaming flag
-     * @param isRewritable is rewritable flag
-     * @param rewriteOffset rewrite offset
-     * @return queryresult
+     * @param executionResult     result
+     * @param queries             list of queryes
+     * @param resultSetScrollType one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
+     *                            <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param isRewritable        is rewritable flag
+     * @param rewriteOffset       rewrite offset
      * @throws QueryException exception
      */
-    public AbstractQueryResult executeQuery(List<Query> queries, boolean streaming, boolean isRewritable, int rewriteOffset) throws QueryException {
+    public void executeMultiQueries(ExecutionResult executionResult, Deque<Query> queries, int resultSetScrollType, boolean isRewritable,
+                                    int rewriteOffset) throws QueryException {
         for (Query query : queries) {
             query.validate();
         }
-        this.moreResults = false;
-        AbstractQueryResult result = null;
 
+        QueryException queryException = null;
         do {
-            final SendTextQueryPacket packet = new SendTextQueryPacket(queries, isRewritable, rewriteOffset);
-            int queriesSend = sendQuery(packet);
-            if (result == null) {
-                result = result(queries, streaming);
-            } else {
-                result.addResult(result(queries, streaming));
+            try {
+                final SendTextQueryPacket packet = new SendTextQueryPacket(queries, isRewritable, rewriteOffset);
+                executeQueryInternal(executionResult, packet, resultSetScrollType, queries);
+            } catch (QueryException exception) {
+                if (getOptions().continueBatchOnError) {
+                    if (queryException == null) {
+                        queryException = exception;
+                    }
+                } else {
+                    throw exception;
+                }
             }
+        } while (!queries.isEmpty());
 
-            if (queries.size() == queriesSend) {
-                return result;
-            } else {
-                queries = queries.subList(queriesSend, queries.size());
-            }
-        } while (queries.size() > 0 );
-
-        return result;
+        if (queryException != null) {
+            throw queryException;
+        }
     }
 
+    /**
+     * Execute list of queries one by one
+     * This method is used when using text batch statement and using rewriting (allowMultiQueries || rewriteBatchedStatements).
+     * queries will be send to server according to max_allowed_packet size.
+     *
+     * @param executionResult     result
+     * @param queries             list of queryes
+     * @param resultSetScrollType one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
+     *                            <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @throws QueryException exception
+     */
+    public void executeQueries(ExecutionResult executionResult, Deque<Query> queries, int resultSetScrollType) throws QueryException {
+        for (Query query : queries) {
+            query.validate();
+        }
 
-    private AbstractQueryResult executeQuery(Object queriesObj, SendTextQueryPacket packet, boolean streaming) throws QueryException {
-        sendQuery(packet);
-        return result(queriesObj, streaming);
+        QueryException queryException = null;
+        do {
+            try {
+                Query query = queries.poll();
+                final SendTextQueryPacket packet = new SendTextQueryPacket(query);
+                executeQueryInternal(executionResult, packet, resultSetScrollType, query);
+            } catch (QueryException exception) {
+                if (getOptions().continueBatchOnError) {
+                    if (queryException == null) {
+                        queryException = exception;
+                    }
+                } else {
+                    throw exception;
+                }
+            }
+        } while (!queries.isEmpty());
+
+        if (queryException != null) {
+            throw queryException;
+        }
     }
 
-    private int sendQuery(SendTextQueryPacket packet)  throws QueryException {
+    /**
+     * Execute Query.
+     *
+     * @param executionResult     result
+     * @param packet              packet to send to server
+     * @param resultSetScrollType one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
+     *                            <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param queriesObj          query data to log if exception
+     * @throws QueryException if error occur
+     */
+    private void executeQueryInternal(ExecutionResult executionResult, SendTextQueryPacket packet, int resultSetScrollType, Object queriesObj)
+            throws QueryException {
         checkClose();
         try {
-            return packet.send(writer);
+            this.moreResults = false;
+            packet.send(writer);
+            getResult(executionResult, resultSetScrollType, false);
         } catch (MaxAllowedPacketException e) {
             if (e.isMustReconnect()) {
                 connect();
@@ -392,13 +433,27 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             throw new QueryException("Could not send query: " + e.getMessage(), -1, ExceptionMapper.SqlStates.INTERRUPTED_EXCEPTION.getSqlState(), e);
         } catch (IOException e) {
             throw new QueryException("Could not send query: " + e.getMessage(), -1, ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(), e);
-        }
-    }
-
-    private AbstractQueryResult result(Object queriesObj, boolean streaming) throws QueryException {
-        try {
-            return getResult(queriesObj, streaming, false);
         } catch (QueryException qex) {
+            /* Include query into exception message
+             * If SQL query is too long, truncate it to reasonable (for exception messages) length.
+             */
+            String queryString = null;
+            if (queriesObj != null) {
+                if (queriesObj instanceof Query) {
+                    queryString = ((Query) queriesObj).toString();
+                } else if (queriesObj instanceof ArrayDeque) {
+                    Query query = (Query) ((ArrayDeque) queriesObj).peek();
+                    if (query != null) {
+                        queryString = query.toString();
+                    }
+                }
+            }
+            if (queryString != null) {
+                if (queryString.length() > 1024) {
+                    queryString = queryString.substring(0, 1024);
+                }
+                qex.setMessage(qex.getMessage() + "\nQuery is: " + queryString);
+            }
             if (qex.getCause() instanceof SocketTimeoutException) {
                 throw new QueryException("Connection timed out", -1, ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(), qex);
             }
@@ -406,10 +461,16 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         }
     }
 
-
-
-    @Override
-    public AbstractQueryResult getResult(Object queriesObj, boolean streaming, boolean binaryProtocol) throws QueryException {
+    /**
+     * Fetch result.
+     *
+     * @param executionResult     result
+     * @param resultSetScrollType one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
+     *                            <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param binaryProtocol      is binary protocol
+     * @throws QueryException id any exception occur
+     */
+    public void getResult(ExecutionResult executionResult, int resultSetScrollType, boolean binaryProtocol) throws QueryException {
         RawPacket rawPacket = null;
         AbstractResultPacket resultPacket;
         try {
@@ -475,6 +536,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             case ERROR:
                 this.moreResults = false;
                 this.hasWarnings = false;
+                executionResult.addStatsError();
                 ErrorPacket ep = (ErrorPacket) resultPacket;
                 throw new QueryException(ep.getMessage(), ep.getErrorNumber(), ep.getSqlState());
 
@@ -483,85 +545,45 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 serverStatus = okpacket.getServerStatus();
                 this.moreResults = ((serverStatus & ServerStatus.MORE_RESULTS_EXISTS) != 0);
                 this.hasWarnings = (okpacket.getWarnings() > 0);
-                final AbstractQueryResult updateResult = new UpdateResult(okpacket.getAffectedRows(),
-                        okpacket.getWarnings(),
-                        okpacket.getMessage(),
-                        okpacket.getInsertId());
-                return updateResult;
+                executionResult.addStats(okpacket.getAffectedRows(), okpacket.getInsertId(), this.moreResults);
+                break;
             case RESULTSET:
                 this.hasWarnings = false;
                 ResultSetPacket resultSetPacket = (ResultSetPacket) resultPacket;
-                try {
-                    return this.createQueryResult(resultSetPacket, streaming, binaryProtocol);
-                } catch (IOException e) {
 
+                try {
+                    MariaSelectResultSet mariaSelectResultSet = MariaSelectResultSet.createResult(executionResult.getStatement(), resultSetPacket,
+                            packetFetcher, this, binaryProtocol, resultSetScrollType, executionResult.getFetchSize());
+                    if (!executionResult.isSelectPossible()) {
+                        throw new QueryException("Select command are not permitted via executeBatch() command");
+                    }
+                    executionResult.addResult(mariaSelectResultSet, moreResults);
+                } catch (IOException e) {
                     throw new QueryException("Could not read result set: " + e.getMessage(),
                             -1,
                             ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(),
                             e);
                 }
+                break;
             default:
                 throw new QueryException("Could not parse result", (short) -1, ExceptionMapper.SqlStates.INTERRUPTED_EXCEPTION.getSqlState());
         }
 
     }
 
-
-    /**
-     * Execute queries.
-     *
-     * @param queries queries list
-     * @param streaming is streaming flag
-     * @param isRewritable is rewritable flag
-     * @param rewriteOffset rewriteoffset
-     * @return queryResult
-     * @throws QueryException exception
-     */
-    public AbstractQueryResult executeBatch(final List<Query> queries, boolean streaming, boolean isRewritable, int rewriteOffset)
+    @Override
+    public void executePreparedQueryAfterFailover(ExecutionResult executionResult, String sql, ParameterHolder[] parameters,
+                                                  PrepareResult prepareResult, MariaDbType[] parameterTypeHeader, int resultSetScrollType)
             throws QueryException {
-        checkClose();
-        for (Query query : queries) {
-            query.validate();
-        }
-
-        this.moreResults = false;
-        final SendTextQueryPacket packet = new SendTextQueryPacket(queries, isRewritable, rewriteOffset);
-        try {
-            packet.send(writer);
-        } catch (MaxAllowedPacketException e) {
-            if (e.isMustReconnect()) {
-                connect();
-            }
-            throw new QueryException("Could not send query: " + e.getMessage(), -1,
-                    ExceptionMapper.SqlStates.INTERRUPTED_EXCEPTION.getSqlState(), e);
-        } catch (IOException e) {
-            throw new QueryException("Could not send query: " + e.getMessage(), -1,
-                    ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(), e);
-        }
-
-        try {
-            return getResult(queries, streaming, false);
-        } catch (QueryException qex) {
-            if (qex.getCause() instanceof SocketTimeoutException) {
-                throw new QueryException("Connection timed out", -1, ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(), qex);
-            } else {
-                throw qex;
-            }
-        }
+        PrepareResult prepareResultNew = prepare(sql);
+        executePreparedQuery(executionResult, sql, parameters, prepareResultNew, parameterTypeHeader,
+                resultSetScrollType);
+        executionResult.setFailureObject(prepareResult);
     }
 
     @Override
-    public AbstractQueryResult executePreparedQueryAfterFailover(String sql, ParameterHolder[] parameters, PrepareResult oldPrepareResult,
-                                                         MariaDbType[] parameterTypeHeader, boolean isStreaming) throws QueryException {
-        PrepareResult prepareResult = prepare(sql);
-        AbstractQueryResult queryResult = executePreparedQuery(sql, parameters, prepareResult, parameterTypeHeader, isStreaming);
-        queryResult.setFailureObject(prepareResult);
-        return queryResult;
-    }
-
-    @Override
-    public AbstractQueryResult executePreparedQuery(String sql, ParameterHolder[] parameters, PrepareResult prepareResult,
-                                                    MariaDbType[] parameterTypeHeader, boolean isStreaming) throws QueryException {
+    public void executePreparedQuery(ExecutionResult executionResult, String sql, ParameterHolder[] parameters, PrepareResult prepareResult,
+                                     MariaDbType[] parameterTypeHeader, int resultSetScrollType) throws QueryException {
         checkClose();
         this.moreResults = false;
         try {
@@ -578,7 +600,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             SendExecutePrepareStatementPacket packet = new SendExecutePrepareStatementPacket(prepareResult.statementId, parameters,
                     parameterCount, parameterTypeHeader);
             packet.send(writer);
-
+            getResult(executionResult, resultSetScrollType, true);
         } catch (MaxAllowedPacketException e) {
             if (e.isMustReconnect()) {
                 connect();
@@ -588,11 +610,16 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         } catch (IOException e) {
             throw new QueryException("Could not send query: " + e.getMessage(), -1,
                     ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(), e);
-        }
-
-        try {
-            return getResult(sql, isStreaming, true);
         } catch (QueryException qex) {
+            /* Include query into exception message
+             * If SQL query is too long, truncate it to reasonable (for exception messages) length.
+             */
+            if (sql.length() > 1024) {
+                qex.setMessage(qex.getMessage() + "\nQuery is: " + sql.substring(0, 1024));
+            } else {
+                qex.setMessage(qex.getMessage() + "\nQuery is: " + sql);
+            }
+
             if (qex.getCause() instanceof SocketTimeoutException) {
                 throw new QueryException("Connection timed out", -1, ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(), qex);
             } else {
@@ -630,7 +657,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * Cancels the current query - clones the current protocol and executes a query using the new connection.
      *
      * @throws QueryException never thrown
-     * @throws IOException if Host is not responding
+     * @throws IOException    if Host is not responding
      */
     @Override
     public void cancelCurrentQuery() throws QueryException, IOException {
@@ -643,11 +670,11 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     }
 
     @Override
-    public AbstractQueryResult getMoreResults(boolean streaming) throws QueryException {
+    public void getMoreResults(ExecutionResult executionResult) throws QueryException {
         if (!moreResults) {
-            return null;
+            return;
         }
-        return getResult(null, streaming, (activeResult != null) ? activeResult.isBinaryProtocol() : false);
+        getResult(executionResult, ResultSet.TYPE_FORWARD_ONLY, (activeResult != null) ? activeResult.isBinaryProtocol() : false);
     }
 
     @Override
@@ -764,10 +791,11 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             throw new QueryException("Connection is close", 1220, "08000");
         }
     }
+
     /**
      * Close active result.
      */
-    public void closeIfActiveResult() {
+    public void closeIfActiveResult() throws SQLException {
         if (activeResult != null) {
             activeResult.close();
         }
@@ -776,6 +804,5 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     public PrepareStatementCache prepareStatementCache() {
         return prepareStatementCache;
     }
-
 
 }

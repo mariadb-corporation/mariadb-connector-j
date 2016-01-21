@@ -65,15 +65,13 @@ public class SendPrepareStatementPacket implements InterfaceSendPacket {
     /**
      * Send server prepareStatement stream.
      * @param os database socket
-     * @return 0 if all went well
      * @throws IOException if any connection error occur
      */
-    public int send(final OutputStream os) throws IOException {
+    public void send(final OutputStream os) throws IOException {
         PacketOutputStream pos = (PacketOutputStream) os;
         pos.startPacket(0);
         pos.write(0x16);
         pos.write(sql.getBytes("UTF-8"));
         pos.finishPacket();
-        return 0;
     }
 }

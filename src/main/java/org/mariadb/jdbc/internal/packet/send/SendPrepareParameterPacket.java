@@ -80,10 +80,9 @@ public class SendPrepareParameterPacket implements InterfaceSendPacket {
     /**
      * Send stream to database.
      * @param os database socket
-     * @return 0 if all went well
      * @throws IOException if a connection error occur
      */
-    public int send(final OutputStream os) throws IOException {
+    public void send(final OutputStream os) throws IOException {
         PacketOutputStream pos = (PacketOutputStream) os;
         pos.startPacket(0);
         pos.writeByte((byte) 0x18);
@@ -92,6 +91,5 @@ public class SendPrepareParameterPacket implements InterfaceSendPacket {
 
         parameter.writeBinary(((PacketOutputStream) os));
         pos.finishPacket();
-        return 0;
     }
 }

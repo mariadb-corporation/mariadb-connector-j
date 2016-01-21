@@ -66,7 +66,6 @@ public class ErrorPacket extends AbstractResultPacket {
      * @param byteBuffer current stream byteBuffer
      */
     public ErrorPacket(ByteBuffer byteBuffer) {
-        super(byteBuffer);
         final Reader reader = new Reader(byteBuffer);
         reader.readByte();
         this.errorNumber = reader.readShort();

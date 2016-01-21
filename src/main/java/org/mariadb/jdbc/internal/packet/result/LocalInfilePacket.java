@@ -14,12 +14,8 @@ public class LocalInfilePacket extends AbstractResultPacket {
      * @param byteBuffer current stream's byteBuffer
      */
     public LocalInfilePacket(ByteBuffer byteBuffer) {
-        super(byteBuffer);
         final Reader reader = new Reader(byteBuffer);
-        long fieldCount = reader.getLengthEncodedBinary();
-        if (fieldCount != -1) {
-            throw new AssertionError("field count must be -1");
-        }
+        reader.getLengthEncodedBinary(); //field count
         fileName = reader.readString(StandardCharsets.UTF_8);
     }
 

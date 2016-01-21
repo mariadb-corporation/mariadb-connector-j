@@ -118,7 +118,7 @@ public class ReadPacketFetcher {
         int remaining = 4;
         int off = 0;
         do {
-            int count = inputStream.read(reusableBuffer, off, remaining);
+            int count = inputStream.read(headerBuffer, off, remaining);
             if (count <= 0) {
                 throw new EOFException("unexpected end of stream, read " + (4 - remaining) + " bytes from " + 4);
             }
@@ -126,32 +126,15 @@ public class ReadPacketFetcher {
             off += count;
         } while (remaining > 0);
 
-        int length = (reusableBuffer[0] & 0xff) + ((reusableBuffer[1] & 0xff) << 8) + ((reusableBuffer[2] & 0xff) << 16);
+        long length = (headerBuffer[0] & 0xff) + ((headerBuffer[1] & 0xff) << 8) + ((headerBuffer[2] & 0xff) << 16);
 
-        remaining = length;
-        do {
-            int count = inputStream.read(reusableBuffer, 0, Math.min(remaining, AVOID_CREATE_BUFFER_LENGTH));
-            if (count <= 0) {
-                throw new EOFException("unexpected end of stream, read " + (length - remaining) + " bytes from " + length);
-            }
-            remaining -= count;
-        } while (remaining > 0);
+        while (length > 0) {
+            length -= inputStream.skip(length);
+        }
     }
-
 
     public RawPacket getReusableRawPacket() throws IOException {
-        return RawPacket.nextPacket(inputStream, headerBuffer, reusableBuffer);
-    }
-
-    /**
-     * Clear current inputStream.
-     * @throws IOException if connection errors occur
-     */
-    public void clearInputStream() throws IOException {
-        int available = inputStream.available();
-        while (available > 0) {
-            available -= inputStream.skip(available);
-        }
+        return RawPacket.nextReusablePacket(inputStream, headerBuffer, reusableBuffer);
     }
 
     public void close() throws IOException {

@@ -64,15 +64,12 @@ public class ResultSetPacket extends AbstractResultPacket {
      * @throws IOException if byteBuffer data doesn't correspond to exepected data
      */
     public ResultSetPacket(ByteBuffer byteBuffer) throws IOException {
-        super(byteBuffer);
-        final Reader reader = new Reader(byteBuffer);
-
-        fieldCount = reader.getLengthEncodedBinary();
+        fieldCount = getLengthEncodedBinary(byteBuffer);
         if (fieldCount == -1) {
             // Should never get there, it is LocalInfilePacket, not ResultSetPacket
             throw new AssertionError("field count is -1 in ResultSetPacket.");
         }
-        if (reader.getRemainingSize() != 0) {
+        if (byteBuffer.remaining() != 0) {
             throw new IOException("invalid stream contents ,expected result set stream, actual stream hexdump = "
                     + MasterProtocol.hexdump(byteBuffer, 0));
         }

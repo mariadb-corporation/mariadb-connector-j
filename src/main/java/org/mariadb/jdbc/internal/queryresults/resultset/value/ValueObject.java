@@ -1,4 +1,4 @@
-package org.mariadb.jdbc.internal.queryresults;
+package org.mariadb.jdbc.internal.queryresults.resultset.value;
 
 import java.io.InputStream;
 import java.math.BigDecimal;
