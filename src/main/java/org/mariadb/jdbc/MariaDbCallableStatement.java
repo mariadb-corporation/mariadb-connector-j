@@ -951,11 +951,11 @@ public class MariaDbCallableStatement implements CallableStatement {
     }
 
     public void setAsciiStream(int parameterIndex, InputStream stream, long length) throws SQLException {
-        setAsciiStream(parameterIndex, stream, length);
+        inputParameters().setAsciiStream(parameterIndex, stream, length);
     }
 
     public void setAsciiStream(int parameterIndex, InputStream stream) throws SQLException {
-        setAsciiStream(parameterIndex, stream);
+        inputParameters().setAsciiStream(parameterIndex, stream);
     }
 
     public void setBinaryStream(String parameterName, InputStream stream, int length) throws SQLException {
@@ -975,11 +975,11 @@ public class MariaDbCallableStatement implements CallableStatement {
     }
 
     public void setBinaryStream(int parameterIndex, InputStream stream, long length) throws SQLException {
-        setBinaryStream(parameterIndex, stream, length);
+        inputParameters().setBinaryStream(parameterIndex, stream, length);
     }
 
     public void setBinaryStream(int parameterIndex, InputStream stream) throws SQLException {
-        setBinaryStream(parameterIndex, stream);
+        inputParameters().setBinaryStream(parameterIndex, stream);
     }
 
     public void setObject(String parameterName, Object obj, int targetSqlType, int scale) throws SQLException {
@@ -1004,7 +1004,7 @@ public class MariaDbCallableStatement implements CallableStatement {
     }
 
     public void setObject(int parameterIndex, Object obj, int targetSqlType, int scaleOrLength) throws SQLException {
-        setObject(parameterIndex, obj, targetSqlType, scaleOrLength);
+        inputParameters().setObject(parameterIndex, obj, targetSqlType, scaleOrLength);
     }
 
     public void setCharacterStream(String parameterName, Reader reader, int length) throws SQLException {
@@ -1024,11 +1024,11 @@ public class MariaDbCallableStatement implements CallableStatement {
     }
 
     public void setCharacterStream(int parameterIndex, Reader reader, long length) throws SQLException {
-        setCharacterStream(parameterIndex, reader, length);
+        inputParameters().setCharacterStream(parameterIndex, reader, length);
     }
 
     public void setCharacterStream(int parameterIndex, Reader reader) throws SQLException {
-        setCharacterStream(parameterIndex, reader);
+        inputParameters().setCharacterStream(parameterIndex, reader);
     }
 
 
@@ -1157,7 +1157,7 @@ public class MariaDbCallableStatement implements CallableStatement {
     }
 
     public void setBlob(int parameterIndex, InputStream inputStream) throws SQLException {
-        setBlob(parameterIndex, inputStream);
+        inputParameters().setBlob(parameterIndex, inputStream);
     }
 
     public void setBlob(String parameterName, InputStream inputStream) throws SQLException {
