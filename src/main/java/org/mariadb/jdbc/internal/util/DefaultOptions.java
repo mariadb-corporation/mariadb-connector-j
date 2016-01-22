@@ -322,7 +322,13 @@ public enum DefaultOptions {
      * Truncation error ("Data truncated for column '%' at row %", "Out of range value for column '%' at row %") will be thrown as error,
      * and not as warning.
      */
-    JDBCOMPLIANTRUNCATION("jdbcCompliantTruncation", Boolean.TRUE, "1.4.0");
+    JDBCOMPLIANTRUNCATION("jdbcCompliantTruncation", Boolean.TRUE, "1.4.0"),
+
+    /**
+     * Read socket data in advance when available packet to avoid socket buffering.
+     *
+     */
+    USE_READ_AHEAD_INPUT("useReadAheadInput", Boolean.TRUE, "1.4.0");
 
 
     protected final String name;

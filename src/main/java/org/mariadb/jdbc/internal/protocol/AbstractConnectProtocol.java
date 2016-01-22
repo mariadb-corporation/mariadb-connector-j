@@ -5,6 +5,7 @@ MariaDB Client for Java
 
 Copyright (c) 2012 Monty Program Ab.
 Copyright (c) 2015 Avaya Inc.
+Copyright (c) 2015-2016 MariaDB Ab.
 
 This library is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License as published by the Free
@@ -61,6 +62,7 @@ import org.mariadb.jdbc.internal.packet.send.SendOldPasswordAuthPacket;
 import org.mariadb.jdbc.internal.queryresults.*;
 import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
+import org.mariadb.jdbc.internal.stream.OptimizedBufferedInputStream;
 import org.mariadb.jdbc.internal.util.*;
 import org.mariadb.jdbc.internal.util.buffer.ReadUtil;
 import org.mariadb.jdbc.internal.packet.read.RawPacket;
@@ -417,7 +419,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private void handleConnectionPhases() throws QueryException {
         InputStream reader = null;
         try {
-            reader = new BufferedInputStream(socket.getInputStream(), 32768);
+            reader = getOptions().useReadAheadInput
+                    ? new OptimizedBufferedInputStream(socket.getInputStream()) : new BufferedInputStream(socket.getInputStream());
             packetFetcher = new ReadPacketFetcher(reader);
             writer = new PacketOutputStream(socket.getOutputStream());
 
@@ -444,7 +447,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 sslSocket.startHandshake();
                 socket = sslSocket;
                 writer = new PacketOutputStream(socket.getOutputStream());
-                reader = new BufferedInputStream(socket.getInputStream(), 32768);
+                reader = getOptions().useReadAheadInput
+                        ? new OptimizedBufferedInputStream(socket.getInputStream()) : new BufferedInputStream(socket.getInputStream());
                 packetFetcher = new ReadPacketFetcher(reader);
 
                 packetSeq++;
