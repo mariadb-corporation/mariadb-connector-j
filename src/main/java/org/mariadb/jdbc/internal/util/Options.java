@@ -99,6 +99,7 @@ public class Options {
     public boolean useServerPrepStmts;
     public boolean continueBatchOnError;
     public boolean jdbcCompliantTruncation;
+    public boolean useReadAheadInput;
 
     //HA options
     public boolean assureReadOnly;
@@ -162,6 +163,7 @@ public class Options {
                 + ", maximizeMysqlCompatibility=" + maximizeMysqlCompatibility
                 + ", continueBatchOnError=" + continueBatchOnError
                 + ", jdbcCompliantTruncation=" + jdbcCompliantTruncation
+                + ", useReadAheadInput"
                 + "}";
     }
 
@@ -315,7 +317,9 @@ public class Options {
         if (jdbcCompliantTruncation != options.jdbcCompliantTruncation) {
             return false;
         }
-
+        if (useReadAheadInput != options.useReadAheadInput) {
+            return false;
+        }
         return !(prepStmtCacheSqlLimit != null ? !prepStmtCacheSqlLimit.equals(options.prepStmtCacheSqlLimit)
                 : options.prepStmtCacheSqlLimit != null);
 
