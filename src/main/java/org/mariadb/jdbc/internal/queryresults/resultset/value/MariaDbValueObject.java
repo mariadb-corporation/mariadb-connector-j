@@ -347,30 +347,51 @@ public class MariaDbValueObject implements ValueObject {
 
 
     private byte parseByte() throws SQLException {
-        String value = new String(rawBytes, StandardCharsets.UTF_8);
         try {
             switch (dataType) {
                 case FLOAT:
-                    Float floatValue = Float.valueOf(value);
+                    Float floatValue = Float.valueOf(new String(rawBytes, StandardCharsets.UTF_8));
                     if (floatValue.compareTo((float) Byte.MAX_VALUE) >= 1) {
-                        throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value " + value
+                        throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
+                                + new String(rawBytes, StandardCharsets.UTF_8)
                                 + " is not in Byte range", "22003", 1264);
                     }
                     return floatValue.byteValue();
                 case DOUBLE:
-                    Double doubleValue = Double.valueOf(value);
+                    Double doubleValue = Double.valueOf(new String(rawBytes, StandardCharsets.UTF_8));
                     if (doubleValue.compareTo((double) Byte.MAX_VALUE) >= 1) {
-                        throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value " + value
+                        throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
+                                + new String(rawBytes, StandardCharsets.UTF_8)
                                 + " is not in Byte range", "22003", 1264);
                     }
                     return doubleValue.byteValue();
+                case TINYINT:
+                case SMALLINT:
+                case YEAR:
+                case INTEGER:
+                case MEDIUMINT:
+                    long result = 0;
+                    int length = rawBytes.length;
+                    boolean negate = false;
+                    int begin = 0;
+                    if (length > 0 && rawBytes[0] == 45) { //minus sign
+                        negate = true;
+                        begin = 1;
+                    }
+                    for (; begin < length; begin++) {
+                        result = result * 10 + rawBytes[begin] - 48;
+                    }
+                    result = (negate ? -1 * result : result);
+                    rangeCheck(Byte.class, Byte.MIN_VALUE, Byte.MAX_VALUE, result);
+                    return (byte) result;
                 default:
-                    return Byte.parseByte(value);
+                    return Byte.parseByte(new String(rawBytes, StandardCharsets.UTF_8));
             }
         } catch (NumberFormatException nfe) {
             //parse error.
             //if this is a decimal with only "0" in decimal, like "1.0000" (can be the case if trying to getByte with a database decimal value
             //retrying without the decimal part.
+            String value = new String(rawBytes, StandardCharsets.UTF_8);
             if (isIntegerRegex.matcher(value).find()) {
                 try {
                     return Byte.parseByte(value.substring(0, value.indexOf(".")));
@@ -432,30 +453,52 @@ public class MariaDbValueObject implements ValueObject {
     }
 
     private short parseShort() throws SQLException {
-        String value = new String(rawBytes, StandardCharsets.UTF_8);
         try {
             switch (dataType) {
                 case FLOAT:
-                    Float floatValue = Float.valueOf(value);
+                    Float floatValue = Float.valueOf(new String(rawBytes, StandardCharsets.UTF_8));
                     if (floatValue.compareTo((float) Short.MAX_VALUE) >= 1) {
-                        throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value " + value
+                        throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
+                                + new String(rawBytes, StandardCharsets.UTF_8)
                                 + " is not in Short range", "22003", 1264);
                     }
                     return floatValue.shortValue();
                 case DOUBLE:
-                    Double doubleValue = Double.valueOf(value);
+                    Double doubleValue = Double.valueOf(new String(rawBytes, StandardCharsets.UTF_8));
                     if (doubleValue.compareTo((double) Short.MAX_VALUE) >= 1) {
-                        throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value " + value
+                        throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
+                                + new String(rawBytes, StandardCharsets.UTF_8)
                                 + " is not in Short range", "22003", 1264);
                     }
                     return doubleValue.shortValue();
+                case BIT:
+                case TINYINT:
+                case SMALLINT:
+                case YEAR:
+                case INTEGER:
+                case MEDIUMINT:
+                    long result = 0;
+                    int length = rawBytes.length;
+                    boolean negate = false;
+                    int begin = 0;
+                    if (length > 0 && rawBytes[0] == 45) { //minus sign
+                        negate = true;
+                        begin = 1;
+                    }
+                    for (; begin < length; begin++) {
+                        result = result * 10 + rawBytes[begin] - 48;
+                    }
+                    result = (negate ? -1 * result : result);
+                    rangeCheck(Short.class, Short.MIN_VALUE, Short.MAX_VALUE, result);
+                    return (short) result;
                 default:
-                    return Short.parseShort(value);
+                    return Short.parseShort(new String(rawBytes, StandardCharsets.UTF_8));
             }
         } catch (NumberFormatException nfe) {
             //parse error.
             //if this is a decimal with only "0" in decimal, like "1.0000" (can be the case if trying to getInt with a database decimal value
             //retrying without the decimal part.
+            String value = new String(rawBytes, StandardCharsets.UTF_8);
             if (isIntegerRegex.matcher(value).find()) {
                 try {
                     return Short.parseShort(value.substring(0, value.indexOf(".")));
@@ -520,30 +563,52 @@ public class MariaDbValueObject implements ValueObject {
     }
 
     private int parseInt() throws SQLException {
-        String value = new String(rawBytes, StandardCharsets.UTF_8);
         try {
             switch (dataType) {
                 case FLOAT:
-                    Float floatValue = Float.valueOf(value);
+                    Float floatValue = Float.valueOf(new String(rawBytes, StandardCharsets.UTF_8));
                     if (floatValue.compareTo((float) Integer.MAX_VALUE) >= 1) {
-                        throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value " + value
+                        throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
+                                + new String(rawBytes, StandardCharsets.UTF_8)
                                 + " is not in Integer range", "22003", 1264);
                     }
                     return floatValue.intValue();
                 case DOUBLE:
-                    Double doubleValue = Double.valueOf(value);
+                    Double doubleValue = Double.valueOf(new String(rawBytes, StandardCharsets.UTF_8));
                     if (doubleValue.compareTo((double) Integer.MAX_VALUE) >= 1) {
-                        throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value " + value
+                        throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
+                                + new String(rawBytes, StandardCharsets.UTF_8)
                                 + " is not in Integer range", "22003", 1264);
                     }
                     return doubleValue.intValue();
+                case BIT:
+                case TINYINT:
+                case SMALLINT:
+                case YEAR:
+                case INTEGER:
+                case MEDIUMINT:
+                    long result = 0;
+                    int length = rawBytes.length;
+                    boolean negate = false;
+                    int begin = 0;
+                    if (length > 0 && rawBytes[0] == 45) { //minus sign
+                        negate = true;
+                        begin = 1;
+                    }
+                    for (; begin < length; begin++) {
+                        result = result * 10 + rawBytes[begin] - 48;
+                    }
+                    result = (negate ? -1 * result : result);
+                    rangeCheck(Integer.class, Integer.MIN_VALUE, Integer.MAX_VALUE, result);
+                    return (int) result;
                 default:
-                    return Integer.parseInt(value);
+                    return Integer.parseInt(new String(rawBytes, StandardCharsets.UTF_8));
             }
         } catch (NumberFormatException nfe) {
             //parse error.
             //if this is a decimal with only "0" in decimal, like "1.0000" (can be the case if trying to getInt with a database decimal value
             //retrying without the decimal part.
+            String value = new String(rawBytes, StandardCharsets.UTF_8);
             if (isIntegerRegex.matcher(value).find()) {
                 try {
                     return Integer.parseInt(value.substring(0, value.indexOf(".")));
@@ -627,31 +692,51 @@ public class MariaDbValueObject implements ValueObject {
     }
 
     private long parseLong() throws SQLException {
-        String value = new String(rawBytes, StandardCharsets.UTF_8);
         try {
             switch (dataType) {
                 case FLOAT:
-                    Float floatValue = Float.valueOf(value);
+                    Float floatValue = Float.valueOf(new String(rawBytes, StandardCharsets.UTF_8));
                     if (floatValue.compareTo((float) Long.MAX_VALUE) >= 1) {
-                        throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value " + value
+                        throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
+                                + new String(rawBytes, StandardCharsets.UTF_8)
                                 + " is not in Long range", "22003", 1264);
                     }
                     return floatValue.longValue();
                 case DOUBLE:
-                    Double doubleValue = Double.valueOf(value);
+                    Double doubleValue = Double.valueOf(new String(rawBytes, StandardCharsets.UTF_8));
                     if (doubleValue.compareTo((double) Long.MAX_VALUE) >= 1) {
-                        throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value " + value
+                        throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
+                                + new String(rawBytes, StandardCharsets.UTF_8)
                                 + " is not in Long range", "22003", 1264);
                     }
                     return doubleValue.longValue();
+                case BIT:
+                case TINYINT:
+                case SMALLINT:
+                case YEAR:
+                case INTEGER:
+                case MEDIUMINT:
+                    long result = 0;
+                    int length = rawBytes.length;
+                    boolean negate = false;
+                    int begin = 0;
+                    if (length > 0 && rawBytes[0] == 45) { //minus sign
+                        negate = true;
+                        begin = 1;
+                    }
+                    for (; begin < length; begin++) {
+                        result = result * 10 + rawBytes[begin] - 48;
+                    }
+                    return (negate ? -1 * result : result);
                 default:
-                    return Long.parseLong(value);
+                    return Long.parseLong(new String(rawBytes, StandardCharsets.UTF_8));
             }
 
         } catch (NumberFormatException nfe) {
             //parse error.
             //if this is a decimal with only "0" in decimal, like "1.0000" (can be the case if trying to getlong with a database decimal value
             //retrying without the decimal part.
+            String value = new String(rawBytes, StandardCharsets.UTF_8);
             if (isIntegerRegex.matcher(value).find()) {
                 try {
                     return Long.parseLong(value.substring(0, value.indexOf(".")));
