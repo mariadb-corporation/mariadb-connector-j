@@ -226,7 +226,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
             MariaSelectResultSet queryResult = executionResult.getResult();
             if (queryResult != null) {
                 queryResult.next();
-                this.masterConnection = "OFF".equals(queryResult.getString(1));
+                this.masterConnection = "OFF".equals(queryResult.getString(2));
             } else {
                 this.masterConnection = false;
             }

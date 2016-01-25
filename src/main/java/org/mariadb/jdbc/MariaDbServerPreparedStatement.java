@@ -229,7 +229,7 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
             } catch (QueryException queryException) {
                 exception = queryException;
             } finally {
-                executeQueryEpilog(exception, sql);
+                executeQueryEpilog(exception);
                 executing = false;
             }
             return internalExecutionResult.getAffectedRows();
