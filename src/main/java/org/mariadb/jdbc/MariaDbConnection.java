@@ -330,7 +330,7 @@ public final class MariaDbConnection implements Connection {
      * @since 1.4
      */
     public PreparedStatement prepareStatement(final String sql, final int[] columnIndexes) throws SQLException {
-        return prepareStatement(sql);
+        return prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
     }
 
     /**
@@ -357,7 +357,7 @@ public final class MariaDbConnection implements Connection {
      * @since 1.4
      */
     public PreparedStatement prepareStatement(final String sql, final String[] columnNames) throws SQLException {
-        return prepareStatement(sql);
+        return prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
     }
 
 
