@@ -494,10 +494,13 @@ public class BaseTest {
      * @throws SQLException exception
      */
     public void cancelForVersion(int major, int minor, int patch) throws SQLException {
-
         String dbVersion = sharedConnection.getMetaData().getDatabaseProductVersion();
         Assume.assumeFalse(dbVersion.startsWith(major + "." + minor + "." + patch));
+    }
 
+    public void cancelForVersion(int major, int minor) throws SQLException {
+        String dbVersion = sharedConnection.getMetaData().getDatabaseProductVersion();
+        Assume.assumeFalse(dbVersion.startsWith(major + "." + minor));
     }
 
 
