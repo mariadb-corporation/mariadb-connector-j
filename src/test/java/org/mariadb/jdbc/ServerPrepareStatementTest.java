@@ -755,7 +755,7 @@ public class ServerPrepareStatementTest extends BaseTest {
             final long executionTimeSecond = System.nanoTime() - startTimeSecond;
 
             System.out.println("total time : " + (executionTimeSecond) + " first : " + executionTime);
-            Assert.assertTrue(executionTimeSecond  * 1.2 < executionTime);
+            Assert.assertTrue(executionTimeSecond  < executionTime);
 
             ResultSet resultSet = connection.createStatement().executeQuery("SELECT * FROM ServerPrepareStatementPrepareCache");
             if (resultSet.next()) {
