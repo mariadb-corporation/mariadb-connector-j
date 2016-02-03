@@ -78,8 +78,9 @@ public class CallableParameterMetaData implements ParameterMetaData {
      * @param database database name
      * @param name procedure/function name
      * @param isFunction is it a function
+     * @param noAccessToMetadata tell if metadata information cannot be access from current user
      */
-    public CallableParameterMetaData(MariaDbConnection con, String database, String name, boolean isFunction) {
+    public CallableParameterMetaData(MariaDbConnection con, String database, String name, boolean isFunction, boolean noAccessToMetadata) {
         this.params = null;
         this.con = con;
         if (database != null) {
@@ -89,6 +90,7 @@ public class CallableParameterMetaData implements ParameterMetaData {
         }
         this.name = name.replace("`","");
         this.isFunction = isFunction;
+        this.noAccessToMetadata = noAccessToMetadata;
     }
 
     /**
@@ -178,7 +180,10 @@ public class CallableParameterMetaData implements ParameterMetaData {
             functionReturn = rs.getString(2);
             database = rs.getString(3);
             this.isFunction = "FUNCTION".equals(rs.getString(4));
-            return new String[] {paramList, functionReturn};
+            return new String[]{paramList, functionReturn};
+        } catch (SQLSyntaxErrorException sqlSyntaxErrorException) {
+            throw new SQLException("Access to metaData informations not granted for current user. Consider grant select access to mysql.proc "
+                    + " or consider using 'noAccessToProcedureBodies' option", sqlSyntaxErrorException);
         } finally {
             if (rs != null) {
                 rs.close();
@@ -356,4 +361,9 @@ public class CallableParameterMetaData implements ParameterMetaData {
         readMetadataFromDbIfRequired();
         return database;
     }
+
+    protected void setParams(List<CallParameter> params) {
+        this.params = params;
+    }
+
 }

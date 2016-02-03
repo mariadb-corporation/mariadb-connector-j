@@ -334,7 +334,14 @@ public class BaseTest {
         return openConnection(connUri + additionnallParameters, null);
     }
 
-    private Connection openConnection(String uri, Properties info) throws SQLException {
+    /**
+     * Permit to reconstruct a connection.
+     * @param uri base uri
+     * @param info additionnal properties
+     * @return A connection
+     * @throws SQLException is any error occur
+     */
+    public Connection openConnection(String uri, Properties info) throws SQLException {
         if (info == null) {
             return DriverManager.getConnection(uri);
         } else {
@@ -497,12 +504,6 @@ public class BaseTest {
         String dbVersion = sharedConnection.getMetaData().getDatabaseProductVersion();
         Assume.assumeFalse(dbVersion.startsWith(major + "." + minor + "." + patch));
     }
-
-    public void cancelForVersion(int major, int minor) throws SQLException {
-        String dbVersion = sharedConnection.getMetaData().getDatabaseProductVersion();
-        Assume.assumeFalse(dbVersion.startsWith(major + "." + minor));
-    }
-
 
     void requireMinimumVersion(int major, int minor) throws SQLException {
         Assume.assumeTrue(minVersion(major, minor));
