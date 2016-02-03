@@ -199,6 +199,58 @@ public class CallableStatementTest extends BaseTest {
         }
     }
 
+    @Test
+    public void testMetaCatalogNoAccessToProcedureBodies() throws Exception {
+        Statement statement = sharedConnection.createStatement();
+        try {
+            statement.execute("DROP USER 'test_jdbc'@'localhost'");
+        } catch (SQLException e) {
+            //eat exception
+        }
+        statement.execute("CREATE USER 'test_jdbc'@'localhost' IDENTIFIED BY 'test_jdbc'");
+        statement.execute("GRANT ALL PRIVILEGES ON testj.* TO 'test_jdbc'@'localhost' IDENTIFIED BY 'test_jdbc' WITH GRANT OPTION");
+        Properties properties = new Properties();
+        properties.put("user", "test_jdbc");
+        properties.put("password", "test_jdbc");
+        properties.put("noAccessToProcedureBodies", "true");
+
+        createProcedure("testMetaCatalog", "(x int, out y int)\nBEGIN\nSET y = 2;\n end\n");
+
+        try (Connection connection = openConnection(connU, properties)) {
+            CallableStatement callableStatement = connection.prepareCall("{call testMetaCatalog(?, ?)}");
+            callableStatement.registerOutParameter(2, Types.INTEGER);
+            try {
+                callableStatement.setString("x", "1");
+                fail("Set by named must not succeed");
+            } catch (SQLException sqlException) {
+                Assert.assertTrue(sqlException.getMessage().startsWith("Parameter 'noAccessToProcedureBodies' is set, "
+                        + "disabling access to parameter by name"));
+            }
+            callableStatement.setString(1, "1");
+            callableStatement.execute();
+            try {
+                callableStatement.getInt("y");
+                fail("Get by named must not succeed");
+            } catch (SQLException sqlException) {
+                Assert.assertTrue(sqlException.getMessage().startsWith("Parameter 'noAccessToProcedureBodies' is set, "
+                        + "disabling access to parameter by name"));
+            }
+            Assert.assertEquals(2, callableStatement.getInt(2));
+
+            ResultSet resultSet = connection.getMetaData().getProcedures("yahoooo", null, "testMetaCatalog");
+            assertFalse(resultSet.next());
+
+            //test without catalog
+            resultSet = connection.getMetaData().getProcedures(null, null, "testMetaCatalog");
+            if (resultSet.next()) {
+                assertTrue("testMetaCatalog".equals(resultSet.getString(3)));
+                assertFalse(resultSet.next());
+            } else {
+                fail();
+            }
+        }
+        statement.execute("DROP USER 'test_jdbc'@'localhost'");
+    }
 
     @Test
     public void testSameProcedureWithDifferentParameters() throws Exception {
@@ -520,7 +572,6 @@ public class CallableStatementTest extends BaseTest {
 
     @Test
     public void testHugeNumberOfParameters() throws Exception {
-
         StringBuilder procDef = new StringBuilder("(");
         StringBuilder param = new StringBuilder();
         for (int i = 0; i < 274; i++) {
