@@ -442,6 +442,18 @@ public class BaseTest {
 
     }
 
+    /**
+     * Cancel if database version match.
+     * @param major db major version
+     * @param minor db minor version
+     * @throws SQLException exception
+     */
+    public void cancelForVersion(int major, int minor) throws SQLException {
+
+        String dbVersion = sharedConnection.getMetaData().getDatabaseProductVersion();
+        Assume.assumeFalse(dbVersion.startsWith(major + "." + minor));
+
+    }
 
     /**
      * Cancel if database version match.
