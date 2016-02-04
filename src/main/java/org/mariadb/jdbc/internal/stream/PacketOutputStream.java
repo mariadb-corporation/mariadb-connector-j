@@ -62,7 +62,7 @@ public class PacketOutputStream extends OutputStream {
      * @throws IOException if any error occur during data send to server
      */
     public void startPacket(int seqNo, boolean checkPacketLength) throws IOException {
-        if (closed){
+        if (closed) {
             throw new IOException("Stream has already closed");
         }
         if (this.seqNo != -1) {
