@@ -49,20 +49,14 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-import org.mariadb.jdbc.internal.util.constant.MariaDbCharset;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
 import java.io.IOException;
 
 
 public abstract class LongDataParameterHolder extends ParameterHolder {
-    public MariaDbCharset mariaDbCharset;
 
     public abstract void writeBinary(PacketOutputStream writeBuffer) throws IOException;
-
-    public void setMariaDbServerCharset(MariaDbCharset mariaDbCharset) {
-        this.mariaDbCharset = mariaDbCharset;
-    }
 
     public boolean isLongData() {
         return true;

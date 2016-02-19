@@ -49,41 +49,24 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.packet.send;
 
-import org.mariadb.jdbc.internal.util.constant.MariaDbCharset;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 import org.mariadb.jdbc.internal.packet.dao.parameters.LongDataParameterHolder;
 
 import java.io.IOException;
 import java.io.OutputStream;
 
-public class SendPrepareParameterPacket implements InterfaceSendPacket {
-
-    private LongDataParameterHolder parameter;
-    private int statementId;
-    private int parameterIndex;
-
-    /**
-     * Initiate parameters.
-     * @param parameterIndex parameter index
-     * @param parameter parameter
-     * @param statementId statement Id
-     * @param mariaDbCharset charset
-     */
-    public SendPrepareParameterPacket(int parameterIndex, LongDataParameterHolder parameter, int statementId, MariaDbCharset mariaDbCharset) {
-        this.parameter = parameter;
-        this.statementId = statementId;
-        this.parameterIndex = parameterIndex;
-        this.parameter.setMariaDbServerCharset(mariaDbCharset);
-
-    }
+public class SendPrepareParameterPacket {
 
     /**
      * Send stream to database.
+     * @param parameterIndex parameter index
+     * @param parameter parameter
+     * @param statementId statement Id
      * @param os database socket
-     * @return 0 if all went well
      * @throws IOException if a connection error occur
      */
-    public int send(final OutputStream os) throws IOException {
+    public static void send(final int parameterIndex, final LongDataParameterHolder parameter, final int statementId, final OutputStream os)
+            throws IOException {
         PacketOutputStream pos = (PacketOutputStream) os;
         pos.startPacket(0);
         pos.writeByte((byte) 0x18);
@@ -92,6 +75,5 @@ public class SendPrepareParameterPacket implements InterfaceSendPacket {
 
         parameter.writeBinary(((PacketOutputStream) os));
         pos.finishPacket();
-        return 0;
     }
 }

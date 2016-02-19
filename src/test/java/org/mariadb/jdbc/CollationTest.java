@@ -3,13 +3,13 @@ package org.mariadb.jdbc;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.io.Reader;
+import java.io.StringReader;
+import java.sql.*;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class CollationTest extends BaseTest {
     /**
@@ -19,6 +19,8 @@ public class CollationTest extends BaseTest {
     @BeforeClass()
     public static void initClass() throws SQLException {
         createTable("emojiTest", "id int unsigned, field longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+        createTable("unicodeTestChar", "id int unsigned, field1 varchar(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci, field2 longtext "
+                + "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
     }
 
     /**
@@ -30,7 +32,7 @@ public class CollationTest extends BaseTest {
     public void emoji() throws SQLException {
         Connection connection = null;
         try {
-            connection = setConnection("&useUnicode=yes&useConfigs=maxPerformance");
+            connection = setConnection();
             String sqlForCharset = "select @@character_set_server";
             ResultSet rs = connection.createStatement().executeQuery(sqlForCharset);
             assertTrue(rs.next());
@@ -55,6 +57,47 @@ public class CollationTest extends BaseTest {
             assertEquals("\uD83D\uDE04", rs.getString(1));
         } finally {
             connection.close();
+        }
+    }
+
+
+    /**
+     * Conj-252.
+     *
+     * @throws SQLException exception
+     */
+    @Test
+    public void test4BytesUtf8() throws Exception {
+
+        String sqlForCharset = "select @@character_set_server";
+        ResultSet rs = sharedConnection.createStatement().executeQuery(sqlForCharset);
+        assertTrue(rs.next());
+        String emoji = "\uD83C\uDF1F";
+        boolean mustThrowError = true;
+        if ("utf8mb4".equals(rs.getString(1))) {
+            mustThrowError = false;
+        }
+
+        PreparedStatement ps = sharedConnection.prepareStatement("INSERT INTO unicodeTestChar (id, field1, field2) VALUES (1, ?, ?)");
+        ps.setString(1, emoji);
+        Reader reader = new StringReader(emoji);
+        ps.setCharacterStream(2, reader);
+        try {
+            ps.execute();
+            ps = sharedConnection.prepareStatement("SELECT field1, field2 FROM unicodeTestChar");
+            rs = ps.executeQuery();
+            assertTrue(rs.next());
+
+            // compare to the Java representation of UTF32
+            assertEquals(4,  rs.getBytes(1).length);
+            assertEquals(emoji, rs.getString(1));
+
+            assertEquals(4,  rs.getBytes(2).length);
+            assertEquals(emoji, rs.getString(2));
+        } catch (BatchUpdateException b) {
+            if (!mustThrowError) {
+                fail("Must not have thrown error");
+            }
         }
     }
 }

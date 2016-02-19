@@ -71,7 +71,6 @@ import org.mariadb.jdbc.internal.query.Query;
 import org.mariadb.jdbc.internal.queryresults.SelectQueryResult;
 import org.mariadb.jdbc.internal.queryresults.StreamingSelectResult;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
-import org.mariadb.jdbc.internal.util.constant.MariaDbCharset;
 import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
 import org.mariadb.jdbc.internal.util.constant.ServerStatus;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
@@ -110,7 +109,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private int majorVersion;
     private int minorVersion;
     private int patchVersion;
-    private byte serverLanguage;
     private Map<String, String> serverData;
     private Calendar cal;
 
@@ -126,7 +124,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
     protected boolean explicitClosed = false;
     protected String database;
     protected long serverThreadId;
-    protected MariaDbCharset charset;
     protected PrepareStatementCache prepareStatementCache;
 
     public boolean moreResults = false;
@@ -401,8 +398,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
             final ReadInitialConnectPacket greetingPacket = new ReadInitialConnectPacket(packetFetcher);
             this.serverThreadId = greetingPacket.getServerThreadId();
-            this.serverLanguage = greetingPacket.getServerLanguage();
-            this.charset = CharsetUtils.getServerCharset(serverLanguage);
             this.version = greetingPacket.getServerVersion();
             parseVersion();
             int clientCapabilities = initializeClientCapabilities();
@@ -430,7 +425,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 throw new QueryException("Trying to connect with ssl, but ssl not enabled in the server");
             }
 
-            authentication(clientCapabilities, greetingPacket.getSeed(), packetSeq);
+            authentication(greetingPacket.getServerLanguage(), clientCapabilities, greetingPacket.getSeed(), packetSeq);
 
         } catch (IOException e) {
             if (reader != null) {
@@ -445,12 +440,12 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
     }
 
-    private void authentication(int clientCapabilities, byte[] seed, byte packetSeq) throws QueryException, IOException {
+    private void authentication(byte serverLanguage, int clientCapabilities, byte[] seed, byte packetSeq) throws QueryException, IOException {
         final SendHandshakeResponsePacket cap = new SendHandshakeResponsePacket(this.username,
                 this.password,
                 database,
                 clientCapabilities,
-                decideLanguage(),
+                decideLanguage(serverLanguage),
                 seed,
                 packetSeq);
         cap.send(writer);
@@ -594,8 +589,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
         return Arrays.asList(utf8mb4Languages).contains(serverLanguage);
     }
 
-    private byte decideLanguage() {
-        byte result = (isServerLanguageUtf8mb4(this.serverLanguage) ? this.serverLanguage : 33);
+    private byte decideLanguage(byte serverLanguage) {
+        byte result = (isServerLanguageUtf8mb4(serverLanguage) ? serverLanguage : 33);
         return result;
     }
 

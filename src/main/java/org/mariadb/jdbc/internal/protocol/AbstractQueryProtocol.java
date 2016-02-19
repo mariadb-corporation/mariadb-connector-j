@@ -569,9 +569,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             //send binary data in a separate stream
             for (int i = 0; i < parameterCount; i++) {
                 if (parameters[i].isLongData()) {
-                    SendPrepareParameterPacket sendPrepareParameterPacket = new SendPrepareParameterPacket(i, (LongDataParameterHolder) parameters[i],
-                            prepareResult.statementId, charset);
-                    sendPrepareParameterPacket.send(writer);
+                    SendPrepareParameterPacket.send(i, (LongDataParameterHolder) parameters[i], prepareResult.statementId, writer);
                 }
             }
             //send execute query

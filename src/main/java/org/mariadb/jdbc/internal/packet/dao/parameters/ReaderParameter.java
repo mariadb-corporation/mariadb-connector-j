@@ -129,9 +129,9 @@ public class ReaderParameter extends LongDataParameterHolder {
      */
     public void writeBinary(PacketOutputStream os) throws IOException {
         if (length == Long.MAX_VALUE) {
-            os.sendStream(reader, mariaDbCharset);
+            os.sendStream(reader);
         } else {
-            os.sendStream(reader, length, mariaDbCharset);
+            os.sendStream(reader, length);
         }
     }
 

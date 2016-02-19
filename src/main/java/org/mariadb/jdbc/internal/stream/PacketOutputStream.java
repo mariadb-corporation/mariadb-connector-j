@@ -1,7 +1,5 @@
 package org.mariadb.jdbc.internal.stream;
 
-import org.mariadb.jdbc.internal.util.constant.MariaDbCharset;
-
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -151,14 +149,13 @@ public class PacketOutputStream extends OutputStream {
     /**
      * Send reader stream to server.
      * @param reader reader to send
-     * @param charset charset converter
      * @throws IOException if any error occur during data send to server
      */
-    public void sendStream(java.io.Reader reader, MariaDbCharset charset) throws IOException {
+    public void sendStream(java.io.Reader reader) throws IOException {
         char[] buffer = new char[8192];
         int len;
         while ((len = reader.read(buffer)) > 0) {
-            byte[] bytes = new String(buffer, 0, len).getBytes(charset.javaIoCharsetName);
+            byte[] bytes = new String(buffer, 0, len).getBytes("UTF-8");
             write(bytes, 0, bytes.length);
         }
     }
@@ -167,10 +164,9 @@ public class PacketOutputStream extends OutputStream {
      * Send reader stream to server.
      * @param reader reader to send
      * @param readLength max size to send
-     * @param charset charset converter
      * @throws IOException if any error occur during data send to server
      */
-    public void sendStream(java.io.Reader reader, long readLength, MariaDbCharset charset) throws IOException {
+    public void sendStream(java.io.Reader reader, long readLength) throws IOException {
         char[] buffer = new char[8192];
         long remainingReadLength = readLength;
         int read;
@@ -179,7 +175,7 @@ public class PacketOutputStream extends OutputStream {
             if (read == -1) {
                 return;
             }
-            byte[] bytes = new String(buffer, 0, read).getBytes(charset.javaIoCharsetName);
+            byte[] bytes = new String(buffer, 0, read).getBytes("UTF-8");
             write(bytes, 0, bytes.length);
             remainingReadLength -= read;
         }
