@@ -151,7 +151,7 @@ public class PacketOutputStream extends OutputStream {
      * @param reader reader to send
      * @throws IOException if any error occur during data send to server
      */
-    public void sendStream(java.io.Reader reader) throws IOException {
+    public void sendStream(Reader reader) throws IOException {
         char[] buffer = new char[8192];
         int len;
         while ((len = reader.read(buffer)) > 0) {
@@ -166,7 +166,7 @@ public class PacketOutputStream extends OutputStream {
      * @param readLength max size to send
      * @throws IOException if any error occur during data send to server
      */
-    public void sendStream(java.io.Reader reader, long readLength) throws IOException {
+    public void sendStream(Reader reader, long readLength) throws IOException {
         char[] buffer = new char[8192];
         long remainingReadLength = readLength;
         int read;

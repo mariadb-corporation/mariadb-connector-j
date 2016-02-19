@@ -71,33 +71,37 @@ public class CollationTest extends BaseTest {
 
         String sqlForCharset = "select @@character_set_server";
         ResultSet rs = sharedConnection.createStatement().executeQuery(sqlForCharset);
-        assertTrue(rs.next());
-        String emoji = "\uD83C\uDF1F";
-        boolean mustThrowError = true;
-        if ("utf8mb4".equals(rs.getString(1))) {
-            mustThrowError = false;
-        }
-
-        PreparedStatement ps = sharedConnection.prepareStatement("INSERT INTO unicodeTestChar (id, field1, field2) VALUES (1, ?, ?)");
-        ps.setString(1, emoji);
-        Reader reader = new StringReader(emoji);
-        ps.setCharacterStream(2, reader);
-        try {
-            ps.execute();
-            ps = sharedConnection.prepareStatement("SELECT field1, field2 FROM unicodeTestChar");
-            rs = ps.executeQuery();
-            assertTrue(rs.next());
-
-            // compare to the Java representation of UTF32
-            assertEquals(4,  rs.getBytes(1).length);
-            assertEquals(emoji, rs.getString(1));
-
-            assertEquals(4,  rs.getBytes(2).length);
-            assertEquals(emoji, rs.getString(2));
-        } catch (BatchUpdateException b) {
-            if (!mustThrowError) {
-                fail("Must not have thrown error");
+        if (rs.next()) {
+            String emoji = "\uD83C\uDF1F";
+            boolean mustThrowError = true;
+            if ("utf8mb4".equals(rs.getString(1))) {
+                mustThrowError = false;
             }
+
+            PreparedStatement ps = sharedConnection.prepareStatement("INSERT INTO unicodeTestChar (id, field1, field2) VALUES (1, ?, ?)");
+            ps.setString(1, emoji);
+            Reader reader = new StringReader(emoji);
+            ps.setCharacterStream(2, reader);
+            try {
+                ps.execute();
+                ps = sharedConnection.prepareStatement("SELECT field1, field2 FROM unicodeTestChar");
+                rs = ps.executeQuery();
+                assertTrue(rs.next());
+
+                // compare to the Java representation of UTF32
+                assertEquals(4, rs.getBytes(1).length);
+                assertEquals(emoji, rs.getString(1));
+
+                assertEquals(4, rs.getBytes(2).length);
+                assertEquals(emoji, rs.getString(2));
+            } catch (BatchUpdateException b) {
+                if (!mustThrowError) {
+                    fail("Must not have thrown error");
+                }
+            }
+        } else {
+            fail();
         }
+
     }
 }

@@ -1246,12 +1246,39 @@ public class MariaDbValueObject implements ValueObject {
      * Get boolean value from raw data.
      * @return boolean
      */
-    public boolean getBoolean() {
+    public boolean getBoolean() throws SQLException {
         if (rawBytes == null) {
             return false;
         }
-        final String rawVal = new String(rawBytes, StandardCharsets.UTF_8);
-        return rawVal.equalsIgnoreCase("true") || rawVal.equals("1") || (rawBytes[0] & 0xff) == 1;
+        if (!this.isBinaryEncoded) {
+            if (rawBytes.length == 1 && rawBytes[0] == 0) {
+                return false;
+            }
+            final String rawVal = new String(rawBytes, StandardCharsets.UTF_8);
+            return !("false".equals(rawVal) || "0".equals(rawVal));
+        } else {
+            switch (dataType) {
+                case BIT:
+                    return rawBytes[0] != 0;
+                case TINYINT:
+                    return getTinyInt() != 0;
+                case SMALLINT:
+                case YEAR:
+                    return getSmallInt() != 0;
+                case INTEGER:
+                case MEDIUMINT:
+                    return getMediumInt() != 0;
+                case BIGINT:
+                    return getLong() != 0;
+                case FLOAT:
+                    return getFloat() != 0;
+                case DOUBLE:
+                    return getDouble() != 0;
+                default:
+                    final String rawVal = new String(rawBytes, StandardCharsets.UTF_8);
+                    return !("false".equals(rawVal) || "0".equals(rawVal));
+            }
+        }
     }
 
     /**
@@ -1317,12 +1344,16 @@ public class MariaDbValueObject implements ValueObject {
         switch (dataType) {
             case BIT:
                 if (columnInfo.getLength() == 1) {
-                    return (getBytes()[0] != 0);
+                    return rawBytes[0] != 0;
                 }
-                return getBytes();
+                return rawBytes;
             case TINYINT:
-                if ((dataTypeMappingFlags & TINYINT1_IS_BIT) != 0 && columnInfo.getLength() == 1) {
-                    return (getBytes()[0] != '0');
+                if (options.tinyInt1isBit && columnInfo.getLength() == 1) {
+                    if (!this.isBinaryEncoded) {
+                        return rawBytes[0] != '0';
+                    } else {
+                        return rawBytes[0] != 0;
+                    }
                 }
                 return getInt();
             case INTEGER:

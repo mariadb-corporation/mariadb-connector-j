@@ -377,7 +377,7 @@ public class DataTypeSignedTest extends BaseTest {
 
         if (rs.next()) {
             try {
-                assertFalse(rs.getBoolean(1));
+                assertTrue(rs.getBoolean(1));
                 assertFalse(rs.wasNull());
                 assertEquals(-1, rs.getByte(1));
                 assertEquals(-1, rs.getShort(1));

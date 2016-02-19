@@ -51,8 +51,11 @@ public class DatatypeTest extends BaseTest {
 
     void checkClass(String column, Class<?> clazz, String mysqlType, int javaSqlType) throws Exception {
         int index = resultSet.findColumn(column);
-
-        if (resultSet.getObject(column) != null) {
+        Object obj = resultSet.getObject(column);
+        if (obj != null) {
+            if (!clazz.equals(obj.getClass())) {
+                System.out.println("test");
+            }
             assertEquals("Unexpected class for column " + column, clazz, resultSet.getObject(column).getClass());
         }
         assertEquals("Unexpected class name for column " + column, clazz.getName(),

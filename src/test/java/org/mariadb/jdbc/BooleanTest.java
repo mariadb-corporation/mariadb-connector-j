@@ -4,9 +4,7 @@ package org.mariadb.jdbc;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -23,7 +21,8 @@ public class BooleanTest extends BaseTest {
     public static void initClass() throws SQLException {
         createTable("booleantest", "id int not null primary key auto_increment, test boolean");
         createTable("booleanvalue", "test boolean");
-
+        createTable("booleanAllField", "t1 BIT, t2 TINYINT(1), t3 SMALLINT(1), t4 MEDIUMINT(1), t5 INT(1), t6 BIGINT(1), t7 DECIMAL(1), t8 FLOAT, "
+                + "t9 DOUBLE, t10 CHAR(1), t11 VARCHAR(1), t12 BINARY(1), t13 BLOB(1), t14 TEXT(1)");
     }
 
     @Test
@@ -42,7 +41,6 @@ public class BooleanTest extends BaseTest {
         } else {
             fail("must have a result !");
         }
-
     }
 
     @Test
@@ -60,7 +58,7 @@ public class BooleanTest extends BaseTest {
                 assertFalse(rs.getBoolean(1));
                 assertEquals("0", rs.getString(1));
                 if (rs.next()) {
-                    assertFalse(rs.getBoolean(1));
+                    assertTrue(rs.getBoolean(1));
                     assertEquals("4", rs.getString(1));
                 } else {
                     fail("must have a result !");
@@ -70,6 +68,47 @@ public class BooleanTest extends BaseTest {
             }
         } else {
             fail("must have a result !");
+        }
+    }
+
+
+    /**
+     * CONJ-254 error when using scala anorm string interpolation.
+     *
+     * @throws SQLException exception
+     */
+    @Test
+    public void testBooleanAllField() throws Exception {
+        try (Connection connection = setConnection("&maxPerformance=true")) {
+            Statement stmt = connection.createStatement();
+            stmt.execute("INSERT INTO booleanAllField VALUES (null, null, null, null, null, null, null, null, null, null, null, null, null, null)");
+            stmt.execute("INSERT INTO booleanAllField VALUES (0, 0, 0, 0, 0, 0, 0, 0, 0, '0', '0', '0', '0', '0')");
+            stmt.execute("INSERT INTO booleanAllField VALUES (1, 1, 1, 1, 1, 1, 1, 1, 1, '1', '1', '1', '1', '1')");
+            stmt.execute("INSERT INTO booleanAllField VALUES (1, 2, 2, 2, 2, 2, 2, 2, 2, '2', '2', '2', '2', '2')");
+
+            ResultSet rs = stmt.executeQuery("SELECT * FROM booleanAllField");
+            checkBooleanValue(rs, false, null);
+            checkBooleanValue(rs, false, false);
+            checkBooleanValue(rs, true, true);
+            checkBooleanValue(rs, true, true);
+
+            PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM booleanAllField WHERE 1 = ?");
+            preparedStatement.setInt(1, 1);
+            rs = preparedStatement.executeQuery();
+            checkBooleanValue(rs, false, null);
+            checkBooleanValue(rs, false, false);
+            checkBooleanValue(rs, true, true);
+            checkBooleanValue(rs, true, true);
+        }
+    }
+
+    private void checkBooleanValue(ResultSet rs, boolean expectedValue, Boolean expectedNull) throws SQLException {
+        rs.next();
+        for (int i = 1; i <= 14; i++ ) {
+            assertEquals(expectedValue, rs.getBoolean(i));
+            if (i == 1 || i == 2) {
+                assertEquals(expectedNull, rs.getObject(i));
+            }
         }
     }
 }

@@ -47,7 +47,7 @@ public interface ValueObject {
 
     Timestamp getTimestamp(Calendar cal) throws ParseException;
 
-    boolean getBoolean();
+    boolean getBoolean() throws SQLException;
 
     boolean isNull();
 
