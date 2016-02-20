@@ -21,13 +21,13 @@ public class BlobTest extends BaseTest {
     @BeforeClass()
     public static void initClass() throws SQLException {
         createTable("bug716378", "id int not null primary key auto_increment, test longblob, test2 blob, test3 text");
-        createTable("BlobTeststreamtest2", "id int primary key not null, st varchar(20), strm text");
-        createTable("BlobTeststreamtest3", "id int primary key not null, strm text");
-        createTable("BlobTestclobtest", "id int not null primary key, strm text");
-        createTable("BlobTestclobtest2", "strm text");
-        createTable("BlobTestclobtest3", "id int not null primary key, strm text");
-        createTable("BlobTestclobtest4", "id int not null primary key, strm text");
-        createTable("BlobTestclobtest5", "id int not null primary key, strm text");
+        createTable("BlobTeststreamtest2", "id int primary key not null, st varchar(20), strm text", "CHARSET utf8");
+        createTable("BlobTeststreamtest3", "id int primary key not null, strm text", "CHARSET utf8");
+        createTable("BlobTestclobtest", "id int not null primary key, strm text", "CHARSET utf8");
+        createTable("BlobTestclobtest2", "strm text", "CHARSET utf8");
+        createTable("BlobTestclobtest3", "id int not null primary key, strm text", "CHARSET utf8");
+        createTable("BlobTestclobtest4", "id int not null primary key, strm text", "CHARSET utf8");
+        createTable("BlobTestclobtest5", "id int not null primary key, strm text", "CHARSET utf8");
         createTable("BlobTestblobtest", "id int not null primary key, strm blob");
         createTable("BlobTestblobtest2", "id int not null primary key, strm blob");
         createTable("conj77_test", "Name VARCHAR(100) NOT NULL,Archive LONGBLOB, PRIMARY KEY (Name)", "Engine=InnoDB DEFAULT CHARSET utf8");
@@ -214,7 +214,8 @@ public class BlobTest extends BaseTest {
         ResultSet rs = sharedConnection.createStatement().executeQuery("select * from BlobTestclobtest2");
         rs.next();
         assertTrue(rs.getObject(1) instanceof String);
-        assertEquals("\u00D8hello", rs.getString(1));
+        String result = rs.getString(1);
+        assertEquals("\u00D8hello", result);
     }
 
     @Test
