@@ -166,22 +166,20 @@ public class DateTest extends BaseTest {
             setSessionTimeZone(connection, "+05:00");
             connection.createStatement().execute("insert into timetest values (null), ('-838:59:59'), ('00:00:00'), "
                     + "('838:59:59')");
-            Statement stmt = connection.createStatement();
-            ResultSet rs = stmt.executeQuery("select * from timetest");
             Time[] data = new Time[]{null, Time.valueOf("-838:59:59"), Time.valueOf("00:00:00"),
                     Time.valueOf("838:59:59")};
-            int count = 0;
-            while (rs.next()) {
-                Time t1 = data[count];
-                Time t2 = (Time) rs.getObject(1);
-                assertEquals(t1, t2);
-                count++;
-            }
-            rs.close();
+            Statement stmt = connection.createStatement();
+            ResultSet rs = stmt.executeQuery("select * from timetest");
+            testTime(rs, data);
+
+            PreparedStatement pstmt = connection.prepareStatement("select * from timetest");
+            testTime(pstmt.executeQuery(), data);
+
             rs = stmt.executeQuery("select '11:11:11'");
-            rs.next();
-            Calendar cal = Calendar.getInstance();
-            assertEquals(rs.getTime(1, cal).toString(), "11:11:11");
+            testTime11(rs);
+
+            PreparedStatement pstmt2 = connection.prepareStatement("select TIME('11:11:11') ");
+            testTime11(pstmt2.executeQuery());
         } finally {
             connection.close();
         }
@@ -194,26 +192,44 @@ public class DateTest extends BaseTest {
             connection = setConnection("&useLegacyDatetimeCode=false&serverTimezone=+5:00");
             setSessionTimeZone(connection, "+5:00");
             connection.createStatement().execute("insert into timetest2 values (null), ('00:00:00'), ('23:59:59')");
+            Time[] data = new Time[]{null, Time.valueOf("00:00:00"), Time.valueOf("23:59:59")};
+
             Statement stmt = connection.createStatement();
             ResultSet rs = stmt.executeQuery("select * from timetest2");
-            Time[] data = new Time[]{null, Time.valueOf("00:00:00"), Time.valueOf("23:59:59")};
-            int count = 0;
-            while (rs.next()) {
-                Time t1 = data[count];
-                Time t2 = (Time) rs.getObject(1);
-                assertEquals(t1, t2);
-                count++;
-            }
-            rs.close();
+            testTime(rs, data);
+
+            PreparedStatement pstmt = connection.prepareStatement("select * from timetest2");
+            testTime(pstmt.executeQuery(), data);
+
             rs = stmt.executeQuery("select '11:11:11'");
-            rs.next();
-            Calendar cal = Calendar.getInstance();
-            assertEquals(rs.getTime(1, cal).toString(), "11:11:11");
+            testTime11(rs);
+
+            PreparedStatement pstmt2 = connection.prepareStatement("select TIME('11:11:11') ");
+            testTime11(pstmt2.executeQuery());
+
         } finally {
             if (connection != null) {
                 connection.close();
             }
         }
+    }
+
+    private void testTime(ResultSet rs, Time[] data) throws SQLException {
+        int count = 0;
+        while (rs.next()) {
+            Time t1 = data[count];
+            Time t2 = (Time) rs.getObject(1);
+            assertEquals(t1, t2);
+            count++;
+        }
+        rs.close();
+    }
+
+    private void testTime11(ResultSet rs) throws SQLException {
+        rs.next();
+        Calendar cal = Calendar.getInstance();
+        assertEquals("11:11:11", rs.getTime(1, cal).toString());
+        rs.close();
     }
 
     @Test

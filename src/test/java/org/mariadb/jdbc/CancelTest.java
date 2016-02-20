@@ -46,9 +46,9 @@ public class CancelTest extends BaseTest {
         Connection tmpConnection = null;
         try {
             tmpConnection = openNewConnection(connUri, new Properties());
-            PreparedStatement stmt = tmpConnection.prepareStatement("select sleep(100)");
+            Statement stmt = tmpConnection.createStatement();
             stmt.setQueryTimeout(1);
-            stmt.execute();
+            stmt.execute("select sleep(100)");
         } finally {
             tmpConnection.close();
         }

@@ -221,7 +221,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
             st.executeQuery();
             ResultSet rs = st.getResultSet();
             rs.next();
-            assertEquals(rs.getString(1), "90:00:00.123456");
+            assertEquals("90:00:00.123456", rs.getString(1));
             Time tit = rs.getTime(1);
             Time tt2 = Time.valueOf("90:00:00");
             tt2.setTime(tt2.getTime() + 123);
@@ -358,15 +358,16 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
     @Test
     public void testTimeStampOffsetNowUseServer() throws SQLException {
-        setConnection("&serverTimezone=Europe/Paris");
-        //timestamp timezone to parisTimeZone like server
-        Timestamp currentTimeParis = new Timestamp(System.currentTimeMillis());
-        PreparedStatement st = sharedConnection.prepareStatement("SELECT NOW()");
-        ResultSet rs = st.executeQuery();
-        rs.next();
-        int offset = parisTimeZone.getOffset(System.currentTimeMillis());
-        long timeDifference = currentTimeParis.getTime() - offset - rs.getTimestamp(1).getTime();
-        assertTrue(timeDifference < 1000); // must have less than one second difference
+        try (Connection connection = setConnection("&serverTimezone=Europe/Paris")) {
+            //timestamp timezone to parisTimeZone like server
+            Timestamp currentTimeParis = new Timestamp(System.currentTimeMillis());
+            PreparedStatement st = connection.prepareStatement("SELECT NOW()");
+            ResultSet rs = st.executeQuery();
+            rs.next();
+            int offset = parisTimeZone.getOffset(System.currentTimeMillis());
+            long timeDifference = currentTimeParis.getTime() - offset - rs.getTimestamp(1).getTime();
+            assertTrue(timeDifference < 1000); // must have less than one second difference
+        }
     }
 
     @Test

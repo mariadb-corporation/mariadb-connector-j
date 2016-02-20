@@ -101,9 +101,7 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
                 connection.lock.unlock();
             }
             parameterCount = prepareResult.parameters.length;
-            if (parameterCount > 0) {
-                currentParameterHolder = new ParameterHolder[prepareResult.parameters.length];
-            }
+            currentParameterHolder = new ParameterHolder[prepareResult.parameters.length];
             returnTableAlias = protocol.getOptions().useOldAliasMetadataBehavior;
             metadata = new MariaDbResultSetMetaData(prepareResult.columns,
                     protocol.getDataTypeMappingFlags(), returnTableAlias);

@@ -62,7 +62,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executor;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.regex.Pattern;
 
 
 public final class MariaDbConnection implements Connection {
@@ -71,7 +70,6 @@ public final class MariaDbConnection implements Connection {
      * the protocol to communicate with.
      */
     private final Protocol protocol;
-    public Pattern requestWithoutComments = Pattern.compile("((?<![\\\\])['\"])((?:.(?!(?<![\\\\])\\1))*.?)\\1", Pattern.CASE_INSENSITIVE);
     public MariaDbPooledConnection pooledConnection;
     boolean noBackslashEscapes;
     boolean nullCatalogMeansCurrent = true;
@@ -393,21 +391,13 @@ public final class MariaDbConnection implements Connection {
         if (sql == null) {
             return true;
         }
-        if (sql.indexOf("?") == -1) {
-            return false;
-        }
-        String cleanSql = sql.toUpperCase().trim();
-        if (cleanSql.startsWith("SELECT")
-                || cleanSql.startsWith("UPDATE")
-                || cleanSql.startsWith("INSERT")
-                || cleanSql.startsWith("DELETE")) {
 
-            //delete comment to avoid find ? in comment
-            cleanSql = requestWithoutComments.matcher(cleanSql).replaceAll("");
-            if (cleanSql.indexOf("?") > 0) {
-                return true;
-            }
-            return false;
+        String cleanSql = sql.toUpperCase().trim();
+        if (cleanSql.contains("SELECT")
+                || cleanSql.contains("UPDATE")
+                || cleanSql.contains("INSERT")
+                || cleanSql.contains("DELETE")) {
+            return true;
         }
         return false;
 

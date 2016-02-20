@@ -258,7 +258,7 @@ public class MariaDbValueObject implements ValueObject {
             microsecondString = "0" + microsecondString;
         }
         boolean negative = (rawBytes[0] == 0x01);
-        return (negative ? "-" : "") + (hourString + ":" + minuteString + ":" + secondString);
+        return (negative ? "-" : "") + (hourString + ":" + minuteString + ":" + secondString + "." + microsecondString);
     }
 
 
@@ -1055,18 +1055,26 @@ public class MariaDbValueObject implements ValueObject {
             default:
                 Calendar calendar = Calendar.getInstance();
                 calendar.clear();
-                if (options.useLegacyDatetimeCode) {
-                    calendar.setLenient(false);
-                }
+                int day = 0;
                 int hour = 0;
                 int minutes = 0;
                 int seconds = 0;
+                boolean negate = false;
+                if (rawBytes.length > 0) {
+                    negate = (rawBytes[0] & 0xff) == 0x01;
+                }
+                if (rawBytes.length > 4) {
+                    day = ((rawBytes[1] & 0xff)
+                            | (rawBytes[2] & 0xff) << 8
+                            | (rawBytes[3] & 0xff) << 16
+                            | (rawBytes[4] & 0xff) << 24);
+                }
                 if (rawBytes.length > 7) {
                     hour = rawBytes[5];
                     minutes = rawBytes[6];
                     seconds = rawBytes[7];
                 }
-                calendar.set(1970, 0, 1, hour, minutes, seconds);
+                calendar.set(1970, 0, ((negate ? -1 : 1) * day) + 1, (negate ? -1 : 1) * hour, minutes, seconds);
 
                 int nanoseconds = 0;
                 if (rawBytes.length > 8) {
@@ -1089,14 +1097,43 @@ public class MariaDbValueObject implements ValueObject {
         }
         int year;
         int month;
-        int day;
+        int day = 0;
         int hour = 0;
         int minutes = 0;
         int seconds = 0;
         int microseconds = 0;
 
         if (dataType == MariaDbType.TIME) {
-            return new Timestamp(getTime(cal).getTime());
+            Calendar calendar = Calendar.getInstance();
+            calendar.clear();
+
+            boolean negate = false;
+            if (rawBytes.length > 0) {
+                negate = (rawBytes[0] & 0xff) == 0x01;
+            }
+            if (rawBytes.length > 4) {
+                day = ((rawBytes[1] & 0xff)
+                        | (rawBytes[2] & 0xff) << 8
+                        | (rawBytes[3] & 0xff) << 16
+                        | (rawBytes[4] & 0xff) << 24);
+            }
+            if (rawBytes.length > 7) {
+                hour = rawBytes[5];
+                minutes = rawBytes[6];
+                seconds = rawBytes[7];
+            }
+
+            if (rawBytes.length > 8) {
+                microseconds = ((rawBytes[8] & 0xff)
+                        | (rawBytes[9] & 0xff) << 8
+                        | (rawBytes[10] & 0xff) << 16
+                        | (rawBytes[11] & 0xff) << 24);
+            }
+
+            calendar.set(1970, 0, ((negate ? -1 : 1) * day) + 1, (negate ? -1 : 1) * hour, minutes, seconds);
+            Timestamp tt = new Timestamp(calendar.getTimeInMillis());
+            tt.setNanos(microseconds * 1000);
+            return tt;
         } else {
             year = ((rawBytes[0] & 0xff) | (rawBytes[1] & 0xff) << 8);
             month = rawBytes[2];
