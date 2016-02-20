@@ -9,6 +9,7 @@ import java.io.*;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.sql.*;
 
 import static org.junit.Assert.*;
@@ -552,14 +553,14 @@ public class DatatypeTest extends BaseTest {
             for (int i = 0; i < 1000000; i++) {
                 assertEquals((byte) i, buf2[i]);
             }
-            assertEquals(rs.getString(1), new String(buf));
+            assertEquals(rs.getString(1), new String(buf, Charset.forName("UTF-8")));
 
             if (rs.next()) {
                 buf2 = rs.getBytes(1);
                 for (int i = 0; i < 1000000; i++) {
                     assertEquals((byte) i, buf2[i]);
                 }
-                assertEquals(rs.getString(1), new String(buf));
+                assertEquals(rs.getString(1), new String(buf, Charset.forName("UTF-8")));
                 if (rs.next()) {
                     fail();
                 }

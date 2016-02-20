@@ -5,6 +5,7 @@ import org.junit.Test;
 
 import java.io.Reader;
 import java.io.StringReader;
+import java.nio.charset.Charset;
 import java.sql.*;
 
 import static org.junit.Assert.assertEquals;
@@ -21,6 +22,8 @@ public class CollationTest extends BaseTest {
         createTable("emojiTest", "id int unsigned, field longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
         createTable("unicodeTestChar", "id int unsigned, field1 varchar(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci, field2 longtext "
                 + "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+        createTable("textUtf8", "column1 text", "DEFAULT CHARSET=utf8");
+        createTable("blobUtf8", "column1 blob", "DEFAULT CHARSET=utf8");
     }
 
     /**
@@ -102,6 +105,42 @@ public class CollationTest extends BaseTest {
         } else {
             fail();
         }
-
     }
+
+    @Test
+    public void testText() throws SQLException {
+        String str = "\u4f60\u597d(hello in Chinese)";
+        try (PreparedStatement ps = sharedConnection.prepareStatement("insert into textUtf8 values (?)")) {
+            ps.setString(1, str);
+            ps.executeUpdate();
+        }
+        try (PreparedStatement ps = sharedConnection.prepareStatement("select * from textUtf8");
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                String tmp = rs.getString(1);
+                assertEquals(tmp, str);
+            }
+        }
+    }
+
+    @Test
+    public void testBinary() throws SQLException {
+        String str = "\u4f60\u597d(hello in Chinese)";
+        byte[] strBytes = str.getBytes(Charset.forName("UTF-8"));
+        try (PreparedStatement ps = sharedConnection.prepareStatement("insert into blobUtf8 values (?)")) {
+            ps.setBytes(1, strBytes);
+            ps.executeUpdate();
+        }
+        try (PreparedStatement ps = sharedConnection.prepareStatement("select * from blobUtf8");
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                byte[] tmp = rs.getBytes(1);
+                for (int i = 0; i < tmp.length; i++) {
+                    assertEquals(strBytes[i], tmp[i]);
+                }
+
+            }
+        }
+    }
+
 }

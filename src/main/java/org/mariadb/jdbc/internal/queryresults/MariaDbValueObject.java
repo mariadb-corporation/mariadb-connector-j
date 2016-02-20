@@ -189,10 +189,6 @@ public class MariaDbValueObject implements ValueObject {
                 break;
             case DECIMAL:
                 return getBigDecimal().toString();
-            case BLOB:
-            case LONGBLOB:
-            case MEDIUMBLOB:
-            case TINYBLOB:
             case GEOMETRY:
                 return new String(getBytes());
             case NULL:
