@@ -21,7 +21,7 @@ public class CollationTest extends BaseTest {
     public static void initClass() throws SQLException {
         createTable("emojiTest", "id int unsigned, field longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
         createTable("unicodeTestChar", "id int unsigned, field1 varchar(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci, field2 longtext "
-                + "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+                + "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci", "DEFAULT CHARSET=utf8mb4");
         createTable("textUtf8", "column1 text", "DEFAULT CHARSET=utf8");
         createTable("blobUtf8", "column1 blob", "DEFAULT CHARSET=utf8");
     }
