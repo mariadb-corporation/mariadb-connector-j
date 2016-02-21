@@ -590,7 +590,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
     }
 
     private byte decideLanguage(byte serverLanguage) {
-        byte result = (isServerLanguageUtf8mb4(serverLanguage) ? serverLanguage : 45);
+        //force UTF8mb4 if possible, UTF8 if not.
+        byte result = (isServerLanguageUtf8mb4(serverLanguage) ? serverLanguage : (byte) (versionGreaterOrEqual(5, 5, 3) ? 45 : 33));
         return result;
     }
 

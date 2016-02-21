@@ -231,10 +231,7 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
             return rs.getMetaData();
         }
         if (resultSetMetaData == null) {
-            MariaDbServerPreparedStatement ssps = new MariaDbServerPreparedStatement(connection, this.sqlQuery, Statement.NO_GENERATED_KEYS);
-            ssps.close();
-            resultSetMetaData = ssps.getMetaData();
-            parameterMetaData = ssps.getParameterMetaData();
+            loadMetadata();
         }
         return resultSetMetaData;
     }
@@ -259,14 +256,17 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
     public ParameterMetaData getParameterMetaData() throws SQLException {
         checkClose();
         if (parameterMetaData == null) {
-            MariaDbServerPreparedStatement ssps = new MariaDbServerPreparedStatement(connection, this.sqlQuery, Statement.NO_GENERATED_KEYS);
-            ssps.close();
-            resultSetMetaData = ssps.getMetaData();
-            parameterMetaData = ssps.getParameterMetaData();
+            loadMetadata();
         }
         return parameterMetaData;
     }
 
+    private void loadMetadata() throws SQLException {
+        MariaDbServerPreparedStatement serverPreparedStatement = new MariaDbServerPreparedStatement(connection, this.sqlQuery, Statement.NO_GENERATED_KEYS);
+        serverPreparedStatement.close();
+        resultSetMetaData = serverPreparedStatement.getMetaData();
+        parameterMetaData = serverPreparedStatement.getParameterMetaData();
+    }
 
     /**
      * Clears the current parameter values immediately. <P>In general, parameter values remain in force for repeated use

@@ -90,7 +90,7 @@ public class MariaDbStatement implements Statement {
     protected boolean isRewriteable = true;
     protected String firstRewrite = null;
     protected ResultSet batchResultSet = null;
-    private AtomicBoolean closed = new AtomicBoolean();
+    protected AtomicBoolean closed = new AtomicBoolean();
     boolean isTimedout;
     volatile boolean executing;
     List<Query> batchQueries;
@@ -102,7 +102,7 @@ public class MariaDbStatement implements Statement {
     private int fetchSize;
     private boolean isStreaming = false;
     private int maxRows;
-    private ReentrantLock lock;
+    protected ReentrantLock lock;
 
     public static final Pattern deleteEndSemicolonPattern = Pattern.compile("[;][ ]*$", Pattern.CASE_INSENSITIVE);
 
