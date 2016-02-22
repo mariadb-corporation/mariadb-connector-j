@@ -262,7 +262,8 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
     }
 
     private void loadMetadata() throws SQLException {
-        MariaDbServerPreparedStatement serverPreparedStatement = new MariaDbServerPreparedStatement(connection, this.sqlQuery, Statement.NO_GENERATED_KEYS);
+        MariaDbServerPreparedStatement serverPreparedStatement = new MariaDbServerPreparedStatement(connection, this.sqlQuery,
+                Statement.NO_GENERATED_KEYS);
         serverPreparedStatement.close();
         resultSetMetaData = serverPreparedStatement.getMetaData();
         parameterMetaData = serverPreparedStatement.getParameterMetaData();
