@@ -7,6 +7,7 @@ import org.mariadb.jdbc.internal.queryresults.*;
 import org.mariadb.jdbc.internal.stream.MaxAllowedPacketException;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.PrepareStatementCache;
+import org.mariadb.jdbc.internal.util.dao.PrepareStatementCacheKey;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.util.constant.ServerStatus;
 import org.mariadb.jdbc.internal.util.buffer.Reader;
@@ -136,10 +137,12 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     public PrepareResult prepare(String sql) throws QueryException {
         checkClose();
         try {
-            if (urlParser.getOptions().cachePrepStmts && prepareStatementCache.containsKey(sql)) {
-                PrepareResult pr = prepareStatementCache.get(sql);
-                pr.addUse();
-                return pr;
+            PrepareStatementCacheKey prepareStatementCacheKey = new PrepareStatementCacheKey(database, sql);
+            if (urlParser.getOptions().cachePrepStmts) {
+                PrepareResult pr = prepareStatementCache.get(prepareStatementCacheKey);
+                if (pr != null && pr.incrementShareCounter()) {
+                    return pr;
+                }
             }
 
             SendPrepareStatementPacket sendPrepareStatementPacket = new SendPrepareStatementPacket(sql);
@@ -180,9 +183,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 }
                 PrepareResult prepareResult = new PrepareResult(statementId, columns, params);
                 if (urlParser.getOptions().cachePrepStmts && sql != null && sql.length() < urlParser.getOptions().prepStmtCacheSqlLimit) {
-                    prepareStatementCache.putIfNone(sql, prepareResult);
+                    PrepareResult cachedPrepareResult = prepareStatementCache.put(prepareStatementCacheKey, prepareResult);
+                    return cachedPrepareResult != null ? cachedPrepareResult : prepareResult;
                 }
-//                if (log.isDebugEnabled()) log.debug("prepare statementId : " + prepareResult.statementId);
                 return prepareResult;
             } else {
                 throw new QueryException("Unexpected packet returned by server, first byte " + bit);
@@ -191,23 +194,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             throw new QueryException(e.getMessage(), -1,
                     ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(),
                     e);
-        }
-    }
-
-    @Override
-    public void closePreparedStatement(int statementId) throws QueryException {
-        lock.lock();
-        try {
-            writer.startPacket(0);
-            writer.write(0x19); /*COM_STMT_CLOSE*/
-            writer.write(statementId);
-            writer.finishPacket();
-        } catch (IOException e) {
-            throw new QueryException(e.getMessage(), -1,
-                    ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(),
-                    e);
-        } finally {
-            lock.unlock();
         }
     }
 
@@ -569,11 +555,11 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             //send binary data in a separate stream
             for (int i = 0; i < parameterCount; i++) {
                 if (parameters[i].isLongData()) {
-                    SendPrepareParameterPacket.send(i, (LongDataParameterHolder) parameters[i], prepareResult.statementId, writer);
+                    SendPrepareParameterPacket.send(i, (LongDataParameterHolder) parameters[i], prepareResult.getStatementId(), writer);
                 }
             }
             //send execute query
-            SendExecutePrepareStatementPacket packet = new SendExecutePrepareStatementPacket(prepareResult.statementId, parameters,
+            SendExecutePrepareStatementPacket packet = new SendExecutePrepareStatementPacket(prepareResult.getStatementId(), parameters,
                     parameterCount, parameterTypeHeader);
             packet.send(writer);
 
@@ -599,19 +585,41 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         }
     }
 
+    /**
+     * Deallocate prepare statement if not used anymore.
+     * @param sql sql query
+     * @param prepareResult allocation result
+     * @throws QueryException if deallocation failed.
+     */
     @Override
-    public void releasePrepareStatement(String sql, int statementId) throws QueryException {
-        checkClose();
+    public void releasePrepareStatement(String sql, PrepareResult prepareResult) throws QueryException {
+        //If prepared cache is enable, the PrepareResult can be shared in many PrepStatement, so synchronised use count indicator will be decrement.
+        prepareResult.decrementShareCounter();
+
+        //deallocate from server only if last use of this prepareResult
+        if (prepareResult.canBeDeallocate()) {
+            forceReleasePrepareStatement(prepareResult.getStatementId());
+
+            //if prepareResult is in cache, remove it since not used anymore.
+            if (urlParser.getOptions().cachePrepStmts) {
+                prepareStatementCache.remove(new PrepareStatementCacheKey(database, sql));
+            }
+
+        }
+    }
+
+    /**
+     * Force release of prepare statement that are not used.
+     * This method will be call when adding a new preparestatement in cache, so the packet can be send to server without
+     * problem.
+     *
+     * @param statementId prepared statement Id to remove.
+     * @throws QueryException if connection exception.
+     */
+    private void forceReleasePrepareStatement(int statementId) throws QueryException {
         lock.lock();
         try {
-            if (urlParser.getOptions().cachePrepStmts && prepareStatementCache.containsKey(sql)) {
-                PrepareResult pr = prepareStatementCache.get(sql);
-                pr.removeUse();
-                if (!pr.hasToBeClose()) {
-                    return;
-                }
-                prepareStatementCache.remove(sql);
-            }
+            checkClose();
             final SendClosePrepareStatementPacket packet = new SendClosePrepareStatementPacket(statementId);
             try {
                 packet.send(writer);

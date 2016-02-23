@@ -70,8 +70,6 @@ import java.util.List;
 public interface Protocol {
     PrepareResult prepare(String sql) throws QueryException;
 
-    void closePreparedStatement(int statementId) throws QueryException;
-
     boolean getAutocommit();
 
     boolean noBackslashEscapes();
@@ -187,7 +185,7 @@ public interface Protocol {
     AbstractQueryResult executePreparedQuery(String sql, ParameterHolder[] parameters, PrepareResult prepareResult, MariaDbType[] parameterTypeHeader,
                                              boolean isStreaming) throws QueryException;
 
-    void releasePrepareStatement(String sql, int statementId) throws QueryException;
+    void releasePrepareStatement(String sql, PrepareResult prepareResult) throws QueryException;
 
     AbstractQueryResult executePreparedQueryAfterFailover(String sql, ParameterHolder[] parameters, PrepareResult oldPrepareResult,
                                                           MariaDbType[] parameterTypeHeader, boolean isStreaming) throws QueryException; //used

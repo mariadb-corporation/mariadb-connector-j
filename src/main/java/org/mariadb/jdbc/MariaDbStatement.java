@@ -102,7 +102,7 @@ public class MariaDbStatement implements Statement {
     private int fetchSize;
     private boolean isStreaming = false;
     private int maxRows;
-    protected ReentrantLock lock;
+    protected final ReentrantLock lock;
 
     public static final Pattern deleteEndSemicolonPattern = Pattern.compile("[;][ ]*$", Pattern.CASE_INSENSITIVE);
 

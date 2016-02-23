@@ -88,7 +88,6 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
     }
 
     private void prepare(String sql) throws SQLException {
-        checkClose();
         try {
             lock.lock();
             try {
@@ -100,12 +99,12 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
             } finally {
                 lock.unlock();
             }
-            parameterCount = prepareResult.parameters.length;
-            currentParameterHolder = new ParameterHolder[prepareResult.parameters.length];
+            parameterCount = prepareResult.getParameters().length;
+            currentParameterHolder = new ParameterHolder[prepareResult.getParameters().length];
             returnTableAlias = protocol.getOptions().useOldAliasMetadataBehavior;
-            metadata = new MariaDbResultSetMetaData(prepareResult.columns,
+            metadata = new MariaDbResultSetMetaData(prepareResult.getColumns(),
                     protocol.getDataTypeMappingFlags(), returnTableAlias);
-            parameterMetaData = new MariaDbParameterMetaData(prepareResult.parameters);
+            parameterMetaData = new MariaDbParameterMetaData(prepareResult.getParameters());
         } catch (QueryException e) {
             try {
                 this.close();
@@ -350,7 +349,7 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
 
     @Override
     public void clearParameters() throws SQLException {
-        currentParameterHolder = new ParameterHolder[prepareResult.parameters.length];
+        currentParameterHolder = new ParameterHolder[prepareResult.getParameters().length];
     }
 
     @Override
@@ -406,7 +405,7 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
             cachedResultSets.clear();
             if (protocol != null && protocol.isConnected()) {
                 try {
-                    protocol.releasePrepareStatement(sql, prepareResult.statementId);
+                    protocol.releasePrepareStatement(sql, prepareResult);
                 } catch (QueryException e) {
                     //if (log.isDebugEnabled()) log.debug("Error releasing preparedStatement", e);
                 }

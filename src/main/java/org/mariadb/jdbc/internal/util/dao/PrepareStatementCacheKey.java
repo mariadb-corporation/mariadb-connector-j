@@ -1,7 +1,7 @@
 /*
 MariaDB Client for Java
 
-Copyright (c) 2012 Monty Program Ab.
+Copyright (c) 2016 MariaDB Corporation AB
 
 This library is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License as published by the Free
@@ -47,65 +47,45 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc.internal.util;
+package org.mariadb.jdbc.internal.util.dao;
 
-import org.mariadb.jdbc.internal.util.dao.PrepareResult;
-import org.mariadb.jdbc.internal.util.dao.PrepareStatementCacheKey;
-import java.util.LinkedHashMap;
-import java.util.Map;
+public class PrepareStatementCacheKey {
+    private final String database;
+    private final String query;
 
-
-public final class PrepareStatementCache extends LinkedHashMap<PrepareStatementCacheKey, PrepareResult> {
-    private final int maxSize;
-
-    private PrepareStatementCache(int size) {
-        super(size, .75f, true);
-        maxSize = size;
+    public PrepareStatementCacheKey(final String database, final String query) {
+        this.database = database;
+        this.query = query;
     }
 
-    public static PrepareStatementCache newInstance(int size) {
-        return new PrepareStatementCache(size);
+    public String getDatabase() {
+        return database;
     }
 
-    /**
-     * Remove eldestEntry.
-     * @param eldest eldest entry
-     * @return true if eldest entry must be removed
-     */
+    public String getQuery() {
+        return query;
+    }
+
     @Override
-    public boolean removeEldestEntry(Map.Entry eldest) {
-        return this.size() > maxSize;
-    }
-
-
-    /**
-     * Associates the specified value with the specified key in this map.
-     * If the map previously contained a mapping for the key,
-     * the existing cached prepared result shared counter will be incremented.
-     * @param key key
-     * @param result new prepare result.
-     * @return the previous value associated with key if not been deallocate, or null if there was no mapping for key.
-     */
-    @Override
-    public synchronized PrepareResult put(PrepareStatementCacheKey key, PrepareResult result) {
-        PrepareResult cachedPrepareResult = super.get(key);
-        //if there is already some cached data (and not been deallocate), return existing cached data
-        if (cachedPrepareResult != null && cachedPrepareResult.incrementShareCounter()) {
-            return cachedPrepareResult;
+    public boolean equals(Object object) {
+        if (this == object) {
+            return true;
         }
-        //if no cache data, or been deallocate, put new result in cache
-        super.put(key, result);
-        return null;
+        if (object == null || getClass() != object.getClass()) {
+            return false;
+        }
+        PrepareStatementCacheKey that = (PrepareStatementCacheKey) object;
+        if (!database.equals(that.database)) {
+            return false;
+        }
+        return query.equals(that.query);
+
     }
 
     @Override
-    public String toString() {
-        StringBuilder stringBuilder = new StringBuilder("PrepareStatementCache.map[");
-        for (Map.Entry<PrepareStatementCacheKey, PrepareResult> entry : this.entrySet()) {
-            stringBuilder.append("\n").append(entry.getKey().getDatabase()).append("-").append(entry.getKey().getQuery())
-                    .append("-").append(entry.getValue().getShareCounter());
-        }
-        stringBuilder.append("]");
-        return stringBuilder.toString();
+    public int hashCode() {
+        int result = database.hashCode();
+        result = 31 * result + query.hashCode();
+        return result;
     }
 }

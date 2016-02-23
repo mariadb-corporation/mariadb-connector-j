@@ -52,10 +52,13 @@ package org.mariadb.jdbc.internal.util.dao;
 import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
 
 public class PrepareResult {
-    public int statementId;
-    public ColumnInformation[] columns;
-    public ColumnInformation[] parameters;
-    private int useTime = 1;
+    private final int statementId;
+    private ColumnInformation[] columns;
+    private ColumnInformation[] parameters;
+
+    //share indicator
+    private volatile int shareCounter = 1;
+    private volatile boolean isBeingDeallocate;
 
     /**
      * PrepareStatement Result object.
@@ -69,20 +72,49 @@ public class PrepareResult {
         this.parameters = parameters;
     }
 
-    public synchronized void addUse() {
-        useTime++;
+    /**
+     * Increment share counter.
+     * @return true if can be used (is not been deallocate).
+     */
+    public synchronized boolean incrementShareCounter() {
+        if (isBeingDeallocate) {
+            return false;
+        }
+        shareCounter++;
+        return true;
     }
 
-    public synchronized void removeUse() {
-        useTime--;
+    public synchronized void decrementShareCounter() {
+        shareCounter--;
     }
 
-    public synchronized boolean hasToBeClose() {
-        return useTime <= 0;
+    /**
+     * Asked if can be deallocate (is not shared in other statement) and set deallocate flag to true if so.
+     *
+     * @return true if can be deallocate
+     */
+    public synchronized boolean canBeDeallocate() {
+        if (shareCounter > 0 || isBeingDeallocate) {
+            return false;
+        }
+        isBeingDeallocate = true;
+        return true;
     }
 
-    //for test unit
-    public synchronized int getUseTime() {
-        return useTime;
+    //for unit test
+    public synchronized int getShareCounter() {
+        return shareCounter;
+    }
+
+    public int getStatementId() {
+        return statementId;
+    }
+
+    public ColumnInformation[] getColumns() {
+        return columns;
+    }
+
+    public ColumnInformation[] getParameters() {
+        return parameters;
     }
 }
