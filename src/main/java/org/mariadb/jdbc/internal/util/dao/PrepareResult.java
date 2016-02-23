@@ -51,6 +51,8 @@ package org.mariadb.jdbc.internal.util.dao;
 
 import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 public class PrepareResult {
     private final int statementId;
     private ColumnInformation[] columns;
@@ -59,6 +61,7 @@ public class PrepareResult {
     //share indicator
     private volatile int shareCounter = 1;
     private volatile boolean isBeingDeallocate;
+    private AtomicBoolean inCache = new AtomicBoolean();
 
     /**
      * PrepareStatement Result object.
@@ -70,6 +73,14 @@ public class PrepareResult {
         this.statementId = statementId;
         this.columns = columns;
         this.parameters = parameters;
+    }
+
+    public void setAddToCache() {
+        inCache.set(true);
+    }
+
+    public void setRemoveFromCache() {
+        inCache.set(false);
     }
 
     /**
@@ -89,7 +100,8 @@ public class PrepareResult {
     }
 
     /**
-     * Asked if can be deallocate (is not shared in other statement) and set deallocate flag to true if so.
+     * Asked if can be deallocate (is not shared in other statement and not in cache)
+     * Set deallocate flag to true if so.
      *
      * @return true if can be deallocate
      */
@@ -97,8 +109,11 @@ public class PrepareResult {
         if (shareCounter > 0 || isBeingDeallocate) {
             return false;
         }
-        isBeingDeallocate = true;
-        return true;
+        if (!inCache.get()) {
+            isBeingDeallocate = true;
+            return true;
+        }
+        return false;
     }
 
     //for unit test

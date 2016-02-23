@@ -582,13 +582,7 @@ public class MariaDbStatement implements Statement {
             // immediately garbage collected
             cachedResultSets.clear();
             if (isStreaming()) {
-                lock.lock();
-                try {
-                    while (getInternalMoreResults(true)) {
-                    }
-                } finally {
-                    lock.unlock();
-                }
+                while (getInternalMoreResults(true)) {}
             }
             protocol = null;
             if (connection == null || connection.pooledConnection == null

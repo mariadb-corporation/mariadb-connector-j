@@ -7,7 +7,6 @@ import org.mariadb.jdbc.internal.queryresults.*;
 import org.mariadb.jdbc.internal.stream.MaxAllowedPacketException;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.PrepareStatementCache;
-import org.mariadb.jdbc.internal.util.dao.PrepareStatementCacheKey;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.util.constant.ServerStatus;
 import org.mariadb.jdbc.internal.util.buffer.Reader;
@@ -137,9 +136,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     public PrepareResult prepare(String sql) throws QueryException {
         checkClose();
         try {
-            PrepareStatementCacheKey prepareStatementCacheKey = new PrepareStatementCacheKey(database, sql);
+            String key = null;
             if (urlParser.getOptions().cachePrepStmts) {
-                PrepareResult pr = prepareStatementCache.get(prepareStatementCacheKey);
+                key = new StringBuilder(database).append("-").append(sql).toString();
+                PrepareResult pr = prepareStatementCache.get(key);
                 if (pr != null && pr.incrementShareCounter()) {
                     return pr;
                 }
@@ -183,7 +183,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 }
                 PrepareResult prepareResult = new PrepareResult(statementId, columns, params);
                 if (urlParser.getOptions().cachePrepStmts && sql != null && sql.length() < urlParser.getOptions().prepStmtCacheSqlLimit) {
-                    PrepareResult cachedPrepareResult = prepareStatementCache.put(prepareStatementCacheKey, prepareResult);
+                    PrepareResult cachedPrepareResult = prepareStatementCache.put(key, prepareResult);
                     return cachedPrepareResult != null ? cachedPrepareResult : prepareResult;
                 }
                 return prepareResult;
@@ -596,15 +596,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         //If prepared cache is enable, the PrepareResult can be shared in many PrepStatement, so synchronised use count indicator will be decrement.
         prepareResult.decrementShareCounter();
 
-        //deallocate from server only if last use of this prepareResult
+        //deallocate from server if not cached
         if (prepareResult.canBeDeallocate()) {
             forceReleasePrepareStatement(prepareResult.getStatementId());
-
-            //if prepareResult is in cache, remove it since not used anymore.
-            if (urlParser.getOptions().cachePrepStmts) {
-                prepareStatementCache.remove(new PrepareStatementCacheKey(database, sql));
-            }
-
         }
     }
 
@@ -616,7 +610,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * @param statementId prepared statement Id to remove.
      * @throws QueryException if connection exception.
      */
-    private void forceReleasePrepareStatement(int statementId) throws QueryException {
+    public void forceReleasePrepareStatement(int statementId) throws QueryException {
         lock.lock();
         try {
             checkClose();
@@ -656,15 +650,14 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         return getResult(null, streaming, (activeResult != null) ? activeResult.isBinaryProtocol() : false);
     }
 
+    /**
+     * Check that there isn't existing streaming resultset.
+     * -calling method must lock protocol-
+     * @return true if streaming resultset
+     */
     @Override
     public boolean hasUnreadData() {
-        lock.lock();
-        try {
-            return (activeResult != null);
-        } finally {
-            lock.unlock();
-        }
-
+        return (activeResult != null);
     }
 
     /**

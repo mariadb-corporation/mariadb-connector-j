@@ -354,7 +354,6 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
 
     @Override
     public boolean execute() throws SQLException {
-        isClosed();
         for (int i = 0; i < parameterCount; i++) {
             if (currentParameterHolder[i] == null) {
                 ExceptionMapper.throwException(new QueryException("Parameter at position " + (i + 1) + " is not set", -1, "07004"),
@@ -392,9 +391,9 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
      */
     @Override
     public void close() throws SQLException {
-        closed.set(true);
         lock.lock();
         try {
+            closed.set(true);
             if (queryResult != null) {
                 queryResult.close();
                 queryResult = null;
@@ -412,13 +411,7 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
             }
 
             if (isStreaming()) {
-                lock.lock();
-                try {
-                    while (getInternalMoreResults(true)) {
-                    }
-                } finally {
-                    lock.unlock();
-                }
+                while (getInternalMoreResults(true)) { }
             }
             protocol = null;
             if (connection == null || connection.pooledConnection == null

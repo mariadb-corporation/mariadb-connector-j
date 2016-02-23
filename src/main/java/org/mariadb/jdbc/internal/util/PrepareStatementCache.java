@@ -49,22 +49,26 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.util;
 
+import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.dao.PrepareResult;
-import org.mariadb.jdbc.internal.util.dao.PrepareStatementCacheKey;
+import org.mariadb.jdbc.internal.util.dao.QueryException;
+
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 
-public final class PrepareStatementCache extends LinkedHashMap<PrepareStatementCacheKey, PrepareResult> {
+public final class PrepareStatementCache extends LinkedHashMap<String, PrepareResult> {
     private final int maxSize;
+    private final Protocol protocol;
 
-    private PrepareStatementCache(int size) {
+    private PrepareStatementCache(int size, Protocol protocol) {
         super(size, .75f, true);
-        maxSize = size;
+        this.maxSize = size;
+        this.protocol = protocol;
     }
 
-    public static PrepareStatementCache newInstance(int size) {
-        return new PrepareStatementCache(size);
+    public static PrepareStatementCache newInstance(int size, Protocol protocol) {
+        return new PrepareStatementCache(size, protocol);
     }
 
     /**
@@ -74,9 +78,21 @@ public final class PrepareStatementCache extends LinkedHashMap<PrepareStatementC
      */
     @Override
     public boolean removeEldestEntry(Map.Entry eldest) {
-        return this.size() > maxSize;
-    }
+        boolean mustBeRemoved = this.size() > maxSize;
 
+        if (mustBeRemoved) {
+            PrepareResult prepareResult = ((PrepareResult) eldest.getValue());
+            prepareResult.setRemoveFromCache();
+            if (prepareResult.canBeDeallocate()) {
+                try {
+                    protocol.forceReleasePrepareStatement(prepareResult.getStatementId());
+                } catch (QueryException e) {
+                    //eat exception
+                }
+            }
+        }
+        return mustBeRemoved;
+    }
 
     /**
      * Associates the specified value with the specified key in this map.
@@ -87,13 +103,14 @@ public final class PrepareStatementCache extends LinkedHashMap<PrepareStatementC
      * @return the previous value associated with key if not been deallocate, or null if there was no mapping for key.
      */
     @Override
-    public synchronized PrepareResult put(PrepareStatementCacheKey key, PrepareResult result) {
+    public synchronized PrepareResult put(String key, PrepareResult result) {
         PrepareResult cachedPrepareResult = super.get(key);
         //if there is already some cached data (and not been deallocate), return existing cached data
         if (cachedPrepareResult != null && cachedPrepareResult.incrementShareCounter()) {
             return cachedPrepareResult;
         }
         //if no cache data, or been deallocate, put new result in cache
+        result.setAddToCache();
         super.put(key, result);
         return null;
     }
@@ -101,9 +118,8 @@ public final class PrepareStatementCache extends LinkedHashMap<PrepareStatementC
     @Override
     public String toString() {
         StringBuilder stringBuilder = new StringBuilder("PrepareStatementCache.map[");
-        for (Map.Entry<PrepareStatementCacheKey, PrepareResult> entry : this.entrySet()) {
-            stringBuilder.append("\n").append(entry.getKey().getDatabase()).append("-").append(entry.getKey().getQuery())
-                    .append("-").append(entry.getValue().getShareCounter());
+        for (Map.Entry<String, PrepareResult> entry : this.entrySet()) {
+            stringBuilder.append("\n").append(entry.getKey()).append("-").append(entry.getValue().getShareCounter());
         }
         stringBuilder.append("]");
         return stringBuilder.toString();

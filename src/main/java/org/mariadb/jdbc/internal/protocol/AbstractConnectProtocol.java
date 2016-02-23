@@ -146,7 +146,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         this.username = (urlParser.getUsername() == null ? "" : urlParser.getUsername());
         this.password = (urlParser.getPassword() == null ? "" : urlParser.getPassword());
         if (urlParser.getOptions().cachePrepStmts) {
-            prepareStatementCache = PrepareStatementCache.newInstance(urlParser.getOptions().prepStmtCacheSize);
+            prepareStatementCache = PrepareStatementCache.newInstance(urlParser.getOptions().prepStmtCacheSize, this);
         }
         setDataTypeMappingFlags();
     }

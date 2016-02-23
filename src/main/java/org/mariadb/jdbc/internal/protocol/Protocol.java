@@ -187,6 +187,8 @@ public interface Protocol {
 
     void releasePrepareStatement(String sql, PrepareResult prepareResult) throws QueryException;
 
+    void forceReleasePrepareStatement(int statementId) throws QueryException;
+
     AbstractQueryResult executePreparedQueryAfterFailover(String sql, ParameterHolder[] parameters, PrepareResult oldPrepareResult,
                                                           MariaDbType[] parameterTypeHeader, boolean isStreaming) throws QueryException; //used
 

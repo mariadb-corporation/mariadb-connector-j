@@ -106,14 +106,32 @@ public class ServerPrepareStatementTest extends BaseTest {
                 activePrepareStatement.remove(0);
             }
             //check that cache hold preparedStatement
-            assertTrue("Prepared cache size must be 0", protocol.prepareStatementCache().size() == 0);
+            assertTrue("Prepared cache size must be 10", protocol.prepareStatementCache().size() == 10);
 
-            assertEquals("PrepareStatementCache.map[]", protocol.prepareStatementCache().toString());
+            assertEquals("PrepareStatementCache.map[\n"
+                    + "testj-SELECT 10-0\n"
+                    + "testj-SELECT 11-0\n"
+                    + "testj-SELECT 12-0\n"
+                    + "testj-SELECT 13-0\n"
+                    + "testj-SELECT 14-0\n"
+                    + "testj-SELECT 15-0\n"
+                    + "testj-SELECT 16-0\n"
+                    + "testj-SELECT 17-0\n"
+                    + "testj-SELECT 18-0\n"
+                    + "testj-SELECT 19-0]", protocol.prepareStatementCache().toString());
 
             for (int i = 12; i < 15; i++) {
                 activePrepareStatement.add(connection.prepareStatement("SELECT " + i));
             }
+
             assertEquals("PrepareStatementCache.map[\n"
+                    + "testj-SELECT 10-0\n"
+                    + "testj-SELECT 11-0\n"
+                    + "testj-SELECT 15-0\n"
+                    + "testj-SELECT 16-0\n"
+                    + "testj-SELECT 17-0\n"
+                    + "testj-SELECT 18-0\n"
+                    + "testj-SELECT 19-0\n"
                     + "testj-SELECT 12-1\n"
                     + "testj-SELECT 13-1\n"
                     + "testj-SELECT 14-1]", protocol.prepareStatementCache().toString());
@@ -122,6 +140,9 @@ public class ServerPrepareStatementTest extends BaseTest {
                 activePrepareStatement.add(connection.prepareStatement("SELECT " + i));
             }
             assertEquals("PrepareStatementCache.map[\n"
+                    + "testj-SELECT 17-0\n"
+                    + "testj-SELECT 18-0\n"
+                    + "testj-SELECT 19-0\n"
                     + "testj-SELECT 12-1\n"
                     + "testj-SELECT 13-1\n"
                     + "testj-SELECT 14-1\n"
@@ -133,6 +154,9 @@ public class ServerPrepareStatementTest extends BaseTest {
                 activePrepareStatement.add(connection.prepareStatement("SELECT " + i));
             }
             assertEquals("PrepareStatementCache.map[\n"
+                    + "testj-SELECT 17-0\n"
+                    + "testj-SELECT 18-0\n"
+                    + "testj-SELECT 19-0\n"
                     + "testj-SELECT 1-1\n"
                     + "testj-SELECT 2-1\n"
                     + "testj-SELECT 3-1\n"
@@ -162,8 +186,19 @@ public class ServerPrepareStatementTest extends BaseTest {
                 activePrepareStatement.get(0).close();
                 activePrepareStatement.remove(0);
             }
-            assertTrue(protocol.prepareStatementCache().size() == 0);
-            System.out.println(protocol.prepareStatementCache());
+            assertTrue(protocol.prepareStatementCache().size() == 10);
+            assertEquals("PrepareStatementCache.map[\n"
+                    + "testj-SELECT 20-0\n"
+                    + "testj-SELECT 21-0\n"
+                    + "testj-SELECT 22-0\n"
+                    + "testj-SELECT 23-0\n"
+                    + "testj-SELECT 24-0\n"
+                    + "testj-SELECT 25-0\n"
+                    + "testj-SELECT 26-0\n"
+                    + "testj-SELECT 27-0\n"
+                    + "testj-SELECT 28-0\n"
+                    + "testj-SELECT 29-0]", protocol.prepareStatementCache().toString());
+
 
         } finally {
             connection.close();
