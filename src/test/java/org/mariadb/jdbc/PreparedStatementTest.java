@@ -31,6 +31,7 @@ public class PreparedStatementTest extends BaseTest {
                         + "`Webinar10-TM/ProjComp` text",
                  "ENGINE=InnoDB DEFAULT CHARSET=utf8");
         createTable("test_insert_select","`field1` varchar(20)");
+        createTable("test_decimal_insert", "`field1` decimal(10, 7)");
     }
 
     @Test
@@ -111,6 +112,24 @@ public class PreparedStatementTest extends BaseTest {
         ResultSet rs = stmt.executeQuery();
         assertTrue(rs.next());
         assertEquals(0, rs.getBigDecimal(1).toBigInteger().compareTo(bigT));
+    }
+
+    /**
+     * setObject should not truncate doubles.
+     *
+     * @throws SQLException exception
+     */
+    @Test
+    public void testDoubleToDecimal() throws SQLException {
+        PreparedStatement stmt = sharedConnection.prepareStatement("INSERT INTO test_decimal_insert (field1) VALUES (?)");
+        Double value = 0.3456789;
+        stmt.setObject(1, value, Types.DECIMAL, 7);
+        stmt.executeUpdate();
+        stmt = sharedConnection.prepareStatement("SELECT `field1` FROM test_decimal_insert");
+        ResultSet rs = stmt.executeQuery();
+
+        assertTrue(rs.next());
+        assertEquals(value, rs.getDouble(1), 0.00000001);
     }
 
     @Test
