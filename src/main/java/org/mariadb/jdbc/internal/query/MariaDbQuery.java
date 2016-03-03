@@ -49,6 +49,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.query;
 
+import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import java.io.IOException;
@@ -117,8 +118,9 @@ public class MariaDbQuery implements Query {
      */
     public void writeToRewritablePart(final OutputStream os, int rewriteOffset) throws IOException {
         try {
+        	((PacketOutputStream)os).oneBlock(queryToSend.length - rewriteOffset + 1);
             os.write(',');
-            os.write(queryToSend, rewriteOffset, queryToSend.length - rewriteOffset);
+            os.write(queryToSend, rewriteOffset , queryToSend.length - rewriteOffset);
         } catch (UnsupportedEncodingException e) {
             throw new RuntimeException("Unsupported encoding: " + e.getMessage(), e);
         }
