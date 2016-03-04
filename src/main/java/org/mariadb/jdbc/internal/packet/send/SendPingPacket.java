@@ -49,10 +49,9 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.packet.send;
 
-import org.mariadb.jdbc.internal.stream.PacketOutputStream;
-
 import java.io.IOException;
-import java.io.OutputStream;
+
+import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
 
 public class SendPingPacket implements InterfaceSendPacket {
@@ -63,8 +62,7 @@ public class SendPingPacket implements InterfaceSendPacket {
      * @return 0 if all went well
      * @throws IOException if any connection error occur
      */
-    public int send(final OutputStream os) throws IOException {
-        PacketOutputStream pos = (PacketOutputStream) os;
+    public int send(final PacketOutputStream pos) throws IOException {
         pos.startPacket(0);
         pos.write(0x0e);
         pos.finishPacket();

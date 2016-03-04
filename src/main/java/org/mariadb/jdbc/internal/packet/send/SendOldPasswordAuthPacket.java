@@ -49,10 +49,9 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.packet.send;
 
-import org.mariadb.jdbc.internal.stream.PacketOutputStream;
-
 import java.io.IOException;
-import java.io.OutputStream;
+
+import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
 public class SendOldPasswordAuthPacket implements InterfaceSendPacket {
 
@@ -70,8 +69,7 @@ public class SendOldPasswordAuthPacket implements InterfaceSendPacket {
      * @return stream sequence.
      * @throws IOException if a connection error occur
      */
-    public int send(OutputStream os) throws IOException {
-        PacketOutputStream pos = (PacketOutputStream) os;
+    public int send(PacketOutputStream pos) throws IOException {
         pos.startPacket(packSeq);
         pos.writeByteArray(oldPassword).writeByte((byte) 0x00);
         pos.finishPacket();

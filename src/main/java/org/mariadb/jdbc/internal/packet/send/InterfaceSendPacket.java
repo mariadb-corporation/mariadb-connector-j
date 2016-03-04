@@ -49,12 +49,12 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.packet.send;
 
-import org.mariadb.jdbc.internal.util.dao.QueryException;
-
 import java.io.IOException;
-import java.io.OutputStream;
+
+import org.mariadb.jdbc.internal.stream.PacketOutputStream;
+import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 
 public interface InterfaceSendPacket {
-    int send(OutputStream os) throws IOException, QueryException;
+    int send(PacketOutputStream pos) throws IOException, QueryException;
 }

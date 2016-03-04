@@ -49,13 +49,12 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.packet.send;
 
-import org.mariadb.jdbc.internal.util.dao.QueryException;
-import org.mariadb.jdbc.internal.stream.PacketOutputStream;
-import org.mariadb.jdbc.internal.query.Query;
-
 import java.io.IOException;
-import java.io.OutputStream;
 import java.util.List;
+
+import org.mariadb.jdbc.internal.query.Query;
+import org.mariadb.jdbc.internal.stream.PacketOutputStream;
+import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 
 public class SendTextQueryPacket implements InterfaceSendPacket {
@@ -96,36 +95,35 @@ public class SendTextQueryPacket implements InterfaceSendPacket {
      * @throws IOException if connection error occur
      * @throws QueryException when query rewrite error.
      */
-    public int send(final OutputStream stream) throws IOException, QueryException {
-        PacketOutputStream pos = (PacketOutputStream) stream;
+    public int send(final PacketOutputStream pos) throws IOException, QueryException {
         pos.startPacket(0);
         pos.write(0x03);
         int queryNumberSend = 1;
         if (query != null) {
-            query.writeTo(stream);
+            query.writeTo(pos);
         } else {
             if (queries.size() == 1) {
-                queries.get(0).writeTo(stream);
+                queries.get(0).writeTo(pos);
             } else {
                 if (!isRewritable) {
-                    queries.get(0).writeTo(stream);
+                    queries.get(0).writeTo(pos);
                     for (int i = 1; i < queries.size(); i++) {
                         if (pos.checkRewritableLength(queries.get(i).getQuerySize())) {
                             pos.write(';');
-                            queries.get(i).writeTo(stream);
+                            queries.get(i).writeTo(pos);
                             queryNumberSend++;
                         }
                     }
                 } else {
-                    queries.get(0).writeFirstRewritePart(stream);
+                    queries.get(0).writeFirstRewritePart(pos);
                     int lastPartLength = queries.get(0).writeLastRewritePartLength();
                     for (int i = 1; i < queries.size(); i++) {
                         if (pos.checkRewritableLength(queries.get(i).writeToRewritablePartLength(rewriteOffset) + lastPartLength)) {
-                            queries.get(i).writeToRewritablePart(stream, rewriteOffset);
+                            queries.get(i).writeToRewritablePart(pos, rewriteOffset);
                             queryNumberSend++;
                         }
                     }
-                    queries.get(0).writeLastRewritePart(stream);
+                    queries.get(0).writeLastRewritePart(pos);
                 }
             }
         }
