@@ -58,7 +58,7 @@ public class SendClosePacket implements InterfaceSendPacket {
 
     /**
      * Send close stream to server.
-     * @param os write outputStream
+     * @param pos write outputStream
      * @return 0
      * @throws IOException if connection problem occur
      */

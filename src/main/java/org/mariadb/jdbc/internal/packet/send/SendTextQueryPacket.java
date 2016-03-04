@@ -90,7 +90,7 @@ public class SendTextQueryPacket implements InterfaceSendPacket {
 
     /**
      * Send queries to server.
-     * @param stream write socket to server
+     * @param pos write socket to server
      * @return number of send queries
      * @throws IOException if connection error occur
      * @throws QueryException when query rewrite error.

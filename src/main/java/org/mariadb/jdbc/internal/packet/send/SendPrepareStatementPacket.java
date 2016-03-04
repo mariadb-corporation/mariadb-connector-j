@@ -63,7 +63,7 @@ public class SendPrepareStatementPacket implements InterfaceSendPacket {
 
     /**
      * Send server prepareStatement stream.
-     * @param os database socket
+     * @param pos database socket
      * @return 0 if all went well
      * @throws IOException if any connection error occur
      */

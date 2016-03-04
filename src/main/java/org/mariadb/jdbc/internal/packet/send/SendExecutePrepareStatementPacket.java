@@ -80,7 +80,7 @@ public class SendExecutePrepareStatementPacket implements InterfaceSendPacket {
 
     /**
      * Send a prepare statement binary stream.
-     * @param os database socket
+     * @param buffer database socket
      * @return 0 if all when well
      * @throws IOException if a connection error occur
      */
@@ -100,7 +100,7 @@ public class SendExecutePrepareStatementPacket implements InterfaceSendPacket {
                     nullBitsBuffer[i / 8] |= (1 << (i % 8));
                 }
             }
-            buffer.buffer.put(nullBitsBuffer);/*Null Bit Map*/
+            buffer.buffer.put(nullBitsBuffer, 0, nullBitsBuffer.length);/*Null Bit Map*/
 
             //check if parameters type (using setXXX) have change since previous request, and resend new header type if so
             boolean mustSendHeaderType = false;

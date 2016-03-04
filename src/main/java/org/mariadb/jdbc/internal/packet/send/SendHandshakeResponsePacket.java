@@ -114,7 +114,7 @@ public class SendHandshakeResponsePacket implements InterfaceSendPacket {
 
     /**
      * Send authentication stream.
-     * @param os database socket
+     * @param writeBuffer database socket
      * @return 1 if all went well
      * @throws IOException if any connection error occur
      */

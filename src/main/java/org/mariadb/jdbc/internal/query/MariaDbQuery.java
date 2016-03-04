@@ -56,14 +56,15 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 
-
 public class MariaDbQuery implements Query {
-
+    
     private final byte[] queryToSend;
-
+    
     /**
      * Constructor.
-     * @param query sql query
+     * 
+     * @param query
+     *            sql query
      */
     public MariaDbQuery(final String query) {
         try {
@@ -72,81 +73,91 @@ public class MariaDbQuery implements Query {
             throw new RuntimeException("Unsupported encoding: " + e.getMessage(), e);
         }
     }
-
-
+    
     /**
      * Write whole query to buffer.
-     * @param os outputStream
-     * @throws IOException if any error occur when writing to buffer
+     * 
+     * @param os
+     *            outputStream
+     * @throws IOException
+     *             if any error occur when writing to buffer
      */
     public void writeTo(final OutputStream os) throws IOException {
         os.write(queryToSend, 0, queryToSend.length);
     }
-
+    
     /**
      * Write whole query to buffer.
-     * @param ostream outputStream
-     * @param offset buffer offset
-     * @param packLength max length
-     * @throws IOException if any error occur when writing to buffer
+     * 
+     * @param ostream
+     *            outputStream
+     * @param offset
+     *            buffer offset
+     * @param packLength
+     *            max length
+     * @throws IOException
+     *             if any error occur when writing to buffer
      */
     public void writeTo(OutputStream ostream, int offset, int packLength) throws IOException {
         ostream.write(queryToSend, offset, packLength);
     }
-
+    
     public void writeFirstRewritePart(final OutputStream os) throws IOException {
         writeTo(os);
     }
-
-
+    
     @Override
     public void writeLastRewritePart(final OutputStream os) throws IOException {
     }
-
+    
     public int writeLastRewritePartLength() {
         return 0;
     }
-
+    
     /**
-     * Write rewritable part. <p>
+     * Write rewritable part.
+     * <p>
      *
-     *     example : "insert into (a,b) into (1,2)"
-     *     this method will write the ",(1,2)" part.
-     * @param os outputstream
-     * @param rewriteOffset offset
-     * @throws IOException if any error occur when writing to buffer
+     * example : "insert into (a,b) into (1,2)" this method will write the ",(1,2)" part.
+     * 
+     * @param os
+     *            outputstream
+     * @param rewriteOffset
+     *            offset
+     * @throws IOException
+     *             if any error occur when writing to buffer
      */
     public void writeToRewritablePart(final OutputStream os, int rewriteOffset) throws IOException {
         try {
-        	((PacketOutputStream)os).oneBlock(queryToSend.length - rewriteOffset + 1);
+            ((PacketOutputStream) os).oneBlock(queryToSend.length - rewriteOffset + 1);
             os.write(',');
-            os.write(queryToSend, rewriteOffset , queryToSend.length - rewriteOffset);
+            os.write(queryToSend, rewriteOffset, queryToSend.length - rewriteOffset);
         } catch (UnsupportedEncodingException e) {
             throw new RuntimeException("Unsupported encoding: " + e.getMessage(), e);
         }
     }
-
+    
     public int writeToRewritablePartLength(int rewriteOffset) {
         return 1 + queryToSend.length - rewriteOffset;
     }
-
+    
     public int getQuerySize() {
         return queryToSend.length;
     }
-
+    
     @Override
     public boolean equals(final Object otherObj) {
-        return otherObj instanceof MariaDbQuery && (((MariaDbQuery) otherObj).queryToSend).equals(queryToSend);
+        return otherObj instanceof MariaDbQuery && (((MariaDbQuery) otherObj).queryToSend).equals(
+                                                                                                  queryToSend);
     }
-
+    
     @Override
     public void validate() throws QueryException {
-
+        
     }
-
+    
     public String toString() {
         return new String(queryToSend);
     }
-
-
+    
 }

@@ -64,7 +64,7 @@ public class SendChangeDbPacket implements InterfaceSendPacket {
 
     /**
      * Change Database.
-     * @param outputStream Write outputStream
+     * @param pos Write outputStream
      * @return 0
      * @throws IOException if connection problem occur
      */

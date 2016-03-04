@@ -65,7 +65,7 @@ public class SendSslConnectionRequestPacket implements InterfaceSendPacket {
 
     /**
      * Send capabilities.
-     * @param os database stream.
+     * @param pos database stream.
      * @return 1
      * @throws IOException if any connection error occur
      */

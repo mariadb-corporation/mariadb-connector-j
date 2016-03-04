@@ -64,7 +64,7 @@ public class SendClosePrepareStatementPacket implements InterfaceSendPacket {
 
     /**
      * Send close preparedStatement stream.
-     * @param os database socket.
+     * @param pos database socket.
      * @return 0 if all went well
      * @throws IOException if a connection error occur
      */

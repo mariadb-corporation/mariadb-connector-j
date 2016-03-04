@@ -65,7 +65,7 @@ public class SendOldPasswordAuthPacket implements InterfaceSendPacket {
 
     /**
      * Send password stream.
-     * @param os database socket
+     * @param pos database socket
      * @return stream sequence.
      * @throws IOException if a connection error occur
      */
