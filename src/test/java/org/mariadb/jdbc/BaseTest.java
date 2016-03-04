@@ -27,7 +27,7 @@ import java.util.Properties;
  */
 @Ignore
 public class BaseTest {
-    protected static final String mDefUrl = "jdbc:mysql://localhost:3306/testj?user=root&password=root";
+    protected static final String mDefUrl = "jdbc:mysql://localhost:3306/testj?user=root";
     protected static String connU;
     protected static String connUri;
     protected static String hostname;
