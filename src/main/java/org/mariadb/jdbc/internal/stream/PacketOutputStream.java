@@ -109,11 +109,7 @@ public class PacketOutputStream extends OutputStream {
     public void sendFile(InputStream is, int seq) throws IOException {
         this.seqNo = seq;
         this.checkPacketLength = false;
-        byte[] buffer = new byte[8192];
-        int len;
-        while ((len = is.read(buffer)) > 0) {
-            write(buffer, 0, len);
-        }
+        this.buffer.putStream(is, is.available());
         finishPacket();
         writeEmptyPacket(lastSeq);
     }
@@ -127,11 +123,7 @@ public class PacketOutputStream extends OutputStream {
      *             if any error occur during data send to server
      */
     public void sendStream(InputStream is) throws IOException {
-        byte[] buffer = new byte[8192];
-        int len;
-        while ((len = is.read(buffer)) > 0) {
-            write(buffer, 0, len);
-        }
+        this.buffer.putStream(is, is.available());
     }
     
     /**

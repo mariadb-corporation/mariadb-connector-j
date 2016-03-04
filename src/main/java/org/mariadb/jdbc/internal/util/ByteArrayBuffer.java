@@ -14,11 +14,6 @@ public final class ByteArrayBuffer {
     public static final int DEFAULT_PAGE_SIZE = 4096;
     
     /**
-     * Bigger page size for stream.
-     */
-    public static final int DEFAULT_PAGE_SIZE_STREAM = 32768;
-    
-    /**
      * Current byte buffer.
      */
     private ByteArray buffer;
@@ -41,7 +36,7 @@ public final class ByteArrayBuffer {
      * Create a byte array buffer with first byte array element with one page size.
      */
     public ByteArrayBuffer() {
-        this.buffer = new ByteArray(DEFAULT_PAGE_SIZE);
+        this.buffer = new ByteArrayImpl(DEFAULT_PAGE_SIZE);
         this.buffers = new ArrayList<ByteArray>(16);
         this.buffers.add(this.buffer);
         this.limit = 0;
@@ -74,7 +69,7 @@ public final class ByteArrayBuffer {
         this.pos = 0;
         this.compressRead = 0;
         this.buffer = this.buffers.get(0);
-        this.buffer.pos = 0;
+        this.buffer.newPos(0);
         this.buffers.clear();
         this.buffers.add(this.buffer);
     }
@@ -98,9 +93,9 @@ public final class ByteArrayBuffer {
             if (array == null) {
                 break;
             }
-            if (pos + len > array.pos) {
-                System.arraycopy(array.buf, 0, bufferBytes, index, array.pos);
-                index += array.pos;
+            if (pos + len > array.pos()) {
+                System.arraycopy(array.get(), 0, bufferBytes, index, array.pos());
+                index += array.pos();
             } else {
                 break;
             }
@@ -123,7 +118,7 @@ public final class ByteArrayBuffer {
             if (array == null) {
                 break;
             }
-            outputStream.write(array.buf, 0, array.pos);
+            array.writeTo(outputStream);
         }
     }
     
@@ -136,7 +131,7 @@ public final class ByteArrayBuffer {
             if (this.buffers.get(i) == null) {
                 break;
             }
-            limit += this.buffers.get(i).pos;
+            limit += this.buffers.get(i).pos();
         }
         pos = 0;
     }
@@ -155,28 +150,28 @@ public final class ByteArrayBuffer {
     public void put(byte[] src, int off, int len) {
         ByteArray array = this.buffer;
         if (array.remaining() > len) {
-            System.arraycopy(src, off, array.buf, array.pos, len);
-            array.pos += len;
+            System.arraycopy(src, off, array.get(), array.pos(), len);
+            array.newPos(array.pos() + len);
             this.pos += len;
         } else {
             if (off == 0 && len == src.length) {
-                this.buffer = new ByteArray(src);
+                this.buffer = new ByteArrayImpl(src);
                 this.buffers.add(this.buffer);
                 allocate(DEFAULT_PAGE_SIZE);
                 this.pos += len;
             } else {
                 if (len > DEFAULT_PAGE_SIZE) {
-                    array = new ByteArray(len);
+                    array = new ByteArrayImpl(len);
                 } else {
-                    array = new ByteArray(DEFAULT_PAGE_SIZE);
+                    array = new ByteArrayImpl(DEFAULT_PAGE_SIZE);
                 }
-                System.arraycopy(src, 0, array.buf, 0, len);
-                array.pos = len;
+                System.arraycopy(src, 0, array.get(), 0, len);
+                array.newPos(len);
                 this.pos += len;
             }
         }
     }
-       
+    
     /**
      * Relative <i>put</i> method for writing a byte value (1 byte).
      *
@@ -265,39 +260,60 @@ public final class ByteArrayBuffer {
      *            the number of bytes to read from the given {@link InputStream}.
      */
     public void putStream(InputStream is, long readLength) throws IOException {
-        ByteArray array = this.buffer;
-        if (array.pos + readLength < array.buf.length) {
-            is.read(array.buf, array.pos, (int) readLength);
-            this.pos += (int) readLength;
-        } else {
-            long remainingReadLength = readLength;
-            int read;
-            while (remainingReadLength > 0) {
-                allocate(DEFAULT_PAGE_SIZE_STREAM);
-                read = is.read(this.buffer.buf, 0, Math.min((int) remainingReadLength,
-                                                            DEFAULT_PAGE_SIZE_STREAM));
-                remainingReadLength -= read;
-                this.buffer.pos = read;
-                this.pos += read;
-            }
-        }
+        // ByteArray array = this.buffer;
+        // if (array.pos() + readLength < array.limit()) {
+        // is.read(array.get(), array.pos(), (int) readLength);
+        // this.pos += (int) readLength;
+        // } else {
+        // long remainingReadLength = readLength;
+        // int read;
+        // while (remainingReadLength > 0) {
+        // allocate(DEFAULT_PAGE_SIZE_STREAM);
+        // read = is.read(this.buffer.get(), 0, Math.min((int) remainingReadLength,
+        // DEFAULT_PAGE_SIZE_STREAM));
+        // remainingReadLength -= read;
+        // this.buffer.pos(read);
+        // this.pos += read;
+        // }
+        // }
+        this.buffers.add(new ByteArrayInputStream(is, (int) readLength));
     }
     
     private void allocate(int size) {
-        this.buffer = new ByteArray(size);
+        this.buffer = new ByteArrayImpl(size);
         this.buffers.add(this.buffer);
     }
     
-    private static final class ByteArray {
-        private byte[] buf;
+    private abstract static class ByteArray {
+        
+        public abstract int remaining();
+        
+        public abstract void writeTo(OutputStream outputStream) throws IOException;
+        
+        public abstract boolean assureBufferCapacity(int len);
+        
+        public abstract void put(byte value);
+        
+        public abstract byte[] get();
+        
+        public abstract int pos();
+        
+        public abstract void newPos(int newPosition);
+        
+        public abstract int limit();
+        
+    }
+    
+    private static final class ByteArrayImpl extends ByteArray {
+        private final byte[] buf;
         private int pos;
         
-        private ByteArray(int size) {
+        private ByteArrayImpl(int size) {
             this.buf = new byte[size];
             this.pos = 0;
         }
         
-        public ByteArray(byte[] bytes) {
+        public ByteArrayImpl(byte[] bytes) {
             this.buf = bytes;
             this.pos = bytes.length;
         }
@@ -310,8 +326,8 @@ public final class ByteArrayBuffer {
             buf[pos++] = value;
         }
         
-        public boolean assureBufferCapacity(int size) {
-            return (pos + size > buf.length);
+        public boolean assureBufferCapacity(int len) {
+            return (pos + len > buf.length);
         }
         
         @Override
@@ -324,6 +340,90 @@ public final class ByteArrayBuffer {
             builder.append("}");
             return builder.toString();
         }
+        
+        @Override
+        public byte[] get() {
+            return this.buf;
+        }
+        
+        @Override
+        public int pos() {
+            return this.pos;
+        }
+        
+        @Override
+        public int limit() {
+            return buf.length;
+        }
+        
+        @Override
+        public void newPos(int newPosition) {
+            this.pos = newPosition;
+        }
+        
+        @Override
+        public void writeTo(OutputStream outputStream) throws IOException {
+            outputStream.write(buf, 0, pos);
+        }
+    }
+    
+    private static final class ByteArrayInputStream extends ByteArray {
+        
+        private final InputStream is;
+        private final int len;
+        
+        public ByteArrayInputStream(InputStream is, int len) {
+            this.is = is;
+            this.len = len;
+        }
+        
+        @Override
+        public int remaining() {
+            return 0;
+        }
+        
+        @Override
+        public boolean assureBufferCapacity(int len) {
+            return false;
+        }
+        
+        @Override
+        public void put(byte value) {
+            throw new UnsupportedOperationException();
+        }
+        
+        @Override
+        public byte[] get() {
+            throw new UnsupportedOperationException();
+        }
+        
+        @Override
+        public int pos() {
+            return len;
+        }
+        
+        @Override
+        public void newPos(int newPosition) {
+            throw new UnsupportedOperationException();
+        }
+        
+        @Override
+        public int limit() {
+            throw new UnsupportedOperationException();
+        }
+        
+        @Override
+        public void writeTo(OutputStream outputStream) throws IOException {
+            byte[] buf = new byte[DEFAULT_PAGE_SIZE];
+            long remainingReadLength = len;
+            int read;
+            while (remainingReadLength > 0) {
+                read = is.read(buf, 0, Math.min((int) remainingReadLength, DEFAULT_PAGE_SIZE));
+                remainingReadLength -= read;
+                outputStream.write(buf, 0, read);
+            }
+        }
+        
     }
     
     /**
@@ -333,7 +433,7 @@ public final class ByteArrayBuffer {
      *            size of the data
      */
     public void assureBufferCapacity(int len) {
-        if (buffer.pos + len > buffer.buf.length) {
+        if (buffer.pos() + len > buffer.limit()) {
             allocate(DEFAULT_PAGE_SIZE);
         }
     }
