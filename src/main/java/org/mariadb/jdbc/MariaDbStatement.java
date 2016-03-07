@@ -196,7 +196,7 @@ public class MariaDbStatement implements Statement {
         }
     }
 
-    protected void cacheMoreResults() {
+    protected void cacheMoreResults() throws SQLException {
         if (isStreaming()) {
             return;
         }
@@ -210,8 +210,7 @@ public class MariaDbStatement implements Statement {
                     break;
                 }
             } catch (QueryException e) {
-                cachedResultSets.add(ExceptionMapper.createException(e, connection, this));
-                break;
+                throw ExceptionMapper.createException(e, connection, this);
             }
         }
         queryResult = saveResult;

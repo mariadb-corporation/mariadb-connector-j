@@ -151,4 +151,23 @@ public class PreparedStatementTest extends BaseTest {
         }
 
     }
+
+
+    /**
+     * CONJ-263: Exception must be throwing exception if exception append in multiple query
+     *
+     * @throws SQLException exception
+     */
+    @Test
+    public void testCallExecuteErrorBatch() throws SQLException {
+        PreparedStatement pstmt = sharedConnection.prepareStatement("SELECT 1;INSERT INTO INCORRECT_QUERY ;");
+        try {
+            pstmt.execute();
+            fail("Must have thrown error");
+        } catch (SQLException sqle) {
+            //must have thrown error.
+            assertTrue(sqle.getMessage().contains("INSERT INTO INCORRECT_QUERY"));
+        }
+    }
+
 }

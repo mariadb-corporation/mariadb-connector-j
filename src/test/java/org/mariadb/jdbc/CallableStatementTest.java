@@ -25,6 +25,11 @@ public class CallableStatementTest extends BaseTest {
         createProcedure("inoutParam", "(INOUT p1 INT) begin set p1 = p1 + 1; end\n");
         createProcedure("testGetProcedures", "(INOUT p1 INT) begin set p1 = p1 + 1; end\n");
         createProcedure("withStrangeParameter", "(IN a DECIMAL(10,2)) begin select a; end");
+        createProcedure("TEST_SP1", "() BEGIN\n"
+                + "SELECT @Something := 'Something';\n"
+                + "SIGNAL SQLSTATE '70100'\n"
+                + "SET MESSAGE_TEXT = 'Test error from SP'; \n"
+                + "END");
     }
 
     @Before
@@ -137,4 +142,24 @@ public class CallableStatementTest extends BaseTest {
         rs.close();
         stmt.close();
     }
+
+    /**
+     * CONJ-263: Error in stored procedure or SQL statement with allowMultiQueries does not raise Exception
+     * when there is a result returned prior to erroneous statement.
+     *
+     * @throws SQLException exception
+     */
+    @Test
+    public void testCallExecuteErrorBatch() throws SQLException {
+        CallableStatement cStmt = sharedConnection.prepareCall("{call TEST_SP1()}");
+        try {
+            cStmt.execute();
+            fail("Must have thrown error");
+        } catch (SQLException sqle) {
+            //must have thrown error.
+            assertTrue(sqle.getMessage().contains("Test error from SP"));
+        }
+    }
+
+
 }
