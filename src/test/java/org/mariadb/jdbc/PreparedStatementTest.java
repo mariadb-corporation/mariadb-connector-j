@@ -135,4 +135,20 @@ public class PreparedStatementTest extends BaseTest {
         assertEquals(true, rs.getBoolean(4));
     }
 
+    /**
+     * CONJ-264: SQLException when calling PreparedStatement.executeBatch() without calling addBatch().
+     *
+     * @throws SQLException exception
+     */
+    @Test
+    public void testExecuteBatch() throws SQLException {
+        PreparedStatement preparedStatement = sharedConnection.prepareStatement("INSERT INTO table1 VALUE ?");
+        try {
+            int[] result = preparedStatement.executeBatch();
+            assertEquals(0, result.length);
+        } catch (SQLException sqle) {
+            fail("Must not throw error");
+        }
+
+    }
 }

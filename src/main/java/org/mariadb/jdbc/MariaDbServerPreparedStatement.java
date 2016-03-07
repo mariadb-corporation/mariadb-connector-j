@@ -204,8 +204,8 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
     public int[] executeBatch() throws SQLException {
         checkClose();
         batchResultSet = null;
-        if (parameterCount > 0 && queryParameters.size() == 0) {
-            throw ExceptionMapper.getSqlException("No Parameters set. The command addBatch() must have been set");
+        if (queryParameters.size() == 0) {
+            return new int[0];
         }
         int counter = 0;
         int[] ret = new int[queryParameters.size()];
