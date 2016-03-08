@@ -3,25 +3,22 @@ package org.mariadb.jdbc.internal.util;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.List;
 
+import sun.misc.Unsafe;
+
+@SuppressWarnings("restriction")
 public final class ByteArrayBuffer {
     
-    /**
-     * Default page size.
-     */
-    public static final int DEFAULT_PAGE_SIZE = 4096;
+    private static final Unsafe UNSAFE = UnsafeUtil.unsafe();
     
     /**
      * Current byte buffer.
      */
-    private ByteArray buffer;
+    private ByteBuf current;
     
-    /**
-     * All byte buffer arrays.
-     */
-    private final List<ByteArray> buffers;
+    private byte[] hb;
+    
+    private final ByteBufList buffers;
     
     /**
      * Position overall buffers.
@@ -36,11 +33,15 @@ public final class ByteArrayBuffer {
      * Create a byte array buffer with first byte array element with one page size.
      */
     public ByteArrayBuffer() {
-        this.buffer = new ByteArrayImpl(DEFAULT_PAGE_SIZE);
-        this.buffers = new ArrayList<ByteArray>(16);
-        this.buffers.add(this.buffer);
+        this.buffers = new ByteBufList();
+        current = this.buffers.first;
+        hb = current.array();
         this.limit = 0;
         this.compressRead = 0;
+    }
+    
+    public ByteBuf current() {
+        return current;
     }
     
     /**
@@ -58,7 +59,7 @@ public final class ByteArrayBuffer {
      * @return The position of this buffer
      */
     public int position() {
-        return pos;
+        return pos + this.current.pos();
     }
     
     /**
@@ -68,10 +69,9 @@ public final class ByteArrayBuffer {
         this.limit = 0;
         this.pos = 0;
         this.compressRead = 0;
-        this.buffer = this.buffers.get(0);
-        this.buffer.newPos(0);
-        this.buffers.clear();
-        this.buffers.add(this.buffer);
+        this.buffers.recylce();
+        this.current = buffers.first;
+        this.hb = current.array();
     }
     
     /**
@@ -86,16 +86,16 @@ public final class ByteArrayBuffer {
      * @return the number of bytes put into the given buffer.
      */
     public int get(byte[] bufferBytes, int off, int len) {
-        ByteArray array;
+        ByteBuf buf;
         int index = off;
         for (int n = this.buffers.size(); compressRead < n; compressRead++) {
-            array = this.buffers.get(compressRead);
-            if (array == null) {
+            buf = this.buffers.get(compressRead);
+            if (buf == null) {
                 break;
             }
-            if (pos + len > array.pos()) {
-                System.arraycopy(array.get(), 0, bufferBytes, index, array.pos());
-                index += array.pos();
+            if (pos + len > buf.pos()) {
+                System.arraycopy(buf.array(), 0, bufferBytes, index, buf.pos());
+                index += buf.pos();
             } else {
                 break;
             }
@@ -114,11 +114,11 @@ public final class ByteArrayBuffer {
      */
     public void writeTo(OutputStream outputStream) throws IOException {
         for (int i = 0, n = this.buffers.size(); i < n; i++) {
-            ByteArray array = this.buffers.get(i);
-            if (array == null) {
+            ByteBuf byteBuf = this.buffers.get(i);
+            if (byteBuf == null) {
                 break;
             }
-            array.writeTo(outputStream);
+            byteBuf.writeTo(outputStream);
         }
     }
     
@@ -148,28 +148,23 @@ public final class ByteArrayBuffer {
      *            The number of bytes to be read from the given array.
      */
     public void put(byte[] src, int off, int len) {
-        ByteArray array = this.buffer;
-        if (array.remaining() > len) {
-            System.arraycopy(src, off, array.get(), array.pos(), len);
-            array.newPos(array.pos() + len);
-            this.pos += len;
+        if (this.current.remaining() > len) {
+            UNSAFE.copyMemory(src, UnsafeUtil.BYTE_ARRAY_BASE_OFFSET + off, hb,
+                              UnsafeUtil.BYTE_ARRAY_BASE_OFFSET + current.pos(), len);
+            current.incPos(len);
         } else {
-            if (off == 0 && len == src.length) {
-                this.buffer = new ByteArrayImpl(src);
-                this.buffers.add(this.buffer);
-                allocate(DEFAULT_PAGE_SIZE);
-                this.pos += len;
+            if (len > ByteBufArray.DEFAULT_PAGE) {
+                this.current = new ByteBufArray(src, off, len);
+                this.buffers.add(this.current);
             } else {
-                if (len > DEFAULT_PAGE_SIZE) {
-                    array = new ByteArrayImpl(len);
-                } else {
-                    array = new ByteArrayImpl(DEFAULT_PAGE_SIZE);
-                }
-                System.arraycopy(src, 0, array.get(), 0, len);
-                array.newPos(len);
-                this.pos += len;
+                allocate();
+                UNSAFE.copyMemory(src, UnsafeUtil.BYTE_ARRAY_BASE_OFFSET + off, hb,
+                                  UnsafeUtil.BYTE_ARRAY_BASE_OFFSET, len);
+                current.incPos(len);
             }
+            
         }
+        
     }
     
     /**
@@ -179,11 +174,11 @@ public final class ByteArrayBuffer {
      *            The byte value to be written
      */
     public void put(byte value) {
-        if (this.buffer.assureBufferCapacity(1)) {
-            allocate(DEFAULT_PAGE_SIZE);
+        if (current.remaining() < 1) {
+            allocate();
         }
-        buffer.put(value);
-        this.pos += 1;
+        UNSAFE.putByte(hb, UnsafeUtil.BYTE_ARRAY_BASE_OFFSET + current.pos(), value);
+        current.incPos(1);
     }
     
     /**
@@ -193,12 +188,11 @@ public final class ByteArrayBuffer {
      *            The short value to be written
      */
     public void putShort(short value) {
-        if (this.buffer.assureBufferCapacity(2)) {
-            allocate(DEFAULT_PAGE_SIZE);
+        if (current.remaining() < 1) {
+            allocate();
         }
-        buffer.put((byte) value);
-        buffer.put((byte) (value >> 8));
-        this.pos += 2;
+        UNSAFE.putShort(hb, UnsafeUtil.BYTE_ARRAY_BASE_OFFSET + current.pos(), value);
+        current.incPos(2);
     }
     
     /**
@@ -208,15 +202,13 @@ public final class ByteArrayBuffer {
      *            the int value to be written.
      */
     public void putInt(int value) {
-        if (this.buffer.assureBufferCapacity(4)) {
-            allocate(DEFAULT_PAGE_SIZE);
+        if (current.remaining() < 4) {
+            allocate();
         }
-        ByteArray buffer = this.buffer;
-        buffer.put((byte) value);
-        buffer.put((byte) (value >> 8));
-        buffer.put((byte) (value >> 16));
-        buffer.put((byte) (value >> 24));
-        this.pos += 4;
+        UNSAFE.putInt(current.array(), UnsafeUtil.BYTE_ARRAY_BASE_OFFSET + current.pos(), value);
+        current.incPos(4);
+        // put(new byte[] { (byte) value, (byte) (value >> 8), (byte) (value >> 16),
+        // (byte) (value >> 24) }, 0, 4);
     }
     
     /**
@@ -226,29 +218,31 @@ public final class ByteArrayBuffer {
      *            the long value to be written.
      */
     public void putLong(long value) {
-        if (this.buffer.assureBufferCapacity(8)) {
-            allocate(DEFAULT_PAGE_SIZE);
+        if (current.remaining() < 8) {
+            allocate();
         }
-        ByteArray buffer = this.buffer;
-        buffer.put((byte) value);
-        buffer.put((byte) (value >> 8));
-        buffer.put((byte) (value >> 16));
-        buffer.put((byte) (value >> 24));
-        buffer.put((byte) (value >> 32));
-        buffer.put((byte) (value >> 40));
-        buffer.put((byte) (value >> 48));
-        buffer.put((byte) (value >> 56));
-        this.pos += 8;
+        UNSAFE.putLong(hb, UnsafeUtil.BYTE_ARRAY_BASE_OFFSET + current.pos(), value);
+        current.incPos(8);
+        // put(new byte[] { (byte) value, (byte) (value >> 8), (byte) (value >> 16),
+        // (byte) (value >> 24), (byte) (value >> 32), (byte) (value >> 40),
+        // (byte) (value >> 48), (byte) (value >> 56) }, 0, 8);
     }
     
     /**
-     * Relative <i>put</i> method for writing a string value (UTF8).
+     * Relative <i>put</i> method for writing an byte value n times (n bytes).
      * 
      * @param value
-     *            the string value to be written.
+     *            the long value to be written.
+     * @param count
+     *            the number of repeat for the value.
+     * 
      */
-    public void putString(String value) {
-        Utf8.write(this, UnsafeString.getChars(value), 0, value.length());
+    public void writeBytes(byte value, int count) {
+        if (current.remaining() < count) {
+            allocate();
+        }
+        UNSAFE.setMemory(hb, UnsafeUtil.BYTE_ARRAY_BASE_OFFSET + current.pos(), count, value);
+        current.incPos(count);
     }
     
     /**
@@ -260,182 +254,17 @@ public final class ByteArrayBuffer {
      *            the number of bytes to read from the given {@link InputStream}.
      */
     public void putStream(InputStream is, long readLength) throws IOException {
-        // ByteArray array = this.buffer;
-        // if (array.pos() + readLength < array.limit()) {
-        // is.read(array.get(), array.pos(), (int) readLength);
-        // this.pos += (int) readLength;
-        // } else {
-        // long remainingReadLength = readLength;
-        // int read;
-        // while (remainingReadLength > 0) {
-        // allocate(DEFAULT_PAGE_SIZE_STREAM);
-        // read = is.read(this.buffer.get(), 0, Math.min((int) remainingReadLength,
-        // DEFAULT_PAGE_SIZE_STREAM));
-        // remainingReadLength -= read;
-        // this.buffer.pos(read);
-        // this.pos += read;
-        // }
-        // }
-        this.buffers.add(new ByteArrayInputStream(is, (int) readLength));
-    }
-    
-    private void allocate(int size) {
-        this.buffer = new ByteArrayImpl(size);
-        this.buffers.add(this.buffer);
-    }
-    
-    private abstract static class ByteArray {
-        
-        public abstract int remaining();
-        
-        public abstract void writeTo(OutputStream outputStream) throws IOException;
-        
-        public abstract boolean assureBufferCapacity(int len);
-        
-        public abstract void put(byte value);
-        
-        public abstract byte[] get();
-        
-        public abstract int pos();
-        
-        public abstract void newPos(int newPosition);
-        
-        public abstract int limit();
-        
-    }
-    
-    private static final class ByteArrayImpl extends ByteArray {
-        private final byte[] buf;
-        private int pos;
-        
-        private ByteArrayImpl(int size) {
-            this.buf = new byte[size];
-            this.pos = 0;
-        }
-        
-        public ByteArrayImpl(byte[] bytes) {
-            this.buf = bytes;
-            this.pos = bytes.length;
-        }
-        
-        public int remaining() {
-            return buf.length - pos;
-        }
-        
-        public void put(byte value) {
-            buf[pos++] = value;
-        }
-        
-        public boolean assureBufferCapacity(int len) {
-            return (pos + len > buf.length);
-        }
-        
-        @Override
-        public String toString() {
-            StringBuilder builder = new StringBuilder();
-            builder.append("ByteBufferArray {");
-            builder.append("buf=[").append(buf).append("], ");
-            builder.append("pos=[").append(pos).append("], ");
-            builder.append("size=[").append(buf.length).append("]");
-            builder.append("}");
-            return builder.toString();
-        }
-        
-        @Override
-        public byte[] get() {
-            return this.buf;
-        }
-        
-        @Override
-        public int pos() {
-            return this.pos;
-        }
-        
-        @Override
-        public int limit() {
-            return buf.length;
-        }
-        
-        @Override
-        public void newPos(int newPosition) {
-            this.pos = newPosition;
-        }
-        
-        @Override
-        public void writeTo(OutputStream outputStream) throws IOException {
-            outputStream.write(buf, 0, pos);
-        }
-    }
-    
-    private static final class ByteArrayInputStream extends ByteArray {
-        
-        private final InputStream is;
-        private final int len;
-        
-        public ByteArrayInputStream(InputStream is, int len) {
-            this.is = is;
-            this.len = len;
-        }
-        
-        @Override
-        public int remaining() {
-            return 0;
-        }
-        
-        @Override
-        public boolean assureBufferCapacity(int len) {
-            return false;
-        }
-        
-        @Override
-        public void put(byte value) {
-            throw new UnsupportedOperationException();
-        }
-        
-        @Override
-        public byte[] get() {
-            throw new UnsupportedOperationException();
-        }
-        
-        @Override
-        public int pos() {
-            return len;
-        }
-        
-        @Override
-        public void newPos(int newPosition) {
-            throw new UnsupportedOperationException();
-        }
-        
-        @Override
-        public int limit() {
-            throw new UnsupportedOperationException();
-        }
-        
-        @Override
-        public void writeTo(OutputStream outputStream) throws IOException {
-            byte[] buf = new byte[DEFAULT_PAGE_SIZE];
-            long remainingReadLength = len;
-            int read;
-            while (remainingReadLength > 0) {
-                read = is.read(buf, 0, Math.min((int) remainingReadLength, DEFAULT_PAGE_SIZE));
-                remainingReadLength -= read;
-                outputStream.write(buf, 0, read);
-            }
-        }
-        
+        this.buffers.add(new ByteBufStream(is, (int) readLength));
     }
     
     /**
-     * Ensure that the buffer remaining size permit to write a data with a size len.
-     * 
-     * @param len
-     *            size of the data
+     * allocate a new {@link ByteBufArray}.
      */
-    public void assureBufferCapacity(int len) {
-        if (buffer.pos() + len > buffer.limit()) {
-            allocate(DEFAULT_PAGE_SIZE);
-        }
+    public void allocate() {
+        this.pos += this.current.pos();
+        this.current = new ByteBufArray();
+        this.hb = current.array();
+        this.buffers.add(this.current);
     }
     
 }

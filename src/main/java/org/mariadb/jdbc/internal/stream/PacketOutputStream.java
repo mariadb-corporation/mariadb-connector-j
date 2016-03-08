@@ -11,6 +11,8 @@ import java.util.Calendar;
 import java.util.zip.DeflaterOutputStream;
 
 import org.mariadb.jdbc.internal.util.ByteArrayBuffer;
+import org.mariadb.jdbc.internal.util.UnsafeString;
+import org.mariadb.jdbc.internal.util.Utf8;
 
 public class PacketOutputStream extends OutputStream {
     // private final static Logger log = LoggerFactory.getLogger(PacketOutputStream.class);
@@ -18,6 +20,7 @@ public class PacketOutputStream extends OutputStream {
     private static final float MIN_COMPRESSION_RATIO = 0.9f;
     private static final int MAX_PACKET_LENGTH = 0x00ffffff;
     private static final int HEADER_LENGTH = 4;
+    
     public ByteArrayBuffer buffer;
     int seqNo;
     int lastSeq;
@@ -26,6 +29,7 @@ public class PacketOutputStream extends OutputStream {
     boolean checkPacketLength;
     int maxRewritableLengthAllowed;
     boolean useCompression;
+    
     private final OutputStream outputStream;
     private volatile boolean closed = false;
     
@@ -149,7 +153,7 @@ public class PacketOutputStream extends OutputStream {
      *             if any error occur during data send to server
      */
     public void sendStream(Reader reader) throws IOException {
-        char[] buffer = new char[8192];
+        char[] buffer = new char[2048];
         int len;
         while ((len = reader.read(buffer)) > 0) {
             byte[] bytes = new String(buffer, 0, len).getBytes("UTF-8");
@@ -217,6 +221,22 @@ public class PacketOutputStream extends OutputStream {
         
         buffer.put(bytes, off, len);
     }
+    
+    /**
+     * Rewrite part from a batch
+     * 
+     * @param src
+     *            the string to put into this byte array buffer.
+     * @param off
+     *            The offset within the array of the first byte to be read.
+     * @param len
+     *            The number of bytes to be read from the given array.
+     */
+    public void rewritePart(String src, int off, int len) {
+        buffer.put((byte) ',');
+        Utf8.write(buffer, UnsafeString.getChars(src), off, len);
+    }
+
     
     @Override
     public void flush() throws IOException {
@@ -427,9 +447,7 @@ public class PacketOutputStream extends OutputStream {
      * @return this
      */
     public PacketOutputStream writeBytes(final byte theByte, final int count) {
-        for (int i = 0; i < count; i++) {
-            this.writeByte(theByte);
-        }
+        buffer.writeBytes(theByte, count);
         return this;
     }
     
@@ -466,13 +484,8 @@ public class PacketOutputStream extends OutputStream {
      * @return this.
      */
     public PacketOutputStream writeString(final String str) {
-        final byte[] strBytes;
-        try {
-            strBytes = str.getBytes("UTF-8");
-            return writeByteArray(strBytes);
-        } catch (UnsupportedEncodingException u) {
-            return this;
-        }
+        Utf8.write(buffer, UnsafeString.getChars(str), 0, str.length());
+        return this;
     }
     
     /**
@@ -627,9 +640,5 @@ public class PacketOutputStream extends OutputStream {
         }
         return this;
     }
-    
-    public void oneBlock(int size) {
-        this.buffer.assureBufferCapacity(size);
-    }
-    
+
 }

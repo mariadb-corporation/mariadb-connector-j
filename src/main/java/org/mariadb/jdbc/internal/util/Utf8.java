@@ -8,14 +8,18 @@ public final class Utf8 {
     /**
      * convert the char array to byte representation.
      * 
-     * @param buffer the byte array buffer to write utf-8 chars.
-     * @param buf the source char array.
-     * @param off the offset in the char array.
-     * @param len the number of chars to write.
+     * @param buffer
+     *            the byte array buffer to write utf-8 chars.
+     * @param buf
+     *            the source char array.
+     * @param off
+     *            the offset in the char array.
+     * @param len
+     *            the number of chars to write.
      */
     public static void write(ByteArrayBuffer buffer, char[] buf, int off, int len) {
         int cp;
-        for (int i = off; i < len; i++) {
+        for (int i = off, max = off + len; i < max; i++) {
             cp = buf[i];
             // ascii
             if (cp < 0x80) {
@@ -44,4 +48,5 @@ public final class Utf8 {
             }
         }
     }
+    
 }

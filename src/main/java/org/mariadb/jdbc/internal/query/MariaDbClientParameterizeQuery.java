@@ -48,9 +48,7 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-import org.mariadb.jdbc.internal.util.ExceptionMapper;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
-import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
+import static org.mariadb.jdbc.internal.util.Utils.createQueryParts;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -58,7 +56,10 @@ import java.io.UnsupportedEncodingException;
 import java.sql.SQLException;
 import java.util.List;
 
-import static org.mariadb.jdbc.internal.util.Utils.createQueryParts;
+import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
+import org.mariadb.jdbc.internal.stream.PacketOutputStream;
+import org.mariadb.jdbc.internal.util.ExceptionMapper;
+import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 /**
  * Client Parameterize query implementation.
@@ -210,7 +211,7 @@ public class MariaDbClientParameterizeQuery implements ParameterizeQuery {
      * @param os outputStream
      * @throws IOException if any error occur during buffer writing
      */
-    public void writeTo(final OutputStream os) throws IOException {
+    public void writeTo(final PacketOutputStream os) throws IOException {
         if (queryPartsArray.length == 0) {
             throw new AssertionError("Invalid query, queryParts was empty");
         }
@@ -229,7 +230,7 @@ public class MariaDbClientParameterizeQuery implements ParameterizeQuery {
      * @param os outputStream
      * @throws IOException if any error occur during buffer writing
      */
-    public void writeFirstRewritePart(final OutputStream os) throws IOException {
+    public void writeFirstRewritePart(final PacketOutputStream os) throws IOException {
         if (queryPartsArray.length == 0) {
             throw new AssertionError("Invalid query, queryParts was empty");
         }
@@ -249,7 +250,7 @@ public class MariaDbClientParameterizeQuery implements ParameterizeQuery {
      * @param os outputStream
      * @throws IOException if any error occur during buffer writing
      */
-    public void writeLastRewritePart(final OutputStream os) throws IOException {
+    public void writeLastRewritePart(final PacketOutputStream os) throws IOException {
         if (rewriteNotRepeatLastPart != null) {
             os.write(rewriteNotRepeatLastPart);
         }
@@ -273,7 +274,7 @@ public class MariaDbClientParameterizeQuery implements ParameterizeQuery {
      * @param rewriteOffset for compatibility (not used)
      * @throws IOException if any error occur during writing into buffer.
      */
-    public void writeToRewritablePart(final OutputStream os, int rewriteOffset) throws IOException {
+    public void writeToRewritablePart(final PacketOutputStream os, int rewriteOffset) throws IOException {
         if (queryPartsArray.length == 0) {
             throw new AssertionError("Invalid query, queryParts was empty");
         }

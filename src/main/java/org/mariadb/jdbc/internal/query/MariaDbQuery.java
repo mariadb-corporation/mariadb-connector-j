@@ -49,16 +49,14 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.query;
 
+import java.io.IOException;
+
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
-
 public class MariaDbQuery implements Query {
     
-    private final byte[] queryToSend;
+    private final String query;
     
     /**
      * Constructor.
@@ -67,11 +65,7 @@ public class MariaDbQuery implements Query {
      *            sql query
      */
     public MariaDbQuery(final String query) {
-        try {
-            this.queryToSend = query.getBytes("UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException("Unsupported encoding: " + e.getMessage(), e);
-        }
+        this.query = query;
     }
     
     /**
@@ -82,32 +76,16 @@ public class MariaDbQuery implements Query {
      * @throws IOException
      *             if any error occur when writing to buffer
      */
-    public void writeTo(final OutputStream os) throws IOException {
-        os.write(queryToSend, 0, queryToSend.length);
+    public void writeTo(final PacketOutputStream os) throws IOException {
+        os.writeString(query);
     }
     
-    /**
-     * Write whole query to buffer.
-     * 
-     * @param ostream
-     *            outputStream
-     * @param offset
-     *            buffer offset
-     * @param packLength
-     *            max length
-     * @throws IOException
-     *             if any error occur when writing to buffer
-     */
-    public void writeTo(OutputStream ostream, int offset, int packLength) throws IOException {
-        ostream.write(queryToSend, offset, packLength);
-    }
-    
-    public void writeFirstRewritePart(final OutputStream os) throws IOException {
-        writeTo(os);
+    public void writeFirstRewritePart(final PacketOutputStream os) throws IOException {
+        os.write(query.getBytes());
     }
     
     @Override
-    public void writeLastRewritePart(final OutputStream os) throws IOException {
+    public void writeLastRewritePart(final PacketOutputStream os) throws IOException {
     }
     
     public int writeLastRewritePartLength() {
@@ -127,28 +105,21 @@ public class MariaDbQuery implements Query {
      * @throws IOException
      *             if any error occur when writing to buffer
      */
-    public void writeToRewritablePart(final OutputStream os, int rewriteOffset) throws IOException {
-        try {
-            ((PacketOutputStream) os).oneBlock(queryToSend.length - rewriteOffset + 1);
-            os.write(',');
-            os.write(queryToSend, rewriteOffset, queryToSend.length - rewriteOffset);
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException("Unsupported encoding: " + e.getMessage(), e);
-        }
+    public void writeToRewritablePart(final PacketOutputStream os, int rewriteOffset) throws IOException {
+        os.rewritePart(query, rewriteOffset, query.length() - rewriteOffset);
     }
     
     public int writeToRewritablePartLength(int rewriteOffset) {
-        return 1 + queryToSend.length - rewriteOffset;
+        return 1 + query.length() - rewriteOffset;
     }
     
     public int getQuerySize() {
-        return queryToSend.length;
+        return query.length();
     }
     
     @Override
     public boolean equals(final Object otherObj) {
-        return otherObj instanceof MariaDbQuery && (((MariaDbQuery) otherObj).queryToSend).equals(
-                                                                                                  queryToSend);
+        return otherObj instanceof MariaDbQuery && (((MariaDbQuery) otherObj).query).equals(query);
     }
     
     @Override
@@ -157,7 +128,7 @@ public class MariaDbQuery implements Query {
     }
     
     public String toString() {
-        return new String(queryToSend);
+        return query;
     }
     
 }
