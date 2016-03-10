@@ -2,7 +2,7 @@ package org.mariadb.jdbc.internal.util;
 
 final class ByteBufList {
     
-    final ByteBuf first = new ByteBufArray();
+    final ByteBufUnsafe first = new ByteBufUnsafe();
     
     private ByteBuf[] elem = new ByteBuf[8];
     
@@ -12,7 +12,14 @@ final class ByteBufList {
         first.recycle();
         elemIdx = 0;
         for (int i = 0; i < elem.length; i++) {
+            if (elem[i] == null) {
+                break;
+            }
+            elem[i].free();
             elem[i] = null;
+        }
+        if (elem.length > 16) {
+            elem = new ByteBuf[8];
         }
     }
     
@@ -36,6 +43,13 @@ final class ByteBufList {
         }
         elem[elemIdx++] = buf;
         
+    }
+
+    @Override
+    protected void finalize() throws Throwable {
+        this.first.free();
+        recylce();
+        super.finalize();
     }
     
 }

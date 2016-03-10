@@ -3,9 +3,9 @@ package org.mariadb.jdbc.internal.util;
 import java.io.IOException;
 import java.io.OutputStream;
 
-final class ByteBufArray extends ByteBuf {
+final class ByteBufArray implements ByteBuf {
     
-    public static final int DEFAULT_PAGE = 4096;
+    public static final int DEFAULT_PAGE = 1024;
     
     private final byte[] array;
     
@@ -52,6 +52,15 @@ final class ByteBufArray extends ByteBuf {
     @Override
     public byte[] array() {
         return array;
+    }
+
+    @Override
+    public long address() {
+        return 0;
+    }
+
+    @Override
+    public void free() {
     }
     
 }

@@ -234,9 +234,8 @@ public class PacketOutputStream extends OutputStream {
      */
     public void rewritePart(String src, int off, int len) {
         buffer.put((byte) ',');
-        Utf8.write(buffer, UnsafeString.getChars(src), off, len);
+        Utf8.write2(buffer, UnsafeString.getChars(src), off, len);
     }
-
     
     @Override
     public void flush() throws IOException {
@@ -484,7 +483,9 @@ public class PacketOutputStream extends OutputStream {
      * @return this.
      */
     public PacketOutputStream writeString(final String str) {
-        Utf8.write(buffer, UnsafeString.getChars(str), 0, str.length());
+        // byte[] temp = str.getBytes(StandardCharsets.UTF_8);
+        // buffer.put(temp, 0, temp.length);
+        Utf8.write2(buffer, UnsafeString.getChars(str), 0, str.length());
         return this;
     }
     
@@ -640,5 +641,5 @@ public class PacketOutputStream extends OutputStream {
         }
         return this;
     }
-
+    
 }

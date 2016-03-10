@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-final class ByteBufStream extends ByteBuf {
+final class ByteBufStream implements ByteBuf {
     
     private final InputStream is;
     
@@ -36,11 +36,11 @@ final class ByteBufStream extends ByteBuf {
     
     @Override
     public void writeTo(OutputStream os) throws IOException {
-        byte[] buf = new byte[4096];
+        byte[] buf = new byte[2048];
         int read = pos;
         int len;
         while (read > 0) {
-            len = is.read(buf, 0, Math.min(read, 4096));
+            len = is.read(buf, 0, Math.min(read, 2048));
             if (read != -1) {
                 os.write(buf, 0, len);
             }
@@ -56,6 +56,15 @@ final class ByteBufStream extends ByteBuf {
     @Override
     public byte[] array() {
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public long address() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void free() {
     }
     
 }

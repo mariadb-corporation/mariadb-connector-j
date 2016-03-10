@@ -16,10 +16,16 @@ public final class ByteArrayBuffer {
      */
     private ByteBuf current;
     
-    private byte[] hb;
-    
+    /**
+     * List of all buffers used.
+     */
     private final ByteBufList buffers;
     
+    /**
+     * Memory address for the current.
+     */
+    private long adr;
+
     /**
      * Position overall buffers.
      */
@@ -35,9 +41,9 @@ public final class ByteArrayBuffer {
     public ByteArrayBuffer() {
         this.buffers = new ByteBufList();
         current = this.buffers.first;
-        hb = current.array();
         this.limit = 0;
         this.compressRead = 0;
+        this.adr = current.address();
     }
     
     public ByteBuf current() {
@@ -71,7 +77,7 @@ public final class ByteArrayBuffer {
         this.compressRead = 0;
         this.buffers.recylce();
         this.current = buffers.first;
-        this.hb = current.array();
+        this.adr = current.address();
     }
     
     /**
@@ -126,13 +132,7 @@ public final class ByteArrayBuffer {
      * prepare this byte array buffer to be written.
      */
     public void prepare() {
-        limit = 0;
-        for (int i = 0, n = this.buffers.size(); i < n; i++) {
-            if (this.buffers.get(i) == null) {
-                break;
-            }
-            limit += this.buffers.get(i).pos();
-        }
+        limit = pos + current.pos();
         pos = 0;
     }
     
@@ -149,8 +149,7 @@ public final class ByteArrayBuffer {
      */
     public void put(byte[] src, int off, int len) {
         if (this.current.remaining() > len) {
-            UNSAFE.copyMemory(src, UnsafeUtil.BYTE_ARRAY_BASE_OFFSET + off, hb,
-                              UnsafeUtil.BYTE_ARRAY_BASE_OFFSET + current.pos(), len);
+            UNSAFE.copyMemory(src, Unsafe.ARRAY_BYTE_BASE_OFFSET + off, null, adr + current.pos(), len);
             current.incPos(len);
         } else {
             if (len > ByteBufArray.DEFAULT_PAGE) {
@@ -158,13 +157,10 @@ public final class ByteArrayBuffer {
                 this.buffers.add(this.current);
             } else {
                 allocate();
-                UNSAFE.copyMemory(src, UnsafeUtil.BYTE_ARRAY_BASE_OFFSET + off, hb,
-                                  UnsafeUtil.BYTE_ARRAY_BASE_OFFSET, len);
+                UNSAFE.copyMemory(src, Unsafe.ARRAY_BYTE_BASE_OFFSET + off, null, adr + current.pos(), len);
                 current.incPos(len);
             }
-            
         }
-        
     }
     
     /**
@@ -174,10 +170,11 @@ public final class ByteArrayBuffer {
      *            The byte value to be written
      */
     public void put(byte value) {
-        if (current.remaining() < 1) {
+        if (current.pos() >= ByteBufUnsafe.DEFAULT_PAGE) {
             allocate();
         }
-        UNSAFE.putByte(hb, UnsafeUtil.BYTE_ARRAY_BASE_OFFSET + current.pos(), value);
+        
+        UNSAFE.putByte(adr + current.pos(), value);
         current.incPos(1);
     }
     
@@ -188,10 +185,10 @@ public final class ByteArrayBuffer {
      *            The short value to be written
      */
     public void putShort(short value) {
-        if (current.remaining() < 1) {
+        if (current.remaining() < 2) {
             allocate();
         }
-        UNSAFE.putShort(hb, UnsafeUtil.BYTE_ARRAY_BASE_OFFSET + current.pos(), value);
+        UNSAFE.putShort(adr + current.pos(), value);
         current.incPos(2);
     }
     
@@ -205,7 +202,7 @@ public final class ByteArrayBuffer {
         if (current.remaining() < 4) {
             allocate();
         }
-        UNSAFE.putInt(current.array(), UnsafeUtil.BYTE_ARRAY_BASE_OFFSET + current.pos(), value);
+        UNSAFE.putInt(adr + current.pos(), value);
         current.incPos(4);
         // put(new byte[] { (byte) value, (byte) (value >> 8), (byte) (value >> 16),
         // (byte) (value >> 24) }, 0, 4);
@@ -221,7 +218,7 @@ public final class ByteArrayBuffer {
         if (current.remaining() < 8) {
             allocate();
         }
-        UNSAFE.putLong(hb, UnsafeUtil.BYTE_ARRAY_BASE_OFFSET + current.pos(), value);
+        UNSAFE.putLong(adr + current.pos(), value);
         current.incPos(8);
         // put(new byte[] { (byte) value, (byte) (value >> 8), (byte) (value >> 16),
         // (byte) (value >> 24), (byte) (value >> 32), (byte) (value >> 40),
@@ -241,7 +238,7 @@ public final class ByteArrayBuffer {
         if (current.remaining() < count) {
             allocate();
         }
-        UNSAFE.setMemory(hb, UnsafeUtil.BYTE_ARRAY_BASE_OFFSET + current.pos(), count, value);
+        UNSAFE.setMemory(adr + current.pos(), count, value);
         current.incPos(count);
     }
     
@@ -262,9 +259,9 @@ public final class ByteArrayBuffer {
      */
     public void allocate() {
         this.pos += this.current.pos();
-        this.current = new ByteBufArray();
-        this.hb = current.array();
+        this.current = new ByteBufUnsafe();
         this.buffers.add(this.current);
+        this.adr = this.current.address();
     }
-    
+
 }
