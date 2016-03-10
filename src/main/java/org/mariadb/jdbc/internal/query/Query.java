@@ -49,25 +49,25 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.query;
 
-import org.mariadb.jdbc.internal.util.dao.QueryException;
-
 import java.io.IOException;
-import java.io.OutputStream;
+
+import org.mariadb.jdbc.internal.stream.PacketOutputStream;
+import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 public interface Query {
     int getQuerySize() throws IOException ;
 
-    void writeTo(OutputStream os) throws IOException;
+    void writeTo(PacketOutputStream os) throws IOException;
 
     int writeLastRewritePartLength();
 
     int writeToRewritablePartLength(int rewriteOffset) throws IOException;
 
-    void writeFirstRewritePart(final OutputStream os) throws IOException;
+    void writeFirstRewritePart(final PacketOutputStream os) throws IOException;
 
-    void writeLastRewritePart(final OutputStream os) throws IOException;
+    void writeLastRewritePart(final PacketOutputStream os) throws IOException;
 
-    void writeToRewritablePart(OutputStream os, int rewriteOffset) throws IOException;
+    void writeToRewritablePart(PacketOutputStream os, int rewriteOffset) throws IOException;
 
     void validate() throws QueryException;
 }

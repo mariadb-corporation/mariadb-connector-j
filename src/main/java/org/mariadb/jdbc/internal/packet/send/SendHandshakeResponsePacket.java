@@ -49,13 +49,12 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.packet.send;
 
-import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
-import org.mariadb.jdbc.internal.util.Utils;
-import org.mariadb.jdbc.internal.stream.PacketOutputStream;
-
 import java.io.IOException;
-import java.io.OutputStream;
 import java.security.NoSuchAlgorithmException;
+
+import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
+import org.mariadb.jdbc.internal.stream.PacketOutputStream;
+import org.mariadb.jdbc.internal.util.Utils;
 
 /**
  * 4                            client_flags 4                            max_packet_size 1 charset_number 23 (filler)
@@ -115,12 +114,11 @@ public class SendHandshakeResponsePacket implements InterfaceSendPacket {
 
     /**
      * Send authentication stream.
-     * @param os database socket
+     * @param writeBuffer database socket
      * @return 1 if all went well
      * @throws IOException if any connection error occur
      */
-    public int send(final OutputStream os) throws IOException {
-        PacketOutputStream writeBuffer = (PacketOutputStream) os;
+    public int send(final PacketOutputStream writeBuffer) throws IOException {
         writeBuffer.startPacket(packetSeq);
         final byte[] scrambledPassword;
         try {

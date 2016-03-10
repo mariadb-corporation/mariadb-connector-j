@@ -49,14 +49,13 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.packet.send;
 
-import org.mariadb.jdbc.internal.stream.PacketOutputStream;
+import java.io.IOException;
+
+import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.packet.dao.parameters.NotLongDataParameterHolder;
 import org.mariadb.jdbc.internal.packet.dao.parameters.NullParameter;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
-import org.mariadb.jdbc.internal.MariaDbType;
-
-import java.io.IOException;
-import java.io.OutputStream;
+import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
 public class SendExecutePrepareStatementPacket implements InterfaceSendPacket {
     private final int parameterCount;
@@ -81,12 +80,11 @@ public class SendExecutePrepareStatementPacket implements InterfaceSendPacket {
 
     /**
      * Send a prepare statement binary stream.
-     * @param os database socket
+     * @param buffer database socket
      * @return 0 if all when well
      * @throws IOException if a connection error occur
      */
-    public int send(final OutputStream os) throws IOException {
-        PacketOutputStream buffer = (PacketOutputStream) os;
+    public int send(final PacketOutputStream buffer) throws IOException {
         buffer.startPacket(0, true);
         buffer.buffer.put((byte) 0x17);
         buffer.buffer.putInt(statementId);
@@ -102,7 +100,7 @@ public class SendExecutePrepareStatementPacket implements InterfaceSendPacket {
                     nullBitsBuffer[i / 8] |= (1 << (i % 8));
                 }
             }
-            buffer.buffer.put(nullBitsBuffer);/*Null Bit Map*/
+            buffer.buffer.put(nullBitsBuffer, 0, nullBitsBuffer.length);/*Null Bit Map*/
 
             //check if parameters type (using setXXX) have change since previous request, and resend new header type if so
             boolean mustSendHeaderType = false;

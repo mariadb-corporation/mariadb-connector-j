@@ -49,10 +49,9 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.packet.send;
 
-import org.mariadb.jdbc.internal.stream.PacketOutputStream;
-
 import java.io.IOException;
-import java.io.OutputStream;
+
+import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
 /**
  * Used for starting ssl connections.
@@ -66,12 +65,11 @@ public class SendSslConnectionRequestPacket implements InterfaceSendPacket {
 
     /**
      * Send capabilities.
-     * @param os database stream.
+     * @param pos database stream.
      * @return 1
      * @throws IOException if any connection error occur
      */
-    public int send(final OutputStream os) throws IOException {
-        PacketOutputStream pos = (PacketOutputStream) os;
+    public int send(final PacketOutputStream pos) throws IOException {
         pos.startPacket(1);
         pos.writeInt(this.clientCapabilities);
         pos.finishPacket();

@@ -49,11 +49,10 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.packet.send;
 
-import org.mariadb.jdbc.internal.stream.PacketOutputStream;
-import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterWriter;
-
 import java.io.IOException;
-import java.io.OutputStream;
+
+import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterWriter;
+import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
 public class SendClosePrepareStatementPacket implements InterfaceSendPacket {
 
@@ -65,12 +64,11 @@ public class SendClosePrepareStatementPacket implements InterfaceSendPacket {
 
     /**
      * Send close preparedStatement stream.
-     * @param os database socket.
+     * @param pos database socket.
      * @return 0 if all went well
      * @throws IOException if a connection error occur
      */
-    public int send(final OutputStream os) throws IOException {
-        PacketOutputStream pos = (PacketOutputStream) os;
+    public int send(final PacketOutputStream pos) throws IOException {
         pos.startPacket(0);
         pos.write(0x19);
         pos.write(ParameterWriter.writeLittleEndian(statementId));
