@@ -3,6 +3,7 @@ package org.mariadb.jdbc;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
+import org.mariadb.jdbc.internal.util.constant.Version;
 
 import java.sql.SQLException;
 import java.util.Properties;
@@ -13,7 +14,18 @@ public class JdbcParserTest {
     public void testMariaAlias() throws Throwable {
         UrlParser jdbc = UrlParser.parse("jdbc:mariadb://localhost/test");
         UrlParser jdbc2 = UrlParser.parse("jdbc:mysql://localhost/test");
+        UrlParser jdbc3 = UrlParser.parse("jdbc:mariadb_" + Version.version + "://localhost/test");
         Assert.assertEquals(jdbc, jdbc2);
+        Assert.assertEquals(jdbc, jdbc3);
+    }
+
+    @Test
+    public void testAcceptsUrl() throws Throwable {
+        Driver driver = new Driver();
+        Assert.assertTrue(driver.acceptsURL("jdbc:mariadb://localhost/test"));
+        Assert.assertTrue(driver.acceptsURL("jdbc:mysql://localhost/test"));
+        Assert.assertTrue(driver.acceptsURL("jdbc:mariadb_" + Version.version + "://localhost/test"));
+        Assert.assertFalse(driver.acceptsURL("jdbc:mariadb_1.3.6://localhost/test"));
     }
 
     @Test

@@ -204,7 +204,7 @@ public class PacketOutputStream extends OutputStream {
         if (buffer.capacity() > BUFFER_DEFAULT_SIZE) {
             saveTemporaryBigBuffer = buffer;
             buffer = firstBuffer;
-        } else if (saveTemporaryBigBuffer != null){
+        } else if (saveTemporaryBigBuffer != null) {
             saveTemporaryBigBuffer = null;
         }
 

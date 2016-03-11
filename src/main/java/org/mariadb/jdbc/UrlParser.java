@@ -53,6 +53,7 @@ import org.mariadb.jdbc.internal.util.DefaultOptions;
 import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
+import org.mariadb.jdbc.internal.util.constant.Version;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -114,9 +115,16 @@ public class UrlParser {
         }
     }
 
-
+    /**
+     * Tell if mariadb driver accept url string.
+     * (Correspond to interface java.jdbc.Driver.acceptsURL() method)
+     * @param url url String
+     * @return true if url string correspond.
+     */
     public static boolean acceptsUrl(String url) {
-        return (url != null) && (url.startsWith("jdbc:mariadb:") || url.startsWith("jdbc:mysql:"));
+        return (url != null) && (url.startsWith("jdbc:mariadb:")
+                || url.startsWith("jdbc:mysql:")
+                || url.startsWith("jdbc:mariadb_" + Version.version + ":"));
 
     }
 
@@ -144,6 +152,13 @@ public class UrlParser {
                 if (url.startsWith("jdbc:mariadb:")) {
                     UrlParser urlParser = new UrlParser();
                     parseInternal(urlParser, "jdbc:mysql:" + url.substring(13), prop);
+                    return urlParser;
+                }
+
+                //to permit having multiple maria db version in classpath and permit performance test
+                if (url.startsWith("jdbc:mariadb_" + Version.version + ":")) {
+                    UrlParser urlParser = new UrlParser();
+                    parseInternal(urlParser, "jdbc:mysql:" + url.substring(("jdbc:mariadb_" + Version.version + ":").length()), prop);
                     return urlParser;
                 }
             }
