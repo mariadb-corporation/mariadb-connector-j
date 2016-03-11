@@ -151,9 +151,9 @@ public class CallableStatementTest extends BaseTest {
      */
     @Test
     public void testCallExecuteErrorBatch() throws SQLException {
-        CallableStatement cStmt = sharedConnection.prepareCall("{call TEST_SP1()}");
+        CallableStatement callableStatement = sharedConnection.prepareCall("{call TEST_SP1()}");
         try {
-            cStmt.execute();
+            callableStatement.execute();
             fail("Must have thrown error");
         } catch (SQLException sqle) {
             //must have thrown error.

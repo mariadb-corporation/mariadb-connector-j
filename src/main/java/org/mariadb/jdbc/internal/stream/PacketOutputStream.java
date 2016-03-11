@@ -14,7 +14,15 @@ public class PacketOutputStream extends OutputStream {
     private static final float MIN_COMPRESSION_RATIO = 0.9f;
     private static final int MAX_PACKET_LENGTH = 0x00ffffff;
     private static final int HEADER_LENGTH = 4;
+    private static final int BUFFER_DEFAULT_SIZE = 4096;
+    private static final float NORMAL_INCREASE = 4f;
+    private static final float BIG_SIZE_INCREASE = 1.5f;
+
+
     public ByteBuffer buffer;
+    public ByteBuffer firstBuffer;
+    public ByteBuffer saveTemporaryBigBuffer;
+
     int seqNo;
     int lastSeq;
     int maxAllowedPacket;
@@ -22,7 +30,6 @@ public class PacketOutputStream extends OutputStream {
     boolean checkPacketLength;
     int maxRewritableLengthAllowed;
     boolean useCompression;
-    private float increasing = 1.5f;
     private OutputStream outputStream;
     private volatile boolean closed = false;
 
@@ -32,21 +39,26 @@ public class PacketOutputStream extends OutputStream {
      */
     public PacketOutputStream(OutputStream outputStream) {
         this.outputStream = outputStream;
-        buffer = ByteBuffer.allocate(1024).order(ByteOrder.LITTLE_ENDIAN);
+        buffer = firstBuffer = ByteBuffer.allocate(BUFFER_DEFAULT_SIZE).order(ByteOrder.LITTLE_ENDIAN);
+        saveTemporaryBigBuffer = null;
         this.seqNo = -1;
         useCompression = false;
     }
 
     protected void increase(int newCapacity) {
-        buffer.limit(buffer.position());
-        buffer.rewind();
+        ByteBuffer newBuffer;
+        if (saveTemporaryBigBuffer != null && saveTemporaryBigBuffer.capacity() > newCapacity) {
+            newBuffer = saveTemporaryBigBuffer;
+            newBuffer.clear();
+            saveTemporaryBigBuffer = null;
+        } else {
+            newBuffer = ByteBuffer.allocate(newCapacity).order(ByteOrder.LITTLE_ENDIAN);
+        }
 
-        ByteBuffer newBuffer = ByteBuffer.allocate(newCapacity);
-
-        newBuffer.put(buffer);
-        buffer.clear();
+        System.arraycopy(buffer.array(), 0, newBuffer.array(), 0, buffer.position());
+        newBuffer.position(buffer.position());
         buffer = newBuffer;
-        buffer.order(ByteOrder.LITTLE_ENDIAN);
+
     }
 
     public void setUseCompression(boolean useCompression) {
@@ -104,7 +116,7 @@ public class PacketOutputStream extends OutputStream {
         this.seqNo = seq;
         buffer.clear();
         this.checkPacketLength = false;
-        byte[] buffer = new byte[8192];
+        byte[] buffer = new byte[BUFFER_DEFAULT_SIZE];
         int len;
         while ((len = is.read(buffer)) > 0) {
             write(buffer, 0, len);
@@ -119,7 +131,7 @@ public class PacketOutputStream extends OutputStream {
      * @throws IOException if any error occur during data send to server
      */
     public void sendStream(InputStream is) throws IOException {
-        byte[] buffer = new byte[8192];
+        byte[] buffer = new byte[BUFFER_DEFAULT_SIZE];
         int len;
         while ((len = is.read(buffer)) > 0) {
             write(buffer, 0, len);
@@ -133,11 +145,11 @@ public class PacketOutputStream extends OutputStream {
      * @throws IOException if any error occur during data send to server
      */
     public void sendStream(InputStream is, long readLength) throws IOException {
-        byte[] buffer = new byte[8192];
+        byte[] buffer = new byte[BUFFER_DEFAULT_SIZE];
         long remainingReadLength = readLength;
         int read;
         while (remainingReadLength > 0) {
-            read = is.read(buffer, 0, Math.min((int)remainingReadLength, 8192));
+            read = is.read(buffer, 0, Math.min((int)remainingReadLength, BUFFER_DEFAULT_SIZE));
             if (read == -1) {
                 return;
             }
@@ -152,7 +164,7 @@ public class PacketOutputStream extends OutputStream {
      * @throws IOException if any error occur during data send to server
      */
     public void sendStream(Reader reader) throws IOException {
-        char[] buffer = new char[8192];
+        char[] buffer = new char[BUFFER_DEFAULT_SIZE];
         int len;
         while ((len = reader.read(buffer)) > 0) {
             byte[] bytes = new String(buffer, 0, len).getBytes("UTF-8");
@@ -167,11 +179,11 @@ public class PacketOutputStream extends OutputStream {
      * @throws IOException if any error occur during data send to server
      */
     public void sendStream(Reader reader, long readLength) throws IOException {
-        char[] buffer = new char[8192];
+        char[] buffer = new char[BUFFER_DEFAULT_SIZE];
         long remainingReadLength = readLength;
         int read;
         while (remainingReadLength > 0) {
-            read = reader.read(buffer, 0, Math.min((int)remainingReadLength, 8192));
+            read = reader.read(buffer, 0, Math.min((int)remainingReadLength, BUFFER_DEFAULT_SIZE));
             if (read == -1) {
                 return;
             }
@@ -187,16 +199,16 @@ public class PacketOutputStream extends OutputStream {
      * @throws IOException if any connection error occur
      */
     public void finishPacket() throws IOException {
-        /*if (this.seqNo == -1) {
-            throw new AssertionError("Packet not started");
-        }*/
         internalFlush();
-        if (buffer.capacity() > 8192) {
-            //to not keep big buffer in memory
-            buffer = ByteBuffer.allocate(1024).order(ByteOrder.LITTLE_ENDIAN);
-        } else {
-            buffer.clear();
+        //save big buffer next query to avoid new allocation if next query size is similar
+        if (buffer.capacity() > BUFFER_DEFAULT_SIZE) {
+            saveTemporaryBigBuffer = buffer;
+            buffer = firstBuffer;
+        } else if (saveTemporaryBigBuffer != null){
+            saveTemporaryBigBuffer = null;
         }
+
+        buffer.clear();
         this.lastSeq = this.seqNo;
         this.seqNo = -1;
     }
@@ -214,14 +226,7 @@ public class PacketOutputStream extends OutputStream {
 
     @Override
     public void write(byte[] bytes, int off, int len) throws IOException {
-        if (this.seqNo == -1) {
-            throw new AssertionError("Use PacketOutputStream.startPacket() before write()");
-        }
-
-        while (len > buffer.remaining()) {
-            int newCapacity = Math.max(len + buffer.position(), (int) (buffer.capacity() * increasing));
-            increase(newCapacity);
-        }
+        assureBufferCapacity(len);
         buffer.put(bytes, off, len);
     }
 
@@ -378,6 +383,8 @@ public class PacketOutputStream extends OutputStream {
     public void close() throws IOException {
         outputStream.close();
         buffer = null;
+        saveTemporaryBigBuffer = null;
+        firstBuffer = null;
         closed = true;
     }
 
@@ -402,7 +409,9 @@ public class PacketOutputStream extends OutputStream {
      */
     public PacketOutputStream assureBufferCapacity(final int len) {
         while (len > buffer.remaining()) {
-            int newCapacity = Math.max(len + buffer.position(), (int) (buffer.capacity() * increasing));
+            int newCapacity = Math.max(
+                    (int)(len + buffer.position() * NORMAL_INCREASE),
+                    (int) ((buffer.capacity() > 4194304) ? buffer.capacity() * BIG_SIZE_INCREASE : buffer.capacity() * NORMAL_INCREASE));
             increase(newCapacity);
         }
         return this;

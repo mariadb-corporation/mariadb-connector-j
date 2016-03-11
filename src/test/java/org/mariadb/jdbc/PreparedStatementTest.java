@@ -154,7 +154,7 @@ public class PreparedStatementTest extends BaseTest {
 
 
     /**
-     * CONJ-263: Exception must be throwing exception if exception append in multiple query
+     * CONJ-263: Exception must be throwing exception if exception append in multiple query.
      *
      * @throws SQLException exception
      */

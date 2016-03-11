@@ -205,7 +205,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         } finally {
             lock.unlock();
         }
-
     }
 
     @Override
