@@ -153,6 +153,7 @@ public final class ByteArrayBuffer {
             current.incPos(len);
         } else {
             if (len > ByteBufArray.DEFAULT_PAGE) {
+                this.pos += current.pos();
                 this.current = new ByteBufArray(src, off, len);
                 this.buffers.add(this.current);
             } else {
@@ -251,7 +252,9 @@ public final class ByteArrayBuffer {
      *            the number of bytes to read from the given {@link InputStream}.
      */
     public void putStream(InputStream is, long readLength) throws IOException {
-        this.buffers.add(new ByteBufStream(is, (int) readLength));
+        this.pos += this.current.pos();
+        this.current = new ByteBufStream(is, (int) readLength);
+        this.buffers.add(this.current);
     }
     
     /**
