@@ -844,7 +844,7 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
                     if (obj instanceof BigDecimal) {
                         setBigDecimal(parameterIndex, (BigDecimal) obj);
                     } else {
-                        setLong(parameterIndex, bd.longValue());
+                        setBigDecimal(parameterIndex, new BigDecimal(bd.doubleValue()));
                     }
                     break;
                 case Types.BIT:
