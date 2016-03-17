@@ -361,14 +361,14 @@ public class PacketOutputStream extends OutputStream {
             outputStream.flush();
             buffer.position(maxPacketSize);
 
-            while (buffer.remaining() - 4 > 0 ) {
-                int length = buffer.remaining() - 4;
+            while (buffer.remaining() > 0 ) {
+                int length = buffer.remaining();
                 if (length > maxPacketSize) {
                     buffer.put((byte) (maxPacketSize & 0xff))
                             .put((byte) (maxPacketSize >>> 8))
                             .put((byte) (maxPacketSize >>> 16))
                             .put((byte) seqNo++);
-                    outputStream.write(buffer.array(), buffer.position(), maxPacketSize + 4);
+                    outputStream.write(buffer.array(), buffer.position(), maxPacketSize);
                     outputStream.flush();
                     buffer.position(buffer.position() + maxPacketSize);
                 } else {
@@ -376,7 +376,7 @@ public class PacketOutputStream extends OutputStream {
                             .put((byte) (length >>> 8))
                             .put((byte) (length >>> 16))
                             .put((byte) seqNo++);
-                    outputStream.write(buffer.array(), buffer.position(), length + 4);
+                    outputStream.write(buffer.array(), buffer.position(), length);
                     outputStream.flush();
                     break;
                 }
