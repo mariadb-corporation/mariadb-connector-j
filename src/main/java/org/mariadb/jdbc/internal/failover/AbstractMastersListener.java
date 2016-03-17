@@ -53,11 +53,10 @@ import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.failover.thread.ConnectionValidator;
+import org.mariadb.jdbc.internal.queryresults.AbstractQueryResult;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.dao.PrepareResult;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
-import org.mariadb.jdbc.internal.query.MariaDbQuery;
-import org.mariadb.jdbc.internal.query.Query;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
@@ -213,7 +212,7 @@ public abstract class AbstractMastersListener implements Listener {
 
     protected void setSessionReadOnly(boolean readOnly, Protocol protocol) throws QueryException {
         if (protocol.versionGreaterOrEqual(10, 0, 0)) {
-            protocol.executeQuery(new MariaDbQuery("SET SESSION TRANSACTION " + (readOnly ? "READ ONLY" : "READ WRITE")));
+            protocol.executeQuery("SET SESSION TRANSACTION " + (readOnly ? "READ ONLY" : "READ WRITE"), false);
         }
     }
 
@@ -267,11 +266,13 @@ public abstract class AbstractMastersListener implements Listener {
         HandleErrorResult handleErrorResult = new HandleErrorResult(true);
         if (method != null) {
             if ("executeQuery".equals(method.getName())) {
-                String query = ((Query) args[0]).toString().toUpperCase();
-                if (!query.equals("ALTER SYSTEM CRASH")
-                        && !query.startsWith("KILL")) {
-                    handleErrorResult.resultObject = method.invoke(currentProtocol, args);
-                    handleErrorResult.mustThrowError = false;
+                if (args[0] instanceof String) {
+                    String query = ((String) args[0]).toUpperCase();
+                    if (!query.equals("ALTER SYSTEM CRASH")
+                            && !query.startsWith("KILL")) {
+                        handleErrorResult.resultObject = method.invoke(currentProtocol, args);
+                        handleErrorResult.mustThrowError = false;
+                    }
                 }
             } else if ("executePreparedQuery".equals(method.getName())) {
                 //the statementId has been discarded with previous session
@@ -298,8 +299,8 @@ public abstract class AbstractMastersListener implements Listener {
      */
     public boolean isQueryRelaunchable(Method method, Object[] args) {
         if (method != null && "executeQuery".equals(method.getName())) {
-            if (args[0] instanceof Query) {
-                return ((Query) args[0]).toString().toUpperCase().startsWith("SELECT");
+            if (args[0] instanceof String) {
+                return ((String) args[0]).toUpperCase().startsWith("SELECT");
             }
         }
         return false;
@@ -332,7 +333,7 @@ public abstract class AbstractMastersListener implements Listener {
                     to.setCatalog(from.getDatabase());
                 }
                 if (from.getAutocommit() != to.getAutocommit()) {
-                    to.executeQuery(new MariaDbQuery("set autocommit=" + (from.getAutocommit() ? "1" : "0")));
+                    to.executeQuery("set autocommit=" + (from.getAutocommit() ? "1" : "0"), false);
                 }
             } finally {
                 proxy.lock.unlock();

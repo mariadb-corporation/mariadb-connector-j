@@ -50,7 +50,7 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.packet.dao;
 
 import org.mariadb.jdbc.internal.MariaDbType;
-import org.mariadb.jdbc.internal.util.buffer.Reader;
+import org.mariadb.jdbc.internal.util.buffer.Buffer;
 import org.mariadb.jdbc.internal.util.constant.ColumnFlags;
 
 import java.io.IOException;
@@ -98,7 +98,7 @@ public class ColumnInformation {
             4, 4, 4, 4, 0, 4, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0
     };
-    ByteBuffer buffer;
+    Buffer buffer;
     private short charsetNumber;
     private long length;
     private MariaDbType type;
@@ -113,10 +113,8 @@ public class ColumnInformation {
      * Read column information from buffer.
      * @param buffer buffer
      */
-    public ColumnInformation(ByteBuffer buffer) {
+    public ColumnInformation(Buffer buffer) {
         this.buffer = buffer;
-        buffer.mark();
-        Reader reader = new Reader(buffer);
 
         /*
         lenenc_str     catalog
@@ -134,18 +132,18 @@ public class ColumnInformation {
         2              filler [00] [00]
 
          */
-        reader.skipLengthEncodedBytes();  /* catalog */
-        reader.skipLengthEncodedBytes();  /* db */
-        reader.skipLengthEncodedBytes();  /* table */
-        reader.skipLengthEncodedBytes();  /* original table */
-        reader.skipLengthEncodedBytes();  /* name */
-        reader.skipLengthEncodedBytes();  /* org_name */
-        reader.skipBytes(1);
-        charsetNumber = reader.readShort();
-        length = reader.readInt();
-        type = MariaDbType.fromServer(reader.readByte() & 0xff);
-        flags = reader.readShort();
-        decimals = reader.readByte();
+        buffer.skipLengthEncodedBytes();  /* catalog */
+        buffer.skipLengthEncodedBytes();  /* db */
+        buffer.skipLengthEncodedBytes();  /* table */
+        buffer.skipLengthEncodedBytes();  /* original table */
+        buffer.skipLengthEncodedBytes();  /* name */
+        buffer.skipLengthEncodedBytes();  /* org_name */
+        buffer.skipBytes(1);
+        charsetNumber = buffer.readShort();
+        length = buffer.readInt();
+        type = MariaDbType.fromServer(buffer.readByte() & 0xff);
+        flags = buffer.readShort();
+        decimals = buffer.readByte();
 
 
         int sqlType = type.getSqlType();
@@ -198,7 +196,7 @@ public class ColumnInformation {
             baos.write(new byte[]{0, 0});   /* flags */
             baos.write(0); /* decimals */
             baos.write(new byte[]{0, 0});   /* filler */
-            return new ColumnInformation(ByteBuffer.wrap(baos.toByteArray()).order(ByteOrder.LITTLE_ENDIAN));
+            return new ColumnInformation(new Buffer(baos.toByteArray()));
         } catch (IOException ioe) {
             throw new RuntimeException("unexpected condition", ioe);
         }
@@ -206,13 +204,11 @@ public class ColumnInformation {
 
     private String getString(int idx) {
         try {
-            buffer.reset();
-            buffer.mark();
-            Reader reader = new Reader(buffer);
+            buffer.position = 0;
             for (int i = 0; i < idx; i++) {
-                reader.skipLengthEncodedBytes();
+                buffer.skipLengthEncodedBytes();
             }
-            return new String(reader.getLengthEncodedBytes(), StandardCharsets.UTF_8);
+            return new String(buffer.getLengthEncodedBytes(), StandardCharsets.UTF_8);
         } catch (Exception e) {
             throw new RuntimeException("this does not happen", e);
         }

@@ -113,7 +113,7 @@ public enum DefaultOptions {
     /**
      * If set to 'true', exception thrown during query execution contain query string.
      */
-    DUMP_QUERY_ON_EXCEPTION("dumpQueriesOnException", Boolean.FALSE, "1.1.0"),
+    DUMP_QUERY_ON_EXCEPTION("dumpQueriesOnException", Boolean.TRUE, "1.1.0"),
 
     /**
      * Metadata ResultSetMetaData.getTableName() return the physical table name.

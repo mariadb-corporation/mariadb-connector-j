@@ -1,7 +1,5 @@
 package org.mariadb.jdbc.internal.stream;
 
-import org.mariadb.jdbc.internal.util.buffer.ReadUtil;
-
 import java.io.ByteArrayInputStream;
 import java.io.EOFException;
 import java.io.IOException;
@@ -11,11 +9,11 @@ import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 
 public class DecompressInputStream extends InputStream {
-    InputStream baseStream;
-    int remainingBytes;
-    byte[] header;
-    boolean doDecompress;
-    ByteArrayInputStream decompressedByteStream;
+    private InputStream baseStream;
+    private int remainingBytes;
+    private byte[] header;
+    private boolean doDecompress;
+    private ByteArrayInputStream decompressedByteStream;
 
     public DecompressInputStream(InputStream baseStream) {
         this.baseStream = baseStream;
@@ -68,15 +66,38 @@ public class DecompressInputStream extends InputStream {
      * @throws IOException exception
      */
     private void nextPacket() throws IOException {
-        ReadUtil.readFully(baseStream, header);
+        int off = 0;
+        int remaining = 7;
+        do {
+            int count = baseStream.read(header, off, remaining);
+            if (count <= 0) {
+                throw new EOFException("unexpected end of stream, read " + (7 - remaining) + " bytes from " + 7);
+            }
+            remaining -= count;
+            off += count;
+        } while (remaining > 0);
+
+
         int compressedLength = (header[0] & 0xff) + ((header[1] & 0xff) << 8) + ((header[2] & 0xff) << 16);
+        compressSeqNumber = header[3];
         int decompressedLength = (header[4] & 0xff) + ((header[5] & 0xff) << 8) + ((header[6] & 0xff) << 16);
         if (decompressedLength != 0) {
             doDecompress = true;
             remainingBytes += decompressedLength;
             byte[] compressedBuffer = new byte[compressedLength];
             byte[] decompressedBuffer = new byte[decompressedLength];
-            ReadUtil.readFully(baseStream, compressedBuffer);
+
+            off = 0;
+            remaining = compressedBuffer.length;
+            do {
+                int count = baseStream.read(compressedBuffer, off, remaining);
+                if (count <= 0) {
+                    throw new EOFException("unexpected end of stream, read " + (7 - remaining) + " bytes from " + 7);
+                }
+                remaining -= count;
+                off += count;
+            } while (remaining > 0);
+
             Inflater inflater = new Inflater();
             inflater.setInput(compressedBuffer);
             try {

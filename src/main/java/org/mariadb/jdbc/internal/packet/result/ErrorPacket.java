@@ -49,9 +49,8 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.packet.result;
 
-import org.mariadb.jdbc.internal.util.buffer.Reader;
+import org.mariadb.jdbc.internal.util.buffer.Buffer;
 
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
 
@@ -63,30 +62,18 @@ public class ErrorPacket extends AbstractResultPacket {
 
     /**
      * Reading error stream.
-     * @param byteBuffer current stream byteBuffer
+     * @param buffer current stream rawBytes
      */
-    public ErrorPacket(ByteBuffer byteBuffer) {
-        super(byteBuffer);
-        final Reader reader = new Reader(byteBuffer);
-        reader.readByte();
-        this.errorNumber = reader.readShort();
-        this.sqlStateMarker = reader.readByte();
+    public ErrorPacket(Buffer buffer) {
+        buffer.skipByte();
+        this.errorNumber = buffer.readShort();
+        this.sqlStateMarker = buffer.readByte();
         if (sqlStateMarker == '#') {
-            this.sqlState = reader.readRawBytes(5);
-            this.message = reader.readString(StandardCharsets.UTF_8);
+            this.sqlState = buffer.readRawBytes(5);
+            this.message = buffer.readString(StandardCharsets.UTF_8);
         } else {
             // Pre-4.1 message, still can be output in newer versions (e.g with 'Too many connections')
-            byte[] msgBuf = new byte[reader.getRemainingSize() + 1];
-            msgBuf[0] = sqlStateMarker;
-            int cnt = 1;
-            while (reader.getRemainingSize() > 0) {
-                byte bytes = reader.readByte();
-                if (bytes == 0) {
-                    break;
-                }
-                msgBuf[cnt++] = bytes;
-            }
-            this.message = new String(msgBuf, StandardCharsets.UTF_8);
+            this.message = new String(buffer.buf, StandardCharsets.UTF_8);
             this.sqlState = "HY000".getBytes();
         }
     }

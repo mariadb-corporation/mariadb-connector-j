@@ -81,4 +81,8 @@ public class DoubleParameter extends NotLongDataParameterHolder {
         return MariaDbType.DOUBLE;
     }
 
+    @Override
+    public String toString() {
+        return Double.toString(value);
+    }
 }

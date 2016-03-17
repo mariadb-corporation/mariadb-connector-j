@@ -394,11 +394,9 @@ public class MultiTest extends BaseTest {
             sqlInsert.addBatch();
             updateCounts = sqlInsert.executeBatch();
 
-            Assert.assertEquals(4, updateCounts.length);
+            Assert.assertEquals(2, updateCounts.length);
             Assert.assertEquals(1, updateCounts[0]);
             Assert.assertEquals(1, updateCounts[1]);
-            Assert.assertEquals(1, updateCounts[2]);
-            Assert.assertEquals(1, updateCounts[3]);
 
             assertEquals(4, retrieveSessionVariableFromServer(tmpConnection, "Com_insert") - secondCurrentInsert);
 

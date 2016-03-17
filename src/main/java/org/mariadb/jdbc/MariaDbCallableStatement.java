@@ -1324,13 +1324,11 @@ public class MariaDbCallableStatement implements CallableStatement {
     public void clearParameters() throws SQLException {
         if (parametersCount > 0) {
             MariaDbClientPreparedStatement ps = (MariaDbClientPreparedStatement) inputParameters();
-            if (!ps.parametersCleared) {
-                ps.clearParameters();
-                for (int i = 1; i <= parametersCount; i++) {
-                    ps.setNull(i, Types.NULL);
-                }
-                inputParameters().execute();
+            ps.clearParameters();
+            for (int i = 1; i <= parametersCount; i++) {
+                ps.setNull(i, Types.NULL);
             }
+            inputParameters().execute();
         }
     }
 

@@ -102,5 +102,8 @@ public class TimestampParameter extends NotLongDataParameterHolder {
         return MariaDbType.DATETIME;
     }
 
-
+    @Override
+    public String toString() {
+        return "'" + ts.toString() + "'";
+    }
 }

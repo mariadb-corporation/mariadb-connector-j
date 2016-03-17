@@ -79,4 +79,9 @@ public class ByteParameter extends NotLongDataParameterHolder {
     public MariaDbType getMariaDbType() {
         return MariaDbType.TINYINT;
     }
+
+    @Override
+    public String toString() {
+        return Byte.toString(value);
+    }
 }

@@ -53,7 +53,6 @@ import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
-import org.mariadb.jdbc.internal.query.MariaDbQuery;
 import org.mariadb.jdbc.internal.queryresults.SelectQueryResult;
 import org.mariadb.jdbc.internal.protocol.AuroraProtocol;
 import org.mariadb.jdbc.internal.protocol.Protocol;
@@ -172,8 +171,8 @@ public class AuroraListener extends MastersSlavesListener {
             try {
                 proxy.lock.lock();
                 try {
-                    queryResult = (SelectQueryResult) secondaryProtocol.executeQuery(new MariaDbQuery(
-                            "select server_id from information_schema.replica_host_status where session_id = 'MASTER_SESSION_ID'"));
+                    queryResult = (SelectQueryResult) secondaryProtocol.executeQuery(
+                            "select server_id from information_schema.replica_host_status where session_id = 'MASTER_SESSION_ID'", false);
                     queryResult.next();
                 } finally {
                     proxy.lock.unlock();

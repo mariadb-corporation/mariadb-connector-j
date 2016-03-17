@@ -78,4 +78,9 @@ public class BigDecimalParameter extends NotLongDataParameterHolder {
         return MariaDbType.DECIMAL;
     }
 
+
+    @Override
+    public String toString() {
+        return bigDecimal.toString();
+    }
 }

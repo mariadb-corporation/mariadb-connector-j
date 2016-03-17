@@ -141,7 +141,7 @@ public class ReaderParameter extends LongDataParameterHolder {
 
 
     public String toString() {
-        return "<Reader> " + reader;
+        return "<Buffer> " + reader;
     }
 
     public boolean isLongData() {

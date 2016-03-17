@@ -78,4 +78,10 @@ public class IntParameter extends NotLongDataParameterHolder {
     public MariaDbType getMariaDbType() {
         return MariaDbType.INTEGER;
     }
+
+    @Override
+    public String toString() {
+        return Integer.toString(value);
+    }
+
 }

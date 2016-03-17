@@ -52,7 +52,7 @@ package org.mariadb.jdbc.internal.packet.result;
 import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.queryresults.ValueObject;
 import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
-import org.mariadb.jdbc.internal.util.buffer.Reader;
+import org.mariadb.jdbc.internal.util.buffer.Buffer;
 import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
 import org.mariadb.jdbc.internal.queryresults.MariaDbValueObject;
 
@@ -84,21 +84,20 @@ public class TextRowPacket implements RowPacket {
      * @return datas object
      * @throws IOException if any connection error occur
      */
-    public ValueObject[] getRow(ReadPacketFetcher packetFetcher, ByteBuffer buffer) throws IOException {
+    public ValueObject[] getRow(ReadPacketFetcher packetFetcher, Buffer buffer) throws IOException {
         ValueObject[] valueObjects = new ValueObject[columnInformationLength];
-        Reader reader = new Reader(buffer);
         for (int i = 0; i < columnInformationLength; i++) {
-            while (reader.byteBuffer.remaining() == 0) {
-                reader.appendPacket(packetFetcher.getRawPacket());
+            while (buffer.remaining() == 0) {
+                buffer.appendPacket(packetFetcher.getPacket());
             }
-            long valueLen = reader.getLengthEncodedBinary();
+            long valueLen = buffer.getLengthEncodedBinary();
             if (valueLen == -1) {
                 valueObjects[i] = new MariaDbValueObject(null, columnInformation[i], options);
             } else {
-                while (reader.byteBuffer.remaining() < valueLen) {
-                    reader.appendPacket(packetFetcher.getRawPacket());
+                while (buffer.remaining() < valueLen) {
+                    buffer.appendPacket(packetFetcher.getPacket());
                 }
-                valueObjects[i] = new MariaDbValueObject(reader.readRawBytes((int) valueLen), columnInformation[i], options);
+                valueObjects[i] = new MariaDbValueObject(buffer.readRawBytes((int) valueLen), columnInformation[i], options);
             }
         }
         return valueObjects;

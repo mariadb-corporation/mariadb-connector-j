@@ -85,4 +85,9 @@ public class NullParameter extends ParameterHolder {
         return type;
     }
 
+    @Override
+    public String toString() {
+        return "<null>";
+    }
+
 }

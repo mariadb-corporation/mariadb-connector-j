@@ -49,7 +49,7 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-import java.nio.ByteBuffer;
+import org.mariadb.jdbc.internal.util.buffer.Buffer;
 
 public class OkPacket extends AbstractResultPacket {
 
@@ -57,20 +57,17 @@ public class OkPacket extends AbstractResultPacket {
     private final long insertId;
     private final short serverStatus;
     private final short warnings;
-    private final String message;
 
     /**
      * Read Ok stream result.
-     * @param byteBuffer current stream's byteBuffer
+     * @param buffer current stream's rawBytes
      */
-    public OkPacket(ByteBuffer byteBuffer) {
-        super(byteBuffer);
-        byteBuffer.get(); //fieldCount
-        affectedRows = getLengthEncodedBinary();
-        insertId = getLengthEncodedBinary();
-        serverStatus = byteBuffer.getShort();
-        warnings = byteBuffer.getShort();
-        message = getStringLengthEncodedBytes();
+    public OkPacket(Buffer buffer) {
+        buffer.skipByte(); //fieldCount
+        affectedRows = buffer.getLengthEncodedBinary();
+        insertId = buffer.getLengthEncodedBinary();
+        serverStatus = buffer.readShort();
+        warnings = buffer.readShort();
     }
 
     public ResultType getResultType() {
@@ -86,9 +83,7 @@ public class OkPacket extends AbstractResultPacket {
                 + "&serverStatus="
                 + serverStatus
                 + "&warnings="
-                + warnings
-                + "&message="
-                + message;
+                + warnings;
     }
 
     public long getAffectedRows() {
@@ -107,7 +102,4 @@ public class OkPacket extends AbstractResultPacket {
         return warnings;
     }
 
-    public String getMessage() {
-        return message;
-    }
 }
