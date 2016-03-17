@@ -79,7 +79,7 @@ public class DecompressInputStream extends InputStream {
 
 
         int compressedLength = (header[0] & 0xff) + ((header[1] & 0xff) << 8) + ((header[2] & 0xff) << 16);
-        compressSeqNumber = header[3];
+
         int decompressedLength = (header[4] & 0xff) + ((header[5] & 0xff) << 8) + ((header[6] & 0xff) << 16);
         if (decompressedLength != 0) {
             doDecompress = true;
