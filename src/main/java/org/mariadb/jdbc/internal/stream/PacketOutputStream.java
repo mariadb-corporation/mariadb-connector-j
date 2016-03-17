@@ -11,6 +11,7 @@ import java.util.Calendar;
 import java.util.zip.DeflaterOutputStream;
 
 import org.mariadb.jdbc.internal.util.ByteArrayBuffer;
+import org.mariadb.jdbc.internal.util.ByteBufUnsafe;
 import org.mariadb.jdbc.internal.util.UnsafeString;
 import org.mariadb.jdbc.internal.util.Utf8;
 
@@ -21,7 +22,7 @@ public class PacketOutputStream extends OutputStream {
     private static final int MAX_PACKET_LENGTH = 0x00ffffff;
     private static final int HEADER_LENGTH = 4;
     
-    public ByteArrayBuffer buffer;
+    public final ByteArrayBuffer buffer;
     int seqNo;
     int lastSeq;
     int maxAllowedPacket;
@@ -32,6 +33,8 @@ public class PacketOutputStream extends OutputStream {
     
     private final OutputStream outputStream;
     private volatile boolean closed = false;
+    
+    private final byte[] header = new byte[HEADER_LENGTH];
     
     /**
      * Initialization with server outputStream.
@@ -92,7 +95,7 @@ public class PacketOutputStream extends OutputStream {
      *             if any error occur during data send to server
      */
     public void writeEmptyPacket(int seqNo) throws IOException {
-        byte[] buf = new byte[4];
+        byte[] buf = this.header;
         buf[0] = ((byte) 0);
         buf[1] = ((byte) 0);
         buf[2] = ((byte) 0);
@@ -156,8 +159,7 @@ public class PacketOutputStream extends OutputStream {
         char[] buffer = new char[2048];
         int len;
         while ((len = reader.read(buffer)) > 0) {
-            byte[] bytes = new String(buffer, 0, len).getBytes("UTF-8");
-            write(bytes, 0, bytes.length);
+            Utf8.write2(this.buffer, buffer, 0, len);
         }
     }
     
@@ -172,16 +174,15 @@ public class PacketOutputStream extends OutputStream {
      *             if any error occur during data send to server
      */
     public void sendStream(Reader reader, long readLength) throws IOException {
-        char[] buffer = new char[8192];
+        char[] buffer = new char[2048];
         long remainingReadLength = readLength;
         int read;
         while (remainingReadLength > 0) {
-            read = reader.read(buffer, 0, Math.min((int) remainingReadLength, 8192));
+            read = reader.read(buffer, 0, Math.min((int) remainingReadLength, 2048));
             if (read == -1) {
                 return;
             }
-            byte[] bytes = new String(buffer, 0, read).getBytes("UTF-8");
-            write(bytes, 0, bytes.length);
+            Utf8.write2(this.buffer, buffer, 0, read);
             remainingReadLength -= read;
         }
         
@@ -313,25 +314,34 @@ public class PacketOutputStream extends OutputStream {
     
     private void flushRaw(int limit) throws IOException {
         int expectedPacketSize = limit + HEADER_LENGTH * ((limit / maxPacketSize) + 1);
-        int notCompressPosition = 0;
         
-        while (notCompressPosition < expectedPacketSize) {
-            int length = buffer.remaining();
-            if (length > maxPacketSize) {
-                length = maxPacketSize;
-            }
-            byte[] header = new byte[HEADER_LENGTH];
-            header[0] = (byte) (length & 0xff);
-            header[1] = (byte) (length >>> 8);
-            header[2] = (byte) (length >>> 16);
+        if (limit < maxPacketSize) {
+            byte[] header = this.header;
+            header[0] = (byte) (limit & 0xff);
+            header[1] = (byte) (limit >>> 8);
+            header[2] = (byte) (limit >>> 16);
             header[3] = (byte) seqNo++;
             outputStream.write(header, 0, HEADER_LENGTH);
-            notCompressPosition += 4;
-            
-            if (length > 0) {
-                this.buffer.writeTo(this.outputStream);
-                this.outputStream.flush();
-                notCompressPosition += length;
+            this.buffer.writeTo(this.outputStream);
+        } else {
+            int notCompressPosition = 0;
+            while (notCompressPosition < expectedPacketSize) {
+                int length = buffer.remaining();
+                if (length > maxPacketSize) {
+                    length = maxPacketSize;
+                }
+                byte[] header = this.header;
+                header[0] = (byte) (length & 0xff);
+                header[1] = (byte) (length >>> 8);
+                header[2] = (byte) (length >>> 16);
+                header[3] = (byte) seqNo++;
+                outputStream.write(header, 0, HEADER_LENGTH);
+                notCompressPosition += 4;
+                
+                if (length > 0) {
+                    this.buffer.writePartTo(this.outputStream, length);
+                    notCompressPosition += length;
+                }
             }
         }
         
@@ -401,8 +411,9 @@ public class PacketOutputStream extends OutputStream {
     
     @Override
     public void close() throws IOException {
+        buf.free();
+        buffer.close();
         outputStream.close();
-        buffer = null;
         closed = true;
     }
     
@@ -550,6 +561,8 @@ public class PacketOutputStream extends OutputStream {
         return this;
     }
     
+    private final ByteBufUnsafe buf = new ByteBufUnsafe();
+    
     /**
      * Write string in binary format.
      * 
@@ -558,11 +571,18 @@ public class PacketOutputStream extends OutputStream {
      * @return this.
      */
     public PacketOutputStream writeStringLength(final String str) {
-        try {
-            final byte[] strBytes = str.getBytes("UTF-8");
-            writeFieldLength(strBytes.length);
-            buffer.put(strBytes, 0, strBytes.length);
-        } catch (UnsupportedEncodingException u) {
+        if (str.length() < 1024) {
+            buf.recycle();
+            Utf8.write(buf, UnsafeString.getChars(str), 0, str.length());
+            writeFieldLength(buf.pos());
+            buffer.put(buf);
+        } else {
+            try {
+                final byte[] strBytes = str.getBytes("UTF-8");
+                writeFieldLength(strBytes.length);
+                buffer.put(strBytes, 0, strBytes.length);
+            } catch (UnsupportedEncodingException u) {
+            }
         }
         return this;
     }

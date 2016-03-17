@@ -49,11 +49,6 @@ final class ByteBufStream implements ByteBuf {
     }
     
     @Override
-    public void incPos(int len) {
-        throw new UnsupportedOperationException();
-    }
-    
-    @Override
     public byte[] array() {
         throw new UnsupportedOperationException();
     }
@@ -65,6 +60,16 @@ final class ByteBufStream implements ByteBuf {
 
     @Override
     public void free() {
+    }
+
+    @Override
+    public int pos(int inc) {
+        throw new UnsupportedOperationException();
+    }
+    
+    @Override
+    public void pos(long address) {
+        throw new UnsupportedOperationException();
     }
     
 }

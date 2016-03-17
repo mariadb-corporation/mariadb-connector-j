@@ -9,6 +9,8 @@ final class ByteBufArray implements ByteBuf {
     
     private final byte[] array;
     
+    private final int len;
+    
     protected int pos;
     
     private final int off; 
@@ -17,12 +19,14 @@ final class ByteBufArray implements ByteBuf {
         array = new byte[DEFAULT_PAGE];
         pos = 0;
         off = 0;
+        len = DEFAULT_PAGE;
     }
     
     public ByteBufArray(byte[] src, int off, int len) {
         array = src;
         pos = len;
         this.off = off;
+        this.len = len;
     }
     
     public int remaining() {
@@ -45,11 +49,6 @@ final class ByteBufArray implements ByteBuf {
     }
 
     @Override
-    public void incPos(int len) {
-        pos += len;
-    }
-
-    @Override
     public byte[] array() {
         return array;
     }
@@ -62,5 +61,22 @@ final class ByteBufArray implements ByteBuf {
     @Override
     public void free() {
     }
+
+    @Override
+    public int pos(int inc) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void pos(long address) {
+        throw new UnsupportedOperationException();
+    }
+
+//    @Override
+//    public int writePartTo(OutputStream outputStream, int length) throws IOException {
+//        outputStream.write(array, off + pos, Math.min(length, len));
+//        pos += Math.min(length, len);
+//        return pos;
+//    }
     
 }

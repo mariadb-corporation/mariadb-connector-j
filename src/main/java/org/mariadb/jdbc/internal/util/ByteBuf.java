@@ -7,18 +7,22 @@ public interface ByteBuf {
     
     int pos();
     
+    int pos(int inc);
+    
+    void pos(long address);
+    
     int remaining();
     
     void recycle();
 
     void writeTo(OutputStream os) throws IOException;
 
-    void incPos(int len);
-
     byte[] array();
     
     long address();
 
     void free();
+
+    
     
 }

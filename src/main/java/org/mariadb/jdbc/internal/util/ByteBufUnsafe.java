@@ -6,20 +6,31 @@ import java.io.OutputStream;
 import sun.misc.Unsafe;
 
 @SuppressWarnings("all")
-final class ByteBufUnsafe implements ByteBuf {
+public final class ByteBufUnsafe implements ByteBuf {
     
     private static final Unsafe UNSAFE = UnsafeUtil.unsafe();
     
     private final long adr;
+    
+    private final int max;
     private int pos;
     
-    public static final int DEFAULT_PAGE = 2048;
+    private static final int DEFAULT_PAGE = 4096;
     
-    private final byte[] values = new byte[DEFAULT_PAGE];
+    private final byte[] cache;
     
     public ByteBufUnsafe() {
         adr = UNSAFE.allocateMemory(DEFAULT_PAGE);
         pos = 0;
+        max = DEFAULT_PAGE;
+        cache = new byte[DEFAULT_PAGE];
+    }
+    
+    public ByteBufUnsafe(int index) {
+        max = DEFAULT_PAGE * (index+1);
+        adr = UNSAFE.allocateMemory(max);
+        pos = 0;
+        cache = new byte[DEFAULT_PAGE];
     }
     
     @Override
@@ -29,7 +40,7 @@ final class ByteBufUnsafe implements ByteBuf {
     
     @Override
     public int remaining() {
-        return DEFAULT_PAGE - pos;
+        return max - pos;
     }
     
     @Override
@@ -39,19 +50,32 @@ final class ByteBufUnsafe implements ByteBuf {
     
     @Override
     public void writeTo(OutputStream os) throws IOException {
-        byte[] values = this.values;
-        UNSAFE.copyMemory(null, adr, values, UnsafeUtil.BYTE_ARRAY_BASE_OFFSET, pos);
-        os.write(values, 0, pos);
-    }
-    
-    @Override
-    public void incPos(int len) {
-        pos += len;
+        final byte[] values = cache;
+        if (pos < DEFAULT_PAGE) {
+            UNSAFE.copyMemory(null, adr, values, UnsafeUtil.BYTE_ARRAY_BASE_OFFSET, pos);
+            os.write(values, 0, pos);
+        } else {
+            int total = pos;
+            long adr = this.adr;
+            int read;
+            while (total > 0) {
+                read = Math.min(total, DEFAULT_PAGE);
+                UNSAFE.copyMemory(null, adr, values, UnsafeUtil.BYTE_ARRAY_BASE_OFFSET, read);
+                os.write(values, 0, read);
+                total -= read;
+                adr += read;
+            }
+        }
     }
     
     @Override
     public byte[] array() {
-        byte[] values = this.values;
+        final byte[] values;
+        if (max == DEFAULT_PAGE) {
+            values = cache;
+        } else {
+            values = new byte[pos];    
+        }
         UNSAFE.copyMemory(null, adr, values, UnsafeUtil.BYTE_ARRAY_BASE_OFFSET, pos);
         return values;
     }
@@ -65,5 +89,17 @@ final class ByteBufUnsafe implements ByteBuf {
     public void free() {
         UNSAFE.freeMemory(adr);
     }
+
+    @Override
+    public int pos(int inc) {
+        int pos = this.pos;
+        this.pos = pos + inc;
+        return pos;
+    }
     
+    @Override
+    public void pos(long address) {
+        this.pos = (int) (address - this.adr);
+    }
+
 }
