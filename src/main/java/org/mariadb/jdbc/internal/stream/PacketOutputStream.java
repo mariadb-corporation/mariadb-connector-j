@@ -376,7 +376,7 @@ public class PacketOutputStream extends OutputStream {
                             .put((byte) (length >>> 8))
                             .put((byte) (length >>> 16))
                             .put((byte) seqNo++);
-                    outputStream.write(buffer.array(), buffer.position(), maxPacketSize + 4);
+                    outputStream.write(buffer.array(), buffer.position(), length + 4);
                     outputStream.flush();
                     break;
                 }
