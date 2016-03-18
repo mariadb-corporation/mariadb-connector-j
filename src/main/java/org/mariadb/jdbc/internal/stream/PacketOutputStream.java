@@ -70,6 +70,9 @@ public class PacketOutputStream extends OutputStream {
         this.seqNo = seqNo;
         this.compressSeqNo = seqNo;
         this.checkPacketLength = checkPacketLength;
+        buffer.clear();
+        buffer.position(4);
+
     }
 
     /**
@@ -285,8 +288,6 @@ public class PacketOutputStream extends OutputStream {
             buffer = firstBuffer;
         }
 
-        buffer.clear();
-        buffer.position(4);
         this.lastSeq =  (useCompression) ? this.compressSeqNo : this.seqNo;
     }
 
@@ -337,9 +338,9 @@ public class PacketOutputStream extends OutputStream {
     }
 
     private void flushDirect() throws IOException {
-        buffer.flip();
+        buffer.flip(); //pos=0 lim=33554356
         // the 4th first byte are reserved for first header.
-        int dataLength = buffer.remaining() - 4;
+        int dataLength = buffer.remaining() - 4; // 33554352
 
         if (dataLength < maxPacketSize) {
             //if only one packet, put array to socket
@@ -351,24 +352,27 @@ public class PacketOutputStream extends OutputStream {
             outputStream.write(buffer.array(), 0, buffer.limit());
             outputStream.flush();
         } else {
+
             //multiple packet. Send first one
             buffer.put((byte) (maxPacketSize & 0xff))
                     .put((byte) (maxPacketSize >>> 8))
                     .put((byte) (maxPacketSize >>> 16))
                     .put((byte) seqNo++);
-
+            //pos=4 lim=33554356 maxPacketSize=16777215
             outputStream.write(buffer.array(), 0, maxPacketSize + 4);
             outputStream.flush();
-            buffer.position(maxPacketSize);
-
+            buffer.position(maxPacketSize + 4);
+            //pos=16777219 lim=33554356 maxPacketSize=16777215
             while (buffer.remaining() > 0 ) {
-                int length = buffer.remaining();
+                int length = buffer.remaining(); // 16777137
+                buffer.position(buffer.position() - 4); //pos=16777215 lim=33554356 maxPacketSize=16777215
                 if (length > maxPacketSize) {
                     buffer.put((byte) (maxPacketSize & 0xff))
                             .put((byte) (maxPacketSize >>> 8))
                             .put((byte) (maxPacketSize >>> 16))
                             .put((byte) seqNo++);
-                    outputStream.write(buffer.array(), buffer.position(), maxPacketSize);
+
+                    outputStream.write(buffer.array(), buffer.position() - 4, maxPacketSize + 4);
                     outputStream.flush();
                     buffer.position(buffer.position() + maxPacketSize);
                 } else {
@@ -376,7 +380,7 @@ public class PacketOutputStream extends OutputStream {
                             .put((byte) (length >>> 8))
                             .put((byte) (length >>> 16))
                             .put((byte) seqNo++);
-                    outputStream.write(buffer.array(), buffer.position(), length);
+                    outputStream.write(buffer.array(), buffer.position() - 4, length + 4);
                     outputStream.flush();
                     break;
                 }
@@ -851,7 +855,7 @@ public class PacketOutputStream extends OutputStream {
 
                 System.arraycopy(sqlBytes, 0, packetBuffer, 5, maxPacketSize - 1);
                 int position = maxPacketSize - 1;
-                int positionDest = maxPacketSize - 1;
+                int positionDest = maxPacketSize + 4;
 
                 while (position < expectedPacketSize) {
                     int length = expectedPacketSize - position;
