@@ -79,7 +79,7 @@ public class BigQueryTest extends BaseTest {
     @Test
     public void testError() throws SQLException {
         // check that maxAllowedPacket is big enough for the test
-        Assume.assumeTrue(checkMaxAllowedPacket("testError"));
+        Assume.assumeTrue(checkMaxAllowedPacketMore20m("testError"));
 
         Connection connection = null;
         try {

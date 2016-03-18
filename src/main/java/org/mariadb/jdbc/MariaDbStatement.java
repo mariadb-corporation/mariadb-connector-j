@@ -1038,7 +1038,7 @@ public class MariaDbStatement implements Statement {
             batchQueries = new ArrayDeque<>();
         }
         String sqlQuery = sql;
-        if (isRewriteable && protocol.getOptions().rewriteBatchedStatements || protocol.getOptions().allowMultiQueries) {
+        if (isRewriteable && (protocol.getOptions().rewriteBatchedStatements || protocol.getOptions().allowMultiQueries)) {
             int sqlRewriteOffset = isRewritable(sql, connection.noBackslashEscapes);
             if (rewriteOffset == -1) {
                 rewriteOffset = sqlRewriteOffset;
@@ -1426,7 +1426,7 @@ public class MariaDbStatement implements Statement {
                     }
                     break;
                 default:
-                    if (state == LexState.Normal && isFirstChar && ((byte) lastChar >= 40)) {
+                    if (state == LexState.Normal && isFirstChar && (lastChar == '\0' || ((byte) lastChar >= 40))) {
                         if (car == 'I' || car == 'i') {
                             isInsert = true;
                             isFirstChar = false;

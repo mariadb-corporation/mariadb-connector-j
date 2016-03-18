@@ -332,15 +332,15 @@ public class PacketOutputStream extends OutputStream {
                 && maxAllowedPacket > 0
                 && limit > (maxAllowedPacket - 1)) {
             this.seqNo = -1;
-            throw new MaxAllowedPacketException("max_allowed_packet exceeded. stream size " + limit + " is > to max_allowed_packet = "
-                    + (maxAllowedPacket - 1), this.seqNo != 0);
+            throw new MaxAllowedPacketException("max_allowed_packet=" + maxAllowedPacket + ". stream size " + limit
+                    + " is > to max_allowed_packet", this.seqNo != 0);
         }
     }
 
     private void flushDirect() throws IOException {
-        buffer.flip(); //pos=0 lim=33554356
+        buffer.flip();
         // the 4th first byte are reserved for first header.
-        int dataLength = buffer.remaining() - 4; // 33554352
+        int dataLength = buffer.remaining() - 4;
 
         if (dataLength < maxPacketSize) {
             //if only one packet, put array to socket
@@ -358,14 +358,14 @@ public class PacketOutputStream extends OutputStream {
                     .put((byte) (maxPacketSize >>> 8))
                     .put((byte) (maxPacketSize >>> 16))
                     .put((byte) seqNo++);
-            //pos=4 lim=33554356 maxPacketSize=16777215
+
             outputStream.write(buffer.array(), 0, maxPacketSize + 4);
             outputStream.flush();
             buffer.position(maxPacketSize + 4);
-            //pos=16777219 lim=33554356 maxPacketSize=16777215
+
             while (buffer.remaining() > 0 ) {
-                int length = buffer.remaining(); // 16777137
-                buffer.position(buffer.position() - 4); //pos=16777215 lim=33554356 maxPacketSize=16777215
+                int length = buffer.remaining();
+                buffer.position(buffer.position() - 4);
                 if (length > maxPacketSize) {
                     buffer.put((byte) (maxPacketSize & 0xff))
                             .put((byte) (maxPacketSize >>> 8))
@@ -764,60 +764,56 @@ public class PacketOutputStream extends OutputStream {
         seqNo = 0;
         compressSeqNo = 0;
         byte[] sqlBytes = sql.getBytes("UTF-8");
+        int sqlLength = sqlBytes.length;
 
+        if (sqlLength > maxAllowedPacket) {
+            throw new QueryException("Could not send query: max_allowed_packet=" + maxAllowedPacket + " but packet size is : "
+                    + (sqlLength + 1), -1, ExceptionMapper.SqlStates.INTERRUPTED_EXCEPTION.getSqlState());
+        }
         if (!useCompression) {
 
-            int sqlLength = sqlBytes.length + 1;
-            if (sqlLength > maxAllowedPacket) {
-                throw new QueryException("Could not send query: max_allowed_packet=" + maxAllowedPacket + " but packet size is : "
-                        + sqlLength, -1, ExceptionMapper.SqlStates.INTERRUPTED_EXCEPTION.getSqlState());
-            }
-
             if (sqlLength < maxPacketSize) {
-                byte[] packetBuffer = new byte[sqlLength + 4];
-                packetBuffer[0] = (byte) (sqlLength & 0xff);
-                packetBuffer[1] = (byte) (sqlLength >>> 8);
-                packetBuffer[2] = (byte) (sqlLength >>> 16);
+                byte[] packetBuffer = new byte[sqlLength + 5];
+                packetBuffer[0] = (byte) ((sqlLength + 1) & 0xff);
+                packetBuffer[1] = (byte) ((sqlLength + 1) >>> 8);
+                packetBuffer[2] = (byte) ((sqlLength + 1) >>> 16);
                 packetBuffer[3] = (byte) seqNo++;
-                packetBuffer[4] = (byte) 0x03;
+                packetBuffer[4] = (byte) 0x03; //TEXT protocol
 
-                System.arraycopy(sqlBytes, 0, packetBuffer, 5, sqlLength - 1);
+                System.arraycopy(sqlBytes, 0, packetBuffer, 5, sqlLength);
 
                 outputStream.write(packetBuffer);
                 outputStream.flush();
             } else {
-                final int expectedPacketSize = sqlLength + 4 * ((sqlLength / maxPacketSize) + 1);
-
-                //create packet
+                //send first packet
                 byte[] packetBuffer = new byte[maxPacketSize + 4];
-                packetBuffer[0] = (byte) (sqlLength & 0xff);
-                packetBuffer[1] = (byte) (sqlLength >>> 8);
-                packetBuffer[2] = (byte) (sqlLength >>> 16);
+                packetBuffer[0] = (byte) (maxPacketSize & 0xff);
+                packetBuffer[1] = (byte) (maxPacketSize >>> 8);
+                packetBuffer[2] = (byte) (maxPacketSize >>> 16);
                 packetBuffer[3] = (byte) seqNo++;
-                packetBuffer[4] = (byte) 0x03;
-
+                packetBuffer[4] = (byte) 0x03; //TEXT protocol
                 System.arraycopy(sqlBytes, 0, packetBuffer, 5, maxPacketSize - 1);
-
+                int sqlBytesPosition = maxPacketSize - 1;
                 outputStream.write(packetBuffer);
                 outputStream.flush();
-                int position = maxPacketSize - 1;
-
-                while (position < expectedPacketSize) {
-                    int length = expectedPacketSize - position;
+                int length;
+                while ((length = sqlLength - sqlBytesPosition) > 0) {
                     if (length > maxPacketSize) {
                         packetBuffer[0] = (byte) (maxPacketSize & 0xff);
                         packetBuffer[1] = (byte) (maxPacketSize >>> 8);
                         packetBuffer[2] = (byte) (maxPacketSize >>> 16);
                         packetBuffer[3] = (byte) seqNo++;
-                        System.arraycopy(sqlBytes, position, packetBuffer, 4, maxPacketSize);
-                        position += maxPacketSize;
+                        System.arraycopy(sqlBytes, sqlBytesPosition, packetBuffer, 4, maxPacketSize);
+                        outputStream.write(packetBuffer);
                         outputStream.flush();
+                        sqlBytesPosition += maxPacketSize;
                     } else {
                         packetBuffer[0] = (byte) (length & 0xff);
                         packetBuffer[1] = (byte) (length >>> 8);
                         packetBuffer[2] = (byte) (length >>> 16);
                         packetBuffer[3] = (byte) seqNo++;
-                        System.arraycopy(sqlBytes, position, packetBuffer, 4, length);
+                        System.arraycopy(sqlBytes, sqlBytesPosition, packetBuffer, 4, length);
+                        outputStream.write(packetBuffer, 0, length + 4);
                         outputStream.flush();
                         break;
                     }
@@ -825,54 +821,48 @@ public class PacketOutputStream extends OutputStream {
             }
         } else {
 
-            int sqlLength = sqlBytes.length + 1;
-            if (sqlLength > maxAllowedPacket) {
-                throw new QueryException("Could not send query: max_allowed_packet=" + maxAllowedPacket + " but packet size is : "
-                        + sqlLength, -1, ExceptionMapper.SqlStates.INTERRUPTED_EXCEPTION.getSqlState());
-            }
-
             if (sqlLength < maxPacketSize) {
-                byte[] packetBuffer = new byte[sqlLength + 4];
-                packetBuffer[0] = (byte) (sqlLength & 0xff);
-                packetBuffer[1] = (byte) (sqlLength >>> 8);
-                packetBuffer[2] = (byte) (sqlLength >>> 16);
+                byte[] packetBuffer = new byte[sqlLength + 5];
+                packetBuffer[0] = (byte) ((sqlLength + 1) & 0xff);
+                packetBuffer[1] = (byte) ((sqlLength + 1) >>> 8);
+                packetBuffer[2] = (byte) ((sqlLength + 1) >>> 16);
                 packetBuffer[3] = (byte) seqNo++;
                 packetBuffer[4] = (byte) 0x03;
 
-                System.arraycopy(sqlBytes, 0, packetBuffer, 5, sqlLength - 1);
-                compressedAndSend(sqlLength + 4, packetBuffer);
+                System.arraycopy(sqlBytes, 0, packetBuffer, 5, sqlLength);
+                compressedAndSend(sqlLength + 5, packetBuffer);
 
             } else {
-                final int expectedPacketSize = sqlLength + 4 * ((sqlLength / maxPacketSize) + 1);
+                final int expectedPacketSize = sqlLength + 1 + 4 * (((sqlLength + 1) / maxPacketSize) + 1);
 
                 //create packet
                 byte[] packetBuffer = new byte[expectedPacketSize];
-                packetBuffer[0] = (byte) (sqlLength & 0xff);
-                packetBuffer[1] = (byte) (sqlLength >>> 8);
-                packetBuffer[2] = (byte) (sqlLength >>> 16);
+                packetBuffer[0] = (byte) (maxPacketSize & 0xff);
+                packetBuffer[1] = (byte) (maxPacketSize >>> 8);
+                packetBuffer[2] = (byte) (maxPacketSize >>> 16);
                 packetBuffer[3] = (byte) seqNo++;
                 packetBuffer[4] = (byte) 0x03;
-
                 System.arraycopy(sqlBytes, 0, packetBuffer, 5, maxPacketSize - 1);
-                int position = maxPacketSize - 1;
+
+                int sqlBytesPosition = maxPacketSize - 1;
                 int positionDest = maxPacketSize + 4;
 
-                while (position < expectedPacketSize) {
-                    int length = expectedPacketSize - position;
+                int length;
+                while ((length = sqlLength - sqlBytesPosition) > 0) {
                     if (length > maxPacketSize) {
                         packetBuffer[positionDest++] = (byte) (maxPacketSize & 0xff);
                         packetBuffer[positionDest++] = (byte) (maxPacketSize >>> 8);
                         packetBuffer[positionDest++] = (byte) (maxPacketSize >>> 16);
                         packetBuffer[positionDest++] = (byte) seqNo++;
-                        System.arraycopy(sqlBytes, position, packetBuffer, positionDest, maxPacketSize);
-                        position += maxPacketSize;
+                        System.arraycopy(sqlBytes, sqlBytesPosition, packetBuffer, positionDest, maxPacketSize);
+                        sqlBytesPosition += maxPacketSize;
                         positionDest += maxPacketSize;
                     } else {
                         packetBuffer[positionDest++] = (byte) (length & 0xff);
                         packetBuffer[positionDest++] = (byte) (length >>> 8);
                         packetBuffer[positionDest++] = (byte) (length >>> 16);
                         packetBuffer[positionDest++] = (byte) seqNo++;
-                        System.arraycopy(sqlBytes, position, packetBuffer, positionDest, length);
+                        System.arraycopy(sqlBytes, sqlBytesPosition, packetBuffer, positionDest, length);
                         break;
                     }
                 }
