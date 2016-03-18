@@ -101,5 +101,8 @@ public class TimeParameter extends NotLongDataParameterHolder {
         return MariaDbType.TIME;
     }
 
-
+    @Override
+    public String toString() {
+        return time.toString();
+    }
 }

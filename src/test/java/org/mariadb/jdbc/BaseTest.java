@@ -324,7 +324,7 @@ public class BaseTest {
         return DriverManager.getConnection(url, info);
     }
 
-    boolean checkMaxAllowedPacket(String testName) throws SQLException {
+    boolean checkMaxAllowedPacketMore20m(String testName) throws SQLException {
         Statement st = sharedConnection.createStatement();
         ResultSet rs = st.executeQuery("select @@max_allowed_packet");
         rs.next();
@@ -334,13 +334,13 @@ public class BaseTest {
         rs.next();
         int innodbLogFileSize = rs.getInt(1);
 
-        if (maxAllowedPacket < 16 * 1024 * 1024) {
+        if (maxAllowedPacket < 20 * 1024 * 1024) {
 
-            System.out.println("test '" + testName + "' skipped  due to server variable max_allowed_packet < 16M");
+            System.out.println("test '" + testName + "' skipped  due to server variable max_allowed_packet < 20M");
             return false;
         }
-        if (innodbLogFileSize < 16 * 1024 * 1024) {
-            System.out.println("test '" + testName + "' skipped  due to server variable innodb_log_file_size < 16M");
+        if (innodbLogFileSize < 200 * 1024 * 1024) {
+            System.out.println("test '" + testName + "' skipped  due to server variable innodb_log_file_size < 200M");
             return false;
         }
         return true;
@@ -361,8 +361,8 @@ public class BaseTest {
             System.out.println("test '" + testName + "' skipped  due to server variable max_allowed_packet < 40M");
             return false;
         }
-        if (innodbLogFileSize < 160 * 1024 * 1024) {
-            System.out.println("test '" + testName + "' skipped  due to server variable innodb_log_file_size < 160M");
+        if (innodbLogFileSize < 400 * 1024 * 1024) {
+            System.out.println("test '" + testName + "' skipped  due to server variable innodb_log_file_size < 400M");
             return false;
         }
 

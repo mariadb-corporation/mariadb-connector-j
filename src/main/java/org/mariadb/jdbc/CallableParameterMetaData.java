@@ -159,7 +159,7 @@ class CallableParameterMetaData implements ParameterMetaData {
                     + dbname + " and name=" + procedureNameNoDb;
             rs = st.executeQuery(query);
             if (!rs.next()) {
-                throw new SQLException("procedure or function " + name + "does not exist");
+                throw new SQLException("procedure or function " + name + " does not exist");
             }
             paramList = rs.getString(1);
             functionReturn = rs.getString(2);

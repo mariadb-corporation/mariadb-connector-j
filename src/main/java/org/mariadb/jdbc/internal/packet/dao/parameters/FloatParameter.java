@@ -80,4 +80,10 @@ public class FloatParameter extends NotLongDataParameterHolder {
     public MariaDbType getMariaDbType() {
         return MariaDbType.FLOAT;
     }
+
+    @Override
+    public String toString() {
+        return Float.toString(value);
+    }
+
 }

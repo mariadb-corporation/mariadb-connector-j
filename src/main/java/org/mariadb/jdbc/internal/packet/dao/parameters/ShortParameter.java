@@ -78,4 +78,10 @@ public class ShortParameter extends NotLongDataParameterHolder {
     public MariaDbType getMariaDbType() {
         return MariaDbType.SMALLINT;
     }
+
+    @Override
+    public String toString() {
+        return Short.toString(value);
+    }
+
 }

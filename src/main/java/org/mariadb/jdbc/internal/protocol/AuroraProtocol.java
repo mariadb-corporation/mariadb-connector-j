@@ -54,7 +54,6 @@ import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
-import org.mariadb.jdbc.internal.query.MariaDbQuery;
 import org.mariadb.jdbc.internal.queryresults.SelectQueryResult;
 import org.mariadb.jdbc.internal.failover.impl.AuroraListener;
 import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
@@ -220,7 +219,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
     public boolean checkIfMaster() throws QueryException {
         proxy.lock.lock();
         try {
-            SelectQueryResult queryResult = (SelectQueryResult) executeQuery(new MariaDbQuery("show global variables like 'innodb_read_only'"));
+            SelectQueryResult queryResult = (SelectQueryResult) executeQuery("show global variables like 'innodb_read_only'", false);
             if (queryResult != null) {
                 queryResult.next();
                 this.masterConnection = "OFF".equals(queryResult.getValueObject(1).getString());

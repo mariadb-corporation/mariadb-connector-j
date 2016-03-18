@@ -69,127 +69,11 @@ import java.net.Socket;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.TimeZone;
+import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 
 
 public class Utils {
-
-    /**
-     * Create query part.
-     * @param queryString query String
-     * @param noBackslashEscapes must backslash be escaped.
-     * @return List of query part.
-     */
-    public static List<String> createQueryParts(String queryString, boolean noBackslashEscapes) {
-        List<String> list = new ArrayList<String>();
-        LexState state = LexState.Normal;
-        char lastChar = '\0';
-
-        StringBuilder sb = new StringBuilder();
-
-        boolean singleQuotes = false;
-        boolean isParam = false;
-
-        char[] query = queryString.toCharArray();
-
-        for (int i = 0; i < query.length; i++) {
-            if (state == LexState.Escape) {
-                sb.append(query[i]);
-                state = LexState.String;
-                continue;
-            }
-
-            char car = query[i];
-            switch (car) {
-                case '*':
-                    if (state == LexState.Normal && lastChar == '/') {
-                        state = LexState.SlashStarComment;
-                    }
-                    break;
-                case '/':
-                    if (state == LexState.SlashStarComment && lastChar == '*') {
-                        state = LexState.Normal;
-                    } else if (state == LexState.Normal && lastChar == '/') {
-                        state = LexState.EOLComment;
-                    }
-                    break;
-
-                case '#':
-                    if (state == LexState.Normal) {
-                        state = LexState.EOLComment;
-                    }
-                    break;
-
-                case '-':
-                    if (state == LexState.Normal && lastChar == '-') {
-                        state = LexState.EOLComment;
-                    }
-                    break;
-
-                case '\n':
-                    if (state == LexState.EOLComment) {
-                        state = LexState.Normal;
-                    }
-                    break;
-
-                case '"':
-                    if (state == LexState.Normal) {
-                        state = LexState.String;
-                        singleQuotes = false;
-                    } else if (state == LexState.String && !singleQuotes) {
-                        state = LexState.Normal;
-                    }
-                    break;
-
-                case '\'':
-                    if (state == LexState.Normal) {
-                        state = LexState.String;
-                        singleQuotes = true;
-                    } else if (state == LexState.String && singleQuotes) {
-                        state = LexState.Normal;
-                    }
-                    break;
-
-                case '\\':
-                    if (noBackslashEscapes) {
-                        break;
-                    }
-                    if (state == LexState.String) {
-                        state = LexState.Escape;
-                    }
-                    break;
-
-                case '?':
-                    if (state == LexState.Normal) {
-                        isParam = true;
-                    }
-                    break;
-                case '`':
-                    if (state == LexState.Backtick) {
-                        state = LexState.Normal;
-                    } else if (state == LexState.Normal) {
-                        state = LexState.Backtick;
-                    }
-                    break;
-                default:
-                    break;
-            }
-            lastChar = car;
-            if (isParam) {
-                list.add(sb.toString());
-                sb.setLength(0);
-                isParam = false;
-            } else {
-                sb.append(car);
-            }
-
-        }
-        list.add(sb.toString());
-        return list;
-    }
 
     /**
      * Escape String.
@@ -606,16 +490,6 @@ public class Utils {
             throw new SQLException("invalid timezone id '" + id + "'");
         }
         return tz;
-    }
-
-    enum LexState {
-        Normal, /* inside  query */
-        String, /* inside string */
-        SlashStarComment, /* inside slash-star comment */
-        Escape, /* found backslash */
-        Parameter, /* parameter placeholder found */
-        EOLComment, /* # comment, or // comment, or -- comment */
-        Backtick /* found backtick */
     }
 
     /**

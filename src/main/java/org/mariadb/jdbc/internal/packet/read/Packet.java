@@ -22,8 +22,6 @@ the following copyright and notice provisions:
 
 Copyright (c) 2009-2011, Marcus Eriksson
 
-All rights reserved.            MariaDB Client for Java
-
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 Redistributions of source code must retain the above copyright notice, this list
@@ -49,39 +47,21 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
+package org.mariadb.jdbc.internal.packet.read;
 
-package org.mariadb.jdbc.internal.query;
+import org.mariadb.jdbc.internal.packet.result.*;
+import org.mariadb.jdbc.internal.util.buffer.Buffer;
 
-import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
+import java.io.IOException;
+import java.nio.ByteBuffer;
 
-import java.sql.SQLException;
-
-
-public interface ParameterizeQuery extends Query {
-    /**
-     * get the number of parameters in this query.
-     *
-     * @return number of parameters
-     */
-    int getParamCount();
-
-    /**
-     * clears the parameters.
-     */
-    void clearParameters();
-
-    /**
-     * Sets a parameter at a position. The positions start at 0.
-     *
-     * @param position  the position to set it at
-     * @param parameter the parameter to set
-     * @throws SQLException if position is out of bounds
-     */
-    void setParameter(int position, ParameterHolder parameter) throws SQLException;
-
-    ParameterHolder[] getParameters();
-
-    byte[][] getQueryPartsArray();
-
-    byte[] getRewriteFirstPart();
+/**
+ * Creates result packets only handles error, ok, eof and result set packets since field and row packets require a
+ * previous result set stream.
+ */
+public class Packet {
+    public static final byte ERROR = (byte) 0xff;
+    public static final byte OK = (byte) 0x00;
+    public static final byte EOF = (byte) 0xfe;
+    public static final byte LOCAL_INFILE = (byte) 0xfb;
 }

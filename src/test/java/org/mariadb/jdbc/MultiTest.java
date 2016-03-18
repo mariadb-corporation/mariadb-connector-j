@@ -234,9 +234,9 @@ public class MultiTest extends BaseTest {
         if (rs.next()) {
             double maxAllowedPacket = rs.getInt(1);
             // request will be INSERT INTO MultiTestt6 VALUES ...(1000000, 'testValue1000000'),(1000001, 'testValue1000001')"
-            // average additional part size will be 30 characters (",(1000001, 'testValue1000001')")
+            // average additional part size will be 30 characters (", (1500001, 'testValue1000001')")
             // so there must be (8000000 * 30) / max_allowed_packet insert send
-            int totalInsertCommands = (int) Math.ceil((1500000 * 30) / maxAllowedPacket );
+            int totalInsertCommands = (int) Math.ceil((1500000 * 31) / maxAllowedPacket );
             verifyInsertBehaviorBasedOnRewriteBatchedStatements(Boolean.TRUE, 1500000, totalInsertCommands);
         } else {
             fail();
@@ -394,11 +394,9 @@ public class MultiTest extends BaseTest {
             sqlInsert.addBatch();
             updateCounts = sqlInsert.executeBatch();
 
-            Assert.assertEquals(4, updateCounts.length);
+            Assert.assertEquals(2, updateCounts.length);
             Assert.assertEquals(1, updateCounts[0]);
             Assert.assertEquals(1, updateCounts[1]);
-            Assert.assertEquals(1, updateCounts[2]);
-            Assert.assertEquals(1, updateCounts[3]);
 
             assertEquals(4, retrieveSessionVariableFromServer(tmpConnection, "Com_insert") - secondCurrentInsert);
 

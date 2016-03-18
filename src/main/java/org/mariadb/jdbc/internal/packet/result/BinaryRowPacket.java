@@ -52,7 +52,7 @@ package org.mariadb.jdbc.internal.packet.result;
 import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.queryresults.ValueObject;
 import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
-import org.mariadb.jdbc.internal.util.buffer.Reader;
+import org.mariadb.jdbc.internal.util.buffer.Buffer;
 import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
 import org.mariadb.jdbc.internal.queryresults.MariaDbValueObject;
 
@@ -79,32 +79,29 @@ public class BinaryRowPacket implements RowPacket {
 
     /**
      * Fetch stream to retrieve data. Data length is unknown.
-     * @param reader reader
+     * @param buffer buffer
      * @param packetFetcher packetFetcher
      * @throws IOException if a connection error occur
      */
-    public void appendPacketIfNeeded(Reader reader, ReadPacketFetcher packetFetcher) throws IOException {
-        long encLength = reader.getSilentLengthEncodedBinary();
-        long remaining = reader.getRemainingSize();
-        while (encLength > remaining) {
-            reader.appendPacket(packetFetcher.getRawPacket());
-            encLength = reader.getSilentLengthEncodedBinary();
-            remaining = reader.getRemainingSize();
+    public void appendPacketIfNeeded(Buffer buffer, ReadPacketFetcher packetFetcher) throws IOException {
+        long encLength = buffer.getSilentLengthEncodedBinary();
+        while (encLength > buffer.remaining()) {
+            buffer.appendPacket(packetFetcher.getPacket());
+            encLength = buffer.getSilentLengthEncodedBinary();
         }
     }
 
     /**
      * Fetch stream to retrieve data. Data length is known.
-     * @param reader reader
+     * @param buffer reader
      * @param packetFetcher packetFetcher
      * @param encLength data binary length
      * @throws IOException if a connection error occur
      */
-    public void appendPacketIfNeeded(Reader reader, ReadPacketFetcher packetFetcher, long encLength) throws IOException {
-        long remaining = reader.getRemainingSize();
-        while (encLength > remaining) {
-            reader.appendPacket(packetFetcher.getRawPacket(), encLength);
-            encLength = reader.getSilentLengthEncodedBinary();
+    public void appendPacketIfNeeded(Buffer buffer, ReadPacketFetcher packetFetcher, long encLength) throws IOException {
+        while (encLength > buffer.remaining()) {
+            buffer.appendPacket(packetFetcher.getPacket());
+            encLength = buffer.getSilentLengthEncodedBinary();
         }
     }
 
@@ -115,12 +112,11 @@ public class BinaryRowPacket implements RowPacket {
      * @return read data
      * @throws IOException if any connection error occur
      */
-    public ValueObject[] getRow(ReadPacketFetcher packetFetcher, ByteBuffer buffer) throws IOException {
+    public ValueObject[] getRow(ReadPacketFetcher packetFetcher, Buffer buffer) throws IOException {
         ValueObject[] valueObjects = new ValueObject[columnInformationLength];
-        Reader reader = new Reader(buffer);
-        reader.skipByte(); //stream header
+        buffer.skipByte(); //stream header
         int nullCount = (columnInformationLength + 9) / 8;
-        byte[] nullBitsBuffer = reader.readRawBytes(nullCount);
+        byte[] nullBitsBuffer = buffer.readRawBytes(nullCount);
 
         for (int i = 0; i < columnInformationLength; i++) {
             if ((nullBitsBuffer[(i + 2) / 8] & (1 << ((i + 2) % 8))) > 0) {
@@ -141,51 +137,51 @@ public class BinaryRowPacket implements RowPacket {
                     case GEOMETRY:
                     case OLDDECIMAL:
                     case DECIMAL:
-                        appendPacketIfNeeded(reader, packetFetcher);
-                        valueObjects[i] = new MariaDbValueObject(reader.getLengthEncodedBytes(), columnInformation[i], true, options);
+                        appendPacketIfNeeded(buffer, packetFetcher);
+                        valueObjects[i] = new MariaDbValueObject(buffer.getLengthEncodedBytes(), columnInformation[i], true, options);
                         break;
 
                     case BIGINT:
-                        appendPacketIfNeeded(reader, packetFetcher, 8);
-                        valueObjects[i] = new MariaDbValueObject(reader.getLengthEncodedBytesWithLength(8), columnInformation[i], true, options);
+                        appendPacketIfNeeded(buffer, packetFetcher, 8);
+                        valueObjects[i] = new MariaDbValueObject(buffer.getLengthEncodedBytesWithLength(8), columnInformation[i], true, options);
                         break;
 
                     case INTEGER:
                     case MEDIUMINT:
-                        appendPacketIfNeeded(reader, packetFetcher, 4);
-                        valueObjects[i] = new MariaDbValueObject(reader.getLengthEncodedBytesWithLength(4), columnInformation[i], true, options);
+                        appendPacketIfNeeded(buffer, packetFetcher, 4);
+                        valueObjects[i] = new MariaDbValueObject(buffer.getLengthEncodedBytesWithLength(4), columnInformation[i], true, options);
                         break;
 
                     case SMALLINT:
                     case YEAR:
-                        appendPacketIfNeeded(reader, packetFetcher, 2);
-                        valueObjects[i] = new MariaDbValueObject(reader.getLengthEncodedBytesWithLength(2), columnInformation[i], true, options);
+                        appendPacketIfNeeded(buffer, packetFetcher, 2);
+                        valueObjects[i] = new MariaDbValueObject(buffer.getLengthEncodedBytesWithLength(2), columnInformation[i], true, options);
                         break;
 
                     case TINYINT:
-                        appendPacketIfNeeded(reader, packetFetcher, 1);
-                        valueObjects[i] = new MariaDbValueObject(reader.getLengthEncodedBytesWithLength(1), columnInformation[i], true, options);
+                        appendPacketIfNeeded(buffer, packetFetcher, 1);
+                        valueObjects[i] = new MariaDbValueObject(buffer.getLengthEncodedBytesWithLength(1), columnInformation[i], true, options);
                         break;
 
                     case DOUBLE:
-                        appendPacketIfNeeded(reader, packetFetcher, 8);
-                        valueObjects[i] = new MariaDbValueObject(reader.getLengthEncodedBytesWithLength(8), columnInformation[i], true, options);
+                        appendPacketIfNeeded(buffer, packetFetcher, 8);
+                        valueObjects[i] = new MariaDbValueObject(buffer.getLengthEncodedBytesWithLength(8), columnInformation[i], true, options);
                         break;
 
                     case FLOAT:
-                        appendPacketIfNeeded(reader, packetFetcher, 4);
-                        valueObjects[i] = new MariaDbValueObject(reader.getLengthEncodedBytesWithLength(4), columnInformation[i], true, options);
+                        appendPacketIfNeeded(buffer, packetFetcher, 4);
+                        valueObjects[i] = new MariaDbValueObject(buffer.getLengthEncodedBytesWithLength(4), columnInformation[i], true, options);
                         break;
 
                     case TIME:
                     case DATE:
                     case DATETIME:
                     case TIMESTAMP:
-                        appendPacketIfNeeded(reader, packetFetcher);
-                        valueObjects[i] = new MariaDbValueObject(reader.getLengthEncodedBytes(), columnInformation[i], true, options);
+                        appendPacketIfNeeded(buffer, packetFetcher);
+                        valueObjects[i] = new MariaDbValueObject(buffer.getLengthEncodedBytes(), columnInformation[i], true, options);
                         break;
                     default:
-                        appendPacketIfNeeded(reader, packetFetcher);
+                        appendPacketIfNeeded(buffer, packetFetcher);
                         valueObjects[i] = new MariaDbValueObject(null, columnInformation[i], true, options);
                         break;
                 }

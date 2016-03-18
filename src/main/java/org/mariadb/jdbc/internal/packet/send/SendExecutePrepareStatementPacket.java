@@ -49,11 +49,11 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.packet.send;
 
-import org.mariadb.jdbc.internal.stream.PacketOutputStream;
+import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.packet.dao.parameters.NotLongDataParameterHolder;
 import org.mariadb.jdbc.internal.packet.dao.parameters.NullParameter;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
-import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -66,9 +66,10 @@ public class SendExecutePrepareStatementPacket implements InterfaceSendPacket {
 
     /**
      * Initialize parameters.
-     * @param statementId prepareResult object received after preparation.
-     * @param parameters parameters
-     * @param parameterCount parameters number
+     *
+     * @param statementId         prepareResult object received after preparation.
+     * @param parameters          parameters
+     * @param parameterCount      parameters number
      * @param parameterTypeHeader parameters header
      */
     public SendExecutePrepareStatementPacket(final int statementId, final ParameterHolder[] parameters, final int parameterCount,
@@ -81,6 +82,7 @@ public class SendExecutePrepareStatementPacket implements InterfaceSendPacket {
 
     /**
      * Send a prepare statement binary stream.
+     *
      * @param os database socket
      * @return 0 if all when well
      * @throws IOException if a connection error occur

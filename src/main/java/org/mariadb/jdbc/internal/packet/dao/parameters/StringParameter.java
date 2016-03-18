@@ -70,7 +70,7 @@ public class StringParameter extends NotLongDataParameterHolder {
     }
 
     public long getApproximateTextProtocolLength() throws IOException {
-        return String.valueOf(string).getBytes().length * 2;
+        return string.getBytes().length * 2 + 2;
     }
 
     public void writeBinary(PacketOutputStream writeBuffer) {
@@ -79,6 +79,11 @@ public class StringParameter extends NotLongDataParameterHolder {
 
     public MariaDbType getMariaDbType() {
         return MariaDbType.VARCHAR;
+    }
+
+    @Override
+    public String toString() {
+        return "'" + string + "'";
     }
 
 }

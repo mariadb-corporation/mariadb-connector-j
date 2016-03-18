@@ -50,14 +50,12 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.packet.read;
 
 import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
+import org.mariadb.jdbc.internal.util.buffer.Buffer;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.packet.result.ErrorPacket;
-import org.mariadb.jdbc.internal.util.buffer.ReadUtil;
-import org.mariadb.jdbc.internal.util.buffer.Reader;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
 
@@ -78,31 +76,29 @@ public class ReadInitialConnectPacket {
 
     /**
      * Read database initial stream.
-     * @param packetFetcher packetFetcher
+     * @param buffer buffer
      * @throws IOException if a connection error occur
      * @throws QueryException if received an error packet
      */
-    public ReadInitialConnectPacket(final ReadPacketFetcher packetFetcher) throws IOException, QueryException {
-        ByteBuffer byteBuffer = packetFetcher.getReusableBuffer();
-        if (ReadUtil.isErrorPacket(byteBuffer)) {
-            ErrorPacket errorPacket = (ErrorPacket) ReadResultPacketFactory.createResultPacket(byteBuffer);
+    public ReadInitialConnectPacket(final Buffer buffer) throws IOException, QueryException {
+        if (buffer.getByteAt(0) == Packet.ERROR) { //ERROR packet
+            ErrorPacket errorPacket = new ErrorPacket(buffer);
             throw new QueryException(errorPacket.getMessage());
         }
 
-        final Reader reader = new Reader(byteBuffer);
-        protocolVersion = reader.readByte();
-        serverVersion = reader.readString(StandardCharsets.US_ASCII);
-        serverThreadId = reader.readInt();
-        final byte[] seed1 = reader.readRawBytes(8);
-        reader.skipByte();
-        serverCapabilities = reader.readShort();
-        serverLanguage = reader.readByte();
-        serverStatus = reader.readShort();
-        reader.skipBytes(13);
-        final byte[] seed2 = reader.readRawBytes(12);
+        protocolVersion = buffer.readByte();
+        serverVersion = buffer.readString(StandardCharsets.US_ASCII);
+        serverThreadId = buffer.readInt();
+        final byte[] seed1 = buffer.readRawBytes(8);
+        buffer.skipByte();
+        serverCapabilities = buffer.readShort();
+        serverLanguage = buffer.readByte();
+        serverStatus = buffer.readShort();
+        buffer.skipBytes(13);
+        final byte[] seed2 = buffer.readRawBytes(12);
         seed = Utils.copyWithLength(seed1, seed1.length + seed2.length);
         System.arraycopy(seed2, 0, seed, seed1.length, seed2.length);
-        reader.readByte(); // seems the seed is null terminated
+        buffer.readByte(); // seems the seed is null terminated
         
         /* 
          * check for MariaDB 10.x replication hack , remove fake prefix if needed

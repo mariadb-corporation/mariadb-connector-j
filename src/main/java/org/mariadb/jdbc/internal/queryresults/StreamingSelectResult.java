@@ -1,12 +1,10 @@
 package org.mariadb.jdbc.internal.queryresults;
 
-import org.mariadb.jdbc.internal.util.buffer.ReadUtil;
-import org.mariadb.jdbc.internal.packet.read.RawPacket;
+import org.mariadb.jdbc.internal.util.buffer.Buffer;
 import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
-import org.mariadb.jdbc.internal.packet.read.ReadResultPacketFactory;
+import org.mariadb.jdbc.internal.packet.read.Packet;
 import org.mariadb.jdbc.internal.packet.result.EndOfFilePacket;
 import org.mariadb.jdbc.internal.packet.result.ErrorPacket;
-import org.mariadb.jdbc.internal.packet.result.ResultSetPacket;
 import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
 import org.mariadb.jdbc.internal.protocol.AbstractConnectProtocol;
 import org.mariadb.jdbc.internal.protocol.AbstractQueryProtocol;
@@ -18,7 +16,6 @@ import org.mariadb.jdbc.internal.util.constant.ServerStatus;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 
 public class StreamingSelectResult extends SelectQueryResult {
     public ValueObject[] values;
@@ -60,7 +57,7 @@ public class StreamingSelectResult extends SelectQueryResult {
 
     /**
      * Create streaming resultset.
-     * @param packet         the result set stream from the server
+     * @param fieldCount     fieldCount
      * @param packetFetcher  packetfetcher
      * @param protocol       the current connection protocol class
      * @param binaryProtocol is the mysql protocol binary
@@ -69,44 +66,28 @@ public class StreamingSelectResult extends SelectQueryResult {
      * @throws QueryException if there is an actual active result on the current connection
      */
     public static StreamingSelectResult createStreamingSelectResult(
-            ResultSetPacket packet, ReadPacketFetcher packetFetcher, AbstractQueryProtocol protocol, boolean binaryProtocol)
+            long fieldCount, ReadPacketFetcher packetFetcher, AbstractQueryProtocol protocol, boolean binaryProtocol)
             throws IOException, QueryException {
 
         if (protocol.activeResult != null) {
             throw new QueryException("There is an active result set on the current connection, "
                     + "which must be closed prior to opening a new one");
         }
-        long fieldCount = packet.getFieldCount();
         ColumnInformation[] ci = new ColumnInformation[(int) fieldCount];
 
         for (int i = 0; i < fieldCount; i++) {
-            final RawPacket rawPacket = packetFetcher.getRawPacket();
-            //   byte b = rawPacket.getByteBuffer().get(0);
-
-            // We do not expect an error stream, but check it just for safety
-//            if (b == (byte) 0xff) {
-//                ErrorPacket errorPacket = new ErrorPacket(rawPacket.getByteBuffer());
-//                throw new QueryException("error when reading field stream " + errorPacket.getMessage(),
-//                        errorPacket.getErrorNumber(), errorPacket.getSqlState());
-//            }
-//            // We do not expect OK or EOF packets either
-//            if (b == 0 || b == (byte) 0xfe) {
-//                throw new QueryException("Packets out of order when trying to read field stream - " +
-//                        "got stream starting with byte " + b + "stream content (hex) = "
-//                        + MasterProtocol.hexdump(rawPacket.getByteBuffer(), 0));
-//            }
-
+            final Buffer buffer = packetFetcher.getPacket();
             try {
-                ci[i] = new ColumnInformation(rawPacket.getByteBuffer());
+                ci[i] = new ColumnInformation(buffer);
             } catch (Exception e) {
                 throw new QueryException("Error when trying to parse field stream : " + e + ",stream content (hex) = "
-                        + MasterProtocol.hexdump(rawPacket.getByteBuffer(), 0), 0, "HY000", e);
+                        + MasterProtocol.hexdump(buffer.buf, 0), 0, "HY000", e);
             }
         }
-        ByteBuffer bufferEof = packetFetcher.getReusableBuffer();
-        if (!ReadUtil.eofIsNext(bufferEof)) {
+        Buffer bufferEof = packetFetcher.getReusableBuffer();
+        if ((bufferEof.getByteAt(0) != (byte) 0xfe || bufferEof.limit >= 9)) {
             throw new QueryException("Packets out of order when reading field packets, expected was EOF stream. "
-                    + "Packet contents (hex) = " + MasterProtocol.hexdump(bufferEof, 0));
+                    + "Packet contents (hex) = " + MasterProtocol.hexdump(bufferEof.buf, 0));
         }
         return new StreamingSelectResult(ci, protocol, packetFetcher, binaryProtocol);
 
@@ -118,20 +99,20 @@ public class StreamingSelectResult extends SelectQueryResult {
             return false;
         }
 
-        ByteBuffer buffer = packetFetcher.getReusableBuffer();
-        byte initialByte = buffer.get(0);
+        Buffer buffer = packetFetcher.getPacket();
+        byte initialByte = buffer.getByteAt(0);
 
         //is error Packet
-        if (initialByte == (byte) 0xff) {
+        if (initialByte == Packet.ERROR) {
             protocol.activeResult = null;
             protocol.moreResults = false;
-            ErrorPacket errorPacket = (ErrorPacket) ReadResultPacketFactory.createResultPacket(buffer);
+            ErrorPacket errorPacket = new ErrorPacket(buffer);
             throw new QueryException(errorPacket.getMessage(), errorPacket.getErrorNumber(), errorPacket.getSqlState());
         }
 
         //is EOF stream
-        if ((initialByte == (byte) 0xfe && buffer.limit() < 9)) {
-            final EndOfFilePacket endOfFilePacket = (EndOfFilePacket) ReadResultPacketFactory.createResultPacket(buffer);
+        if ((initialByte == Packet.EOF && buffer.remaining() < 9)) {
+            final EndOfFilePacket endOfFilePacket = new EndOfFilePacket(buffer);
             protocol.activeResult = null;
             protocol.moreResults = ((endOfFilePacket.getStatusFlags() & ServerStatus.MORE_RESULTS_EXISTS) != 0);
             warningCount = endOfFilePacket.getWarningCount();

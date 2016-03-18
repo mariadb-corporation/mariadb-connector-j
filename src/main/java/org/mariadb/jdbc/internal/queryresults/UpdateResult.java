@@ -52,23 +52,17 @@ package org.mariadb.jdbc.internal.queryresults;
 import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
 
 
-public class UpdateResult extends ModifyQueryResult {
+public class UpdateResult extends AbstractQueryResult {
     private long updateCount;
-    private short warnings;
-    private final String message;
     private final long insertId;
 
     /**
      * Create Update result object.
      * @param updateCount updateCount
-     * @param warnings warnings
-     * @param message message
      * @param insertId insertId
      */
-    public UpdateResult(final long updateCount, final short warnings, final String message, final long insertId) {
+    public UpdateResult(final long updateCount, final long insertId) {
         this.updateCount = updateCount;
-        this.warnings = warnings;
-        this.message = message;
         this.insertId = insertId;
     }
 
@@ -85,7 +79,6 @@ public class UpdateResult extends ModifyQueryResult {
         if (other instanceof UpdateResult) {
             UpdateResult updateResult = (UpdateResult) other;
             this.updateCount += updateResult.getUpdateCount();
-            this.warnings += updateResult.getWarnings();
         }
     }
 
@@ -95,14 +88,6 @@ public class UpdateResult extends ModifyQueryResult {
 
     public ResultSetType getResultSetType() {
         return ResultSetType.MODIFY;
-    }
-
-    public short getWarnings() {
-        return warnings;
-    }
-
-    public String getMessage() {
-        return message;
     }
 
     public ColumnInformation[] getColumnInformation() {

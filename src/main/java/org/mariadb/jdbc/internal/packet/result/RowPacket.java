@@ -51,10 +51,10 @@ OF SUCH DAMAGE.
 
 import org.mariadb.jdbc.internal.queryresults.ValueObject;
 import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
+import org.mariadb.jdbc.internal.util.buffer.Buffer;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 
 public interface RowPacket {
-    ValueObject[] getRow(ReadPacketFetcher packetFetcher, ByteBuffer buffer) throws IOException;
+    ValueObject[] getRow(ReadPacketFetcher packetFetcher, Buffer buffer) throws IOException;
 }

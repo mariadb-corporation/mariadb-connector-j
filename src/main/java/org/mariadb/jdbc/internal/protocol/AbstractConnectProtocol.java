@@ -54,20 +54,15 @@ import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
-import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.MyX509TrustManager;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
 import org.mariadb.jdbc.internal.packet.send.SendOldPasswordAuthPacket;
 import org.mariadb.jdbc.internal.queryresults.AbstractQueryResult;
-import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
 import org.mariadb.jdbc.internal.util.*;
-import org.mariadb.jdbc.internal.util.buffer.ReadUtil;
-import org.mariadb.jdbc.internal.packet.read.RawPacket;
+import org.mariadb.jdbc.internal.util.buffer.Buffer;
 import org.mariadb.jdbc.internal.packet.read.ReadInitialConnectPacket;
 import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
-import org.mariadb.jdbc.internal.packet.read.ReadResultPacketFactory;
-import org.mariadb.jdbc.internal.query.MariaDbQuery;
-import org.mariadb.jdbc.internal.query.Query;
+import org.mariadb.jdbc.internal.packet.read.Packet;
 import org.mariadb.jdbc.internal.queryresults.SelectQueryResult;
 import org.mariadb.jdbc.internal.queryresults.StreamingSelectResult;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
@@ -95,7 +90,6 @@ import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URL;
-import java.nio.ByteBuffer;
 import java.security.KeyStore;
 import java.sql.SQLException;
 import java.util.*;
@@ -382,10 +376,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private void setSessionOptions()  throws QueryException {
         // In JDBC, connection must start in autocommit mode.
         if ((serverStatus & ServerStatus.AUTOCOMMIT) == 0) {
-            executeQuery(new MariaDbQuery("set autocommit=1"));
+            executeQuery("set autocommit=1", false);
         }
         if (urlParser.getOptions().sessionVariables != null) {
-            executeQuery(new MariaDbQuery("set session " + urlParser.getOptions().sessionVariables));
+            executeQuery("set session " + urlParser.getOptions().sessionVariables, false);
         }
     }
 
@@ -396,7 +390,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
             packetFetcher = new ReadPacketFetcher(reader);
             writer = new PacketOutputStream(socket.getOutputStream());
 
-            final ReadInitialConnectPacket greetingPacket = new ReadInitialConnectPacket(packetFetcher);
+            final ReadInitialConnectPacket greetingPacket = new ReadInitialConnectPacket(packetFetcher.getReusableBuffer());
             this.serverThreadId = greetingPacket.getServerThreadId();
             this.version = greetingPacket.getServerVersion();
             parseVersion();
@@ -449,22 +443,20 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 seed,
                 packetSeq);
         cap.send(writer);
-        RawPacket rp = packetFetcher.getRawPacket();
+        Buffer buffer = packetFetcher.getPacket();
 
-        if ((rp.getByteBuffer().get(0) & 0xFF) == 0xFE) {   // Server asking for old format password
+        if ((buffer.getByteAt(0) & 0xFF) == Packet.EOF) {   // Server asking for old format password
             final SendOldPasswordAuthPacket oldPassPacket = new SendOldPasswordAuthPacket(
-                    this.password, Utils.copyWithLength(seed,8), rp.getPacketSeq() + 1);
+                    this.password, Utils.copyWithLength(seed,8), packetFetcher.getLastPacketSeq() + 1);
             oldPassPacket.send(writer);
-            rp = packetFetcher.getRawPacket();
+            buffer = packetFetcher.getPacket();
         }
 
-        AbstractResultPacket resultPacket = ReadResultPacketFactory.createResultPacket(rp.getByteBuffer());
-        if (resultPacket.getResultType() == AbstractResultPacket.ResultType.ERROR) {
-            ErrorPacket errorPacket = (ErrorPacket) resultPacket;
+        if (buffer.getByteAt(0) == Packet.ERROR) {
+            ErrorPacket errorPacket = new ErrorPacket(buffer);
             throw new QueryException("Could not connect: " + errorPacket.getMessage(), errorPacket.getErrorNumber(), errorPacket.getSqlState());
         }
-
-        serverStatus = ((OkPacket) resultPacket).getServerStatus();
+        serverStatus = new OkPacket(buffer).getServerStatus();
     }
 
     private int initializeClientCapabilities() {
@@ -506,8 +498,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
         if (checkIfMaster() && urlParser.getOptions().createDatabaseIfNotExist) {
             // Try to create the database if it does not exist
             String quotedDb = MariaDbConnection.quoteIdentifier(this.database);
-            executeQuery(new MariaDbQuery("CREATE DATABASE IF NOT EXISTS " + quotedDb));
-            executeQuery(new MariaDbQuery("USE " + quotedDb));
+            executeQuery("CREATE DATABASE IF NOT EXISTS " + quotedDb, false);
+            executeQuery("USE " + quotedDb, false);
         }
     }
 
@@ -553,10 +545,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
         serverData = new TreeMap<>();
         SelectQueryResult qr = null;
         try {
-            qr = executeSingleInternalQuery(new MariaDbQuery("SELECT "
+            qr = (SelectQueryResult) executeQuery("SELECT "
                     + "@@max_allowed_packet, "
                     + "@@system_time_zone, "
-                    + "@@time_zone"));
+                    + "@@time_zone", false);
             if (qr.next()) {
                 serverData.put("max_allowed_packet", qr.getValueObject(0).getString());
                 serverData.put("system_time_zone", qr.getValueObject(1).getString());
@@ -601,19 +593,19 @@ public abstract class AbstractConnectProtocol implements Protocol {
      * @throws IOException if connection error occur
      */
     public void readEofPacket() throws QueryException, IOException {
-        AbstractResultPacket resultPacket = ReadResultPacketFactory.createResultPacket(packetFetcher);
-        switch (resultPacket.getResultType()) {
-            case EOF:
-                EndOfFilePacket eof = (EndOfFilePacket) resultPacket;
+        Buffer buffer = packetFetcher.getReusableBuffer();
+        switch (buffer.getByteAt(0)) {
+            case (byte) 0xfe: //EOF
+                EndOfFilePacket eof = new EndOfFilePacket(buffer);
                 this.hasWarnings = eof.getWarningCount() > 0;
                 this.serverStatus = eof.getStatusFlags();
                 break;
-            case ERROR:
-                ErrorPacket ep = (ErrorPacket) resultPacket;
+            case (byte) 0xff: //ERROR
+                ErrorPacket ep = new ErrorPacket(buffer);
                 throw new QueryException("Could not connect: " + ep.getMessage(), ep.getErrorNumber(), ep.getSqlState());
             default:
-                throw new QueryException("Unexpected stream type " + resultPacket.getResultType()
-                        + "insted of EOF");
+                throw new QueryException("Unexpected stream type " + buffer.getByteAt(0)
+                        + " instead of EOF");
         }
     }
 
@@ -723,39 +715,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     public String getPassword() {
         return password;
-    }
-
-
-    private SelectQueryResult executeSingleInternalQuery(Query query) throws QueryException {
-        try {
-            writer.startPacket(0);
-            writer.write(0x03);
-            query.writeTo(writer);
-            writer.finishPacket();
-            ResultSetPacket resultSetPacket = (ResultSetPacket) ReadResultPacketFactory.createResultPacket(packetFetcher);
-            try {
-                long fieldCount = resultSetPacket.getFieldCount();
-                ColumnInformation[] ci = new ColumnInformation[(int) fieldCount];
-
-                for (int i = 0; i < fieldCount; i++) {
-                    packetFetcher.skipNextPacket();
-                    ci[i] = new ColumnInformation(MariaDbType.STRING);
-                }
-
-                ByteBuffer bufferEof = packetFetcher.getReusableBuffer();
-                if (!ReadUtil.eofIsNext(bufferEof)) {
-                    throw new QueryException("Packets out of order when reading field packets, expected was EOF stream. "
-                            + "Packet contents (hex) = " + MasterProtocol.hexdump(bufferEof, 0));
-                }
-                return new StreamingSelectResult(ci, this, packetFetcher, false);
-            } catch (IOException e) {
-                throw new QueryException("Could not read result set: " + e.getMessage(), -1,
-                        ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(), e);
-            }
-        } catch (IOException e) {
-            throw new QueryException("Could not send query: " + e.getMessage(), -1,
-                    ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(), e);
-        }
     }
 
     private void parseVersion() {
@@ -877,7 +836,5 @@ public abstract class AbstractConnectProtocol implements Protocol {
     public Options getOptions() {
         return urlParser.getOptions();
     }
-
-    public abstract AbstractQueryResult executeQuery(Query query) throws QueryException;
 
 }

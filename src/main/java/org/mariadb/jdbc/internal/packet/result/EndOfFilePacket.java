@@ -49,36 +49,26 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.packet.result;
 
-import org.mariadb.jdbc.internal.util.buffer.Reader;
 
-import java.nio.ByteBuffer;
-
+import org.mariadb.jdbc.internal.util.buffer.Buffer;
 
 public class EndOfFilePacket extends AbstractResultPacket {
 
-    private final byte packetSeq;
     private final short warningCount;
     private final short statusFlags;
 
     /**
      * Read EOF stream.
-     * @param byteBuffer stream byteBuffer
+     * @param buffer stream rawBytes
      */
-    public EndOfFilePacket(ByteBuffer byteBuffer)  {
-        super(byteBuffer);
-        final Reader reader = new Reader(byteBuffer);
-        packetSeq = 0;
-        reader.readByte();
-        warningCount = reader.readShort();
-        statusFlags = reader.readShort();
+    public EndOfFilePacket(Buffer buffer)  {
+        buffer.skipByte();
+        warningCount = buffer.readShort();
+        statusFlags = buffer.readShort();
     }
 
     public ResultType getResultType() {
         return ResultType.EOF;
-    }
-
-    public byte getPacketSeq() {
-        return packetSeq;
     }
 
     public short getWarningCount() {
@@ -92,7 +82,6 @@ public class EndOfFilePacket extends AbstractResultPacket {
     @Override
     public String toString() {
         return "EndOfFilePacket{"
-                + "packetSeq=" + packetSeq
                 + ", warningCount=" + warningCount
                 + ", statusFlags=" + statusFlags
                 + "}";

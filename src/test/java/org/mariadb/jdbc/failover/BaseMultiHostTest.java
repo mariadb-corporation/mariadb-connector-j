@@ -51,14 +51,13 @@ public class BaseMultiHostTest {
 
     @Rule
     public TestRule watcher = new TestWatcher() {
-        protected void starting(Description description) {
-            System.out.println("Starting test: " + description.getMethodName());
+        protected void succeeded(Description description) {
+            System.out.println("finished test success : " + description.getClassName() + "." + description.getMethodName());
         }
 
-        protected void finished(Description description) {
-            System.out.println("finished test: " + description.getMethodName());
+        protected void failed(Throwable throwable, Description description) {
+            System.out.println("finished test failed : " + description.getClassName() + "." + description.getMethodName());
         }
-
     };
 
     /**

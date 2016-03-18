@@ -49,32 +49,24 @@ OF SUCH DAMAGE.
 */
 
 
-import org.mariadb.jdbc.internal.util.buffer.Reader;
 import org.mariadb.jdbc.internal.protocol.MasterProtocol;
+import org.mariadb.jdbc.internal.util.buffer.Buffer;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 
 public class ResultSetPacket extends AbstractResultPacket {
     private final long fieldCount;
 
     /**
      * Initialize a ResultSetPacket : a resultset will have to be create.
-     * @param byteBuffer current stream's byteBuffer
-     * @throws IOException if byteBuffer data doesn't correspond to exepected data
+     * @param buffer current stream's rawBytes
+     * @throws IOException if rawBytes data doesn't correspond to exepected data
      */
-    public ResultSetPacket(ByteBuffer byteBuffer) throws IOException {
-        super(byteBuffer);
-        final Reader reader = new Reader(byteBuffer);
-
-        fieldCount = reader.getLengthEncodedBinary();
+    public ResultSetPacket(Buffer buffer) throws IOException {
+        fieldCount = buffer.getLengthEncodedBinary();
         if (fieldCount == -1) {
             // Should never get there, it is LocalInfilePacket, not ResultSetPacket
             throw new AssertionError("field count is -1 in ResultSetPacket.");
-        }
-        if (reader.getRemainingSize() != 0) {
-            throw new IOException("invalid stream contents ,expected result set stream, actual stream hexdump = "
-                    + MasterProtocol.hexdump(byteBuffer, 0));
         }
     }
 

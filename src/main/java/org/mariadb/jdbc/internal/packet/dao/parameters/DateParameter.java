@@ -111,4 +111,8 @@ public class DateParameter extends NotLongDataParameterHolder {
         return MariaDbType.DATE;
     }
 
+    @Override
+    public String toString() {
+        return "'" + date.toString() + "'";
+    }
 }

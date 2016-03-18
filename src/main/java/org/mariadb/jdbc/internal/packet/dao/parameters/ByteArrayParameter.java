@@ -82,7 +82,8 @@ public class ByteArrayParameter extends NotLongDataParameterHolder {
         return MariaDbType.VARSTRING;
     }
 
+    @Override
     public String toString() {
-        return "<bytearray> " + bytes.toString();
+        return "<bytearray> " + new String(bytes);
     }
 }

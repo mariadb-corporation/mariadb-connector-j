@@ -57,7 +57,6 @@ import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.PrepareStatementCache;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.queryresults.AbstractQueryResult;
-import org.mariadb.jdbc.internal.query.Query;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.util.dao.PrepareResult;
 
@@ -65,6 +64,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.SocketException;
 import java.util.Calendar;
+import java.util.Deque;
 import java.util.List;
 
 public interface Protocol {
@@ -126,19 +126,18 @@ public interface Protocol {
 
     boolean ping() throws QueryException;
 
-    AbstractQueryResult executeQuery(Query query) throws QueryException;
+    AbstractQueryResult executeQuery(final String query, boolean streaming) throws QueryException;
 
-    AbstractQueryResult executeQuery(final List<Query> queries, boolean streaming, boolean isRewritable, int rewriteOffset) throws QueryException;
+    AbstractQueryResult executeQuery(final Deque<String> queries, boolean streaming, boolean isRewritable, int rewriteOffset) throws QueryException;
 
-    AbstractQueryResult executeQuery(Query query, boolean streaming) throws QueryException;
+    AbstractQueryResult executeQueries(final List<String> queryParts, Deque<ParameterHolder[]> parameterList, boolean streaming, boolean isRewritable)
+            throws QueryException;
 
-    AbstractQueryResult getResult(Object queryObj, boolean streaming, boolean binaryProtocol) throws QueryException;
+    AbstractQueryResult getResult(boolean streaming, boolean binaryProtocol) throws QueryException;
 
     void cancelCurrentQuery() throws QueryException, IOException;
 
     AbstractQueryResult getMoreResults(boolean streaming) throws QueryException;
-
-    boolean hasUnreadData();
 
     boolean checkIfMaster() throws QueryException;
 

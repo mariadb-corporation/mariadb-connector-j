@@ -49,22 +49,29 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.util.buffer;
 
-import org.mariadb.jdbc.internal.packet.read.RawPacket;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.charset.Charset;
 
 
-public class Reader {
-    public ByteBuffer byteBuffer;
+public class Buffer {
+    public byte[] buf;
+    public int position;
+    public int limit;
 
-
-    public Reader(final ByteBuffer byteBuffer) {
-        this.byteBuffer = byteBuffer;
+    public Buffer(final byte[] buf, int limit) {
+        this.buf = buf;
+        this.limit = limit;
     }
 
+    public Buffer(final byte[] buf) {
+        this.buf = buf;
+        this.limit = this.buf.length;
+    }
+
+    public int remaining() {
+        return limit - position;
+    }
     /**
      * Reads a string from the buffer, looks for a 0 to end the string.
      *
@@ -74,8 +81,8 @@ public class Reader {
     public String readString(final Charset charset) {
         byte ch;
         int cnt = 0;
-        final byte[] byteArrBuff = new byte[byteBuffer.remaining()];
-        while (byteBuffer.remaining() > 0 && ((ch = byteBuffer.get()) != 0)) {
+        final byte[] byteArrBuff = new byte[remaining()];
+        while (remaining() > 0 && ((ch = buf[position++]) != 0)) {
             byteArrBuff[cnt++] = ch;
         }
         return new String(byteArrBuff, 0, cnt, charset);
@@ -87,7 +94,18 @@ public class Reader {
      * @return an short
      */
     public short readShort() {
-        return byteBuffer.getShort();
+        return (short) ((buf[position++] & 0xff)
+                + ((buf[position++] & 0xff) << 8));
+    }
+
+    /**
+     * Read 24 bit integer.
+     * @return length
+     */
+    public int read24bitword() {
+        return (buf[position++] & 0xff)
+                + ((buf[position++] & 0xff) << 8)
+                + ((buf[position++] & 0xff) << 16);
     }
 
     /**
@@ -96,7 +114,10 @@ public class Reader {
      * @return a int
      */
     public int readInt() {
-        return byteBuffer.getInt();
+        return ((buf[position++] & 0xff)
+                | ((buf[position++] & 0xff) << 8)
+                | ((buf[position++] & 0xff) << 16)
+                | ((buf[position++] & 0xff) << 24));
     }
 
     /**
@@ -105,9 +126,15 @@ public class Reader {
      * @return a long
      */
     public long readLong() {
-        return byteBuffer.getLong();
+        return ((buf[position++] & 0xff)
+                | ((long) (buf[position++] & 0xff) << 8)
+                | ((long) (buf[position++] & 0xff) << 16)
+                | ((long) (buf[position++] & 0xff) << 24)
+                | ((long) (buf[position++] & 0xff) << 32)
+                | ((long) (buf[position++] & 0xff) << 40)
+                | ((long) (buf[position++] & 0xff) << 48)
+                | ((long) (buf[position++] & 0xff) << 56));
     }
-
 
     /**
      * Reads a byte from the buffer.
@@ -115,7 +142,7 @@ public class Reader {
      * @return the byte
      */
     public byte readByte() {
-        return byteBuffer.get();
+        return buf[position++];
     }
 
     /**
@@ -125,24 +152,25 @@ public class Reader {
      */
     public byte[] readRawBytes(final int numberOfBytes) {
         final byte[] tmpArr = new byte[numberOfBytes];
-        byteBuffer.get(tmpArr, 0, numberOfBytes);
+        for (int i = 0; i < numberOfBytes; i++) {
+            tmpArr[i] = buf[position++];
+        }
         return tmpArr;
     }
 
     public void skipByte() {
-        byteBuffer.get();
+        position++;
     }
 
-    public long skipBytes(final int bytesToSkip) {
-        byteBuffer.position(byteBuffer.position() + bytesToSkip);
-        return bytesToSkip;
+    public void skipBytes(final int bytesToSkip) {
+        position += bytesToSkip;
     }
 
     /**
      * Skip next length encode binary data.
      * @return this.
      */
-    public Reader skipLengthEncodedBytes() {
+    public Buffer skipLengthEncodedBytes() {
         long encLength = getLengthEncodedBinary();
         if (encLength == -1) {
             return null;
@@ -152,21 +180,11 @@ public class Reader {
     }
 
     /**
-     * Read 24bit encoded length.
-     * @return length.
-     */
-    public int read24bitword() {
-        final byte[] tmpArr = new byte[3];
-        byteBuffer.get(tmpArr);
-        return (tmpArr[0] & 0xff) + ((tmpArr[1] & 0xff) << 8) + ((tmpArr[2] & 0xff) << 16);
-    }
-
-    /**
      * Get next binary data length.
      * @return length of next binary data
      */
     public long getLengthEncodedBinary() {
-        final byte type = byteBuffer.get();
+        final byte type = buf[position++];
         if (type < (byte) 0xfb) {
             return (long) 0xff & type;
         }
@@ -191,37 +209,11 @@ public class Reader {
      * @throws IOException if connection problem occur
      */
     public byte[] getLengthEncodedBytes() throws IOException {
-        if (byteBuffer.remaining() == 0) {
+        if (remaining() <= 0) {
             return new byte[0];
         }
-        final long encLength = getLengthEncodedBinary();
-        if (encLength == -1) {
-            return null;
-        }
-        final byte[] tmpBuf = new byte[(int) encLength];
-        byteBuffer.get(tmpBuf);
-        return tmpBuf;
-    }
-
-    /**
-     * Get next String encoded binary from byteBuffer.
-     * @return String data
-     * @throws IOException if connection problem occur
-     */
-    public String getStringLengthEncodedBytes() throws IOException {
-        if (byteBuffer.remaining() == 0) {
-            return null;
-        }
-        final long encLength = getLengthEncodedBinary();
-        if (encLength == 0) {
-            return "";
-        }
-        if (encLength != -1) {
-            final byte[] tmpBuf = new byte[(int) encLength];
-            byteBuffer.get(tmpBuf);
-            return new String(tmpBuf);
-        }
-        return null;
+        final long length = getLengthEncodedBinary();
+        return getLengthEncodedBytesWithLength(length);
     }
 
     /**
@@ -230,52 +222,31 @@ public class Reader {
      * @return the raw binary data
      */
     public byte[] getLengthEncodedBytesWithLength(long length) {
-        byte[] tmpBuf = new byte[(int) length];
-        byteBuffer.get(tmpBuf);
+        if (length < 0) {
+            return null;
+        }
+        final byte[] tmpBuf = new byte[(int) length];
+        for (int i = 0; i < length; i++) {
+            tmpBuf[i] = buf[position++];
+        }
         return tmpBuf;
     }
 
-    public byte getByteAt(final int position) throws IOException {
-        return byteBuffer.get(position);
+    public byte getByteAt(final int position) {
+        return buf[position];
     }
-
-    public int getRemainingSize() {
-        return byteBuffer.remaining();
-    }
-
 
     /**
      * Add stream to bytebuffer.
-     * @param rawPacket stream to add if needed
+     * @param otherBuffer stream to add if needed
      */
-    public void appendPacket(RawPacket rawPacket) {
-        ByteBuffer newBuffer = ByteBuffer.allocate(byteBuffer.capacity() + rawPacket.getByteBuffer().capacity()).order(ByteOrder.LITTLE_ENDIAN);
-        final int pos = byteBuffer.position();
-        byteBuffer.rewind();
-        newBuffer.put(byteBuffer);
-        newBuffer.put(rawPacket.getByteBuffer());
-        newBuffer.position(pos);
-        byteBuffer = newBuffer;
-    }
-
-    /**
-     * If next data length is not contain in byteBuffer, add stream.
-     * @param rawPacket stream to add if needed
-     * @param encLength next data remaining length to fetch
-     */
-    public void appendPacket(RawPacket rawPacket, long encLength) {
-        if (encLength < byteBuffer.capacity()) {
-            byteBuffer.rewind();
-            byteBuffer.put(rawPacket.getByteBuffer());
-        } else {
-            ByteBuffer newBuffer = ByteBuffer.allocate(byteBuffer.capacity() + rawPacket.getByteBuffer().capacity()).order(ByteOrder.LITTLE_ENDIAN);
-            final int pos = byteBuffer.position();
-            byteBuffer.rewind();
-            newBuffer.put(byteBuffer);
-            newBuffer.put(rawPacket.getByteBuffer());
-            newBuffer.position(pos);
-            byteBuffer = newBuffer;
-        }
+    public void appendPacket(Buffer otherBuffer) {
+        byte[] newBuffer = new byte[limit - position + otherBuffer.limit];
+        System.arraycopy(buf, position, newBuffer, 0, remaining());
+        System.arraycopy(otherBuffer.buf, 0, newBuffer, limit - position, otherBuffer.limit);
+        buf = newBuffer;
+        limit = limit - position + otherBuffer.limit;
+        position = 0;
     }
 
     /**
@@ -283,14 +254,29 @@ public class Reader {
      * @return next binary field length
      */
     public long getSilentLengthEncodedBinary() {
-        if (byteBuffer.remaining() == 0) {
+        if (remaining() <= 0) {
             return 0;
         }
-        int pos1 = byteBuffer.position();
-        byteBuffer.mark();
-        long valueLen = getLengthEncodedBinary();
-        int pos2 = byteBuffer.position();
-        byteBuffer.reset();
-        return valueLen + (pos2 - pos1);
+        final byte type = buf[position];
+        if (type < (byte) 0xfb) {
+            return (long) 0xff & type;
+        }
+        switch (type) {
+            case (byte) 0xfb: //251
+                return -1;
+            case (byte) 0xfc: //252
+                return (long) (0xffff & ((buf[position + 1] & 0xff) + ((buf[position + 2] & 0xff) << 8)));
+            case (byte) 0xfd: //253
+                return 0xffffff & (buf[position + 1] & 0xff)
+                        + ((buf[position + 2] & 0xff) << 8)
+                        + ((buf[position + 3] & 0xff) << 16);
+            case (byte) 0xfe: //254
+                return 0xffffff & (buf[position + 1] & 0xff)
+                        + ((buf[position + 2] & 0xff) << 8)
+                        + ((buf[position + 3] & 0xff) << 16)
+                        + ((buf[position + 4] & 0xff) << 24);
+            default:
+                return (long) 0xff & type;
+        }
     }
 }

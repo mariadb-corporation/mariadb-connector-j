@@ -77,10 +77,6 @@ public abstract class AbstractQueryResult {
         return isClosed;
     }
 
-    public abstract short getWarnings();
-
-    public abstract String getMessage();
-
     public abstract ColumnInformation[] getColumnInformation();
 
     public abstract int getRows();
