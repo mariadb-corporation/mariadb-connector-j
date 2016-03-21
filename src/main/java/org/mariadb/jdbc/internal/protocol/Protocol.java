@@ -128,9 +128,9 @@ public interface Protocol {
 
     AbstractQueryResult executeQuery(final String query, boolean streaming) throws QueryException;
 
-    AbstractQueryResult executeQuery(final Deque<String> queries, boolean streaming, boolean isRewritable, int rewriteOffset) throws QueryException;
+    AbstractQueryResult executeQuery(final List<String> queries, boolean streaming, boolean isRewritable, int rewriteOffset) throws QueryException;
 
-    AbstractQueryResult executeQueries(final List<String> queryParts, Deque<ParameterHolder[]> parameterList, boolean streaming, boolean isRewritable)
+    AbstractQueryResult executeQueries(final List<String> queryParts, List<ParameterHolder[]> parameterList, boolean streaming, boolean isRewritable)
             throws QueryException;
 
     AbstractQueryResult getResult(boolean streaming, boolean binaryProtocol) throws QueryException;

@@ -61,7 +61,7 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
     private final String sqlQuery;
     private List<String> queryParts;
     private ParameterHolder[] parameters;
-    private Deque<ParameterHolder[]> parameterList = new ArrayDeque<>();
+    private List<ParameterHolder[]> parameterList = new ArrayList<>();
     private int paramCount;
     private ResultSetMetaData resultSetMetaData = null;
     private ParameterMetaData parameterMetaData = null;
@@ -174,9 +174,7 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
         try {
             executeQueryProlog();
             batchResultSet = null;
-            Deque<ParameterHolder[]> tmpParam = new ArrayDeque<>(1);
-            tmpParam.add(parameters);
-            queryResult = protocol.executeQueries(queryParts, tmpParam, isStreaming(), false);
+            queryResult = protocol.executeQueries(queryParts, Collections.singletonList(parameters), isStreaming(), false);
             cacheMoreResults();
             return (queryResult.getResultSetType() == ResultSetType.SELECT);
         } catch (QueryException e) {
@@ -245,15 +243,16 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
                 executeRewriteQuery(rewrittenBatch);
                 return rewrittenBatch ? getUpdateCountsForReWrittenBatch(size) : getUpdateRewrittenCounts();
             } else {
-                while ((parameters = parameterList.poll()) != null) {
+                for (; batchQueriesCount <  size; batchQueriesCount++) {
+                    this.parameters = parameterList.get(batchQueriesCount);
                     executeInternal();
                     int updateCount = getUpdateCount();
                     if (updateCount == -1) {
-                        ret[batchQueriesCount++] = SUCCESS_NO_INFO;
+                        ret[batchQueriesCount] = SUCCESS_NO_INFO;
                     } else {
-                        ret[batchQueriesCount++] = updateCount;
+                        ret[batchQueriesCount] = updateCount;
                     }
-                    if (batchQueriesCount == 1) {
+                    if (batchQueriesCount == 0) {
                         rs = (MariaDbResultSet) getInternalGeneratedKeys();
                     } else {
                         rs = rs.joinResultSets((MariaDbResultSet) getInternalGeneratedKeys());

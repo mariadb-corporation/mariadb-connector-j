@@ -11,7 +11,41 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 public abstract class BaseReplication extends BaseMonoServer {
+
+    @Test()
+    public void failoverSlaveAndMasterRewrite() throws Throwable {
+        Connection connection = null;
+        try {
+            connection = getNewConnection("&rewriteBatchedStatements=true&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000", true);
+            int masterServerId = getServerId(connection);
+            connection.setReadOnly(true);
+            int firstSlaveId = getServerId(connection);
+
+            stopProxy(masterServerId);
+            //stop proxy for 2s
+            stopProxy(firstSlaveId, 4000);
+
+            try {
+                Statement stmt = connection.createStatement();
+                stmt.addBatch("SELECT 1");
+                stmt.addBatch("SELECT 2");
+                int[] resultData = stmt.executeBatch();
+                int secondSlaveId = getServerId(connection);
+                assertEquals("the 2 batch queries must have been executed when failover", 2, resultData.length);
+                assertTrue(secondSlaveId != firstSlaveId && secondSlaveId != masterServerId);
+            } catch (SQLException e) {
+                Assert.fail();
+            }
+        } finally {
+            if (connection != null) {
+                connection.close();
+            }
+        }
+    }
 
     @Test
     public void failoverSlaveToMaster() throws Throwable {

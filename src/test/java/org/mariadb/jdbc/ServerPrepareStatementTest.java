@@ -88,7 +88,7 @@ public class ServerPrepareStatementTest extends BaseTest {
         Connection connection = null;
         try {
             connection = setConnection("&prepStmtCacheSize=10");
-            List<PreparedStatement> activePrepareStatement = new ArrayList(20);
+            List<PreparedStatement> activePrepareStatement = new ArrayList<>(20);
             for (int i = 0; i < 20; i++) {
                 activePrepareStatement.add(connection.prepareStatement("SELECT " + i));
             }

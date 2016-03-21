@@ -595,15 +595,17 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * @return queryresult
      * @throws QueryException exception
      */
-    public AbstractQueryResult executeQuery(Deque<String> queries, boolean streaming, boolean isRewritable, int rewriteOffset) throws QueryException {
+    public AbstractQueryResult executeQuery(List<String> queries, boolean streaming, boolean isRewritable, int rewriteOffset) throws QueryException {
         this.moreResults = false;
         AbstractQueryResult result = null;
         String firstSql = null;
+        int currentIndex = 0;
+        int totalQueries = queries.size();
         try {
             do {
-                String sql = queries.poll();
+                String sql = queries.get(currentIndex++);
                 firstSql = sql;
-                if (queries.isEmpty()) {
+                if (totalQueries == 1) {
                     writer.sendTextPacket(sql);
                 } else {
                     writer.startPacket(0);
@@ -613,8 +615,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                         //add query with ";"
                         writer.write(sql.getBytes("UTF-8"));
 
-                        while ((sql = queries.poll()) != null) {
-                            byte[] sqlByte = sql.getBytes("UTF-8");
+                        while (currentIndex < totalQueries) {
+                            byte[] sqlByte = queries.get(currentIndex++).getBytes("UTF-8");
                             if (!writer.checkRewritableLength(sqlByte.length)) {
                                 break;
                             }
@@ -623,11 +625,15 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                         }
                     } else {
                         writer.write(sql.getBytes("UTF-8"));
-                        while ((sql = queries.peekFirst()) != null
-                                && writer.checkRewritableLength(1 + 3 * (sql.length() - rewriteOffset))) {
-                            queries.pollFirst();
-                            writer.write(',');
-                            writer.write(sql.substring(rewriteOffset).getBytes("UTF-8"));
+                        while (currentIndex < totalQueries) {
+                            byte[] sqlByte = queries.get(currentIndex).substring(rewriteOffset).getBytes("UTF-8");
+                            if (writer.checkRewritableLength(1 + sqlByte.length)) {
+                                writer.write(',');
+                                writer.write(sqlByte);
+                                currentIndex++;
+                            } else {
+                                break;
+                            }
                         }
                     }
                 }
@@ -639,7 +645,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 } else {
                     result.addResult(resultTmp);
                 }
-            } while (!queries.isEmpty());
+            } while (currentIndex < totalQueries);
         } catch (QueryException queryException) {
             if (getOptions().dumpQueriesOnException || queryException.getErrorCode() == 1064) {
                 String sql = firstSql;
@@ -670,11 +676,13 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * @return queryresult
      * @throws QueryException exception
      */
-    public AbstractQueryResult executeQueries(final List<String> queryParts, Deque<ParameterHolder[]> parameterList, boolean streaming,
+    public AbstractQueryResult executeQueries(final List<String> queryParts, List<ParameterHolder[]> parameterList, boolean streaming,
                                               boolean isRewritable) throws QueryException {
         checkClose();
         ParameterHolder[] parameters = null;
         int paramCount = queryParts.size() - 3;
+        int currentIndex = 0;
+        int totalParameterList = parameterList.size();
 
         try {
             //validate parameters
@@ -686,7 +694,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     }
                 }
             }
-            parameters = parameterList.poll();
+
+            parameters = parameterList.get(currentIndex++);
 
             //change rewritable part to utf8 bytes
             List<byte[]> queryPartsUtf8 = new ArrayList<>(queryParts.size());
@@ -701,7 +710,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 writer.startPacket(0);
                 writer.write(0x03);
 
-                if (parameterList.isEmpty()) {
+                if (totalParameterList == 1) {
                     writer.write(queryPartsUtf8.get(0));
                     writer.write(queryPartsUtf8.get(1));
                     for (int i = 0; i < paramCount; i++) {
@@ -723,7 +732,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                         writer.write(queryPartsUtf8.get(paramCount + 2));
 
                         // write other, separate by ";"
-                        while ((parameters = parameterList.poll()) != null) {
+                        while (currentIndex < totalParameterList) {
+                            parameters = parameterList.get(currentIndex++);
                             writer.write(';');
                             writer.write(queryPartsUtf8.get(0));
                             writer.write(queryPartsUtf8.get(1));
@@ -744,7 +754,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                             writer.write(queryPartsUtf8.get(i + 2));
                         }
 
-                        while ((parameters = parameterList.poll()) != null) {
+                        while (currentIndex < totalParameterList) {
+                            parameters = parameterList.get(currentIndex);
 
                             //check packet length so to separate in multiple packet
                             int parameterLength = 1;
@@ -760,6 +771,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                                     parameters[i].writeTo(writer);
                                     writer.write(queryPartsUtf8.get(i + 2));
                                 }
+                                currentIndex++;
+                            } else {
+                                break;
                             }
                         }
                         writer.write(queryPartsUtf8.get(paramCount + 2));
@@ -773,7 +787,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 } else {
                     result.addResult(resultTmp);
                 }
-            } while (!parameterList.isEmpty());
+            } while (totalParameterList < totalParameterList);
             return result;
 
         } catch (QueryException queryException) {
