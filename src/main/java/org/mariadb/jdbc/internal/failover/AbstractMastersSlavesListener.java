@@ -81,23 +81,24 @@ public abstract class AbstractMastersSlavesListener extends AbstractMastersListe
      * Handle failover on master or slave connection.
      * @param method called method
      * @param args methods parameters
+     * @param protocol current protocol
      * @return HandleErrorResult object to indicate if query has finally been relaunched or exception if not.
      * @throws Throwable if method with parameters doesn't exist
      */
-    public HandleErrorResult handleFailover(Method method, Object[] args) throws Throwable {
+    public HandleErrorResult handleFailover(Method method, Object[] args, Protocol protocol) throws Throwable {
         if (isExplicitClosed()) {
             throw new QueryException("Connection has been closed !");
         }
-        if (currentProtocol.mustBeMasterConnection()) {
+        if (protocol.mustBeMasterConnection()) {
             if (setMasterHostFail()) {
                 //SQL Primary node connection fail ");
-                addToBlacklist(currentProtocol.getHostAddress());
+                addToBlacklist(protocol.getHostAddress());
             }
             return primaryFail(method, args);
         } else {
             if (setSecondaryHostFail()) {
                 //SQL secondary node connection fail ");
-                addToBlacklist(currentProtocol.getHostAddress());
+                addToBlacklist(protocol.getHostAddress());
             }
             return secondaryFail(method, args);
         }

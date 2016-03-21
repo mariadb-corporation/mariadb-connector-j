@@ -89,7 +89,7 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
 
     private void prepare(String sql) throws SQLException {
         try {
-            prepareResult = protocol.prepare(sql);
+            prepareResult = protocol.prepare(sql, false);
             parameterCount = prepareResult.getParameters().length;
             currentParameterHolder = new ParameterHolder[prepareResult.getParameters().length];
             returnTableAlias = protocol.getOptions().useOldAliasMetadataBehavior;
@@ -211,17 +211,13 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
         executing = true;
         QueryException exception = null;
         try {
-            executeQueryProlog();
+            executeQueryProlog(prepareResult);
             try {
                 int queryParameterSize = queryParameters.size();
                 for (; counter < queryParameterSize; counter++) {
-                    queryResult = protocol.executePreparedQuery(sql, queryParameters.get(counter), prepareResult, parameterTypeHeader,
+                    queryResult = protocol.executePreparedQuery(prepareResult, sql, queryParameters.get(counter), parameterTypeHeader,
                             isStreaming());
 
-                    // in case of failover
-                    if (queryResult.getFailureObject() != null) {
-                        prepareResult = queryResult.getFailureObject();
-                    }
                     cacheMoreResults();
                     int updateCount = getUpdateCount();
                     if (updateCount == -1) {
@@ -259,19 +255,13 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
         return ret;
     }
 
-
     private boolean executeInternal(ParameterHolder[] parameters, MariaDbType[] parameterTypeHeader) throws SQLException {
         executing = true;
         QueryException exception = null;
-        executeQueryProlog();
+        executeQueryProlog(prepareResult);
         try {
             batchResultSet = null;
-            queryResult = protocol.executePreparedQuery(sql, parameters, prepareResult, parameterTypeHeader, isStreaming());
-
-            // in case of failover
-            if (queryResult.getFailureObject() != null) {
-                prepareResult = queryResult.getFailureObject();
-            }
+            queryResult = protocol.executePreparedQuery(prepareResult, sql, parameters, parameterTypeHeader, isStreaming());
             cacheMoreResults();
             return (queryResult.getResultSetType() == ResultSetType.SELECT);
         } catch (QueryException e) {
@@ -283,6 +273,16 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
         }
     }
 
+    private void executeQueryProlog(PrepareResult prepareResult) throws SQLException {
+        if (closed) {
+            throw new SQLException("execute() is called on closed statement");
+        }
+        protocol.prologProxy(prepareResult, isStreaming, maxRows, protocol.getProxy() != null, connection, this);
+        cachedResultSets.clear();
+        if (queryTimeout != 0) {
+            setTimerTask();
+        }
+    }
 
     /*
      Reset timeout after query, re-throw  SQL  exception
@@ -395,12 +395,12 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
             cachedResultSets.clear();
             if (protocol != null && protocol.isConnected()) {
                 try {
-                    protocol.releasePrepareStatement(sql, prepareResult);
+                    prepareResult.getUnProxiedProtocol().releasePrepareStatement(prepareResult, sql);
                 } catch (QueryException e) {
                     //if (log.isDebugEnabled()) log.debug("Error releasing preparedStatement", e);
                 }
             }
-
+            prepareResult = null;
             if (isStreaming()) {
                 while (getInternalMoreResults(true)) { }
             }
@@ -410,6 +410,7 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
                 return;
             }
             connection.pooledConnection.fireStatementClosed(this);
+            connection = null;
         } finally {
             lock.unlock();
         }

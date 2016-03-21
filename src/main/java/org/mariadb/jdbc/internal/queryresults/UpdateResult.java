@@ -72,9 +72,6 @@ public class UpdateResult extends AbstractQueryResult {
      * @param other other AbstractQueryResult.
      */
     public void addResult(AbstractQueryResult other) {
-        if (other.prepareResult != null) {
-            prepareResult = other.prepareResult;
-        }
         isClosed = other.isClosed();
         if (other instanceof UpdateResult) {
             UpdateResult updateResult = (UpdateResult) other;

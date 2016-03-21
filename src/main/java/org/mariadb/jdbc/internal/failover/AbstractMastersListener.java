@@ -153,10 +153,11 @@ public abstract class AbstractMastersListener implements Listener {
      *
      * @param method called method
      * @param args   methods parameters
+     * @param protocol current protocol
      * @return a HandleErrorResult object to indicate if query has been relaunched, and the exception if not
      * @throws Throwable when method and parameters does not exist.
      */
-    public HandleErrorResult handleFailover(Method method, Object[] args) throws Throwable {
+    public HandleErrorResult handleFailover(Method method, Object[] args, Protocol protocol) throws Throwable {
         if (isExplicitClosed()) {
             throw new QueryException("Connection has been closed !");
         }
@@ -277,9 +278,8 @@ public abstract class AbstractMastersListener implements Listener {
             } else if ("executePreparedQuery".equals(method.getName())) {
                 //the statementId has been discarded with previous session
                 try {
-                    Method methodFailure = currentProtocol.getClass().getDeclaredMethod("executePreparedQueryAfterFailover",
-                            String.class, ParameterHolder[].class, PrepareResult.class, MariaDbType[].class, boolean.class);
-                    handleErrorResult.resultObject = methodFailure.invoke(currentProtocol, args);
+                    handleErrorResult.resultObject = currentProtocol.executePreparedQueryAfterFailover(((PrepareResult) args[0]), ((String) args[1]),
+                            ((ParameterHolder[]) args[2]), ((MariaDbType[]) args[3]), ((boolean) args[4]));
                     handleErrorResult.mustThrowError = false;
                 } catch (Exception e) {
                 }
@@ -306,6 +306,9 @@ public abstract class AbstractMastersListener implements Listener {
         return false;
     }
 
+    public Object invoke(Method method, Object[] args, Protocol specificProtocol) throws Throwable {
+        return method.invoke(specificProtocol, args);
+    }
 
     public Object invoke(Method method, Object[] args) throws Throwable {
         return method.invoke(currentProtocol, args);

@@ -105,10 +105,12 @@ public abstract class BaseMonoServer extends BaseMultiHostTest {
                 st.execute("INSERT INTO selectFailover" + jobId + " VALUES (1,2)");
                 Assert.fail("not have thrown error !");
             } catch (SQLException e) {
+                restartProxy(masterServerId);
                 Assert.assertEquals("error type not normal", "25S03", e.getSQLState());
             }
         } finally {
             if (connection != null) {
+                connection.createStatement().execute("drop table if exists selectFailover" + jobId);
                 connection.close();
             }
         }
@@ -123,14 +125,14 @@ public abstract class BaseMonoServer extends BaseMultiHostTest {
             Statement st = connection.createStatement();
 
             final int masterServerId = getServerId(connection);
-            st.execute("drop table if exists selectFailover" + jobId);
-            st.execute("create table selectFailover" + jobId + " (id int not null primary key , amount int not null) "
+            st.execute("drop table if exists selectFailoverTrans" + jobId);
+            st.execute("create table selectFailoverTrans" + jobId + " (id int not null primary key , amount int not null) "
                     + "ENGINE = InnoDB");
             connection.setAutoCommit(false);
-            st.execute("INSERT INTO selectFailover" + jobId + " VALUES (0,0)");
+            st.execute("INSERT INTO selectFailoverTrans" + jobId + " VALUES (0,0)");
             stopProxy(masterServerId, 2);
             try {
-                st.execute("SELECT * from selectFailover" + jobId);
+                st.execute("SELECT * from selectFailoverTrans" + jobId);
                 Assert.fail("not have thrown error !");
             } catch (SQLException e) {
                 Assert.assertEquals("error type not normal", "25S03", e.getSQLState());
@@ -138,9 +140,11 @@ public abstract class BaseMonoServer extends BaseMultiHostTest {
 
             stopProxy(masterServerId, 2);
             try {
-                st.execute("INSERT INTO selectFailover" + jobId + " VALUES (1,2)");
+                st.execute("INSERT INTO selectFailoverTrans" + jobId + " VALUES (1,2)");
                 Assert.fail("not have thrown error !");
             } catch (SQLException e) {
+                restartProxy(masterServerId);
+                st.execute("drop table if exists selectFailoverTrans" + jobId);
                 Assert.assertEquals("error type not normal", "25S03", e.getSQLState());
             }
         } finally {

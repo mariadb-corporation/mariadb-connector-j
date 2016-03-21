@@ -50,7 +50,9 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.failover;
 
 import org.mariadb.jdbc.HostAddress;
+import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
+import org.mariadb.jdbc.internal.util.dao.PrepareResult;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import java.lang.reflect.InvocationHandler;
@@ -69,6 +71,8 @@ public class FailoverProxy implements InvocationHandler {
     public static final String METHOD_IS_READ_ONLY = "isReadOnly";
     public static final String METHOD_CLOSED_EXPLICIT = "closeExplicit";
     public static final String METHOD_IS_CLOSED = "isClosed";
+    public static final String METHOD_EXECUTE_PREPARED_QUERY = "executePreparedQuery";
+    public static final String METHOD_PROLOG_PROXY = "prologProxy";
 
 
     public final ReentrantLock lock;
@@ -116,7 +120,7 @@ public class FailoverProxy implements InvocationHandler {
                     //handle failover only if connection error
                     //normal error can be thrown upon reconnection if there was a transaction in progress.
                     if (hasToHandleFailover(e)) {
-                        return handleFailOver(e, method, args);
+                        return handleFailOver(e, method, args, listener.getCurrentProtocol());
                     }
                 }
                 break;
@@ -128,6 +132,23 @@ public class FailoverProxy implements InvocationHandler {
             case METHOD_CLOSED_EXPLICIT:
                 this.listener.preClose();
                 return null;
+            case METHOD_PROLOG_PROXY:
+            case METHOD_EXECUTE_PREPARED_QUERY:
+                try {
+                    return listener.invoke(method, args, ((PrepareResult) args[0]).getUnProxiedProtocol());
+                } catch (InvocationTargetException e) {
+                    if (e.getTargetException() != null) {
+                        if (e.getTargetException() instanceof QueryException) {
+                            if (hasToHandleFailover((QueryException) e.getTargetException())) {
+                                return handleFailOver((QueryException) e.getTargetException(), method, args,
+                                        ((PrepareResult) args[0]).getUnProxiedProtocol());
+                            }
+                        }
+                        throw e.getTargetException();
+                    }
+                    throw e;
+                }
+
             default:
         }
         try {
@@ -136,7 +157,7 @@ public class FailoverProxy implements InvocationHandler {
             if (e.getTargetException() != null) {
                 if (e.getTargetException() instanceof QueryException) {
                     if (hasToHandleFailover((QueryException) e.getTargetException())) {
-                        return handleFailOver((QueryException) e.getTargetException(), method, args);
+                        return handleFailOver((QueryException) e.getTargetException(), method, args, listener.getCurrentProtocol());
                     }
                 }
                 throw e.getTargetException();
@@ -155,14 +176,14 @@ public class FailoverProxy implements InvocationHandler {
      * @return the object return from the method
      * @throws Throwable throwable
      */
-    private Object handleFailOver(QueryException qe, Method method, Object[] args) throws Throwable {
+    private Object handleFailOver(QueryException qe, Method method, Object[] args, Protocol protocol) throws Throwable {
         HostAddress failHostAddress = null;
         boolean failIsMaster = true;
-        if (this.listener.getCurrentProtocol() != null) {
-            failHostAddress = this.listener.getCurrentProtocol().getHostAddress();
-            failIsMaster = this.listener.getCurrentProtocol().isMasterConnection();
+        if (protocol != null) {
+            failHostAddress = protocol.getHostAddress();
+            failIsMaster = protocol.isMasterConnection();
         }
-        HandleErrorResult handleErrorResult = listener.handleFailover(method, args);
+        HandleErrorResult handleErrorResult = listener.handleFailover(method, args, protocol);
         if (handleErrorResult.mustThrowError) {
             listener.throwFailoverMessage(failHostAddress, failIsMaster, qe, handleErrorResult.isReconnected);
         }

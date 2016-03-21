@@ -337,7 +337,8 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
         if (parameterIndex >= 1 && parameterIndex  < paramCount + 1) {
             parameters[parameterIndex - 1] = holder;
         } else {
-            throw ExceptionMapper.getSqlException("Could not set parameter");
+            throw ExceptionMapper.getSqlException("Could not set parameter at position " + parameterIndex
+                    + " (values vas " + holder.toString() + ")");
         }
     }
 

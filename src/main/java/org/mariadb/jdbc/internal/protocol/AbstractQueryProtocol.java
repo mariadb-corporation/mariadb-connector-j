@@ -1,5 +1,6 @@
 package org.mariadb.jdbc.internal.protocol;
 
+import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.packet.result.*;
 import org.mariadb.jdbc.internal.packet.send.*;
@@ -24,8 +25,9 @@ import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.Deque;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -130,7 +132,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
 
     @Override
-    public PrepareResult prepare(String sql) throws QueryException {
+    public PrepareResult prepare(String sql, boolean forceNew) throws QueryException {
         lock.lock();
         try {
             if (activeResult != null) {
@@ -140,7 +142,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
             checkClose();
             String key = null;
-            if (urlParser.getOptions().cachePrepStmts) {
+            if (!forceNew && urlParser.getOptions().cachePrepStmts) {
                 key = new StringBuilder(database).append("-").append(sql).toString();
                 PrepareResult pr = prepareStatementCache.get(key);
                 if (pr != null && pr.incrementShareCounter()) {
@@ -181,9 +183,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     }
                     readEofPacket();
                 }
-                PrepareResult prepareResult = new PrepareResult(statementId, columns, params);
+                PrepareResult prepareResult = new PrepareResult(statementId, columns, params, this);
                 if (urlParser.getOptions().cachePrepStmts && sql != null && sql.length() < urlParser.getOptions().prepStmtCacheSqlLimit) {
-                    PrepareResult cachedPrepareResult = prepareStatementCache.put(key, prepareResult);
+                    PrepareResult cachedPrepareResult = prepareStatementCache.put(key, prepareResult, forceNew);
                     return cachedPrepareResult != null ? cachedPrepareResult : prepareResult;
                 }
                 return prepareResult;
@@ -321,16 +323,19 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     }
 
     @Override
-    public AbstractQueryResult executePreparedQueryAfterFailover(String sql, ParameterHolder[] parameters, PrepareResult oldPrepareResult,
+    public AbstractQueryResult executePreparedQueryAfterFailover(PrepareResult oldPrepareResult, String sql, ParameterHolder[] parameters,
                                                          MariaDbType[] parameterTypeHeader, boolean isStreaming) throws QueryException {
-        PrepareResult prepareResult = prepare(sql);
-        AbstractQueryResult queryResult = executePreparedQuery(sql, parameters, prepareResult, parameterTypeHeader, isStreaming);
-        queryResult.setFailureObject(prepareResult);
-        return queryResult;
+        PrepareResult prepareResult = prepare(sql, true);
+        //reset header status
+        for (int i = 0; i < parameterTypeHeader.length; i++) {
+            parameterTypeHeader[i] = null;
+        }
+        oldPrepareResult.failover(prepareResult.getStatementId(), this);
+        return executePreparedQuery(oldPrepareResult, sql, parameters, parameterTypeHeader, isStreaming);
     }
 
     @Override
-    public AbstractQueryResult executePreparedQuery(String sql, ParameterHolder[] parameters, PrepareResult prepareResult,
+    public AbstractQueryResult executePreparedQuery(PrepareResult prepareResult, String sql, ParameterHolder[] parameters,
                                                     MariaDbType[] parameterTypeHeader, boolean isStreaming) throws QueryException {
         checkClose();
         this.moreResults = false;
@@ -374,12 +379,12 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
     /**
      * Deallocate prepare statement if not used anymore.
-     * @param sql sql query
      * @param prepareResult allocation result
+     * @param sql sql query
      * @throws QueryException if deallocation failed.
      */
     @Override
-    public void releasePrepareStatement(String sql, PrepareResult prepareResult) throws QueryException {
+    public void releasePrepareStatement(PrepareResult prepareResult, String sql) throws QueryException {
         //If prepared cache is enable, the PrepareResult can be shared in many PrepStatement, so synchronised use count indicator will be decrement.
         prepareResult.decrementShareCounter();
 
@@ -902,5 +907,47 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 }
         }
 
+    }
+
+    public void prologProxy(PrepareResult prepareResult, boolean isStreaming, int maxRows, boolean hasProxy, MariaDbConnection connection,
+                       Statement statement) throws SQLException {
+        prolog(isStreaming, maxRows, hasProxy, connection, statement);
+    }
+
+    /**
+     * Preparation before command.
+     * @param isStreaming is streaming
+     * @param maxRows query max rows
+     * @param hasProxy has proxy
+     * @param connection current connection
+     * @param statement current statement
+     * @throws SQLException if any error occur.
+     */
+    public void prolog(boolean isStreaming, int maxRows, boolean hasProxy, MariaDbConnection connection, Statement statement) throws SQLException {
+        if (explicitClosed) {
+            throw new SQLException("execute() is called on closed connection");
+        }
+        //old failover handling
+        if (!hasProxy) {
+            if (shouldReconnectWithoutProxy()) {
+                try {
+                    connectWithoutProxy();
+                } catch (QueryException qe) {
+                    ExceptionMapper.throwException(qe, connection, statement);
+                }
+            }
+        }
+
+        try {
+            setMaxRows(maxRows);
+            closeIfActiveResult();
+            if (isStreaming && hasMoreResults()) {
+                getMoreResults(isStreaming);
+            }
+        } catch (QueryException qe) {
+            ExceptionMapper.throwException(qe, connection, statement);
+        }
+
+        connection.reenableWarnings();
     }
 }

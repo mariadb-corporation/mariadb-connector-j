@@ -54,20 +54,11 @@ import org.mariadb.jdbc.internal.util.dao.PrepareResult;
 
 
 public abstract class AbstractQueryResult {
-    protected PrepareResult prepareResult = null;
     protected boolean isClosed;
 
     public abstract void addResult(AbstractQueryResult other) ;
 
     public abstract ResultSetType getResultSetType();
-
-    public PrepareResult getFailureObject() {
-        return this.prepareResult;
-    }
-
-    public void setFailureObject(PrepareResult resultObject) {
-        this.prepareResult = resultObject;
-    }
 
     public void close() {
         isClosed = true;
