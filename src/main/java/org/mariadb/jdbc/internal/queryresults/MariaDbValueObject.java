@@ -163,7 +163,8 @@ public class MariaDbValueObject implements ValueObject {
             case DATE:
                 if (isBinaryEncoded) {
                     try {
-                        return getDate(cal).toString();
+                        Date date = getDate(cal);
+                        return date == null ? null : date.toString();
                     } catch (ParseException e) {
                     }
                 }

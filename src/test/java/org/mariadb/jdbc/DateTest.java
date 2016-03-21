@@ -33,7 +33,6 @@ public class DateTest extends BaseTest {
         createTable("date_test3", " x date");
         createTable("date_test4", "x date");
         createTable("timestampAsDate", "ts timestamp(6), dt datetime(6), dd date");
-
     }
 
 
@@ -503,5 +502,21 @@ public class DateTest extends BaseTest {
         }
     }
 
+
+    /**
+     * Conj-267 : null pointer exception getting zero date.
+     */
+    @Test
+    public void nullDateString() throws Throwable {
+        createTable("date_test5", "x date");
+        Statement stmt = sharedConnection.createStatement();
+        stmt.execute("INSERT INTO date_test5 (x) VALUES ('0000-00-00')");
+        PreparedStatement pst = sharedConnection.prepareStatement("SELECT * FROM date_test5 WHERE 1 = ?");
+        pst.setInt(1, 1);
+        ResultSet rs = pst.executeQuery();
+        Assert.assertTrue(rs.next());
+        Assert.assertNull(rs.getString(1));
+        Assert.assertNull(rs.getDate(1));
+    }
 
 }
