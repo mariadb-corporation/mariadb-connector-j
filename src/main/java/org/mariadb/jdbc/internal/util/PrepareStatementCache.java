@@ -100,14 +100,16 @@ public final class PrepareStatementCache extends LinkedHashMap<String, PrepareRe
      * the existing cached prepared result shared counter will be incremented.
      * @param key key
      * @param result new prepare result.
+     * @param force flag to indicate if cache must be forced (after a failover)
      * @return the previous value associated with key if not been deallocate, or null if there was no mapping for key.
      */
-    @Override
-    public synchronized PrepareResult put(String key, PrepareResult result) {
-        PrepareResult cachedPrepareResult = super.get(key);
-        //if there is already some cached data (and not been deallocate), return existing cached data
-        if (cachedPrepareResult != null && cachedPrepareResult.incrementShareCounter()) {
-            return cachedPrepareResult;
+    public synchronized PrepareResult put(String key, PrepareResult result, boolean force) {
+        if (!force) {
+            PrepareResult cachedPrepareResult = super.get(key);
+            //if there is already some cached data (and not been deallocate), return existing cached data
+            if (cachedPrepareResult != null && cachedPrepareResult.incrementShareCounter()) {
+                return cachedPrepareResult;
+            }
         }
         //if no cache data, or been deallocate, put new result in cache
         result.setAddToCache();

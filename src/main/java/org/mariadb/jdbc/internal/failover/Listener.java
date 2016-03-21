@@ -78,9 +78,11 @@ public interface Listener {
 
     HandleErrorResult primaryFail(Method method, Object[] args) throws Throwable;
 
+    Object invoke(Method method, Object[] args, Protocol specificProtocol) throws Throwable ;
+
     Object invoke(Method method, Object[] args) throws Throwable;
 
-    HandleErrorResult handleFailover(Method method, Object[] args) throws Throwable;
+    HandleErrorResult handleFailover(Method method, Object[] args, Protocol protocol) throws Throwable;
 
     void foundActiveMaster(Protocol protocol) throws QueryException;
 

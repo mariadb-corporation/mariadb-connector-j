@@ -50,6 +50,7 @@ OF SUCH DAMAGE.
 */
 
 import org.mariadb.jdbc.HostAddress;
+import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
@@ -63,12 +64,13 @@ import org.mariadb.jdbc.internal.util.dao.PrepareResult;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.SocketException;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Calendar;
-import java.util.Deque;
 import java.util.List;
 
 public interface Protocol {
-    PrepareResult prepare(String sql) throws QueryException;
+    PrepareResult prepare(String sql, boolean forceNew) throws QueryException;
 
     boolean getAutocommit();
 
@@ -181,15 +183,15 @@ public interface Protocol {
 
     void setHostFailedWithoutProxy();
 
-    AbstractQueryResult executePreparedQuery(String sql, ParameterHolder[] parameters, PrepareResult prepareResult, MariaDbType[] parameterTypeHeader,
+    AbstractQueryResult executePreparedQuery(PrepareResult prepareResult, String sql, ParameterHolder[] parameters, MariaDbType[] parameterTypeHeader,
                                              boolean isStreaming) throws QueryException;
 
-    void releasePrepareStatement(String sql, PrepareResult prepareResult) throws QueryException;
+    AbstractQueryResult executePreparedQueryAfterFailover(PrepareResult prepareResult, String sql, ParameterHolder[] parameters,
+                                                          MariaDbType[] parameterTypeHeader, boolean isStreaming) throws QueryException; //used
+
+    void releasePrepareStatement(PrepareResult prepareResult, String sql) throws QueryException;
 
     void forceReleasePrepareStatement(int statementId) throws QueryException;
-
-    AbstractQueryResult executePreparedQueryAfterFailover(String sql, ParameterHolder[] parameters, PrepareResult oldPrepareResult,
-                                                          MariaDbType[] parameterTypeHeader, boolean isStreaming) throws QueryException; //used
 
     PrepareStatementCache prepareStatementCache();
 
@@ -198,4 +200,9 @@ public interface Protocol {
 
     Calendar getCalendar();
 
+    void prolog(boolean isStreaming, int maxRows, boolean hasProxy, MariaDbConnection connection, Statement statement)
+            throws SQLException;
+
+    void prologProxy(PrepareResult prepareResult, boolean isStreaming, int maxRows, boolean hasProxy, MariaDbConnection connection,
+                     Statement statement) throws SQLException;
 }

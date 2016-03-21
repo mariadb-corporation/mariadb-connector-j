@@ -82,9 +82,6 @@ public class CachedSelectResult extends SelectQueryResult {
      * @param other other AbstractQueryResult.
      */
     public void addResult(AbstractQueryResult other) {
-        if (other.prepareResult != null) {
-            prepareResult = other.prepareResult;
-        }
         isClosed = other.isClosed();
     }
 

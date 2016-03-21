@@ -51,6 +51,7 @@ package org.mariadb.jdbc;
 
 import org.mariadb.jdbc.internal.queryresults.UpdateResult;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
+import org.mariadb.jdbc.internal.util.dao.PrepareResult;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.queryresults.AbstractQueryResult;
 import org.mariadb.jdbc.internal.queryresults.ResultSetType;
@@ -92,10 +93,10 @@ public class MariaDbStatement implements Statement {
     Deque<Object> cachedResultSets;
     //are warnings cleared?
     private boolean warningsCleared;
-    private int queryTimeout;
+    protected int queryTimeout;
     private int fetchSize;
-    private boolean isStreaming = false;
-    private int maxRows;
+    protected boolean isStreaming = false;
+    protected int maxRows;
     protected final ReentrantLock lock;
 
     /**
@@ -139,7 +140,7 @@ public class MariaDbStatement implements Statement {
     }
 
     // Part of query prolog - setup timeout timer
-    private void setTimerTask() {
+    protected void setTimerTask() {
         assert (timerTask == null);
         timerTask = new TimerTask() {
             @Override
@@ -154,34 +155,12 @@ public class MariaDbStatement implements Statement {
         getTimer().schedule(timerTask, queryTimeout * 1000);
     }
 
-    void executeQueryProlog() throws SQLException {
+    protected void executeQueryProlog() throws SQLException {
         if (closed) {
             throw new SQLException("execute() is called on closed statement");
         }
-        if (protocol.isExplicitClosed()) {
-            throw new SQLException("execute() is called on closed connection");
-        }
-        //old failover handling
-        if (protocol.getProxy() == null) {
-            checkReconnectWithoutProxy();
-        }
-
-        protocol.closeIfActiveResult();
-        if (isStreaming && protocol.hasMoreResults()) {
-            // Skip remaining result sets. CallableStatement might return many of them  -
-            // not only the "select" result sets, but also the "update" results
-            while (getInternalMoreResults(true)) {
-            }
-        }
-
+        protocol.prolog(isStreaming, maxRows, protocol.getProxy() != null, connection, this);
         cachedResultSets.clear();
-        connection.reenableWarnings();
-
-        try {
-            protocol.setMaxRows(maxRows);
-        } catch (QueryException qe) {
-            ExceptionMapper.throwException(qe, connection, this);
-        }
         if (queryTimeout != 0) {
             setTimerTask();
         }
@@ -1280,17 +1259,6 @@ public class MariaDbStatement implements Statement {
     public boolean isCloseOnCompletion() throws SQLException {
         // TODO Auto-generated method stub
         return false;
-    }
-
-    // Part of query prolog - check if connection is broken and reconnect
-    private void checkReconnectWithoutProxy() throws SQLException {
-        if (protocol.shouldReconnectWithoutProxy()) {
-            try {
-                protocol.connectWithoutProxy();
-            } catch (QueryException qe) {
-                ExceptionMapper.throwException(qe, connection, this);
-            }
-        }
     }
 
     /**

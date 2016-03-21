@@ -50,13 +50,15 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.util.dao;
 
 import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
+import org.mariadb.jdbc.internal.protocol.Protocol;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class PrepareResult {
-    private final int statementId;
+    private int statementId;
     private ColumnInformation[] columns;
     private ColumnInformation[] parameters;
+    private Protocol unProxiedProtocol;
 
     //share indicator
     private volatile int shareCounter = 1;
@@ -68,11 +70,24 @@ public class PrepareResult {
      * @param statementId server statement Id.
      * @param columns columns information
      * @param parameters parameters information
+     * @param unProxiedProtocol indicate the protocol on which the prepare has been done
      */
-    public PrepareResult(int statementId, ColumnInformation[] columns, ColumnInformation[] parameters) {
+    public PrepareResult(int statementId, ColumnInformation[] columns, ColumnInformation[] parameters, Protocol unProxiedProtocol) {
         this.statementId = statementId;
         this.columns = columns;
         this.parameters = parameters;
+        this.unProxiedProtocol = unProxiedProtocol;
+    }
+
+    /**
+     * Update information after a failover.
+     * @param statementId new statement Id
+     * @param unProxiedProtocol the protocol on which the prepare has been done
+     */
+    public void failover(int statementId, Protocol unProxiedProtocol) {
+        this.statementId = statementId;
+        this.unProxiedProtocol = unProxiedProtocol;
+
     }
 
     public void setAddToCache() {
@@ -131,5 +146,9 @@ public class PrepareResult {
 
     public ColumnInformation[] getParameters() {
         return parameters;
+    }
+
+    public Protocol getUnProxiedProtocol() {
+        return unProxiedProtocol;
     }
 }

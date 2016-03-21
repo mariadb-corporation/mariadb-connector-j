@@ -3,10 +3,10 @@ package org.mariadb.jdbc.failover;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Test;
+import org.mariadb.jdbc.MariaDbServerPreparedStatement;
+import org.mariadb.jdbc.internal.util.dao.PrepareResult;
 
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -15,6 +15,47 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public abstract class BaseReplication extends BaseMonoServer {
+    @Test
+    public void failoverSlaveToMasterPrepareStatement() throws Throwable {
+        Connection connection = null;
+        try {
+            connection = getNewConnection("&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000", true);
+            Statement stmt = connection.createStatement();
+            stmt.execute("drop table  if exists replicationFailoverBinary" + jobId);
+            stmt.execute("create table replicationFailoverBinary" + jobId + " (id int not null primary key auto_increment, test VARCHAR(10))");
+            stmt.execute("insert into replicationFailoverBinary" + jobId + "(test) values ('Harriba !')");
+            int masterServerId = getServerId(connection);
+            connection.setReadOnly(true);
+            //wait for table replication on slave
+            Thread.sleep(200);
+
+            //create another prepareStatement, to permit to verify that prepare id has changed
+            connection.prepareStatement("SELECT ?");
+
+            //prepareStatement on slave connection
+            PreparedStatement preparedStatement = connection.prepareStatement("SELECT test from replicationFailoverBinary" + jobId + " where id = ?");
+            final int currentPrepareId = getPrepareResult((MariaDbServerPreparedStatement) preparedStatement).getStatementId();
+            int slaveServerId = getServerId(connection);
+            Assert.assertFalse(masterServerId == slaveServerId);
+            stopProxy(slaveServerId);
+
+            //test failover
+            preparedStatement.setInt(1, 1);
+            ResultSet rs = preparedStatement.executeQuery();
+            rs.next();
+            Assert.assertEquals("Harriba !", rs.getString(1));
+            Assert.assertNotEquals(currentPrepareId, getPrepareResult((MariaDbServerPreparedStatement) preparedStatement).getStatementId());
+
+            int currentServerId = getServerId(connection);
+
+            Assert.assertTrue(masterServerId == currentServerId);
+            Assert.assertFalse(connection.isReadOnly());
+        } finally {
+            if (connection != null) {
+                connection.close();
+            }
+        }
+    }
 
     @Test()
     public void failoverSlaveAndMasterRewrite() throws Throwable {
@@ -188,7 +229,7 @@ public abstract class BaseReplication extends BaseMonoServer {
                 //normal exception
                 restartProxy(masterServerId);
                 st = connection.createStatement();
-                st.execute("drop table  if exists writeToSlave" + jobId);
+                st.execute("drop table if exists writeToSlave" + jobId);
             }
         } finally {
             if (connection != null) {
