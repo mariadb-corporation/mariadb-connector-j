@@ -843,6 +843,8 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
                 case Types.NUMERIC:
                     if (obj instanceof BigDecimal) {
                         setBigDecimal(parameterIndex, (BigDecimal) obj);
+                    } else if (obj instanceof Double || obj instanceof Float) {
+                        setDouble(parameterIndex, bd.doubleValue());
                     } else {
                         setLong(parameterIndex, bd.longValue());
                     }
