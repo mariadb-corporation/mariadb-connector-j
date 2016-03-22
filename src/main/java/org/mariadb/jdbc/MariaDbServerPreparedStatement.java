@@ -255,6 +255,7 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
         return ret;
     }
 
+    // must have "lock" locked before invoking
     private boolean executeInternal(ParameterHolder[] parameters, MariaDbType[] parameterTypeHeader) throws SQLException {
         executing = true;
         QueryException exception = null;
@@ -273,6 +274,7 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
         }
     }
 
+    // must have "lock" locked before invoking
     private void executeQueryProlog(PrepareResult prepareResult) throws SQLException {
         if (closed) {
             throw new SQLException("execute() is called on closed statement");

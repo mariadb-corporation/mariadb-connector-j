@@ -147,6 +147,7 @@ public class MariaDbStatement implements Statement {
         }, queryTimeout, TimeUnit.SECONDS);
     }
 
+    // must have "lock" locked before invoking
     protected void executeQueryProlog() throws SQLException {
         if (closed) {
             throw new SQLException("execute() is called on closed statement");
@@ -158,6 +159,7 @@ public class MariaDbStatement implements Statement {
         }
     }
 
+    // must have "lock" locked before invoking
     protected void cacheMoreResults() throws SQLException {
         if (isStreaming()) {
             return;
@@ -856,12 +858,18 @@ public class MariaDbStatement implements Statement {
     public boolean getInternalMoreResults() throws SQLException {
         if (!isStreaming()) {
             /* return pre-cached result set, if available */
-            if (cachedResultSets.isEmpty()) {
-                queryResult = null;
-                return false;
+            Object obj;
+            lock.lock();
+            try {
+                if (cachedResultSets.isEmpty()) {
+                    queryResult = null;
+                    return false;
+                }
+                obj = cachedResultSets.remove();
+            } finally {
+                lock.unlock();
             }
 
-            Object obj = cachedResultSets.remove();
             if (obj instanceof QueryException) {
                 ExceptionMapper.throwException((QueryException) obj, connection, this);
             }
@@ -1092,8 +1100,8 @@ public class MariaDbStatement implements Statement {
         int[] ret = new int[batchQueries.size()];
         int batchQueriesCount = 0;
         MariaDbResultSet rs = null;
-        cachedResultSets.clear();
         lock.lock();
+        cachedResultSets.clear();
         try {
             int size = batchQueries.size();
             if (isRewriteable && (protocol.getOptions().allowMultiQueries || protocol.getOptions().rewriteBatchedStatements)) {
@@ -1138,6 +1146,7 @@ public class MariaDbStatement implements Statement {
      * order in which send were added to the batch.
      * @throws SQLException if the connection has interruption
      */
+    // must have "lock" locked before invoking
     protected int[] getUpdateRewrittenCounts() throws SQLException {
 
         int[] result = new int[cachedResultSets.size() + 1];
@@ -1186,7 +1195,7 @@ public class MariaDbStatement implements Statement {
         return result;
     }
 
-
+    // must have "lock" locked before invoking
     protected int[] getUpdateCountsForReWrittenBatch(int size) throws SQLException {
         int totalUpdateCount = 0;
         int updateCount;

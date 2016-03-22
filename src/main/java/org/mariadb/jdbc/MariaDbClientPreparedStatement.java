@@ -234,8 +234,8 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
         int[] ret = new int[size];
         int batchQueriesCount = 0;
         MariaDbResultSet rs = null;
-        cachedResultSets.clear();
         lock.lock();
+        cachedResultSets.clear();
         try {
             if (isRewriteable && (protocol.getOptions().allowMultiQueries || protocol.getOptions().rewriteBatchedStatements)) {
                 batchResultSet = null;
