@@ -49,34 +49,15 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.util.scheduler;
 
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class DynamicSizedSchedulerImpl extends ScheduledThreadPoolExecutor implements DynamicSizedSchedulerInterface {
-
-    private static final AtomicInteger POOL_ID = new AtomicInteger();
-
     /**
      * Initialize a scheduler with dynamic pool size.
      * @param corePoolSize initial Core pool size
      */
     public DynamicSizedSchedulerImpl(int corePoolSize) {
-        super(corePoolSize, new ThreadFactory() {
-            private final int thisPoolId = POOL_ID.incrementAndGet();
-            // start from DefaultThread factory to get security groups and what not
-            private final ThreadFactory parentFactory = Executors.defaultThreadFactory();
-            private final AtomicInteger threadId = new AtomicInteger();
-
-            @Override
-            public Thread newThread(Runnable runnable) {
-                Thread result = parentFactory.newThread(runnable);
-                result.setName("mariaDb-reconnection-" + thisPoolId + "-" + threadId.incrementAndGet());
-
-                return result;
-            }
-        });
+        super(corePoolSize, new MariaDbThreadFactory());
     }
 
     @Override
