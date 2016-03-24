@@ -67,15 +67,13 @@ public class SendOldPasswordAuthPacket implements InterfaceSendPacket {
     /**
      * Send password stream.
      * @param os database socket
-     * @return stream sequence.
      * @throws IOException if a connection error occur
      */
-    public int send(OutputStream os) throws IOException {
+    public void send(OutputStream os) throws IOException {
         PacketOutputStream pos = (PacketOutputStream) os;
         pos.startPacket(packSeq);
         pos.writeByteArray(oldPassword).writeByte((byte) 0x00);
         pos.finishPacket();
-        return packSeq;
     }
 
 

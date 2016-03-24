@@ -47,60 +47,184 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc;
+package org.mariadb.jdbc.internal.queryresults.resultset;
 
-import org.mariadb.jdbc.internal.queryresults.*;
-import org.mariadb.jdbc.internal.util.ExceptionMapper;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
-import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
+import org.mariadb.jdbc.MariaDbBlob;
+import org.mariadb.jdbc.MariaDbClob;
+import org.mariadb.jdbc.MariaDbConnection;
+import org.mariadb.jdbc.MariaDbResultSetMetaData;
 import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
+import org.mariadb.jdbc.internal.packet.read.Packet;
+import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
+import org.mariadb.jdbc.internal.packet.result.*;
 import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.queryresults.ColumnNameMap;
+import org.mariadb.jdbc.internal.queryresults.resultset.value.GeneratedKeyValueObject;
+import org.mariadb.jdbc.internal.queryresults.resultset.value.MariaDbValueObject;
+import org.mariadb.jdbc.internal.queryresults.resultset.value.ValueObject;
+import org.mariadb.jdbc.internal.util.ExceptionCode;
+import org.mariadb.jdbc.internal.util.ExceptionMapper;
+import org.mariadb.jdbc.internal.util.Options;
+import org.mariadb.jdbc.internal.util.buffer.Buffer;
+import org.mariadb.jdbc.internal.util.constant.ServerStatus;
+import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import java.io.*;
 import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.*;
-import java.sql.Date;
 import java.text.ParseException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.locks.ReentrantLock;
 
+public class MariaSelectResultSet implements ResultSet {
+    public static final MariaSelectResultSet EMPTY = createEmptyResultSet();
 
-public class MariaDbResultSet implements ResultSet {
-
-    public static final MariaDbResultSet EMPTY = createEmptyResultSet();
-    ColumnNameMap columnNameMap;
-    Calendar cal;
-    private AbstractQueryResult queryResult;
-    private MariaDbStatement statement;
     private Protocol protocol;
-    private boolean lastGetWasNull;
-    private boolean warningsCleared;
+    private ReadPacketFetcher packetFetcher;
+    private Statement statement;
+    private RowPacket rowPacket;
+    private ColumnInformation[] columnsInformation;
 
-    protected MariaDbResultSet() {
+    private boolean isEof;
+    private boolean binaryProtocol;
+    private int dataFetchTime;
+    private boolean streaming;
+    private int columnInformationLength;
+    private List<ValueObject[]> resultSet;
+    private int fetchSize;
+    private int resultSetScrollType;
+//    private MariaSelectResultSet moreResult;
+    private int rowPointer;
+    private ColumnNameMap columnNameMap;
+    private Calendar cal;
+    private boolean lastGetWasNull;
+    private int dataTypeMappingFlags;
+    private Options options;
+    private boolean returnTableAlias;
+    private boolean isClosed;
+
+    /**
+     * Create Streaming resultset.
+     *
+     * @param columnInformation column information
+     * @param statement statement
+     * @param protocol current protocol
+     * @param fetcher stream fetcher
+     * @param binaryProtocol is binary protocol ?
+     * @param resultSetScrollType  one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
+     * <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param fetchSize current fetch size
+     */
+    public MariaSelectResultSet(ColumnInformation[] columnInformation, Statement statement, Protocol protocol,
+                                ReadPacketFetcher fetcher, boolean binaryProtocol,
+                                int resultSetScrollType, int fetchSize) {
+
+        this.statement = statement;
+        this.isClosed = false;
+        this.protocol = protocol;
+        if (protocol != null) {
+            this.options = protocol.getOptions();
+            this.cal = protocol.getCalendar();
+            this.dataTypeMappingFlags = protocol.getDataTypeMappingFlags();
+            this.returnTableAlias = this.options.useOldAliasMetadataBehavior;
+        } else {
+            this.options = null;
+            this.cal = null;
+            this.dataTypeMappingFlags = 3;
+            this.returnTableAlias = false;
+        }
+        this.columnsInformation = columnInformation;
+        this.columnNameMap = new ColumnNameMap(columnsInformation);
+        this.statement = statement;
+
+
+        this.columnInformationLength = columnInformation.length;
+        this.packetFetcher = fetcher;
+        this.isEof = false;
+        this.binaryProtocol = binaryProtocol;
+        this.fetchSize = fetchSize;
+        this.resultSetScrollType = resultSetScrollType;
+        this.resultSet = new ArrayList<>();
+        this.dataFetchTime = 0;
+        this.rowPointer = -1;
     }
 
     /**
-     * Constructor.
+     * Create filled resultset.
      *
-     * @param dqr queryResult
-     * @param statement parent statement
-     * @param protocol protocol
+     * @param columnInformation column information
+     * @param resultSet resultset
+     * @param protocol current protocol
+     * @param resultSetScrollType  one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
+     * <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
      */
-    public MariaDbResultSet(AbstractQueryResult dqr, MariaDbStatement statement, Protocol protocol) {
-        this.queryResult = dqr;
-        this.statement = statement;
+    public MariaSelectResultSet(ColumnInformation[] columnInformation, List<ValueObject[]> resultSet, Protocol protocol,
+                                int resultSetScrollType) {
+        this.statement = null;
+        this.isClosed = false;
         this.protocol = protocol;
-        this.cal = (protocol != null) ? protocol.getCalendar() : null;
-        this.columnNameMap = new ColumnNameMap(dqr.getColumnInformation());
+        if (protocol != null) {
+            this.options = protocol.getOptions();
+            this.cal = protocol.getCalendar();
+            this.dataTypeMappingFlags = protocol.getDataTypeMappingFlags();
+            this.returnTableAlias = this.options.useOldAliasMetadataBehavior;
+        } else {
+            this.options = null;
+            this.cal = null;
+            this.dataTypeMappingFlags = 3;
+            this.returnTableAlias = false;
+        }
+        this.columnsInformation = columnInformation;
+        this.columnNameMap = new ColumnNameMap(columnsInformation);
+        this.columnInformationLength = columnInformation.length;
+        this.isEof = false;
+        this.binaryProtocol = false;
+        this.fetchSize = 1;
+        this.resultSetScrollType = resultSetScrollType;
+        this.resultSet = resultSet;
+        this.dataFetchTime = 0;
+        this.rowPointer = -1;
     }
 
-    private static MariaDbResultSet createEmptyResultSet() {
-        ColumnInformation[] colList = new ColumnInformation[0];
-        List<ValueObject[]> voList = Collections.emptyList();
-        AbstractQueryResult qr = new CachedSelectResult(colList, voList, (short) 0);
-        return new MariaDbResultSet(qr, null, null);
+    /**
+     * Create a result set from given data. Useful for creating "fake" resultsets for DatabaseMetaData, (one example is
+     * MariaDbDatabaseMetaData.getTypeInfo())
+     *
+     * @param data - each element of this array represents a complete row in the ResultSet. Each value is given in its string representation, as in
+     * MySQL text protocol, except boolean (BIT(1)) values that are represented as "1" or "0" strings
+     * @param protocol protocol
+     * @param findColumnReturnsOne - special parameter, used only in generated key result sets
+     * @return resultset
+     */
+    public static ResultSet createGeneratedData(long[] data, Protocol protocol, boolean findColumnReturnsOne) {
+        ColumnInformation[] columns = new ColumnInformation[1];
+        columns[0] = ColumnInformation.create("insert_id", MariaDbType.BIGINT);
+
+        List<ValueObject[]> rows = new ArrayList<>();
+        for (Long rowData : data) {
+            if (rowData != 0) {
+                ValueObject[] row = new ValueObject[1];
+                row[0] = new GeneratedKeyValueObject(rowData);
+                rows.add(row);
+            }
+        }
+        if (findColumnReturnsOne) {
+            return new MariaSelectResultSet(columns, rows, protocol, TYPE_SCROLL_SENSITIVE) {
+                @Override
+                public int findColumn(String name) {
+                    return 1;
+                }
+            };
+        }
+        return new MariaSelectResultSet(columns, rows, protocol, TYPE_SCROLL_SENSITIVE);
     }
+
 
     /**
      * Create a result set from given data. Useful for creating "fake" resultsets for DatabaseMetaData, (one example is
@@ -111,10 +235,10 @@ public class MariaDbResultSet implements ResultSet {
      * @param data - each element of this array represents a complete row in the ResultSet. Each value is given in its string representation, as in
      * MySQL text protocol, except boolean (BIT(1)) values that are represented as "1" or "0" strings
      * @param protocol protocol
-     * @param findColumnReturnsOne - special parameter, used only in generated key result sets
+     * @return resultset
      */
-    static ResultSet createResultSet(String[] columnNames, MariaDbType[] columnTypes, String[][] data,
-                                     Protocol protocol, boolean findColumnReturnsOne, boolean binaryData) {
+    public static ResultSet createResultSet(String[] columnNames, MariaDbType[] columnTypes, String[][] data,
+                                            Protocol protocol) {
         int columnNameLength = columnNames.length;
         ColumnInformation[] columns = new ColumnInformation[columnNameLength];
 
@@ -149,196 +273,455 @@ public class MariaDbResultSet implements ResultSet {
             }
             rows.add(row);
         }
-        if (findColumnReturnsOne) {
-            return new MariaDbResultSet(new CachedSelectResult(columns, rows, (short) 0),
-                    null, protocol) {
-                public int findColumn(String name) {
-                    return 1;
-                }
-            };
-        }
-        return new MariaDbResultSet(new CachedSelectResult(columns, rows, (short) 0),
-                null, protocol);
+
+        return new MariaSelectResultSet(columns, rows, protocol, TYPE_SCROLL_SENSITIVE);
+    }
+
+    private static MariaSelectResultSet createEmptyResultSet() {
+        return new MariaSelectResultSet(new ColumnInformation[0], new ArrayList<ValueObject[]>(), null,
+                TYPE_SCROLL_SENSITIVE);
     }
 
     /**
-     * Create a result set from given data. Useful for creating "fake" resultsets for DatabaseMetaData, (one example is
-     * MariaDbDatabaseMetaData.getTypeInfo())
-     *
-     * @param columnNames - string array of column names
-     * @param columnTypes - column types
-     * @param data - each element of this array represents a complete row in the ResultSet. Each value is given in its string representation, as in
-     * MySQL text protocol, except boolean (BIT(1)) values that are represented as "1" or "0" strings
-     * @param protocol protocol
+     * Initialize and fetch first value.
+     * @throws IOException exception
+     * @throws QueryException exception
      */
-    static ResultSet createResultSet(String[] columnNames, MariaDbType[] columnTypes, String[][] data,
-                                     Protocol protocol) {
-        return createResultSet(columnNames, columnTypes, data, protocol, false, false);
+    public void initFetch() throws IOException, QueryException {
+        if (binaryProtocol) {
+            rowPacket = new BinaryRowPacket(columnsInformation, protocol.getOptions(), columnInformationLength);
+        } else {
+            rowPacket = new TextRowPacket(columnsInformation, protocol.getOptions(), columnInformationLength);
+        }
+        if (fetchSize == 0 || resultSetScrollType != TYPE_FORWARD_ONLY) {
+            fetchAllResults();
+            streaming = false;
+        } else {
+            protocol.setActiveStreamingResult(this);
+            nextStreamingValue();
+            streaming = true;
+        }
+    }
+
+    public boolean isBinaryProtocol() {
+        return binaryProtocol;
+    }
+
+    private void fetchAllResults() throws IOException, QueryException {
+        final List<ValueObject[]> valueObjects = new ArrayList<>();
+        while (readNextValue(valueObjects)) {
+            //fetch all results
+        }
+        dataFetchTime++;
+        resultSet = valueObjects;
     }
 
     /**
-     * Create a result set from given data. Useful for creating "fake" resultsets for DatabaseMetaData, (one example is
-     * MariaDbDatabaseMetaData.getTypeInfo())
+     * When protocol has a current Streaming result (this) fetch all to permit another query is executing.
      *
-     * @param columns a ColumnInformation array that contains the name and type of each column
-     * @param data - each element of this array represents a complete row in the ResultSet. Each value is given in its string representation, as in
-     * MySQL text protocol, except boolean (BIT(1)) values that are represented as "1" or "0" strings
-     * @param protocol protocol
-     * @param findColumnReturnsOne - special parameter, used only in generated key result sets
+     * @throws SQLException if any error occur
      */
-    static ResultSet createResultSet(ColumnInformation[] columns, String[][] data,
-                                     Protocol protocol, boolean findColumnReturnsOne) {
-        int columnLength = columns.length;
-
-        final byte[] boolTrue = {1};
-        final byte[] boolFalse = {0};
-        List<ValueObject[]> rows = new ArrayList<>();
-        for (String[] rowData : data) {
-            ValueObject[] row = new ValueObject[columnLength];
-
-            if (rowData.length != columnLength) {
-                throw new RuntimeException("Number of elements in the row != number of columns :" + rowData.length + " vs " + columnLength);
-            }
-            for (int i = 0; i < columnLength; i++) {
-                byte[] bytes;
-                if (rowData[i] == null) {
-                    bytes = null;
-                } else if (columns[i].getType() == MariaDbType.BIT) {
-                    bytes = rowData[i].equals("0") ? boolFalse : boolTrue;
-                } else {
-                    try {
-                        bytes = rowData[i].getBytes("UTF-8");
-                    } catch (UnsupportedEncodingException e) {
-                        //never append, UTF-8 is known
-                        bytes = new byte[0];
-                    }
-                }
-                row[i] = new MariaDbValueObject(bytes, columns[i], protocol.getOptions());
-            }
-            rows.add(row);
-        }
-        if (findColumnReturnsOne) {
-            return new MariaDbResultSet(new CachedSelectResult(columns, rows, (short) 0),
-                    null, protocol) {
-                public int findColumn(String name) {
-                    return 1;
-                }
-            };
-        }
-        return new MariaDbResultSet(new CachedSelectResult(columns, rows, (short) 0),
-                null, protocol);
-    }
-
-    /**
-     * Create a result set from given data. Useful for creating "fake" resultsets for DatabaseMetaData, (one example is
-     * MariaDbDatabaseMetaData.getTypeInfo())
-     *
-     * @param columns a ColumnInformation array that contains the name and type of each column
-     * @param data - each element of this array represents a complete row in the ResultSet. Each value is given in its string representation, as in
-     * MySQL text protocol, except boolean (BIT(1)) values that are represented as "1" or "0" strings
-     * @param protocol protocol
-     */
-    static ResultSet createResultSet(ColumnInformation[] columns, String[][] data, Protocol protocol) {
-        return createResultSet(columns, data, protocol, false);
-    }
-
-    static ResultSet createEmptyGeneratedKeysResultSet(MariaDbConnection connection) {
-        String[][] data = new String[0][];
-        return createResultSet(new String[]{"insert_id"},
-                new MariaDbType[]{MariaDbType.BIGINT},
-                data, connection.getProtocol(), true, false);
-    }
-
-    static ResultSet createGeneratedKeysResultSet(long lastInsertId, int updateCount, MariaDbConnection connection, boolean binaryData) {
-        if (updateCount <= 0) {
-            return null;
-        }
-        int autoIncrementIncrement = 1;
-        /* only interesting if many rows were updated */
-        if (updateCount > 1) {
-            autoIncrementIncrement = connection.getAutoIncrementIncrement();
-        }
-
-        String[][] data = new String[updateCount][];
-        for (int i = 0; i < updateCount; i++) {
-            long id = lastInsertId + i * autoIncrementIncrement;
-            data[i] = new String[]{"" + id};
-        }
-        return createResultSet(new String[]{"insert_id"},
-                new MariaDbType[]{MariaDbType.BIGINT},
-                data, connection.getProtocol(), true, binaryData);
-    }
-
-    static ResultSet createGeneratedKeysResultSet(long[] lastInsertIds, int[] updateCounts, MariaDbConnection connection, boolean binaryData) {
-        String[][] data = new String[updateCounts.length][];
-        boolean hasSeekAutoIncrement = false;
-        int autoIncrementIncrement = 1;
-
-        for (int incr = 0; incr < updateCounts.length; incr++) {
-            int updateCount = updateCounts[incr];
-            if (updateCount <= 0) {
-                data[incr] = new String[0];
-            } else {
-                if (updateCount == 1) {
-                    data[incr] = new String[]{"" + lastInsertIds[incr]};
-                } else {
-                    String[] insertIdsMultiple = new String[updateCount];
-
-                    if (!hasSeekAutoIncrement) {
-                        autoIncrementIncrement = connection.getAutoIncrementIncrement();
-                        hasSeekAutoIncrement = true;
-                    }
-
-                    for (int i = 0; i < updateCount; i++) {
-                        insertIdsMultiple[i] = "" + (lastInsertIds[incr] + i * autoIncrementIncrement);
-                    }
-
-                    data[incr] = insertIdsMultiple;
-                }
-            }
-        }
-
-        return createResultSet(new String[]{"insert_id"},
-                new MariaDbType[]{MariaDbType.BIGINT},
-                data, connection.getProtocol(), true, binaryData);
-    }
-
-    /**
-     * <p>Moves the cursor froward one row from its current position. A ResultSet cursor is initially positioned before the first row; the first call
-     * to the method next makes the first row the current row; the second call makes the second row the current row, and so on.</p>
-     * <p>When a call to the next method returns false, the cursor is positioned after the last row. Any invocation of a ResultSet method which
-     * requires a current row will result in a SQLException being thrown. If the result set type is TYPE_FORWARD_ONLY, it is vendor specified whether
-     * their JDBC driver implementation will return false or throw an SQLException on a subsequent call to next.</p>
-     * If an input stream is open for the current row, a call to the method next will implicitly close it. A ResultSet object's warning chain is
-     * cleared when a new row is read.
-     *
-     * @return true if the new current row is valid; false if there are no more rows
-     * @throws SQLException if a database access error occurs or this method is called on a closed result set
-     */
-    public boolean next() throws SQLException {
+    public void fetchAllStreaming() throws SQLException {
         try {
-            return queryResult.getResultSetType() == ResultSetType.SELECT
-                    && ((SelectQueryResult) queryResult).next();
-        } catch (IOException ioe) {
-            throw new SQLException(ioe);
-        } catch (QueryException qe) {
-            throw new SQLException(qe);
+            try {
+                Protocol protocolTmp = this.protocol;
+                while (readNextValue(resultSet)) {
+                    //fetch all results
+                }
+
+                //retrieve other results if needed
+                if (protocolTmp.hasMoreResults()) {
+                    if (this.statement != null) {
+                        this.statement.getMoreResults();
+                    }
+                }
+            } catch (IOException ioexception) {
+                throw new QueryException("Could not close resultset : " + ioexception.getMessage(), -1,
+                        ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(), ioexception);
+            }
+        } catch (QueryException queryException) {
+            ExceptionMapper.throwException(queryException, null, this.getStatement());
         }
+        dataFetchTime++;
+        streaming = false;
+    }
+
+
+
+    private void nextStreamingValue() throws IOException, QueryException {
+
+        final List<ValueObject[]> valueObjects = new ArrayList<>(fetchSize);
+        //fetch maximum fetchSize results
+        int fetchSizeTmp = fetchSize;
+        while (fetchSizeTmp > 0 && readNextValue(valueObjects)) {
+            fetchSizeTmp--;
+        }
+        dataFetchTime++;
+        resultSet = valueObjects;
     }
 
     /**
-     * <p>Releases this ResultSet object's database and JDBC resources immediately instead of waiting for this to happen when it is automatically
-     * closed.</p>
-     * <p>The closing of a ResultSet object does not close the Blob, Clob or NClob objects created by the ResultSet. Blob, Clob or NClob objects
-     * remain valid for at least the duration of the transaction in which they are creataed, unless their free method is invoked.</p>
-     * When a ResultSet is closed, any ResultSetMetaData instances that were created by calling the getMetaData method remain accessible.
-     *
-     * @throws SQLException if a database access error occurs
+     * Read next value.
+     * @param values values
+     * @return true if have a new value
+     * @throws IOException exception
+     * @throws QueryException exception
+     */
+    public boolean readNextValue(List<ValueObject[]> values) throws IOException, QueryException {
+        Buffer buffer = packetFetcher.getPacket();
+
+        //is error Packet
+        if (buffer.getByteAt(0) == Packet.ERROR) {
+            protocol.setActiveStreamingResult(null);
+            ErrorPacket errorPacket = new ErrorPacket(buffer);
+            throw new QueryException(errorPacket.getMessage(), errorPacket.getErrorNumber(), errorPacket.getSqlState());
+        }
+
+        //is EOF stream
+        if ((buffer.getByteAt(0) == Packet.EOF && buffer.limit < 9)) {
+            if (protocol.getActiveStreamingResult() == this) {
+                protocol.setActiveStreamingResult(null);
+            }
+            protocol.setHasWarnings(((buffer.buf[1] & 0xff) + ((buffer.buf[2] & 0xff) << 8)) > 0);
+            protocol.setMoreResults((((buffer.buf[3] & 0xff) + ((buffer.buf[4] & 0xff) << 8)) & ServerStatus.MORE_RESULTS_EXISTS) != 0);
+            protocol = null;
+            packetFetcher = null;
+            isEof = true;
+            return false;
+        }
+        values.add(rowPacket.getRow(packetFetcher, buffer));
+        return true;
+    }
+
+    /**
+     * Close resultset.
      */
     public void close() throws SQLException {
-        if (this.queryResult != null) {
-            this.queryResult.close();
+        isClosed = true;
+        if (protocol != null && protocol.getActiveStreamingResult() == this) {
+            ReentrantLock lock = protocol.getLock();
+            lock.lock();
+            try {
+                try {
+                    while (!isEof) {
+                        //fetch all results
+                        Buffer buffer = packetFetcher.getReusableBuffer();
+
+                        //is error Packet
+                        if (buffer.getByteAt(0) == Packet.ERROR) {
+                            protocol.setActiveStreamingResult(null);
+                            ErrorPacket errorPacket = new ErrorPacket(buffer);
+                            throw new QueryException(errorPacket.getMessage(), errorPacket.getErrorNumber(), errorPacket.getSqlState());
+                        }
+
+                        //is EOF stream
+                        if ((buffer.getByteAt(0) == Packet.EOF && buffer.limit < 9)) {
+                            final EndOfFilePacket endOfFilePacket = new EndOfFilePacket(buffer);
+                            if (protocol.getActiveStreamingResult() == this) {
+                                protocol.setActiveStreamingResult(null);
+                            }
+                            protocol.setHasWarnings(endOfFilePacket.getWarningCount() > 0);
+                            protocol.setMoreResults((endOfFilePacket.getStatusFlags() & ServerStatus.MORE_RESULTS_EXISTS) != 0);
+                            protocol = null;
+                            packetFetcher = null;
+                            isEof = true;
+                        }
+                    }
+                } catch (IOException ioexception) {
+                    throw new QueryException("Could not close resultset : " + ioexception.getMessage(), -1,
+                            ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(), ioexception);
+                }
+            } catch (QueryException queryException) {
+                ExceptionMapper.throwException(queryException, null, this.getStatement());
+            } finally {
+                lock.unlock();
+            }
         }
+    }
+
+    @Override
+    public boolean next() throws SQLException {
+        checkClose();
+        return internalNext();
+    }
+
+    private boolean internalNext() throws SQLException {
+        if (rowPointer < resultSet.size() - 1) {
+            rowPointer++;
+            return true;
+        } else {
+            if (streaming) {
+                if (isEof) {
+                    return isEof;
+                } else {
+                    try {
+                        nextStreamingValue();
+                    } catch (IOException ioe) {
+                        throw new SQLException(ioe);
+                    } catch (QueryException queryException) {
+                        throw new SQLException(queryException);
+                    }
+                    rowPointer = 0;
+                    return resultSet.size() > 0;
+                }
+            } else {
+                rowPointer = resultSet.size();
+                return false;
+            }
+        }
+    }
+
+    protected ValueObject getValueObject(int position) throws SQLException {
+        if (this.rowPointer < 0) {
+            throwError("Current position is before the first row", ExceptionCode.INVALID_PARAMETER_VALUE);
+        }
+        if (this.rowPointer >= resultSet.size()) {
+            throwError("Current position is after the last row", ExceptionCode.INVALID_PARAMETER_VALUE);
+        }
+        ValueObject[] row = resultSet.get(this.rowPointer);
+        if (position <= 0 || position > row.length) {
+            throwError("No such column: " + position, ExceptionCode.INVALID_PARAMETER_VALUE);
+        }
+        ValueObject vo = row[position - 1];
+        this.lastGetWasNull = vo.isNull();
+        return vo;
+    }
+
+    private void throwError(String message, ExceptionCode exceptionCode) throws SQLException {
+        if (statement != null) {
+            ExceptionMapper.throwException(new QueryException("Current position is before the first row", ExceptionCode.INVALID_PARAMETER_VALUE),
+                    (MariaDbConnection) this.statement.getConnection(), this.statement);
+        } else {
+            throw new SQLException(message, exceptionCode.sqlState);
+        }
+    }
+
+
+    @Override
+    public SQLWarning getWarnings() throws SQLException {
+        if (this.statement == null) {
+            return null;
+        }
+        return this.statement.getWarnings();
+    }
+
+    @Override
+    public void clearWarnings() throws SQLException {
+        if (this.statement != null) {
+            this.statement.clearWarnings();
+        }
+    }
+
+    @Override
+    public boolean isBeforeFirst() throws SQLException {
+        checkClose();
+        return rowPointer == -1;
+    }
+
+    @Override
+    public boolean isAfterLast() throws SQLException {
+        checkClose();
+        if (dataFetchTime > 0) {
+            return rowPointer >= resultSet.size() && resultSet.size() > 0;
+        }
+        return false;
+    }
+
+    @Override
+    public boolean isFirst() throws SQLException {
+        checkClose();
+        return dataFetchTime == 1 && rowPointer == 0 && resultSet.size() > 0;
+    }
+
+    @Override
+    public boolean isLast() throws SQLException {
+        checkClose();
+        if (dataFetchTime > 0 && isEof) {
+            return rowPointer == resultSet.size() - 1 && resultSet.size() > 0;
+        } else if (streaming) {
+            try {
+                nextStreamingValue();
+            } catch (IOException ioe) {
+                throw new SQLException(ioe);
+            } catch (QueryException queryException) {
+                throw new SQLException(queryException);
+            }
+            return rowPointer == resultSet.size() - 1 && resultSet.size() > 0;
+        }
+        return false;
+    }
+
+    @Override
+    public void beforeFirst() throws SQLException {
+        checkClose();
+        if (streaming && resultSetScrollType == TYPE_FORWARD_ONLY) {
+            throw new SQLException("Invalid operation for result set type TYPE_FORWARD_ONLY");
+        } else {
+            rowPointer = -1;
+        }
+    }
+
+    @Override
+    public void afterLast() throws SQLException {
+        checkClose();
+        if (streaming && resultSetScrollType == TYPE_FORWARD_ONLY) {
+            throw new SQLException("Invalid operation for result set type TYPE_FORWARD_ONLY");
+        } else {
+            rowPointer = resultSet.size();
+        }
+    }
+
+    @Override
+    public boolean first() throws SQLException {
+        checkClose();
+        if (streaming && resultSetScrollType == TYPE_FORWARD_ONLY) {
+            throw new SQLException("Invalid operation for result set type TYPE_FORWARD_ONLY");
+        } else {
+            rowPointer = 0;
+            return true;
+        }
+    }
+
+    @Override
+    public boolean last() throws SQLException {
+        checkClose();
+        if (streaming && resultSetScrollType == TYPE_FORWARD_ONLY) {
+            throw new SQLException("Invalid operation for result set type TYPE_FORWARD_ONLY");
+        } else {
+            rowPointer = resultSet.size() - 1;
+            return true;
+        }
+    }
+
+    @Override
+    public int getRow() throws SQLException {
+        checkClose();
+        if (streaming) {
+            return 0;
+        }
+        return rowPointer + 1;
+    }
+
+    @Override
+    public boolean absolute(int row) throws SQLException {
+        checkClose();
+        if (streaming && resultSetScrollType == TYPE_FORWARD_ONLY) {
+            throw new SQLException("Invalid operation for result set type TYPE_FORWARD_ONLY");
+        } else {
+            if (row >= 0 && row <= resultSet.size()) {
+                rowPointer = row - 1;
+                return true;
+            } else if (row < 0) {
+                rowPointer = resultSet.size() + row;
+            }
+            return true;
+        }
+    }
+
+    @Override
+    public boolean relative(int rows) throws SQLException {
+        checkClose();
+        if (streaming && resultSetScrollType == TYPE_FORWARD_ONLY) {
+            throw new SQLException("Invalid operation for result set type TYPE_FORWARD_ONLY");
+        } else {
+            int newPos = rowPointer + rows;
+            if (newPos > -1 && newPos <= resultSet.size()) {
+                rowPointer = newPos;
+                return true;
+            }
+            return false;
+        }
+    }
+
+    @Override
+    public boolean previous() throws SQLException {
+        checkClose();
+        if (streaming && resultSetScrollType == TYPE_FORWARD_ONLY) {
+            throw new SQLException("Invalid operation for result set type TYPE_FORWARD_ONLY");
+        } else {
+            if (rowPointer > -1) {
+                rowPointer--;
+                if (rowPointer == -1) {
+                    return false;
+                } else {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
+    @Override
+    public int getFetchDirection() throws SQLException {
+        return FETCH_UNKNOWN;
+    }
+
+    @Override
+    public void setFetchDirection(int direction) throws SQLException {
+        if (direction == FETCH_REVERSE) {
+            throw new SQLException("Invalid operation. Allowed direction are ResultSet.FETCH_FORWARD and ResultSet.FETCH_UNKNOWN");
+        }
+    }
+
+    @Override
+    public int getFetchSize() throws SQLException {
+        return this.fetchSize;
+    }
+
+    @Override
+    public void setFetchSize(int fetchSize) throws SQLException {
+        if (streaming && this.fetchSize == 0) {
+            try {
+                while (readNextValue(resultSet)) {
+                    //fetch all results
+                }
+            } catch (IOException ioException) {
+                throw new SQLException(ioException);
+            } catch (QueryException queryException) {
+                throw new SQLException(queryException);
+            }
+
+            dataFetchTime++;
+            streaming = false;
+
+        }
+        this.fetchSize = fetchSize;
+    }
+
+    @Override
+    public int getType() throws SQLException {
+        return resultSetScrollType;
+    }
+
+    @Override
+    public int getConcurrency() throws SQLException {
+        return CONCUR_READ_ONLY;
+    }
+
+//    public MariaSelectResultSet getMoreResult() {
+//        return moreResult;
+//    }
+//
+//    public void setMoreResult(MariaSelectResultSet moreResult) {
+//        this.moreResult = moreResult;
+//    }
+
+    private void checkClose() throws SQLException {
+        if (isClosed()) {
+            throw new SQLException("Operation not permit on a closed resultset", "HY000");
+        }
+    }
+
+    public boolean isClosed() {
+        return isClosed;
+    }
+
+    public Statement getStatement() {
+        return statement;
+    }
+
+    public void setStatement(Statement statement) {
+        this.statement = statement;
     }
 
     /**
@@ -456,20 +839,6 @@ public class MariaDbResultSet implements ResultSet {
 
     public int getInt(String columnLabel) throws SQLException {
         return getInt(findColumn(columnLabel));
-    }
-
-    private ValueObject getValueObject(int columnIndex) throws SQLException {
-        if (queryResult.getResultSetType() == ResultSetType.SELECT) {
-            ValueObject vo;
-            try {
-                vo = ((SelectQueryResult) queryResult).getValueObject(columnIndex - 1);
-            } catch (NoSuchColumnException e) {
-                throw ExceptionMapper.getSqlException(e.getMessage(), e);
-            }
-            this.lastGetWasNull = vo.isNull();
-            return vo;
-        }
-        throw ExceptionMapper.getSqlException("Cannot get data from update-result sets");
     }
 
     /**
@@ -891,35 +1260,6 @@ public class MariaDbResultSet implements ResultSet {
         return getValueObject(columnIndex).getInputStream();
     }
 
-
-    /**
-     * <p>Retrieves the first warning reported by calls on this <code>ResultSet</code> object. Subsequent warnings on this <code>ResultSet</code>
-     * object will be chained to the <code>SQLWarning</code> object that this method returns. </p> <p> The warning chain is automatically cleared
-     * each time a new row is read.  This method may not be called on a <code>ResultSet</code> object that has been closed; doing so will cause an
-     * <code>SQLException</code> to be thrown. </p> <p> <b>Note:</b> This warning chain only covers warnings caused by <code>ResultSet</code>
-     * methods. Any warning caused by <code>Statement</code> methods (such as reading OUT parameters) will be chained on the <code>Statement</code>
-     * object.</p>
-     *
-     * @return the first <code>SQLWarning</code> object reported or <code>null</code> if there are none
-     * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed result set
-     */
-    public SQLWarning getWarnings() throws SQLException {
-        if (this.statement == null || warningsCleared) {
-            return null;
-        }
-        return this.statement.getWarnings();
-    }
-
-    /**
-     * Clears all warnings reported on this <code>ResultSet</code> object. After this method is called, the method <code>getWarnings</code> returns
-     * <code>null</code> until a new warning is reported for this <code>ResultSet</code> object.
-     *
-     * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed result set
-     */
-    public void clearWarnings() throws SQLException {
-        warningsCleared = true;
-    }
-
     /**
      * Retrieves the name of the SQL cursor used by this <code>ResultSet</code> object.<p>
      * In SQL, a result table is retrieved through a cursor that is named. The current row of a result set can be updated or deleted using a
@@ -944,8 +1284,7 @@ public class MariaDbResultSet implements ResultSet {
      * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed result set
      */
     public ResultSetMetaData getMetaData() throws SQLException {
-        return new MariaDbResultSetMetaData(queryResult.getColumnInformation(), protocol.getDataTypeMappingFlags(),
-                protocol.getOptions().useOldAliasMetadataBehavior);
+        return new MariaDbResultSetMetaData(columnsInformation, dataTypeMappingFlags, returnTableAlias);
     }
 
     /**
@@ -968,7 +1307,7 @@ public class MariaDbResultSet implements ResultSet {
      */
     public Object getObject(int columnIndex) throws SQLException {
         try {
-            return getValueObject(columnIndex).getObject(protocol.getDataTypeMappingFlags(), cal);
+            return getValueObject(columnIndex).getObject(dataTypeMappingFlags, cal);
         } catch (ParseException e) {
             throw ExceptionMapper.getSqlException("Could not get object: " + e.getMessage(), "S1009", e);
         }
@@ -1054,10 +1393,7 @@ public class MariaDbResultSet implements ResultSet {
      * access error occurs or this method is called on a closed result set
      */
     public int findColumn(String columnLabel) throws SQLException {
-        if (this.queryResult.getResultSetType() == ResultSetType.SELECT) {
-            return columnNameMap.getIndex(columnLabel) + 1;
-        }
-        throw ExceptionMapper.getSqlException("Cannot get column id of update result sets");
+        return columnNameMap.getIndex(columnLabel) + 1;
     }
 
     /**
@@ -1127,362 +1463,6 @@ public class MariaDbResultSet implements ResultSet {
      */
     public Reader getNCharacterStream(String columnLabel) throws SQLException {
         return getCharacterStream(columnLabel);
-    }
-
-    /**
-     * <p>Retrieves whether the cursor is before the first row in this <code>ResultSet</code> object. </p>
-     * <strong>Note:</strong>Support for the <code>isBeforeFirst</code> method is optional for <code>ResultSet</code> with a result set type of
-     * <code>TYPE_FORWARD_ONLY</code>
-     *
-     * @return <code>true</code> if the cursor is before the first row; <code>false</code> if the cursor is at any other position or the result set
-     * contains no rows
-     * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed result set
-     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
-     * @since 1.2
-     */
-    public boolean isBeforeFirst() throws SQLException {
-        if (isClosed()) {
-            throw new SQLException("The isBeforeFirst() method cannot be used on a closed ResultSet");
-        }
-        return (queryResult.getResultSetType() == ResultSetType.SELECT
-                && ((SelectQueryResult) queryResult).isBeforeFirst());
-    }
-
-    /**
-     * <p>Retrieves whether the cursor is after the last row in this <code>ResultSet</code> object. </p>
-     * <strong>Note:</strong>Support for the <code>isAfterLast</code> method is optional for <code>ResultSet</code>s with a result set type of
-     * <code>TYPE_FORWARD_ONLY</code>
-     *
-     * @return <code>true</code> if the cursor is after the last row; <code>false</code> if the cursor is at any other position or the result set
-     * contains no rows
-     * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed result set
-     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
-     * @since 1.2
-     */
-    public boolean isAfterLast() throws SQLException {
-        if (isClosed()) {
-            throw new SQLException("The isAfterLast() method cannot be used on a closed ResultSet");
-        }
-        return queryResult.getResultSetType() == ResultSetType.SELECT
-                && ((SelectQueryResult) queryResult).isAfterLast();
-    }
-
-    /**
-     * Retrieves whether the cursor is on the first row of this <code>ResultSet</code> object.<p>
-     * <strong>Note:</strong>Support for the <code>isFirst</code> method is optional for <code>ResultSet</code>s with a result set type of
-     * <code>TYPE_FORWARD_ONLY</code>
-     *
-     * @return <code>true</code> if the cursor is on the first row; <code>false</code> otherwise
-     * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed result set
-     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
-     * @since 1.2
-     */
-    public boolean isFirst() throws SQLException {
-        if (isClosed()) {
-            throw new SQLException("The isFirst() method cannot be used on a closed ResultSet");
-        }
-        if (queryResult.getRows() == 0) {
-            return false;
-        }
-        return queryResult.getResultSetType() != ResultSetType.MODIFY
-                && ((SelectQueryResult) queryResult).getRowPointer() == 0;
-    }
-
-    /**
-     * <p>Retrieves whether the cursor is on the last row of this <code>ResultSet</code> object. <strong>Note:</strong> Calling the method
-     * <code>isLast</code> may be expensive because the JDBC driver might need to fetch ahead one row in order to determine whether the current row is
-     * the last row in the result set.</p>
-     * <strong>Note:</strong> Support for the <code>isLast</code> method is optional for <code>ResultSet</code>s with a result set type of
-     * <code>TYPE_FORWARD_ONLY</code>
-     *
-     * @return <code>true</code> if the cursor is on the last row; <code>false</code> otherwise
-     * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed result set
-     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
-     * @since 1.2
-     */
-    public boolean isLast() throws SQLException {
-        if (isClosed()) {
-            throw new SQLException("The isLast() method cannot be used on a closed ResultSet");
-        }
-        if (queryResult.getRows() == 0) {
-            return false;
-        }
-        if (queryResult.getResultSetType() == ResultSetType.SELECT && queryResult instanceof CachedSelectResult) {
-            return ((SelectQueryResult) queryResult).getRowPointer() == queryResult.getRows() - 1;
-        }
-        throw new SQLFeatureNotSupportedException("isLast is not supported for TYPE_FORWARD_ONLY result sets");
-    }
-
-    /**
-     * Moves the cursor to the front of this <code>ResultSet</code> object, just before the first row. This method has no effect if the result set
-     * contains no rows.
-     *
-     * @throws java.sql.SQLException if a database access error occurs; this method is called on a closed result set or the result set type is
-     * <code>TYPE_FORWARD_ONLY</code>
-     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
-     * @since 1.2
-     */
-    public void beforeFirst() throws SQLException {
-        if (queryResult.getResultSetType() == ResultSetType.SELECT) {
-            if (!(queryResult instanceof CachedSelectResult)) {
-                throw new SQLException("Invalid operation for result set type TYPE_FORWARD_ONLY");
-            }
-            ((SelectQueryResult) queryResult).moveRowPointerTo(-1);
-        }
-    }
-
-    /**
-     * Moves the cursor to the end of this <code>ResultSet</code> object, just after the last row. This method has no effect if the result set
-     * contains no rows.
-     *
-     * @throws java.sql.SQLException if a database access error occurs; this method is called on a closed result set or the result set type is
-     * <code>TYPE_FORWARD_ONLY</code>
-     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
-     * @since 1.2
-     */
-    public void afterLast() throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Cannot move after last row");
-    }
-
-    /**
-     * Moves the cursor to the first row in this <code>ResultSet</code> object.
-     *
-     * @return <code>true</code> if the cursor is on a valid row; <code>false</code> if there are no rows in the result set
-     * @throws java.sql.SQLException if a database access error occurs; this method is called on a closed result set or the result set type is
-     * <code>TYPE_FORWARD_ONLY</code>
-     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
-     * @since 1.2
-     */
-    public boolean first() throws SQLException {
-        if (isClosed()) {
-            throw new SQLException("Invalid operation on a closed result set");
-        }
-        if (queryResult.getResultSetType() == ResultSetType.SELECT) {
-            if (!(queryResult instanceof CachedSelectResult)) {
-                throw new SQLException("Invalid operation for result set type TYPE_FORWARD_ONLY");
-            }
-
-            if (queryResult.getRows() > 0) {
-                ((SelectQueryResult) queryResult).moveRowPointerTo(0);
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Moves the cursor to the last row in this <code>ResultSet</code> object.
-     *
-     * @return <code>true</code> if the cursor is on a valid row; <code>false</code> if there are no rows in the result set
-     * @throws java.sql.SQLException if a database access error occurs; this method is called on a closed result set or the result set type is
-     * <code>TYPE_FORWARD_ONLY</code>
-     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
-     * @since 1.2
-     */
-    public boolean last() throws SQLException {
-        if (isClosed()) {
-            throw new SQLException("Invalid operation on a closed result set");
-        }
-        if (queryResult.getResultSetType() == ResultSetType.SELECT && queryResult.getRows() > 0) {
-            ((SelectQueryResult) queryResult).moveRowPointerTo(queryResult.getRows() - 1);
-            return true;
-        }
-        return false;
-    }
-
-    /**
-     * <p>Retrieves the current row number.  The first row is number 1, the second number 2, and so on.</p>
-     * <strong>Note:</strong>Support for the <code>getRow</code> method is optional for <code>ResultSet</code>s with a result set type of
-     * <code>TYPE_FORWARD_ONLY</code>
-     *
-     * @return the current row number; <code>0</code> if there is no current row
-     * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed result set
-     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
-     * @since 1.2
-     */
-    public int getRow() throws SQLException {
-        if (queryResult.getResultSetType() == ResultSetType.SELECT) {
-            return ((SelectQueryResult) queryResult).getRowPointer() + 1;//+1 since first row is 1, not 0
-        }
-        return 0;
-    }
-
-    /**
-     * <p>Moves the cursor to the given row number in this <code>ResultSet</code> object.</p>
-     * <p>If the row number is positive, the cursor moves to the given row number with respect to the beginning of the result set.  The first row is
-     * row 1, the second is row 2, and so on.</p>
-     * <p>If the given row number is negative, the cursor moves to an absolute row position with respect to the end of the result set.  For example,
-     * calling the method <code>absolute(-1)</code> positions the cursor on the last row; calling the method <code>absolute(-2)</code> moves the
-     * cursor to the next-to-last row, and so on.</p>
-     * <p>An attempt to position the cursor beyond the first/last row in the result set leaves the cursor before the first row or after the last
-     * row.</p>
-     * <B>Note:</B> Calling <code>absolute(1)</code> is the same as calling <code>first()</code>. Calling <code>absolute(-1)</code> is the same as
-     * calling <code>last()</code>.
-     *
-     * @param row the number of the row to which the cursor should move. A positive number indicates the row number counting from the beginning of the
-     * result set; a negative number indicates the row number counting from the end of the result set
-     * @return <code>true</code> if the cursor is moved to a position in this <code>ResultSet</code> object; <code>false</code> if the cursor is
-     * before the first row or after the last row
-     * @throws java.sql.SQLException if a database access error occurs; this method is called on a closed result set or the result set type is
-     * <code>TYPE_FORWARD_ONLY</code>
-     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
-     * @since 1.2
-     */
-    public boolean absolute(int row) throws SQLException {
-        if (queryResult.getResultSetType() != ResultSetType.SELECT) {
-            return false;
-        }
-        SelectQueryResult sqr = (SelectQueryResult) queryResult;
-        if (sqr.getRows() > 0) {
-            if (row >= 0 && row <= sqr.getRows()) {
-                sqr.moveRowPointerTo(row - 1);
-                return true;
-            }
-            if (row < 0) {
-                sqr.moveRowPointerTo(sqr.getRows() + row);
-            }
-            return true;
-        }
-        return false;
-    }
-
-    /**
-     * Moves the cursor a relative number of rows, either positive or negative. Attempting to move beyond the first/last row in the result set
-     * positions the cursor before/after the the first/last row. Calling <code>relative(0)</code> is valid, but does not change the cursor position.
-     * Note: Calling the method <code>relative(1)</code> is identical to calling the method <code>next()</code> and calling the method
-     * <code>relative(-1)</code> is identical to calling the method <code>previous()</code>.
-     *
-     * @param rows an <code>int</code> specifying the number of rows to move from the current row; a positive number moves the cursor forward; a
-     * negative number moves the cursor backward
-     * @return <code>true</code> if the cursor is on a row; <code>false</code> otherwise
-     * @throws java.sql.SQLException if a database access error occurs;  this method is called on a closed result set or the result set type is
-     * <code>TYPE_FORWARD_ONLY</code>
-     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
-     * @since 1.2
-     */
-    public boolean relative(int rows) throws SQLException {
-        if (queryResult.getResultSetType() != ResultSetType.SELECT) {
-            return false;
-        }
-        SelectQueryResult sqr = (SelectQueryResult) queryResult;
-        if (queryResult.getRows() > 0) {
-            int newPos = sqr.getRowPointer() + rows;
-            if (newPos > -1 && newPos <= queryResult.getRows()) {
-                sqr.moveRowPointerTo(newPos);
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * <p>Moves the cursor to the previous row in this <code>ResultSet</code> object.</p>
-     * <p>When a call to the <code>previous</code> method returns <code>false</code>, the cursor is positioned before the first row.  Any invocation
-     * of a <code>ResultSet</code> method which requires a current row will result in a <code>SQLException</code> being thrown.</p>
-     * If an input stream is open for the current row, a call to the method <code>previous</code> will implicitly close it.  A <code>ResultSet</code>
-     * object's warning change is cleared when a new row is read.
-     *
-     * @return <code>true</code> if the cursor is now positioned on a valid row; <code>false</code> if the cursor is positioned before the first row
-     * @throws java.sql.SQLException if a database access error occurs; this method is called on a closed result set or the result set type is
-     * <code>TYPE_FORWARD_ONLY</code>
-     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
-     * @since 1.2
-     */
-    public boolean previous() throws SQLException {
-        if (queryResult.getResultSetType() != ResultSetType.SELECT) {
-            return false;
-        }
-        SelectQueryResult sqr = (SelectQueryResult) queryResult;
-
-        if (sqr.isBeforeFirst()) {
-            return false;
-        }
-        if (sqr.getRows() >= 0) {
-            sqr.moveRowPointerTo(sqr.getRowPointer() - 1);
-            return !sqr.isBeforeFirst();
-        }
-        return false;
-    }
-
-    /**
-     * Retrieves the fetch direction for this <code>ResultSet</code> object.
-     *
-     * @return the current fetch direction for this <code>ResultSet</code> object
-     * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed result set
-     * @see #setFetchDirection
-     * @since 1.2
-     */
-    public int getFetchDirection() throws SQLException {
-        return ResultSet.FETCH_UNKNOWN;
-    }
-
-    /**
-     * Gives a hint as to the direction in which the rows in this <code>ResultSet</code> object will be processed. The initial value is determined by
-     * the <code>Statement</code> object that produced this <code>ResultSet</code> object. The fetch direction may be changed at any time.
-     *
-     * @param direction an <code>int</code> specifying the suggested fetch direction; one of <code>ResultSet.FETCH_FORWARD</code>,
-     * <code>ResultSet.FETCH_REVERSE</code>, or <code>ResultSet.FETCH_UNKNOWN</code>
-     * @throws java.sql.SQLException if a database access error occurs; this method is called on a closed result set or the result set type is
-     * <code>TYPE_FORWARD_ONLY</code> and the fetch direction is not <code>FETCH_FORWARD</code>
-     * @see java.sql.Statement#setFetchDirection
-     * @see #getFetchDirection
-     * @since 1.2
-     */
-    public void setFetchDirection(int direction) throws SQLException {
-        // todo: ignored for now
-    }
-
-    /**
-     * Retrieves the fetch size for this <code>ResultSet</code> object.
-     *
-     * @return the current fetch size for this <code>ResultSet</code> object
-     * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed result set
-     * @see #setFetchSize
-     * @since 1.2
-     */
-    public int getFetchSize() throws SQLException {
-        return 0;
-    }
-
-    /**
-     * Gives the JDBC driver a hint as to the number of rows that should be fetched from the database when more rows are needed for this
-     * <code>ResultSet</code> object. If the fetch size specified is zero, the JDBC driver ignores the value and is free to make its own best guess as
-     * to what the fetch size should be.  The default value is set by the <code>Statement</code> object that created the result set.  The fetch size
-     * may be changed at any time.
-     *
-     * @param rows the number of rows to fetch
-     * @throws java.sql.SQLException if a database access error occurs; this method is called on a closed result set or the condition <code>rows &gt;=
-     * 0 </code> is not satisfied
-     * @see #getFetchSize
-     * @since 1.2
-     */
-    public void setFetchSize(int rows) throws SQLException {
-        // ignored - we fetch 'em all!
-    }
-
-    /**
-     * Retrieves the type of this <code>ResultSet</code> object. The type is determined by the <code>Statement</code> object that created the result
-     * set.
-     *
-     * @return <code>ResultSet.TYPE_FORWARD_ONLY</code>, <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or
-     * <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
-     * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed result set
-     * @since 1.2
-     */
-    public int getType() throws SQLException {
-        return (queryResult instanceof StreamingSelectResult) ? ResultSet.TYPE_FORWARD_ONLY : ResultSet.TYPE_SCROLL_INSENSITIVE;
-    }
-
-    /**
-     * Retrieves the concurrency mode of this <code>ResultSet</code> object. The concurrency used is determined by the <code>Statement</code> object
-     * that created the result set.
-     *
-     * @return the concurrency type, either <code>ResultSet.CONCUR_READ_ONLY</code> or <code>ResultSet.CONCUR_UPDATABLE</code>
-     * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed result set
-     * @since 1.2
-     */
-    public int getConcurrency() throws SQLException {
-        return ResultSet.CONCUR_READ_ONLY;
     }
 
     /**
@@ -2509,23 +2489,6 @@ public class MariaDbResultSet implements ResultSet {
     }
 
     /**
-     * Retrieves the <code>Statement</code> object that produced this <code>ResultSet</code> object. If the result set was generated some other way,
-     * such as by a <code>DatabaseMetaData</code> method, this method  may return <code>null</code>.
-     *
-     * @return the <code>Statment</code> object that produced this <code>ResultSet</code> object or <code>null</code> if the result set was produced
-     * some other way
-     * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed result set
-     * @since 1.2
-     */
-    public Statement getStatement() throws SQLException {
-        return this.statement;
-    }
-
-    public void setStatement(MariaDbStatement st) {
-        this.statement = st;
-    }
-
-    /**
      * Retrieves the value of the designated column in the current row of this <code>ResultSet</code> object as a <code>Ref</code> object in the Java
      * programming language.
      *
@@ -3061,20 +3024,7 @@ public class MariaDbResultSet implements ResultSet {
         return ResultSet.HOLD_CURSORS_OVER_COMMIT;
     }
 
-    /**
-     * Retrieves whether this <code>ResultSet</code> object has been closed. A <code>ResultSet</code> is closed if the method close has been called on
-     * it, or if it is automatically closed.
-     *
-     * @return true if this <code>ResultSet</code> object is closed; false if it is still open
-     * @throws java.sql.SQLException if a database access error occurs
-     * @since 1.6
-     */
-    public boolean isClosed() throws SQLException {
-        if (queryResult == null) {
-            return true;
-        }
-        return queryResult.isClosed();
-    }
+
 
     /**
      * Updates the designated column with a <code>String</code> value. It is intended for use when updating <code>NCHAR</code>,<code>NVARCHAR</code>
@@ -3539,59 +3489,7 @@ public class MariaDbResultSet implements ResultSet {
         return false;
     }
 
-
-    /**
-     * Join resultSets.
-     *
-     * @param resultSet resultSet to toined with queryResult
-     * @return new joined ResultSet
-     * @throws SQLException exception
-     */
-    public MariaDbResultSet joinResultSets(MariaDbResultSet resultSet) throws SQLException {
-        ColumnInformation[] columnInfo = this.queryResult.getColumnInformation();
-        ColumnInformation[] otherColumnInfo = resultSet.queryResult.getColumnInformation();
-        int thisColumnNumber = columnInfo.length;
-        int resultSetColumnNumber = otherColumnInfo.length;
-        if (thisColumnNumber != resultSetColumnNumber) {
-            throw new SQLException("The two result sets do not have the same column number.");
-        }
-        for (int count = 0; count < columnInfo.length; count++) {
-            if (columnInfo[count].getType() != otherColumnInfo[count].getType()) {
-                throw new SQLException("The two result sets differ in column types.");
-            }
-        }
-        int rowNumber = this.queryResult.getRows() + resultSet.queryResult.getRows();
-        String[][] data = new String[rowNumber][columnInfo.length];
-        int rowNumberCounter = 0;
-        this.beforeFirst();
-        while (this.next()) {
-            for (int j = 0; j < columnInfo.length; j++) {
-                data[rowNumberCounter][j] = this.getString(j + 1);
-            }
-            rowNumberCounter++;
-        }
-        resultSet.beforeFirst();
-        while (resultSet.next()) {
-            for (int j = 0; j < columnInfo.length; j++) {
-                data[rowNumberCounter][j] = resultSet.getString(j + 1);
-            }
-            rowNumberCounter++;
-        }
-        return (MariaDbResultSet) createResultSet(columnInfo, data, protocol);
-    }
-
-    /**
-     * Join resultsets.
-     *
-     * @param resultSets resulstSets to join
-     * @return new resultSet
-     * @throws SQLException if the resultSets have not the same DataTypes
-     */
-    public MariaDbResultSet joinResultSets(MariaDbResultSet[] resultSets) throws SQLException {
-        MariaDbResultSet result = null;
-        for (MariaDbResultSet resultSet : resultSets) {
-            result = joinResultSets(resultSet);
-        }
-        return result;
+    public void setReturnTableAlias(boolean returnTableAlias) {
+        this.returnTableAlias = returnTableAlias;
     }
 }

@@ -766,13 +766,13 @@ public class PacketOutputStream extends OutputStream {
         byte[] sqlBytes = sql.getBytes("UTF-8");
         int sqlLength = sqlBytes.length;
 
-        if (sqlLength > maxAllowedPacket) {
+        if (sqlLength + 1 > maxAllowedPacket) {
             throw new QueryException("Could not send query: max_allowed_packet=" + maxAllowedPacket + " but packet size is : "
                     + (sqlLength + 1), -1, ExceptionMapper.SqlStates.INTERRUPTED_EXCEPTION.getSqlState());
         }
         if (!useCompression) {
 
-            if (sqlLength < maxPacketSize) {
+            if (sqlLength + 1 <= maxPacketSize) {
                 byte[] packetBuffer = new byte[sqlLength + 5];
                 packetBuffer[0] = (byte) ((sqlLength + 1) & 0xff);
                 packetBuffer[1] = (byte) ((sqlLength + 1) >>> 8);

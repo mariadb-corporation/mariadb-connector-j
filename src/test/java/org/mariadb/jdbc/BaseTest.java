@@ -44,6 +44,12 @@ public class BaseTest {
 
     @Rule
     public TestRule watcher = new TestWatcher() {
+//        protected void starting(Description description) {
+//            if (testSingleHost) {
+//                System.out.println("start test : " + description.getClassName() + "." + description.getMethodName());
+//            }
+//        }
+
         protected void succeeded(Description description) {
             if (testSingleHost) {
                 System.out.println("finished test success : " + description.getClassName() + "." + description.getMethodName());
@@ -206,7 +212,7 @@ public class BaseTest {
      */
     public static void createTable(String tableName, String tableColumns, String engine) throws SQLException {
         Statement stmt = sharedConnection.createStatement();
-        stmt.execute("drop table  if exists " + tableName);
+        stmt.execute("drop table if exists " + tableName);
         stmt.execute("create table " + tableName + " (" + tableColumns + ") " + ((engine != null) ? engine : ""));
         tempTableList.add(tableName);
     }

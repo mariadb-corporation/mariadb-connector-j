@@ -47,7 +47,7 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc.internal.queryresults;
+package org.mariadb.jdbc.internal.queryresults.resultset.value;
 
 import org.mariadb.jdbc.MariaDbBlob;
 import org.mariadb.jdbc.MariaDbClob;
@@ -326,7 +326,7 @@ public class MariaDbValueObject implements ValueObject {
     }
 
     private int getSmallInt() throws SQLException {
-        int value = ((rawBytes[0] & 0xff) | ((rawBytes[1] & 0xff) << 8));
+        int value = ((rawBytes[0] & 0xff) + ((rawBytes[1] & 0xff) << 8));
         if (!columnInfo.isSigned()) {
             return value & 0xffff;
         }
@@ -336,9 +336,9 @@ public class MariaDbValueObject implements ValueObject {
 
     private long getMediumInt() throws SQLException {
         long value = ((rawBytes[0] & 0xff)
-                | (rawBytes[1] & 0xff) << 8
-                | (rawBytes[2] & 0xff) << 16
-                | (rawBytes[3] & 0xff) << 24);
+                + ((rawBytes[1] & 0xff) << 8)
+                + ((rawBytes[2] & 0xff) << 16)
+                + ((rawBytes[3] & 0xff) << 24));
         if (!columnInfo.isSigned()) {
             value = value & 0xffffffffL ;
         }
@@ -404,7 +404,7 @@ public class MariaDbValueObject implements ValueObject {
                     break;
                 case SMALLINT:
                 case YEAR:
-                    value = ((rawBytes[0] & 0xff) | ((rawBytes[1] & 0xff) << 8));
+                    value = ((rawBytes[0] & 0xff) + ((rawBytes[1] & 0xff) << 8));
                     if (columnInfo.isSigned()) {
                         return (short) value;
                     }
@@ -493,9 +493,9 @@ public class MariaDbValueObject implements ValueObject {
                 case INTEGER:
                 case MEDIUMINT:
                     value = ((rawBytes[0] & 0xff)
-                            | (rawBytes[1] & 0xff) << 8
-                            | (rawBytes[2] & 0xff) << 16
-                            | (rawBytes[3] & 0xff) << 24);
+                            + ((rawBytes[1] & 0xff) << 8)
+                            + ((rawBytes[2] & 0xff) << 16)
+                            + ((rawBytes[3] & 0xff) << 24));
                     if (columnInfo.isSigned()) {
                         return (int) value;
                     } else if (value < 0) {
@@ -584,13 +584,13 @@ public class MariaDbValueObject implements ValueObject {
                     break;
                 case BIGINT:
                     value = ((rawBytes[0] & 0xff)
-                            | ((long) (rawBytes[1] & 0xff) << 8)
-                            | ((long) (rawBytes[2] & 0xff) << 16)
-                            | ((long) (rawBytes[3] & 0xff) << 24)
-                            | ((long) (rawBytes[4] & 0xff) << 32)
-                            | ((long) (rawBytes[5] & 0xff) << 40)
-                            | ((long) (rawBytes[6] & 0xff) << 48)
-                            | ((long) (rawBytes[7] & 0xff) << 56));
+                            + ((long) (rawBytes[1] & 0xff) << 8)
+                            + ((long) (rawBytes[2] & 0xff) << 16)
+                            + ((long) (rawBytes[3] & 0xff) << 24)
+                            + ((long) (rawBytes[4] & 0xff) << 32)
+                            + ((long) (rawBytes[5] & 0xff) << 40)
+                            + ((long) (rawBytes[6] & 0xff) << 48)
+                            + ((long) (rawBytes[7] & 0xff) << 56));
                     if (columnInfo.isSigned()) {
                         return value;
                     }
@@ -692,13 +692,13 @@ public class MariaDbValueObject implements ValueObject {
                     break;
                 case BIGINT:
                     value = ((rawBytes[0] & 0xff)
-                            | ((long) (rawBytes[1] & 0xff) << 8)
-                            | ((long) (rawBytes[2] & 0xff) << 16)
-                            | ((long) (rawBytes[3] & 0xff) << 24)
-                            | ((long) (rawBytes[4] & 0xff) << 32)
-                            | ((long) (rawBytes[5] & 0xff) << 40)
-                            | ((long) (rawBytes[6] & 0xff) << 48)
-                            | ((long) (rawBytes[7] & 0xff) << 56));
+                            + ((long) (rawBytes[1] & 0xff) << 8)
+                            + ((long) (rawBytes[2] & 0xff) << 16)
+                            + ((long) (rawBytes[3] & 0xff) << 24)
+                            + ((long) (rawBytes[4] & 0xff) << 32)
+                            + ((long) (rawBytes[5] & 0xff) << 40)
+                            + ((long) (rawBytes[6] & 0xff) << 48)
+                            + ((long) (rawBytes[7] & 0xff) << 56));
                     if (columnInfo.isSigned()) {
                         return value;
                     }
@@ -709,9 +709,9 @@ public class MariaDbValueObject implements ValueObject {
                     return unsignedValue.floatValue();
                 case FLOAT:
                     int valueFloat = ((rawBytes[0] & 0xff)
-                            | (rawBytes[1] & 0xff) << 8
-                            | (rawBytes[2] & 0xff) << 16
-                            | (rawBytes[3] & 0xff) << 24);
+                            + ((rawBytes[1] & 0xff) << 8)
+                            + ((rawBytes[2] & 0xff) << 16)
+                            + ((rawBytes[3] & 0xff) << 24));
                     return Float.intBitsToFloat(valueFloat);
                 case DOUBLE:
                     return (float) getDouble();
@@ -746,13 +746,13 @@ public class MariaDbValueObject implements ValueObject {
                     return getMediumInt();
                 case BIGINT:
                     long valueLong = ((rawBytes[0] & 0xff)
-                            | ((long) (rawBytes[1] & 0xff) << 8)
-                            | ((long) (rawBytes[2] & 0xff) << 16)
-                            | ((long) (rawBytes[3] & 0xff) << 24)
-                            | ((long) (rawBytes[4] & 0xff) << 32)
-                            | ((long) (rawBytes[5] & 0xff) << 40)
-                            | ((long) (rawBytes[6] & 0xff) << 48)
-                            | ((long) (rawBytes[7] & 0xff) << 56)
+                            + ((long) (rawBytes[1] & 0xff) << 8)
+                            + ((long) (rawBytes[2] & 0xff) << 16)
+                            + ((long) (rawBytes[3] & 0xff) << 24)
+                            + ((long) (rawBytes[4] & 0xff) << 32)
+                            + ((long) (rawBytes[5] & 0xff) << 40)
+                            + ((long) (rawBytes[6] & 0xff) << 48)
+                            + ((long) (rawBytes[7] & 0xff) << 56)
                     );
                     if (columnInfo.isSigned()) {
                         return valueLong;
@@ -766,13 +766,13 @@ public class MariaDbValueObject implements ValueObject {
                     return getFloat();
                 case DOUBLE:
                     long valueDouble = ((rawBytes[0] & 0xff)
-                            | ((long) (rawBytes[1] & 0xff) << 8)
-                            | ((long) (rawBytes[2] & 0xff) << 16)
-                            | ((long) (rawBytes[3] & 0xff) << 24)
-                            | ((long) (rawBytes[4] & 0xff) << 32)
-                            | ((long) (rawBytes[5] & 0xff) << 40)
-                            | ((long) (rawBytes[6] & 0xff) << 48)
-                            | ((long) (rawBytes[7] & 0xff) << 56));
+                            + ((long) (rawBytes[1] & 0xff) << 8)
+                            + ((long) (rawBytes[2] & 0xff) << 16)
+                            + ((long) (rawBytes[3] & 0xff) << 24)
+                            + ((long) (rawBytes[4] & 0xff) << 32)
+                            + ((long) (rawBytes[5] & 0xff) << 40)
+                            + ((long) (rawBytes[6] & 0xff) << 48)
+                            + ((long) (rawBytes[7] & 0xff) << 56));
                     return Double.longBitsToDouble(valueDouble);
                 default:
                     return Double.valueOf(new String(rawBytes, StandardCharsets.UTF_8));
@@ -804,13 +804,13 @@ public class MariaDbValueObject implements ValueObject {
                     return BigDecimal.valueOf(getMediumInt());
                 case BIGINT:
                     long value = ((rawBytes[0] & 0xff)
-                            | ((long) (rawBytes[1] & 0xff) << 8)
-                            | ((long) (rawBytes[2] & 0xff) << 16)
-                            | ((long) (rawBytes[3] & 0xff) << 24)
-                            | ((long) (rawBytes[4] & 0xff) << 32)
-                            | ((long) (rawBytes[5] & 0xff) << 40)
-                            | ((long) (rawBytes[6] & 0xff) << 48)
-                            | ((long) (rawBytes[7] & 0xff) << 56)
+                            + ((long) (rawBytes[1] & 0xff) << 8)
+                            + ((long) (rawBytes[2] & 0xff) << 16)
+                            + ((long) (rawBytes[3] & 0xff) << 24)
+                            + ((long) (rawBytes[4] & 0xff) << 32)
+                            + ((long) (rawBytes[5] & 0xff) << 40)
+                            + ((long) (rawBytes[6] & 0xff) << 48)
+                            + ((long) (rawBytes[7] & 0xff) << 56)
                     );
                     if (columnInfo.isSigned()) {
                         return new BigDecimal(String.valueOf(BigInteger.valueOf(value))).setScale(columnInfo.getDecimals());
@@ -858,19 +858,19 @@ public class MariaDbValueObject implements ValueObject {
                 case INTEGER:
                 case MEDIUMINT:
                     int valueInt = ((rawBytes[0] & 0xff)
-                            | (rawBytes[1] & 0xff) << 8
-                            | (rawBytes[2] & 0xff) << 16
-                            | (rawBytes[3] & 0xff) << 24);
+                            + ((rawBytes[1] & 0xff) << 8)
+                            + ((rawBytes[2] & 0xff) << 16)
+                            + ((rawBytes[3] & 0xff) << 24));
                     return BigInteger.valueOf(((columnInfo.isSigned()) ? valueInt : (valueInt >= 0) ? valueInt : valueInt & 0xffffffffL));
                 case BIGINT:
                     long value = ((rawBytes[0] & 0xff)
-                            | ((long) (rawBytes[1] & 0xff) << 8)
-                            | ((long) (rawBytes[2] & 0xff) << 16)
-                            | ((long) (rawBytes[3] & 0xff) << 24)
-                            | ((long) (rawBytes[4] & 0xff) << 32)
-                            | ((long) (rawBytes[5] & 0xff) << 40)
-                            | ((long) (rawBytes[6] & 0xff) << 48)
-                            | ((long) (rawBytes[7] & 0xff) << 56)
+                            + ((long) (rawBytes[1] & 0xff) << 8)
+                            + ((long) (rawBytes[2] & 0xff) << 16)
+                            + ((long) (rawBytes[3] & 0xff) << 24)
+                            + ((long) (rawBytes[4] & 0xff) << 32)
+                            + ((long) (rawBytes[5] & 0xff) << 40)
+                            + ((long) (rawBytes[6] & 0xff) << 48)
+                            + ((long) (rawBytes[7] & 0xff) << 56)
                     );
                     if (columnInfo.isSigned()) {
                         return BigInteger.valueOf(value);
@@ -1066,9 +1066,9 @@ public class MariaDbValueObject implements ValueObject {
                 }
                 if (rawBytes.length > 4) {
                     day = ((rawBytes[1] & 0xff)
-                            | (rawBytes[2] & 0xff) << 8
-                            | (rawBytes[3] & 0xff) << 16
-                            | (rawBytes[4] & 0xff) << 24);
+                            + ((rawBytes[2] & 0xff) << 8)
+                            + ((rawBytes[3] & 0xff) << 16)
+                            + ((rawBytes[4] & 0xff) << 24));
                 }
                 if (rawBytes.length > 7) {
                     hour = rawBytes[5];
@@ -1080,9 +1080,9 @@ public class MariaDbValueObject implements ValueObject {
                 int nanoseconds = 0;
                 if (rawBytes.length > 8) {
                     nanoseconds = ((rawBytes[8] & 0xff)
-                            | (rawBytes[9] & 0xff) << 8
-                            | (rawBytes[10] & 0xff) << 16
-                            | (rawBytes[11] & 0xff) << 24);
+                            + ((rawBytes[9] & 0xff) << 8)
+                            + ((rawBytes[10] & 0xff) << 16)
+                            + ((rawBytes[11] & 0xff) << 24));
                 }
 
                 calendar.set(Calendar.MILLISECOND, nanoseconds / 1000);
@@ -1114,9 +1114,9 @@ public class MariaDbValueObject implements ValueObject {
             }
             if (rawBytes.length > 4) {
                 day = ((rawBytes[1] & 0xff)
-                        | (rawBytes[2] & 0xff) << 8
-                        | (rawBytes[3] & 0xff) << 16
-                        | (rawBytes[4] & 0xff) << 24);
+                        + ((rawBytes[2] & 0xff) << 8)
+                        + ((rawBytes[3] & 0xff) << 16)
+                        + ((rawBytes[4] & 0xff) << 24));
             }
             if (rawBytes.length > 7) {
                 hour = rawBytes[5];
@@ -1126,9 +1126,9 @@ public class MariaDbValueObject implements ValueObject {
 
             if (rawBytes.length > 8) {
                 microseconds = ((rawBytes[8] & 0xff)
-                        | (rawBytes[9] & 0xff) << 8
-                        | (rawBytes[10] & 0xff) << 16
-                        | (rawBytes[11] & 0xff) << 24);
+                        + ((rawBytes[9] & 0xff) << 8)
+                        + ((rawBytes[10] & 0xff) << 16)
+                        + ((rawBytes[11] & 0xff) << 24));
             }
 
             calendar.set(1970, 0, ((negate ? -1 : 1) * day) + 1, (negate ? -1 : 1) * hour, minutes, seconds);
@@ -1146,9 +1146,9 @@ public class MariaDbValueObject implements ValueObject {
 
                 if (rawBytes.length > 7) {
                     microseconds = ((rawBytes[7] & 0xff)
-                            | (rawBytes[8] & 0xff) << 8
-                            | (rawBytes[9] & 0xff) << 16
-                            | (rawBytes[10] & 0xff) << 24);
+                            + ((rawBytes[8] & 0xff) << 8)
+                            + ((rawBytes[9] & 0xff) << 16)
+                            + ((rawBytes[10] & 0xff) << 24));
                 }
             }
         }

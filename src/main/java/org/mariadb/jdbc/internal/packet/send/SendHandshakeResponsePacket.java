@@ -116,10 +116,9 @@ public class SendHandshakeResponsePacket implements InterfaceSendPacket {
     /**
      * Send authentication stream.
      * @param os database socket
-     * @return 1 if all went well
      * @throws IOException if any connection error occur
      */
-    public int send(final OutputStream os) throws IOException {
+    public void send(final OutputStream os) throws IOException {
         PacketOutputStream writeBuffer = (PacketOutputStream) os;
         writeBuffer.startPacket(packetSeq);
         final byte[] scrambledPassword;
@@ -143,6 +142,5 @@ public class SendHandshakeResponsePacket implements InterfaceSendPacket {
         }
 
         writeBuffer.finishPacket();
-        return 1;
     }
 }

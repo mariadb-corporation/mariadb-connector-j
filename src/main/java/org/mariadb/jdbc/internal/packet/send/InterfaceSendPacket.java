@@ -56,5 +56,5 @@ import java.io.OutputStream;
 
 
 public interface InterfaceSendPacket {
-    int send(OutputStream os) throws IOException, QueryException;
+    void send(OutputStream os) throws IOException, QueryException;
 }
