@@ -70,7 +70,6 @@ public class CallableParameterMetaData implements ParameterMetaData {
     private String name;
     private boolean valid;
     private boolean isFunction;
-    private boolean noAccessToMetadata;
 
     /**
      * Retrieve Callable metaData.
@@ -78,9 +77,8 @@ public class CallableParameterMetaData implements ParameterMetaData {
      * @param database database name
      * @param name procedure/function name
      * @param isFunction is it a function
-     * @param noAccessToMetadata tell if metadata information cannot be access from current user
      */
-    public CallableParameterMetaData(MariaDbConnection con, String database, String name, boolean isFunction, boolean noAccessToMetadata) {
+    public CallableParameterMetaData(MariaDbConnection con, String database, String name, boolean isFunction) {
         this.params = null;
         this.con = con;
         if (database != null) {
@@ -90,7 +88,6 @@ public class CallableParameterMetaData implements ParameterMetaData {
         }
         this.name = name.replace("`","");
         this.isFunction = isFunction;
-        this.noAccessToMetadata = noAccessToMetadata;
     }
 
     /**
@@ -98,16 +95,11 @@ public class CallableParameterMetaData implements ParameterMetaData {
      * @throws SQLException if error append during loading metaData
      */
     public void readMetadataFromDbIfRequired() throws SQLException {
-        if (noAccessToMetadata || valid) {
+        if (valid) {
             return;
         }
-        try {
-            readMetadata();
-            valid = true;
-        } catch (SQLException e) {
-            noAccessToMetadata = true;
-            throw e;
-        }
+        readMetadata();
+        valid = true;
     }
 
     int mapMariaDbTypeToJdbc(String str) {
@@ -157,9 +149,9 @@ public class CallableParameterMetaData implements ParameterMetaData {
     private String[] queryMetaInfos(boolean isFunction) throws SQLException {
         PreparedStatement preparedStatement;
         if (database != null) {
-            preparedStatement = con.prepareStatement("select param_list,returns, db, type from mysql.proc where db=? and name=?");
+            preparedStatement = con.prepareStatement("select param_list, returns, db, type from mysql.proc where db=? and name=?");
         } else {
-            preparedStatement = con.prepareStatement("select param_list,returns, db, type from mysql.proc where db=DATABASE() and name=?");
+            preparedStatement = con.prepareStatement("select param_list, returns, db, type from mysql.proc where db=DATABASE() and name=?");
         }
 
         ResultSet rs = null;
@@ -183,7 +175,7 @@ public class CallableParameterMetaData implements ParameterMetaData {
             return new String[]{paramList, functionReturn};
         } catch (SQLSyntaxErrorException sqlSyntaxErrorException) {
             throw new SQLException("Access to metaData informations not granted for current user. Consider grant select access to mysql.proc "
-                    + " or consider using 'noAccessToProcedureBodies' option", sqlSyntaxErrorException);
+                    + " or avoid using parameter by name", sqlSyntaxErrorException);
         } finally {
             if (rs != null) {
                 rs.close();
@@ -261,7 +253,7 @@ public class CallableParameterMetaData implements ParameterMetaData {
      * @throws SQLException if data doesn't correspond.
      */
     public void readMetadata() throws SQLException {
-        if (noAccessToMetadata || valid) {
+        if (valid) {
             return ;
         }
 
@@ -361,9 +353,4 @@ public class CallableParameterMetaData implements ParameterMetaData {
         readMetadataFromDbIfRequired();
         return database;
     }
-
-    protected void setParams(List<CallParameter> params) {
-        this.params = params;
-    }
-
 }

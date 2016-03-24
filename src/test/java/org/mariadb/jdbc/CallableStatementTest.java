@@ -212,7 +212,6 @@ public class CallableStatementTest extends BaseTest {
         Properties properties = new Properties();
         properties.put("user", "test_jdbc");
         properties.put("password", "test_jdbc");
-        properties.put("noAccessToProcedureBodies", "true");
 
         createProcedure("testMetaCatalog", "(x int, out y int)\nBEGIN\nSET y = 2;\n end\n");
 
@@ -223,8 +222,7 @@ public class CallableStatementTest extends BaseTest {
                 callableStatement.setString("x", "1");
                 fail("Set by named must not succeed");
             } catch (SQLException sqlException) {
-                Assert.assertTrue(sqlException.getMessage().startsWith("Parameter 'noAccessToProcedureBodies' is set, "
-                        + "disabling access to parameter by name"));
+                Assert.assertTrue(sqlException.getMessage().startsWith("Access to metaData informations not granted for current user"));
             }
             callableStatement.setString(1, "1");
             callableStatement.execute();
@@ -232,8 +230,7 @@ public class CallableStatementTest extends BaseTest {
                 callableStatement.getInt("y");
                 fail("Get by named must not succeed");
             } catch (SQLException sqlException) {
-                Assert.assertTrue(sqlException.getMessage().startsWith("Parameter 'noAccessToProcedureBodies' is set, "
-                        + "disabling access to parameter by name"));
+                Assert.assertTrue(sqlException.getMessage().startsWith("Access to metaData informations not granted for current user"));
             }
             Assert.assertEquals(2, callableStatement.getInt(2));
 
