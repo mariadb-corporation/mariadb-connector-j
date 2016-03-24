@@ -284,7 +284,7 @@ public class PacketOutputStream extends OutputStream {
         }
 
         //save big buffer next query to avoid new allocation if next query size is similar
-        if (buffer.capacity() > BUFFER_DEFAULT_SIZE) {
+        if (buffer.limit() * 2 < buffer.capacity()) {
             buffer = firstBuffer;
         }
 
