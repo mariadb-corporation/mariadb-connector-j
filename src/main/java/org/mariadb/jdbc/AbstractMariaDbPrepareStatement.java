@@ -62,7 +62,7 @@ import java.net.URL;
 import java.sql.*;
 import java.util.Calendar;
 
-public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement implements PreparedStatement {
+public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement implements PreparedStatement, Cloneable {
     protected boolean useFractionalSeconds;
 
     public AbstractMariaDbPrepareStatement(MariaDbConnection connection, int resultSetScrollType) {
@@ -74,6 +74,10 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
     protected abstract boolean useFractionalSeconds();
 
     protected abstract Calendar cal();
+
+    public AbstractMariaDbPrepareStatement clone() throws CloneNotSupportedException {
+        return (AbstractMariaDbPrepareStatement) super.clone();
+    }
 
     /**
      * Sets the designated parameter to the given <code>Reader</code> object, which is the given number of characters
@@ -510,6 +514,10 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      */
     @Override
     public void setURL(final int parameterIndex, final URL url) throws SQLException {
+        if (url == null) {
+            setNull(parameterIndex, MariaDbType.STRING);
+            return;
+        }
         setParameter(parameterIndex, new StringParameter(url.toString(), isNoBackslashEscapes()));
     }
 

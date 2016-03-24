@@ -2,6 +2,7 @@
 MariaDB Client for Java
 
 Copyright (c) 2012 Monty Program Ab.
+Copyright (c) 2012-15 MariaDB Corporation AB
 
 This library is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License as published by the Free
@@ -49,11 +50,10 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.util.ExceptionMapper;
-import org.mariadb.jdbc.internal.util.DefaultOptions;
-import org.mariadb.jdbc.internal.util.Options;
+import org.mariadb.jdbc.internal.util.*;
+import org.mariadb.jdbc.internal.util.dao.CallableStatementCacheKey;
+import org.mariadb.jdbc.internal.util.dao.CloneableCallableStatement;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
-import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 
 import java.net.SocketException;
@@ -62,6 +62,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executor;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 public final class MariaDbConnection implements Connection {
@@ -70,6 +72,20 @@ public final class MariaDbConnection implements Connection {
      * the protocol to communicate with.
      */
     private final Protocol protocol;
+    public Pattern requestWithoutComments = Pattern.compile("((?<![\\\\])['\"])((?:.(?!(?<![\\\\])\\1))*.?)\\1", Pattern.CASE_INSENSITIVE);
+    protected CallableStatementCache callableStatementCache;
+
+    /**
+     * Pattern  to check the correctness of callable statement query string
+     * Legal queries, as documented in JDK have the form:
+     * {[?=]call[(arg1,..,,argn)]}
+     */
+    private static Pattern CALLABLE_STATEMENT_PATTERN =
+            Pattern.compile("^\\s*(\\?\\s*=)?(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*call"
+                    + "(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*((((`[^`]+`)|([^`]+))\\.)?((`[^`]+`)|([^`(]+)))+(\\(.*\\))?"
+                    + "(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*(#.*)?$",
+                    Pattern.CASE_INSENSITIVE);
+
     public MariaDbPooledConnection pooledConnection;
     boolean noBackslashEscapes;
     boolean nullCatalogMeansCurrent = true;
@@ -95,6 +111,9 @@ public final class MariaDbConnection implements Connection {
         options = protocol.getOptions();
         noBackslashEscapes = protocol.noBackslashEscapes();
         nullCatalogMeansCurrent = options.nullCatalogMeansCurrent;
+        if (options.cacheCallableStmts) {
+            callableStatementCache = CallableStatementCache.newInstance(options.callableStmtCacheSize);
+        }
         this.lock = lock;
     }
 
@@ -210,7 +229,18 @@ public final class MariaDbConnection implements Connection {
     }
 
     /**
-     * creates a new prepared statement. Only client side prepared statement emulation right now.
+     * creates a new client prepared statement.
+     *
+     * @param sql the query.
+     * @return a prepared statement.
+     * @throws SQLException if there is a problem preparing the statement.
+     */
+    protected MariaDbClientPreparedStatement clientPrepareStatement(final String sql) throws SQLException {
+        return new MariaDbClientPreparedStatement(this, sql, ResultSet.TYPE_FORWARD_ONLY);
+    }
+
+    /**
+     * creates a new prepared statement.
      *
      * @param sql the query.
      * @return a prepared statement.
@@ -407,9 +437,60 @@ public final class MariaDbConnection implements Connection {
 
     }
 
+    /**
+     * Creates a <code>CallableStatement</code> object for calling
+     * database stored procedures.
+     * The <code>CallableStatement</code> object provides
+     * methods for setting up its IN and OUT parameters, and
+     * methods for executing the call to a stored procedure.
+     *   example : {?= call &lt;procedure-name&gt;[(&lt;arg1&gt;,&lt;arg2&gt;, ...)]}
+     *   or {call &lt;procedure-name&gt;[(&lt;arg1&gt;,&lt;arg2&gt;, ...)]}
+     * <p>
+     * <b>Note:</b> This method is optimized for handling stored
+     * procedure call statements.
+     *</p>
+     * @param sql an SQL statement that may contain one or more '?'
+     * parameter placeholders. Typically this statement is specified using JDBC
+     * call escape syntax.
+     * @return a new default <code>CallableStatement</code> object containing the
+     * pre-compiled SQL statement
+     * @exception SQLException if a database access error occurs
+     * or this method is called on a closed connection
+     */
     public CallableStatement prepareCall(final String sql) throws SQLException {
         checkConnection();
-        return new MariaDbCallableStatement(this, sql);
+
+        String query = Utils.nativeSql(sql, noBackslashEscapes);
+        Matcher matcher = CALLABLE_STATEMENT_PATTERN.matcher(query);
+        if (!matcher.matches()) {
+            throw new SQLSyntaxErrorException(
+                    "invalid callable syntax. must be like {? = call <procedure/function name>[(?,?, ...)]}\n but was : "
+                            + query);
+        }
+        boolean isFunction = (matcher.group(1) != null);
+        String databaseAndProcedure = matcher.group(6);
+        String database = matcher.group(8);
+        String procedureName = matcher.group(11);
+        String arguments = matcher.group(14);
+
+        if (database != null && options.cacheCallableStmts) {
+            if (callableStatementCache.containsKey(new CallableStatementCacheKey(database, query))) {
+                //Clone to avoid side effect like having some open resultset.
+                try {
+                    CallableStatement callableStatement = callableStatementCache.get(new CallableStatementCacheKey(getDatabase(), query));
+                    if (callableStatement != null) {
+                        return ((CloneableCallableStatement) callableStatement).clone();
+                    }
+                } catch (CloneNotSupportedException cloneNotSupportedException) {
+                    cloneNotSupportedException.printStackTrace();
+                }
+            }
+            CallableStatement callableStatement = createNewCallableStatement(query, procedureName, isFunction, databaseAndProcedure, database,
+                    arguments);
+            callableStatementCache.put(new CallableStatementCacheKey(database, query), callableStatement);
+            return callableStatement;
+        }
+        return createNewCallableStatement(query, procedureName, isFunction, databaseAndProcedure, database, arguments);
     }
 
 
@@ -430,7 +511,7 @@ public final class MariaDbConnection implements Connection {
      * specified result set type and result set concurrency.
      */
     public CallableStatement prepareCall(final String sql, final int resultSetType, final int resultSetConcurrency) throws SQLException {
-        return new MariaDbCallableStatement(this, sql);
+        return prepareCall(sql);
     }
 
     /**
@@ -459,6 +540,18 @@ public final class MariaDbConnection implements Connection {
                                          final int resultSetConcurrency,
                                          final int resultSetHoldability) throws SQLException {
         return prepareCall(sql);
+    }
+
+    private CallableStatement createNewCallableStatement(String query, String procedureName, boolean isFunction, String databaseAndProcedure,
+                                                         String database, String arguments) throws SQLException {
+        if (arguments == null) {
+            arguments = "()";
+        }
+        if (isFunction) {
+            return new MariaDbFunctionStatement(this, database, databaseAndProcedure, arguments);
+        } else {
+            return new MariaDbProcedureStatement(query, this, procedureName, database, arguments);
+        }
     }
 
     @Override
@@ -1294,5 +1387,9 @@ public final class MariaDbConnection implements Connection {
 
     protected String getServerTimezone() {
         return options.serverTimezone;
+    }
+
+    protected Options getOptions() {
+        return options;
     }
 }

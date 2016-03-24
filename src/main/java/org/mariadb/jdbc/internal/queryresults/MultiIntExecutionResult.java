@@ -20,7 +20,7 @@ public class MultiIntExecutionResult extends ExecutionResult {
      * @param isSelectPossible is select command possible
      */
     public MultiIntExecutionResult(Statement statement, int size, int fetchSize, boolean isSelectPossible) {
-        super(statement, fetchSize, isSelectPossible);
+        super(statement, fetchSize, isSelectPossible, false);
         affectedRows = new int[size];
         insertId = new long[size];
     }

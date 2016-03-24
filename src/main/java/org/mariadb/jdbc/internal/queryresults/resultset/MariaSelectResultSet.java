@@ -108,6 +108,7 @@ public class MariaSelectResultSet implements ResultSet {
     private Options options;
     private boolean returnTableAlias;
     private boolean isClosed;
+    public boolean callableResult = false;
 
     /**
      * Create Streaming resultset.
@@ -383,7 +384,7 @@ public class MariaSelectResultSet implements ResultSet {
                 protocol.setActiveStreamingResult(null);
             }
             protocol.setHasWarnings(((buffer.buf[1] & 0xff) + ((buffer.buf[2] & 0xff) << 8)) > 0);
-            protocol.setMoreResults((((buffer.buf[3] & 0xff) + ((buffer.buf[4] & 0xff) << 8)) & ServerStatus.MORE_RESULTS_EXISTS) != 0);
+            protocol.setMoreResults((((buffer.buf[3] & 0xff) + ((buffer.buf[4] & 0xff) << 8)) & ServerStatus.MORE_RESULTS_EXISTS) != 0, binaryProtocol);
             protocol = null;
             packetFetcher = null;
             isEof = true;
@@ -421,7 +422,7 @@ public class MariaSelectResultSet implements ResultSet {
                                 protocol.setActiveStreamingResult(null);
                             }
                             protocol.setHasWarnings(endOfFilePacket.getWarningCount() > 0);
-                            protocol.setMoreResults((endOfFilePacket.getStatusFlags() & ServerStatus.MORE_RESULTS_EXISTS) != 0);
+                            protocol.setMoreResults((endOfFilePacket.getStatusFlags() & ServerStatus.MORE_RESULTS_EXISTS) != 0, binaryProtocol);
                             protocol = null;
                             packetFetcher = null;
                             isEof = true;
@@ -710,6 +711,14 @@ public class MariaSelectResultSet implements ResultSet {
         if (isClosed()) {
             throw new SQLException("Operation not permit on a closed resultset", "HY000");
         }
+    }
+
+    public boolean isCallableResult() {
+        return callableResult;
+    }
+
+    public void setCallableResult(boolean callableResult) {
+        this.callableResult = callableResult;
     }
 
     public boolean isClosed() {

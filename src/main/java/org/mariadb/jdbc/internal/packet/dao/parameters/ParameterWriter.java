@@ -48,7 +48,7 @@ public class ParameterWriter {
         }
     }
 
-    private static void writeBytesEscaped(OutputStream out, byte[] bytes, boolean noBackslashEscapes) throws IOException {
+    public static void writeBytesEscaped(OutputStream out, byte[] bytes, boolean noBackslashEscapes) throws IOException {
         writeBytesEscaped(out, bytes, bytes.length, noBackslashEscapes);
     }
 

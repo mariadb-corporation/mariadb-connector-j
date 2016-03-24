@@ -71,7 +71,7 @@ import java.util.regex.Pattern;
  * Is immutable
  */
 @SuppressWarnings("deprecation")
-public class MariaDbValueObject implements ValueObject {
+public class MariaDbValueObject extends AbstractValueObject implements ValueObject {
 
     private static final Pattern isIntegerRegex = Pattern.compile("^-?\\d+\\.0+$");
     private final byte[] rawBytes;

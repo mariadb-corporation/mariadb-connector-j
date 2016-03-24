@@ -1,7 +1,7 @@
 /*
 MariaDB Client for Java
 
-Copyright (c) 2012 Monty Program Ab.
+Copyright (c) 2016 MariaDB Corporation AB
 
 This library is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License as published by the Free
@@ -47,28 +47,42 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc.internal;
+package org.mariadb.jdbc.internal.util;
 
-public class MariaDbServerCapabilities {
-    public static final int LONG_PASSWORD = 1;       /* new more secure passwords */
-    public static final int FOUND_ROWS = 2;       /* Found instead of affected rows */
-    public static final int LONG_FLAG = 4;       /* Get all column flags */
-    public static final int CONNECT_WITH_DB = 8;     /* One can specify db on connect */
-    public static final int NO_SCHEMA = 16;          /* Don't allow database.table.column */
-    public static final int COMPRESS = 32;          /* Can use compression protocol */
-    public static final int ODBC = 64;               /* Odbc client */
-    public static final int LOCAL_FILES = 128;       /* Can use LOAD DATA LOCAL */
-    public static final int IGNORE_SPACE = 256;       /* Ignore spaces before '(' */
-    public static final int CLIENT_PROTOCOL_41 = 512; /* New 4.1 protocol */
-    public static final int CLIENT_INTERACTIVE = 1024;
-    public static final int SSL = 2048;                /* Switch to SSL after handshake */
-    public static final int IGNORE_SIGPIPE = 4096;     /* IGNORE sigpipes */
-    public static final int TRANSACTIONS = 8192;
-    public static final int RESERVED = 16384;           /* Old flag for 4.1 protocol  */
-    public static final int SECURE_CONNECTION = 32768;  /* New 4.1 authentication */
-    public static final int MULTI_STATEMENTS = 1 << 16; /* Enable/disable multi-stmt support */
-    public static final int MULTI_RESULTS = 1 << 17;    /* Enable/disable multi-results */
-    public static final int PS_MULTI_RESULTS = 1 << 18; /* Enable/disable multi-results for PrepareStatement */
-    public static final int PLUGIN_AUTH = 1 << 19;      /* Client supports plugin authentication */
-    public static final int PROGRESS = 1 << 29;         /* Client support progress indicator */
+import org.mariadb.jdbc.internal.util.dao.CallableStatementCacheKey;
+
+import java.sql.CallableStatement;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+public class CallableStatementCache extends LinkedHashMap<CallableStatementCacheKey, CallableStatement> {
+    private int maxSize;
+
+    private CallableStatementCache(int size) {
+        super(size, .75f, true);
+        maxSize = size;
+    }
+
+    public static CallableStatementCache newInstance(int size) {
+        return new CallableStatementCache(size);
+    }
+
+    /**
+     * Add prepared statement to cache.
+     * @param key sql
+     * @param value prepareResult
+     * @return PrepareResult to avoid to prepare statement.
+     */
+    public CallableStatement putIfNone(CallableStatementCacheKey key, CallableStatement value) {
+        if (!containsKey(key)) {
+            put(key, value);
+        }
+        return value;
+    }
+
+    @Override
+    protected boolean removeEldestEntry(Map.Entry<CallableStatementCacheKey, CallableStatement> eldest) {
+        return this.size() > maxSize;
+    }
+
 }

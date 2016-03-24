@@ -95,8 +95,12 @@ Following options are currently supported.
 |<a name="serverTimezone">serverTimezone</a>|Defined the server time zone.<br/>to use only if jre server as a different time implementation of the server.<br/>(best to have the same server time zone when possible). <br/>Since 1.1.7*|
 |<a name="rewriteBatchedStatements">rewriteBatchedStatements</a>| rewrite batchedStatement to have only one server call.<br/>*Default: false. Since 1.1.8*|
 |<a name="useServerPrepStmts">useServerPrepStmts</a>| if true, preparedStatement will be prepared on server side. If not, Prepared statements (parameter substitution) is handled by the driver, on the client side.<br/>*Default: true. Since 1.3.0*| 
+|<a name="prepStmtCacheSize">prepStmtCacheSize</a>| if useServerPrepStmts = true, defined the prepared statement cache size. <br/>*Default: 250. Since 1.3.0*| 
+|<a name="prepStmtCacheSqlLimit">prepStmtCacheSqlLimit</a>| if useServerPrepStmts = true, defined queries that size is more than this size will not be cached. <br/>*Default: 2048. Since 1.3.0*| 
 |<a name="connectTimeout">connectTimeout</a>| The connect  the timeout value, in milliseconds, or zero for no timeout.<br/>*Default: 0. Since 1.1.8*|
 |<a name="jdbcCompliantTruncation">jdbcCompliantTruncation</a>| Truncation error ("Data truncated for column '%' at row %", "Out of range value for column '%' at row %") will be thrown as error, and not as warning.<br/>*Default: true. Since 1.4.0*| 
+|<a name="cacheCallableStmts">cacheCallableStmts</a>| enable/disable callable Statement cache<br/>*Default: true. Since 1.4.0*| 
+|<a name="callableStmtCacheSize">callableStmtCacheSize</a>| This sets the number of callable statements that the driver will cache per VM if "cacheCallableStmts" is enabled.<br/>*Default: true. Since 1.4.0*| 
 
 ### Failover/High availability URL parameters
 

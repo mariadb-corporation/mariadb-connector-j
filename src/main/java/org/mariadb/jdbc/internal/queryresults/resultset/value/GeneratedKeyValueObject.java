@@ -52,14 +52,11 @@ package org.mariadb.jdbc.internal.queryresults.resultset.value;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.sql.Blob;
-import java.sql.Date;
-import java.sql.Time;
-import java.sql.Timestamp;
+import java.sql.*;
 import java.text.ParseException;
 import java.util.Calendar;
 
-public class GeneratedKeyValueObject implements ValueObject {
+public class GeneratedKeyValueObject extends AbstractValueObject implements ValueObject {
     Long insertId;
 
     public GeneratedKeyValueObject(long insertId) {
@@ -165,4 +162,10 @@ public class GeneratedKeyValueObject implements ValueObject {
     public Blob getBlob() {
         return null;
     }
+
+    @Override
+    public Clob getClob() {
+        return null;
+    }
+
 }

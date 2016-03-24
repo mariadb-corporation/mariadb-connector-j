@@ -220,7 +220,7 @@ public interface Protocol {
 
     void getMoreResults(ExecutionResult executionResult) throws QueryException;
 
-    void setMoreResults(boolean moreResults);
+    void setMoreResults(boolean moreResults, boolean moreResultsTypeBinary);
 
     void setHasWarnings(boolean hasWarnings);
 

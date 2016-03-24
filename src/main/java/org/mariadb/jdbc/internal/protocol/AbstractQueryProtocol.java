@@ -121,6 +121,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     public PrepareResult prepare(String sql, boolean forceNew) throws QueryException {
         lock.lock();
         try {
+
             if (activeStreamingResult != null) {
                 throw new QueryException("There is an open result set on the current connection, which must be "
                         + "closed prior to executing a query");
@@ -428,10 +429,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
     @Override
     public void getMoreResults(ExecutionResult executionResult) throws QueryException {
-        if (!moreResults) {
+        if (!hasMoreResults()) {
             return;
         }
-        getResult(executionResult, ResultSet.TYPE_FORWARD_ONLY, (activeStreamingResult != null) ? activeStreamingResult.isBinaryProtocol() : false);
+        getResult(executionResult, ResultSet.TYPE_FORWARD_ONLY, (activeStreamingResult != null) ? activeStreamingResult.isBinaryProtocol() : moreResultsTypeBinary);
     }
 
     /**
@@ -553,7 +554,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     }
 
     public void executeQuery(final String sql) throws QueryException {
-        executeQuery(new SingleExecutionResult(null, 0, false), sql, ResultSet.TYPE_FORWARD_ONLY);
+        executeQuery(new SingleExecutionResult(null, 0, false, false), sql, ResultSet.TYPE_FORWARD_ONLY);
     }
 
     /**
@@ -932,6 +933,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 long fieldCount = buffer.getLengthEncodedBinary();
 
                 try {
+                    boolean callableResult = false;
                     ColumnInformation[] ci = new ColumnInformation[(int) fieldCount];
                     for (int i = 0; i < fieldCount; i++) {
                         ci[i] = new ColumnInformation(packetFetcher.getPacket());
@@ -941,16 +943,21 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     if (bufferEof.getByteAt(0) != Packet.EOF) {
                         throw new QueryException("Packets out of order when reading field packets, expected was EOF stream. "
                                 + "Packet contents (hex) = " + MasterProtocol.hexdump(bufferEof.buf, 0));
+                    } else if (executionResult.isCanHaveCallableResultset()) {
+                        EndOfFilePacket endOfFilePacket = new EndOfFilePacket(bufferEof);
+                        callableResult = (endOfFilePacket.getStatusFlags() & ServerStatus.PS_OUT_PARAMETERS) != 0;
                     }
 
                     MariaSelectResultSet mariaSelectResultset = new MariaSelectResultSet(ci, executionResult.getStatement(), this, packetFetcher,
                             binaryProtocol, resultSetScrollType, executionResult.getFetchSize());
                     mariaSelectResultset.initFetch();
-
+                    mariaSelectResultset.setCallableResult(callableResult);
                     if (!executionResult.isSelectPossible()) {
                         throw new QueryException("Select command are not permitted via executeBatch() command");
                     }
                     executionResult.addResult(mariaSelectResultset, hasMoreResults());
+
+
                 } catch (IOException e) {
                     throw new QueryException("Could not read result set: " + e.getMessage(),
                             -1,

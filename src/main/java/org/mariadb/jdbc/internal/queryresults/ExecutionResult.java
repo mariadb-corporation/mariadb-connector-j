@@ -12,6 +12,7 @@ public abstract class ExecutionResult {
     private boolean moreResultAvailable;
     private int fetchSize;
     private boolean selectPossible;
+    private boolean canHaveCallableResultset;
 
     /**
      * Constructor.
@@ -19,11 +20,13 @@ public abstract class ExecutionResult {
      * @param statement current statement
      * @param fetchSize execution fetch size
      * @param selectPossible is select query possible ?
+     * @param canHaveCallableResultset can the resultset be a Callable output resultset.
      */
-    public ExecutionResult(Statement statement, int fetchSize, boolean selectPossible) {
+    public ExecutionResult(Statement statement, int fetchSize, boolean selectPossible, boolean canHaveCallableResultset) {
         this.statement = statement;
         this.fetchSize = fetchSize;
         this.selectPossible = selectPossible;
+        this.canHaveCallableResultset = canHaveCallableResultset;
     }
 
     public MariaSelectResultSet getResult() {
@@ -75,6 +78,10 @@ public abstract class ExecutionResult {
 
     public boolean isSelectPossible() {
         return selectPossible;
+    }
+
+    public boolean isCanHaveCallableResultset() {
+        return canHaveCallableResultset;
     }
 }
 

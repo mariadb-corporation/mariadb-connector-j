@@ -123,8 +123,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
     protected String database;
     protected long serverThreadId;
     protected PrepareStatementCache prepareStatementCache;
+    protected boolean moreResults = false;
 
-    public boolean moreResults = false;
+    public boolean moreResultsTypeBinary = false;
     public boolean hasWarnings = false;
     public MariaSelectResultSet activeStreamingResult = null;
     public int dataTypeMappingFlags;
@@ -163,16 +164,18 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
 
         while (moreResults) {
-            SingleExecutionResult execution = new SingleExecutionResult(null, 0, true);
+            SingleExecutionResult execution = new SingleExecutionResult(null, 0, true, false);
             getMoreResults(execution);
         }
     }
 
     public abstract void getMoreResults(ExecutionResult executionResult) throws QueryException;
 
-    public void setMoreResults(boolean moreResults) {
+    public void setMoreResults(boolean moreResults, boolean isBinary) {
         this.moreResults = moreResults;
+        this.moreResultsTypeBinary = isBinary;
     }
+
     /**
      * Closes socket and stream readers/writers Attempts graceful shutdown.
      */
@@ -497,6 +500,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                         | MariaDbServerCapabilities.SECURE_CONNECTION
                         | MariaDbServerCapabilities.LOCAL_FILES
                         | MariaDbServerCapabilities.MULTI_RESULTS
+                        | MariaDbServerCapabilities.PS_MULTI_RESULTS
                         | MariaDbServerCapabilities.FOUND_ROWS;
 
 
@@ -572,7 +576,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     private void loadServerData() throws QueryException, IOException {
         serverData = new TreeMap<>();
-        SingleExecutionResult qr = new SingleExecutionResult(null, 0, true);
+        SingleExecutionResult qr = new SingleExecutionResult(null, 0, true, false);
         try {
             executeQuery(qr, "SELECT "
                     + "@@max_allowed_packet, "
@@ -693,7 +697,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     }
 
     public boolean shouldReconnectWithoutProxy() {
-        return (!((serverStatus & ServerStatus.IN_TRANSACTION) != 0) && hostFailed && options.autoReconnect);
+        return (!((serverStatus & ServerStatus.IN_TRANSACTION) != 0) && hostFailed && urlParser.getOptions().autoReconnect);
     }
 
     public String getServerVersion() {
@@ -880,6 +884,15 @@ public abstract class AbstractConnectProtocol implements Protocol {
     @Override
     public ReentrantLock getLock() {
         return lock;
+    }
+
+    @Override
+    public boolean hasMoreResults() {
+        return moreResults;
+    }
+
+    public PrepareStatementCache getPrepareStatementCache() {
+        return prepareStatementCache;
     }
 
     public abstract void executeQuery(final String sql) throws QueryException;

@@ -9,8 +9,8 @@ public class SingleExecutionResult extends ExecutionResult {
     long insertId;
     long affectedRows;
 
-    public SingleExecutionResult(Statement statement, int fetchSize, boolean selectPossible) {
-        super(statement, fetchSize, selectPossible);
+    public SingleExecutionResult(Statement statement, int fetchSize, boolean selectPossible, boolean canHaveCallableResultset) {
+        super(statement, fetchSize, selectPossible, canHaveCallableResultset);
     }
 
     /**

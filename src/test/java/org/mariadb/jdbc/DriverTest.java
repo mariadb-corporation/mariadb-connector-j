@@ -60,6 +60,7 @@ public class DriverTest extends BaseTest {
         createTable("DriverTestt3", "id int not null primary key auto_increment, test varchar(20)");
         createTable("DriverTestt4", "id int not null primary key auto_increment, test varchar(20)");
         createTable("DriverTestt5", "id int not null primary key auto_increment, test varchar(20)");
+        createProcedure("foo", "() BEGIN SELECT 1; END");
     }
 
     @Test

@@ -60,8 +60,8 @@ import java.sql.*;
 import java.util.*;
 
 
-public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatement {
-    private final String sqlQuery;
+public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatement implements Cloneable {
+    private String sqlQuery;
     private List<String> queryParts;
     private ParameterHolder[] parameters;
     private List<ParameterHolder[]> parameterList = new ArrayList<>();
@@ -86,6 +86,23 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
         parameters = new ParameterHolder[paramCount];
     }
 
+    /**
+     * Clone statement.
+     *
+     * @return Clone statement.
+     * @throws CloneNotSupportedException if any error occur.
+     */
+    public MariaDbClientPreparedStatement clone() throws CloneNotSupportedException {
+        MariaDbClientPreparedStatement clone = (MariaDbClientPreparedStatement) super.clone();
+        clone.sqlQuery = sqlQuery;
+        clone.queryParts = queryParts;
+        clone.paramCount = paramCount;
+        clone.parameters = new ParameterHolder[paramCount];
+        clone.resultSetMetaData = resultSetMetaData;
+        clone.parameterMetaData = parameterMetaData;
+        return clone;
+    }
+
     @Override
     protected boolean isNoBackslashEscapes() {
         return connection.noBackslashEscapes;
@@ -101,6 +118,9 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
         return protocol.getCalendar();
     }
 
+    protected ParameterHolder getCurrentParameterHolder(final int parameterIndex) {
+        return parameters[parameterIndex];
+    }
 
     /**
      * Executes the SQL statement in this <code>PreparedStatement</code> object,
@@ -176,9 +196,9 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
         try {
             executeQueryProlog();
             batchResultSet = null;
-            SingleExecutionResult executionResultTmp = new SingleExecutionResult(this, getFetchSize(), true);
+            SingleExecutionResult executionResultTmp = new SingleExecutionResult(this, getFetchSize(), true, false);
             protocol.executeQueries(executionResultTmp, queryParts, Collections.singletonList(parameters), resultSetScrollType, false);
-            cacheMoreResults(executionResultTmp, getFetchSize());
+            cacheMoreResults(executionResultTmp, getFetchSize(), false);
             executionResult = executionResultTmp;
             return executionResult.getResult() != null;
         } catch (QueryException e) {
@@ -246,7 +266,7 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
                 if (isRewriteable && (protocol.getOptions().allowMultiQueries || protocol.getOptions().rewriteBatchedStatements)) {
                     boolean rewrittenBatch = isRewriteable && protocol.getOptions().rewriteBatchedStatements;
                     protocol.executeQueries(internalExecutionResult, queryParts, parameterList, resultSetScrollType, rewrittenBatch);
-                    cacheMoreResults(internalExecutionResult, getFetchSize());
+                    cacheMoreResults(internalExecutionResult, getFetchSize(), false);
                     if (rewrittenBatch) {
                         //operation will be done on first execution ( or a few execution if max packet size is not enought for one operation)
                         internalExecutionResult.updateResultsForRewrite();
@@ -259,7 +279,7 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
                     for (; batchQueriesCount < size; batchQueriesCount++) {
                         protocol.executeQueries(internalExecutionResult, queryParts, Collections.singletonList(parameterList.get(batchQueriesCount)),
                                 resultSetScrollType, false);
-                        cacheMoreResults(internalExecutionResult, 0);
+                        cacheMoreResults(internalExecutionResult, 0, false);
                     }
                 }
             } catch (QueryException e) {
@@ -366,6 +386,10 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
                 || connection.pooledConnection.statementEventListeners.isEmpty()) {
             return;
         }
+    }
+
+    protected int getParameterCount() {
+        return paramCount;
     }
 
     public String toString() {

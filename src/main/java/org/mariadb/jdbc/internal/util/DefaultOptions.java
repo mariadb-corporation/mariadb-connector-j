@@ -333,8 +333,18 @@ public enum DefaultOptions {
      * Read socket data in advance when available packet to avoid socket buffering.
      *
      */
-    USE_READ_AHEAD_INPUT("useReadAheadInput", Boolean.TRUE, "1.4.0");
+    USE_READ_AHEAD_INPUT("useReadAheadInput", Boolean.TRUE, "1.4.0"),
 
+    /**
+     * enable/disable callable Statement cache, default true.
+     */
+    CACHE_CALLABLE_STMTS("cacheCallableStmts", Boolean.TRUE, "1.4.0"),
+
+    /**
+     * This sets the number of callable statements that the driver will cache per VM if "cacheCallableStmts" is enabled.
+     * default to 150.
+     */
+    CALLABLE_STMT_CACHE_SIZE("callableStmtCacheSize", new Integer(150), new Integer(0), Integer.MAX_VALUE, "1.4.0");
 
     protected final String name;
     protected final Object objType;

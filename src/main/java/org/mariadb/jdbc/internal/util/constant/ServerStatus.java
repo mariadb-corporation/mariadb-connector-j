@@ -59,5 +59,7 @@ public class ServerStatus {
     public static short LAST_ROW_SENT = 128;
     public static short DB_DROPPED = 256;
     public static short NO_BACKSLASH_ESCAPES = 512;
-    public static short QUERY_WAS_SLOW = 1024;
+    public static short METADATA_CHANGED = 1024;
+    public static short QUERY_WAS_SLOW = 2048;
+    public static short PS_OUT_PARAMETERS = 4096;
 }

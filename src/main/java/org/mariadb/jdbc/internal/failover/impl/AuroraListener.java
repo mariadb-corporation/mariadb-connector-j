@@ -172,7 +172,7 @@ public class AuroraListener extends MastersSlavesListener {
             try {
                 proxy.lock.lock();
                 try {
-                    SingleExecutionResult executionResult = new SingleExecutionResult(null, 0, true);
+                    SingleExecutionResult executionResult = new SingleExecutionResult(null, 0, true, false);
                     secondaryProtocol.executeQuery(executionResult,
                             "select server_id from information_schema.replica_host_status where session_id = 'MASTER_SESSION_ID'",
                             ResultSet.TYPE_FORWARD_ONLY);

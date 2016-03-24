@@ -53,31 +53,48 @@ OF SUCH DAMAGE.
 import org.mariadb.jdbc.internal.util.Utils;
 
 import java.sql.*;
-import java.util.StringTokenizer;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-class CallableParameterMetaData implements ParameterMetaData {
+public class CallableParameterMetaData implements ParameterMetaData {
 
     private static Pattern PARAMETER_PATTERN =
             Pattern.compile("\\s*(IN\\s+|OUT\\s+|INOUT\\s+)?([\\w\\d]+)\\s+(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*",
                     Pattern.CASE_INSENSITIVE);
     private static Pattern RETURN_PATTERN =
-            Pattern.compile("\\s*(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*", Pattern.CASE_INSENSITIVE);
-    private CallParameter[] params;
+            Pattern.compile("\\s*(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*(CHARSET\\s+)?(\\w+)?\\s*", Pattern.CASE_INSENSITIVE);
+    private List<CallParameter> params;
     private MariaDbConnection con;
+    private String database;
     private String name;
     private boolean valid;
     private boolean isFunction;
     private boolean noAccessToMetadata;
 
-    public CallableParameterMetaData(CallParameter[] params, MariaDbConnection con, String name, boolean isFunction) {
-        this.params = params;
+    /**
+     * Retrieve Callable metaData.
+     * @param con connection
+     * @param database database name
+     * @param name procedure/function name
+     * @param isFunction is it a function
+     */
+    public CallableParameterMetaData(MariaDbConnection con, String database, String name, boolean isFunction) {
+        this.params = null;
         this.con = con;
-        this.name = name;
+        if (database != null) {
+            this.database = database.replace("`","");
+        } else {
+            this.database = null;
+        }
+        this.name = name.replace("`","");
         this.isFunction = isFunction;
     }
 
+    /**
+     * Search metaData if not already loaded.
+     * @throws SQLException if error append during loading metaData
+     */
     public void readMetadataFromDbIfRequired() throws SQLException {
         if (noAccessToMetadata || valid) {
             return;
@@ -135,40 +152,38 @@ class CallableParameterMetaData implements ParameterMetaData {
     }
 
 
-    private String[] queryMetaInfos() throws SQLException {
-        String dbname = "database()";
-        String procedureNameNoDb = name;
-
-        int dotIndex = name.indexOf('.');
-        if (dotIndex > 0) {
-            dbname = name.substring(0, dotIndex);
-            dbname = dbname.replace("`", "");
-            dbname = "'" + Utils.escapeString(dbname, con.noBackslashEscapes) + "'";
-            procedureNameNoDb = name.substring(dotIndex + 1);
+    private String[] queryMetaInfos(boolean isFunction) throws SQLException {
+        PreparedStatement preparedStatement;
+        if (database != null) {
+            preparedStatement = con.prepareStatement("select param_list,returns, db, type from mysql.proc where db=? and name=?");
+        } else {
+            preparedStatement = con.prepareStatement("select param_list,returns, db, type from mysql.proc where db=DATABASE() and name=?");
         }
 
-        procedureNameNoDb = procedureNameNoDb.replace("`", "");
-        procedureNameNoDb = "'" + Utils.escapeString(procedureNameNoDb, con.noBackslashEscapes) + "'";
-
-        Statement st = con.createStatement();
         ResultSet rs = null;
         String paramList;
         String functionReturn;
         try {
-            String query = "select param_list,returns from mysql.proc where db="
-                    + dbname + " and name=" + procedureNameNoDb;
-            rs = st.executeQuery(query);
+            if (database == null) {
+                preparedStatement.setString(1, name);
+            } else {
+                preparedStatement.setString(1, database);
+                preparedStatement.setString(2, name);
+            }
+            rs = preparedStatement.executeQuery();
             if (!rs.next()) {
-                throw new SQLException("procedure or function " + name + " does not exist");
+                throw new SQLException((isFunction ? "function" : "procedure") + " `" + name + "` does not exist");
             }
             paramList = rs.getString(1);
             functionReturn = rs.getString(2);
+            database = rs.getString(3);
+            this.isFunction = "FUNCTION".equals(rs.getString(4));
             return new String[] {paramList, functionReturn};
         } finally {
             if (rs != null) {
                 rs.close();
             }
-            st.close();
+            preparedStatement.close();
         }
 
     }
@@ -181,7 +196,7 @@ class CallableParameterMetaData implements ParameterMetaData {
         if (!matcher.matches()) {
             throw new SQLException("can not parse return value definition :" + functionReturn);
         }
-        CallParameter callParameter = params[1];
+        CallParameter callParameter = params.get(0);
         callParameter.isOutput = true;
         callParameter.isSigned = (matcher.group(1) == null);
         callParameter.typeName = matcher.group(2).trim();
@@ -193,35 +208,22 @@ class CallableParameterMetaData implements ParameterMetaData {
         }
     }
 
-    private void parseParamList(String paramList) throws SQLException {
-        String splitter = ",";
-        StringTokenizer tokenizer = new StringTokenizer(paramList, splitter, false);
-        int paramIndex = isFunction ? 2 : 1;
+    private void parseParamList(boolean isFunction, String paramList) throws SQLException {
+        params = new ArrayList<>();
+        if (isFunction) {
+            //output parameter
+            params.add(new CallParameter());
+        }
 
-        while (tokenizer.hasMoreTokens()) {
-            if (paramIndex >= params.length) {
-                throw new SQLException("Invalid placeholder count in CallableStatement");
-            }
-
-            String paramDef = tokenizer.nextToken();
-            Pattern pattern = Pattern.compile(".*\\([^)]*");
-            Matcher matcher = pattern.matcher(paramDef);
-            while (matcher.matches()) {
-                paramDef += splitter + tokenizer.nextToken();
-                matcher = pattern.matcher(paramDef);
-            }
-
-            Matcher matcher2 = PARAMETER_PATTERN.matcher(paramDef);
-            if (!matcher2.matches()) {
-                throw new SQLException("cannot parse parameter definition :" + paramDef);
-            }
+        Matcher matcher2 = PARAMETER_PATTERN.matcher(paramList);
+        while (matcher2.find()) {
+            CallParameter callParameter = new CallParameter();
             String direction = matcher2.group(1);
             if (direction != null) {
                 direction = direction.trim();
             }
-            CallParameter callParameter = params[paramIndex];
-            callParameter.name = matcher2.group(2).trim();
 
+            callParameter.name = matcher2.group(2).trim();
             callParameter.isSigned = (matcher2.group(3) == null);
             callParameter.typeName = matcher2.group(4).trim().toUpperCase();
 
@@ -245,7 +247,7 @@ class CallableParameterMetaData implements ParameterMetaData {
                 }
                 callParameter.scale = Integer.valueOf(scale).intValue();
             }
-            paramIndex++;
+            params.add(callParameter);
         }
     }
 
@@ -255,31 +257,32 @@ class CallableParameterMetaData implements ParameterMetaData {
      */
     public void readMetadata() throws SQLException {
         if (noAccessToMetadata || valid) {
-            return;
+            return ;
         }
 
-        String[] metaInfos = queryMetaInfos();
+        String[] metaInfos = queryMetaInfos(isFunction);
         String paramList = metaInfos[0];
         String functionReturn = metaInfos[1];
+
+        parseParamList(isFunction, paramList);
 
         // parse type of the return value (for functions)
         if (isFunction) {
             parseFunctionReturnParam(functionReturn);
         }
-        parseParamList(paramList);
 
     }
 
     public int getParameterCount() throws SQLException {
-        return params.length - 1;
+        return params.size();
     }
 
     CallParameter getParam(int index) throws SQLException {
-        if (index < 1 || index >= params.length) {
+        if (index < 1 || index > params.size()) {
             throw new SQLException("invalid parameter index " + index);
         }
         readMetadataFromDbIfRequired();
-        return params[index];
+        return params.get(index - 1);
     }
 
     public int isNullable(int param) throws SQLException {
@@ -310,6 +313,19 @@ class CallableParameterMetaData implements ParameterMetaData {
         return getParam(param).className;
     }
 
+    /**
+     * Get mode info.
+     * <ul>
+     *     <li>0 : unknown</li>
+     *     <li>1 : IN</li>
+     *     <li>2 : INOUT</li>
+     *     <li>4 : OUT</li>
+     *</ul>
+     *
+     * @param param parameter index
+     * @return mode information
+     * @throws SQLException if index is wrong
+     */
     public int getParameterMode(int param) throws SQLException {
         CallParameter callParameter = getParam(param);
         if (callParameter.isInput && callParameter.isOutput) {
@@ -334,5 +350,10 @@ class CallableParameterMetaData implements ParameterMetaData {
 
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
         return false;
+    }
+
+    public String getDatabase() throws SQLException {
+        readMetadataFromDbIfRequired();
+        return database;
     }
 }

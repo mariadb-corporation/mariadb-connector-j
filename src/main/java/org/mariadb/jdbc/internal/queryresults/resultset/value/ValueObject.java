@@ -41,6 +41,8 @@ public interface ValueObject {
 
     Object getObject(int datatypeMappingFlags, Calendar cal) throws SQLException, ParseException;
 
+    <T> T getObject(Class<T> type) throws SQLException;
+
     Date getDate(Calendar cal) throws ParseException;
 
     Time getTime(Calendar cal) throws ParseException;
@@ -52,4 +54,7 @@ public interface ValueObject {
     boolean isNull();
 
     Blob getBlob();
+
+    Clob getClob();
+
 }
