@@ -374,10 +374,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
     }
 
     private void setSessionOptions()  throws QueryException {
-        // In JDBC, connection must start in autocommit mode.
-        if ((serverStatus & ServerStatus.AUTOCOMMIT) == 0) {
-            executeQuery("set autocommit=1", false);
-        }
+        // In JDBC, connection must start in autocommit mode
+        // [CONJ-269] we cannot rely on serverStatus & ServerStatus.AUTOCOMMIT before this command to avoid this command.
+        // if autocommit=0 is set on server configuration, DB always send Autocommit on serverStatus flag
+        // after setting autocommit, we can rely on serverStatus value
+        executeQuery("set session autocommit=1", false);
         if (urlParser.getOptions().sessionVariables != null) {
             executeQuery("set session " + urlParser.getOptions().sessionVariables, false);
         }
