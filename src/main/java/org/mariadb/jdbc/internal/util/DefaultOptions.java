@@ -330,12 +330,6 @@ public enum DefaultOptions {
     JDBCOMPLIANTRUNCATION("jdbcCompliantTruncation", Boolean.TRUE, "1.4.0"),
 
     /**
-     * Read socket data in advance when available packet to avoid socket buffering.
-     *
-     */
-    USE_READ_AHEAD_INPUT("useReadAheadInput", Boolean.TRUE, "1.4.0"),
-
-    /**
      * enable/disable callable Statement cache, default true.
      */
     CACHE_CALLABLE_STMTS("cacheCallableStmts", Boolean.TRUE, "1.4.0"),

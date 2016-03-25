@@ -68,9 +68,27 @@ public class ReadPacketFetcher {
     }
 
     /**
+     * Get next packet length.
+     *
+     * @return the length of the next packet
+     * @throws IOException if any
+     */
+    public int getPacketLength() throws IOException {
+        int read = 0;
+        do {
+            int count = inputStream.read(headerBuffer, read, 4 - read);
+            if (count <= 0) {
+                throw new EOFException("unexpected end of stream, read " + read + " bytes from " + 4);
+            }
+            read += count;
+        } while (read < 4);
+        return (headerBuffer[0] & 0xff) + ((headerBuffer[1] & 0xff) << 8) + ((headerBuffer[2] & 0xff) << 16);
+    }
+
+    /**
      * Get buffer packet.
      *
-     * @return ByteBuffer the bytebuffer
+     * @return Buffer the buffer
      * @throws IOException if any
      */
     public Buffer getPacket() throws IOException {
@@ -103,9 +121,37 @@ public class ReadPacketFetcher {
     }
 
     /**
+     * Get buffer with shared array of designated length.
+     * @param length length to read
+     * @return Buffer the buffer
+     * @throws IOException if any
+     */
+    public Buffer getReusableBuffer(int length) throws IOException {
+
+        byte[] rawBytes;
+
+        if (length < ReadPacketFetcher.AVOID_CREATE_BUFFER_LENGTH) {
+            rawBytes = reusableBuffer;
+        } else {
+            rawBytes = new byte[length];
+        }
+
+        int reads = 0;
+        do {
+            int count = inputStream.read(rawBytes, reads, length - reads);
+            if (count < 0) {
+                throw new EOFException("unexpected end of stream, read " + reads + " bytes from " + length);
+            }
+            reads += count;
+        } while (reads < length);
+
+        return new Buffer(rawBytes, length);
+    }
+
+    /**
      * Get buffer with shared array.
      *
-     * @return ByteBuffer the bytebuffer
+     * @return Buffer the buffer
      * @throws IOException if any
      */
     public Buffer getReusableBuffer() throws IOException {
@@ -152,5 +198,31 @@ public class ReadPacketFetcher {
     
     public void close() throws IOException {
         inputStream.close();
+    }
+
+    public InputStream getInputStream() {
+        return inputStream;
+    }
+
+    /**
+     * Read buffer without reading the length packet first.
+     *
+     * @param length data to read
+     * @return byte array the de desired length
+     * @throws IOException if any error occur
+     */
+    public byte[] readLength(int length) throws IOException {
+        byte[] valueBuffer = new byte[length];
+        int remainingToRead = length;
+        int off = 0;
+        do {
+            int count = inputStream.read(valueBuffer, off, remainingToRead);
+            if (count <= 0) {
+                throw new EOFException("unexpected end of stream, read " + (length - remainingToRead) + " bytes from " + length);
+            }
+            remainingToRead -= count;
+            off += count;
+        } while (remainingToRead > 0);
+        return valueBuffer;
     }
 }

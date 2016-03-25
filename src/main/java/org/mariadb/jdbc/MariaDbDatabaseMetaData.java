@@ -50,7 +50,6 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc;
 
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
-import org.mariadb.jdbc.internal.queryresults.resultset.value.ValueObject;
 import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.constant.Version;
 import org.mariadb.jdbc.internal.util.dao.Identifier;
@@ -401,9 +400,11 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
                         + " WHEN 'binary' THEN " + Types.BINARY
                         + " WHEN 'time' THEN " + Types.TIME
                         + " WHEN 'timestamp' THEN " + Types.TIMESTAMP
-                        + " WHEN 'tinyint' THEN " + (((connection.getProtocol().getDataTypeMappingFlags() & ValueObject.TINYINT1_IS_BIT) == 0)
+                        + " WHEN 'tinyint' THEN "
+                        + (((connection.getProtocol().getDataTypeMappingFlags() & MariaSelectResultSet.TINYINT1_IS_BIT) == 0)
                         ? Types.TINYINT : "IF(" + fullTypeColumnName + "='tinyint(1)'," + Types.BIT + "," + Types.TINYINT + ") ")
-                        + " WHEN 'year' THEN " + (((connection.getProtocol().getDataTypeMappingFlags() & ValueObject.YEAR_IS_DATE_TYPE) == 0)
+                        + " WHEN 'year' THEN "
+                        + (((connection.getProtocol().getDataTypeMappingFlags() & MariaSelectResultSet.YEAR_IS_DATE_TYPE) == 0)
                         ? Types.SMALLINT : Types.DATE)
                         + " ELSE " + Types.OTHER
                         + " END ";

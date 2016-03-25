@@ -345,6 +345,7 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
     public boolean execute() throws SQLException {
         return executeInternal(getFetchSize(), false);
     }
+
     protected void validParameters() throws SQLException {
         for (int i = 0; i < parameterCount; i++) {
             if (currentParameterHolder[i] == null) {

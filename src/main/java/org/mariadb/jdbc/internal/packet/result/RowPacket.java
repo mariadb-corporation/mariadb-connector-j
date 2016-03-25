@@ -49,12 +49,16 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-import org.mariadb.jdbc.internal.queryresults.resultset.value.ValueObject;
+
 import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
 import org.mariadb.jdbc.internal.util.buffer.Buffer;
 
 import java.io.IOException;
+import java.io.InputStream;
 
 public interface RowPacket {
-    ValueObject[] getRow(ReadPacketFetcher packetFetcher, Buffer buffer) throws IOException;
+
+    byte[][] getRow(ReadPacketFetcher packetFetcher, Buffer buffer) throws IOException;
+
+    byte[][] getRow(ReadPacketFetcher packetFetcher, InputStream inputStream, int remaining, int read) throws IOException;
 }

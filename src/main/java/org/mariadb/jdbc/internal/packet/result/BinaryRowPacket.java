@@ -49,71 +49,69 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.packet.result;
 
-import org.mariadb.jdbc.internal.util.Options;
-import org.mariadb.jdbc.internal.queryresults.resultset.value.ValueObject;
+import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
 import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
 import org.mariadb.jdbc.internal.util.buffer.Buffer;
-import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
-import org.mariadb.jdbc.internal.queryresults.resultset.value.MariaDbValueObject;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
+import java.io.InputStream;
 
 
 public class BinaryRowPacket implements RowPacket {
     private final ColumnInformation[] columnInformation;
-    private final Options options;
     private final int columnInformationLength;
 
     /**
      * Constructor.
-     * @param columnInformation column information.
-     * @param options options
+     *
+     * @param columnInformation       column information.
      * @param columnInformationLength number of columns
      */
-    public BinaryRowPacket(ColumnInformation[] columnInformation, Options options, int columnInformationLength) {
+    public BinaryRowPacket(ColumnInformation[] columnInformation, int columnInformationLength) {
         this.columnInformation = columnInformation;
-        this.options = options;
         this.columnInformationLength = columnInformationLength;
     }
 
     /**
      * Fetch stream to retrieve data. Data length is unknown.
-     * @param buffer buffer
+     *
+     * @param buffer        buffer
      * @param packetFetcher packetFetcher
+     * @return next field length
      * @throws IOException if a connection error occur
      */
-    public void appendPacketIfNeeded(Buffer buffer, ReadPacketFetcher packetFetcher) throws IOException {
-        long encLength = buffer.getSilentLengthEncodedBinary();
+    public long appendPacketIfNeeded(Buffer buffer, ReadPacketFetcher packetFetcher) throws IOException {
+        long encLength = buffer.getLengthEncodedBinary();
         while (encLength > buffer.remaining()) {
             buffer.appendPacket(packetFetcher.getPacket());
-            encLength = buffer.getSilentLengthEncodedBinary();
         }
+        return encLength;
     }
 
     /**
      * Fetch stream to retrieve data. Data length is known.
-     * @param buffer reader
+     *
+     * @param buffer        reader
      * @param packetFetcher packetFetcher
-     * @param encLength data binary length
+     * @param encLength     data binary length
      * @throws IOException if a connection error occur
      */
     public void appendPacketIfNeeded(Buffer buffer, ReadPacketFetcher packetFetcher, long encLength) throws IOException {
         while (encLength > buffer.remaining()) {
             buffer.appendPacket(packetFetcher.getPacket());
-            encLength = buffer.getSilentLengthEncodedBinary();
         }
     }
 
     /**
      * Get next row data.
+     *
      * @param packetFetcher packetFetcher
-     * @param buffer current buffer
+     * @param buffer        current buffer
      * @return read data
      * @throws IOException if any connection error occur
      */
-    public ValueObject[] getRow(ReadPacketFetcher packetFetcher, Buffer buffer) throws IOException {
-        ValueObject[] valueObjects = new ValueObject[columnInformationLength];
+    public byte[][] getRow(ReadPacketFetcher packetFetcher, Buffer buffer) throws IOException {
+        byte[][] valueObjects = new byte[columnInformationLength][];
         buffer.skipByte(); //stream header
         int nullCount = (columnInformationLength + 9) / 8;
         byte[] nullBitsBuffer = buffer.readRawBytes(nullCount);
@@ -121,7 +119,7 @@ public class BinaryRowPacket implements RowPacket {
         for (int i = 0; i < columnInformationLength; i++) {
             if ((nullBitsBuffer[(i + 2) / 8] & (1 << ((i + 2) % 8))) > 0) {
                 //field is null
-                valueObjects[i] = new MariaDbValueObject(null, columnInformation[i], true, options);
+                valueObjects[i] = null;
             } else {
                 switch (columnInformation[i].getType()) {
                     case VARCHAR:
@@ -137,52 +135,48 @@ public class BinaryRowPacket implements RowPacket {
                     case GEOMETRY:
                     case OLDDECIMAL:
                     case DECIMAL:
-                        appendPacketIfNeeded(buffer, packetFetcher);
-                        valueObjects[i] = new MariaDbValueObject(buffer.getLengthEncodedBytes(), columnInformation[i], true, options);
+                    case TIME:
+                    case DATE:
+                    case DATETIME:
+                    case TIMESTAMP:
+                        long length = appendPacketIfNeeded(buffer, packetFetcher);
+                        valueObjects[i] = buffer.getLengthEncodedBytesWithLength(length);
                         break;
 
                     case BIGINT:
                         appendPacketIfNeeded(buffer, packetFetcher, 8);
-                        valueObjects[i] = new MariaDbValueObject(buffer.getLengthEncodedBytesWithLength(8), columnInformation[i], true, options);
+                        valueObjects[i] = buffer.getLengthEncodedBytesWithLength(8);
                         break;
 
                     case INTEGER:
                     case MEDIUMINT:
                         appendPacketIfNeeded(buffer, packetFetcher, 4);
-                        valueObjects[i] = new MariaDbValueObject(buffer.getLengthEncodedBytesWithLength(4), columnInformation[i], true, options);
+                        valueObjects[i] = buffer.getLengthEncodedBytesWithLength(4);
                         break;
 
                     case SMALLINT:
                     case YEAR:
                         appendPacketIfNeeded(buffer, packetFetcher, 2);
-                        valueObjects[i] = new MariaDbValueObject(buffer.getLengthEncodedBytesWithLength(2), columnInformation[i], true, options);
+                        valueObjects[i] = buffer.getLengthEncodedBytesWithLength(2);
                         break;
 
                     case TINYINT:
                         appendPacketIfNeeded(buffer, packetFetcher, 1);
-                        valueObjects[i] = new MariaDbValueObject(buffer.getLengthEncodedBytesWithLength(1), columnInformation[i], true, options);
+                        valueObjects[i] = buffer.getLengthEncodedBytesWithLength(1);
                         break;
 
                     case DOUBLE:
                         appendPacketIfNeeded(buffer, packetFetcher, 8);
-                        valueObjects[i] = new MariaDbValueObject(buffer.getLengthEncodedBytesWithLength(8), columnInformation[i], true, options);
+                        valueObjects[i] = buffer.getLengthEncodedBytesWithLength(8);
                         break;
 
                     case FLOAT:
                         appendPacketIfNeeded(buffer, packetFetcher, 4);
-                        valueObjects[i] = new MariaDbValueObject(buffer.getLengthEncodedBytesWithLength(4), columnInformation[i], true, options);
-                        break;
-
-                    case TIME:
-                    case DATE:
-                    case DATETIME:
-                    case TIMESTAMP:
-                        appendPacketIfNeeded(buffer, packetFetcher);
-                        valueObjects[i] = new MariaDbValueObject(buffer.getLengthEncodedBytes(), columnInformation[i], true, options);
+                        valueObjects[i] = buffer.getLengthEncodedBytesWithLength(4);
                         break;
                     default:
                         appendPacketIfNeeded(buffer, packetFetcher);
-                        valueObjects[i] = new MariaDbValueObject(null, columnInformation[i], true, options);
+                        valueObjects[i] = null;
                         break;
                 }
             }
@@ -190,4 +184,112 @@ public class BinaryRowPacket implements RowPacket {
         return valueObjects;
     }
 
+    /**
+     * Read text row stream. (to fetch Resulset.next() datas)
+     *
+     * @param packetFetcher packetFetcher
+     * @param inputStream inputStream
+     * @return datas object
+     * @throws IOException if any connection error occur
+     */
+    public byte[][] getRow(ReadPacketFetcher packetFetcher, InputStream inputStream, int remaining, int read) throws IOException {
+        byte[][] valueObjects = new byte[columnInformationLength][];
+        int toReadLen;
+        int nullCount = (columnInformationLength + 9) / 8;
+        byte[] nullBitsBuffer = packetFetcher.readLength(nullCount);
+        remaining -= nullCount;
+        for (int i = 0; i < columnInformationLength; i++) {
+            if ((nullBitsBuffer[(i + 2) / 8] & (1 << ((i + 2) % 8))) > 0) {
+                //field is null
+                valueObjects[i] = null;
+            } else {
+                switch (columnInformation[i].getType()) {
+                    case VARCHAR:
+                    case BIT:
+                    case ENUM:
+                    case SET:
+                    case TINYBLOB:
+                    case MEDIUMBLOB:
+                    case LONGBLOB:
+                    case BLOB:
+                    case VARSTRING:
+                    case STRING:
+                    case GEOMETRY:
+                    case OLDDECIMAL:
+                    case DECIMAL:
+                    case TIME:
+                    case DATE:
+                    case DATETIME:
+                    case TIMESTAMP:
+                        read = inputStream.read() & 0xff;
+                        remaining -= 1;
+                        switch (read) {
+                            case 251:
+                                toReadLen = -1;
+                                break;
+                            case 252:
+                                toReadLen = ((inputStream.read() & 0xff) + ((inputStream.read() & 0xff) << 8));
+                                remaining -= 2;
+                                break;
+                            case 253:
+                                toReadLen = (inputStream.read() & 0xff)
+                                        + ((inputStream.read() & 0xff) << 8)
+                                        + ((inputStream.read() & 0xff) << 16);
+                                remaining -= 3;
+                                break;
+                            case 254:
+                                toReadLen = (int) (((inputStream.read() & 0xff)
+                                        + ((long) (inputStream.read() & 0xff) << 8)
+                                        + ((long) (inputStream.read() & 0xff) << 16)
+                                        + ((long) (inputStream.read() & 0xff) << 24)
+                                        + ((long) (inputStream.read() & 0xff) << 32)
+                                        + ((long) (inputStream.read() & 0xff) << 40)
+                                        + ((long) (inputStream.read() & 0xff) << 48)
+                                        + ((long) (inputStream.read() & 0xff) << 56)));
+                                remaining -= 8;
+                                break;
+                            default:
+                                toReadLen = read;
+                        }
+                        if (toReadLen == -1) {
+                            valueObjects[i] = null;
+                        } else if (toReadLen == 0) {
+                            valueObjects[i] = new byte[0];
+                        } else {
+                            valueObjects[i] = packetFetcher.readLength(toReadLen);
+                            remaining -= toReadLen;
+                        }
+                        break;
+
+                    case BIGINT:
+                    case DOUBLE:
+                        valueObjects[i] = packetFetcher.readLength(8);
+                        remaining -= 8;
+                        break;
+
+                    case INTEGER:
+                    case MEDIUMINT:
+                    case FLOAT:
+                        valueObjects[i] = packetFetcher.readLength(4);
+                        remaining -= 4;
+                        break;
+
+                    case SMALLINT:
+                    case YEAR:
+                        valueObjects[i] = packetFetcher.readLength(2);
+                        remaining -= 2;
+                        break;
+
+                    case TINYINT:
+                        valueObjects[i] = new byte[]{(byte) inputStream.read()};
+                        remaining -= 1;
+                        break;
+                    default:
+                        valueObjects[i] = null;
+                        break;
+                }
+            }
+        }
+        return valueObjects;
+    }
 }

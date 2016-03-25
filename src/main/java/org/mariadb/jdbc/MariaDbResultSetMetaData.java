@@ -49,8 +49,8 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
+import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
-import org.mariadb.jdbc.internal.queryresults.resultset.value.ValueObject;
 import org.mariadb.jdbc.internal.util.constant.ColumnFlags;
 import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
 import org.mariadb.jdbc.internal.MariaDbType;
@@ -278,13 +278,13 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
                 }
                 return Types.VARBINARY;
             case TINYINT:
-                if (ci.getLength() == 1 && (datatypeMappingflags & ValueObject.TINYINT1_IS_BIT) != 0) {
+                if (ci.getLength() == 1 && (datatypeMappingflags & MariaSelectResultSet.TINYINT1_IS_BIT) != 0) {
                     return Types.BIT;
                 } else {
                     return Types.TINYINT;
                 }
             case YEAR:
-                if ((datatypeMappingflags & ValueObject.YEAR_IS_DATE_TYPE) != 0) {
+                if ((datatypeMappingflags & MariaSelectResultSet.YEAR_IS_DATE_TYPE) != 0) {
                     return Types.DATE;
                 } else {
                     return Types.SMALLINT;

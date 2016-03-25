@@ -61,8 +61,6 @@ import org.mariadb.jdbc.internal.packet.send.SendOldPasswordAuthPacket;
 import org.mariadb.jdbc.internal.queryresults.ExecutionResult;
 import org.mariadb.jdbc.internal.queryresults.SingleExecutionResult;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
-import org.mariadb.jdbc.internal.queryresults.resultset.value.ValueObject;
-import org.mariadb.jdbc.internal.stream.OptimizedBufferedInputStream;
 import org.mariadb.jdbc.internal.util.*;
 import org.mariadb.jdbc.internal.util.buffer.Buffer;
 import org.mariadb.jdbc.internal.packet.read.ReadInitialConnectPacket;
@@ -416,8 +414,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private void handleConnectionPhases() throws QueryException {
         InputStream reader = null;
         try {
-            reader = getOptions().useReadAheadInput
-                    ? new OptimizedBufferedInputStream(socket.getInputStream()) : new BufferedInputStream(socket.getInputStream());
+            reader = new BufferedInputStream(socket.getInputStream());
             packetFetcher = new ReadPacketFetcher(reader);
             writer = new PacketOutputStream(socket.getOutputStream());
 
@@ -442,8 +439,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 sslSocket.startHandshake();
                 socket = sslSocket;
                 writer = new PacketOutputStream(socket.getOutputStream());
-                reader = getOptions().useReadAheadInput
-                        ? new OptimizedBufferedInputStream(socket.getInputStream()) : new BufferedInputStream(socket.getInputStream());
+                reader = new BufferedInputStream(socket.getInputStream());
                 packetFetcher = new ReadPacketFetcher(reader);
 
                 packetSeq++;
@@ -615,7 +611,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     private byte decideLanguage(byte serverLanguage) {
         //force UTF8mb4 if possible, UTF8 if not.
-        byte result = (isServerLanguageUtf8mb4(serverLanguage) ? serverLanguage : (byte) (versionGreaterOrEqual(5, 5, 3) ? 45 : 33));
+        byte result = (isServerLanguageUtf8mb4(serverLanguage) ? serverLanguage : 33);
         return result;
     }
 
@@ -842,10 +838,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private void setDataTypeMappingFlags() {
         dataTypeMappingFlags = 0;
         if (options.tinyInt1isBit) {
-            dataTypeMappingFlags |= ValueObject.TINYINT1_IS_BIT;
+            dataTypeMappingFlags |= MariaSelectResultSet.TINYINT1_IS_BIT;
         }
         if (options.yearIsDateType) {
-            dataTypeMappingFlags |= ValueObject.YEAR_IS_DATE_TYPE;
+            dataTypeMappingFlags |= MariaSelectResultSet.YEAR_IS_DATE_TYPE;
         }
     }
 

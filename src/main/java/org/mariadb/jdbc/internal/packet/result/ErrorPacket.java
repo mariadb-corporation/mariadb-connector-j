@@ -73,7 +73,30 @@ public class ErrorPacket extends AbstractResultPacket {
             this.message = buffer.readString(StandardCharsets.UTF_8);
         } else {
             // Pre-4.1 message, still can be output in newer versions (e.g with 'Too many connections')
-            this.message = new String(buffer.buf, StandardCharsets.UTF_8);
+            this.message = new String(buffer.buf, buffer.position, buffer.limit, StandardCharsets.UTF_8);
+            this.sqlState = "HY000".getBytes();
+        }
+    }
+
+    /**
+     * Constructor of error packet.
+     * Permit to avoid first byte if already read.
+     *
+     * @param buffer buffer
+     * @param firstByteToSkip has first byte is already read
+     */
+    public ErrorPacket(Buffer buffer, boolean firstByteToSkip) {
+        if (firstByteToSkip) {
+            buffer.skipByte();
+        }
+        this.errorNumber = buffer.readShort();
+        this.sqlStateMarker = buffer.readByte();
+        if (sqlStateMarker == '#') {
+            this.sqlState = buffer.readRawBytes(5);
+            this.message = buffer.readString(StandardCharsets.UTF_8);
+        } else {
+            // Pre-4.1 message, still can be output in newer versions (e.g with 'Too many connections')
+            this.message = new String(buffer.buf, buffer.position, buffer.limit, StandardCharsets.UTF_8);
             this.sqlState = "HY000".getBytes();
         }
     }

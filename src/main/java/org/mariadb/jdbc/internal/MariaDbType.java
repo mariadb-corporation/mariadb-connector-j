@@ -49,7 +49,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal;
 
-import org.mariadb.jdbc.internal.queryresults.resultset.value.ValueObject;
+import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -143,7 +143,7 @@ public enum MariaDbType {
     public static String getClassName(MariaDbType type, int len, boolean signed, boolean binary, int flags) {
         switch (type) {
             case TINYINT:
-                if (len == 1 && ((flags & ValueObject.TINYINT1_IS_BIT) != 0)) {
+                if (len == 1 && ((flags & MariaSelectResultSet.TINYINT1_IS_BIT) != 0)) {
                     return Boolean.class.getName();
                 }
                 return Integer.class.getName();
@@ -152,7 +152,7 @@ public enum MariaDbType {
             case BIGINT:
                 return (signed) ? Long.class.getName() : BigInteger.class.getName();
             case YEAR:
-                if ((flags & ValueObject.YEAR_IS_DATE_TYPE) != 0) {
+                if ((flags & MariaSelectResultSet.YEAR_IS_DATE_TYPE) != 0) {
                     return java.sql.Date.class.getName();
                 }
                 return Short.class.getName();

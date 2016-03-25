@@ -42,11 +42,11 @@ public class BaseTest {
 
     @Rule
     public TestRule watcher = new TestWatcher() {
-        protected void starting(Description description) {
-            if (testSingleHost) {
-                System.out.println("start test : " + description.getClassName() + "." + description.getMethodName());
-            }
-        }
+//        protected void starting(Description description) {
+//            if (testSingleHost) {
+//                System.out.println("start test : " + description.getClassName() + "." + description.getMethodName());
+//            }
+//        }
 
         protected void succeeded(Description description) {
             if (testSingleHost) {

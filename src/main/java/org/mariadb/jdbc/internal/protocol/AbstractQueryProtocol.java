@@ -432,7 +432,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         if (!hasMoreResults()) {
             return;
         }
-        getResult(executionResult, ResultSet.TYPE_FORWARD_ONLY, (activeStreamingResult != null) ? activeStreamingResult.isBinaryProtocol() : moreResultsTypeBinary);
+        getResult(executionResult, ResultSet.TYPE_FORWARD_ONLY,
+                (activeStreamingResult != null) ? activeStreamingResult.isBinaryEncoded() : moreResultsTypeBinary);
     }
 
     /**
