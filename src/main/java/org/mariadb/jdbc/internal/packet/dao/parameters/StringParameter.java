@@ -83,7 +83,7 @@ public class StringParameter extends NotLongDataParameterHolder {
 
     @Override
     public String toString() {
-        return "'" + string + "'";
+        return ParameterWriter.getWriteValue(string, noBackslashEscapes);
     }
 
 }

@@ -2,6 +2,8 @@ package org.mariadb.jdbc.internal.packet.dao.parameters;
 
 import java.io.*;
 import java.math.BigDecimal;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
@@ -50,6 +52,50 @@ public class ParameterWriter {
 
     private static void writeBytesEscaped(OutputStream out, byte[] bytes, boolean noBackslashEscapes) throws IOException {
         writeBytesEscaped(out, bytes, bytes.length, noBackslashEscapes);
+    }
+
+    /**
+     * Escape string value.
+     * @param bytes string in utf-8 bytes
+     * @param noBackslashEscapes flag
+     * @return escaped string
+     */
+    public static String getBytesEscaped(char[] bytes, boolean noBackslashEscapes) {
+        StringBuilder returnValue = new StringBuilder();
+        int count = bytes.length;
+        if (noBackslashEscapes) {
+            for (int i = 0; i < count; i++) {
+                char bit = bytes[i];
+                switch (bit) {
+                    case '\'':
+                        returnValue.append('\'');
+                        returnValue.append(bit);
+                        break;
+                    default:
+                        returnValue.append(bit);
+                }
+            }
+        } else {
+            for (int i = 0; i < count; i++) {
+                char bit = bytes[i];
+                switch (bit) {
+                    case '\\':
+                    case '\'':
+                    case '"':
+                    case 0:
+                        returnValue.append('\\');
+                        returnValue.append(bit);
+                        break;
+                    default:
+                        returnValue.append(bit);
+                }
+            }
+        }
+        return returnValue.toString();
+    }
+
+    public static String getWriteValue(String value, boolean noBackslashEscapes) {
+        return "'" + getBytesEscaped(value.toCharArray(), noBackslashEscapes) + "'";
     }
 
     /**
