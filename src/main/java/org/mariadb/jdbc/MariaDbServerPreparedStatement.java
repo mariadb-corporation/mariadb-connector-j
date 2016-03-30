@@ -255,6 +255,7 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
         return ret;
     }
 
+    // must have "lock" locked before invoking
     private boolean executeInternal(ParameterHolder[] parameters, MariaDbType[] parameterTypeHeader) throws SQLException {
         executing = true;
         QueryException exception = null;
@@ -273,6 +274,7 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
         }
     }
 
+    // must have "lock" locked before invoking
     private void executeQueryProlog(PrepareResult prepareResult) throws SQLException {
         if (closed) {
             throw new SQLException("execute() is called on closed statement");
@@ -288,11 +290,7 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
      Reset timeout after query, re-throw  SQL  exception
     */
     private void executeQueryEpilog(QueryException exception, String sql) throws SQLException {
-
-        if (timerTask != null) {
-            timerTask.cancel();
-            timerTask = null;
-        }
+        stopTimeoutTask();
 
         if (isTimedout) {
             isTimedout = false;
