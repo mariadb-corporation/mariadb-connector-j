@@ -460,6 +460,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                     ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(), e);
         }
     }
+
     private void authentication(byte serverLanguage, int clientCapabilities, byte[] seed, byte packetSeq, String plugin, int serverCapabilities)
             throws QueryException, IOException {
         final SendHandshakeResponsePacket cap = new SendHandshakeResponsePacket(this.username,
@@ -488,7 +489,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 interfaceSendPacket = AuthenticationProviderHolder.getAuthenticationProvider()
                         .processAuthPlugin(packetFetcher, plugin, password, authData, packetFetcher.getLastPacketSeq() + 1);
             } else {
-                interfaceSendPacket = new SendOldPasswordAuthPacket(this.password, Utils.copyWithLength(seed, 8), packetFetcher.getLastPacketSeq() + 1);
+                interfaceSendPacket = new SendOldPasswordAuthPacket(this.password, Utils.copyWithLength(seed, 8),
+                        packetFetcher.getLastPacketSeq() + 1);
             }
             interfaceSendPacket.send(writer);
             interfaceSendPacket.handleResultPacket(packetFetcher);

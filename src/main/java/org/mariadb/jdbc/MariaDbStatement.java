@@ -128,7 +128,7 @@ public class MariaDbStatement implements Statement, Cloneable {
         MariaDbStatement clone = (MariaDbStatement) super.clone();
         clone.connection = connection;
         clone.protocol = protocol;
-        clone.timerTask = null;
+        clone.timerTaskFuture = null;
         clone.batchQueries = new ArrayList<>();
         clone.cachedExecutionResults = new ArrayDeque<>();
         clone.executionResult = null;
