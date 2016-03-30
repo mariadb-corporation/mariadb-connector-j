@@ -267,8 +267,8 @@ public abstract class AbstractMastersListener implements Listener {
         HandleErrorResult handleErrorResult = new HandleErrorResult(true);
         if (method != null) {
             if ("executeQuery".equals(method.getName())) {
-                if (args[0] instanceof String) {
-                    String query = ((String) args[0]).toUpperCase();
+                if (args[1] instanceof String) {
+                    String query = ((String) args[1]).toUpperCase();
                     if (!query.equals("ALTER SYSTEM CRASH")
                             && !query.startsWith("KILL")) {
                         handleErrorResult.resultObject = method.invoke(currentProtocol, args);
@@ -300,9 +300,11 @@ public abstract class AbstractMastersListener implements Listener {
      * @return true if can be re-executed
      */
     public boolean isQueryRelaunchable(Method method, Object[] args) {
-        if (method != null && "executeQuery".equals(method.getName())) {
-            if (args[0] instanceof String) {
-                return ((String) args[0]).toUpperCase().startsWith("SELECT");
+        if (method != null) {
+            if ("executeQuery".equals(method.getName()) && args[1] instanceof String) {
+                return ((String) args[1]).toUpperCase().startsWith("SELECT");
+            } else if ("executePreparedQuery".equals(method.getName()) && args[2] instanceof String) {
+                return ((String) args[2]).toUpperCase().startsWith("SELECT");
             }
         }
         return false;

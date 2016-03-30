@@ -72,13 +72,14 @@ public abstract class BaseReplication extends BaseMonoServer {
 
             try {
                 Statement stmt = connection.createStatement();
-                stmt.addBatch("SELECT 1");
-                stmt.addBatch("SELECT 2");
+                stmt.addBatch("DO 1");
+                stmt.addBatch("DO 2");
                 int[] resultData = stmt.executeBatch();
                 int secondSlaveId = getServerId(connection);
                 assertEquals("the 2 batch queries must have been executed when failover", 2, resultData.length);
                 assertTrue(secondSlaveId != firstSlaveId && secondSlaveId != masterServerId);
             } catch (SQLException e) {
+                e.printStackTrace();
                 Assert.fail();
             }
         } finally {

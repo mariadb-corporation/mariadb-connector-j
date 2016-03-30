@@ -97,6 +97,7 @@ public abstract class BaseMonoServer extends BaseMultiHostTest {
             try {
                 st.execute("SELECT * from selectFailover" + jobId);
             } catch (SQLException e) {
+                e.printStackTrace();
                 Assert.fail("must not have thrown error");
             }
 

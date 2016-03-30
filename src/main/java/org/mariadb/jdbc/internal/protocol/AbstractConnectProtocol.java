@@ -414,7 +414,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private void handleConnectionPhases() throws QueryException {
         InputStream reader = null;
         try {
-            reader = new BufferedInputStream(socket.getInputStream());
+            reader = new BufferedInputStream(socket.getInputStream(), 16384);
             packetFetcher = new ReadPacketFetcher(reader);
             writer = new PacketOutputStream(socket.getOutputStream());
 
@@ -439,7 +439,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 sslSocket.startHandshake();
                 socket = sslSocket;
                 writer = new PacketOutputStream(socket.getOutputStream());
-                reader = new BufferedInputStream(socket.getInputStream());
+                reader = new BufferedInputStream(socket.getInputStream(), 16384);
                 packetFetcher = new ReadPacketFetcher(reader);
 
                 packetSeq++;
