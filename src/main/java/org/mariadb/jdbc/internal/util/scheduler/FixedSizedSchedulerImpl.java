@@ -49,34 +49,16 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.util.scheduler;
 
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class FixedSizedSchedulerImpl extends ScheduledThreadPoolExecutor {
-    private static final AtomicInteger POOL_ID = new AtomicInteger();
-
     /**
      * Create scheduler with fixed size.
      * @param corePoolSize core pool size
      */
     public FixedSizedSchedulerImpl(int corePoolSize) {
-        super(corePoolSize, new ThreadFactory() {
-            private final int thisPoolId = POOL_ID.incrementAndGet();
-            // start from DefaultThread factory to get security groups and what not
-            private final ThreadFactory parentFactory = Executors.defaultThreadFactory();
-            private final AtomicInteger threadId = new AtomicInteger();
-
-            @Override
-            public Thread newThread(Runnable runnable) {
-                Thread result = parentFactory.newThread(runnable);
-                result.setName("mariaDb-connection-validity-" + thisPoolId + "-" + threadId.incrementAndGet());
-
-                return result;
-            }
-        });
+        super(corePoolSize, new MariaDbThreadFactory());
 
         // set a rare thread timeout option to allow garbage collection
         setKeepAliveTime(2, TimeUnit.HOURS);

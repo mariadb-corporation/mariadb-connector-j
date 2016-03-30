@@ -49,38 +49,65 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.util.scheduler;
 
-import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.TimeUnit;
 
 public class DynamicSizedSchedulerImpl extends ScheduledThreadPoolExecutor implements DynamicSizedSchedulerInterface {
-
-    private static final AtomicInteger POOL_ID = new AtomicInteger();
-
     /**
      * Initialize a scheduler with dynamic pool size.
      * @param corePoolSize initial Core pool size
      */
     public DynamicSizedSchedulerImpl(int corePoolSize) {
-        super(corePoolSize, new ThreadFactory() {
-            private final int thisPoolId = POOL_ID.incrementAndGet();
-            // start from DefaultThread factory to get security groups and what not
-            private final ThreadFactory parentFactory = Executors.defaultThreadFactory();
-            private final AtomicInteger threadId = new AtomicInteger();
-
-            @Override
-            public Thread newThread(Runnable runnable) {
-                Thread result = parentFactory.newThread(runnable);
-                result.setName("mariaDb-reconnection-" + thisPoolId + "-" + threadId.incrementAndGet());
-
-                return result;
-            }
-        });
+        super(corePoolSize, new MariaDbThreadFactory());
     }
 
     @Override
     public void setPoolSize(int newSize) {
-        super.setCorePoolSize(newSize);
+        synchronized (this) {
+            super.setCorePoolSize(newSize);
+        }
+    }
+
+    @Override
+    public void adjustPoolSize(int delta) {
+        // locked to avoid check then act race condition
+        synchronized (this) {
+            super.setCorePoolSize(Math.max(0, super.getCorePoolSize() + delta));
+        }
+    }
+
+    @Override
+    public Future<?> addThreadAndExecute(final Runnable task) {
+        return addThreadAndSchedule(task, 0, TimeUnit.MILLISECONDS);
+    }
+
+    @Override
+    public Future<?> addThreadAndSchedule(final Runnable task, long delay, TimeUnit unit) {
+        adjustPoolSize(1);
+        
+        FutureTask<?> result = new PoolSizeDecreaseFuture(task);
+        if (delay == 0) {
+            // execute is slightly better if we can, as it avoids wrapping the future in another future
+            super.execute(result);
+        } else {
+            super.schedule(result, delay, unit);
+            // can not return future from schedule above
+            // we must return our decreasing future to handle Future.cancel case
+        }
+        return result;
+    }
+    
+    private class PoolSizeDecreaseFuture extends FutureTask<Object> {
+        public PoolSizeDecreaseFuture(Runnable runnable) {
+            super(runnable, null);
+        }
+        
+        @Override
+        protected void done() {
+            // invoked when task is complete or canceled
+            adjustPoolSize(-1);
+        }
     }
 }

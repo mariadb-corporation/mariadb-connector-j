@@ -388,11 +388,12 @@ public abstract class AbstractConnectProtocol implements Protocol {
     }
 
     private void setSessionOptions()  throws QueryException {
-        String sessionOption = "";
-        // In JDBC, connection must start in autocommit mode.
-        if ((serverStatus & ServerStatus.AUTOCOMMIT) == 0) {
-            sessionOption += ",autocommit=1";
-        }
+        // In JDBC, connection must start in autocommit mode
+        // [CONJ-269] we cannot rely on serverStatus & ServerStatus.AUTOCOMMIT before this command to avoid this command.
+        // if autocommit=0 is set on server configuration, DB always send Autocommit on serverStatus flag
+        // after setting autocommit, we can rely on serverStatus value
+        String sessionOption = "autocommit=1";
+
         if (options.jdbcCompliantTruncation) {
             if (serverData.get("sql_mode") == null || "".equals(serverData.get("sql_mode"))) {
                 sessionOption += ",sql_mode='STRICT_TRANS_TABLES'";
@@ -405,9 +406,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         if (options.sessionVariables != null) {
             sessionOption += "," + options.sessionVariables;
         }
-        if (!"".equals(sessionOption)) {
-            executeQuery("set session " + sessionOption.substring(1));
-        }
+        executeQuery("set session " + sessionOption);
     }
 
     private void handleConnectionPhases() throws QueryException {

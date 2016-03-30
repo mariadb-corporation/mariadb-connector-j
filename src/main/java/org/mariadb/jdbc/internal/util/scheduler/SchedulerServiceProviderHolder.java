@@ -50,7 +50,6 @@ OF SUCH DAMAGE.
 */
 
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Provider for when ever an internal thread pool is needed.  This can allow library users to

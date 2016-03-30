@@ -58,16 +58,24 @@ import org.mariadb.jdbc.internal.queryresults.SingleExecutionResult;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
+import org.mariadb.jdbc.internal.util.scheduler.DynamicSizedSchedulerInterface;
+import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
+
+import org.mariadb.jdbc.internal.protocol.Protocol;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.*;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
 
 public class MariaDbStatement implements Statement, Cloneable {
-    private static volatile Timer timer;
+    private static final DynamicSizedSchedulerInterface timeoutScheduler =
+            SchedulerServiceProviderHolder.getScheduler(0);
     /**
      * the protocol used to talk to the server.
      */
@@ -77,7 +85,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      * the  Connection object.
      */
     protected MariaDbConnection connection;
-    protected TimerTask timerTask;
+    protected Future<?> timerTaskFuture;
     protected boolean isRewriteable = true;
     protected int rewriteOffset = -1;
     protected ResultSet batchResultSet = null;
@@ -133,26 +141,11 @@ public class MariaDbStatement implements Statement, Cloneable {
     }
 
 
-    private static Timer getTimer() {
-        Timer result = timer;
-        if (result == null) {
-            synchronized (MariaDbStatement.class) {
-                result = timer;
-                if (result == null) {
-                    timer = result = new Timer("MariaDB-JDBC-Timer", true);
-                }
-            }
-        }
-        return result;
-    }
-
     /**
      * Provide a "cleanup" method that can be called after unloading driver, to fix Tomcat's obscure classpath handling.
      */
     public static void unloadDriver() {
-        if (timer != null) {
-            timer.cancel();
-        }
+        // nothing to do here, as scheduler is already daemon thread
     }
 
     /**
@@ -166,8 +159,11 @@ public class MariaDbStatement implements Statement, Cloneable {
 
     // Part of query prolog - setup timeout timer
     protected void setTimerTask() {
-        assert (timerTask == null);
-        timerTask = new TimerTask() {
+        assert (timerTaskFuture == null);
+
+        // because canceling needs to establish a new connection, we want to ensure that this
+        // possible blocking call can be run in parallel if multiple queries need to timeout
+        timerTaskFuture = timeoutScheduler.addThreadAndSchedule(new Runnable() {
             @Override
             public void run() {
                 try {
@@ -176,8 +172,7 @@ public class MariaDbStatement implements Statement, Cloneable {
                 } catch (Throwable e) {
                 }
             }
-        };
-        getTimer().schedule(timerTask, queryTimeout * 1000);
+        }, queryTimeout, TimeUnit.SECONDS);
     }
 
     protected void executeQueryProlog() throws SQLException {
@@ -191,6 +186,7 @@ public class MariaDbStatement implements Statement, Cloneable {
         }
     }
 
+    // must have "lock" locked before invoking
     protected void cacheMoreResults(ExecutionResult execResult, int fetchSize, boolean canHaveCallableResult) throws SQLException {
         if (fetchSize != 0) {
             return;
@@ -208,6 +204,26 @@ public class MariaDbStatement implements Statement, Cloneable {
         }
     }
 
+    protected void stopTimeoutTask() {
+        if (timerTaskFuture != null) {
+            if (! timerTaskFuture.cancel(true)) {
+                // could not cancel, task either started or already finished
+                // we must now wait for task to finish to ensure state modifications are done
+                try {
+                    timerTaskFuture.get();
+                } catch (InterruptedException e) {
+                    // reset interrupt status
+                    Thread.currentThread().interrupt();
+                } catch (ExecutionException e) {
+                    // ignore error, likely due to interrupting during cancel
+                }
+                // we don't catch the exception if already canceled, that would indicate we tried
+                // to cancel in parallel (which this code currently is not designed for)
+            }
+            timerTaskFuture = null;
+        }
+    }
+
     /**
      * Reset timeout after query, re-throw SQL exception
      *
@@ -215,11 +231,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      * @throws SQLException exception with new message in case of timer timeout.
      */
     protected void executeQueryEpilog(QueryException queryException) throws SQLException {
-
-        if (timerTask != null) {
-            timerTask.cancel();
-            timerTask = null;
-        }
+        stopTimeoutTask();
 
         if (isTimedout) {
             isTimedout = false;
@@ -1091,10 +1103,10 @@ public class MariaDbStatement implements Statement, Cloneable {
         if (batchQueries == null || batchQueries.size() == 0) {
             return new int[0];
         }
-        cachedExecutionResults.clear();
         MultiIntExecutionResult internalExecutionResult = new MultiIntExecutionResult(this, batchQueries.size(), 0, false);
         lock.lock();
         try {
+            cachedExecutionResults.clear();
             QueryException exception = null;
             executing = true;
             executeQueryProlog();
