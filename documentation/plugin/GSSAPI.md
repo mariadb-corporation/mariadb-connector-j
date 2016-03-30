@@ -88,36 +88,3 @@ Value: 1
 * "GSSException: No valid credentials provided (Mechanism level: Clock skew too great (37))". The Kerberos protocol requires the time of the client 
   and server to match: if the system clocks of the client does not match that of the KDC server, authentication will fail with this kind of error. 
   The simplest way to synchronize the system clocks is to use a Network Time Protocol (NTP) server. 
-
-
-
-
-
-
-
-
-
-
-### from unix
-On unix the driver use native java GSS implementation, so the initial credential should be acquired beforehand. That is, call kinit prior to connect.
-The kerberos client packet must be installed. 
-
-on debian like : 
-```script
-apt-get update
-apt-get install krb5-config krb5-user
-```
-
-on cent-os 
-```script
-yum install krb5-libs krb5-workstation
-```
-
-Some java properties are needed : 
-
-| property | Description| 
-| ------------ |:----------------| 
-| **sun.security.jgss.native** | Mandatory. Must always be set to true*|
-| **java.security.krb5.realm** |Optional. This permit to indicate REALM name (if not defined by DNS). example : EXAMPLE.COM|
-| **java.security.krb5.kdc** | Optional. This permit to indicate kdc dns (if not defined by DNS). example : kdc.example.com|
-
