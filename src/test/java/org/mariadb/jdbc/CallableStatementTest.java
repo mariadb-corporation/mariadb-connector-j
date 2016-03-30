@@ -888,8 +888,6 @@ public class CallableStatementTest extends BaseTest {
         }
     }
 
-
-
     @Test
     public void testCallableThrowException() throws Exception {
         createTable("testCallableThrowException1", "value_1 BIGINT PRIMARY KEY", "ENGINE=InnoDB");

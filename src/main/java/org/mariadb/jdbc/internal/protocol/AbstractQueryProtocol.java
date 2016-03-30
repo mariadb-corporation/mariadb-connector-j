@@ -950,9 +950,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     }
 
                     MariaSelectResultSet mariaSelectResultset = new MariaSelectResultSet(ci, executionResult.getStatement(), this, packetFetcher,
-                            binaryProtocol, resultSetScrollType, executionResult.getFetchSize());
+                            binaryProtocol, resultSetScrollType, executionResult.getFetchSize(), callableResult);
                     mariaSelectResultset.initFetch();
-                    mariaSelectResultset.setCallableResult(callableResult);
                     if (!executionResult.isSelectPossible()) {
                         throw new QueryException("Select command are not permitted via executeBatch() command");
                     }

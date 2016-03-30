@@ -114,7 +114,7 @@ public class MariaSelectResultSet implements ResultSet {
     private Options options;
     private boolean returnTableAlias;
     private boolean isClosed;
-    public boolean callableResult = false;
+    public boolean callableResult;
 
     /**
      * Create Streaming resultset.
@@ -130,7 +130,7 @@ public class MariaSelectResultSet implements ResultSet {
      */
     public MariaSelectResultSet(ColumnInformation[] columnInformation, Statement statement, Protocol protocol,
                                 ReadPacketFetcher fetcher, boolean isBinaryEncoded,
-                                int resultSetScrollType, int fetchSize) {
+                                int resultSetScrollType, int fetchSize, boolean isCanHaveCallableResultset) {
 
         this.statement = statement;
         this.isClosed = false;
@@ -161,6 +161,7 @@ public class MariaSelectResultSet implements ResultSet {
         this.resultSet = new ArrayList<>();
         this.dataFetchTime = 0;
         this.rowPointer = -1;
+        this.callableResult = isCanHaveCallableResultset;
     }
 
     /**
@@ -198,6 +199,7 @@ public class MariaSelectResultSet implements ResultSet {
         this.resultSet = resultSet;
         this.dataFetchTime = 0;
         this.rowPointer = -1;
+        this.callableResult = false;
     }
 
     /**
@@ -398,9 +400,15 @@ public class MariaSelectResultSet implements ResultSet {
                 if (protocol.getActiveStreamingResult() == this) {
                     protocol.setActiveStreamingResult(null);
                 }
+
                 Buffer buffer = packetFetcher.getReusableBuffer(remaining);
                 protocol.setHasWarnings(((buffer.buf[0] & 0xff) + ((buffer.buf[1] & 0xff) << 8)) > 0);
-                protocol.setMoreResults((((buffer.buf[2] & 0xff) + ((buffer.buf[3] & 0xff) << 8)) & ServerStatus.MORE_RESULTS_EXISTS) != 0,
+
+                //force the more packet value when this is a callable output result.
+                //There is always a OK packet after a callable output result, but mysql 5.6-7
+                //is sending a bad "more result" flag (without setting more packet to true)
+                //so force the value, since this will corrupt connection.
+                protocol.setMoreResults(callableResult || (((buffer.buf[2] & 0xff) + ((buffer.buf[3] & 0xff) << 8)) & ServerStatus.MORE_RESULTS_EXISTS) != 0,
                         isBinaryEncoded);
                 protocol = null;
                 packetFetcher = null;
