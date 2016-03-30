@@ -637,7 +637,7 @@ public class MariaSelectResultSet implements ResultSet {
             throw new SQLException("Invalid operation for result set type TYPE_FORWARD_ONLY");
         } else {
             rowPointer = 0;
-            return true;
+            return resultSet.size() > 0;
         }
     }
 
@@ -648,7 +648,7 @@ public class MariaSelectResultSet implements ResultSet {
             throw new SQLException("Invalid operation for result set type TYPE_FORWARD_ONLY");
         } else {
             rowPointer = resultSet.size() - 1;
-            return true;
+            return rowPointer > 0;
         }
     }
 

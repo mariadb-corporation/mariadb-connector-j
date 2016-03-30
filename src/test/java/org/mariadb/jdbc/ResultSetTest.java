@@ -58,6 +58,7 @@ public class ResultSetTest extends BaseTest {
         assertFalse(resultSet.isFirst());
         assertFalse(resultSet.next()); //No more rows after this
         assertFalse(resultSet.isFirst()); // connectorj compatibility
+        assertFalse(resultSet.first());
         resultSet.close();
         try {
             resultSet.isFirst();
@@ -79,6 +80,8 @@ public class ResultSetTest extends BaseTest {
         assertFalse(resultSet.isFirst());
         resultSet.next(); //No more rows after this
         assertFalse(resultSet.isFirst());
+        assertTrue(resultSet.first());
+        assertEquals(1, resultSet.getInt(1));
         resultSet.close();
         try {
             resultSet.isFirst();
@@ -96,6 +99,7 @@ public class ResultSetTest extends BaseTest {
         assertFalse(resultSet.isLast()); // connectorj compatibility
         resultSet.next(); //No more rows after this
         assertFalse(resultSet.isLast());
+        assertFalse(resultSet.last());
         resultSet.close();
         try {
             resultSet.isLast();
@@ -118,6 +122,8 @@ public class ResultSetTest extends BaseTest {
         assertTrue(resultSet.isLast());
         resultSet.next(); //No more rows after this
         assertFalse(resultSet.isLast());
+        assertTrue(resultSet.last());
+        assertEquals(2, resultSet.getInt(1));
         resultSet.close();
         try {
             resultSet.isLast();
@@ -156,6 +162,8 @@ public class ResultSetTest extends BaseTest {
         assertFalse(resultSet.isAfterLast());
         resultSet.next(); //No more rows after this
         assertTrue(resultSet.isAfterLast());
+        assertTrue(resultSet.last());
+        assertEquals(2, resultSet.getInt(1));
         resultSet.close();
         try {
             resultSet.isAfterLast();
@@ -172,10 +180,16 @@ public class ResultSetTest extends BaseTest {
         ResultSet rs = sharedConnection.createStatement().executeQuery("SELECT * FROM result_set_test");
         assertFalse(rs.previous());
         assertTrue(rs.next());
+        assertEquals(1, rs.getInt(1));
         assertFalse(rs.previous());
         assertTrue(rs.next());
+        assertEquals(1, rs.getInt(1));
         assertTrue(rs.next());
+        assertEquals(2, rs.getInt(1));
         assertTrue(rs.previous());
+        assertEquals(1, rs.getInt(1));
+        assertTrue(rs.last());
+        assertEquals(2, rs.getInt(1));
         rs.close();
     }
 
