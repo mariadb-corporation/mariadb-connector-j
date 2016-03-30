@@ -43,6 +43,8 @@ public class MultiTest extends BaseTest {
         st.execute("insert into MultiTestt1 values(1,'a'),(2,'a')");
         st.execute("insert into MultiTestt2 values(1,'a'),(2,'a')");
         st.execute("insert into MultiTestt5 values(1,'a'),(2,'a'),(2,'b')");
+        createTable("MultiTestt9", "id int not null primary key");
+
     }
 
     @Test
@@ -362,7 +364,7 @@ public class MultiTest extends BaseTest {
             final int currentInsert = retrieveSessionVariableFromServer(tmpConnection, "Com_insert");
 
             PreparedStatement sqlInsert = tmpConnection.prepareStatement(
-                    "/*CLIENT*/ INSERT INTO MultiTestt3 (message) VALUES (?)");
+                    "INSERT INTO MultiTestt3 (message) VALUES (?)");
             sqlInsert.setString(1, "aa");
             sqlInsert.addBatch();
             sqlInsert.setString(1, "b;b");
@@ -377,16 +379,17 @@ public class MultiTest extends BaseTest {
 
             // rewrite should be ok, so the above should be executed in 1 command updating 5 rows
             Assert.assertEquals(5, updateCounts.length);
-            for (int i = 0; i < updateCounts.length; i++) {
-                Assert.assertEquals(1, updateCounts[i]);
-            }
-
+            Assert.assertEquals(1, updateCounts[0]);
+            Assert.assertEquals(1, updateCounts[1]);
+            Assert.assertEquals(1, updateCounts[2]);
+            Assert.assertEquals(1, updateCounts[3]);
+            Assert.assertEquals(1, updateCounts[4]);
             assertEquals(1, retrieveSessionVariableFromServer(tmpConnection, "Com_insert") - currentInsert);
 
             final int secondCurrentInsert = retrieveSessionVariableFromServer(tmpConnection, "Com_insert");
 
             // Test for multiple statements which isn't allowed. rewrite shouldn't work
-            sqlInsert = tmpConnection.prepareStatement("/*CLIENT*/ INSERT INTO MultiTestt3 (message) VALUES (?); "
+            sqlInsert = tmpConnection.prepareStatement("INSERT INTO MultiTestt3 (message) VALUES (?); "
                     + "INSERT INTO MultiTestt3 (message) VALUES ('multiple')");
             sqlInsert.setString(1, "aa");
             sqlInsert.addBatch();
@@ -729,6 +732,7 @@ public class MultiTest extends BaseTest {
 
     /**
      * Conj-208 : Rewritten batch inserts can fail without a space before the VALUES clause.
+     *
      * @throws Exception exception
      */
     @Test
@@ -749,6 +753,39 @@ public class MultiTest extends BaseTest {
         } finally {
             if (tmpConnection != null) {
                 tmpConnection.close();
+            }
+        }
+    }
+
+    @Test
+    public void continueOnBatchError() throws SQLException {
+        continueOnBatchError(true, 9, true, false);
+        continueOnBatchError(false, 5, true, false);
+        continueOnBatchError(true, 9, false, false);
+        continueOnBatchError(false, 5, false, false);
+        continueOnBatchError(true, 0, false, true);
+        continueOnBatchError(false, 0, false, true);
+    }
+
+    private void continueOnBatchError(boolean continueBatch, int waitedResult, boolean server, boolean rewrite) throws SQLException {
+        try (Connection connection = setConnection("&continueBatchOnError=" + continueBatch + "&rewriteBatchedStatements=" + rewrite)) {
+            connection.createStatement().execute("TRUNCATE TABLE MultiTestt9");
+            PreparedStatement pstmt = connection.prepareStatement(((server || rewrite) ? "" : "/*CLIENT*/ ")
+                    + "INSERT INTO MultiTestt9 (id) VALUES (?)");
+            for (int i = 0; i < 10; i++) {
+                pstmt.setInt(1, (i == 5) ? 0 : i);
+                pstmt.addBatch();
+            }
+            try {
+                pstmt.executeBatch();
+                fail("Must have thrown SQLException");
+            } catch (SQLException e) {
+                ResultSet rs = connection.createStatement().executeQuery("SELECT COUNT(*) FROM MultiTestt9");
+                if (rs.next()) {
+                    assertEquals(waitedResult, rs.getInt(1));
+                } else {
+                    fail("Must have one result");
+                }
             }
         }
     }

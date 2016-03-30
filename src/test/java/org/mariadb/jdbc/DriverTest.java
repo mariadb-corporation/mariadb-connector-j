@@ -4,12 +4,11 @@ import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 import org.mariadb.jdbc.internal.util.DefaultOptions;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 
-import java.io.*;
 import java.math.BigDecimal;
-import java.net.URL;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -61,6 +60,7 @@ public class DriverTest extends BaseTest {
         createTable("DriverTestt3", "id int not null primary key auto_increment, test varchar(20)");
         createTable("DriverTestt4", "id int not null primary key auto_increment, test varchar(20)");
         createTable("DriverTestt5", "id int not null primary key auto_increment, test varchar(20)");
+        createProcedure("foo", "() BEGIN SELECT 1; END");
     }
 
     @Test
@@ -442,7 +442,7 @@ public class DriverTest extends BaseTest {
         final ResultSet rs = sharedConnection.createStatement().executeQuery("select * from test_batch");
         ps.executeQuery("SELECT 1");
         rs1 = ps.getGeneratedKeys();
-        assertEquals(MariaDbResultSet.EMPTY, rs1);
+        assertEquals(MariaSelectResultSet.EMPTY, rs1);
         assertEquals(true, rs.next());
         assertEquals("aaa", rs.getString(2));
         assertEquals(true, rs.next());
@@ -1123,18 +1123,21 @@ public class DriverTest extends BaseTest {
         st.addBatch("insert into batchUpdateException values(1)");
         st.addBatch("insert into batchUpdateException values(2)");
         st.addBatch("insert into batchUpdateException values(1)"); // will fail, duplicate primary key
-
+        st.addBatch("insert into batchUpdateException values(3)");
 
         try {
             st.executeBatch();
             fail("exception should be throw above");
         } catch (BatchUpdateException bue) {
             int[] updateCounts = bue.getUpdateCounts();
-            assertEquals(2, updateCounts.length);
+            assertEquals(4, updateCounts.length);
             assertEquals(1, updateCounts[0]);
             assertEquals(1, updateCounts[1]);
+            assertEquals(Statement.EXECUTE_FAILED, updateCounts[2]);
+            assertEquals(1, updateCounts[3]);
             assertTrue(bue.getCause() instanceof SQLIntegrityConstraintViolationException);
         }
+
     }
 
     @Test

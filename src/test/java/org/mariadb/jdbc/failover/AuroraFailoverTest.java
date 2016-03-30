@@ -132,7 +132,7 @@ public class AuroraFailoverTest extends BaseReplication {
             rs.next();
 
             // wait for the connection to time out
-            ps = connection.prepareStatement("SELECT sleep(5)");
+            ps = connection.prepareStatement("DO sleep(5)");
 
             // a timeout should occur here
             try {

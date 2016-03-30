@@ -1,7 +1,7 @@
 /*
 MariaDB Client for Java
 
-Copyright (c) 2012 Monty Program Ab.
+Copyright (c) 2016 MariaDB Corporation AB
 
 This library is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License as published by the Free
@@ -47,55 +47,37 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc.internal.queryresults;
+package org.mariadb.jdbc.internal.util.dao;
 
-import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
+public class PrepareStatementCacheKey {
+    private String database;
+    private String query;
 
-
-public class UpdateResult extends AbstractQueryResult {
-    private long updateCount;
-    private final long insertId;
-
-    /**
-     * Create Update result object.
-     * @param updateCount updateCount
-     * @param insertId insertId
-     */
-    public UpdateResult(final long updateCount, final long insertId) {
-        this.updateCount = updateCount;
-        this.insertId = insertId;
+    public PrepareStatementCacheKey(String database, String query) {
+        this.database = database;
+        this.query = query;
     }
 
-    /**
-     * When using rewrite statement, there can be many insert/update command send to database, according to max_allowed_packet size.
-     * the result will be aggregate with this method to give only one result stream to client.
-     * @param other other AbstractQueryResult.
-     */
-    public void addResult(AbstractQueryResult other) {
-        isClosed = other.isClosed();
-        if (other instanceof UpdateResult) {
-            UpdateResult updateResult = (UpdateResult) other;
-            this.updateCount += updateResult.getUpdateCount();
+    @Override
+    public boolean equals(Object object) {
+        if (this == object) {
+            return true;
         }
+        if (object == null || getClass() != object.getClass()) {
+            return false;
+        }
+        PrepareStatementCacheKey that = (PrepareStatementCacheKey) object;
+        if (!database.equals(that.database)) {
+            return false;
+        }
+        return query.equals(that.query);
+
     }
 
-    public long getUpdateCount() {
-        return updateCount;
-    }
-
-    public ResultSetType getResultSetType() {
-        return ResultSetType.MODIFY;
-    }
-
-    public ColumnInformation[] getColumnInformation() {
-        return null;
-    }
-
-    public int getRows() {
-        return 0;
-    }
-
-    public long getInsertId() {
-        return insertId;
+    @Override
+    public int hashCode() {
+        int result = database.hashCode();
+        result = 31 * result + query.hashCode();
+        return result;
     }
 }

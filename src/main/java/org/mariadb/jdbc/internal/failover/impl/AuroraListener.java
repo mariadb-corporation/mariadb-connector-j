@@ -52,13 +52,14 @@ package org.mariadb.jdbc.internal.failover.impl;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
+import org.mariadb.jdbc.internal.queryresults.SingleExecutionResult;
+import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
-import org.mariadb.jdbc.internal.queryresults.SelectQueryResult;
 import org.mariadb.jdbc.internal.protocol.AuroraProtocol;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.dao.ReconnectDuringTransactionException;
 
-import java.io.IOException;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -167,17 +168,20 @@ public class AuroraListener extends MastersSlavesListener {
      */
     public HostAddress searchByStartName(Protocol secondaryProtocol, List<HostAddress> loopAddress) {
         if (!isSecondaryHostFail()) {
-            SelectQueryResult queryResult = null;
+            MariaSelectResultSet queryResult = null;
             try {
                 proxy.lock.lock();
                 try {
-                    queryResult = (SelectQueryResult) secondaryProtocol.executeQuery(
-                            "select server_id from information_schema.replica_host_status where session_id = 'MASTER_SESSION_ID'", false);
+                    SingleExecutionResult executionResult = new SingleExecutionResult(null, 0, true, false);
+                    secondaryProtocol.executeQuery(executionResult,
+                            "select server_id from information_schema.replica_host_status where session_id = 'MASTER_SESSION_ID'",
+                            ResultSet.TYPE_FORWARD_ONLY);
+                    queryResult = executionResult.getResult();
                     queryResult.next();
                 } finally {
                     proxy.lock.unlock();
                 }
-                String masterHostName = queryResult.getValueObject(0).getString();
+                String masterHostName = queryResult.getString(1);
                 for (int i = 0; i < loopAddress.size(); i++) {
                     if (loopAddress.get(i).host.startsWith(masterHostName)) {
                         return loopAddress.get(i);
@@ -185,15 +189,9 @@ public class AuroraListener extends MastersSlavesListener {
                 }
             } catch (SQLException exception) {
                 //eat exception because cannot happen in this getString()
-            } catch (IOException ioe) {
-                //eat exception
             } catch (QueryException qe) {
                 if (proxy.hasToHandleFailover(qe) && setSecondaryHostFail()) {
                     addToBlacklist(currentProtocol.getHostAddress());
-                }
-            } finally {
-                if (queryResult != null) {
-                    queryResult.close();
                 }
             }
         }

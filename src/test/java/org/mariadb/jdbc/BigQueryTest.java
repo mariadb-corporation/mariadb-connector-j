@@ -84,20 +84,13 @@ public class BigQueryTest extends BaseTest {
         Connection connection = null;
         try {
             connection = setConnection();
-            ResultSet rs = connection.createStatement().executeQuery("select @@max_allowed_packet");
-            rs.next();
-            int maxAllowedPacket = rs.getInt(1);
-
             int selectSize = 9;
-            int packetHeader = 4 + 2; //stream header + 2 escape slash beacause of string escape
-            char[] arr = new char[16 * 1024 * 1024 - selectSize - packetHeader];
+            char[] arr = new char[16 * 1024 * 1024 - selectSize - 1];
             Arrays.fill(arr, 'a');
             String request = "select '" + new String(arr) + "'";
-            System.out.println("request size : " + (request.length()) + " / " + maxAllowedPacket);
-
-            rs = connection.createStatement().executeQuery(request);
+            ResultSet rs = connection.createStatement().executeQuery(request);
             rs.next();
-            System.out.println(String.valueOf(rs.getString(1).length()));
+            assertEquals(arr.length, rs.getString(1).length());
         } finally {
             connection.close();
         }

@@ -47,78 +47,14 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc.internal.queryresults;
+package org.mariadb.jdbc.internal.packet.send;
 
+import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
-import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
 
 import java.io.IOException;
-import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
 
 
-public abstract class SelectQueryResult extends AbstractQueryResult {
-
-    ColumnInformation[] columnInformation;
-    int columnInformationLength;
-    short warningCount;
-
-    public ColumnInformation[] getColumnInformation() {
-        return columnInformation;
-    }
-
-    public short getWarnings() {
-        return warningCount;
-    }
-
-    public String getMessage() {
-        return null;
-    }
-
-    public ResultSetType getResultSetType() {
-        return ResultSetType.SELECT;
-    }
-
-    /**
-     * Moves the row pointer to position i.
-     *
-     * @param index pointer to move
-     * @throws SQLException sql feature not supported
-     */
-    public void moveRowPointerTo(int index) throws SQLException {
-        throw new SQLFeatureNotSupportedException("scrolling result set not supported");
-    }
-
-    /**
-     * Gets the current row number.
-     *
-     * @return the current row number
-     * @throws SQLException sql feature not supported
-     */
-    public int getRowPointer() throws SQLException {
-        throw new SQLFeatureNotSupportedException("scrolling result set not supported");
-    }
-
-    /**
-     * Gets the value object at position index, starts at 0.
-     *
-     * @param index the position, starts at 0
-     * @return the value object at position index
-     * @throws NoSuchColumnException if the column does not exist
-     */
-    public abstract ValueObject getValueObject(int index) throws NoSuchColumnException;
-
-
-    /**
-     * Move pointer forward.
-     *
-     * @return true if there is another row
-     * @throws IOException ioException
-     * @throws QueryException queryException
-     */
-    public abstract boolean next() throws IOException, QueryException;
-
-    public abstract boolean isBeforeFirst();
-
-    public abstract boolean isAfterLast();
+public interface InterfaceAuthSwitchSendResponsePacket extends InterfaceSendPacket{
+    void handleResultPacket(ReadPacketFetcher packetFetcher) throws QueryException, IOException;
 }

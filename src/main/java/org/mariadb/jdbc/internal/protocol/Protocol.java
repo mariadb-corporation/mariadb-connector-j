@@ -54,10 +54,11 @@ import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
+import org.mariadb.jdbc.internal.queryresults.ExecutionResult;
+import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.PrepareStatementCache;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
-import org.mariadb.jdbc.internal.queryresults.AbstractQueryResult;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.util.dao.PrepareResult;
 
@@ -68,6 +69,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Calendar;
 import java.util.List;
+import java.util.concurrent.locks.ReentrantLock;
 
 public interface Protocol {
     PrepareResult prepare(String sql, boolean forceNew) throws QueryException;
@@ -128,18 +130,24 @@ public interface Protocol {
 
     boolean ping() throws QueryException;
 
-    AbstractQueryResult executeQuery(final String query, boolean streaming) throws QueryException;
+    void executeQuery(String sql) throws QueryException;
 
-    AbstractQueryResult executeQuery(final List<String> queries, boolean streaming, boolean isRewritable, int rewriteOffset) throws QueryException;
+    void executeQuery(ExecutionResult executionResult, final String sql, int resultSetScrollType) throws QueryException;
 
-    AbstractQueryResult executeQueries(final List<String> queryParts, List<ParameterHolder[]> parameterList, boolean streaming, boolean isRewritable)
+    void executeQueries(ExecutionResult executionResult, List<String> queries, int resultSetScrollType)
             throws QueryException;
 
-    AbstractQueryResult getResult(boolean streaming, boolean binaryProtocol) throws QueryException;
+    void executeQueries(ExecutionResult executionResult, final List<String> queryParts, List<ParameterHolder[]> parameterList,
+                        int resultSetScrollType, boolean isRewritable) throws QueryException;
+
+    void executeQueriesRewrite(ExecutionResult executionResult, List<String> queries, int resultSetScrollType, boolean isRewritable,
+                               int rewriteOffset) throws QueryException;
+
+    void getResult(ExecutionResult executionResult, int resultSetScrollType, boolean binaryProtocol) throws QueryException;
 
     void cancelCurrentQuery() throws QueryException, IOException;
 
-    AbstractQueryResult getMoreResults(boolean streaming) throws QueryException;
+    void skip() throws SQLException, QueryException;
 
     boolean checkIfMaster() throws QueryException;
 
@@ -175,19 +183,17 @@ public interface Protocol {
 
     boolean isExplicitClosed();
 
-    void closeIfActiveResult();
-
     void connectWithoutProxy() throws QueryException;
 
     boolean shouldReconnectWithoutProxy();
 
     void setHostFailedWithoutProxy();
 
-    AbstractQueryResult executePreparedQuery(PrepareResult prepareResult, String sql, ParameterHolder[] parameters, MariaDbType[] parameterTypeHeader,
-                                             boolean isStreaming) throws QueryException;
+    void executePreparedQuery(PrepareResult prepareResult, ExecutionResult executionResult, String sql, ParameterHolder[] parameters,
+                              MariaDbType[] parameterTypeHeader, int resultSetScrollType) throws QueryException;
 
-    AbstractQueryResult executePreparedQueryAfterFailover(PrepareResult prepareResult, String sql, ParameterHolder[] parameters,
-                                                          MariaDbType[] parameterTypeHeader, boolean isStreaming) throws QueryException; //used
+    void executePreparedQueryAfterFailover(PrepareResult oldPrepareResult, ExecutionResult executionResult, String sql, ParameterHolder[] parameters,
+                                                  MariaDbType[] parameterTypeHeader, int resultSetScrollType) throws QueryException; //used
 
     void releasePrepareStatement(PrepareResult prepareResult, String sql) throws QueryException;
 
@@ -200,9 +206,22 @@ public interface Protocol {
 
     Calendar getCalendar();
 
-    void prolog(boolean isStreaming, int maxRows, boolean hasProxy, MariaDbConnection connection, Statement statement)
-            throws SQLException;
+    void prolog(ExecutionResult executionResult, int maxRows, boolean hasProxy, MariaDbConnection connection,
+                Statement statement) throws SQLException;
 
-    void prologProxy(PrepareResult prepareResult, boolean isStreaming, int maxRows, boolean hasProxy, MariaDbConnection connection,
-                     Statement statement) throws SQLException;
+    void prologProxy(PrepareResult prepareResult, ExecutionResult executionResult, int maxRows, boolean hasProxy,
+                     MariaDbConnection connection,Statement statement) throws SQLException;
+
+    MariaSelectResultSet getActiveStreamingResult();
+
+    void setActiveStreamingResult(MariaSelectResultSet mariaSelectResultSet);
+
+    ReentrantLock getLock();
+
+    void getMoreResults(ExecutionResult executionResult) throws QueryException;
+
+    void setMoreResults(boolean moreResults, boolean moreResultsTypeBinary);
+
+    void setHasWarnings(boolean hasWarnings);
+
 }

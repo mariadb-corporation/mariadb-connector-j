@@ -115,9 +115,9 @@ public class Buffer {
      */
     public int readInt() {
         return ((buf[position++] & 0xff)
-                | ((buf[position++] & 0xff) << 8)
-                | ((buf[position++] & 0xff) << 16)
-                | ((buf[position++] & 0xff) << 24));
+                + ((buf[position++] & 0xff) << 8)
+                + ((buf[position++] & 0xff) << 16)
+                + ((buf[position++] & 0xff) << 24));
     }
 
     /**
@@ -127,13 +127,13 @@ public class Buffer {
      */
     public long readLong() {
         return ((buf[position++] & 0xff)
-                | ((long) (buf[position++] & 0xff) << 8)
-                | ((long) (buf[position++] & 0xff) << 16)
-                | ((long) (buf[position++] & 0xff) << 24)
-                | ((long) (buf[position++] & 0xff) << 32)
-                | ((long) (buf[position++] & 0xff) << 40)
-                | ((long) (buf[position++] & 0xff) << 48)
-                | ((long) (buf[position++] & 0xff) << 56));
+                + ((long) (buf[position++] & 0xff) << 8)
+                + ((long) (buf[position++] & 0xff) << 16)
+                + ((long) (buf[position++] & 0xff) << 24)
+                + ((long) (buf[position++] & 0xff) << 32)
+                + ((long) (buf[position++] & 0xff) << 40)
+                + ((long) (buf[position++] & 0xff) << 48)
+                + ((long) (buf[position++] & 0xff) << 56));
     }
 
     /**
@@ -168,15 +168,33 @@ public class Buffer {
 
     /**
      * Skip next length encode binary data.
-     * @return this.
      */
-    public Buffer skipLengthEncodedBytes() {
-        long encLength = getLengthEncodedBinary();
-        if (encLength == -1) {
-            return null;
+    public void skipLengthEncodedBytes() {
+        int type = this.buf[this.position++] & 0xff;
+        switch (type) {
+            case 251:
+                break;
+            case 252:
+                position += 2 + ((buf[position] & 0xff) + ((buf[position + 1] & 0xff) << 8));
+                break;
+            case 253:
+                position += 3 + (buf[position] & 0xff)
+                        + ((buf[position + 1] & 0xff) << 8)
+                        + ((buf[position + 2] & 0xff) << 16);
+                break;
+            case 254:
+                position += 8 + ((buf[position] & 0xff)
+                        + ((long) (buf[position + 1] & 0xff) << 8)
+                        + ((long) (buf[position + 2] & 0xff) << 16)
+                        + ((long) (buf[position + 3] & 0xff) << 24)
+                        + ((long) (buf[position + 4] & 0xff) << 32)
+                        + ((long) (buf[position + 5] & 0xff) << 40)
+                        + ((long) (buf[position + 6] & 0xff) << 48)
+                        + ((long) (buf[position + 7] & 0xff) << 56));
+                break;
+            default:
+                position += type;
         }
-        skipBytes((int) encLength);
-        return this;
     }
 
     /**
@@ -184,23 +202,19 @@ public class Buffer {
      * @return length of next binary data
      */
     public long getLengthEncodedBinary() {
-        final byte type = buf[position++];
-        if (type < (byte) 0xfb) {
-            return (long) 0xff & type;
-        }
+        int type = this.buf[this.position++] & 0xff;
         switch (type) {
-            case (byte) 0xfb: //251
+            case 251:
                 return -1;
-            case (byte) 0xfc: //252
-                return (long) 0xffff & readShort();
-            case (byte) 0xfd: //253
-                return 0xffffff & read24bitword();
-            case (byte) 0xfe: //254
+            case 252:
+                return readShort();
+            case 253:
+                return read24bitword();
+            case 254:
                 return readLong();
             default:
-                return (long) 0xff & type;
+                return type;
         }
-
     }
 
     /**
@@ -257,26 +271,23 @@ public class Buffer {
         if (remaining() <= 0) {
             return 0;
         }
-        final byte type = buf[position];
-        if (type < (byte) 0xfb) {
-            return (long) 0xff & type;
-        }
+        int type = this.buf[this.position] & 0xff;
         switch (type) {
-            case (byte) 0xfb: //251
+            case 251:
                 return -1;
-            case (byte) 0xfc: //252
+            case 252:
                 return (long) (0xffff & ((buf[position + 1] & 0xff) + ((buf[position + 2] & 0xff) << 8)));
-            case (byte) 0xfd: //253
-                return 0xffffff & (buf[position + 1] & 0xff)
+            case 253:
+                return (buf[position + 1] & 0xff)
                         + ((buf[position + 2] & 0xff) << 8)
                         + ((buf[position + 3] & 0xff) << 16);
-            case (byte) 0xfe: //254
-                return 0xffffff & (buf[position + 1] & 0xff)
+            case 254:
+                return (buf[position + 1] & 0xff)
                         + ((buf[position + 2] & 0xff) << 8)
                         + ((buf[position + 3] & 0xff) << 16)
                         + ((buf[position + 4] & 0xff) << 24);
             default:
-                return (long) 0xff & type;
+                return type;
         }
     }
 }

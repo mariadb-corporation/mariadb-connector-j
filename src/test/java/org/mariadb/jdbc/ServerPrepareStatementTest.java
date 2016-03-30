@@ -737,7 +737,6 @@ public class ServerPrepareStatementTest extends BaseTest {
         }
     }
 
-
     @Test
     public void testPrepareStatementCache() throws Throwable {
         //tester le cache prepareStatement

@@ -53,7 +53,7 @@ import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.failover.thread.ConnectionValidator;
-import org.mariadb.jdbc.internal.queryresults.AbstractQueryResult;
+import org.mariadb.jdbc.internal.queryresults.ExecutionResult;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.dao.PrepareResult;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
@@ -212,8 +212,8 @@ public abstract class AbstractMastersListener implements Listener {
     }
 
     protected void setSessionReadOnly(boolean readOnly, Protocol protocol) throws QueryException {
-        if (protocol.versionGreaterOrEqual(10, 0, 0)) {
-            protocol.executeQuery("SET SESSION TRANSACTION " + (readOnly ? "READ ONLY" : "READ WRITE"), false);
+        if (protocol.versionGreaterOrEqual(5, 6, 5)) {
+            protocol.executeQuery("SET SESSION TRANSACTION " + (readOnly ? "READ ONLY" : "READ WRITE"));
         }
     }
 
@@ -267,8 +267,8 @@ public abstract class AbstractMastersListener implements Listener {
         HandleErrorResult handleErrorResult = new HandleErrorResult(true);
         if (method != null) {
             if ("executeQuery".equals(method.getName())) {
-                if (args[0] instanceof String) {
-                    String query = ((String) args[0]).toUpperCase();
+                if (args[1] instanceof String) {
+                    String query = ((String) args[1]).toUpperCase();
                     if (!query.equals("ALTER SYSTEM CRASH")
                             && !query.startsWith("KILL")) {
                         handleErrorResult.resultObject = method.invoke(currentProtocol, args);
@@ -278,8 +278,10 @@ public abstract class AbstractMastersListener implements Listener {
             } else if ("executePreparedQuery".equals(method.getName())) {
                 //the statementId has been discarded with previous session
                 try {
-                    handleErrorResult.resultObject = currentProtocol.executePreparedQueryAfterFailover(((PrepareResult) args[0]), ((String) args[1]),
-                            ((ParameterHolder[]) args[2]), ((MariaDbType[]) args[3]), ((boolean) args[4]));
+                    handleErrorResult.resultObject = null;
+                    currentProtocol.executePreparedQueryAfterFailover(((PrepareResult) args[0]),
+                            ((ExecutionResult) args[1]), ((String) args[2]),
+                            ((ParameterHolder[]) args[3]), ((MariaDbType[]) args[4]), ((int) args[5]));
                     handleErrorResult.mustThrowError = false;
                 } catch (Exception e) {
                 }
@@ -298,9 +300,11 @@ public abstract class AbstractMastersListener implements Listener {
      * @return true if can be re-executed
      */
     public boolean isQueryRelaunchable(Method method, Object[] args) {
-        if (method != null && "executeQuery".equals(method.getName())) {
-            if (args[0] instanceof String) {
-                return ((String) args[0]).toUpperCase().startsWith("SELECT");
+        if (method != null) {
+            if ("executeQuery".equals(method.getName()) && args[1] instanceof String) {
+                return ((String) args[1]).toUpperCase().startsWith("SELECT");
+            } else if ("executePreparedQuery".equals(method.getName()) && args[2] instanceof String) {
+                return ((String) args[2]).toUpperCase().startsWith("SELECT");
             }
         }
         return false;
@@ -336,7 +340,7 @@ public abstract class AbstractMastersListener implements Listener {
                     to.setCatalog(from.getDatabase());
                 }
                 if (from.getAutocommit() != to.getAutocommit()) {
-                    to.executeQuery("set autocommit=" + (from.getAutocommit() ? "1" : "0"), false);
+                    to.executeQuery("set autocommit=" + (from.getAutocommit() ? "1" : "0"));
                 }
             } finally {
                 proxy.lock.unlock();

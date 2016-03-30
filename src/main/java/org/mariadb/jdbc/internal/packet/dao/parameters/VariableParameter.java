@@ -1,7 +1,7 @@
 /*
 MariaDB Client for Java
 
-Copyright (c) 2012 Monty Program Ab.
+Copyright (c) 2016 MariaDB Corporation AB
 
 This library is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License as published by the Free
@@ -47,9 +47,38 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc.internal.queryresults;
+package org.mariadb.jdbc.internal.packet.dao.parameters;
+
+import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.stream.PacketOutputStream;
+
+import java.io.IOException;
+import java.io.OutputStream;
 
 
-public enum ResultSetType {
-    MODIFY, SELECT, GENERATED
+public class VariableParameter extends NotLongDataParameterHolder {
+    private String string;
+    private boolean noBackslashEscapes;
+
+    public VariableParameter(String string, boolean noBackslashEscapes) {
+        this.string = string;
+        this.noBackslashEscapes = noBackslashEscapes;
+    }
+
+    public void writeTo(final OutputStream os) throws IOException {
+        ParameterWriter.writeBytesEscaped(os, string.getBytes("UTF-8"), noBackslashEscapes);
+    }
+
+    public long getApproximateTextProtocolLength() throws IOException {
+        return String.valueOf(string).getBytes().length * 2;
+    }
+
+    public void writeBinary(PacketOutputStream writeBuffer) {
+        writeBuffer.writeStringLength(string);
+    }
+
+    public MariaDbType getMariaDbType() {
+        return MariaDbType.VARCHAR;
+    }
+
 }

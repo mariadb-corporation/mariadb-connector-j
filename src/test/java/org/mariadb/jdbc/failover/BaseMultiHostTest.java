@@ -71,7 +71,7 @@ public class BaseMultiHostTest {
     @BeforeClass
     public static void beforeClass() throws SQLException, IOException {
 
-        initialUrl = System.getProperty("dbUrl");
+        initialUrl = System.getProperty("dbFailoverUrl");
         initialGaleraUrl = System.getProperty("defaultGaleraUrl");
         initialReplicationUrl = System.getProperty("defaultReplicationUrl");
         initialLoadbalanceUrl = System.getProperty("defaultLoadbalanceUrl");
