@@ -47,30 +47,46 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc.internal;
+package org.mariadb.jdbc.internal.packet.send;
 
-public class MariaDbServerCapabilities {
-    public static final int LONG_PASSWORD = 1;       /* new more secure passwords */
-    public static final int FOUND_ROWS = 2;       /* Found instead of affected rows */
-    public static final int LONG_FLAG = 4;       /* Get all column flags */
-    public static final int CONNECT_WITH_DB = 8;     /* One can specify db on connect */
-    public static final int NO_SCHEMA = 16;          /* Don't allow database.table.column */
-    public static final int COMPRESS = 32;          /* Can use compression protocol */
-    public static final int ODBC = 64;               /* Odbc client */
-    public static final int LOCAL_FILES = 128;       /* Can use LOAD DATA LOCAL */
-    public static final int IGNORE_SPACE = 256;       /* Ignore spaces before '(' */
-    public static final int CLIENT_PROTOCOL_41 = 512; /* New 4.1 protocol */
-    public static final int CLIENT_INTERACTIVE = 1024;
-    public static final int SSL = 2048;                /* Switch to SSL after handshake */
-    public static final int IGNORE_SIGPIPE = 4096;     /* IGNORE sigpipes */
-    public static final int TRANSACTIONS = 8192;
-    public static final int RESERVED = 16384;           /* Old flag for 4.1 protocol  */
-    public static final int SECURE_CONNECTION = 32768;  /* New 4.1 authentication */
-    public static final int MULTI_STATEMENTS = 1 << 16; /* Enable/disable multi-stmt support */
-    public static final int MULTI_RESULTS = 1 << 17;    /* Enable/disable multi-results */
-    public static final int PS_MULTI_RESULTS = 1 << 18; /* Enable/disable multi-results for PrepareStatement */
-    public static final int PLUGIN_AUTH = 1 << 19;      /* Client supports plugin authentication */
-    public static final int CONNECT_ATTRS = 1 << 20;    /* Client send connection attributes */
-    public static final int PLUGIN_AUTH_LENENC_CLIENT_DATA = 1 << 21;    /* authentication data length is a length auth integer */
-    public static final int PROGRESS = 1 << 29;         /* Client support progress indicator */
+import org.mariadb.jdbc.internal.packet.read.Packet;
+import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
+import org.mariadb.jdbc.internal.packet.result.ErrorPacket;
+import org.mariadb.jdbc.internal.util.buffer.Buffer;
+import org.mariadb.jdbc.internal.util.dao.QueryException;
+
+import java.io.IOException;
+
+
+public abstract class AbstractAuthSwitchSendResponsePacket implements InterfaceAuthSwitchSendResponsePacket {
+    protected int packSeq = 0;
+    protected byte[] authData;
+    protected String password;
+
+    /**
+     * Handle Authentication.
+     * @param packSeq packet sequence
+     * @param authData authentication data
+     * @param password password
+     */
+    public AbstractAuthSwitchSendResponsePacket(int packSeq, byte[] authData, String password) {
+        this.packSeq = packSeq;
+        this.authData = authData;
+        this.password = password;
+    }
+
+    /**
+     * Handle response packet.
+     * @param packetFetcher packet fetcher
+     * @throws QueryException if any functional error occur
+     * @throws IOException if any connection error occur
+     */
+    public void handleResultPacket(ReadPacketFetcher packetFetcher) throws QueryException, IOException {
+        Buffer buffer = packetFetcher.getReusableBuffer();
+        if (buffer.getByteAt(0) == Packet.ERROR) {
+            ErrorPacket ep = new ErrorPacket(buffer);
+            String message = ep.getMessage();
+            throw new QueryException("Could not connect: " + message, ep.getErrorNumber(), ep.getSqlState());
+        }
+    }
 }

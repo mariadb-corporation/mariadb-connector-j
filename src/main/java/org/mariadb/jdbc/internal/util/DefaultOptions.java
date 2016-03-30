@@ -338,7 +338,14 @@ public enum DefaultOptions {
      * This sets the number of callable statements that the driver will cache per VM if "cacheCallableStmts" is enabled.
      * default to 150.
      */
-    CALLABLE_STMT_CACHE_SIZE("callableStmtCacheSize", new Integer(150), new Integer(0), Integer.MAX_VALUE, "1.4.0");
+    CALLABLE_STMT_CACHE_SIZE("callableStmtCacheSize", new Integer(150), new Integer(0), Integer.MAX_VALUE, "1.4.0"),
+    /**
+     * Indicate to server some client information in a key;value pair.
+     * for example connectionAttributes=key1:value1,key2,value2.
+     * Those information can be retrieved on server within tables mysql.session_connect_attrs and mysql.session_account_connect_attrs.
+     * This can permit from server an identification of client.
+     */
+    CONNECTION_ATTRIBUTES("connectionAttributes", "1.4.0");
 
     protected final String name;
     protected final Object objType;

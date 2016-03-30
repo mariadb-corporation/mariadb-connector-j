@@ -49,13 +49,23 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.packet.send;
 
+import org.mariadb.jdbc.Driver;
+import org.mariadb.jdbc.MariaDbDatabaseMetaData;
 import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
+import org.mariadb.jdbc.internal.protocol.authentication.DefaultAuthenticationProvider;
+import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
+import org.mariadb.jdbc.internal.util.constant.Version;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
+import java.lang.management.ManagementFactory;
+import java.nio.ByteBuffer;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
+import java.util.StringTokenizer;
 
 /**
  * 4                            client_flags 4                            max_packet_size 1 charset_number 23 (filler)
@@ -80,13 +90,19 @@ import java.security.NoSuchAlgorithmException;
  * databasename:            name of schema to use initially
  */
 public class SendHandshakeResponsePacket implements InterfaceSendPacket {
-    private final byte packetSeq;
-    private final String username;
-    private final String password;
-    private final byte[] seed;
+    private byte packetSeq;
+    private String username;
+    private String password;
+    private byte[] seed;
     private final int clientCapabilities;
     private final byte serverLanguage;
-    private final String database;
+    private String database;
+    private String plugin;
+    private String connectionAttributes;
+    private long serverThreadId;
+
+    private byte[] connectionAttributesArray;
+    private int connectionAttributesPosition;
 
     /**
      * Initialisation of parameters.
@@ -97,13 +113,20 @@ public class SendHandshakeResponsePacket implements InterfaceSendPacket {
      * @param serverLanguage serverlanguage
      * @param seed seed
      * @param packetSeq stream sequence
+     * @param plugin authentication plugin name
+     * @param connectionAttributes connection attributes option
+     * @param serverThreadId threadId;
      */
     public SendHandshakeResponsePacket(final String username,
                                        final String password,
                                        final String database,
                                        final int clientCapabilities,
                                        final byte serverLanguage,
-                                       final byte[] seed, byte packetSeq) {
+                                       final byte[] seed,
+                                       byte packetSeq,
+                                       String plugin,
+                                       String connectionAttributes,
+                                       long serverThreadId) {
         this.packetSeq = packetSeq;
         this.username = username;
         this.password = password;
@@ -111,6 +134,9 @@ public class SendHandshakeResponsePacket implements InterfaceSendPacket {
         this.clientCapabilities = clientCapabilities;
         this.serverLanguage = serverLanguage;
         this.database = database;
+        this.plugin = plugin;
+        this.connectionAttributes = connectionAttributes;
+        this.serverThreadId = serverThreadId;
     }
 
     /**
@@ -121,26 +147,120 @@ public class SendHandshakeResponsePacket implements InterfaceSendPacket {
     public void send(final OutputStream os) throws IOException {
         PacketOutputStream writeBuffer = (PacketOutputStream) os;
         writeBuffer.startPacket(packetSeq);
-        final byte[] scrambledPassword;
-        try {
-            scrambledPassword = Utils.encryptPassword(password, seed);
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("Could not use SHA-1, failing", e);
+        final byte[] authData;
+        switch (plugin) {
+            case DefaultAuthenticationProvider.MYSQL_NATIVE_PASSWORD :
+                try {
+                    authData = Utils.encryptPassword(password, seed);
+                    break;
+                } catch (NoSuchAlgorithmException e) {
+                    throw new RuntimeException("Could not use SHA-1, failing", e);
+                }
+            case DefaultAuthenticationProvider.MYSQL_CLEAR_PASSWORD :
+                authData = password.getBytes();
+                break;
+            default:
+                authData = new byte[0];
         }
+
 
         writeBuffer.writeInt(clientCapabilities)
                 .writeInt(1024 * 1024 * 1024)
                 .writeByte(serverLanguage) //1
                 .writeBytes((byte) 0, 23)    //23
                 .writeString(username)     //strlen username
-                .writeByte((byte) 0)        //1
-                .writeByte((byte) scrambledPassword.length)
-                .writeByteArray(scrambledPassword); //scrambledPassword.length
+                .writeByte((byte) 0);        //1
+
+        if ((clientCapabilities & MariaDbServerCapabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA) != 0) {
+            writeBuffer.writeFieldLength(authData.length)
+                    .writeByteArray(authData);
+        } else if ((clientCapabilities & MariaDbServerCapabilities.SECURE_CONNECTION) != 0) {
+            writeBuffer.writeByte((byte) authData.length)
+                    .writeByteArray(authData);
+        } else {
+            writeBuffer.writeByteArray(authData).writeByte((byte) 0);
+        }
 
         if ((clientCapabilities & MariaDbServerCapabilities.CONNECT_WITH_DB) != 0) {
             writeBuffer.writeString(database).writeByte((byte) 0);
         }
 
+        if ((clientCapabilities & MariaDbServerCapabilities.PLUGIN_AUTH) != 0) {
+            writeBuffer.writeString(plugin).writeByte((byte) 0);
+        }
+
+        if ((clientCapabilities & MariaDbServerCapabilities.CONNECT_ATTRS) != 0) {
+            writeConnectAttributes(writeBuffer);
+        }
         writeBuffer.finishPacket();
     }
+
+    private void writeConnectAttributes(PacketOutputStream writeBuffer) {
+        connectionAttributesArray = new byte[200];
+        connectionAttributesPosition = 0;
+        writeStringLength("_client_name", MariaDbDatabaseMetaData.DRIVER_NAME);
+        writeStringLength("_client_version", Version.version);
+        writeStringLength("_os", System.getProperty("os.name"));
+        writeStringLength("_pid", ManagementFactory.getRuntimeMXBean().getName());
+        writeStringLength("_thread", Long.toString(serverThreadId));
+        writeStringLength("_java_vendor", System.getProperty("java.vendor"));
+        writeStringLength("_java_version", System.getProperty("java.version"));
+
+        if (connectionAttributes != null) {
+            StringTokenizer tokenizer = new StringTokenizer(connectionAttributes, ",");
+            while (tokenizer.hasMoreTokens()) {
+                String token = tokenizer.nextToken();
+                int separator = token.indexOf(":");
+                if (separator != -1) {
+                    writeStringLength(token.substring(0, separator), token.substring(separator + 1));
+                } else {
+                    writeStringLength(token, "");
+                }
+            }
+        }
+        writeBuffer.writeFieldLength(connectionAttributesPosition);
+        writeBuffer.writeByteArray(Arrays.copyOfRange(connectionAttributesArray, 0, connectionAttributesPosition));
+    }
+
+    private void writeStringLength(String strKey, String strValue) {
+        try {
+            final byte[] strBytesKey = strKey.getBytes("UTF-8");
+            final byte[] strBytesValue = strValue.getBytes("UTF-8");
+
+            assureBufferCapacity(strBytesKey.length + strBytesValue.length + 18);
+            writeFieldLength(strBytesKey.length);
+            writeBytes(strBytesKey);
+
+            writeFieldLength(strBytesValue.length);
+            writeBytes(strBytesValue);
+
+        } catch (UnsupportedEncodingException u) {
+        }
+    }
+
+    private void assureBufferCapacity(int additionalSize) {
+        if (connectionAttributesArray.length < connectionAttributesPosition + additionalSize) {
+            byte[] newConnectionAttributesArray = new byte[Math.max(connectionAttributesArray.length * 2,
+                    connectionAttributesPosition + additionalSize)];
+            System.arraycopy(connectionAttributesArray, 0, newConnectionAttributesArray, 0, connectionAttributesPosition);
+            connectionAttributesArray = newConnectionAttributesArray;
+        }
+    }
+
+    private void writeFieldLength(long length) {
+        if (length < 251) {
+            connectionAttributesArray[connectionAttributesPosition++] = (byte) length;
+        } else {
+            connectionAttributesArray[connectionAttributesPosition++] = (byte) 0xfc;
+            connectionAttributesArray[connectionAttributesPosition++] = (byte) (length & 0xff);
+            connectionAttributesArray[connectionAttributesPosition++] = (byte) (length >>> 8);
+        }
+    }
+
+    private void writeBytes(byte[] byteValue) {
+        assureBufferCapacity(byteValue.length);
+        System.arraycopy(byteValue, 0, this.connectionAttributesArray, connectionAttributesPosition, byteValue.length);
+        this.connectionAttributesPosition += byteValue.length;
+    }
+
 }

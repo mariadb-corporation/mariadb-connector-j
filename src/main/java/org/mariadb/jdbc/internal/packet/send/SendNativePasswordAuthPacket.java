@@ -20,7 +20,7 @@ This particular MariaDB Client for Java file is work
 derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
 the following copyright and notice provisions:
 
-Copyright (c) 2009-2011, Marcus Eriksson
+Copyright (c) 2009-2011, Marcus Eriksson , Stephane Giron
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
@@ -47,30 +47,34 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc.internal;
+package org.mariadb.jdbc.internal.packet.send;
 
-public class MariaDbServerCapabilities {
-    public static final int LONG_PASSWORD = 1;       /* new more secure passwords */
-    public static final int FOUND_ROWS = 2;       /* Found instead of affected rows */
-    public static final int LONG_FLAG = 4;       /* Get all column flags */
-    public static final int CONNECT_WITH_DB = 8;     /* One can specify db on connect */
-    public static final int NO_SCHEMA = 16;          /* Don't allow database.table.column */
-    public static final int COMPRESS = 32;          /* Can use compression protocol */
-    public static final int ODBC = 64;               /* Odbc client */
-    public static final int LOCAL_FILES = 128;       /* Can use LOAD DATA LOCAL */
-    public static final int IGNORE_SPACE = 256;       /* Ignore spaces before '(' */
-    public static final int CLIENT_PROTOCOL_41 = 512; /* New 4.1 protocol */
-    public static final int CLIENT_INTERACTIVE = 1024;
-    public static final int SSL = 2048;                /* Switch to SSL after handshake */
-    public static final int IGNORE_SIGPIPE = 4096;     /* IGNORE sigpipes */
-    public static final int TRANSACTIONS = 8192;
-    public static final int RESERVED = 16384;           /* Old flag for 4.1 protocol  */
-    public static final int SECURE_CONNECTION = 32768;  /* New 4.1 authentication */
-    public static final int MULTI_STATEMENTS = 1 << 16; /* Enable/disable multi-stmt support */
-    public static final int MULTI_RESULTS = 1 << 17;    /* Enable/disable multi-results */
-    public static final int PS_MULTI_RESULTS = 1 << 18; /* Enable/disable multi-results for PrepareStatement */
-    public static final int PLUGIN_AUTH = 1 << 19;      /* Client supports plugin authentication */
-    public static final int CONNECT_ATTRS = 1 << 20;    /* Client send connection attributes */
-    public static final int PLUGIN_AUTH_LENENC_CLIENT_DATA = 1 << 21;    /* authentication data length is a length auth integer */
-    public static final int PROGRESS = 1 << 29;         /* Client support progress indicator */
+import org.mariadb.jdbc.internal.stream.PacketOutputStream;
+import org.mariadb.jdbc.internal.util.Utils;
+
+import java.io.IOException;
+import java.io.OutputStream;
+import java.security.NoSuchAlgorithmException;
+
+public class SendNativePasswordAuthPacket extends AbstractAuthSwitchSendResponsePacket implements InterfaceAuthSwitchSendResponsePacket {
+
+    public SendNativePasswordAuthPacket(String password, byte[] authData, int packSeq) {
+        super(packSeq, authData, password);
+    }
+
+    /**
+     * Send native password stream.
+     * @param os database socket
+     * @throws IOException if a connection error occur
+     */
+    public void send(OutputStream os) throws IOException {
+        PacketOutputStream writer = (PacketOutputStream) os;
+        try {
+            writer.startPacket(packSeq);
+            writer.write(Utils.encryptPassword(password, authData));
+            writer.finishPacket();
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("Could not use SHA-1, failing", e);
+        }
+    }
 }

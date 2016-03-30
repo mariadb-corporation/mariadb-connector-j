@@ -54,14 +54,10 @@ import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 
-public class SendOldPasswordAuthPacket implements InterfaceSendPacket {
+public class SendOldPasswordAuthPacket extends AbstractAuthSwitchSendResponsePacket implements InterfaceAuthSwitchSendResponsePacket {
 
-    private int packSeq = 0;
-    private byte[] oldPassword;
-
-    public SendOldPasswordAuthPacket(String password, byte[] seed, int packSeq) {
-        this.packSeq = packSeq;
-        this.oldPassword = cryptOldFormatPassword(password, new String(seed));
+    public SendOldPasswordAuthPacket(String password, byte[] authData, int packSeq) {
+        super(packSeq, authData, password);
     }
 
     /**
@@ -72,7 +68,7 @@ public class SendOldPasswordAuthPacket implements InterfaceSendPacket {
     public void send(OutputStream os) throws IOException {
         PacketOutputStream pos = (PacketOutputStream) os;
         pos.startPacket(packSeq);
-        pos.writeByteArray(oldPassword).writeByte((byte) 0x00);
+        pos.writeByteArray(cryptOldFormatPassword(password, new String(authData))).writeByte((byte) 0x00);
         pos.finishPacket();
     }
 

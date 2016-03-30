@@ -56,6 +56,7 @@ import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.packet.result.ErrorPacket;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
 
@@ -73,15 +74,17 @@ public class ReadInitialConnectPacket {
     private final short serverStatus;
     private final byte[] seed;
     private String serverVersion;
+    private String pluginName;
 
     /**
      * Read database initial stream.
-     * @param buffer buffer
+     * @param packetFetcher packetFetcher
      * @throws IOException if a connection error occur
      * @throws QueryException if received an error packet
      */
-    public ReadInitialConnectPacket(final Buffer buffer) throws IOException, QueryException {
-        if (buffer.getByteAt(0) == Packet.ERROR) { //ERROR packet
+    public ReadInitialConnectPacket(final ReadPacketFetcher packetFetcher) throws IOException, QueryException {
+        Buffer buffer = packetFetcher.getReusableBuffer();
+        if (buffer.getByteAt(0) == Packet.ERROR) {
             ErrorPacket errorPacket = new ErrorPacket(buffer);
             throw new QueryException(errorPacket.getMessage());
         }
@@ -91,22 +94,37 @@ public class ReadInitialConnectPacket {
         serverThreadId = buffer.readInt();
         final byte[] seed1 = buffer.readRawBytes(8);
         buffer.skipByte();
-        serverCapabilities = buffer.readShort();
+        int serverCapabilitiesLower = buffer.readShort();
         serverLanguage = buffer.readByte();
         serverStatus = buffer.readShort();
-        buffer.skipBytes(13);
-        final byte[] seed2 = buffer.readRawBytes(12);
-        seed = Utils.copyWithLength(seed1, seed1.length + seed2.length);
-        System.arraycopy(seed2, 0, seed, seed1.length, seed2.length);
-        buffer.readByte(); // seems the seed is null terminated
-        
-        /* 
+        serverCapabilities = serverCapabilitiesLower + (buffer.readShort() << 16);
+        int saltLength = 0;
+
+        if ((serverCapabilities & MariaDbServerCapabilities.PLUGIN_AUTH) != 0) {
+            saltLength = Math.max(12, buffer.readByte() - 9);
+        } else {
+            buffer.skipByte();
+        }
+        buffer.skipBytes(10);
+        if ((serverCapabilities & MariaDbServerCapabilities.SECURE_CONNECTION) != 0) {
+            final byte[] seed2 = buffer.readRawBytes(saltLength);
+            seed = Utils.copyWithLength(seed1, seed1.length + seed2.length);
+            System.arraycopy(seed2, 0, seed, seed1.length, seed2.length);
+            //  reader.skipByte();
+        } else {
+            seed = Utils.copyWithLength(seed1, seed1.length);
+        }
+        buffer.skipByte();
+
+        /*
          * check for MariaDB 10.x replication hack , remove fake prefix if needed
          *  (see comments about MARIADB_RPL_HACK_PREFIX)
          */
-        if ((serverCapabilities & MariaDbServerCapabilities.PLUGIN_AUTH) != 0
-                && serverVersion.startsWith(MARIADB_RPL_HACK_PREFIX)) {
-            serverVersion = serverVersion.substring(MARIADB_RPL_HACK_PREFIX.length());
+        if ((serverCapabilities & MariaDbServerCapabilities.PLUGIN_AUTH) != 0) {
+            pluginName = buffer.readString(Charset.forName("ASCII"));
+            if (serverVersion.startsWith(MARIADB_RPL_HACK_PREFIX)) {
+                serverVersion = serverVersion.substring(MARIADB_RPL_HACK_PREFIX.length());
+            }
         }
     }
 
@@ -151,5 +169,9 @@ public class ReadInitialConnectPacket {
 
     public short getServerStatus() {
         return serverStatus;
+    }
+
+    public String getPluginName() {
+        return pluginName;
     }
 }

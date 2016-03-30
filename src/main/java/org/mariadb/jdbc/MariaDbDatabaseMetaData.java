@@ -63,7 +63,7 @@ import java.util.Comparator;
 import java.util.List;
 
 public class MariaDbDatabaseMetaData implements DatabaseMetaData {
-    private static final String DRIVER_NAME = "MariaDB connector/J";
+    public static final String DRIVER_NAME = "MariaDB connector/J";
     private String url;
     private MariaDbConnection connection;
     private String databaseProductName = "MySQL";

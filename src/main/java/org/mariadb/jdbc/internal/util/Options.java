@@ -101,6 +101,7 @@ public class Options {
     public boolean jdbcCompliantTruncation;
     public boolean cacheCallableStmts;
     public Integer callableStmtCacheSize;
+    public String connectionAttributes;
 
     //HA options
     public boolean assureReadOnly;
@@ -166,6 +167,7 @@ public class Options {
                 + ", jdbcCompliantTruncation=" + jdbcCompliantTruncation
                 + ", cacheCallableStmts=" + cacheCallableStmts
                 + ", callableStmtCacheSize=" + callableStmtCacheSize
+                + ", connectionAttributes=" + connectionAttributes
                 + "}";
     }
 
@@ -324,6 +326,9 @@ public class Options {
         }
 
         if (callableStmtCacheSize != null ? !callableStmtCacheSize.equals(options.callableStmtCacheSize) : options.callableStmtCacheSize != null) {
+            return false;
+        }
+        if (connectionAttributes != null ? !connectionAttributes.equals(options.connectionAttributes) : options.connectionAttributes != null) {
             return false;
         }
         return !(prepStmtCacheSqlLimit != null ? !prepStmtCacheSqlLimit.equals(options.prepStmtCacheSqlLimit)

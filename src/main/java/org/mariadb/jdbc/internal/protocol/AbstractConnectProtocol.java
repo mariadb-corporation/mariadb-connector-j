@@ -57,7 +57,8 @@ import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
 import org.mariadb.jdbc.internal.MyX509TrustManager;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
-import org.mariadb.jdbc.internal.packet.send.SendOldPasswordAuthPacket;
+import org.mariadb.jdbc.internal.packet.send.*;
+import org.mariadb.jdbc.internal.protocol.authentication.AuthenticationProviderHolder;
 import org.mariadb.jdbc.internal.queryresults.ExecutionResult;
 import org.mariadb.jdbc.internal.queryresults.SingleExecutionResult;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
@@ -71,9 +72,6 @@ import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
 import org.mariadb.jdbc.internal.util.constant.ServerStatus;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.packet.result.*;
-import org.mariadb.jdbc.internal.packet.send.SendClosePacket;
-import org.mariadb.jdbc.internal.packet.send.SendHandshakeResponsePacket;
-import org.mariadb.jdbc.internal.packet.send.SendSslConnectionRequestPacket;
 import org.mariadb.jdbc.internal.stream.DecompressInputStream;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
@@ -90,6 +88,7 @@ import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.security.KeyStore;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -418,7 +417,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
             packetFetcher = new ReadPacketFetcher(reader);
             writer = new PacketOutputStream(socket.getOutputStream());
 
-            final ReadInitialConnectPacket greetingPacket = new ReadInitialConnectPacket(packetFetcher.getReusableBuffer());
+            final ReadInitialConnectPacket greetingPacket = new ReadInitialConnectPacket(packetFetcher);
             this.serverThreadId = greetingPacket.getServerThreadId();
             this.version = greetingPacket.getServerVersion();
             parseVersion();
@@ -447,7 +446,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 throw new QueryException("Trying to connect with ssl, but ssl not enabled in the server");
             }
 
-            authentication(greetingPacket.getServerLanguage(), clientCapabilities, greetingPacket.getSeed(), packetSeq);
+            authentication(greetingPacket.getServerLanguage(), clientCapabilities, greetingPacket.getSeed(), packetSeq,
+                    greetingPacket.getPluginName(), greetingPacket.getServerCapabilities());
 
         } catch (IOException e) {
             if (reader != null) {
@@ -461,30 +461,46 @@ public abstract class AbstractConnectProtocol implements Protocol {
                     ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(), e);
         }
     }
-
-    private void authentication(byte serverLanguage, int clientCapabilities, byte[] seed, byte packetSeq) throws QueryException, IOException {
+    private void authentication(byte serverLanguage, int clientCapabilities, byte[] seed, byte packetSeq, String plugin, int serverCapabilities)
+            throws QueryException, IOException {
         final SendHandshakeResponsePacket cap = new SendHandshakeResponsePacket(this.username,
                 this.password,
                 database,
                 clientCapabilities,
                 decideLanguage(serverLanguage),
                 seed,
-                packetSeq);
+                packetSeq,
+                plugin,
+                options.connectionAttributes,
+                serverThreadId);
         cap.send(writer);
         Buffer buffer = packetFetcher.getPacket();
 
-        if ((buffer.getByteAt(0) & 0xFF) == Packet.EOF) {   // Server asking for old format password
-            final SendOldPasswordAuthPacket oldPassPacket = new SendOldPasswordAuthPacket(
-                    this.password, Utils.copyWithLength(seed,8), packetFetcher.getLastPacketSeq() + 1);
-            oldPassPacket.send(writer);
-            buffer = packetFetcher.getPacket();
+        if ((buffer.getByteAt(0) & 0xFF) == Packet.EOF) {
+            InterfaceAuthSwitchSendResponsePacket interfaceSendPacket;
+            if ((serverCapabilities & MariaDbServerCapabilities.PLUGIN_AUTH) != 0) {
+                //AuthSwitchRequest packet.
+                buffer.readByte();
+                plugin = buffer.readString(Charset.forName("ASCII"));
+                byte[] authData = buffer.readRawBytes(buffer.remaining());
+
+                //Authentication according to plugin.
+                //see AuthenticationProviderHolder for implement other plugin
+                interfaceSendPacket = AuthenticationProviderHolder.getAuthenticationProvider()
+                        .processAuthPlugin(packetFetcher, plugin, password, authData, packetFetcher.getLastPacketSeq() + 1);
+            } else {
+                interfaceSendPacket = new SendOldPasswordAuthPacket(this.password, Utils.copyWithLength(seed, 8), packetFetcher.getLastPacketSeq() + 1);
+            }
+            interfaceSendPacket.send(writer);
+            interfaceSendPacket.handleResultPacket(packetFetcher);
+        } else {
+            if (buffer.getByteAt(0) == Packet.ERROR) {
+                ErrorPacket errorPacket = new ErrorPacket(buffer);
+                throw new QueryException("Could not connect: " + errorPacket.getMessage(), errorPacket.getErrorNumber(), errorPacket.getSqlState());
+            }
+            serverStatus = new OkPacket(buffer).getServerStatus();
         }
 
-        if (buffer.getByteAt(0) == Packet.ERROR) {
-            ErrorPacket errorPacket = new ErrorPacket(buffer);
-            throw new QueryException("Could not connect: " + errorPacket.getMessage(), errorPacket.getErrorNumber(), errorPacket.getSqlState());
-        }
-        serverStatus = new OkPacket(buffer).getServerStatus();
     }
 
     private int initializeClientCapabilities() {
