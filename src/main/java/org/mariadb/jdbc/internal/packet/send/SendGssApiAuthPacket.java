@@ -152,7 +152,6 @@ public class SendGssApiAuthPacket extends AbstractAuthSwitchSendResponsePacket i
                                 }
 
                             } catch (GSSException le) {
-                                le.printStackTrace();
                                 throw new QueryException("GSS-API authentication exception", 0, "28000", le);
                             }
                             return null;
