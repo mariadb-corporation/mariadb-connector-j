@@ -514,7 +514,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
                         | MariaDbServerCapabilities.LOCAL_FILES
                         | MariaDbServerCapabilities.MULTI_RESULTS
                         | MariaDbServerCapabilities.PS_MULTI_RESULTS
-                        | MariaDbServerCapabilities.FOUND_ROWS;
+                        | MariaDbServerCapabilities.FOUND_ROWS
+                        | MariaDbServerCapabilities.CONNECT_ATTRS;
 
 
         if (options.allowMultiQueries || (options.rewriteBatchedStatements)) {
