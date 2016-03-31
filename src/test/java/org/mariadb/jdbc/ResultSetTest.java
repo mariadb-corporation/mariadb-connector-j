@@ -1,10 +1,12 @@
 package org.mariadb.jdbc;
 
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 
 import static org.junit.Assert.*;
 
@@ -18,6 +20,45 @@ public class ResultSetTest extends BaseTest {
         createTable("result_set_test", "id int not null primary key auto_increment, name char(20)");
     }
 
+    @Test
+    public void isBeforeFirstFetchTest() throws SQLException {
+        insertRows(1);
+        Statement statement = sharedConnection.createStatement();
+        statement.setFetchSize(1);
+        ResultSet resultSet = statement.executeQuery("SELECT * FROM result_set_test");
+        Assert.assertTrue(resultSet.isBeforeFirst());
+        while(resultSet.next()) {
+            Assert.assertFalse(resultSet.isBeforeFirst());
+        }
+        Assert.assertFalse(resultSet.isBeforeFirst());
+        resultSet.close();
+        try {
+            resultSet.isBeforeFirst();
+            Assert.fail("The above row should have thrown an SQLException");
+        } catch (SQLException e) {
+            //Make sure an exception has been thrown informing us that the ResultSet was closed
+            Assert.assertTrue(e.getMessage().contains("closed"));
+        }
+    }
+
+    @Test
+    public void isBeforeFirstFetchZeroRowsTest() throws SQLException {
+        insertRows(0);
+        Statement statement = sharedConnection.createStatement();
+        statement.setFetchSize(1);
+        ResultSet resultSet = statement.executeQuery("SELECT * FROM result_set_test");
+        Assert.assertFalse(resultSet.isBeforeFirst());
+        resultSet.next();
+        Assert.assertFalse(resultSet.isBeforeFirst());
+        resultSet.close();
+        try {
+            resultSet.isBeforeFirst();
+            Assert.fail("The above row should have thrown an SQLException");
+        } catch (SQLException e) {
+            //Make sure an exception has been thrown informing us that the ResultSet was closed
+            Assert.assertTrue(e.getMessage().contains("closed"));
+        }
+    }
 
     @Test
     public void isClosedTest() throws SQLException {
@@ -49,6 +90,7 @@ public class ResultSetTest extends BaseTest {
             //Make sure an exception has been thrown informing us that the ResultSet was closed
             assertTrue(e.getMessage().contains("closed"));
         }
+
     }
 
     @Test

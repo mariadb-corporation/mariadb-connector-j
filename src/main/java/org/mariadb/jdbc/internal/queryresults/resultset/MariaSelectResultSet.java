@@ -575,7 +575,7 @@ public class MariaSelectResultSet implements ResultSet {
     @Override
     public boolean isBeforeFirst() throws SQLException {
         checkClose();
-        return rowPointer == -1;
+        return (dataFetchTime > 0) ? rowPointer == -1 && resultSet.size() > 0 : rowPointer == -1;
     }
 
     @Override
