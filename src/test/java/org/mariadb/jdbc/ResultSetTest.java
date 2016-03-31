@@ -27,7 +27,7 @@ public class ResultSetTest extends BaseTest {
         statement.setFetchSize(1);
         ResultSet resultSet = statement.executeQuery("SELECT * FROM result_set_test");
         Assert.assertTrue(resultSet.isBeforeFirst());
-        while(resultSet.next()) {
+        while (resultSet.next()) {
             Assert.assertFalse(resultSet.isBeforeFirst());
         }
         Assert.assertFalse(resultSet.isBeforeFirst());

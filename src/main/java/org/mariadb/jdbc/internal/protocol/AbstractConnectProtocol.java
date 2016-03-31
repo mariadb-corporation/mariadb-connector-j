@@ -476,7 +476,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         cap.send(writer);
         Buffer buffer = packetFetcher.getPacket();
 
-        if ((buffer.getByteAt(0) & 0xFF) == Packet.EOF) {
+        if ((buffer.getByteAt(0) & 0xFF) == 0xFE) {
             InterfaceAuthSwitchSendResponsePacket interfaceSendPacket;
             if ((serverCapabilities & MariaDbServerCapabilities.PLUGIN_AUTH) != 0) {
                 //AuthSwitchRequest packet.
@@ -515,8 +515,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
                         | MariaDbServerCapabilities.MULTI_RESULTS
                         | MariaDbServerCapabilities.PS_MULTI_RESULTS
                         | MariaDbServerCapabilities.FOUND_ROWS
-                        | MariaDbServerCapabilities.CONNECT_ATTRS;
-
+                        | MariaDbServerCapabilities.PLUGIN_AUTH
+                        | MariaDbServerCapabilities.CONNECT_ATTRS
+                        | MariaDbServerCapabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA;
 
         if (options.allowMultiQueries || (options.rewriteBatchedStatements)) {
             capabilities |= MariaDbServerCapabilities.MULTI_STATEMENTS;
