@@ -6,7 +6,6 @@ install: .travis/before_test.sh
 jdk:
     - oraclejdk8
     - oraclejdk7
-    - openjdk7
 env:
     - MARIA_VERSION=5.5 MAX_ALLOWED_PACKET=8M INNODB_LOG_FILE_SIZE=80M
     - MARIA_VERSION=5.5 MAX_ALLOWED_PACKET=20M INNODB_LOG_FILE_SIZE=200M

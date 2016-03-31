@@ -127,6 +127,7 @@ public class MariaSelectResultSet implements ResultSet {
      * @param resultSetScrollType one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
      *                            <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
      * @param fetchSize           current fetch size
+     * @param isCanHaveCallableResultset is it from a callableStatement ?
      */
     public MariaSelectResultSet(ColumnInformation[] columnInformation, Statement statement, Protocol protocol,
                                 ReadPacketFetcher fetcher, boolean isBinaryEncoded,
@@ -3430,7 +3431,7 @@ public class MariaSelectResultSet implements ResultSet {
 
     /**
      * Get inputStream value from raw data.
-     *
+     * @param rawBytes rowdata
      * @return inputStream
      */
     public InputStream getInputStream(byte[] rawBytes) {

@@ -85,6 +85,8 @@ public interface DynamicSizedSchedulerInterface extends ScheduledExecutorService
      * task.  Once the task completes the pool size will be adjusted back down.
      * 
      * @param task Task to be executed
+     * @param delay delay before execution
+     * @param unit unit of delay
      * @return Future which represents task execution
      */
     public Future<?> addThreadAndSchedule(Runnable task, long delay, TimeUnit unit);
