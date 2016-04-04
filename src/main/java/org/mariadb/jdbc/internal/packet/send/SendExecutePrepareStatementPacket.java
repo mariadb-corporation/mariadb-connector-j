@@ -103,7 +103,7 @@ public class SendExecutePrepareStatementPacket implements InterfaceSendPacket {
                     nullBitsBuffer[i / 8] |= (1 << (i % 8));
                 }
             }
-            buffer.buffer.put(nullBitsBuffer);/*Null Bit Map*/
+            buffer.write(nullBitsBuffer);/*Null Bit Map*/
 
             //check if parameters type (using setXXX) have change since previous request, and resend new header type if so
             boolean mustSendHeaderType = false;

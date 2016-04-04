@@ -190,6 +190,7 @@ public class PreparedStatementTest extends BaseTest {
             assertTrue(sqle.getMessage().contains("INSERT INTO INCORRECT_QUERY"));
         }
     }
+
     @Test
     public void testRewriteMultiPacket() throws SQLException {
         Statement statement = sharedConnection.createStatement();
@@ -229,7 +230,7 @@ public class PreparedStatementTest extends BaseTest {
 
     /**
      * CONJ-273: permit client PrepareParameter without parameters.
-     * @throws Throwable
+     * @throws Throwable exception
      */
     @Test
     public void clientPrepareStatementWithoutParameter() throws Throwable {

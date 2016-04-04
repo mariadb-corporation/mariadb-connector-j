@@ -152,8 +152,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 /* Prepared Statement OK */
                 buffer.readByte(); /* skip field count */
                 final int statementId = buffer.readInt();
-                final int numColumns = buffer.readShort();
-                final int numParams = buffer.readShort();
+                final int numColumns = buffer.readShort() & 0xffff;
+                final int numParams = buffer.readShort() & 0xffff;
                 buffer.readByte(); // reserved
                 this.hasWarnings = buffer.readShort() > 0;
                 ColumnInformation[] params = new ColumnInformation[numParams];

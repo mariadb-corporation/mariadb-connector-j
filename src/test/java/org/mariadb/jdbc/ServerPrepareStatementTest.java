@@ -755,4 +755,24 @@ public class ServerPrepareStatementTest extends BaseTest {
             }
         }
     }
+
+    /**
+     * CONJ-270 : permit to have more than 32768 parameters.
+     * @throws SQLException exception
+     */
+    @Test
+    public void testRewriteMultiPacket() throws SQLException {
+        createTable("PreparedStatementTest3", "id int");
+        String sql = "INSERT INTO PreparedStatementTest3 VALUES (?)";
+        for (int i = 1 ; i < 65535 ; i++) {
+            sql += ",(?)";
+        }
+        PreparedStatement pstmt = sharedConnection.prepareStatement(sql);
+        for (int i = 1; i < 65536; i++) {
+            pstmt.setInt(i, i);
+        }
+        pstmt.execute();
+    }
+
+
 }
