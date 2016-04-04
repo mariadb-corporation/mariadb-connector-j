@@ -439,6 +439,7 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
         boolean isFirstChar = true;
         boolean isInsert = false;
         boolean semicolon = false;
+        boolean hasValueParam = false;
 
         char[] query = queryString.toCharArray();
 
@@ -518,6 +519,9 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
                 case '?':
                     if (state == LexState.Normal) {
                         isParam = true;
+                        if (valueIndex > -1) {
+                            hasValueParam = true;
+                        }
                         if (isAfterValue) {
                             //having parameters after the last ")" of value is not rewritable
                             isRewriteable = false;
@@ -582,6 +586,10 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
                     if (state == LexState.Normal) {
                         isInParenthesis--;
                         if (isInParenthesis == 0 && valueIndex != -1 && !addPartAfterValue) {
+                            if (!hasValueParam) {
+                                //if no parameters, don't add pre part value
+                                addPartPreValue = true;
+                            }
                             //after the values data
                             isAfterValue = true;
                             sb.append(car);
@@ -637,4 +645,5 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
         }
         return partList;
     }
+
 }

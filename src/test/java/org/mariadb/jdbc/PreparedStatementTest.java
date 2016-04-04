@@ -33,6 +33,7 @@ public class PreparedStatementTest extends BaseTest {
         createTable("test_insert_select","`field1` varchar(20)");
         createTable("test_decimal_insert", "`field1` decimal(10, 7)");
         createTable("PreparedStatementTest1", "id int not null primary key auto_increment, test longblob");
+        createTable("PreparedStatementTest2", "my_col varchar(20)");
     }
 
     @Test
@@ -222,5 +223,22 @@ public class PreparedStatementTest extends BaseTest {
             }
         }
         assertEquals(10, counter);
+    }
+
+
+    /**
+     * CONJ-273: permit client PrepareParameter without parameters.
+     * @throws Throwable
+     */
+    @Test
+    public void clientPrepareStatementWithoutParameter() throws Throwable {
+        try (Connection connection = setConnection("&rewriteBatchedStatements=true")) {
+            PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO PreparedStatementTest2 (my_col) VALUES ('my_val')");
+            preparedStatement.execute();
+
+            PreparedStatement preparedStatementMulti = connection.prepareStatement(
+                    "INSERT INTO PreparedStatementTest2 (my_col) VALUES ('my_val1'),('my_val2')");
+            preparedStatementMulti.execute();
+        }
     }
 }
