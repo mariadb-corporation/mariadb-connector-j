@@ -11,13 +11,13 @@ Database also be authenticated back to the driver ("mutual authentication").
 
 Database configuration must have been set. 
 To use GSSAPI authentication, a user must be set to use GSSAPI :
+```
 CREATE USER one IDENTIFIED VIA gssapi AS 'userOne@EXAMPLE.COM';
+```
 
-The driver doesn't use SSO information. a user must be set.
-for example using jdbc url : 
+When connecting to database useing for example for example using jdbc url : 
 DriverManager.getConnection("jdbc:mariadb://db.example.com:3306/db?user=one");
-
-When connecting to database, these user is send to database and GSSAPI authentication will be use. 
+These user is send to database and GSSAPI authentication will be use. 
 The principal (userOne@EXAMPLE.COM in example) must be the one defined on the user definition.
  
 Database server will wait for a ticket associated for the principal defined in user ('userOne@EXAMPLE').
@@ -65,12 +65,19 @@ Valid starting     Expires            Service principal
 
 
 #### Windows specific
+Current implementation is using standard java implementation, not windows native SSPI.
+Some restriction apply ([see java ticket](http://bugs.java.com/bugdatabase/view_bug.do?bug_id=6722928)
+
 To permit java to retrieve TGT (Ticket-Granting-Ticket), windows host need to have a registry entry set.
 
 HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Lsa\Kerberos\Parameters
 Value Name: AllowTGTSessionKey
 Value Type: REG_DWORD
 Value: 1
+
+Kinit command must have been executed previously to connection.
+
+(in next release driver will use windows native possibility)
 
 
 ##Possible errors
