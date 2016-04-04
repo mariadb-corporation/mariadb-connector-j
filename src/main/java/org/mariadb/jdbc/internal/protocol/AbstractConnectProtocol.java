@@ -3,7 +3,7 @@ package org.mariadb.jdbc.internal.protocol;
 /*
 MariaDB Client for Java
 
-Copyright (c) 2012 Monty Program Ab.
+Copyright (c) 2012-2014 Monty Program Ab.
 Copyright (c) 2015 Avaya Inc.
 Copyright (c) 2015-2016 MariaDB Ab.
 

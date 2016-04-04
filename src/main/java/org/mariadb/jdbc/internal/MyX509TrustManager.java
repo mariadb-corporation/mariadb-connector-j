@@ -3,7 +3,7 @@ package org.mariadb.jdbc.internal;
 /*
 MariaDB Client for Java
 
-Copyright (c) 2012 Monty Program Ab.
+Copyright (c) 2012-2014 Monty Program Ab.
 Copyright (c) 2015 Avaya Inc.
 
 This library is free software; you can redistribute it and/or modify it under

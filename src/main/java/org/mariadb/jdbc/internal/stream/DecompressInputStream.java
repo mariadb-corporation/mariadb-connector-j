@@ -1,7 +1,8 @@
 /*
 MariaDB Client for Java
 
-Copyright (c) 2016 MariaDB.
+Copyright (c) 2012-2014 Monty Program Ab.
+Copyright (c) 2015-2016 MariaDB Ab.
 
 This library is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License as published by the Free
@@ -20,7 +21,7 @@ This particular MariaDB Client for Java file is work
 derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
 the following copyright and notice provisions:
 
-Copyright (c) 2009-2011, Marcus Eriksson, Trond Norbye
+Copyright (c) 2009-2011, Marcus Eriksson
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:

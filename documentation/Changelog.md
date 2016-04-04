@@ -1,0 +1,76 @@
+# Changelog
+
+* [1.4.1-SNAPSHOT](#1.4.1-SNAPSHOT)
+* [1.4.0](#1.4.0)
+
+---
+
+
+## 1.4.1-SNAPSHOT
+
+* [CONJ-273] correction when using prepareStatement without parameters and option rewriteBatchedStatements to true
+* [misc] when option rewriteBatchedStatements is set to true, correction of packet separation when query size > max_allow_packet
+* [CONJ-270] permit 65535 parameters to server preparedStatement
+
+
+## 1.4.0
+Released on 31 march 2016
+### Complete implementation of fetch size.
+CONJ-26
+JDBC allows to specify the number of rows fetched for a query, and this number is referred to as the fetch size
+Before version 1.4.0, query were loading all results or row by row using Statement.setFetchSize(Integer.MIN_VALUE).
+Now it's possible to set fetch size according to your need. 
+Loading all results for large result sets is using a lot of memory. This functionnality permit to save memory without having performance decrease.
+
+### Memory footprint improvement
+CONJ-125
+Buffers have been optimized to reduced memory footprint
+
+### CallableStatement  performance improvement.
+CONJ-209
+Calling function / procedure performance is now optimized according to query. Depending on queries, difference can be up to 300%.
+
+### Authentication evolution
+CONJ-251 Permit now new authentication possibility : [PAM authentication](https://mariadb.com/kb/en/mariadb/pam-authentication-plugin/), and GSSAPI/SSPI authentication.
+
+GSSAPI/SSPI authentication authentication plugin for MariaDB permit a passwordless login.
+
+On Unix systems, GSSAPI is usually synonymous with Kerberos authentication. Windows has slightly different but very similar API called SSPI, that along with Kerberos, also supports NTLM authentication.
+See more detail in [GSSAPI/SSPI configuration](https://github.com/MariaDB/mariadb-connector-j/blob/master/documentation/plugin/GSSAPI.md)
+
+### Connection attributes
+CONJ-217
+Driver information informations are now send to [connection attributes tables](https://mariadb.com/kb/en/mariadb/performance-schema-session_connect_attrs-table/) (performance_schema must be activated).
+A new option "connectionAttributes" permit to add client specifics data.
+
+For example when connecting with the following connection string {{{"jdbc:mysql://localhost:3306/testj?user=root&connectionAttributes=myOption:1,mySecondOption:'jj'"}}}, 
+if performance_schema is activated, information about this connection will be available during the time this connection is active :
+``` java
+select * from performance_schema.session_connect_attrs where processList_id = 5
++----------------+-----------------+---------------------+------------------+
+| PROCESSLIST_ID | ATTR_NAME       | ATTR_VALUE          | ORDINAL_POSITION |
++----------------+-----------------+---------------------+------------------+
+|5               |_client_name     |MariaDB connector/J  |0                 |
+|5               |_client_version  |1.4.0-SNAPSHOT       |1                 |
+|5               |_os              |Windows 8.1          |2                 | 
+|5               |_pid             |14124@portable-diego |3                 |
+|5               |_thread          |5                    |4                 |
+|5               |_java_vendor     |Oracle Corporation	 |5                 |
+|5               |_java_version    |1.7.0_79	         |6                 |
+|5               |myOption         |1	                 |7                 |
+|5               |mySecondOption   |'jj'                 |8                 |
++----------------+-----------------+---------------------+------------------+
+```
+
+
+## Minor evolution
+* CONJ-210 : adding a "jdbcCompliantTruncation" option to force truncation warning as SQLException.
+* CONJ-211 : when in master/slave configuration, option "assureReadOnly" will ensure that slaves are in read-only mode ( forcing transaction by a query "SET SESSION TRANSACTION READ ONLY"). 
+* CONJ-213 : new option "continueBatchOnError". Permit to continue batch when an exception occur : When executing a batch and an error occur, must the batch stop immediatly (default) or finish remaining batch before throwing exception.
+
+## Bugfix
+* CONJ-236 : Using a parametrized query with a smallint -1 does return the unsigned value
+* CONJ-250 : Tomcat doesn't stop when using Aurora failover configuration
+* CONJ-260 : Add jdbc nString, nCharacterStream, nClob implementation
+* CONJ-269 : handle server configuration autocommit=0
+* CONJ-271 : ResultSet.first() may throw SQLDataException: Current position is before the first row

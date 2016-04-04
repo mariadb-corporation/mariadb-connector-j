@@ -1,7 +1,7 @@
 /*
 MariaDB Client for Java
 
-Copyright (c) 2012 Monty Program Ab.
+Copyright (c) 2012-2014 Monty Program Ab.
 Copyright (c) 2016 MariaDB Corporation AB
 
 This library is free software; you can redistribute it and/or modify it under
