@@ -362,6 +362,28 @@ public class BaseTest {
         return DriverManager.getConnection(url, info);
     }
 
+    boolean checkMaxAllowedPacketMore8m(String testName) throws SQLException {
+        Statement st = sharedConnection.createStatement();
+        ResultSet rs = st.executeQuery("select @@max_allowed_packet");
+        rs.next();
+        int maxAllowedPacket = rs.getInt(1);
+
+        rs = st.executeQuery("select @@innodb_log_file_size");
+        rs.next();
+        int innodbLogFileSize = rs.getInt(1);
+
+        if (maxAllowedPacket < 8 * 1024 * 1024) {
+
+            System.out.println("test '" + testName + "' skipped  due to server variable max_allowed_packet < 8M");
+            return false;
+        }
+        if (innodbLogFileSize < 80 * 1024 * 1024) {
+            System.out.println("test '" + testName + "' skipped  due to server variable innodb_log_file_size < 80M");
+            return false;
+        }
+        return true;
+    }
+
     boolean checkMaxAllowedPacketMore20m(String testName) throws SQLException {
         Statement st = sharedConnection.createStatement();
         ResultSet rs = st.executeQuery("select @@max_allowed_packet");

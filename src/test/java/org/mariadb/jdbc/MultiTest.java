@@ -1,6 +1,7 @@
 package org.mariadb.jdbc;
 
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -231,6 +232,7 @@ public class MultiTest extends BaseTest {
      */
     @Test
     public void rewriteBatchedMaxAllowedSizeTest() throws SQLException {
+        Assume.assumeTrue(checkMaxAllowedPacketMore8m("rewriteBatchedMaxAllowedSizeTest"));
         Statement st = sharedConnection.createStatement();
         ResultSet rs = st.executeQuery("select @@max_allowed_packet");
         if (rs.next()) {

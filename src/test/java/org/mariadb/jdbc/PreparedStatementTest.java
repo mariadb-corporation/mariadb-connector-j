@@ -32,6 +32,7 @@ public class PreparedStatementTest extends BaseTest {
                  "ENGINE=InnoDB DEFAULT CHARSET=utf8");
         createTable("test_insert_select","`field1` varchar(20)");
         createTable("test_decimal_insert", "`field1` decimal(10, 7)");
+        createTable("PreparedStatementTest1", "id int not null primary key auto_increment, test longblob");
     }
 
     @Test
@@ -188,5 +189,38 @@ public class PreparedStatementTest extends BaseTest {
             assertTrue(sqle.getMessage().contains("INSERT INTO INCORRECT_QUERY"));
         }
     }
+    @Test
+    public void testRewriteMultiPacket() throws SQLException {
+        Statement statement = sharedConnection.createStatement();
+        ResultSet rs = statement.executeQuery("select @@max_allowed_packet");
+        rs.next();
+        int maxAllowedPacket = rs.getInt(1);
 
+
+        char[] arr = new char[maxAllowedPacket - 100];
+        for (int i = 0; i < arr.length; i++) {
+            arr[i] = (char) ('a' + (i % 10));
+        }
+
+        try (Connection connection = setConnection("&rewriteBatchedStatements=true")) {
+            PreparedStatement pstmt = connection.prepareStatement("INSERT INTO PreparedStatementTest1 VALUES (null, ?)");
+            for (int i = 0; i < 10; i++) {
+                pstmt.setString(1, new String(arr));
+                pstmt.addBatch();
+            }
+            pstmt.executeBatch();
+        }
+
+        rs = statement.executeQuery("select * from PreparedStatementTest1");
+        int counter = 0;
+        while (rs.next()) {
+            counter++;
+            byte[] newBytes = rs.getBytes(2);
+            assertEquals(arr.length, newBytes.length);
+            for (int i = 0; i < arr.length; i++) {
+                assertEquals(arr[i], newBytes[i]);
+            }
+        }
+        assertEquals(10, counter);
+    }
 }

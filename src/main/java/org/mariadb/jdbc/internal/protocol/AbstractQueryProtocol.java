@@ -657,8 +657,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 }
             }
 
-            parameters = parameterList.get(currentIndex++);
-
             //change rewritable part to utf8 bytes
             List<byte[]> queryPartsUtf8 = new ArrayList<>(queryParts.size());
             for (String part : queryParts) {
@@ -668,6 +666,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             this.moreResults = false;
 
             do {
+                parameters = parameterList.get(currentIndex++);
                 writer.startPacket(0);
                 writer.write(0x03);
 
@@ -743,7 +742,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
                 writer.finishPacket();
                 getResult(executionResult, resultSetScrollType, false);
-            } while (totalParameterList < totalParameterList);
+            } while (currentIndex < totalParameterList);
 
         } catch (QueryException queryException) {
             if (getOptions().dumpQueriesOnException || queryException.getErrorCode() == 1064) {

@@ -40,6 +40,7 @@ public class BufferTest extends BaseTest {
 
     @Test
     public void send8mTextData() throws SQLException {
+        Assume.assumeTrue(checkMaxAllowedPacketMore8m("send8mTextData"));
         sendSqlData(false, array8m);
         sendSqlData(true, array8m);
     }
@@ -60,6 +61,7 @@ public class BufferTest extends BaseTest {
 
     @Test
     public void send8mByteBufferData() throws SQLException {
+        Assume.assumeTrue(checkMaxAllowedPacketMore8m("send8mByteBufferData"));
         sendByteBufferData(false, array8m);
         sendByteBufferData(true, array8m);
     }
