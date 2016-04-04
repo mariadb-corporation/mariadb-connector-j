@@ -196,33 +196,34 @@ public class PreparedStatementTest extends BaseTest {
         ResultSet rs = statement.executeQuery("select @@max_allowed_packet");
         rs.next();
         int maxAllowedPacket = rs.getInt(1);
+        if (maxAllowedPacket < 21000000) { //to avoid OutOfMemory
 
-
-        char[] arr = new char[maxAllowedPacket - 100];
-        for (int i = 0; i < arr.length; i++) {
-            arr[i] = (char) ('a' + (i % 10));
-        }
-
-        try (Connection connection = setConnection("&rewriteBatchedStatements=true")) {
-            PreparedStatement pstmt = connection.prepareStatement("INSERT INTO PreparedStatementTest1 VALUES (null, ?)");
-            for (int i = 0; i < 10; i++) {
-                pstmt.setString(1, new String(arr));
-                pstmt.addBatch();
-            }
-            pstmt.executeBatch();
-        }
-
-        rs = statement.executeQuery("select * from PreparedStatementTest1");
-        int counter = 0;
-        while (rs.next()) {
-            counter++;
-            byte[] newBytes = rs.getBytes(2);
-            assertEquals(arr.length, newBytes.length);
+            char[] arr = new char[maxAllowedPacket - 100];
             for (int i = 0; i < arr.length; i++) {
-                assertEquals(arr[i], newBytes[i]);
+                arr[i] = (char) ('a' + (i % 10));
             }
+
+            try (Connection connection = setConnection("&rewriteBatchedStatements=true")) {
+                PreparedStatement pstmt = connection.prepareStatement("INSERT INTO PreparedStatementTest1 VALUES (null, ?)");
+                for (int i = 0; i < 10; i++) {
+                    pstmt.setString(1, new String(arr));
+                    pstmt.addBatch();
+                }
+                pstmt.executeBatch();
+            }
+
+            rs = statement.executeQuery("select * from PreparedStatementTest1");
+            int counter = 0;
+            while (rs.next()) {
+                counter++;
+                byte[] newBytes = rs.getBytes(2);
+                assertEquals(arr.length, newBytes.length);
+                for (int i = 0; i < arr.length; i++) {
+                    assertEquals(arr[i], newBytes[i]);
+                }
+            }
+            assertEquals(10, counter);
         }
-        assertEquals(10, counter);
     }
 
 

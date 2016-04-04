@@ -22,7 +22,7 @@ deb http://repo.mysql.com/apt/ubuntu/ precise mysql-$MYSQL_VERSION
 deb-src http://repo.mysql.com/apt/ubuntu/ precise mysql-$MYSQL_VERSION
 END
 
-    sudo apt-key adv --keyserver pool.sks-keyservers.net --recv-keys $MYSQ_GPG_KEY
+    sudo apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys $MYSQ_GPG_KEY
 
     sudo apt-get -qq update
     sudo apt-get -qq install mysql-server
