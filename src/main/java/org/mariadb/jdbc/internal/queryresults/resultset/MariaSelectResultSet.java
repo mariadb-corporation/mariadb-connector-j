@@ -100,6 +100,7 @@ public class MariaSelectResultSet implements ResultSet {
     private RowPacket rowPacket;
     private ColumnInformation[] columnsInformation;
 
+    private byte[] lastReusableArray = null;
     private boolean isEof;
     private boolean isBinaryEncoded;
     private int dataFetchTime;
@@ -394,8 +395,9 @@ public class MariaSelectResultSet implements ResultSet {
 
             if (read == 255) { //ERROR packet
                 protocol.setActiveStreamingResult(null);
-                Buffer buffer = packetFetcher.getReusableBuffer(remaining);
+                Buffer buffer = packetFetcher.getReusableBuffer(remaining, lastReusableArray);
                 ErrorPacket errorPacket = new ErrorPacket(buffer, false);
+                lastReusableArray = null;
                 throw new QueryException(errorPacket.getMessage(), errorPacket.getErrorNumber(), errorPacket.getSqlState());
             }
 
@@ -404,7 +406,7 @@ public class MariaSelectResultSet implements ResultSet {
                     protocol.setActiveStreamingResult(null);
                 }
 
-                Buffer buffer = packetFetcher.getReusableBuffer(remaining);
+                Buffer buffer = packetFetcher.getReusableBuffer(remaining, lastReusableArray);
                 protocol.setHasWarnings(((buffer.buf[0] & 0xff) + ((buffer.buf[1] & 0xff) << 8)) > 0);
 
                 //force the more packet value when this is a callable output result.
@@ -418,6 +420,7 @@ public class MariaSelectResultSet implements ResultSet {
                 packetFetcher = null;
                 inputStream = null;
                 isEof = true;
+                lastReusableArray = null;
                 return false;
             }
 
@@ -426,12 +429,14 @@ public class MariaSelectResultSet implements ResultSet {
         }
 
         //if not possible read with standard packet
-        Buffer buffer = packetFetcher.getReusableBuffer(length);
+        Buffer buffer = packetFetcher.getReusableBuffer(length, lastReusableArray);
+        lastReusableArray = buffer.buf;
 
         //is error Packet
         if (buffer.getByteAt(0) == Packet.ERROR) {
             protocol.setActiveStreamingResult(null);
             ErrorPacket errorPacket = new ErrorPacket(buffer);
+            lastReusableArray = null;
             throw new QueryException(errorPacket.getMessage(), errorPacket.getErrorNumber(), errorPacket.getSqlState());
         }
 
@@ -448,6 +453,7 @@ public class MariaSelectResultSet implements ResultSet {
             packetFetcher = null;
             inputStream = null;
             isEof = true;
+            lastReusableArray = null;
             return false;
         }
         values.add(rowPacket.getRow(packetFetcher, buffer));

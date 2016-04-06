@@ -126,14 +126,18 @@ public class ReadPacketFetcher {
      * @return Buffer the buffer
      * @throws IOException if any
      */
-    public Buffer getReusableBuffer(int length) throws IOException {
+    public Buffer getReusableBuffer(int length, byte[] lastReusableArray) throws IOException {
 
         byte[] rawBytes;
 
         if (length < ReadPacketFetcher.AVOID_CREATE_BUFFER_LENGTH) {
             rawBytes = reusableBuffer;
         } else {
-            rawBytes = new byte[length];
+            if (lastReusableArray != null && lastReusableArray.length > length) {
+                rawBytes = lastReusableArray;
+            } else {
+                rawBytes = new byte[length];
+            }
         }
 
         int reads = 0;

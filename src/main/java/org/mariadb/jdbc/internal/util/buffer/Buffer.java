@@ -152,9 +152,8 @@ public class Buffer {
      */
     public byte[] readRawBytes(final int numberOfBytes) {
         final byte[] tmpArr = new byte[numberOfBytes];
-        for (int i = 0; i < numberOfBytes; i++) {
-            tmpArr[i] = buf[position++];
-        }
+        System.arraycopy(buf, position, tmpArr, 0, numberOfBytes);
+        position += numberOfBytes;
         return tmpArr;
     }
 
@@ -240,9 +239,8 @@ public class Buffer {
             return null;
         }
         final byte[] tmpBuf = new byte[(int) length];
-        for (int i = 0; i < length; i++) {
-            tmpBuf[i] = buf[position++];
-        }
+        System.arraycopy(buf, position, tmpBuf, 0, (int) length);
+        position += length;
         return tmpBuf;
     }
 
