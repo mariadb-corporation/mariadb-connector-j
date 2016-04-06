@@ -441,7 +441,8 @@ public class MariaSelectResultSet implements ResultSet {
                 protocol.setActiveStreamingResult(null);
             }
             protocol.setHasWarnings(((buffer.buf[1] & 0xff) + ((buffer.buf[2] & 0xff) << 8)) > 0);
-            protocol.setMoreResults((((buffer.buf[3] & 0xff) + ((buffer.buf[4] & 0xff) << 8)) & ServerStatus.MORE_RESULTS_EXISTS) != 0,
+            protocol.setMoreResults(callableResult
+                            || (((buffer.buf[3] & 0xff) + ((buffer.buf[4] & 0xff) << 8)) & ServerStatus.MORE_RESULTS_EXISTS) != 0,
                     isBinaryEncoded);
             protocol = null;
             packetFetcher = null;
