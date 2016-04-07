@@ -8,10 +8,12 @@
 
 ## 1.4.1-SNAPSHOT
 
+* [CONJ-274] correction to permit connection to MySQL 5.1 server
 * [CONJ-273] correction when using prepareStatement without parameters and option rewriteBatchedStatements to true
-* [misc] when option rewriteBatchedStatements is set to true, correction of packet separation when query size > max_allow_packet
 * [CONJ-270] permit 65535 parameters to server preparedStatement
-
+* [CONJ-268] update license header
+* [misc] when option rewriteBatchedStatements is set to true, correction of packet separation when query size > max_allow_packet
+* [misc] performance improvement for select result.
 
 ## 1.4.0
 Released on 31 march 2016
