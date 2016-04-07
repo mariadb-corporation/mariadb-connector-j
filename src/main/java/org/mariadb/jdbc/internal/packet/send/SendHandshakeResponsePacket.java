@@ -149,6 +149,7 @@ public class SendHandshakeResponsePacket implements InterfaceSendPacket {
         writeBuffer.startPacket(packetSeq);
         final byte[] authData;
         switch (plugin) {
+            case "": //CONJ-274 : permit connection mysql 5.1 db
             case DefaultAuthenticationProvider.MYSQL_NATIVE_PASSWORD :
                 try {
                     authData = Utils.encryptPassword(password, seed);
