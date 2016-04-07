@@ -123,6 +123,7 @@ public class ReadPacketFetcher {
     /**
      * Get buffer with shared array of designated length.
      * @param length length to read
+     * @param lastReusableArray (optional) lastReusableArray to avoid create new array if possible
      * @return Buffer the buffer
      * @throws IOException if any
      */
