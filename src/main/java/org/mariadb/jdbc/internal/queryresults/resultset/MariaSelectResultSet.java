@@ -521,7 +521,7 @@ public class MariaSelectResultSet implements ResultSet {
         } else {
             if (streaming) {
                 if (isEof) {
-                    return isEof;
+                    return false;
                 } else {
                     try {
                         nextStreamingValue();
@@ -559,7 +559,7 @@ public class MariaSelectResultSet implements ResultSet {
 
     private void throwError(String message, ExceptionCode exceptionCode) throws SQLException {
         if (statement != null) {
-            ExceptionMapper.throwException(new QueryException("Current position is before the first row", ExceptionCode.INVALID_PARAMETER_VALUE),
+            ExceptionMapper.throwException(new QueryException(message, ExceptionCode.INVALID_PARAMETER_VALUE),
                     (MariaDbConnection) this.statement.getConnection(), this.statement);
         } else {
             throw new SQLException(message, exceptionCode.sqlState);

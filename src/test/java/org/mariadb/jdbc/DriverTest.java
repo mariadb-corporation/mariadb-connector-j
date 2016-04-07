@@ -61,6 +61,7 @@ public class DriverTest extends BaseTest {
         createTable("DriverTestt4", "id int not null primary key auto_increment, test varchar(20)");
         createTable("DriverTestt5", "id int not null primary key auto_increment, test varchar(20)");
         createProcedure("foo", "() BEGIN SELECT 1; END");
+        createTable("conj275", "a VARCHAR(10)");
     }
 
     @Test
@@ -1264,4 +1265,20 @@ public class DriverTest extends BaseTest {
             connection.close();
         }
     }
+
+    /**
+     * CONJ-275 : Streaming resultSet with no result must not have a next() value to true.
+     * @throws Exception exception
+     */
+    @Test
+    public void checkStreamingWithoutResult() throws Exception {
+        PreparedStatement pstmt = sharedConnection.prepareStatement("SELECT * FROM conj275 where a = ?");
+        pstmt.setFetchSize(10);
+        pstmt.setString(1, "no result");
+        ResultSet rs = pstmt.executeQuery();
+        while (rs.next()) {
+            fail("must not have result value");
+        }
+    }
+
 }

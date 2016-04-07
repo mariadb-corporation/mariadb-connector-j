@@ -1,12 +1,17 @@
 # Changelog
 
-* [1.4.1-SNAPSHOT](#1.4.1-SNAPSHOT)
+* [1.4.2](#1.4.2)
+* [1.4.1](#1.4.1)
 * [1.4.0](#1.4.0)
 
 ---
+## 1.4.2
+
+* [CONJ-275] Streaming result without result throw "Current position is before the first row"
 
 
-## 1.4.1-SNAPSHOT
+## 1.4.1
+Released on 07 april 2016
 
 * [CONJ-274] correction to permit connection to MySQL 5.1 server
 * [CONJ-273] correction when using prepareStatement without parameters and option rewriteBatchedStatements to true
