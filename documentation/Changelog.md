@@ -6,7 +6,7 @@
 
 ---
 ## 1.4.2
-
+Released on 08 april 2016
 * [CONJ-275] Streaming result without result throw "Current position is before the first row"
 
 
