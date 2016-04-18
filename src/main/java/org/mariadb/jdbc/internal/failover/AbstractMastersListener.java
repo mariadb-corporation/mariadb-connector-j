@@ -303,7 +303,13 @@ public abstract class AbstractMastersListener implements Listener {
         if (method != null) {
             if ("executeQuery".equals(method.getName()) && args[1] instanceof String) {
                 return ((String) args[1]).toUpperCase().startsWith("SELECT");
-            } else if ("executePreparedQuery".equals(method.getName()) && args[2] instanceof String) {
+            } else if (("executePreparedQuery".equals(method.getName()) || "executePreparedQueryAfterFailover".equals(method.getName()))
+                    && args[2] instanceof String) {
+                PrepareResult prepareResult = (PrepareResult) args[1];
+                if (!prepareResult.isExecuteOnMaster()) {
+                    //query must normally be launched on slave.
+                    return true;
+                }
                 return ((String) args[2]).toUpperCase().startsWith("SELECT");
             }
         }

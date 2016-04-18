@@ -51,15 +51,15 @@ package org.mariadb.jdbc.internal.failover;
 
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.UrlParser;
+import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.util.dao.PrepareResult;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 
 import java.lang.reflect.Method;
 import java.sql.SQLException;
-import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ScheduledExecutorService;
 
 public interface Listener {
     FailoverProxy getProxy();
@@ -129,4 +129,5 @@ public interface Listener {
 
     boolean checkMasterStatus(SearchFilter searchFilter);
 
+    void rePrepareOnSlave(PrepareResult oldPrepareResult, String sql, MariaDbType[] parameterTypeHeader) throws QueryException;
 }

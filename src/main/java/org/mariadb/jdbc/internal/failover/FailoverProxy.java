@@ -50,6 +50,7 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.failover;
 
 import org.mariadb.jdbc.HostAddress;
+import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.dao.PrepareResult;
@@ -132,8 +133,18 @@ public class FailoverProxy implements InvocationHandler {
             case METHOD_CLOSED_EXPLICIT:
                 this.listener.preClose();
                 return null;
-            case METHOD_PROLOG_PROXY:
             case METHOD_EXECUTE_PREPARED_QUERY:
+                if (((PrepareResult) args[0]).mustRePrepareOnSlave() && !this.listener.hasHostFail()) {
+                    //PrepareStatement was to be executed on slave, but since a failover was running on master connection. Slave connection is up
+                    // again, so has to be reprepared on slave
+                    try {
+                        this.listener.rePrepareOnSlave(((PrepareResult) args[0]), (String) args[2], (MariaDbType[]) args[4]);
+                    } catch (QueryException q) {
+                        //error during reprepare, will do executed on master.
+                    }
+                }
+                //No break, must continue
+            case METHOD_PROLOG_PROXY:
                 try {
                     return listener.invoke(method, args, ((PrepareResult) args[0]).getUnProxiedProtocol());
                 } catch (InvocationTargetException e) {

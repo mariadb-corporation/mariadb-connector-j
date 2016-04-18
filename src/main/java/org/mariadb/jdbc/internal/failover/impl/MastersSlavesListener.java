@@ -51,8 +51,10 @@ package org.mariadb.jdbc.internal.failover.impl;
 
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.UrlParser;
+import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.failover.AbstractMastersSlavesListener;
 import org.mariadb.jdbc.internal.failover.thread.FailoverLoop;
+import org.mariadb.jdbc.internal.util.dao.PrepareResult;
 import org.mariadb.jdbc.internal.util.dao.ReconnectDuringTransactionException;
 import org.mariadb.jdbc.internal.util.scheduler.DynamicSizedSchedulerInterface;
 import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
@@ -740,4 +742,26 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
         return false;
     }
 
+    @Override
+    public void rePrepareOnSlave(PrepareResult oldPrepareResult, String sql, MariaDbType[] parameterTypeHeader) throws QueryException {
+        if (secondaryProtocol != null && !isSecondaryHostFail()) {
+            //prepare on slave
+            PrepareResult prepareResult = secondaryProtocol.prepare(sql, true);
+
+            //reset header status
+            for (int i = 0; i < parameterTypeHeader.length; i++) {
+                parameterTypeHeader[i] = null;
+            }
+
+            //release prepare on master
+            try {
+                prepareResult.getUnProxiedProtocol().releasePrepareStatement(prepareResult, sql);
+            } catch (QueryException exception) {
+                //released failed.
+            }
+
+            //replace prepare data
+            oldPrepareResult.failover(prepareResult.getStatementId(), secondaryProtocol);
+        }
+    }
 }

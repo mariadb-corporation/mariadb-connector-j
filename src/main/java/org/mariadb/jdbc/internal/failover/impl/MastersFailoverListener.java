@@ -51,10 +51,12 @@ package org.mariadb.jdbc.internal.failover.impl;
 
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.UrlParser;
+import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.failover.AbstractMastersListener;
 import org.mariadb.jdbc.internal.failover.HandleErrorResult;
 import org.mariadb.jdbc.internal.failover.thread.FailoverLoop;
 import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
+import org.mariadb.jdbc.internal.util.dao.PrepareResult;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.protocol.MasterProtocol;
@@ -316,4 +318,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
         return false;
     }
 
+    public void rePrepareOnSlave(PrepareResult oldPrepareResult, String sql, MariaDbType[] parameterTypeHeader) {
+        //no slave
+    }
 }

@@ -59,6 +59,8 @@ public class PrepareResult {
     private ColumnInformation[] columns;
     private ColumnInformation[] parameters;
     private Protocol unProxiedProtocol;
+    private final boolean executeOnMaster;
+
 
     //share indicator
     private volatile int shareCounter = 1;
@@ -77,6 +79,7 @@ public class PrepareResult {
         this.columns = columns;
         this.parameters = parameters;
         this.unProxiedProtocol = unProxiedProtocol;
+        this.executeOnMaster = unProxiedProtocol.isMasterConnection();
     }
 
     /**
@@ -87,6 +90,8 @@ public class PrepareResult {
     public void failover(int statementId, Protocol unProxiedProtocol) {
         this.statementId = statementId;
         this.unProxiedProtocol = unProxiedProtocol;
+        this.shareCounter = 1;
+        this.isBeingDeallocate = false;
 
     }
 
@@ -150,5 +155,19 @@ public class PrepareResult {
 
     public Protocol getUnProxiedProtocol() {
         return unProxiedProtocol;
+    }
+
+    /**
+     * If PrepareStatement was executed initially on slave connection, but after a failover, was using temporary the master connection,
+     * indicate if has to be reprepare on Slave connection when reconnected.
+     *
+     * @return true if has to be reprepared on Slave connection
+     */
+    public boolean mustRePrepareOnSlave() {
+        return executeOnMaster == unProxiedProtocol.isMasterConnection();
+    }
+
+    public boolean isExecuteOnMaster() {
+        return executeOnMaster;
     }
 }

@@ -4,17 +4,16 @@ import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Test;
 import org.mariadb.jdbc.MariaDbServerPreparedStatement;
-import org.mariadb.jdbc.internal.util.dao.PrepareResult;
 
 import java.sql.*;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public abstract class BaseReplication extends BaseMonoServer {
+
     @Test
     public void failoverSlaveToMasterPrepareStatement() throws Throwable {
         Connection connection = null;
@@ -37,7 +36,8 @@ public abstract class BaseReplication extends BaseMonoServer {
             final int currentPrepareId = getPrepareResult((MariaDbServerPreparedStatement) preparedStatement).getStatementId();
             int slaveServerId = getServerId(connection);
             Assert.assertFalse(masterServerId == slaveServerId);
-            stopProxy(slaveServerId);
+            //stop slave for a few seconds
+            stopProxy(slaveServerId, 2000);
 
             //test failover
             preparedStatement.setInt(1, 1);
@@ -50,6 +50,25 @@ public abstract class BaseReplication extends BaseMonoServer {
 
             Assert.assertTrue(masterServerId == currentServerId);
             Assert.assertFalse(connection.isReadOnly());
+            Thread.sleep(2000);
+            boolean hasReturnOnSlave = false;
+
+            for (int i = 0; i < 10; i++) {
+                Thread.sleep(1000);
+                preparedStatement.setInt(1, 1);
+                rs = preparedStatement.executeQuery();
+                rs.next();
+                Assert.assertEquals("Harriba !", rs.getString(1));
+
+                currentServerId = getServerId(connection);
+                if (currentServerId != masterServerId) {
+                    hasReturnOnSlave = true;
+                    Assert.assertTrue(connection.isReadOnly());
+                    break;
+                }
+            }
+            Assert.assertTrue("Prepare statement has not return on Slave",hasReturnOnSlave);
+
         } finally {
             if (connection != null) {
                 connection.close();
