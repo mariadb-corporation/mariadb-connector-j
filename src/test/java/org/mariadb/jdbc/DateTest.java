@@ -149,10 +149,21 @@ public class DateTest extends BaseTest {
                 Date.valueOf("2155-01-01")};
         Date[] data2 = new Date[]{null, Date.valueOf("1970-01-01"), Date.valueOf("2000-01-01"),
                 Date.valueOf("2069-01-01")};
+        checkDateResult(data1, data2, rs);
+
+        //CONJ-282
+        PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT * FROM yeartest");
+        rs = preparedStatement.executeQuery();
+        checkDateResult(data1, data2, rs);
+    }
+
+    private void checkDateResult(Date[] data1, Date[] data2, ResultSet rs) throws SQLException {
         int count = 0;
         while (rs.next()) {
             assertEquals(data1[count], rs.getObject(1));
             assertEquals(data2[count], rs.getObject(2));
+            assertEquals(data1[count], rs.getDate(1));
+            assertEquals(data2[count], rs.getDate(2));
             count++;
         }
     }

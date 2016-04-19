@@ -1,10 +1,16 @@
 # Changelog
 
+* [1.4.3](#1.4.3)
 * [1.4.2](#1.4.2)
 * [1.4.1](#1.4.1)
 * [1.4.0](#1.4.0)
 
 ---
+## 1.4.3
+Not released 
+* [CONJ-282] Handling YEARs with binary prepareStatement
+* [CONJ-278] Improve prepared statement on failover
+
 ## 1.4.2
 Released on 08 april 2016
 * [CONJ-275] Streaming result without result throw "Current position is before the first row"

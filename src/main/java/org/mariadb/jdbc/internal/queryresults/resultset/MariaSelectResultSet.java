@@ -3261,18 +3261,27 @@ public class MariaSelectResultSet implements ResultSet {
                 if (rawBytes.length == 0) {
                     return null;
                 }
-                int year;
-                int month;
-                int day;
 
-                year = ((rawBytes[0] & 0xff) | (rawBytes[1] & 0xff) << 8);
-                month = rawBytes[2];
-                day = rawBytes[3];
+                int year = ((rawBytes[0] & 0xff) | (rawBytes[1] & 0xff) << 8);
+
+                if (rawBytes.length == 2 && columnInfo.getLength() == 2) {
+                    //YEAR(2) - deprecated
+                    if (year <= 69) {
+                        year += 2000;
+                    } else {
+                        year += 1900;
+                    }
+                }
+
+                int month = 1;
+                int day = 1;
+
+                if (rawBytes.length >= 4) {
+                    month = rawBytes[2];
+                    day = rawBytes[3];
+                }
 
                 Calendar calendar = Calendar.getInstance();
-                /*if (!options.useLegacyDatetimeCode) {
-                    c = cal;
-                }*/
 
                 Date dt;
                 synchronized (calendar) {
