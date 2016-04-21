@@ -68,6 +68,7 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
     private int paramCount;
     private ResultSetMetaData resultSetMetaData = null;
     private ParameterMetaData parameterMetaData = null;
+    private boolean reWritablePrepare = true;
 
     /**
      * Constructor.
@@ -263,8 +264,8 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
             QueryException exception = null;
             executeQueryProlog();
             try {
-                if (isRewriteable && (protocol.getOptions().allowMultiQueries || protocol.getOptions().rewriteBatchedStatements)) {
-                    boolean rewrittenBatch = isRewriteable && protocol.getOptions().rewriteBatchedStatements;
+                if (reWritablePrepare && (protocol.getOptions().allowMultiQueries || protocol.getOptions().rewriteBatchedStatements)) {
+                    boolean rewrittenBatch = reWritablePrepare && protocol.getOptions().rewriteBatchedStatements;
                     protocol.executeQueries(internalExecutionResult, queryParts, parameterList, resultSetScrollType, rewrittenBatch);
                     cacheMoreResults(internalExecutionResult, getFetchSize(), false);
                     if (rewrittenBatch) {
@@ -421,30 +422,29 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
      * @return List of query part.
      */
     private List<String> createRewritableParts(String queryString, boolean noBackslashEscapes) {
-        isRewriteable = true;
+        reWritablePrepare = true;
         List<String> partList = new ArrayList<>();
         LexState state = LexState.Normal;
         char lastChar = '\0';
 
         StringBuilder sb = new StringBuilder();
 
+        String preValuePart1 = null;
+        String preValuePart2 = null;
+        String postValuePart = null;
+
         boolean singleQuotes = false;
-        boolean isParam;
-        int valueIndex = -1;
+
         int isInParenthesis = 0;
-        boolean isAfterValue = false;
         boolean skipChar = false;
-        boolean addPartPreValue = false;
-        boolean addPartAfterValue = false;
         boolean isFirstChar = true;
         boolean isInsert = false;
         boolean semicolon = false;
-        boolean hasValueParam = false;
+        boolean hasParam = false;
 
         char[] query = queryString.toCharArray();
 
         for (int i = 0; i < query.length; i++) {
-            isParam = false;
 
             if (state == LexState.Escape) {
                 sb.append(query[i]);
@@ -518,14 +518,28 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
 
                 case '?':
                     if (state == LexState.Normal) {
-                        isParam = true;
-                        if (valueIndex > -1) {
-                            hasValueParam = true;
+                        hasParam = true;
+                        if (preValuePart1 == null) {
+                            preValuePart1 = sb.toString();
+                            sb.setLength(0);
                         }
-                        if (isAfterValue) {
-                            //having parameters after the last ")" of value is not rewritable
-                            isRewriteable = false;
+                        if (preValuePart2 == null) {
+                            preValuePart2 = sb.toString();
+                            sb.setLength(0);
+                        } else {
+                            if (postValuePart != null) {
+                                //having parameters after the last ")" of value is not rewritable
+                                reWritablePrepare = false;
+
+                                //add part
+                                sb.insert(0, postValuePart);
+                                postValuePart = null;
+                            }
+                            partList.add(sb.toString());
+                            sb.setLength(0);
                         }
+
+                        skipChar = true;
                     }
                     break;
                 case '`':
@@ -539,7 +553,7 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
                 case 's':
                 case 'S':
                     if (state == LexState.Normal) {
-                        if (valueIndex == -1
+                        if (postValuePart == null
                                 && query.length > i + 6
                                 && (query[i + 1] == 'e' || query[i + 1] == 'E')
                                 && (query[i + 2] == 'l' || query[i + 2] == 'L')
@@ -547,14 +561,14 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
                                 && (query[i + 4] == 'c' || query[i + 4] == 'C')
                                 && (query[i + 5] == 't' || query[i + 5] == 'T')) {
                             //SELECT queries, INSERT FROM SELECT not rewritable
-                            isRewriteable = false;
+                            reWritablePrepare = false;
                         }
                     }
                     break;
                 case 'v':
                 case 'V':
                     if (state == LexState.Normal) {
-                        if (valueIndex == -1
+                        if (preValuePart1 == null
                                 && (lastChar == ')' || ((byte) lastChar <= 40))
                                 && query.length > i + 7
                                 && (query[i + 1] == 'a' || query[i + 1] == 'A')
@@ -570,9 +584,8 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
                             sb.append(query[i + 4]);
                             sb.append(query[i + 5]);
                             i = i + 5;
-                            partList.add(sb.toString());
+                            preValuePart1 = sb.toString();
                             sb.setLength(0);
-                            valueIndex = i + 6;
                             skipChar = true;
                         }
                     }
@@ -585,18 +598,11 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
                 case ')':
                     if (state == LexState.Normal) {
                         isInParenthesis--;
-                        if (isInParenthesis == 0 && valueIndex != -1 && !addPartAfterValue) {
-                            if (!hasValueParam) {
-                                //if no parameters, don't add pre part value
-                                addPartPreValue = true;
-                            }
-                            //after the values data
-                            isAfterValue = true;
+                        if (isInParenthesis == 0 && preValuePart2 != null && postValuePart == null) {
                             sb.append(car);
-                            partList.add(sb.toString());
+                            postValuePart = sb.toString();
                             sb.setLength(0);
                             skipChar = true;
-                            addPartAfterValue = true;
                         }
                     }
                     break;
@@ -609,41 +615,47 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
                     }
                     if (state == LexState.Normal && semicolon && ((byte) lastChar >= 40)) {
                         //multiple queries
-                        isRewriteable = false;
+                        reWritablePrepare = false;
                     }
                     break;
             }
 
             lastChar = car;
-            if (isParam) {
-                partList.add(sb.toString());
-                sb.setLength(0);
-                if (valueIndex == -1 && !addPartPreValue) {
-                    partList.add("");
-                    isAfterValue = true;
-                }
-                addPartPreValue = true;
+            if (skipChar) {
+                skipChar = false;
             } else {
-                if (skipChar) {
-                    skipChar = false;
-                } else {
-                    sb.append(car);
-                }
+                sb.append(car);
             }
         }
-
-        if (!addPartPreValue) {
-            partList.add("");
+        partList.add(0, (preValuePart1 == null) ? "" : preValuePart1);
+        if (!hasParam) {
+            //permit to have rewrite without parameter
+            partList.add(1, sb.toString());
+            sb.setLength(0);
+        } else {
+            partList.add(1, (preValuePart2 == null) ? "" : preValuePart2);
         }
-        if (!addPartAfterValue) {
-            partList.add("");
-        }
-
-        partList.add(sb.toString());
         if (!isInsert) {
-            isRewriteable = false;
+            reWritablePrepare = false;
         }
+        if (hasParam) {
+            //postValuePart is the value after the last parameter and parenthesis
+            //if no param, don't add to the list.
+            partList.add((postValuePart == null) ? "" : postValuePart);
+        }
+        partList.add(sb.toString());
         return partList;
     }
 
+    protected List<String> getQueryParts() {
+        return queryParts;
+    }
+
+    protected int getParamCount() {
+        return paramCount;
+    }
+
+    public boolean isReWritablePrepare() {
+        return reWritablePrepare;
+    }
 }

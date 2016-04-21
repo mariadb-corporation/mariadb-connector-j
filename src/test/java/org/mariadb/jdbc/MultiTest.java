@@ -26,6 +26,7 @@ public class MultiTest extends BaseTest {
         createTable("MultiTestt6", "id int, test varchar(100)");
         createTable("MultiTestt7", "id int, test varchar(100)");
         createTable("MultiTestt8", "id int, test varchar(100)");
+        createTable("MultiTestt10", "id int");
         createTable("MultiTestreWriteDuplicateTestTable", "id int, name varchar(100), PRIMARY KEY (`id`)");
         createTable("MultiTesttselect1", "LAST_UPDATE_DATETIME TIMESTAMP , nn int");
         createTable("MultiTesttselect2", "nn int");
@@ -244,6 +245,20 @@ public class MultiTest extends BaseTest {
             verifyInsertBehaviorBasedOnRewriteBatchedStatements(Boolean.TRUE, 1500000, totalInsertCommands);
         } else {
             fail();
+        }
+    }
+
+    @Test
+    public void rewriteBatchedWithoutParam() throws SQLException {
+        try (Connection connection = setConnection("&rewriteBatchedStatements=true")) {
+            PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO MultiTestt10 VALUES (1)");
+            for (int i = 0; i < 100; i++) {
+                preparedStatement.addBatch();
+            }
+            preparedStatement.executeBatch();
+            ResultSet rs = connection.createStatement().executeQuery("SELECT COUNT(*) FROM MultiTestt10");
+            rs.next();
+            assertEquals(100, rs.getInt(1));
         }
     }
 

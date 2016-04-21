@@ -9,6 +9,7 @@
 ## 1.4.3
 Not released 
 * [CONJ-284] Cannot read autoincremented IDs bigger than Short.MAX_VALUE
+* [CONJ-283] Parsing correction on MariaDbClientPreparedStatement - syntax error on insert values
 * [CONJ-282] Handling YEARs with binary prepareStatement
 * [CONJ-278] Improve prepared statement on failover
 
