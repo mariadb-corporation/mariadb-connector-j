@@ -1,5 +1,6 @@
 package org.mariadb.jdbc;
 
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -15,6 +16,7 @@ public class GeneratedKeysTest extends BaseTest {
     @BeforeClass()
     public static void initClass() throws SQLException {
         createTable("gen_key_test", "id INTEGER NOT NULL AUTO_INCREMENT, name VARCHAR(100), PRIMARY KEY (id)");
+        createTable("gen_key_test2", "id INTEGER NOT NULL AUTO_INCREMENT, name VARCHAR(100), PRIMARY KEY (id)");
     }
 
     @Test
@@ -60,4 +62,22 @@ public class GeneratedKeysTest extends BaseTest {
         //Since the statement does not generate any keys an empty ResultSet should be returned
         assertFalse(resultSet.next());
     }
+
+    /**
+     * CONJ-284: Cannot read autoincremented IDs bigger than Short.MAX_VALUE.
+     *
+     * @throws SQLException exception
+     */
+    @Test
+    public void testGeneratedKeysNegativeValue() throws SQLException {
+        Statement statement = sharedConnection.createStatement();
+        statement.execute("ALTER TABLE gen_key_test2 AUTO_INCREMENT = 65500");
+        PreparedStatement preparedStatement = sharedConnection.prepareStatement("INSERT INTO gen_key_test2 (name) VALUES (?)");
+        preparedStatement.setString(1, "t");
+        preparedStatement.execute();
+        ResultSet rs = preparedStatement.getGeneratedKeys();
+        rs.next();
+        Assert.assertEquals(65500,rs.getInt(1));
+    }
+
 }

@@ -174,12 +174,12 @@ public class Buffer {
             case 251:
                 break;
             case 252:
-                position += 2 + ((buf[position] & 0xff) + ((buf[position + 1] & 0xff) << 8));
+                position += 2 + (0xffff & (((buf[position] & 0xff) + ((buf[position + 1] & 0xff) << 8))));
                 break;
             case 253:
-                position += 3 + (buf[position] & 0xff)
+                position += 3 + (0xffffff & ((buf[position] & 0xff)
                         + ((buf[position + 1] & 0xff) << 8)
-                        + ((buf[position + 2] & 0xff) << 16);
+                        + ((buf[position + 2] & 0xff) << 16)));
                 break;
             case 254:
                 position += 8 + ((buf[position] & 0xff)
@@ -206,9 +206,9 @@ public class Buffer {
             case 251:
                 return -1;
             case 252:
-                return readShort();
+                return 0xffff & readShort();
             case 253:
-                return read24bitword();
+                return 0xffffff & read24bitword();
             case 254:
                 return readLong();
             default:
@@ -276,9 +276,9 @@ public class Buffer {
             case 252:
                 return (long) (0xffff & ((buf[position + 1] & 0xff) + ((buf[position + 2] & 0xff) << 8)));
             case 253:
-                return (buf[position + 1] & 0xff)
+                return 0xffffff & ((buf[position + 1] & 0xff)
                         + ((buf[position + 2] & 0xff) << 8)
-                        + ((buf[position + 3] & 0xff) << 16);
+                        + ((buf[position + 3] & 0xff) << 16));
             case 254:
                 return (buf[position + 1] & 0xff)
                         + ((buf[position + 2] & 0xff) << 8)
