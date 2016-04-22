@@ -612,7 +612,7 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
                         isFirstChar = false;
                     }
                     //multiple queries
-                    if (state == LexState.Normal && semicolon && ((byte) lastChar >= 40)) reWritablePrepare = false;
+                    if (state == LexState.Normal && semicolon && ((byte) car >= 40)) reWritablePrepare = false;
                     break;
             }
 
