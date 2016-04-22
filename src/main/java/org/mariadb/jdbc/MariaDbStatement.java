@@ -86,7 +86,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      */
     protected MariaDbConnection connection;
     protected Future<?> timerTaskFuture;
-    protected boolean isRewriteable = true;
+    private boolean isRewriteable = true;
     protected int rewriteOffset = -1;
     protected ResultSet batchResultSet = null;
     protected volatile boolean closed = false;

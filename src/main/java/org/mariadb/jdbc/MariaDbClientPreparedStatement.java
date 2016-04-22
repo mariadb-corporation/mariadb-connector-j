@@ -398,24 +398,36 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
     }
 
     /**
-     * Create query part if query rewritable
+     * Separate query in a String list and set flag reWritablePrepare
+     * The parameters "?" (not in comments) emplacements are to be known.
      *
-     * Rewritable query part :
+     * The only rewritten queries follow these notation:
+     * INSERT [LOW_PRIORITY | DELAYED | HIGH_PRIORITY] [IGNORE] [INTO] tbl_name [PARTITION (partition_list)] [(col,...)]
+     * {VALUES | VALUE} (...) [ ON DUPLICATE KEY UPDATE col=expr [, col=expr] ... ]
+     * With expr without parameter.
+     *
+     * INSERT ... SELECT will not be rewritten.
+     *
+     * String list :
      *
      *  - pre value part
-     *  - first assign part
-     *  for each parameters :
-     *       - part after parameter
-     *  - after value part
+     *  - After value and first parameter part
+     *  - for each parameters :
+     *       - part after parameter and before last parenthesis
+     *  - Last query part
      *
      * example : INSERT INTO TABLE(col1,col2,col3,col4, col5) VALUES (9, ?, 5, ?, 8) ON DUPLICATE KEY UPDATE col2=col2+10
      *
      *  - pre value part : INSERT INTO TABLE(col1,col2,col3,col4, col5) VALUES
-     *  - first assign part : "(9 "
+     *  - after value part : " (9 "
      *  - part after parameter 1: ", 5,"
      *     - ", 5,"
      *     - ",8)"
      *  - last part : ON DUPLICATE KEY UPDATE col2=col2+10
+     *
+     * With 2 series of parameters, this query will be rewritten like
+     * [INSERT INTO TABLE(col1,col2,col3,col4, col5) VALUES][ (9, param0_1, 5, param0_2, 8)][, (9, param1_1, 5, param1_2, 8)][ ON DUPLICATE
+     * KEY UPDATE col2=col2+10]
      *
      * @param queryString query String
      * @param noBackslashEscapes must backslash be escaped.
@@ -455,9 +467,7 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
             char car = query[i];
             switch (car) {
                 case '*':
-                    if (state == LexState.Normal && lastChar == '/') {
-                        state = LexState.SlashStarComment;
-                    }
+                    if (state == LexState.Normal && lastChar == '/')  state = LexState.SlashStarComment;
                     break;
                 case '/':
                     if (state == LexState.SlashStarComment && lastChar == '*') {
@@ -468,21 +478,15 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
                     break;
 
                 case '#':
-                    if (state == LexState.Normal) {
-                        state = LexState.EOLComment;
-                    }
+                    if (state == LexState.Normal) state = LexState.EOLComment;
                     break;
 
                 case '-':
-                    if (state == LexState.Normal && lastChar == '-') {
-                        state = LexState.EOLComment;
-                    }
+                    if (state == LexState.Normal && lastChar == '-') state = LexState.EOLComment;
                     break;
 
                 case '\n':
-                    if (state == LexState.EOLComment) {
-                        state = LexState.Normal;
-                    }
+                    if (state == LexState.EOLComment) state = LexState.Normal;
                     break;
 
                 case '"':
@@ -511,9 +515,7 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
                     if (noBackslashEscapes) {
                         break;
                     }
-                    if (state == LexState.String) {
-                        state = LexState.Escape;
-                    }
+                    if (state == LexState.String) state = LexState.Escape;
                     break;
 
                 case '?':
@@ -591,9 +593,7 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
                     }
                     break;
                 case '(':
-                    if (state == LexState.Normal) {
-                        isInParenthesis++;
-                    }
+                    if (state == LexState.Normal) isInParenthesis++;
                     break;
                 case ')':
                     if (state == LexState.Normal) {
@@ -608,15 +608,11 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
                     break;
                 default:
                     if (state == LexState.Normal && isFirstChar && ((byte) car >= 40)) {
-                        if (car == 'I' || car == 'i') {
-                            isInsert = true;
-                        }
+                        if (car == 'I' || car == 'i') isInsert = true;
                         isFirstChar = false;
                     }
-                    if (state == LexState.Normal && semicolon && ((byte) lastChar >= 40)) {
-                        //multiple queries
-                        reWritablePrepare = false;
-                    }
+                    //multiple queries
+                    if (state == LexState.Normal && semicolon && ((byte) lastChar >= 40)) reWritablePrepare = false;
                     break;
             }
 
@@ -627,22 +623,19 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
                 sb.append(car);
             }
         }
+
         partList.add(0, (preValuePart1 == null) ? "" : preValuePart1);
         if (!hasParam) {
             //permit to have rewrite without parameter
             partList.add(1, sb.toString());
             sb.setLength(0);
-        } else {
-            partList.add(1, (preValuePart2 == null) ? "" : preValuePart2);
-        }
-        if (!isInsert) {
-            reWritablePrepare = false;
-        }
-        if (hasParam) {
-            //postValuePart is the value after the last parameter and parenthesis
-            //if no param, don't add to the list.
-            partList.add((postValuePart == null) ? "" : postValuePart);
-        }
+        } else partList.add(1, (preValuePart2 == null) ? "" : preValuePart2);
+
+        if (!isInsert) reWritablePrepare = false;
+
+        //postValuePart is the value after the last parameter and parenthesis
+        //if no param, don't add to the list.
+        if (hasParam) partList.add((postValuePart == null) ? "" : postValuePart);
         partList.add(sb.toString());
         return partList;
     }

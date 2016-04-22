@@ -27,12 +27,13 @@ public class ClientPreparedStatementParsingTest extends BaseTest {
         checkParsing("INSERT INTO TABLE(col1,col2,col3,col4, col5) VALUES (9, ?, 5, ?, 8) ON DUPLICATE KEY UPDATE col2=col2+10",
                 2, true,
                 new String[] {
-                "INSERT INTO TABLE(col1,col2,col3,col4, col5) VALUES",
-                " (9, ",
-                ", 5, ",
-                ", 8)",
-                " ON DUPLICATE KEY UPDATE col2=col2+10"});
+                        "INSERT INTO TABLE(col1,col2,col3,col4, col5) VALUES",
+                        " (9, ",
+                        ", 5, ",
+                        ", 8)",
+                        " ON DUPLICATE KEY UPDATE col2=col2+10"});
     }
+
     @Test
     public void testComment() throws SQLException {
         checkParsing("/* insert Select INSERT INTO tt VALUES (?,?,?,?)  */"
@@ -154,6 +155,28 @@ public class ClientPreparedStatementParsingTest extends BaseTest {
                         " (",
                         ")",
                         "; INSERT INTO tt (tt) VALUES ('multiple')"});
+    }
+
+    @Test
+    public void testSemicolonRewritableIfAtEnd() throws SQLException {
+        checkParsing("INSERT INTO table (column1) VALUES (?); ",
+                1, true,
+                new String[] {
+                        "INSERT INTO table (column1) VALUES",
+                        " (",
+                        ")",
+                        "; "});
+    }
+
+    @Test
+    public void testSemicolonNotRewritableIfNotAtEnd() throws SQLException {
+        checkParsing("INSERT INTO table (column1) VALUES (?); SELECT 1",
+                1, false,
+                new String[] {
+                        "INSERT INTO table (column1) VALUES",
+                        " (",
+                        ")",
+                        "; SELECT 1"});
     }
 
     @Test
