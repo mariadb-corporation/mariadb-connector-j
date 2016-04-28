@@ -164,7 +164,7 @@ public class PrepareResult {
      * @return true if has to be reprepared on Slave connection
      */
     public boolean mustRePrepareOnSlave() {
-        return executeOnMaster == unProxiedProtocol.isMasterConnection();
+        return executeOnMaster == false && unProxiedProtocol.isMasterConnection();
     }
 
     public boolean isExecuteOnMaster() {
