@@ -807,4 +807,50 @@ public class MultiTest extends BaseTest {
         }
     }
 
+    @Test
+    public void testCloseStatementWithoutQuery() throws SQLException {
+        final Statement statement = sharedConnection.createStatement();
+        // Make sure it is a streaming statement:
+        statement.setFetchSize(Integer.MIN_VALUE);
+        for (int count = 1; count <= 10; count++) {
+            statement.close();
+        }
+    }
+
+    @Test
+    public void testClosePrepareStatementWithoutQuery() throws SQLException {
+        final PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT 1");
+        // Make sure it is a streaming statement:
+        preparedStatement.setFetchSize(Integer.MIN_VALUE);
+        for (int count = 1; count <= 10; count++) {
+            preparedStatement.close();
+        }
+    }
+
+    @Test
+    public void testCloseStatement() throws SQLException {
+        createTable("testStatementClose", "id int");
+        final Statement statement = sharedConnection.createStatement();
+        // Make sure it is a streaming statement:
+        statement.setFetchSize(1);
+
+        statement.execute("INSERT INTO testStatementClose (id) VALUES (1)");
+        for (int count = 1; count <= 10; count++) {
+            statement.close();
+        }
+    }
+
+    @Test
+    public void testClosePrepareStatement() throws SQLException {
+        createTable("testPrepareStatementClose", "id int");
+        sharedConnection.createStatement().execute("INSERT INTO testPrepareStatementClose(id) VALUES (1),(2),(3)");
+        final PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT * FROM testPrepareStatementClose");
+        preparedStatement.execute();
+        // Make sure it is a streaming statement:
+        preparedStatement.setFetchSize(1);
+
+        for (int count = 1; count <= 10; count++) {
+            preparedStatement.close();
+        }
+    }
 }
