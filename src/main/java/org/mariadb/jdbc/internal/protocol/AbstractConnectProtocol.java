@@ -593,17 +593,15 @@ public abstract class AbstractConnectProtocol implements Protocol {
         serverData = new TreeMap<>();
         SingleExecutionResult qr = new SingleExecutionResult(null, 0, true, false);
         try {
-            executeQuery(qr, "SELECT "
-                    + "@@max_allowed_packet, "
-                    + "@@system_time_zone, "
-                    + "@@time_zone, "
-                    + "@@sql_mode", ResultSet.TYPE_FORWARD_ONLY);
+            executeQuery(qr, "SHOW VARIABLES WHERE Variable_name in ("
+                    + "'max_allowed_packet', "
+                    + "'system_time_zone', "
+                    + "'time_zone', "
+                    + "'sql_mode'"
+                    + ")", ResultSet.TYPE_FORWARD_ONLY);
             MariaSelectResultSet resultSet = qr.getResult();
-            if (resultSet.next()) {
-                serverData.put("max_allowed_packet", resultSet.getString(1));
-                serverData.put("system_time_zone", resultSet.getString(2));
-                serverData.put("time_zone", resultSet.getString(3));
-                serverData.put("sql_mode", resultSet.getString(4));
+            while (resultSet.next()) {
+                serverData.put(resultSet.getString(1), resultSet.getString(2));
             }
         } catch (SQLException sqle) {
             throw new QueryException("could not load system variables", -1, ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(), sqle);
