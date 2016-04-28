@@ -1,11 +1,15 @@
 # Changelog
-
+* [1.4.4](#1.4.4)
 * [1.4.3](#1.4.3)
 * [1.4.2](#1.4.2)
 * [1.4.1](#1.4.1)
 * [1.4.0](#1.4.0)
 
 ---
+## 1.4.4
+Unreleased 
+* [CONJ-288] using SHOW VARIABLES to replace SELECT on connection to permit connection on a galera non primary node
+
 ## 1.4.3
 Released on 22 april 2016 
 * [CONJ-284] Cannot read autoincremented IDs bigger than Short.MAX_VALUE
