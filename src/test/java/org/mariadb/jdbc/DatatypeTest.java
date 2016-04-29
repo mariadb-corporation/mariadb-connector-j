@@ -800,6 +800,7 @@ public class DatatypeTest extends BaseTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     public void testNullTimePreparedStatement() throws Exception {
         sharedConnection.createStatement().execute("insert into time_period(id, start, end) values(1, '00:00:00', '08:00:00');");
         final String sql = "SELECT id, start, end FROM time_period WHERE id=?";

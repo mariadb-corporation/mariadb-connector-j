@@ -85,6 +85,7 @@ import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
 
+@SuppressWarnings("deprecation")
 public class MariaSelectResultSet implements ResultSet {
     public static final MariaSelectResultSet EMPTY = createEmptyResultSet();
 

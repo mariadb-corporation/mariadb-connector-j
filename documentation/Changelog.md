@@ -7,7 +7,8 @@
 
 ---
 ## 1.4.4
-Unreleased 
+Released on 29 april 2016 
+* [CONJ-289] PrepareStatement on master reconnection after a failover
 * [CONJ-288] using SHOW VARIABLES to replace SELECT on connection to permit connection on a galera non primary node
 
 ## 1.4.3
