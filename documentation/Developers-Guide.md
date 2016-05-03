@@ -34,9 +34,9 @@ You can change those parameter by adding -DdbUrl parameter. like :
  
     mvn test -DdbUrl=jdbc:mariadb://127.0.0.1:3306/testj?user=root&password=*****
     
-You can launch a specific test by adding -Dfile
+You can launch a specific test by adding -Dtest
 
-    mvn test -Dfile=org.mariadb.jdbc.JdbcParserTest
+    mvn test -Dtest=org.mariadb.jdbc.JdbcParserTest
     
 When all test are passing, you can package project.
 Additional tests , like javadoc formatting, code style validation will be done : 

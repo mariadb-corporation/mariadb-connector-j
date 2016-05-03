@@ -348,6 +348,26 @@ public class DatabaseMetadataTest extends BaseTest {
     }
 
     @Test
+    public void testGetTables3() throws SQLException {
+        Statement stmt = sharedConnection.createStatement();
+        stmt.execute("drop table if exists table_type_test");
+
+        stmt.execute("create table table_type_test (id int not null primary key, "
+                + "val varchar(20)) engine=innodb");
+
+        DatabaseMetaData dbmd = sharedConnection.getMetaData();
+        ResultSet tableSet = dbmd.getTables(null, null, "table_type_test", null);
+
+        assertEquals(true, tableSet.next());
+
+        String tableName = tableSet.getString("TABLE_NAME");
+        assertEquals("table_type_test", tableName);
+        
+        String tableType = tableSet.getString("TABLE_TYPE");
+        assertEquals("TABLE", tableType);	// see for possible values https://docs.oracle.com/javase/7/docs/api/java/sql/DatabaseMetaData.html#getTableTypes%28%29
+    }
+    
+    @Test
     public void testGetColumns() throws SQLException {
         DatabaseMetaData dbmd = sharedConnection.getMetaData();
         ResultSet rs = dbmd.getColumns(null, null, "t1", null);
