@@ -31,7 +31,7 @@ public class ServerPrepareStatementTest extends BaseTest {
         createTable("ServerPrepareStatementTestt", "id int not null primary key auto_increment, test boolean");
         createTable("ServerPrepareStatementTestCache", "id int not null primary key auto_increment, test boolean");
         createTable("ServerPrepareStatementCacheSize3", "id int not null primary key auto_increment, test boolean");
-        createTable("preparetestFactionnal", "time0 TIME(6) default '22:11:00'");
+        createTable("preparetestFactionnal", "time0 TIME(6) default '22:11:00', timestamp0 timestamp(6), datetime0 datetime(6) ");
         createTable("ServerPrepareStatementCacheSize2", "id int not null primary key auto_increment, test boolean");
         createTable("ServerPrepareStatementCacheSize3", "id int not null primary key auto_increment, test blob");
         createTable("ServerPrepareStatementParameters", "id int, id2 int");
@@ -205,7 +205,10 @@ public class ServerPrepareStatementTest extends BaseTest {
         }
     }
 
-
+    /**
+     * CONJ-290 : Timestamps format error when using prepareStatement with options useFractionalSeconds and useServerPrepStmts.
+     * @throws SQLException exception
+     */
     @Test
     public void timeFractionnalSecondTest() throws SQLException {
         Connection connection = null;
@@ -214,10 +217,18 @@ public class ServerPrepareStatementTest extends BaseTest {
             Time time0 = new Time(55549392);
             Time time1 = new Time(55549000);
 
-            PreparedStatement ps = connection.prepareStatement("INSERT INTO preparetestFactionnal (time0) VALUES (?)");
+            Timestamp timestamp0 = new Timestamp(55549392);
+            Timestamp timestamp1 = new Timestamp(55549000);
+
+
+            PreparedStatement ps = connection.prepareStatement("INSERT INTO preparetestFactionnal (time0, timestamp0, datetime0) VALUES (?, ?, ?)");
             ps.setTime(1, time0);
+            ps.setTimestamp(2, timestamp0);
+            ps.setTimestamp(3, timestamp0);
             ps.addBatch();
             ps.setTime(1, time1);
+            ps.setTimestamp(2, timestamp1);
+            ps.setTimestamp(3, timestamp1);
             ps.addBatch();
             ps.executeBatch();
 
@@ -225,8 +236,12 @@ public class ServerPrepareStatementTest extends BaseTest {
             if (rs.next()) {
                 //must be equal to time1 and not time0
                 assertEquals(rs.getTime(1), time1);
+                assertEquals(rs.getTimestamp(2), timestamp1);
+                assertEquals(rs.getTimestamp(3), timestamp1);
                 rs.next();
                 assertEquals(rs.getTime(1), time1);
+                assertEquals(rs.getTimestamp(2), timestamp1);
+                assertEquals(rs.getTimestamp(3), timestamp1);
             } else {
                 fail("Error in query");
             }

@@ -703,8 +703,8 @@ public class PacketOutputStream extends OutputStream {
      * @return this
      */
     public PacketOutputStream writeTimestampLength(final Calendar calendar, Timestamp ts, boolean fractionalSeconds) {
-        assureBufferCapacity(12);
-        buffer.put((byte) 11);//length
+        assureBufferCapacity(fractionalSeconds ? 12 : 8);
+        buffer.put((byte) (fractionalSeconds ? 11 : 7));//length
 
         buffer.putShort((short) calendar.get(Calendar.YEAR));
         buffer.put((byte) ((calendar.get(Calendar.MONTH) + 1) & 0xff));
