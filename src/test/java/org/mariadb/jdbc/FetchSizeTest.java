@@ -19,12 +19,14 @@ public class FetchSizeTest extends BaseTest {
     @BeforeClass()
     public static void initClass() throws SQLException {
         createTable("fetchSizeTest1", "id int, test varchar(100)");
+        createTable("fetchSizeTest2", "id int, test varchar(100)");
+        createTable("fetchSizeTest3", "id int, test varchar(100)");
+        createTable("fetchSizeTest4", "id int, test varchar(100)");
     }
 
     @Test
     public void batchFetchSizeTest() throws SQLException {
         Statement stmt = sharedConnection.createStatement();
-        stmt.execute("TRUNCATE TABLE fetchSizeTest1");
         PreparedStatement pstmt = sharedConnection.prepareStatement("INSERT INTO fetchSizeTest1 (test) values (?)");
         stmt.setFetchSize(1);
         pstmt.setFetchSize(1);
@@ -48,12 +50,12 @@ public class FetchSizeTest extends BaseTest {
 
     @Test
     public void fetchSizeNormalTest() throws SQLException {
-        prepare1000record();
+        prepare100record("fetchSizeTest4");
 
         Statement stmt = sharedConnection.createStatement();
         stmt.setFetchSize(1);
-        ResultSet resultSet = stmt.executeQuery("SELECT test FROM fetchSizeTest1");
-        for (int counter = 0; counter < 1000; counter++) {
+        ResultSet resultSet = stmt.executeQuery("SELECT test FROM fetchSizeTest4");
+        for (int counter = 0; counter < 100; counter++) {
             assertTrue(resultSet.next());
             assertEquals("" + counter, resultSet.getString(1));
         }
@@ -63,12 +65,12 @@ public class FetchSizeTest extends BaseTest {
 
     @Test
     public void fetchSizeErrorWhileFetchTest() throws SQLException {
-        prepare1000record();
+        prepare100record("fetchSizeTest3");
 
         Statement stmt = sharedConnection.createStatement();
         stmt.setFetchSize(1);
-        ResultSet resultSet = stmt.executeQuery("SELECT test FROM fetchSizeTest1");
-        for (int counter = 0; counter < 500; counter++) {
+        ResultSet resultSet = stmt.executeQuery("SELECT test FROM fetchSizeTest3");
+        for (int counter = 0; counter < 50; counter++) {
             assertTrue(resultSet.next());
             assertEquals("" + counter, resultSet.getString(1));
         }
@@ -87,7 +89,7 @@ public class FetchSizeTest extends BaseTest {
 
         try {
             assertFalse(resultSet.isClosed());
-            for (int counter = 500; counter < 1000; counter++) {
+            for (int counter = 50; counter < 100; counter++) {
                 assertTrue(resultSet.next());
                 assertEquals("" + counter, resultSet.getString(1));
             }
@@ -100,13 +102,13 @@ public class FetchSizeTest extends BaseTest {
 
     @Test
     public void fetchSizeSpeedTest() throws SQLException {
-        prepare1000record();
+        prepare100record("fetchSizeTest2");
 
         Statement stmt = sharedConnection.createStatement();
 
         //test limit
         final long start = System.nanoTime();
-        ResultSet resultSet = stmt.executeQuery("SELECT test FROM fetchSizeTest1 LIMIT 2");
+        ResultSet resultSet = stmt.executeQuery("SELECT test FROM fetchSizeTest2 LIMIT 2");
         assertTrue(resultSet.next());
         assertEquals("0", resultSet.getString(1));
         assertTrue(resultSet.next());
@@ -155,7 +157,7 @@ public class FetchSizeTest extends BaseTest {
     }
 
     private void test2firstResult(Statement statement) throws SQLException {
-        ResultSet resultSet = statement.executeQuery("SELECT test FROM fetchSizeTest1");
+        ResultSet resultSet = statement.executeQuery("SELECT test FROM fetchSizeTest2");
         assertTrue(resultSet.next());
         assertEquals("0", resultSet.getString(1));
         assertTrue(resultSet.next());
@@ -163,10 +165,9 @@ public class FetchSizeTest extends BaseTest {
 
     }
 
-    private void prepare1000record() throws SQLException {
-        sharedConnection.createStatement().execute("TRUNCATE TABLE fetchSizeTest1");
-        PreparedStatement pstmt = sharedConnection.prepareStatement("INSERT INTO fetchSizeTest1 (test) values (?)");
-        for (int i = 0; i < 1000; i++) {
+    private void prepare100record(String tableName) throws SQLException {
+        PreparedStatement pstmt = sharedConnection.prepareStatement("INSERT INTO " + tableName + " (test) values (?)");
+        for (int i = 0; i < 100; i++) {
             pstmt.setString(1, "" + i);
             pstmt.addBatch();
         }
