@@ -84,11 +84,24 @@ public class DateParameter extends NotLongDataParameterHolder {
      * @param os output buffer
      */
     public void writeTo(OutputStream os) throws IOException {
+        ParameterWriter.writeDate(os, calendar());
+    }
+
+    /**
+     * Write to server OutputStream in text protocol without checking buffer size.
+     *
+     * @param os output buffer
+     */
+    public void writeUnsafeTo(PacketOutputStream os) throws IOException {
+        ParameterWriter.writeDateUnsafe(os, calendar());
+    }
+
+    private Calendar calendar() {
         if (options.useLegacyDatetimeCode || options.maximizeMysqlCompatibility) {
             calendar = Calendar.getInstance();
         }
         calendar.setTimeInMillis(date.getTime());
-        ParameterWriter.writeDate(os, calendar);
+        return calendar;
     }
 
     public long getApproximateTextProtocolLength() {

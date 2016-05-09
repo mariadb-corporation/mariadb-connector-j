@@ -37,8 +37,7 @@ public class ConnectionTest extends BaseTest {
             Assert.fail();
         } catch (SQLException e) {
             Assert.assertTrue("28000".equals(e.getSQLState()));
-            Assert.assertTrue(1045 == e.getErrorCode());
-            setConnection();
+            Assert.assertEquals(1045, e.getErrorCode());
         }
     }
 

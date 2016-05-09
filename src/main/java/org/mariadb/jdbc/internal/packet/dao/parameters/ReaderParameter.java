@@ -80,6 +80,7 @@ public class ReaderParameter extends LongDataParameterHolder {
 
     /**
      * Write reader to database in text format.
+     *
      * @param os database outputStream
      * @throws IOException if any error occur when reading reader
      */
@@ -89,6 +90,24 @@ public class ReaderParameter extends LongDataParameterHolder {
         } else {
             if (length == Long.MAX_VALUE) {
                 ParameterWriter.write(os, reader, noBackslashEscapes);
+            } else {
+                ParameterWriter.write(os, reader, length, noBackslashEscapes);
+            }
+        }
+    }
+
+    /**
+     * Write reader to database in text format without checking buffer size.
+     *
+     * @param os database outputStream
+     * @throws IOException if any error occur when reading reader
+     */
+    public void writeUnsafeTo(PacketOutputStream os) throws IOException {
+        if (readArrays != null) {
+            ParameterWriter.writeUnsafe(os, readArrays, noBackslashEscapes);
+        } else {
+            if (length == Long.MAX_VALUE) {
+                ParameterWriter.writeUnsafe(os, reader, noBackslashEscapes);
             } else {
                 ParameterWriter.write(os, reader, length, noBackslashEscapes);
             }

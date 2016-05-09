@@ -82,6 +82,7 @@ public class StreamParameter extends LongDataParameterHolder {
 
     /**
      * Write stream in text format.
+     *
      * @param os database outputStream
      * @throws IOException if any error occur when reader stream
      */
@@ -93,6 +94,24 @@ public class StreamParameter extends LongDataParameterHolder {
                 ParameterWriter.write(os, is, noBackslashEscapes);
             } else {
                 ParameterWriter.write(os, is, length, noBackslashEscapes);
+            }
+        }
+    }
+
+    /**
+     * Write stream in text format without checking buffer size.
+     *
+     * @param os database outputStream
+     * @throws IOException if any error occur when reader stream
+     */
+    public void writeUnsafeTo(PacketOutputStream os) throws IOException {
+        if (readArrays != null) {
+            ParameterWriter.writeBytesArrayUnsafe(os, readArrays, noBackslashEscapes);
+        } else {
+            if (length == Long.MAX_VALUE) {
+                ParameterWriter.writeUnsafe(os, is, noBackslashEscapes);
+            } else {
+                ParameterWriter.writeUnsafe(os, is, length, noBackslashEscapes);
             }
         }
     }

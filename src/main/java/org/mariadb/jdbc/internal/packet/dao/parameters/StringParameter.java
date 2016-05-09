@@ -69,6 +69,10 @@ public class StringParameter extends NotLongDataParameterHolder {
         ParameterWriter.write(os, string, noBackslashEscapes);
     }
 
+    public void writeUnsafeTo(final PacketOutputStream os) throws IOException {
+        ParameterWriter.writeUnsafe(os, string, noBackslashEscapes);
+    }
+
     public long getApproximateTextProtocolLength() throws IOException {
         return string.getBytes().length * 2 + 2;
     }

@@ -82,6 +82,19 @@ public class SerializableParameter extends LongDataParameterHolder {
     }
 
     /**
+     * Write object to buffer for text protocol without checking buffer size.
+     * @param os the stream to write to
+     * @throws IOException if error reading stream
+     */
+    public void writeUnsafeTo(PacketOutputStream os) throws IOException {
+        if (loadedStream != null) {
+            ParameterWriter.writeUnsafe(os, loadedStream, noBackSlashEscapes);
+        } else {
+            ParameterWriter.writeObjectUnsafe(os, object, noBackSlashEscapes);
+        }
+    }
+
+    /**
      * Return approximated data calculated length.
      *
      * @return approximated data length.

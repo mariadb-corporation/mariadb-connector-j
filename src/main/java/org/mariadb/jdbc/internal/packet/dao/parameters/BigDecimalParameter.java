@@ -66,6 +66,10 @@ public class BigDecimalParameter extends NotLongDataParameterHolder {
         ParameterWriter.write(os, bigDecimal);
     }
 
+    public void writeUnsafeTo(final PacketOutputStream os) throws IOException {
+        os.writeUnsafe(bigDecimal.toPlainString().getBytes());
+    }
+
     public long getApproximateTextProtocolLength() {
         return bigDecimal.toPlainString().getBytes().length;
     }

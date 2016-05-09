@@ -83,6 +83,10 @@ public class TimestampParameter extends NotLongDataParameterHolder {
         ParameterWriter.writeTimestamp(os, ts, calendar, fractionalSeconds);
     }
 
+    public void writeUnsafeTo(PacketOutputStream os) throws IOException {
+        ParameterWriter.writeTimestampUnsafe(os, ts, calendar, fractionalSeconds);
+    }
+
     public long getApproximateTextProtocolLength() throws IOException {
         return 27;
     }

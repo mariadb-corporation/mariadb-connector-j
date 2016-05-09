@@ -69,6 +69,9 @@ public class ByteArrayParameter extends NotLongDataParameterHolder {
         ParameterWriter.write(os, bytes, noBackslashEscapes);
     }
 
+    public void writeUnsafeTo(final PacketOutputStream os) throws IOException {
+        ParameterWriter.writeUnsafe(os, bytes, noBackslashEscapes);
+    }
 
     public long getApproximateTextProtocolLength() {
         return bytes.length * 2;

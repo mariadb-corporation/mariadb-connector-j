@@ -68,6 +68,10 @@ public class ByteParameter extends NotLongDataParameterHolder {
         os.write(String.valueOf(value).getBytes());
     }
 
+    public void writeUnsafeTo(final PacketOutputStream os) throws IOException {
+        os.writeUnsafe(String.valueOf(value).getBytes());
+    }
+
     public long getApproximateTextProtocolLength() {
         return String.valueOf(value).getBytes().length * 2;
     }

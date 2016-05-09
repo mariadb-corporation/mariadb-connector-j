@@ -67,6 +67,10 @@ public class ShortParameter extends NotLongDataParameterHolder {
         os.write(String.valueOf(value).getBytes());
     }
 
+    public void writeUnsafeTo(PacketOutputStream os) throws IOException {
+        os.writeUnsafe(String.valueOf(value).getBytes());
+    }
+
     public long getApproximateTextProtocolLength() throws IOException {
         return String.valueOf(value).getBytes().length;
     }

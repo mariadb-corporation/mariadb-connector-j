@@ -50,6 +50,8 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.packet.dao.parameters;
 
+import org.mariadb.jdbc.internal.stream.PacketOutputStream;
+
 import java.io.*;
 import java.math.BigDecimal;
 import java.nio.charset.Charset;
@@ -66,7 +68,7 @@ import java.util.Calendar;
 //TODO integrate that text helper class to packetOutput that already has binary helper
 public class ParameterWriter {
     private static final byte[] BINARY_INTRODUCER = {'_', 'b', 'i', 'n', 'a', 'r', 'y', ' ', '\''};
-    private static final byte[] QUOTE = {'\''};
+    private static final byte QUOTE = (byte)'\'';
 
     private static void writeBytesEscaped(OutputStream out, byte[] bytes, int count, boolean noBackslashEscapes)
             throws IOException {
@@ -104,8 +106,45 @@ public class ParameterWriter {
         writeBytesEscaped(out, bytes, bytes.length, noBackslashEscapes);
     }
 
+    private static void writeBytesEscapedUnsafe(PacketOutputStream out, byte[] bytes, int count, boolean noBackslashEscapes)
+            throws IOException {
+        if (noBackslashEscapes) {
+            for (int i = 0; i < count; i++) {
+                byte bit = bytes[i];
+                switch (bit) {
+                    case '\'':
+                        out.writeUnsafe('\'');
+                        out.writeUnsafe(bit);
+                        break;
+                    default:
+                        out.writeUnsafe(bit);
+                }
+            }
+        } else {
+            for (int i = 0; i < count; i++) {
+                byte bit = bytes[i];
+                switch (bit) {
+                    case '\\':
+                    case '\'':
+                    case '"':
+                    case 0:
+                        out.writeUnsafe('\\');
+                        out.writeUnsafe(bit);
+                        break;
+                    default:
+                        out.writeUnsafe(bit);
+                }
+            }
+        }
+    }
+
+    public static void writeBytesEscapedUnsafe(PacketOutputStream out, byte[] bytes, boolean noBackslashEscapes) throws IOException {
+        writeBytesEscapedUnsafe(out, bytes, bytes.length, noBackslashEscapes);
+    }
+
     /**
      * Escape string value.
+     *
      * @param bytes string in utf-8 bytes
      * @param noBackslashEscapes flag
      * @return escaped string
@@ -150,6 +189,7 @@ public class ParameterWriter {
 
     /**
      * Write byte array in text format.
+     *
      * @param out database stream
      * @param bytes byte arrayto send
      * @param noBackslashEscapes must backslash be escape
@@ -163,6 +203,7 @@ public class ParameterWriter {
 
     /**
      * Write string in text format.
+     *
      * @param out database stream
      * @param value String value to send
      * @param noBackslashEscapes must backslash be escape
@@ -177,6 +218,7 @@ public class ParameterWriter {
 
     /**
      * Write stream in text format.
+     *
      * @param out database stream
      * @param is input stream to write
      * @param noBackslashEscapes must backslash be escape
@@ -194,6 +236,7 @@ public class ParameterWriter {
 
     /**
      * Write stream in text format.
+     *
      * @param out database stream
      * @param is input stream to write
      * @param length max inputstream length to write
@@ -223,6 +266,7 @@ public class ParameterWriter {
 
     /**
      * Write whole reader in text format.
+     *
      * @param out database stream
      * @param reader reader to write
      * @param noBackslashEscapes must backslash be escape
@@ -240,6 +284,7 @@ public class ParameterWriter {
 
     /**
      * Write cached reader char array to buffer.
+     *
      * @param out output buffer
      * @param readArrays cache char array
      * @param noBackslashEscapes backslash must be escape flag
@@ -255,6 +300,7 @@ public class ParameterWriter {
 
     /**
      * Write reader in text format.
+     *
      * @param out database stream
      * @param reader reader to write
      * @param length reader max length to write
@@ -301,7 +347,121 @@ public class ParameterWriter {
     }
 
     /**
+     * Write whole reader in text format without checking buffer size.
+     *
+     * @param out database stream
+     * @param reader reader to write
+     * @param noBackslashEscapes must backslash be escape
+     * @throws IOException if any error occur when writing to database
+     */
+    public static void writeUnsafe(PacketOutputStream out, java.io.Reader reader, boolean noBackslashEscapes) throws IOException {
+        out.writeUnsafe(QUOTE);
+        char[] buffer = new char[1024];
+        int len;
+        while ((len = reader.read(buffer)) >= 0) {
+            byte[] data = new String(buffer, 0, len).getBytes("UTF-8");
+            writeBytesEscaped(out, data, data.length, noBackslashEscapes);
+        }
+        out.writeUnsafe(QUOTE);
+    }
+
+    /**
+     * Write cached reader char array to buffer without checking buffer size.
+     *
+     * @param out output buffer
+     * @param readArrays cache char array
+     * @param noBackslashEscapes backslash must be escape flag
+     * @throws IOException if error occur when writing to buffer
+     */
+    public static void writeUnsafe(PacketOutputStream out, ArrayList<char[]> readArrays, boolean noBackslashEscapes) throws IOException {
+        out.writeUnsafe(QUOTE);
+        for (char[] charArray : readArrays) {
+            byte[] data = new String(charArray, 0, charArray.length).getBytes("UTF-8");
+            writeBytesEscapedUnsafe(out, data, data.length, noBackslashEscapes);
+        }
+        out.writeUnsafe(QUOTE);
+    }
+
+    /**
+     * Write stream in text format without checking buffer size.
+     *
+     * @param out database stream
+     * @param is input stream to write
+     * @param noBackslashEscapes must backslash be escape
+     * @throws IOException if any error occur when writing to database
+     */
+    public static void writeUnsafe(PacketOutputStream out, InputStream is, boolean noBackslashEscapes) throws IOException {
+        out.writeUnsafe(QUOTE);
+        byte[] buffer = new byte[1024];
+        int len;
+        while ((len = is.read(buffer)) >= 0) {
+            writeBytesEscapedUnsafe(out, buffer, len, noBackslashEscapes);
+        }
+        out.writeUnsafe(QUOTE);
+    }
+
+    /**
+     * Write string in text format without checking buffer size.
+     *
+     * @param out database stream
+     * @param value String value to send
+     * @param noBackslashEscapes must backslash be escape
+     * @throws IOException if any error occur when writing to database
+     */
+    public static void writeUnsafe(PacketOutputStream out, String value, boolean noBackslashEscapes) throws IOException {
+        byte[] bytes = value.getBytes("UTF-8");
+        out.writeUnsafe(QUOTE);
+        writeBytesEscapedUnsafe(out, bytes, bytes.length, noBackslashEscapes);
+        out.writeUnsafe(QUOTE);
+    }
+
+    /**
+     * Write stream in text format without checking buffer size.
+     *
+     * @param out database stream
+     * @param is input stream to write
+     * @param length max inputstream length to write
+     * @param noBackslashEscapes must backslash be escape
+     * @throws IOException if any error occur when writing to database
+     */
+    public static void writeUnsafe(PacketOutputStream out, InputStream is, long length, boolean noBackslashEscapes) throws IOException {
+        out.writeUnsafe(QUOTE);
+        byte[] buffer = new byte[1024];
+        long bytesLeft = length;
+        int len;
+
+        for (; ; ) {
+            int bytesToRead = (int) Math.min(bytesLeft, buffer.length);
+            if (bytesToRead == 0) {
+                break;
+            }
+            len = is.read(buffer, 0, bytesToRead);
+            if (len <= 0) {
+                break;
+            }
+            writeBytesEscapedUnsafe(out, buffer, len, noBackslashEscapes);
+            bytesLeft -= len;
+        }
+        out.writeUnsafe(QUOTE);
+    }
+
+    /**
+     * Write byte array in text format without checking buffer size.
+     *
+     * @param out database stream
+     * @param bytes byte arrayto send
+     * @param noBackslashEscapes must backslash be escape
+     * @throws IOException if any error occur when writing to database
+     */
+    public static void writeUnsafe(PacketOutputStream out, byte[] bytes, boolean noBackslashEscapes) throws IOException {
+        out.writeUnsafe(BINARY_INTRODUCER);
+        writeBytesEscapedUnsafe(out, bytes, bytes.length, noBackslashEscapes);
+        out.writeUnsafe(QUOTE);
+    }
+
+    /**
      * Write cache byte array to buffer.
+     *
      * @param out buffer
      * @param readArrays cache byte array
      * @param noBackslashEscapes must escape backslash flag
@@ -315,9 +475,25 @@ public class ParameterWriter {
         out.write(QUOTE);
     }
 
+    /**
+     * Write cache byte array to buffer without checking buffer size
+     * .
+     * @param out buffer
+     * @param readArrays cache byte array
+     * @param noBackslashEscapes must escape backslash flag
+     * @throws IOException if error occur writing buffer
+     */
+    public static void writeBytesArrayUnsafe(PacketOutputStream out, ArrayList<byte[]> readArrays, boolean noBackslashEscapes) throws IOException {
+        out.writeUnsafe(QUOTE);
+        for (byte[] buffer : readArrays) {
+            writeBytesEscapedUnsafe(out, buffer, buffer.length, noBackslashEscapes);
+        }
+        out.writeUnsafe(QUOTE);
+    }
 
     /**
      * Write date in text format.
+     *
      * @param out database stream
      * @param calendar session calendar
      * @throws IOException if any error occur when writing to database
@@ -328,6 +504,21 @@ public class ParameterWriter {
         String dateString = sdf.format(calendar.getTime());
         out.write(dateString.getBytes());
         out.write(QUOTE);
+    }
+
+    /**
+     * Write date in text format without checking buffer size.
+     *
+     * @param out database stream
+     * @param calendar session calendar
+     * @throws IOException if any error occur when writing to database
+     */
+    public static void writeDateUnsafe(PacketOutputStream out, Calendar calendar) throws IOException {
+        out.writeUnsafe(QUOTE);
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        String dateString = sdf.format(calendar.getTime());
+        out.writeUnsafe(dateString.getBytes());
+        out.writeUnsafe(QUOTE);
     }
 
     static void formatMicroseconds(OutputStream out, int microseconds, boolean writeFractionalSeconds) throws IOException {
@@ -344,8 +535,23 @@ public class ParameterWriter {
         }
     }
 
+    static void formatMicrosecondsUnsafe(PacketOutputStream out, int microseconds, boolean writeFractionalSeconds) throws IOException {
+        if (microseconds == 0 || !writeFractionalSeconds) {
+            return;
+        }
+        out.writeUnsafe('.');
+        int factor = 100000;
+        while (microseconds > 0) {
+            int dig = microseconds / factor;
+            out.writeUnsafe('0' + dig);
+            microseconds -= dig * factor;
+            factor /= 10;
+        }
+    }
+
     /**
-     * Write timestamps in text format
+     * Write timestamps in text format.
+     *
      * @param out database outputstream
      * @param ts timestamp to write
      * @param calendar session calendar
@@ -366,7 +572,30 @@ public class ParameterWriter {
     }
 
     /**
+     * Write timestamps in text format without checking buffer size.
+     *
+     * @param out database outputstream
+     * @param ts timestamp to write
+     * @param calendar session calendar
+     * @param writeFractionalSeconds must fractional seconds be send to database
+     * @throws IOException if any error occur when writing to database.
+     */
+    public static void writeTimestampUnsafe(PacketOutputStream out, Timestamp ts, Calendar calendar, boolean writeFractionalSeconds)
+            throws IOException {
+        out.writeUnsafe(QUOTE);
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        if (calendar != null) {
+            sdf.setCalendar(calendar);
+        }
+        String dateString = sdf.format(ts);
+        out.writeUnsafe(dateString.getBytes());
+        formatMicrosecondsUnsafe(out, ts.getNanos() / 1000, writeFractionalSeconds);
+        out.writeUnsafe(QUOTE);
+    }
+
+    /**
      * Write time in text format.
+     *
      * @param out database outputStream
      * @param time time to write
      * @param calendar session calendar
@@ -391,7 +620,34 @@ public class ParameterWriter {
     }
 
     /**
+     * Write time in text format without checking buffer size.
+     *
+     * @param out database outputStream
+     * @param time time to write
+     * @param calendar session calendar
+     * @param writeFractionalSeconds must fractional seconds be send to database
+     * @throws IOException if any error occur when writing to database.
+     */
+    public static void writeTimeUnsafe(PacketOutputStream out, Time time, Calendar calendar, boolean writeFractionalSeconds)
+            throws IOException {
+        out.writeUnsafe(QUOTE);
+        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+        if (calendar != null) {
+            sdf.setCalendar(calendar);
+        }
+        String dateString = sdf.format(time);
+        if (time.getTime() < 0) {
+            dateString = "-" + dateString;
+        }
+        out.writeUnsafe(dateString.getBytes());
+        int microseconds = (int) (time.getTime() % 1000) * 1000;
+        formatMicrosecondsUnsafe(out, microseconds, writeFractionalSeconds);
+        out.writeUnsafe(QUOTE);
+    }
+
+    /**
      * Write object to buffer.
+     *
      * @param out outputStream
      * @param obj Object to send
      * @param noBackslashEscapes must back slash be escaped
@@ -405,7 +661,22 @@ public class ParameterWriter {
     }
 
     /**
+     * Write object to buffer without checking buffer size.
+     * @param out outputStream
+     * @param obj Object to send
+     * @param noBackslashEscapes must back slash be escaped
+     * @throws IOException if any connection error occued
+     */
+    public static void writeObjectUnsafe(PacketOutputStream out, Object obj, boolean noBackslashEscapes) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ObjectOutputStream oos = new ObjectOutputStream(baos);
+        oos.writeObject(obj);
+        writeUnsafe(out, baos.toByteArray(), noBackslashEscapes);
+    }
+
+    /**
      * Write integer to byte LittleEndian order.
+     *
      * @param value int value to convert
      * @return byte array
      */

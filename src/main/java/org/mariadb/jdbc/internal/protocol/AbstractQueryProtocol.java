@@ -709,28 +709,31 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                         writer.write(queryPartsUtf8.get(0));
                         writer.write(queryPartsUtf8.get(1));
                         int lastPartLength = queryPartsUtf8.get(paramCount + 2).length;
+                        int intermediatePartLength = queryPartsUtf8.get(1).length;
 
                         for (int i = 0; i < paramCount; i++) {
                             parameters[i].writeTo(writer);
                             writer.write(queryPartsUtf8.get(i + 2));
+                            intermediatePartLength += queryPartsUtf8.get(i + 2).length;
                         }
 
                         while (currentIndex < totalParameterList) {
                             parameters = parameterList.get(currentIndex);
 
                             //check packet length so to separate in multiple packet
-                            int parameterLength = 1;
+                            int parameterLength = 0;
                             for (ParameterHolder parameter : parameters) {
                                 parameterLength += parameter.getApproximateTextProtocolLength();
                             }
-
-                            if (writer.checkRewritableLength(parameterLength + lastPartLength)) {
-                                writer.write((byte) 44); //","
-                                writer.write(queryPartsUtf8.get(1));
+//
+                            if (writer.checkRewritableLength(1 + parameterLength + intermediatePartLength + lastPartLength)) {
+                                writer.assureBufferCapacity(1 + parameterLength + intermediatePartLength + lastPartLength);
+                                writer.writeUnsafe((byte) 44); //","
+                                writer.writeUnsafe(queryPartsUtf8.get(1));
 
                                 for (int i = 0; i < paramCount; i++) {
-                                    parameters[i].writeTo(writer);
-                                    writer.write(queryPartsUtf8.get(i + 2));
+                                    parameters[i].writeUnsafeTo(writer);
+                                    writer.writeUnsafe(queryPartsUtf8.get(i + 2));
                                 }
                                 currentIndex++;
                             } else {

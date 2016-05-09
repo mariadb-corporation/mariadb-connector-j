@@ -152,21 +152,21 @@ public class SendGssApiAuthPacket extends AbstractAuthSwitchSendResponsePacket i
                                 }
 
                             } catch (GSSException le) {
-                                throw new QueryException("GSS-API authentication exception", 0, "28000", le);
+                                throw new QueryException("GSS-API authentication exception", 1045, "28000", le);
                             }
                             return null;
                         }
                     };
                     Subject.doAs(mySubject, action);
                 } catch (PrivilegedActionException exception) {
-                    throw new QueryException("GSS-API authentication exception", 0, "28000", exception);
+                    throw new QueryException("GSS-API authentication exception", 1045, "28000", exception);
                 }
             } else {
-                throw new QueryException("GSS-API authentication exception : no credential cache not found.", 0, "28000");
+                throw new QueryException("GSS-API authentication exception : no credential cache not found.", 1045, "28000");
             }
 
         } catch (LoginException le) {
-            throw new QueryException("GSS-API authentication exception", 0, "28000", le);
+            throw new QueryException("GSS-API authentication exception", 1045, "28000", le);
         }
 
     }

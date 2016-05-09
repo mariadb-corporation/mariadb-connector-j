@@ -1,4 +1,5 @@
 # Changelog
+* [1.5.0](#1.5.0) Snapshot available, not released 
 * [1.4.5](#1.4.5) Snapshot available, not released 
 * [1.4.4](#1.4.4) Released on 04 mai 2016 
 * [1.4.3](#1.4.3) Released on 22 april 2016 
@@ -7,6 +8,9 @@
 * [1.4.0](#1.4.0) Released on 31 march 2016
 
 ---
+## 1.5.0
+* [CONJ-291] Globally performance improvement
+
 ## 1.4.5
 * [CONJ-289] PrepareStatement on master reconnection after a failover
 * [CONJ-288] using SHOW VARIABLES to replace SELECT on connection to permit connection on a galera non primary node

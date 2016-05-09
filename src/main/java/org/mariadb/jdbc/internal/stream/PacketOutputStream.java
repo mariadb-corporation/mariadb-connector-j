@@ -346,8 +346,8 @@ public class PacketOutputStream extends OutputStream {
 
     @Override
     public void write(int byteInt) throws IOException {
-        byte[] byteArray = {(byte) byteInt};
-        write(byteArray);
+        assureBufferCapacity(1);
+        buffer.put((byte) byteInt);
     }
 
     @Override
@@ -356,6 +356,24 @@ public class PacketOutputStream extends OutputStream {
         buffer.put(bytes, off, len);
     }
 
+    /**
+     * Write byte value directly to buffer.
+     * (buffer size must have been checked beforeheand !)
+     *
+     * @param value byte value
+     * @throws IOException if buffer exception occur
+     */
+    public void writeUnsafe(int value) throws IOException {
+        buffer.put((byte) value);
+    }
+
+    public void writeUnsafe(byte[] bytes, int off, int len) throws IOException {
+        buffer.put(bytes, off, len);
+    }
+
+    public void writeUnsafe(byte[] bytes) throws IOException {
+        writeUnsafe(bytes, 0, bytes.length);
+    }
 
     @Override
     public void flush() throws IOException {
