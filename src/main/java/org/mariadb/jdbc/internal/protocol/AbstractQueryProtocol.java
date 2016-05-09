@@ -136,8 +136,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      *
      * For failover, two additional information are in the resultset object :
      * - current connection : Since server maintain a state of this prepare statement, all query will be executed on this particular connection.
-     * - executeOnMaster : state of current connection when creating this prepareStatement (if was on master, will only be executed on master. If was on a slave, can be
-     *      execute temporary on master, but we keep this flag, so when a slave is connected back to relaunch this query on slave)
+     * - executeOnMaster : state of current connection when creating this prepareStatement (if was on master, will only be executed on master.
+     * If was on a slave, can be execute temporary on master, but we keep this flag,
+     * so when a slave is connected back to relaunch this query on slave)
      *
      * @param sql the query
      * @param forceNew do not use prepared in cache in present.

@@ -14,7 +14,7 @@ import static org.junit.Assert.assertTrue;
 /**
  * Aurora test suite.
  * Some environment parameter must be set :
- * - defaultAuroraUrl : example -DdefaultAuroraUrl=jdbc:mysql:aurora://instance-1.xxxx.us-east-1.rds.amazonaws.com,instance-2.xxxx.us-east-1.rds.amazonaws.com/testj?user=userName&password=userPwd
+ * - defaultAuroraUrl : example -DdefaultAuroraUrl=jdbc:mysql:aurora://instance-1.xxxx,instance-2.xxxx/testj?user=userName&password=userPwd
  * - AURORA_ACCESS_KEY = access key
  * - AURORA_SECRET_KEY = secret key
  * - AURORA_CLUSTER_IDENTIFIER = cluster identifier. example : -DAURORA_CLUSTER_IDENTIFIER=instance-1-cluster
@@ -230,7 +230,7 @@ public class AuroraFailoverTest extends BaseReplication {
     /**
      * Test failover on prepareStatement on slave.
      * PrepareStatement must fall back on master, and back on slave when a new slave connection is up again.
-     * @throws Throwable
+     * @throws Throwable if any error occur
      */
     @Test
     public void failoverPrepareStatementOnSlave() throws Throwable {
@@ -296,7 +296,7 @@ public class AuroraFailoverTest extends BaseReplication {
      * Test that master complete failover (not just a network error) server will changed, PrepareStatement will be closed
      * and that PrepareStatement cache is invalidated.
      *
-     * @throws Throwable
+     * @throws Throwable if any error occur
      */
     @Test
     public void failoverPrepareStatementOnMaster() throws Throwable {

@@ -75,8 +75,8 @@ public class PrepareResult {
      * @param unProxiedProtocol indicate the protocol on which the prepare has been done
      * @param executeOnMaster must normally execute on master ?
      */
-    public PrepareResult(int statementId, ColumnInformation[] columns, ColumnInformation[] parameters, Protocol unProxiedProtocol
-            , boolean executeOnMaster) {
+    public PrepareResult(int statementId, ColumnInformation[] columns, ColumnInformation[] parameters, Protocol unProxiedProtocol,
+                         boolean executeOnMaster) {
         this.statementId = statementId;
         this.columns = columns;
         this.parameters = parameters;

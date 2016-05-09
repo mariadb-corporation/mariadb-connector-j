@@ -223,9 +223,9 @@ public class BaseMultiHostTest {
      * (by using AWS api)
      */
     public void launchAuroraFailover() {
-        FailoverDBClusterRequest r = new FailoverDBClusterRequest();
-        r.setDBClusterIdentifier(auroraClusterIdentifier);
-        amazonRDSClient.failoverDBCluster(r);
+        FailoverDBClusterRequest request = new FailoverDBClusterRequest();
+        request.setDBClusterIdentifier(auroraClusterIdentifier);
+        amazonRDSClient.failoverDBCluster(request);
     }
 
     /**
