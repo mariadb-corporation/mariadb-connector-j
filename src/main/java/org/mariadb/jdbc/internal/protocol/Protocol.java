@@ -72,7 +72,9 @@ import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
 public interface Protocol {
-    PrepareResult prepare(String sql, boolean forceNew) throws QueryException;
+    PrepareResult prepare(String sql) throws QueryException;
+
+    PrepareResult prepare(String sql, boolean forceNew, boolean executeOnMaster) throws QueryException;
 
     boolean getAutocommit();
 

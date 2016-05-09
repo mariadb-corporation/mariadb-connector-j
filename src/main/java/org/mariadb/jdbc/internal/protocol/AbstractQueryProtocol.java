@@ -117,9 +117,36 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         return dump.toString();
     }
 
-
+    /**
+     * Prepare query on server side.
+     * Will permit to know the parameter number of the query, and permit to send only the data on next results.
+     *
+     * @param sql the query
+     * @return state of current connection when creating this prepareStatement
+     * @throws QueryException if any error occur on connection.
+     */
     @Override
-    public PrepareResult prepare(String sql, boolean forceNew) throws QueryException {
+    public PrepareResult prepare(String sql) throws QueryException {
+        return prepare(sql, false, this.isMasterConnection());
+    }
+
+    /**
+     * Prepare query on server side.
+     * Will permit to know the parameter number of the query, and permit to send only the data on next results.
+     *
+     * For failover, two additional information are in the resultset object :
+     * - current connection : Since server maintain a state of this prepare statement, all query will be executed on this particular connection.
+     * - executeOnMaster : state of current connection when creating this prepareStatement (if was on master, will only be executed on master. If was on a slave, can be
+     *      execute temporary on master, but we keep this flag, so when a slave is connected back to relaunch this query on slave)
+     *
+     * @param sql the query
+     * @param forceNew do not use prepared in cache in present.
+     * @param executeOnMaster state of current connection when creating this prepareStatement
+     * @return a PrepareResult object that contain prepare result information.
+     * @throws QueryException if any error occur on connection.
+     */
+    @Override
+    public PrepareResult prepare(String sql, boolean forceNew, boolean executeOnMaster) throws QueryException {
         lock.lock();
         try {
 
@@ -171,7 +198,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     }
                     readEofPacket();
                 }
-                PrepareResult prepareResult = new PrepareResult(statementId, columns, params, this);
+                PrepareResult prepareResult = new PrepareResult(statementId, columns, params, this, executeOnMaster);
                 if (options.cachePrepStmts && sql != null && sql.length() < options.prepStmtCacheSqlLimit) {
                     PrepareResult cachedPrepareResult = prepareStatementCache.put(key, prepareResult, forceNew);
                     return cachedPrepareResult != null ? cachedPrepareResult : prepareResult;
@@ -314,7 +341,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     public void executePreparedQueryAfterFailover(PrepareResult oldPrepareResult, ExecutionResult executionResult, String sql,
                                                   ParameterHolder[] parameters, MariaDbType[] parameterTypeHeader, int resultSetScrollType)
             throws QueryException {
-        PrepareResult prepareResult = prepare(sql, true);
+        PrepareResult prepareResult = prepare(sql, true, oldPrepareResult.isExecuteOnMaster());
         //reset header status
         for (int i = 0; i < parameterTypeHeader.length; i++) {
             parameterTypeHeader[i] = null;
@@ -349,10 +376,12 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             getResult(executionResult, resultSetScrollType, true);
 
         } catch (QueryException qex) {
-            if (sql.length() > 1024) {
-                qex.setMessage(qex.getMessage() + "\nQuery is: " + sql.substring(0, 1024));
-            } else {
-                qex.setMessage(qex.getMessage() + "\nQuery is: " + sql);
+            if (getOptions().dumpQueriesOnException || qex.getErrorCode() == 1064) {
+                if (sql.length() > 1024) {
+                    qex.setMessage(qex.getMessage() + "\nQuery is: " + sql.substring(0, 1024) + "...");
+                } else {
+                    qex.setMessage(qex.getMessage() + "\nQuery is: " + sql);
+                }
             }
             if (qex.getCause() instanceof SocketTimeoutException) {
                 throw new QueryException("Connection timed out", -1, ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(), qex);

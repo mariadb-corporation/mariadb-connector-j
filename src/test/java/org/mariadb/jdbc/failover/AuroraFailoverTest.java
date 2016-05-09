@@ -1,17 +1,26 @@
 package org.mariadb.jdbc.failover;
 
 import org.junit.*;
+import org.mariadb.jdbc.MariaDbServerPreparedStatement;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 
 import java.sql.*;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import static org.junit.Assert.*;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
+/**
+ * Aurora test suite.
+ * Some environment parameter must be set :
+ * - defaultAuroraUrl : example -DdefaultAuroraUrl=jdbc:mysql:aurora://instance-1.xxxx.us-east-1.rds.amazonaws.com,instance-2.xxxx.us-east-1.rds.amazonaws.com/testj?user=userName&password=userPwd
+ * - AURORA_ACCESS_KEY = access key
+ * - AURORA_SECRET_KEY = secret key
+ * - AURORA_CLUSTER_IDENTIFIER = cluster identifier. example : -DAURORA_CLUSTER_IDENTIFIER=instance-1-cluster
+ *
+ * "AURORA" environment variable must be set to a value
+ */
 public class AuroraFailoverTest extends BaseReplication {
 
     /**
@@ -22,7 +31,8 @@ public class AuroraFailoverTest extends BaseReplication {
     @BeforeClass()
     public static void beforeClass2() throws SQLException {
         proxyUrl = proxyAuroraUrl;
-        Assume.assumeTrue(initialAuroraUrl != null);
+        System.out.println("environment variable \"AURORA\" value : " + System.getenv("AURORA"));
+        Assume.assumeTrue(initialAuroraUrl != null && System.getenv("AURORA") != null && amazonRDSClient != null);
     }
 
     /**
@@ -35,7 +45,6 @@ public class AuroraFailoverTest extends BaseReplication {
         defaultUrl = initialAuroraUrl;
         currentType = HaMode.AURORA;
     }
-
 
     @Test
     public void testErrorWriteOnReplica() throws SQLException {
@@ -86,9 +95,6 @@ public class AuroraFailoverTest extends BaseReplication {
             }
         }
     }
-
-
-
 
     @Test
     public void testFailMaster() throws Throwable {
@@ -177,7 +183,7 @@ public class AuroraFailoverTest extends BaseReplication {
             Assert.fail();
         } catch (SQLException e) {
             Assert.assertTrue("28000".equals(e.getSQLState()));
-            Assert.assertTrue(1045 == e.getErrorCode());
+            Assert.assertEquals(1045, e.getErrorCode());
         }
     }
 
@@ -208,7 +214,6 @@ public class AuroraFailoverTest extends BaseReplication {
         }
     }
 
-
     @Test
     public void testCloseFail() throws Throwable {
         Connection connection = getNewConnection(true);
@@ -222,4 +227,118 @@ public class AuroraFailoverTest extends BaseReplication {
         Assert.assertTrue(protocol.getProxy().getListener().getBlacklistKeys().size() == 0);
     }
 
+    /**
+     * Test failover on prepareStatement on slave.
+     * PrepareStatement must fall back on master, and back on slave when a new slave connection is up again.
+     * @throws Throwable
+     */
+    @Test
+    public void failoverPrepareStatementOnSlave() throws Throwable {
+        Connection connection = null;
+        try {
+            connection = getNewConnection("&validConnectionTimeout=120"
+                    + "&socketTimeout=1000"
+                    + "&failoverLoopRetries=120"
+                    + "&connectTimeout=250"
+                    + "&loadBalanceBlacklistTimeout=50", false);
+
+            connection.setReadOnly(true);
+
+            //prepareStatement on slave connection
+            PreparedStatement preparedStatement = connection.prepareStatement("select @@innodb_read_only as is_read_only");
+
+            launchAuroraFailover();
+
+            //test failover
+            int nbExecutionOnSlave = 0;
+            int nbExecutionOnMasterFirstFailover = 0;
+            int nbExecutionOnMasterSecondFailover = 0;
+
+            //Goal is to check that on a failover, master connection will be used, and slave will be used back when up.
+            //check on 2 failover
+            while (nbExecutionOnSlave + nbExecutionOnMasterFirstFailover < 1000) {
+                ResultSet rs = preparedStatement.executeQuery();
+                rs.next();
+                if (rs.getInt(1) == 1) {
+                    nbExecutionOnSlave++;
+                    if (nbExecutionOnMasterFirstFailover > 0) {
+                        break;
+                    }
+                } else {
+                    nbExecutionOnMasterFirstFailover++;
+                }
+            }
+            launchAuroraFailover();
+            while (nbExecutionOnSlave + nbExecutionOnMasterSecondFailover < 1000) {
+                ResultSet rs = preparedStatement.executeQuery();
+                rs.next();
+                if (rs.getInt(1) == 1) {
+                    nbExecutionOnSlave++;
+                    if (nbExecutionOnMasterSecondFailover > 0) {
+                        break;
+                    }
+                } else {
+                    nbExecutionOnMasterSecondFailover++;
+                }
+            }
+            System.out.println("back using slave connection. nbExecutionOnSlave=" + nbExecutionOnSlave
+                    + " nbExecutionOnMasterFirstFailover=" + nbExecutionOnMasterFirstFailover
+                    + " nbExecutionOnMasterSecondFailover=" + nbExecutionOnMasterSecondFailover);
+            assertTrue(nbExecutionOnSlave + nbExecutionOnMasterFirstFailover + nbExecutionOnMasterSecondFailover < 800);
+        } finally {
+            if (connection != null) {
+                connection.close();
+            }
+        }
+    }
+
+    /**
+     * Test that master complete failover (not just a network error) server will changed, PrepareStatement will be closed
+     * and that PrepareStatement cache is invalidated.
+     *
+     * @throws Throwable
+     */
+    @Test
+    public void failoverPrepareStatementOnMaster() throws Throwable {
+        Connection connection = null;
+        try {
+            connection = getNewConnection("&validConnectionTimeout=120"
+                    + "&socketTimeout=1000"
+                    + "&failoverLoopRetries=120"
+                    + "&connectTimeout=250"
+                    + "&loadBalanceBlacklistTimeout=50", false);
+
+            int nbExceptionBeforeUp = 0;
+            boolean failLaunched = false;
+            PreparedStatement preparedStatement1 = connection.prepareStatement("select ?");
+            assertEquals(1, getPrepareResult((MariaDbServerPreparedStatement) preparedStatement1).getStatementId());
+            PreparedStatement otherPrepareStatement = connection.prepareStatement("select @@innodb_read_only as is_read_only");
+
+            while (nbExceptionBeforeUp < 1000) {
+                try {
+                    PreparedStatement preparedStatement = connection.prepareStatement("select @@innodb_read_only as is_read_only");
+                    preparedStatement.executeQuery();
+                    int currentPrepareId = getPrepareResult((MariaDbServerPreparedStatement) preparedStatement).getStatementId();
+                    if (nbExceptionBeforeUp > 0) {
+                        assertEquals(1, currentPrepareId);
+                        break;
+                    }
+                    if (!failLaunched) {
+                        launchAuroraFailover();
+                        failLaunched = true;
+                    }
+                    assertEquals(2, currentPrepareId);
+
+                } catch (SQLException e) {
+                    assertTrue(e.getSQLState().startsWith("08"));
+                    nbExceptionBeforeUp++;
+                }
+            }
+            assertTrue(nbExceptionBeforeUp < 50);
+        } finally {
+            if (connection != null) {
+                connection.close();
+            }
+        }
+    }
 }

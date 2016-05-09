@@ -82,6 +82,10 @@ public class FailoverLoop extends TerminatableRunnable {
                         SearchFilter filter = listener.getFilterForFailedHost();
                         filter.setFailoverLoop(true);
                         listener.reconnectFailedConnection(filter);
+                        if (listener.hasHostFail() && !listener.isExplicitClosed()) {
+                            queue.add(listener);
+                        }
+
                         //reconnection done !
                     } catch (Exception e) {
                         //FailoverLoop search connection failed

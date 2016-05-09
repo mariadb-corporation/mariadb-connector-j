@@ -1,5 +1,8 @@
 package org.mariadb.jdbc.failover;
 
+import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.services.rds.AmazonRDSClient;
+import com.amazonaws.services.rds.model.FailoverDBClusterRequest;
 import org.junit.*;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
@@ -45,6 +48,10 @@ public class BaseMultiHostTest {
     protected static String proxyLoadbalanceUrl;
     protected static String proxyUrl;
     protected static String jobId;
+
+
+    protected static AmazonRDSClient amazonRDSClient;
+    private static String auroraClusterIdentifier;
 
     protected static String username;
     private static String hostname;
@@ -95,6 +102,13 @@ public class BaseMultiHostTest {
         }
         if (initialAuroraUrl != null) {
             proxyAuroraUrl = createProxies(initialAuroraUrl, HaMode.AURORA);
+            String auroraAccessKey = System.getProperty("AURORA_ACCESS_KEY");
+            String auroraSecretKey = System.getProperty("AURORA_SECRET_KEY");
+            auroraClusterIdentifier = System.getProperty("AURORA_CLUSTER_IDENTIFIER");
+            if (auroraAccessKey != null && auroraSecretKey != null && auroraClusterIdentifier != null) {
+                BasicAWSCredentials awsCreds = new BasicAWSCredentials(auroraAccessKey, auroraSecretKey);
+                amazonRDSClient = new AmazonRDSClient(awsCreds);
+            }
         }
     }
 
@@ -202,6 +216,16 @@ public class BaseMultiHostTest {
                 return DriverManager.getConnection(defaultUrl + additionnalConnectionData);
             }
         }
+    }
+
+    /**
+     * Will launch an aurora failover.
+     * (by using AWS api)
+     */
+    public void launchAuroraFailover() {
+        FailoverDBClusterRequest r = new FailoverDBClusterRequest();
+        r.setDBClusterIdentifier(auroraClusterIdentifier);
+        amazonRDSClient.failoverDBCluster(r);
     }
 
     /**
