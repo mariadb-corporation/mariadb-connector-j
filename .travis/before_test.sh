@@ -77,8 +77,8 @@ END
     then
         sleep 20
     fi
+    sudo mysql -uroot -e "create database IF NOT EXISTS testj"
 
 fi
 
 
-sudo mysql -uroot -e "create database IF NOT EXISTS testj"
