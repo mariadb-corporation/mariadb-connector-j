@@ -83,6 +83,10 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
     }
 
+    /**
+     * Put the TimeZone to previous state.
+     * @throws SQLException exception
+     */
     @AfterClass()
     public static void endClass() throws SQLException {
         if (testSingleHost) {
