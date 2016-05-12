@@ -12,7 +12,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <jna.version>3.3.0</jna.version>
+        <jna.version>4.2.1</jna.version>
         <version.template.file>src/main/resources/Version.java.template</version.template.file>
         <version.file>src/main/java/org/mariadb/jdbc/internal/util/constant/Version.java</version.file>
         <checkstyleVersion>6.11.2</checkstyleVersion>
@@ -321,6 +321,12 @@
 
     <dependencies>
         <dependency>
+            <groupId>com.github.dblock.waffle</groupId>
+            <artifactId>waffle-jna</artifactId>
+            <version>1.8.1</version>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>4.12</version>
@@ -340,9 +346,8 @@
         </dependency>
         <dependency>
             <groupId>net.java.dev.jna</groupId>
-            <artifactId>jna</artifactId>
+            <artifactId>jna-platform</artifactId>
             <version>${jna.version}</version>
-            <classifier>platform</classifier>
             <optional>true</optional>
         </dependency>
         <dependency>

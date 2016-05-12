@@ -38,16 +38,7 @@ Logging can be set using additional properties:
 
         System.setProperty("sun.security.krb5.debug", "true");
         System.setProperty("sun.security.jgss.debug", "true");
-#### Jaas
 
-The driver will use the native ticket cache to get the TGT available in it using JAAS.
-If the System property "java.security.auth.login.config" is empty, driver will use the following configuration :
-
-    Krb5ConnectorContext {
-        com.sun.security.auth.module.Krb5LoginModule required useTicketCache=true renewTGT=true doNotPrompt=true; 
-    };
-
-This permit to use current user TGT cache. 
 
 #### Java JCE
 
@@ -57,28 +48,56 @@ Depending on the kerberos ticket encryption, you may have to install the [Java C
 On unix, you can execute the "klist -e" command to view the encryption type in use:
 If AES is being used, output like the following is displayed after you type the klist command (note that AES-256 is included in the output):
 
-Ticket cache: FILE:/tmp/krb5cc_0
-Default principal: userOne@EXAMPLE
-Valid starting     Expires            Service principal
-03/30/15 13:25:04  03/31/15 13:25:04  krbtgt/EXAMPLE@EXAMPLE
+    Ticket cache: FILE:/tmp/krb5cc_0
+    Default principal: userOne@EXAMPLE
+    Valid starting     Expires            Service principal
+    03/30/15 13:25:04  03/31/15 13:25:04  krbtgt/EXAMPLE@EXAMPLE
     Etype (skey, tkt): AES-256 CTS mode with 96-bit SHA-1 HMAC, AES-256 CTS mode with 96-bit SHA-1 HMAC
 
 
-#### Windows specific
-Current implementation is using standard java implementation, not windows native SSPI.
-Some restriction apply ([see java ticket](http://bugs.java.com/bugdatabase/view_bug.do?bug_id=6722928)
+### Implementations
 
-To permit java to retrieve TGT (Ticket-Granting-Ticket), windows host need to have a registry entry set.
+On windows GSSAPI implementation is SSPI. The java 8 native implementation as many limitations ([see java ticket](http://bugs.java.com/bugdatabase/view_bug.do?bug_id=6722928)).
 
-HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Lsa\Kerberos\Parameters
-Value Name: AllowTGTSessionKey
-Value Type: REG_DWORD
-Value: 1
+There is 2 Different implementations:
+* a java standard implementation will use JAAS to allow java to access TGT.
+* a windows native implementation based on [Waffle](https://github.com/dblock/waffle)
 
-Kinit command must have been executed previously to connection.
+#### Standard java SSPI implementation
 
-(in next release driver will use windows native possibility)
+##### Jaas
 
+The driver will use the native ticket cache to get the TGT available in it using JAAS.
+If the System property "java.security.auth.login.config" is empty, driver will use the following configuration :
+
+    Krb5ConnectorContext {
+        com.sun.security.auth.module.Krb5LoginModule required useTicketCache=true renewTGT=true doNotPrompt=true; 
+    };
+
+This permit to use current user TGT cache
+
+##### limitation on windows
+Main limitation are : 
+* To permit java to retrieve TGT (Ticket-Granting-Ticket), windows host need to have a registry entry set.
+  
+  HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Lsa\Kerberos\Parameters
+  Value Name: AllowTGTSessionKey
+  Value Type: REG_DWORD
+  Value: 1
+* Kinit command must have been executed previously to connection.
+
+### Windows native java implementation
+Implementation is based on [Waffle](https://github.com/dblock/waffle) that support windows SSPI based on [JNA](https://github.com/java-native-access/jna).
+if on waffle-jna (and dependencies) is on classpath, native implementation will automatically be used. 
+(This permit to avoid any specific problem with admin right, registry, kinit ...)
+
+Dependencies :
+* [waffle-jna 1.8.1](https://maven-badges.herokuapp.com/maven-central/com.github.dblock.waffle/waffle-jna)  
+* [jna 4.2.1](https://maven-badges.herokuapp.com/maven-central/net.java.dev.jna/jna)
+* [jna-platform 4.2.1](https://maven-badges.herokuapp.com/maven-central/net.java.dev.jna/jna-platform)
+* [jcl-over-slf4j 1.7.14](https://maven-badges.herokuapp.com/maven-central/org.slf4j/jcl-over-slf4j)
+* [slf4j-api 1.7.14](https://maven-badges.herokuapp.com/maven-central/org.slf4j/slf4j-api)
+* [guava 19.0](https://maven-badges.herokuapp.com/com.google.guava/guava)
 
 ##Possible errors
 
