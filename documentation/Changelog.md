@@ -8,6 +8,7 @@
 
 ---
 ## 1.4.5
+* [CONJ-297] Useless memory consumption when using Statement.setQueryTimeout
 * [CONJ-289] PrepareStatement on master reconnection after a failover
 * [CONJ-288] using SHOW VARIABLES to replace SELECT on connection to permit connection on a galera non primary node
 

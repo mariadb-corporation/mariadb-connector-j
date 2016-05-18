@@ -70,6 +70,13 @@ public class SchedulerServiceProviderHolder {
         public ScheduledThreadPoolExecutor getFixedSizeScheduler(int minimumThreads) {
             return new FixedSizedSchedulerImpl(minimumThreads);
         }
+
+        @Override
+        public ScheduledThreadPoolExecutor getTimeoutScheduler() {
+            ScheduledThreadPoolExecutor timeoutScheduler = new ScheduledThreadPoolExecutor(1, new MariaDbThreadFactory());
+            timeoutScheduler.setRemoveOnCancelPolicy(true);
+            return timeoutScheduler;
+        }
     };
 
     private static volatile SchedulerProvider currentProvider = null;
@@ -135,6 +142,17 @@ public class SchedulerServiceProviderHolder {
         public DynamicSizedSchedulerInterface getScheduler(int minimumThreads);
 
         public ScheduledExecutorService getFixedSizeScheduler(int minimumThreads);
+
+        /**
+         * Default Timeout scheduler.
+         *
+         * This is a one Thread fixed sized scheduler.
+         * This specific scheduler is using java 1.7 RemoveOnCancelPolicy, so
+         * the task are removed from queue permitting to avoid memory consumption [CONJ-297]
+         *
+         * @return A new scheduler that is ready to accept tasks
+         */
+        public ScheduledThreadPoolExecutor getTimeoutScheduler();
     }
 
 
