@@ -540,8 +540,8 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
             throws SQLException {
 
         String sql =
-                "SELECT TABLE_SCHEMA TABLE_CAT, NULL  TABLE_SCHEM,  TABLE_NAME, IF(TABLE_TYPE='BASE TABLE', 'TABLE', TABLE_TYPE) as TABLE_TYPE, TABLE_COMMENT REMARKS,"
-                        + " NULL TYPE_CAT, NULL TYPE_SCHEM, NULL TYPE_NAME, NULL SELF_REFERENCING_COL_NAME, "
+                "SELECT TABLE_SCHEMA TABLE_CAT, NULL  TABLE_SCHEM,  TABLE_NAME, IF(TABLE_TYPE='BASE TABLE', 'TABLE', TABLE_TYPE) as TABLE_TYPE,"
+                        + " TABLE_COMMENT REMARKS, NULL TYPE_CAT, NULL TYPE_SCHEM, NULL TYPE_NAME, NULL SELF_REFERENCING_COL_NAME, "
                         + " NULL REF_GENERATION"
                         + " FROM INFORMATION_SCHEMA.TABLES "
                         + " WHERE "
