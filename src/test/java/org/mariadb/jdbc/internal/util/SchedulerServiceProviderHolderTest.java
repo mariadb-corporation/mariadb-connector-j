@@ -73,6 +73,11 @@ public class SchedulerServiceProviderHolderTest {
             public ScheduledThreadPoolExecutor getFixedSizeScheduler(int minimumThreads) {
                 throw new UnsupportedOperationException();
             }
+
+            @Override
+            public ScheduledThreadPoolExecutor getTimeoutScheduler() {
+                throw new UnsupportedOperationException();
+            }
         };
 
         SchedulerServiceProviderHolder.setSchedulerProvider(emptyProvider);
