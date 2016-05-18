@@ -364,7 +364,8 @@ public class DatabaseMetadataTest extends BaseTest {
         assertEquals("table_type_test", tableName);
         
         String tableType = tableSet.getString("TABLE_TYPE");
-        assertEquals("TABLE", tableType);	// see for possible values https://docs.oracle.com/javase/7/docs/api/java/sql/DatabaseMetaData.html#getTableTypes%28%29
+        assertEquals("TABLE", tableType);
+        // see for possible values https://docs.oracle.com/javase/7/docs/api/java/sql/DatabaseMetaData.html#getTableTypes%28%29
     }
     
     @Test

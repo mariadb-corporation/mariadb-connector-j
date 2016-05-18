@@ -69,7 +69,7 @@ public class ReadInitialConnectPacket {
     private final long serverThreadId;
     //private final byte[] seed1;
     //private final byte[] seed2;
-    private final int serverCapabilities;
+    private final long serverCapabilities;
     private final byte serverLanguage;
     private final short serverStatus;
     private final byte[] seed;
@@ -94,18 +94,21 @@ public class ReadInitialConnectPacket {
         serverThreadId = buffer.readInt();
         final byte[] seed1 = buffer.readRawBytes(8);
         buffer.skipByte();
-        int serverCapabilitiesLower = buffer.readShort();
+        int serverCapabilities2FirstBytes = buffer.readShort();
         serverLanguage = buffer.readByte();
         serverStatus = buffer.readShort();
-        serverCapabilities = serverCapabilitiesLower + (buffer.readShort() << 16);
+        int serverCapabilities4FirstBytes = serverCapabilities2FirstBytes + (buffer.readShort() << 16);
         int saltLength = 0;
 
-        if ((serverCapabilities & MariaDbServerCapabilities.PLUGIN_AUTH) != 0) {
+        if ((serverCapabilities4FirstBytes & MariaDbServerCapabilities.PLUGIN_AUTH) != 0) {
             saltLength = Math.max(12, buffer.readByte() - 9);
         } else {
             buffer.skipByte();
         }
-        buffer.skipBytes(10);
+        buffer.skipBytes(6);
+        //mariaDb additional capabilities
+        serverCapabilities = serverCapabilities4FirstBytes + (buffer.readInt() << 32);
+
         if ((serverCapabilities & MariaDbServerCapabilities.SECURE_CONNECTION) != 0) {
             final byte[] seed2 = buffer.readRawBytes(saltLength);
             seed = Utils.copyWithLength(seed1, seed1.length + seed2.length);
@@ -159,7 +162,7 @@ public class ReadInitialConnectPacket {
         return seed;
     }
 
-    public int getServerCapabilities() {
+    public long getServerCapabilities() {
         return serverCapabilities;
     }
 

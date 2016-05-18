@@ -69,7 +69,8 @@ public class StandardGssapiAuthentication extends GssapiAuth {
     }
 
     @Override
-    public void authenticate(final PacketOutputStream writer, final String serverPrincipalName, String mechanisms) throws QueryException, IOException {
+    public void authenticate(final PacketOutputStream writer, final String serverPrincipalName, String mechanisms)
+            throws QueryException, IOException {
         if ("".equals(serverPrincipalName)) {
             throw new QueryException("No principal name defined on server. "
                     + "Please set server variable \"gssapi-principal-name\"", 0, "28000");

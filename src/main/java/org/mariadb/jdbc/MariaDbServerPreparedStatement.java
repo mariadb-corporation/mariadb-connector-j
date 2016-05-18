@@ -62,14 +62,14 @@ import java.sql.*;
 import java.util.*;
 
 public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatement implements Cloneable {
-    protected boolean binaryData = true;
+
     String sql;
-    PrepareResult prepareResult;
+    PrepareResult prepareResult = null;
     boolean returnTableAlias = false;
     int parameterCount;
     MariaDbResultSetMetaData metadata;
     MariaDbParameterMetaData parameterMetaData;
-    ParameterHolder[] currentParameterHolder;
+    SortedMap<Integer,ParameterHolder> currentParameterHolder;
     List<ParameterHolder[]> queryParameters = new ArrayList<>();
 
     /**
@@ -85,7 +85,7 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
         super(connection, resultSetScrollType);
         useFractionalSeconds = connection.getProtocol().getOptions().useFractionalSeconds;
         this.sql = sql;
-        prepare(sql);
+        currentParameterHolder = new TreeMap<>();
     }
 
     /**
@@ -98,8 +98,8 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
         MariaDbServerPreparedStatement clone = (MariaDbServerPreparedStatement) super.clone();
         clone.metadata = metadata;
         clone.parameterMetaData = parameterMetaData;
-        clone.currentParameterHolder = new ParameterHolder[parameterCount];
         clone.queryParameters = new ArrayList<>();
+
         //force prepare
         try {
             clone.prepare(sql);
@@ -112,8 +112,7 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
     private void prepare(String sql) throws SQLException {
         try {
             prepareResult = protocol.prepare(sql, false);
-            parameterCount = prepareResult.getParameters().length;
-            currentParameterHolder = new ParameterHolder[prepareResult.getParameters().length];
+            parameterCount = prepareResult.getParameters().length;;
             returnTableAlias = protocol.getOptions().useOldAliasMetadataBehavior;
             metadata = new MariaDbResultSetMetaData(prepareResult.getColumns(),
                     protocol.getDataTypeMappingFlags(), returnTableAlias);
@@ -146,26 +145,19 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
     protected void setParameter(final int parameterIndex, final ParameterHolder holder) throws SQLException {
 
         try {
-            currentParameterHolder[parameterIndex - 1] = holder;
+            currentParameterHolder.put(parameterIndex - 1, holder);
         } catch (ArrayIndexOutOfBoundsException a) {
             throw ExceptionMapper.getSqlException("Could not set parameter at position " + parameterIndex
                     + ", parameter length is " + parameterCount);
         }
     }
 
-    protected ParameterHolder getCurrentParameterHolder(final int parameterIndex) {
-        return currentParameterHolder[parameterIndex];
-    }
-
     @Override
     public void addBatch() throws SQLException {
         //check
         validParameters();
-        queryParameters.add(currentParameterHolder.clone());
-    }
-
-    protected void setCurrentParameterHolder(ParameterHolder[] currentParameterHolder) throws SQLException {
-        this.currentParameterHolder = currentParameterHolder;
+        ParameterHolder[] oo = currentParameterHolder.values().toArray(new ParameterHolder[0]);
+        queryParameters.add((ParameterHolder[]) oo);
     }
 
     public void clearBatch() {
@@ -174,12 +166,14 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
 
     @Override
     public ParameterMetaData getParameterMetaData() throws SQLException {
+        if (prepareResult != null) prepare(sql);
         return parameterMetaData;
     }
 
 
     @Override
     public ResultSetMetaData getMetaData() throws SQLException {
+        if (prepareResult != null) prepare(sql);
         return metadata;
     }
 
@@ -235,10 +229,22 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
                 int queryParameterSize = queryParameters.size();
                 internalExecutionResult = new MultiIntExecutionResult(this, queryParameterSize, 0, false);
 
+                if (queryParameterSize > 0 && prepareResult == null) {
+                    //we don't know for sure the number of parameter, so set size to the number of parameters user has set.
+                    parameterTypeHeader = new MariaDbType[queryParameters.get(0).length];
+                }
+
                 for (int counter = 0; counter < queryParameterSize; counter++) {
                     try {
-                        protocol.executePreparedQuery(prepareResult, internalExecutionResult, sql, queryParameters.get(counter),
-                            parameterTypeHeader, resultSetScrollType);
+                        ParameterHolder[] parameterHolder = queryParameters.get(counter);
+
+                        if (prepareResult != null) {
+                            protocol.executePreparedQuery(prepareResult, internalExecutionResult, sql,
+                                    parameterHolder, parameterTypeHeader, resultSetScrollType);
+                        } else {
+                            prepareResult = protocol.prepareAndExecute(internalExecutionResult, sql, false,
+                                    parameterHolder, parameterTypeHeader, resultSetScrollType);
+                        }
                         cacheMoreResults(internalExecutionResult, 0, false);
                     } catch (QueryException queryException) {
                         if (protocol.getOptions().continueBatchOnError) {
@@ -334,7 +340,7 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
 
     @Override
     public void clearParameters() throws SQLException {
-        currentParameterHolder = new ParameterHolder[parameterCount];
+        currentParameterHolder.clear();
     }
 
     @Override
@@ -343,10 +349,19 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
     }
 
     protected void validParameters() throws SQLException {
-        for (int i = 0; i < parameterCount; i++) {
-            if (currentParameterHolder[i] == null) {
-                ExceptionMapper.throwException(new QueryException("Parameter at position " + (i + 1) + " is not set", -1, "07004"),
-                        connection, this);
+        if (prepareResult != null) {
+            for (int i = 0; i < parameterCount; i++) {
+                if (currentParameterHolder.get(i) == null) {
+                    ExceptionMapper.throwException(new QueryException("Parameter at position " + (i + 1) + " is not set", -1, "07004"),
+                            connection, this);
+                }
+            }
+        } else {
+            for (int i = 0; i < currentParameterHolder.size(); i++) {
+                if (!currentParameterHolder.containsKey(i)) {
+                    ExceptionMapper.throwException(new QueryException("Parameter at position " + (i + 1) + " is not set", -1, "07004"),
+                            connection, this);
+                }
             }
         }
     }
@@ -361,8 +376,17 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
             try {
                 batchResultSet = null;
                 SingleExecutionResult internalExecutionResult = new SingleExecutionResult(this, fetchSize, true, canHaveCallableResultset);
-                protocol.executePreparedQuery(prepareResult, internalExecutionResult, sql, currentParameterHolder, new MariaDbType[parameterCount],
-                        resultSetScrollType);
+
+                if (prepareResult != null) {
+                    protocol.executePreparedQuery(prepareResult, internalExecutionResult, sql,
+                            currentParameterHolder.values().toArray(new ParameterHolder[0]),
+                            new MariaDbType[parameterCount], resultSetScrollType);
+                } else {
+
+                    prepareResult = protocol.prepareAndExecute(internalExecutionResult, sql, false,
+                            currentParameterHolder.values().toArray(new ParameterHolder[0]),
+                            new MariaDbType[currentParameterHolder.size()], resultSetScrollType);
+                }
                 cacheMoreResults(internalExecutionResult, fetchSize, canHaveCallableResultset);
                 executionResult = internalExecutionResult;
                 return executionResult.getResult() != null;
@@ -403,7 +427,7 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
             // This makes the cache eligible for garbage collection earlier if the statement is not
             // immediately garbage collected
 
-            if (protocol != null && protocol.isConnected()) {
+            if (prepareResult != null && protocol != null && protocol.isConnected()) {
                 try {
                     prepareResult.getUnProxiedProtocol().releasePrepareStatement(prepareResult, sql);
                 } catch (QueryException e) {
@@ -433,13 +457,30 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
      */
     public String toString() {
         StringBuffer sb = new StringBuffer("sql : '" + sql + "'");
-        if (parameterCount > 0) {
+        if (prepareResult != null) {
+            if (parameterCount > 0) {
+                sb.append(", parameters : [");
+                for (int i = 0; i < parameterCount; i++) {
+                    ParameterHolder holder = currentParameterHolder.get(i);
+                    if (holder == null) {
+                        sb.append("null");
+                    } else {
+                        sb.append(holder.toString());
+                    }
+                    if (i != parameterCount - 1) {
+                        sb.append(",");
+                    }
+                }
+                sb.append("]");
+            }
+        } else {
             sb.append(", parameters : [");
-            for (int i = 0; i < parameterCount; i++) {
-                if (currentParameterHolder[i] == null) {
+            for (int i = 0; i < currentParameterHolder.size(); i++) {
+                ParameterHolder holder = currentParameterHolder.get(i);
+                if (holder == null) {
                     sb.append("null");
                 } else {
-                    sb.append(currentParameterHolder[i].toString());
+                    sb.append(holder.toString());
                 }
                 if (i != parameterCount - 1) {
                     sb.append(",");

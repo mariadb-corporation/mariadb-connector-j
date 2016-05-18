@@ -66,6 +66,6 @@ public abstract class GssapiAuth {
         this.packSeq = packSeq;
     }
 
-    abstract public void authenticate(final PacketOutputStream writer, final String serverPrincipalName, final String mechanisms)
+    public abstract void authenticate(final PacketOutputStream writer, final String serverPrincipalName, final String mechanisms)
             throws QueryException, IOException;
 }

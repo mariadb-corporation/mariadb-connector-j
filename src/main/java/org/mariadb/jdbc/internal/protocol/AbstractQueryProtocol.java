@@ -139,53 +139,163 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             }
 
             writer.sendPreparePacket(sql);
-
-            Buffer buffer = packetFetcher.getReusableBuffer();
-            byte firstByte = buffer.getByteAt(0);
-
-            if (firstByte == Packet.ERROR) {
-                ErrorPacket ep = new ErrorPacket(buffer);
-                String message = ep.getMessage();
-                throw new QueryException("Error preparing query: " + message, ep.getErrorNumber(), ep.getSqlState());
-            }
-
-            if (firstByte == Packet.OK) {
-                /* Prepared Statement OK */
-                buffer.readByte(); /* skip field count */
-                final int statementId = buffer.readInt();
-                final int numColumns = buffer.readShort() & 0xffff;
-                final int numParams = buffer.readShort() & 0xffff;
-                buffer.readByte(); // reserved
-                this.hasWarnings = buffer.readShort() > 0;
-                ColumnInformation[] params = new ColumnInformation[numParams];
-                if (numParams > 0) {
-                    for (int i = 0; i < numParams; i++) {
-                        params[i] = new ColumnInformation(packetFetcher.getPacket());
-                    }
-                    readEofPacket();
-                }
-                ColumnInformation[] columns = new ColumnInformation[numColumns];
-                if (numColumns > 0) {
-                    for (int i = 0; i < numColumns; i++) {
-                        columns[i] = new ColumnInformation(packetFetcher.getPacket());
-                    }
-                    readEofPacket();
-                }
-                PrepareResult prepareResult = new PrepareResult(statementId, columns, params, this);
-                if (options.cachePrepStmts && sql != null && sql.length() < options.prepStmtCacheSqlLimit) {
-                    PrepareResult cachedPrepareResult = prepareStatementCache.put(key, prepareResult, forceNew);
-                    return cachedPrepareResult != null ? cachedPrepareResult : prepareResult;
-                }
-                return prepareResult;
-            } else {
-                throw new QueryException("Unexpected packet returned by server, first byte " + firstByte);
-            }
+            return readPrepareResult(key, sql, forceNew);
         } catch (IOException e) {
             throw new QueryException(e.getMessage(), -1,
                     ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(),
                     e);
         } finally {
             lock.unlock();
+        }
+    }
+
+    private PrepareResult readPrepareResult(String key, String sql, boolean forceNew) throws QueryException, IOException {
+        Buffer buffer = packetFetcher.getReusableBuffer();
+        byte firstByte = buffer.getByteAt(0);
+
+        if (firstByte == Packet.ERROR) {
+            ErrorPacket ep = new ErrorPacket(buffer);
+            String message = ep.getMessage();
+            throw new QueryException("Error preparing query: " + message, ep.getErrorNumber(), ep.getSqlState());
+        }
+
+        if (firstByte == Packet.OK) {
+                /* Prepared Statement OK */
+            buffer.readByte(); /* skip field count */
+            final int statementId = buffer.readInt();
+            final int numColumns = buffer.readShort() & 0xffff;
+            final int numParams = buffer.readShort() & 0xffff;
+            buffer.readByte(); // reserved
+            this.hasWarnings = buffer.readShort() > 0;
+            ColumnInformation[] params = new ColumnInformation[numParams];
+            if (numParams > 0) {
+                for (int i = 0; i < numParams; i++) {
+                    params[i] = new ColumnInformation(packetFetcher.getPacket());
+                }
+                readEofPacket();
+            }
+            ColumnInformation[] columns = new ColumnInformation[numColumns];
+            if (numColumns > 0) {
+                for (int i = 0; i < numColumns; i++) {
+                    columns[i] = new ColumnInformation(packetFetcher.getPacket());
+                }
+                readEofPacket();
+            }
+            PrepareResult prepareResult = new PrepareResult(statementId, columns, params, this);
+            if (options.cachePrepStmts && sql != null && sql.length() < options.prepStmtCacheSqlLimit) {
+                PrepareResult cachedPrepareResult = prepareStatementCache.put(key, prepareResult, forceNew);
+                return cachedPrepareResult != null ? cachedPrepareResult : prepareResult;
+            }
+            return prepareResult;
+        } else {
+            throw new QueryException("Unexpected packet returned by server, first byte " + firstByte);
+        }
+    }
+
+    @Override
+    public PrepareResult prepareAndExecute(ExecutionResult executionResult, String sql, boolean forceNew,
+                                           ParameterHolder[] parameters, MariaDbType[] parameterTypeHeader,
+                                           int resultSetScrollType) throws QueryException {
+        try {
+            //send prepare packet
+            if (activeStreamingResult != null) {
+                throw new QueryException("There is an open result set on the current connection, which must be "
+                        + "closed prior to executing a query");
+            }
+            checkClose();
+            PrepareResult prepareResult = null;
+            String key = null;
+            if (!forceNew && options.cachePrepStmts) {
+                key = new StringBuilder(database).append("-").append(sql).toString();
+                prepareResult = prepareStatementCache.get(key);
+            }
+
+            this.moreResults = false;
+            int parameterCount = parameters.length;
+
+            if (prepareResult == null || (prepareResult != null && !prepareResult.incrementShareCounter())) {
+                //USING COM_MULTI
+                writer.startPacket(0, true);
+                writer.buffer.put((byte) 0xfe);
+                byte[] sqlBytes = sql.getBytes("UTF-8");
+                int prepareLengthCommand = sqlBytes.length + 1;
+
+                //prepare length
+                writer.buffer.put((byte) (prepareLengthCommand & 0xff));
+                writer.buffer.put((byte) (prepareLengthCommand >>> 8));
+                writer.buffer.put((byte) (prepareLengthCommand >>> 16));
+
+                //prepare subcommand
+                writer.buffer.put((byte) 0x16);
+                writer.buffer.put(sqlBytes);
+
+                //send long data
+                int initialPosition;
+                int subcommandEndPosition;
+                for (int i = 0; i < parameterCount; i++) {
+                    if (parameters[i].isLongData()) {
+                        initialPosition = writer.buffer.position() + 3;
+                        writer.write(new byte[] {0,0,0}); //subcommand length
+                        writer.write((byte) 0x18);
+                        writer.writeInt(-1);
+                        writer.writeShort((short) i);
+                        ((LongDataParameterHolder) parameters[i]).writeBinary(writer);
+                        subcommandEndPosition = writer.buffer.position();
+
+                        //write subcommand length
+                        writer.buffer.position(initialPosition - 3);
+                        writer.buffer.put((byte) ((subcommandEndPosition - initialPosition) & 0xff));
+                        writer.buffer.put((byte) ((subcommandEndPosition - initialPosition) >>> 8));
+                        writer.buffer.put((byte) ((subcommandEndPosition - initialPosition) >>> 16));
+                        writer.buffer.position(subcommandEndPosition);
+                    }
+                }
+
+                initialPosition = writer.buffer.position() + 3;
+                writer.write(new byte[] {0,0,0}); //subcommand length
+                SendExecutePrepareStatementPacket packet = new SendExecutePrepareStatementPacket(-1, parameters,
+                        parameterCount, parameterTypeHeader);
+                packet.comStmtExecuteSubCommand(writer);
+                subcommandEndPosition = writer.buffer.position();
+
+                //write subcommand length
+                writer.buffer.position(initialPosition - 3);
+                writer.buffer.put((byte) ((subcommandEndPosition - initialPosition) & 0xff));
+                writer.buffer.put((byte) ((subcommandEndPosition - initialPosition) >>> 8));
+                writer.buffer.put((byte) ((subcommandEndPosition - initialPosition) >>> 16));
+                writer.buffer.position(subcommandEndPosition);
+                writer.finishPacket();
+                prepareResult = readPrepareResult(key, sql, forceNew);
+
+            } else {
+                //standard COM_STMT_EXECUTE
+
+                //send binary data in a separate stream
+                for (int i = 0; i < parameterCount; i++) {
+                    if (parameters[i].isLongData()) {
+                        writer.startPacket(0);
+                        writer.buffer.put((byte) 0x18);
+                        writer.buffer.putInt(-1);
+                        writer.buffer.putShort((short) i);
+                        ((LongDataParameterHolder) parameters[i]).writeBinary(writer);
+                        writer.finishPacket();
+                    }
+                }
+                //send execute query
+                SendExecutePrepareStatementPacket packet = new SendExecutePrepareStatementPacket(
+                        prepareResult.getStatementId(), parameters, parameterCount, parameterTypeHeader);
+                packet.send(writer);
+            }
+
+            //prepare send, now send parameters
+
+
+            getResult(executionResult, resultSetScrollType, true);
+            return prepareResult;
+        } catch (IOException e) {
+            throw new QueryException(e.getMessage(), -1,
+                    ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(),
+                    e);
         }
     }
 
