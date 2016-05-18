@@ -68,7 +68,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class MariaDbStatement implements Statement, Cloneable {
     //timeout scheduler
-    private static volatile ScheduledThreadPoolExecutor timeoutScheduler = null;
+    private static final ScheduledExecutorService timeoutScheduler = SchedulerServiceProviderHolder.getTimeoutScheduler();
 
     /**
      * the protocol used to talk to the server.
@@ -154,15 +154,6 @@ public class MariaDbStatement implements Statement, Cloneable {
     // Part of query prolog - setup timeout timer
     protected void setTimerTask() {
         assert (timerTaskFuture == null);
-
-        if (timeoutScheduler == null) {
-            //Scheduler initialisation
-            synchronized (connection) {
-                if (timeoutScheduler == null) {
-                    timeoutScheduler = SchedulerServiceProviderHolder.getSchedulerProvider().getTimeoutScheduler();
-                }
-            }
-        }
 
         timerTaskFuture = timeoutScheduler.schedule(new Runnable() {
             @Override
