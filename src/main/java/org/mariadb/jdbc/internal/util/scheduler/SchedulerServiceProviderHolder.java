@@ -117,7 +117,6 @@ public class SchedulerServiceProviderHolder {
         return getSchedulerProvider().getScheduler(initialThreadCount);
     }
 
-
     /**
      * Get a fixed sized scheduler directly with the current set provider.
      *
@@ -126,6 +125,15 @@ public class SchedulerServiceProviderHolder {
      */
     public static ScheduledExecutorService getFixedSizeScheduler(int initialThreadCount) {
         return getSchedulerProvider().getFixedSizeScheduler(initialThreadCount);
+    }
+
+    /**
+     * Get a scheduler to handle timeout.
+     *
+     * @return Scheduler capable of providing the needed thread count
+     */
+    public static ScheduledExecutorService getTimeoutScheduler() {
+        return getSchedulerProvider().getTimeoutScheduler();
     }
 
     /**
