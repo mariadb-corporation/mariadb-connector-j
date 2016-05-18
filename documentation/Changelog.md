@@ -1,5 +1,5 @@
 # Changelog
-* [1.4.5](#1.4.5) Snapshot available, not released 
+* [1.4.5](#1.4.5) Released on 18 mai 2016 
 * [1.4.4](#1.4.4) Released on 04 mai 2016 
 * [1.4.3](#1.4.3) Released on 22 april 2016 
 * [1.4.2](#1.4.2) Released on 08 april 2016
