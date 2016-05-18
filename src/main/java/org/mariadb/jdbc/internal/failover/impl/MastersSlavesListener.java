@@ -744,9 +744,23 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
 
     @Override
     public void rePrepareOnSlave(PrepareResult oldPrepareResult, String sql, MariaDbType[] parameterTypeHeader) throws QueryException {
+        if (isSecondaryHostFail()) {
+            Protocol waitingProtocol = waitNewSecondaryProtocol.getAndSet(null);
+            if (waitingProtocol != null) {
+                proxy.lock.lock();
+                try {
+                    if (pingSecondaryProtocol(waitingProtocol)) {
+                        lockAndSwitchSecondary(waitingProtocol);
+                    }
+                } finally {
+                    proxy.lock.unlock();
+                }
+            }
+        }
+
         if (secondaryProtocol != null && !isSecondaryHostFail()) {
             //prepare on slave
-            PrepareResult prepareResult = secondaryProtocol.prepare(sql, true);
+            PrepareResult prepareResult = secondaryProtocol.prepare(sql, true, oldPrepareResult.isExecuteOnMaster());
 
             //reset header status
             for (int i = 0; i < parameterTypeHeader.length; i++) {

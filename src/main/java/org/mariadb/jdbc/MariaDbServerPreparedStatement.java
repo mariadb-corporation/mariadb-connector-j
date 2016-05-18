@@ -62,7 +62,7 @@ import java.sql.*;
 import java.util.*;
 
 public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatement implements Cloneable {
-    protected boolean binaryData = true;
+
     String sql;
     PrepareResult prepareResult;
     boolean returnTableAlias = false;
@@ -111,7 +111,7 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
 
     private void prepare(String sql) throws SQLException {
         try {
-            prepareResult = protocol.prepare(sql, false);
+            prepareResult = protocol.prepare(sql);
             parameterCount = prepareResult.getParameters().length;
             currentParameterHolder = new ParameterHolder[prepareResult.getParameters().length];
             returnTableAlias = protocol.getOptions().useOldAliasMetadataBehavior;
@@ -280,44 +280,6 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
         }
     }
 
-    /*
-     Reset timeout after query, re-throw  SQL  exception
-    */
-    private void executeQueryEpilog(QueryException exception, String sql) throws SQLException {
-        stopTimeoutTask();
-
-        if (isTimedout) {
-            isTimedout = false;
-            exception = new QueryException("Query timed out", 1317, "JZ0002", exception);
-        }
-
-        if (exception == null) {
-            return;
-        }
-
-        /* Include query into exception message, if dumpQueriesOnException is true,
-         * or on SQL syntax error (MySQL error code 1064).
-         *
-         * If SQL query is too long, truncate it to reasonable (for exception messages)
-         * length.
-         */
-        if (protocol.getOptions().dumpQueriesOnException
-                || exception.getErrorCode() == 1064) {
-            String queryString = new String(sql);
-            if (queryString.length() > 4096) {
-                queryString = queryString.substring(0, 4096);
-            }
-            exception.setMessage(exception.getMessage() + "\nQuery is:\n" + queryString);
-        }
-
-        //if has a failover, closing the statement
-        if (exception.getSqlState() != null && exception.getSqlState().startsWith("08")) {
-            close();
-        }
-
-        ExceptionMapper.throwException(exception, connection, this);
-    }
-
     @Override
     public ResultSet executeQuery() throws SQLException {
         if (execute()) {
@@ -371,7 +333,7 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
                 exception = e;
                 return false;
             } finally {
-                executeQueryEpilog(exception, sql);
+                executeQueryEpilog(exception);
                 executing = false;
             }
         } catch (SQLException sqle) {

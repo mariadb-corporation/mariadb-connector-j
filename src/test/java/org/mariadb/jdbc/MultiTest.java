@@ -41,10 +41,12 @@ public class MultiTest extends BaseTest {
         createTable("MultiTestValues", "col1 VARCHAR(32), col2 VARCHAR(32)");
 
         createTable("MultiTestprepsemi", "id int not null primary key auto_increment, text text");
-        Statement st = sharedConnection.createStatement();
-        st.execute("insert into MultiTestt1 values(1,'a'),(2,'a')");
-        st.execute("insert into MultiTestt2 values(1,'a'),(2,'a')");
-        st.execute("insert into MultiTestt5 values(1,'a'),(2,'a'),(2,'b')");
+        if (testSingleHost) {
+            Statement st = sharedConnection.createStatement();
+            st.execute("insert into MultiTestt1 values(1,'a'),(2,'a')");
+            st.execute("insert into MultiTestt2 values(1,'a'),(2,'a')");
+            st.execute("insert into MultiTestt5 values(1,'a'),(2,'a'),(2,'b')");
+        }
         createTable("MultiTestt9", "id int not null primary key");
 
     }
