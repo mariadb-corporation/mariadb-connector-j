@@ -11,6 +11,7 @@
 * [CONJ-297] Useless memory consumption when using Statement.setQueryTimeout
 * [CONJ-294] PrepareStatement on master reconnection after a failover
 * [CONJ-288] using SHOW VARIABLES to replace SELECT on connection to permit connection on a galera non primary node
+* [CONJ-290] Timestamps format error when using prepareStatement with options useFractionalSeconds and useServerPrepStmts
 
 ## 1.4.4
 * [CONJ-289] PrepareStatement on master reconnection after a failover
