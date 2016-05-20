@@ -54,9 +54,8 @@ import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
-import java.io.IOException;
-import java.io.OutputStream;
 import java.sql.Date;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
 public class DateParameter extends NotLongDataParameterHolder {
@@ -83,12 +82,34 @@ public class DateParameter extends NotLongDataParameterHolder {
      *
      * @param os output buffer
      */
-    public void writeTo(OutputStream os) throws IOException {
+    public void writeTo(final PacketOutputStream os) {
+        os.write(ParameterWriter.QUOTE);
+        os.write(dateByteFormat());
+        os.write(ParameterWriter.QUOTE);
+    }
+
+    /**
+     * Write to server OutputStream in text protocol without checking buffer size.
+     *
+     * @param os output buffer
+     */
+    public void writeUnsafeTo(final PacketOutputStream os) {
+        os.writeUnsafe(ParameterWriter.QUOTE);
+        os.writeUnsafe(dateByteFormat());
+        os.writeUnsafe(ParameterWriter.QUOTE);
+    }
+
+    private byte[] dateByteFormat() {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        return sdf.format(calendar().getTime()).getBytes();
+    }
+
+    private Calendar calendar() {
         if (options.useLegacyDatetimeCode || options.maximizeMysqlCompatibility) {
             calendar = Calendar.getInstance();
         }
         calendar.setTimeInMillis(date.getTime());
-        ParameterWriter.writeDate(os, calendar);
+        return calendar;
     }
 
     public long getApproximateTextProtocolLength() {
@@ -101,7 +122,7 @@ public class DateParameter extends NotLongDataParameterHolder {
      *
      * @param writeBuffer output buffer
      */
-    public void writeBinary(PacketOutputStream writeBuffer) {
+    public void writeBinary(final PacketOutputStream writeBuffer) {
         calendar = Calendar.getInstance();
         calendar.setTimeInMillis(date.getTime());
         writeBuffer.writeDateLength(calendar);

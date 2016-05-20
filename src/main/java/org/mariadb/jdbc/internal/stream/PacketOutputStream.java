@@ -340,22 +340,39 @@ public class PacketOutputStream extends OutputStream {
     }
 
     @Override
-    public void write(byte[] bytes) throws IOException {
+    public void write(byte[] bytes) {
         write(bytes, 0, bytes.length);
     }
 
     @Override
-    public void write(int byteInt) throws IOException {
-        byte[] byteArray = {(byte) byteInt};
-        write(byteArray);
+    public void write(int byteInt) {
+        assureBufferCapacity(1);
+        buffer.put((byte) byteInt);
     }
 
     @Override
-    public void write(byte[] bytes, int off, int len) throws IOException {
+    public void write(byte[] bytes, int off, int len) {
         assureBufferCapacity(len);
         buffer.put(bytes, off, len);
     }
 
+    /**
+     * Write byte value directly to buffer.
+     * (buffer size must have been checked beforeheand !)
+     *
+     * @param value byte value
+     */
+    public void writeUnsafe(int value) {
+        buffer.put((byte) value);
+    }
+
+    public void writeUnsafe(byte[] bytes, int off, int len) {
+        buffer.put(bytes, off, len);
+    }
+
+    public void writeUnsafe(byte[] bytes) {
+        writeUnsafe(bytes, 0, bytes.length);
+    }
 
     @Override
     public void flush() throws IOException {

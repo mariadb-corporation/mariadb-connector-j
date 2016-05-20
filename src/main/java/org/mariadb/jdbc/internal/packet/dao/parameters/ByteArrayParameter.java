@@ -52,7 +52,6 @@ import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
 import java.io.IOException;
-import java.io.OutputStream;
 
 
 public class ByteArrayParameter extends NotLongDataParameterHolder {
@@ -65,16 +64,19 @@ public class ByteArrayParameter extends NotLongDataParameterHolder {
         this.noBackslashEscapes = noBackslashEscapes;
     }
 
-    public void writeTo(OutputStream os) throws IOException {
+    public void writeTo(final PacketOutputStream os) throws IOException {
         ParameterWriter.write(os, bytes, noBackslashEscapes);
     }
 
+    public void writeUnsafeTo(final PacketOutputStream os) throws IOException {
+        ParameterWriter.writeUnsafe(os, bytes, noBackslashEscapes);
+    }
 
     public long getApproximateTextProtocolLength() {
         return bytes.length * 2;
     }
 
-    public void writeBinary(PacketOutputStream writeBuffer) {
+    public void writeBinary(final PacketOutputStream writeBuffer) {
         writeBuffer.writeByteArrayLength(bytes);
     }
 

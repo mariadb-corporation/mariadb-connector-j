@@ -53,9 +53,6 @@ package org.mariadb.jdbc.internal.packet.dao.parameters;
 import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
-import java.io.IOException;
-import java.io.OutputStream;
-
 public class LongParameter extends NotLongDataParameterHolder {
     private long value;
 
@@ -63,19 +60,28 @@ public class LongParameter extends NotLongDataParameterHolder {
         this.value = value;
     }
 
-    public void writeTo(final OutputStream os) throws IOException {
+    public void writeTo(final PacketOutputStream os) {
         os.write(String.valueOf(value).getBytes());
+    }
+
+    public void writeUnsafeTo(final PacketOutputStream os) {
+        os.writeUnsafe(String.valueOf(value).getBytes());
     }
 
     public long getApproximateTextProtocolLength() {
         return String.valueOf(value).getBytes().length;
     }
 
-    public void writeBinary(PacketOutputStream writeBuffer) {
+    public void writeBinary(final PacketOutputStream writeBuffer) {
         writeBuffer.writeLong(value);
     }
 
     public MariaDbType getMariaDbType() {
         return MariaDbType.BIGINT;
     }
+
+    public String toString() {
+        return Long.toString(value);
+    }
+
 }

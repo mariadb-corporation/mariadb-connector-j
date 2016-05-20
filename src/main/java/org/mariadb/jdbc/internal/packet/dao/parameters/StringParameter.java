@@ -65,15 +65,19 @@ public class StringParameter extends NotLongDataParameterHolder {
         this.noBackslashEscapes = noBackslashEscapes;
     }
 
-    public void writeTo(final OutputStream os) throws IOException {
+    public void writeTo(final PacketOutputStream os) throws IOException {
         ParameterWriter.write(os, string, noBackslashEscapes);
+    }
+
+    public void writeUnsafeTo(final PacketOutputStream os) throws IOException {
+        ParameterWriter.writeUnsafe(os, string, noBackslashEscapes);
     }
 
     public long getApproximateTextProtocolLength() throws IOException {
         return string.getBytes().length * 2 + 2;
     }
 
-    public void writeBinary(PacketOutputStream writeBuffer) {
+    public void writeBinary(final PacketOutputStream writeBuffer) {
         writeBuffer.writeStringLength(string);
     }
 

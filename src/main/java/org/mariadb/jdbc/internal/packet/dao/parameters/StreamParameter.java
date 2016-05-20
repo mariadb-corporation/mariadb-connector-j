@@ -82,10 +82,11 @@ public class StreamParameter extends LongDataParameterHolder {
 
     /**
      * Write stream in text format.
+     *
      * @param os database outputStream
      * @throws IOException if any error occur when reader stream
      */
-    public void writeTo(final OutputStream os) throws IOException {
+    public void writeTo(final PacketOutputStream os) throws IOException {
         if (readArrays != null) {
             ParameterWriter.writeBytesArray(os, readArrays, noBackslashEscapes);
         } else {
@@ -93,6 +94,24 @@ public class StreamParameter extends LongDataParameterHolder {
                 ParameterWriter.write(os, is, noBackslashEscapes);
             } else {
                 ParameterWriter.write(os, is, length, noBackslashEscapes);
+            }
+        }
+    }
+
+    /**
+     * Write stream in text format without checking buffer size.
+     *
+     * @param os database outputStream
+     * @throws IOException if any error occur when reader stream
+     */
+    public void writeUnsafeTo(final PacketOutputStream os) throws IOException {
+        if (readArrays != null) {
+            ParameterWriter.writeBytesArrayUnsafe(os, readArrays, noBackslashEscapes);
+        } else {
+            if (length == Long.MAX_VALUE) {
+                ParameterWriter.writeUnsafe(os, is, noBackslashEscapes);
+            } else {
+                ParameterWriter.writeUnsafe(os, is, length, noBackslashEscapes);
             }
         }
     }
@@ -128,7 +147,7 @@ public class StreamParameter extends LongDataParameterHolder {
      * @param os database outputStream
      * @throws IOException if any error occur when reader stream
      */
-    public void writeBinary(PacketOutputStream os) throws IOException {
+    public void writeBinary(final PacketOutputStream os) throws IOException {
         if (length == Long.MAX_VALUE) {
             os.sendStream(is);
         } else {
