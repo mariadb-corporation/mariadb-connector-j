@@ -69,7 +69,8 @@ public class StandardGssapiAuthentication extends GssapiAuth {
     }
 
     @Override
-    public void authenticate(final PacketOutputStream writer, final String serverPrincipalName, String mechanisms) throws QueryException, IOException {
+    public void authenticate(final PacketOutputStream writer, final String serverPrincipalName, String mechanisms)
+            throws QueryException, IOException {
         if ("".equals(serverPrincipalName)) {
             throw new QueryException("No principal name defined on server. "
                     + "Please set server variable \"gssapi-principal-name\"", 0, "28000");
@@ -138,21 +139,21 @@ public class StandardGssapiAuthentication extends GssapiAuth {
                                 }
 
                             } catch (GSSException le) {
-                                throw new QueryException("GSS-API authentication exception", 0, "28000", le);
+                                throw new QueryException("GSS-API authentication exception", 1045, "28000", le);
                             }
                             return null;
                         }
                     };
                     Subject.doAs(mySubject, action);
                 } catch (PrivilegedActionException exception) {
-                    throw new QueryException("GSS-API authentication exception", 0, "28000", exception);
+                    throw new QueryException("GSS-API authentication exception", 1045, "28000", exception);
                 }
             } else {
                 throw new QueryException("GSS-API authentication exception : no credential cache not found.", 0, "28000");
             }
 
         } catch (LoginException le) {
-            throw new QueryException("GSS-API authentication exception", 0, "28000", le);
+            throw new QueryException("GSS-API authentication exception", 1045, "28000", le);
         }
     }
 }
