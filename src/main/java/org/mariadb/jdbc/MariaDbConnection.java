@@ -91,6 +91,8 @@ public final class MariaDbConnection implements Connection {
     boolean nullCatalogMeansCurrent = true;
     int autoIncrementIncrement;
     volatile int lowercaseTableNames = -1;
+    boolean serverComMulti;
+
     /**
      * save point count - to generate good names for the savepoints.
      */
@@ -110,6 +112,7 @@ public final class MariaDbConnection implements Connection {
         this.protocol = protocol;
         options = protocol.getOptions();
         noBackslashEscapes = protocol.noBackslashEscapes();
+        serverComMulti = options.useMultiStatement && protocol.isServerComMulti();
         nullCatalogMeansCurrent = options.nullCatalogMeansCurrent;
         if (options.cacheCallableStmts) {
             callableStatementCache = CallableStatementCache.newInstance(options.callableStmtCacheSize);
@@ -1391,5 +1394,9 @@ public final class MariaDbConnection implements Connection {
 
     protected Options getOptions() {
         return options;
+    }
+
+    public boolean isServerComMulti() {
+        return serverComMulti;
     }
 }

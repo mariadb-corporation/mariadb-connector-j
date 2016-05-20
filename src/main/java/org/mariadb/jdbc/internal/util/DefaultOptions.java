@@ -339,13 +339,20 @@ public enum DefaultOptions {
      * default to 150.
      */
     CALLABLE_STMT_CACHE_SIZE("callableStmtCacheSize", new Integer(150), new Integer(0), Integer.MAX_VALUE, "1.4.0"),
+
     /**
      * Indicate to server some client information in a key;value pair.
      * for example connectionAttributes=key1:value1,key2,value2.
      * Those information can be retrieved on server within tables mysql.session_connect_attrs and mysql.session_account_connect_attrs.
      * This can permit from server an identification of client.
      */
-    CONNECTION_ATTRIBUTES("connectionAttributes", "1.4.0");
+    CONNECTION_ATTRIBUTES("connectionAttributes", "1.4.0"),
+
+    /**
+     * Indicate that if COM_MULTI protocol exist, this protocol will be used.
+     * (Main use will be PREPARE + EXECUTE in one COMMAND to avoid one round trip to server).
+     */
+    USE_MULTI_STATEMENT("useMultiStatement", Boolean.FALSE, "1.5.0");
 
     protected final String name;
     protected final Object objType;

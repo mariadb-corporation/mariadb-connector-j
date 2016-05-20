@@ -106,8 +106,10 @@ public class ReadInitialConnectPacket {
             buffer.skipByte();
         }
         buffer.skipBytes(6);
+
         //mariaDb additional capabilities
-        serverCapabilities = serverCapabilities4FirstBytes + (buffer.readInt() << 32);
+        long mariaDbAdditionalCapacities = buffer.readInt();
+        serverCapabilities = (serverCapabilities4FirstBytes & 0xffffffffL) + (mariaDbAdditionalCapacities << 32);
 
         if ((serverCapabilities & MariaDbServerCapabilities.SECURE_CONNECTION) != 0) {
             final byte[] seed2 = buffer.readRawBytes(saltLength);

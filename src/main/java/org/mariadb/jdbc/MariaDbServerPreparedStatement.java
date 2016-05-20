@@ -86,6 +86,10 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
         useFractionalSeconds = connection.getProtocol().getOptions().useFractionalSeconds;
         this.sql = sql;
         currentParameterHolder = new TreeMap<>();
+
+        if (!connection.isServerComMulti()) {
+            prepare(sql);
+        }
     }
 
     /**
