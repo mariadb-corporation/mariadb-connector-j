@@ -53,10 +53,6 @@ OF SUCH DAMAGE.
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 import org.mariadb.jdbc.internal.MariaDbType;
 
-import java.io.IOException;
-import java.io.OutputStream;
-
-
 public class DoubleParameter extends NotLongDataParameterHolder {
     private double value;
 
@@ -64,11 +60,11 @@ public class DoubleParameter extends NotLongDataParameterHolder {
         this.value = value;
     }
 
-    public void writeTo(final OutputStream os) throws IOException {
+    public void writeTo(final PacketOutputStream os) {
         os.write(String.valueOf(value).getBytes());
     }
 
-    public void writeUnsafeTo(PacketOutputStream os) throws IOException {
+    public void writeUnsafeTo(final PacketOutputStream os) {
         os.writeUnsafe(String.valueOf(value).getBytes());
     }
 
@@ -77,7 +73,7 @@ public class DoubleParameter extends NotLongDataParameterHolder {
     }
 
 
-    public void writeBinary(PacketOutputStream writeBuffer) {
+    public void writeBinary(final PacketOutputStream writeBuffer) {
         writeBuffer.writeLong(Double.doubleToLongBits(value));
     }
 

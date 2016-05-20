@@ -68,11 +68,11 @@ public class NullParameter extends ParameterHolder {
         this.type = type;
     }
 
-    public void writeTo(final OutputStream os) throws IOException {
+    public void writeTo(final PacketOutputStream os) {
         os.write(NULL);
     }
 
-    public void writeUnsafeTo(PacketOutputStream os) throws IOException {
+    public void writeUnsafeTo(final PacketOutputStream os) {
         os.writeUnsafe(NULL);
     }
 

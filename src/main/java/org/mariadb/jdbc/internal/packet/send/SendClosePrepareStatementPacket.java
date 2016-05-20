@@ -72,7 +72,10 @@ public class SendClosePrepareStatementPacket implements InterfaceSendPacket {
         PacketOutputStream pos = (PacketOutputStream) os;
         pos.startPacket(0);
         pos.write(0x19);
-        pos.write(ParameterWriter.writeLittleEndian(statementId));
+        pos.write((byte) (statementId & 0xff));
+        pos.write((byte) ((statementId >> 8) & 0xff));
+        pos.write((byte) ((statementId >> 16) & 0xff));
+        pos.write((byte) ((statementId >> 24) & 0xff));
         pos.finishPacket();
     }
 }

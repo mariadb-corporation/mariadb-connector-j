@@ -54,8 +54,8 @@ import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 import org.mariadb.jdbc.internal.MariaDbType;
 
 import java.io.IOException;
-import java.io.OutputStream;
 import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
 
@@ -79,12 +79,36 @@ public class TimestampParameter extends NotLongDataParameterHolder {
         this.options = options;
     }
 
-    public void writeTo(OutputStream os) throws IOException {
-        ParameterWriter.writeTimestamp(os, ts, calendar, fractionalSeconds);
+    /**
+     * Write timestamps to outputStream.
+     *
+     * @param os the stream to write to
+     */
+    public void writeTo(final PacketOutputStream os) {
+        os.write(ParameterWriter.QUOTE);
+        os.write(dateToByte());
+        ParameterWriter.formatMicroseconds(os, ts.getNanos() / 1000, fractionalSeconds);
+        os.write(ParameterWriter.QUOTE);
     }
 
-    public void writeUnsafeTo(PacketOutputStream os) throws IOException {
-        ParameterWriter.writeTimestampUnsafe(os, ts, calendar, fractionalSeconds);
+    /**
+     * Write timestamps to outputStream without checking buffer size.
+     *
+     * @param os the stream to write to
+     */
+    public void writeUnsafeTo(final PacketOutputStream os) {
+        os.write(ParameterWriter.QUOTE);
+        os.writeUnsafe(dateToByte());
+        ParameterWriter.formatMicrosecondsUnsafe(os, ts.getNanos() / 1000, fractionalSeconds);
+        os.write(ParameterWriter.QUOTE);
+    }
+
+    private byte[] dateToByte() {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        if (calendar != null) {
+            sdf.setCalendar(calendar);
+        }
+        return sdf.format(ts).getBytes();
     }
 
     public long getApproximateTextProtocolLength() throws IOException {
@@ -94,7 +118,7 @@ public class TimestampParameter extends NotLongDataParameterHolder {
      * Write timeStamp in binary format.
      * @param writeBuffer buffer to write
      */
-    public void writeBinary(PacketOutputStream writeBuffer) {
+    public void writeBinary(final PacketOutputStream writeBuffer) {
         if (options.useLegacyDatetimeCode) {
             calendar = Calendar.getInstance();
         }
