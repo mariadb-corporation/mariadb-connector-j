@@ -824,6 +824,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 firstSql = sql;
                 if (totalQueries == 1) {
                     writer.sendTextPacket(sql);
+                    getResult(executionResult, resultSetScrollType, false);
                 } else {
                     writer.startPacket(0);
                     writer.write(0x03);
