@@ -76,6 +76,10 @@ public interface Protocol {
 
     PrepareResult prepare(String sql, boolean forceNew, boolean executeOnMaster) throws QueryException;
 
+    PrepareResult prepareAndExecute(ExecutionResult executionResult, String sql, boolean forceNew,
+                                           ParameterHolder[] parameters, MariaDbType[] parameterTypeHeader,
+                                           int resultSetScrollType) throws QueryException;
+
     boolean getAutocommit();
 
     boolean noBackslashEscapes();
@@ -226,4 +230,5 @@ public interface Protocol {
 
     void setHasWarnings(boolean hasWarnings);
 
+    boolean isServerComMulti();
 }

@@ -50,7 +50,7 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal;
 
 public class MariaDbServerCapabilities {
-    public static final int LONG_PASSWORD = 1;       /* new more secure passwords */
+    public static final int CLIENT_MYSQL = 1;
     public static final int FOUND_ROWS = 2;       /* Found instead of affected rows */
     public static final int LONG_FLAG = 4;       /* Get all column flags */
     public static final int CONNECT_WITH_DB = 8;     /* One can specify db on connect */
@@ -73,4 +73,9 @@ public class MariaDbServerCapabilities {
     public static final int CONNECT_ATTRS = 1 << 20;    /* Client send connection attributes */
     public static final int PLUGIN_AUTH_LENENC_CLIENT_DATA = 1 << 21;    /* authentication data length is a length auth integer */
     public static final int PROGRESS = 1 << 29;         /* Client support progress indicator */
+
+    /* MariaDB specific capabilities */
+    public static final long MARIADB_CLIENT_PROGRESS = 1L << 32;
+    public static final long MARIADB_CLIENT_COM_MULTI = 1L << 33;
+    //#define MARIADB_CLIENT_EXTENDED_FLAGS (1ULL << 63)
 }

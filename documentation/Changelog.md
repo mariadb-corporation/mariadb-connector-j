@@ -10,6 +10,7 @@
 ---
 ## 1.5.0
 * [CONJ-291] Globally performance improvement
+* [CONJ-296] Support prepare + execute in one call (COM_MULTI protocol)
 
 ## 1.4.5
 * [CONJ-297] Useless memory consumption when using Statement.setQueryTimeout

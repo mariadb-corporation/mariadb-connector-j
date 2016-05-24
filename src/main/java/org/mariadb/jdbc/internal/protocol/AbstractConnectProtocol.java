@@ -127,6 +127,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     public MariaSelectResultSet activeStreamingResult = null;
     public int dataTypeMappingFlags;
     public short serverStatus;
+    public boolean serverAcceptComMulti = false;
 
     /**
      * Get a protocol instance.
@@ -419,13 +420,15 @@ public abstract class AbstractConnectProtocol implements Protocol {
             final ReadInitialConnectPacket greetingPacket = new ReadInitialConnectPacket(packetFetcher);
             this.serverThreadId = greetingPacket.getServerThreadId();
             this.version = greetingPacket.getServerVersion();
+            this.serverAcceptComMulti = (greetingPacket.getServerCapabilities() & MariaDbServerCapabilities.MARIADB_CLIENT_COM_MULTI) != 0;
+
             parseVersion();
-            int clientCapabilities = initializeClientCapabilities();
+            long clientCapabilities = initializeClientCapabilities();
 
             byte packetSeq = 1;
             if (options.useSsl && (greetingPacket.getServerCapabilities() & MariaDbServerCapabilities.SSL) != 0) {
                 clientCapabilities |= MariaDbServerCapabilities.SSL;
-                SendSslConnectionRequestPacket amcap = new SendSslConnectionRequestPacket(clientCapabilities);
+                SendSslConnectionRequestPacket amcap = new SendSslConnectionRequestPacket((int) clientCapabilities);
                 amcap.send(writer);
 
                 SSLSocketFactory sslSocketFactory = getSslSocketFactory();
@@ -461,7 +464,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
     }
 
-    private void authentication(byte serverLanguage, int clientCapabilities, byte[] seed, byte packetSeq, String plugin, int serverCapabilities)
+    private void authentication(byte serverLanguage, long clientCapabilities, byte[] seed, byte packetSeq, String plugin, long serverCapabilities)
             throws QueryException, IOException {
         final SendHandshakeResponsePacket cap = new SendHandshakeResponsePacket(this.username,
                 this.password,
@@ -504,10 +507,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     }
 
-    private int initializeClientCapabilities() {
-        int capabilities =
-                MariaDbServerCapabilities.LONG_PASSWORD
-                        | MariaDbServerCapabilities.IGNORE_SPACE
+    private long initializeClientCapabilities() {
+        long capabilities =
+                //MariaDbServerCapabilities.CLIENT_MYSQL
+                        MariaDbServerCapabilities.IGNORE_SPACE
                         | MariaDbServerCapabilities.CLIENT_PROTOCOL_41
                         | MariaDbServerCapabilities.TRANSACTIONS
                         | MariaDbServerCapabilities.SECURE_CONNECTION
@@ -517,7 +520,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
                         | MariaDbServerCapabilities.FOUND_ROWS
                         | MariaDbServerCapabilities.PLUGIN_AUTH
                         | MariaDbServerCapabilities.CONNECT_ATTRS
-                        | MariaDbServerCapabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA;
+                        | MariaDbServerCapabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA
+                        | MariaDbServerCapabilities.MARIADB_CLIENT_PROGRESS
+                        | MariaDbServerCapabilities.MARIADB_CLIENT_COM_MULTI;
 
         if (options.allowMultiQueries || (options.rewriteBatchedStatements)) {
             capabilities |= MariaDbServerCapabilities.MULTI_STATEMENTS;
@@ -909,4 +914,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
     }
 
     public abstract void executeQuery(final String sql) throws QueryException;
+
+    public boolean isServerComMulti() {
+        return serverAcceptComMulti;
+    }
 }

@@ -146,7 +146,9 @@ public class FailoverProxy implements InvocationHandler {
                 //No break, must continue
             case METHOD_PROLOG_PROXY:
                 try {
-                    return listener.invoke(method, args, ((PrepareResult) args[0]).getUnProxiedProtocol());
+                    if (args[0] != null) {
+                        return listener.invoke(method, args, ((PrepareResult) args[0]).getUnProxiedProtocol());
+                    }
                 } catch (InvocationTargetException e) {
                     if (e.getTargetException() != null) {
                         if (e.getTargetException() instanceof QueryException) {

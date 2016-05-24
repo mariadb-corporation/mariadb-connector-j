@@ -119,10 +119,6 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
         return protocol.getCalendar();
     }
 
-    protected ParameterHolder getCurrentParameterHolder(final int parameterIndex) {
-        return parameters[parameterIndex];
-    }
-
     /**
      * Executes the SQL statement in this <code>PreparedStatement</code> object,
      * which may be any kind of SQL statement.
