@@ -259,7 +259,6 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
             }
             return internalExecutionResult.getAffectedRows();
         } catch (SQLException sqle) {
-            clearBatch();
             throw new BatchUpdateException(sqle.getMessage(), sqle.getSQLState(), sqle.getErrorCode(), internalExecutionResult.getAffectedRows(),
                     sqle);
         } finally {
@@ -340,7 +339,6 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
             throw new BatchUpdateException(sqle.getMessage(), sqle.getSQLState(), sqle.getErrorCode(), new int[]{0}, sqle);
         } finally {
             lock.unlock();
-            clearBatch();
         }
     }
 

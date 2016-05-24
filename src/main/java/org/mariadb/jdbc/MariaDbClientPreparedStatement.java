@@ -223,8 +223,7 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
      * @since 1.2
      */
     public void addBatch() throws SQLException {
-        parameterList.add(parameters);
-        clearParameters();
+        parameterList.add(parameters.clone());
     }
 
     /**
