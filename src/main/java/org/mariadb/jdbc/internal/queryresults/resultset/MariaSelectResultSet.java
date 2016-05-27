@@ -51,10 +51,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.queryresults.resultset;
 
-import org.mariadb.jdbc.MariaDbBlob;
-import org.mariadb.jdbc.MariaDbClob;
-import org.mariadb.jdbc.MariaDbConnection;
-import org.mariadb.jdbc.MariaDbResultSetMetaData;
+import org.mariadb.jdbc.*;
 import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
 import org.mariadb.jdbc.internal.packet.read.Packet;
@@ -506,6 +503,11 @@ public class MariaSelectResultSet implements ResultSet {
             } finally {
                 lock.unlock();
             }
+        }
+
+        if (statement != null) {
+            ((MariaDbStatement) statement).checkCloseOnCompletion(this);
+            statement = null;
         }
     }
 

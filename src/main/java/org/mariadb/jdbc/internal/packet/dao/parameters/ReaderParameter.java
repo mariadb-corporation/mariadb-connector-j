@@ -53,12 +53,13 @@ import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 import org.mariadb.jdbc.internal.MariaDbType;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 
 public class ReaderParameter extends LongDataParameterHolder {
     private Reader reader;
-    private ArrayList<char[]> readArrays = null;
     private long length;
     private boolean noBackslashEscapes;
 
@@ -72,6 +73,11 @@ public class ReaderParameter extends LongDataParameterHolder {
         this.reader = reader;
         this.length = length;
         this.noBackslashEscapes = noBackslashEscapes;
+        if (reader.markSupported()) {
+            try {
+                reader.mark(1024);
+            } catch (IOException e) { }
+        }
     }
 
     public ReaderParameter(Reader reader, boolean noBackslashEscapes) {
@@ -85,14 +91,10 @@ public class ReaderParameter extends LongDataParameterHolder {
      * @throws IOException if any error occur when reading reader
      */
     public void writeTo(final PacketOutputStream os) throws IOException {
-        if (readArrays != null) {
-            ParameterWriter.write(os, readArrays, noBackslashEscapes);
+        if (length == Long.MAX_VALUE) {
+            ParameterWriter.write(os, reader, noBackslashEscapes);
         } else {
-            if (length == Long.MAX_VALUE) {
-                ParameterWriter.write(os, reader, noBackslashEscapes);
-            } else {
-                ParameterWriter.write(os, reader, length, noBackslashEscapes);
-            }
+            ParameterWriter.write(os, reader, length, noBackslashEscapes);
         }
     }
 
@@ -103,15 +105,7 @@ public class ReaderParameter extends LongDataParameterHolder {
      * @throws IOException if any error occur when reading reader
      */
     public void writeUnsafeTo(final PacketOutputStream os) throws IOException {
-        if (readArrays != null) {
-            ParameterWriter.writeUnsafe(os, readArrays, noBackslashEscapes);
-        } else {
-            if (length == Long.MAX_VALUE) {
-                ParameterWriter.writeUnsafe(os, reader, noBackslashEscapes);
-            } else {
-                ParameterWriter.write(os, reader, length, noBackslashEscapes);
-            }
-        }
+        throw new IOException("Cannot use unsafe with Reader");
     }
 
     /**
@@ -121,23 +115,7 @@ public class ReaderParameter extends LongDataParameterHolder {
      * @throws IOException if error reading stream
      */
     public long getApproximateTextProtocolLength() throws IOException {
-        if (length == Long.MAX_VALUE) {
-            readArrays = new ArrayList<>();
-            int length = 0;
-            int len;
-            char[] buffer = new char[1024];
-            while ((len = reader.read(buffer)) >= 0) {
-                readArrays.add(buffer);
-                buffer = new char[1024];
-                length += len;
-            }
-            reader = null;
-            //length * 2 due to escape done after
-            return 2 + length * 2;
-
-        } else {
-            return length;
-        }
+        return -1;
     }
 
 
@@ -159,13 +137,33 @@ public class ReaderParameter extends LongDataParameterHolder {
     }
 
 
+    @Override
     public String toString() {
-        return "<Buffer> " + reader;
+        try {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            if (reader.markSupported()) reader.reset();
+            if (length == Long.MAX_VALUE) {
+                ParameterWriter.write(baos, reader, noBackslashEscapes);
+            } else {
+                ParameterWriter.write(baos, reader, length, noBackslashEscapes);
+            }
+            byte[] bytes = baos.toByteArray();
+            if (bytes.length < 1024) {
+                return "<Buffer:" + new String(bytes, StandardCharsets.UTF_8) + "...>";
+            } else {
+                // cut overlong strings.
+                return "<Buffer:" + new String(bytes, 0, 1024, StandardCharsets.UTF_8) + "...>";
+            }
+        } catch (Exception e) {
+            return "";
+        }
     }
 
     public boolean isLongData() {
         return true;
     }
 
-
+    public boolean isStream() {
+        return true;
+    }
 }

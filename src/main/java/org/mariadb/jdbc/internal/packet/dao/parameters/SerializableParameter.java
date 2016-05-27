@@ -119,8 +119,9 @@ public class SerializableParameter extends LongDataParameterHolder {
         os.write(baos.toByteArray());
     }
 
+    @Override
     public String toString() {
-        return "<Serializable> " + object;
+        return "<Serializable:" + object.toString() + ">";
     }
 
     public MariaDbType getMariaDbType() {

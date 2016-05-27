@@ -263,4 +263,17 @@ public class StatementTest extends BaseTest {
         }
     }
 
+    @Test
+    public void closeOnCompletion() throws SQLException {
+        Statement statement = sharedConnection.createStatement();
+        ResultSet rs = statement.executeQuery("SELECT 1");
+
+        assertFalse(statement.isCloseOnCompletion());
+        statement.closeOnCompletion();
+        assertTrue(statement.isCloseOnCompletion());
+
+        assertFalse(statement.isClosed());
+        rs.close();
+        assertTrue(statement.isClosed());
+    }
 }

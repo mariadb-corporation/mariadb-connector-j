@@ -39,6 +39,7 @@ public class BaseTest {
     private static Deque<String> tempProcedureList = new ArrayDeque<>();
     private static Deque<String> tempFunctionList = new ArrayDeque<>();
     private static TcpProxy proxy = null;
+    private static UrlParser urlParser;
 
     @Rule
     public TestRule watcher = new TestWatcher() {
@@ -129,7 +130,7 @@ public class BaseTest {
         String url = System.getProperty("dbUrl", mDefUrl);
         testSingleHost = Boolean.parseBoolean(System.getProperty("testSingleHost", "true"));
         if (testSingleHost) {
-            UrlParser urlParser = UrlParser.parse(url);
+            urlParser = UrlParser.parse(url);
 
             hostname = urlParser.getHostAddresses().get(0).host;
             port = urlParser.getHostAddresses().get(0).port;
@@ -574,5 +575,25 @@ public class BaseTest {
             return rs.getInt(1);
         }
         throw new SQLException("No table " + tableName + " found");
+    }
+
+    /**
+     * Permit to know if sharedConnection will use Prepare.
+     * (in case dbUrl modify default options)
+     * @return true if PreparedStatement will use Prepare.
+     */
+    public boolean sharedUsePrepare() {
+        return urlParser.getOptions().useServerPrepStmts
+                && !urlParser.getOptions().rewriteBatchedStatements
+                && !urlParser.getOptions().allowMultiQueries;
+    }
+
+    /**
+     * Permit to know if sharedConnection use rewriteBatchedStatements.
+     *
+     * @return true if option rewriteBatchedStatements is set to true
+     */
+    public boolean sharedIsRewrite() {
+        return urlParser.getOptions().rewriteBatchedStatements;
     }
 }

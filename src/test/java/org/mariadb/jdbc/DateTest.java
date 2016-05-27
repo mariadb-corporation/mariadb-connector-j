@@ -528,8 +528,13 @@ public class DateTest extends BaseTest {
             pst.setInt(1, 1);
             ResultSet rs = pst.executeQuery();
             Assert.assertTrue(rs.next());
-            Assert.assertNull(rs.getString(1));
-            Assert.assertNull(rs.getDate(1));
+            if (sharedUsePrepare()) {
+                Assert.assertNull(rs.getString(1));
+                Assert.assertNull(rs.getDate(1));
+            } else {
+                Assert.assertEquals("0000-00-00", rs.getString(1));
+                Assert.assertNull(rs.getDate(1));
+            }
         } catch (SQLDataException sqldataException) {
             //'0000-00-00' doesn't work anymore on mysql 5.7.
         }

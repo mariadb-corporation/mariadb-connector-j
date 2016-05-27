@@ -81,7 +81,6 @@ public class TimeParameter extends NotLongDataParameterHolder {
      * Write Time parameter to outputStream.
      *
      * @param os the stream to write to
-     * @throws IOException if
      */
     public void writeTo(final PacketOutputStream os) {
         os.write(ParameterWriter.QUOTE);

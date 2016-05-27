@@ -181,13 +181,14 @@ public class PreparedStatementTest extends BaseTest {
      */
     @Test
     public void testCallExecuteErrorBatch() throws SQLException {
-        PreparedStatement pstmt = sharedConnection.prepareStatement("SELECT 1;INSERT INTO INCORRECT_QUERY ;");
+        PreparedStatement pstmt = sharedConnection.prepareStatement("SELECT 1;INSERT INTO INCORRECT_QUERY");
         try {
             pstmt.execute();
             fail("Must have thrown error");
         } catch (SQLException sqle) {
             //must have thrown error.
-            assertTrue(sqle.getMessage().contains("INSERT INTO INCORRECT_QUERY"));
+            System.out.println(sqle.getMessage());
+            assertTrue(sqle instanceof SQLSyntaxErrorException);
         }
     }
 

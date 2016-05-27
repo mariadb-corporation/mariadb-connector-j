@@ -54,6 +54,7 @@ import org.mariadb.jdbc.internal.queryresults.MultiIntExecutionResult;
 import org.mariadb.jdbc.internal.queryresults.SingleExecutionResult;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
+import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import java.sql.*;
@@ -69,6 +70,14 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
     private ResultSetMetaData resultSetMetaData = null;
     private ParameterMetaData parameterMetaData = null;
     private boolean reWritablePrepare = true;
+    private boolean multipleQueriesPrepare = true;
+    private RewriteType rewriteType;
+
+    enum RewriteType {
+        NO_REWRITE, /* inside  query */
+        MULTI_QUERIES, /* inside string */
+        REWRITE_QUERIES
+    }
 
     /**
      * Constructor.
@@ -81,9 +90,19 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
     public MariaDbClientPreparedStatement(MariaDbConnection connection, String sql, int resultSetScrollType) throws SQLException {
         super(connection, resultSetScrollType);
         this.sqlQuery = sql;
-        useFractionalSeconds = connection.getProtocol().getOptions().useFractionalSeconds;
-        queryParts = createRewritableParts(sql, connection.noBackslashEscapes);
-        paramCount = queryParts.size() - 3;
+        Options options = this.protocol.getOptions();
+        useFractionalSeconds = options.useFractionalSeconds;
+
+        rewriteType = options.rewriteBatchedStatements
+                ? RewriteType.REWRITE_QUERIES : (options.allowMultiQueries ? RewriteType.MULTI_QUERIES : RewriteType.NO_REWRITE);
+
+        if (rewriteType == RewriteType.REWRITE_QUERIES) {
+            queryParts = createRewritableParts(sql, connection.noBackslashEscapes);
+            paramCount = queryParts.size() - 3;
+        } else {
+            queryParts = createParameterParts(sql, connection.noBackslashEscapes);
+            paramCount = queryParts.size() - 1;
+        }
         parameters = new ParameterHolder[paramCount];
     }
 
@@ -194,7 +213,11 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
             executeQueryProlog();
             batchResultSet = null;
             SingleExecutionResult executionResultTmp = new SingleExecutionResult(this, getFetchSize(), true, false);
-            protocol.executeQueries(executionResultTmp, queryParts, Collections.singletonList(parameters), resultSetScrollType, false);
+            if (rewriteType == RewriteType.REWRITE_QUERIES) {
+                protocol.executeQuery(executionResultTmp, queryParts, parameters, resultSetScrollType, false);
+            } else {
+                protocol.executeQuery(executionResultTmp, queryParts, parameters, resultSetScrollType);
+            }
             cacheMoreResults(executionResultTmp, getFetchSize(), false);
             executionResult = executionResultTmp;
             return executionResult.getResult() != null;
@@ -259,23 +282,33 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
             QueryException exception = null;
             executeQueryProlog();
             try {
-                if (reWritablePrepare && (protocol.getOptions().allowMultiQueries || protocol.getOptions().rewriteBatchedStatements)) {
-                    boolean rewrittenBatch = reWritablePrepare && protocol.getOptions().rewriteBatchedStatements;
-                    protocol.executeQueries(internalExecutionResult, queryParts, parameterList, resultSetScrollType, rewrittenBatch);
-                    cacheMoreResults(internalExecutionResult, getFetchSize(), false);
-                    if (rewrittenBatch) {
-                        //operation will be done on first execution ( or a few execution if max packet size is not enought for one operation)
-                        internalExecutionResult.updateResultsForRewrite();
-                    } else {
-                        //set update result right (first will have one operation, others are on moreResultPacket).
-                        internalExecutionResult.updateResultsMultiple(cachedExecutionResults);
-                    }
-
-                } else {
-                    for (; batchQueriesCount < size; batchQueriesCount++) {
-                        protocol.executeQueries(internalExecutionResult, queryParts, Collections.singletonList(parameterList.get(batchQueriesCount)),
-                                resultSetScrollType, false);
+                if (rewriteType == RewriteType.REWRITE_QUERIES) {
+                    if (reWritablePrepare) {
+                        protocol.executeRewriteQueries(internalExecutionResult, queryParts, parameterList, resultSetScrollType, true);
                         cacheMoreResults(internalExecutionResult, 0, false);
+                        internalExecutionResult.updateResultsForRewrite();
+                    } else if (multipleQueriesPrepare) {
+                        protocol.executeRewriteQueries(internalExecutionResult, queryParts, parameterList, resultSetScrollType, false);
+                        cacheMoreResults(internalExecutionResult, 0, false);
+                        internalExecutionResult.updateResultsMultiple(cachedExecutionResults);
+                    } else {
+                        for (; batchQueriesCount < size; batchQueriesCount++) {
+                            protocol.executeQuery(internalExecutionResult, queryParts, parameterList.get(batchQueriesCount),
+                                    resultSetScrollType, false);
+                            cacheMoreResults(internalExecutionResult, 0, false);
+                        }
+                    }
+                } else {
+                    if (multipleQueriesPrepare && rewriteType == RewriteType.MULTI_QUERIES) {
+                        protocol.executeMultipleQueries(internalExecutionResult, queryParts, parameterList, resultSetScrollType);
+                        cacheMoreResults(internalExecutionResult, 0, false);
+                        internalExecutionResult.updateResultsMultiple(cachedExecutionResults);
+                    } else {
+                        for (; batchQueriesCount < size; batchQueriesCount++) {
+                            protocol.executeQuery(internalExecutionResult, queryParts, parameterList.get(batchQueriesCount),
+                                    resultSetScrollType);
+                            cacheMoreResults(internalExecutionResult, 0, false);
+                        }
                     }
                 }
             } catch (QueryException e) {
@@ -388,8 +421,26 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
         return paramCount;
     }
 
+    /**
+     * {inherit}.
+     */
+    @Override
     public String toString() {
-        return sqlQuery;
+        StringBuffer sb = new StringBuffer("sql : '" + sqlQuery + "'");
+        sb.append(", parameters : [");
+        for (int i = 0; i < parameters.length; i++) {
+            ParameterHolder holder = parameters[i];
+            if (holder == null) {
+                sb.append("null");
+            } else {
+                sb.append(holder.toString());
+            }
+            if (i != parameters.length - 1) {
+                sb.append(",");
+            }
+        }
+        sb.append("]");
+        return sb.toString();
     }
 
     /**
@@ -430,6 +481,7 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
      */
     private List<String> createRewritableParts(String queryString, boolean noBackslashEscapes) {
         reWritablePrepare = true;
+        multipleQueriesPrepare = true;
         List<String> partList = new ArrayList<>();
         LexState state = LexState.Normal;
         char lastChar = '\0';
@@ -450,8 +502,8 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
         boolean hasParam = false;
 
         char[] query = queryString.toCharArray();
-
-        for (int i = 0; i < query.length; i++) {
+        int queryLength = query.length;
+        for (int i = 0; i < queryLength; i++) {
 
             if (state == LexState.Escape) {
                 sb.append(query[i]);
@@ -477,7 +529,10 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
                     break;
 
                 case '-':
-                    if (state == LexState.Normal && lastChar == '-') state = LexState.EOLComment;
+                    if (state == LexState.Normal && lastChar == '-') {
+                        state = LexState.EOLComment;
+                        multipleQueriesPrepare = false;
+                    }
                     break;
 
                 case '\n':
@@ -551,7 +606,7 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
                 case 'S':
                     if (state == LexState.Normal) {
                         if (postValuePart == null
-                                && query.length > i + 6
+                                && queryLength > i + 6
                                 && (query[i + 1] == 'e' || query[i + 1] == 'E')
                                 && (query[i + 2] == 'l' || query[i + 2] == 'L')
                                 && (query[i + 3] == 'e' || query[i + 3] == 'E')
@@ -567,7 +622,7 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
                     if (state == LexState.Normal) {
                         if (preValuePart1 == null
                                 && (lastChar == ')' || ((byte) lastChar <= 40))
-                                && query.length > i + 7
+                                && queryLength > i + 7
                                 && (query[i + 1] == 'a' || query[i + 1] == 'A')
                                 && (query[i + 2] == 'l' || query[i + 2] == 'L')
                                 && (query[i + 3] == 'u' || query[i + 3] == 'U')
@@ -635,6 +690,122 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
         return partList;
     }
 
+    /**
+     * Separate query in a String list and set flag multipleQueriesPrepare.
+     * The resulting string list is separed by ? that are not in comments.
+     * multipleQueriesPrepare flag is set if query can be rewrite in one query
+     * (all case but if using "-- comment").
+     * example for query :
+     *    "INSERT INTO tableName(id, name) VALUES (?, ?)"
+     * result list will be :
+     *    {"INSERT INTO tableName(id, name) VALUES (",
+     *    ", ",
+     *    ")"}
+     *
+     * @param queryString query
+     * @param noBackslashEscapes
+     * @return
+     */
+    private List<String> createParameterParts(String queryString, boolean noBackslashEscapes) {
+        reWritablePrepare = false;
+        multipleQueriesPrepare = true;
+        List<String> partList = new ArrayList<>();
+        MariaDbStatement.LexState state = MariaDbStatement.LexState.Normal;
+        char lastChar = '\0';
+
+        boolean singleQuotes = false;
+        int lastParameterPosition = 0;
+
+        char[] query = queryString.toCharArray();
+        int queryLength = query.length;
+        for (int i = 0; i < queryLength; i++) {
+
+            if (state == MariaDbStatement.LexState.Escape) state = MariaDbStatement.LexState.String;
+
+            char car = query[i];
+            switch (car) {
+                case '*':
+                    if (state == MariaDbStatement.LexState.Normal && lastChar == '/')  state = MariaDbStatement.LexState.SlashStarComment;
+                    break;
+
+                case '/':
+                    if (state == MariaDbStatement.LexState.SlashStarComment && lastChar == '*') {
+                        state = MariaDbStatement.LexState.Normal;
+                    } else if (state == MariaDbStatement.LexState.Normal && lastChar == '/') {
+                        state = MariaDbStatement.LexState.EOLComment;
+                    }
+                    break;
+
+                case '#':
+                    if (state == MariaDbStatement.LexState.Normal) state = MariaDbStatement.LexState.EOLComment;
+                    break;
+
+                case '-':
+                    if (state == MariaDbStatement.LexState.Normal && lastChar == '-') {
+                        state = MariaDbStatement.LexState.EOLComment;
+                        multipleQueriesPrepare = false;
+                    }
+                    break;
+
+                case '\n':
+                    if (state == MariaDbStatement.LexState.EOLComment) {
+                        multipleQueriesPrepare = true;
+                        state = MariaDbStatement.LexState.Normal;
+                    }
+                    break;
+
+                case '"':
+                    if (state == MariaDbStatement.LexState.Normal) {
+                        state = MariaDbStatement.LexState.String;
+                        singleQuotes = false;
+                    } else if (state == MariaDbStatement.LexState.String && !singleQuotes) {
+                        state = MariaDbStatement.LexState.Normal;
+                    }
+                    break;
+
+                case '\'':
+                    if (state == MariaDbStatement.LexState.Normal) {
+                        state = MariaDbStatement.LexState.String;
+                        singleQuotes = true;
+                    } else if (state == MariaDbStatement.LexState.String && singleQuotes) {
+                        state = MariaDbStatement.LexState.Normal;
+                    }
+                    break;
+
+                case '\\':
+                    if (noBackslashEscapes) {
+                        break;
+                    }
+                    if (state == MariaDbStatement.LexState.String) state = MariaDbStatement.LexState.Escape;
+                    break;
+
+                case '?':
+                    if (state == MariaDbStatement.LexState.Normal) {
+                        partList.add(queryString.substring(lastParameterPosition, i));
+                        lastParameterPosition = i + 1;
+                    }
+                    break;
+                case '`':
+                    if (state == MariaDbStatement.LexState.Backtick) {
+                        state = MariaDbStatement.LexState.Normal;
+                    } else if (state == MariaDbStatement.LexState.Normal) {
+                        state = MariaDbStatement.LexState.Backtick;
+                    }
+                    break;
+                default:
+                    break;
+            }
+            lastChar = car;
+        }
+        if (lastParameterPosition == 0) {
+            partList.add(queryString);
+        } else {
+            partList.add(queryString.substring(lastParameterPosition, queryLength));
+        }
+        return partList;
+    }
+
+
     protected List<String> getQueryParts() {
         return queryParts;
     }
@@ -645,5 +816,9 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
 
     public boolean isReWritablePrepare() {
         return reWritablePrepare;
+    }
+
+    public boolean isMultipleQueriesPrepare() {
+        return multipleQueriesPrepare;
     }
 }

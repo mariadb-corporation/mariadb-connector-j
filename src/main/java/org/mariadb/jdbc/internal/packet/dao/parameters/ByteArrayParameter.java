@@ -51,7 +51,10 @@ OF SUCH DAMAGE.
 import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
 
 public class ByteArrayParameter extends NotLongDataParameterHolder {
@@ -86,6 +89,10 @@ public class ByteArrayParameter extends NotLongDataParameterHolder {
 
     @Override
     public String toString() {
-        return "<bytearray> " + new String(bytes);
+        if (bytes.length > 1024) {
+            return "<bytearray:" + new String(Arrays.copyOfRange(bytes, 0, 1024)) + "...>";
+        } else {
+            return "<bytearray:" + new String(bytes) + ">";
+        }
     }
 }

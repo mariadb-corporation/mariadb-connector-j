@@ -96,6 +96,7 @@ public class MariaDbStatement implements Statement, Cloneable {
     protected final ReentrantLock lock;
     protected ExecutionResult executionResult = null;
     protected int resultSetScrollType;
+    protected boolean mustCloseOnCompletion = false;
 
     /**
      * Creates a new Statement.
@@ -1180,13 +1181,19 @@ public class MariaDbStatement implements Statement, Cloneable {
     }
 
     public void closeOnCompletion() throws SQLException {
-        // TODO Auto-generated method stub
-
+        mustCloseOnCompletion = true;
     }
 
     public boolean isCloseOnCompletion() throws SQLException {
-        // TODO Auto-generated method stub
-        return false;
+        return mustCloseOnCompletion;
+    }
+
+    public void checkCloseOnCompletion(ResultSet resultSet) throws SQLException {
+        if (mustCloseOnCompletion && !closed && executionResult != null) {
+            if (resultSet.equals(executionResult.getResult())) {
+                close();
+            }
+        }
     }
 
     /**

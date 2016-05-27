@@ -167,7 +167,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             }
 
             writer.sendPreparePacket(sql);
-            return readPrepareResult(key, sql, forceNew);
+            return readPrepareResult(key, sql, forceNew, executeOnMaster);
         } catch (IOException e) {
             throw new QueryException(e.getMessage(), -1,
                     ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(),
@@ -177,7 +177,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         }
     }
 
-    private PrepareResult readPrepareResult(String key, String sql, boolean forceNew) throws QueryException, IOException {
+    private PrepareResult readPrepareResult(String key, String sql, boolean forceNew, boolean executeOnMaster) throws QueryException, IOException {
         Buffer buffer = packetFetcher.getReusableBuffer();
         byte firstByte = buffer.getByteAt(0);
 
@@ -293,7 +293,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 writer.buffer.put((byte) ((subcommandEndPosition - initialPosition) >>> 16));
                 writer.buffer.position(subcommandEndPosition);
                 writer.finishPacket();
-                prepareResult = readPrepareResult(key, sql, forceNew);
+                prepareResult = readPrepareResult(key, sql, forceNew, this.isMasterConnection());
 
             } else {
                 //standard COM_STMT_EXECUTE
@@ -728,6 +728,125 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     }
 
     /**
+     * Specific execution for batch allowMultipleQueries that has specific query for memory.
+     * @param executionResult result
+     * @param queryParts query part
+     * @param parameters parameters
+     * @param resultSetScrollType resultsetScroll type
+     * @throws QueryException exception
+     */
+    public void executeQuery(ExecutionResult executionResult, final List<String> queryParts, ParameterHolder[] parameters,
+                             int resultSetScrollType) throws QueryException {
+        checkClose();
+        int paramCount = queryParts.size() - 1;
+
+        try {
+            this.moreResults = false;
+
+            if (paramCount == 0) {
+                writer.sendTextPacket(queryParts.get(0));
+            } else {
+
+                //validate parameters
+                for (ParameterHolder ph : parameters) {
+                    if (ph == null) {
+                        throw new QueryException("You need to set exactly " + paramCount + " parameters on the prepared statement");
+                    }
+                }
+
+                writer.startPacket(0);
+                writer.writeUnsafe(0x03);
+                writer.write(queryParts.get(0).getBytes("UTF-8"));
+                for (int i = 0; i < paramCount; i++) {
+                    parameters[i].writeTo(writer);
+                    writer.write(queryParts.get(i + 1).getBytes("UTF-8"));
+                }
+                writer.finishPacket();
+            }
+            getResult(executionResult, resultSetScrollType, false);
+
+        } catch (QueryException queryException) {
+            throwErrorWithQuery(queryParts, parameters, queryException, paramCount, false);
+        } catch (MaxAllowedPacketException e) {
+            if (e.isMustReconnect()) {
+                connect();
+            }
+            throw new QueryException("Could not send query: " + e.getMessage(), -1, ExceptionMapper.SqlStates.INTERRUPTED_EXCEPTION.getSqlState(), e);
+        } catch (IOException e) {
+            throw new QueryException("Could not send query: " + e.getMessage(), -1, ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(), e);
+        }
+    }
+
+    /**
+     * Specific execution for batch rewrite that has specific query for memory.
+     * @param executionResult result
+     * @param queryParts query part
+     * @param parameters parameters
+     * @param resultSetScrollType resultsetScroll type
+     * @param isRewritable is rewritable flag
+     * @throws QueryException exception
+     */
+    public void executeQuery(ExecutionResult executionResult, final List<String> queryParts, ParameterHolder[] parameters,
+                                      int resultSetScrollType, boolean isRewritable) throws QueryException {
+        checkClose();
+        int paramCount = queryParts.size() - 3;
+        int currentIndex = 0;
+
+        try {
+            //validate parameters
+            for (ParameterHolder ph : parameters) {
+                if (ph == null) {
+                    throw new QueryException("You need to set exactly " + paramCount + " parameters on the prepared statement");
+                }
+            }
+
+            this.moreResults = false;
+
+            writer.startPacket(0);
+            writer.write(0x03);
+            writer.write(queryParts.get(0).getBytes("UTF-8"));
+            writer.write(queryParts.get(1).getBytes("UTF-8"));
+            for (int i = 0; i < paramCount; i++) {
+                parameters[i].writeTo(writer);
+                writer.write(queryParts.get(2).getBytes("UTF-8"));
+            }
+            writer.write(queryParts.get(paramCount + 2).getBytes("UTF-8"));
+
+            writer.finishPacket();
+            getResult(executionResult, resultSetScrollType, false);
+
+        } catch (QueryException queryException) {
+            throwErrorWithQuery(queryParts, parameters, queryException, paramCount, true);
+        } catch (MaxAllowedPacketException e) {
+            if (e.isMustReconnect()) {
+                connect();
+            }
+            throw new QueryException("Could not send query: " + e.getMessage(), -1, ExceptionMapper.SqlStates.INTERRUPTED_EXCEPTION.getSqlState(), e);
+        } catch (IOException e) {
+            throw new QueryException("Could not send query: " + e.getMessage(), -1, ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(), e);
+        }
+    }
+
+    private void throwErrorWithQuery(List<String> queryParts, ParameterHolder[] parameters, QueryException queryException, int paramCount, boolean rewrite)
+            throws QueryException {
+        if (getOptions().dumpQueriesOnException || queryException.getErrorCode() == 1064) {
+            StringBuilder queryString = new StringBuilder(queryParts.get(0));
+            if (rewrite) queryString.append(queryParts.get(1));
+            for (int i = 0; i < paramCount; i++) {
+                if (parameters != null && parameters.length > i) {
+                    queryString.append(parameters[i]).append(queryParts.get(i + (rewrite ? 2 : 1)));
+                } else {
+                    queryString.append("?").append(queryParts.get(i + (rewrite ? 2 : 1)));
+                }
+            }
+            if (rewrite) queryString.append(queryParts.get(paramCount + 2));
+            addQueryInfo(queryString.toString(), queryException);
+        }
+        throw queryException;
+    }
+
+
+    /**
      * Execute list of queries not rewritable.
      *
      * @param queries list of queryes
@@ -771,6 +890,119 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     }
 
     /**
+     * Specific execution for batch allowMultipleQueries that has specific query for memory.
+     * @param executionResult result
+     * @param queryParts query part
+     * @param parameterList parameters
+     * @param resultSetScrollType resultsetScroll type
+     * @throws QueryException exception
+     */
+    public void executeMultipleQueries(ExecutionResult executionResult, final List<String> queryParts, List<ParameterHolder[]> parameterList,
+                                      int resultSetScrollType) throws QueryException {
+        checkClose();
+        ParameterHolder[] parameters = null;
+        int paramCount = queryParts.size() - 1;
+        int currentIndex = 0;
+        int totalParameterList = parameterList.size();
+
+        try {
+            this.moreResults = false;
+
+            //validate parameters
+            for (ParameterHolder[] parameterHolders : parameterList) {
+                for (ParameterHolder ph : parameterHolders) {
+                    if (ph == null) {
+                        parameters = parameterHolders;
+                        throw new QueryException("You need to set exactly " + paramCount + " parameters on the prepared statement");
+                    }
+                }
+            }
+
+
+            do {
+                parameters = parameterList.get(currentIndex++);
+
+                //change rewritable part to utf8 bytes
+                List<byte[]> queryPartsUtf8 = new ArrayList<>(queryParts.size());
+                for (String part : queryParts) {
+                    queryPartsUtf8.add(part.getBytes("UTF-8"));
+                }
+
+                writer.startPacket(0);
+                writer.write(0x03);
+
+                //write first
+                writer.write(queryPartsUtf8.get(0));
+
+                int staticLength = 1;
+                for (int i = 0; i < queryPartsUtf8.size(); i++) staticLength += queryPartsUtf8.get(i).length;
+
+                for (int i = 0; i < paramCount; i++) {
+                    parameters[i].writeTo(writer);
+                    writer.write(queryPartsUtf8.get(i + 1));
+                }
+
+                // write other, separate by ";"
+                while (currentIndex < totalParameterList) {
+                    parameters = parameterList.get(currentIndex);
+
+                    //check packet length so to separate in multiple packet
+                    int parameterLength = 0;
+                    boolean knownParameterSize = true;
+                    for (ParameterHolder parameter : parameters) {
+                        long paramSize = parameter.getApproximateTextProtocolLength();
+                        if (paramSize == -1) {
+                            knownParameterSize = false;
+                            break;
+                        }
+                        parameterLength += paramSize;
+                    }
+
+                    if (knownParameterSize) {
+                        //We know the additional query part size. This permit :
+                        // - to resize buffer size if needed (to avoid resize test every write)
+                        // - if this query will be separated in a new packet.
+                        if (writer.checkRewritableLength(staticLength + parameterLength)) {
+                            writer.assureBufferCapacity(staticLength + parameterLength);
+                            writer.writeUnsafe(';');
+                            writer.writeUnsafe(queryPartsUtf8.get(0));
+                            for (int i = 0; i < paramCount; i++) {
+                                parameters[i].writeUnsafeTo(writer);
+                                writer.writeUnsafe(queryPartsUtf8.get(i + 1));
+                            }
+                            currentIndex++;
+                        } else {
+                            break;
+                        }
+                    } else {
+                        //we cannot know the additional query part size.
+                        writer.write(';');
+                        writer.write(queryPartsUtf8.get(0));
+                        for (int i = 0; i < paramCount; i++) {
+                            parameters[i].writeTo(writer);
+                            writer.write(queryPartsUtf8.get(i + 1));
+                        }
+                        currentIndex++;
+                    }
+                }
+
+                writer.finishPacket();
+                getResult(executionResult, resultSetScrollType, false);
+            } while (currentIndex < totalParameterList);
+
+        } catch (QueryException queryException) {
+            throwErrorWithQuery(queryParts, parameters, queryException, paramCount, false);
+        } catch (MaxAllowedPacketException e) {
+            if (e.isMustReconnect()) {
+                connect();
+            }
+            throw new QueryException("Could not send query: " + e.getMessage(), -1, ExceptionMapper.SqlStates.INTERRUPTED_EXCEPTION.getSqlState(), e);
+        } catch (IOException e) {
+            throw new QueryException("Could not send query: " + e.getMessage(), -1, ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(), e);
+        }
+    }
+
+    /**
      * Specific execution for batch rewrite that has specific query for memory.
      * @param executionResult result
      * @param queryParts query part
@@ -779,7 +1011,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * @param isRewritable is rewritable flag
      * @throws QueryException exception
      */
-    public void executeQueries(ExecutionResult executionResult, final List<String> queryParts, List<ParameterHolder[]> parameterList,
+    public void executeRewriteQueries(ExecutionResult executionResult, final List<String> queryParts, List<ParameterHolder[]> parameterList,
                                int resultSetScrollType, boolean isRewritable) throws QueryException {
         checkClose();
         ParameterHolder[] parameters = null;
@@ -811,30 +1043,56 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 writer.startPacket(0);
                 writer.write(0x03);
 
-                if (totalParameterList == 1) {
+                if (!isRewritable) {
+                    //write first
                     writer.write(queryPartsUtf8.get(0));
                     writer.write(queryPartsUtf8.get(1));
+
+                    int staticLength = 1;
+                    for (int i = 0; i < queryPartsUtf8.size(); i++) staticLength += queryPartsUtf8.get(i).length;
+
                     for (int i = 0; i < paramCount; i++) {
                         parameters[i].writeTo(writer);
                         writer.write(queryPartsUtf8.get(i + 2));
                     }
                     writer.write(queryPartsUtf8.get(paramCount + 2));
-                } else {
 
-                    if (!isRewritable) {
-                        //write first
-                        writer.write(queryPartsUtf8.get(0));
-                        writer.write(queryPartsUtf8.get(1));
+                    // write other, separate by ";"
+                    while (currentIndex < totalParameterList) {
+                        parameters = parameterList.get(currentIndex);
 
-                        for (int i = 0; i < paramCount; i++) {
-                            parameters[i].writeTo(writer);
-                            writer.write(queryPartsUtf8.get(i + 2));
+                        //check packet length so to separate in multiple packet
+                        int parameterLength = 0;
+                        boolean knownParameterSize = true;
+                        for (ParameterHolder parameter : parameters) {
+                            long paramSize = parameter.getApproximateTextProtocolLength();
+                            if (paramSize == -1) {
+                                knownParameterSize = false;
+                                break;
+                            }
+                            parameterLength += paramSize;
                         }
-                        writer.write(queryPartsUtf8.get(paramCount + 2));
 
-                        // write other, separate by ";"
-                        while (currentIndex < totalParameterList) {
-                            parameters = parameterList.get(currentIndex++);
+                        if (knownParameterSize) {
+                            //We know the additional query part size. This permit :
+                            // - to resize buffer size if needed (to avoid resize test every write)
+                            // - if this query will be separated in a new packet.
+                            if (writer.checkRewritableLength(staticLength + parameterLength)) {
+                                writer.assureBufferCapacity(staticLength + parameterLength);
+                                writer.writeUnsafe(';');
+                                writer.writeUnsafe(queryPartsUtf8.get(0));
+                                writer.writeUnsafe(queryPartsUtf8.get(1));
+                                for (int i = 0; i < paramCount; i++) {
+                                    parameters[i].writeUnsafeTo(writer);
+                                    writer.writeUnsafe(queryPartsUtf8.get(i + 2));
+                                }
+                                writer.writeUnsafe(queryPartsUtf8.get(paramCount + 2));
+                                currentIndex++;
+                            } else {
+                                break;
+                            }
+                        } else {
+                            //we cannot know the additional query part size.
                             writer.write(';');
                             writer.write(queryPartsUtf8.get(0));
                             writer.write(queryPartsUtf8.get(1));
@@ -843,29 +1101,41 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                                 writer.write(queryPartsUtf8.get(i + 2));
                             }
                             writer.write(queryPartsUtf8.get(paramCount + 2));
+                            currentIndex++;
                         }
+                    }
 
-                    } else {
-                        writer.write(queryPartsUtf8.get(0));
-                        writer.write(queryPartsUtf8.get(1));
-                        int lastPartLength = queryPartsUtf8.get(paramCount + 2).length;
-                        int intermediatePartLength = queryPartsUtf8.get(1).length;
+                } else {
+                    writer.write(queryPartsUtf8.get(0));
+                    writer.write(queryPartsUtf8.get(1));
+                    int lastPartLength = queryPartsUtf8.get(paramCount + 2).length;
+                    int intermediatePartLength = queryPartsUtf8.get(1).length;
 
-                        for (int i = 0; i < paramCount; i++) {
-                            parameters[i].writeTo(writer);
-                            writer.write(queryPartsUtf8.get(i + 2));
-                            intermediatePartLength += queryPartsUtf8.get(i + 2).length;
-                        }
+                    for (int i = 0; i < paramCount; i++) {
+                        parameters[i].writeTo(writer);
+                        writer.write(queryPartsUtf8.get(i + 2));
+                        intermediatePartLength += queryPartsUtf8.get(i + 2).length;
+                    }
 
-                        while (currentIndex < totalParameterList) {
-                            parameters = parameterList.get(currentIndex);
+                    while (currentIndex < totalParameterList) {
+                        parameters = parameterList.get(currentIndex);
 
-                            //check packet length so to separate in multiple packet
-                            int parameterLength = 0;
-                            for (ParameterHolder parameter : parameters) {
-                                parameterLength += parameter.getApproximateTextProtocolLength();
+                        //check packet length so to separate in multiple packet
+                        int parameterLength = 0;
+                        boolean knownParameterSize = true;
+                        for (ParameterHolder parameter : parameters) {
+                            long paramSize = parameter.getApproximateTextProtocolLength();
+                            if (paramSize == -1) {
+                                knownParameterSize = false;
+                                break;
                             }
-//
+                            parameterLength += paramSize;
+                        }
+
+                        if (knownParameterSize) {
+                            //We know the additional query part size. This permit :
+                            // - to resize buffer size if needed (to avoid resize test every write)
+                            // - if this query will be separated in a new packet.
                             if (writer.checkRewritableLength(1 + parameterLength + intermediatePartLength + lastPartLength)) {
                                 writer.assureBufferCapacity(1 + parameterLength + intermediatePartLength + lastPartLength);
                                 writer.writeUnsafe((byte) 44); //","
@@ -879,9 +1149,18 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                             } else {
                                 break;
                             }
+                        } else {
+                            writer.write((byte) 44); //","
+                            writer.write(queryPartsUtf8.get(1));
+
+                            for (int i = 0; i < paramCount; i++) {
+                                parameters[i].writeTo(writer);
+                                writer.write(queryPartsUtf8.get(i + 2));
+                            }
+                            currentIndex++;
                         }
-                        writer.write(queryPartsUtf8.get(paramCount + 2));
                     }
+                    writer.write(queryPartsUtf8.get(paramCount + 2));
                 }
 
                 writer.finishPacket();
@@ -889,19 +1168,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             } while (currentIndex < totalParameterList);
 
         } catch (QueryException queryException) {
-            if (getOptions().dumpQueriesOnException || queryException.getErrorCode() == 1064) {
-                StringBuilder queryString = new StringBuilder(queryParts.get(0)).append(queryParts.get(1));
-                for (int i = 0; i < paramCount; i++) {
-                    if (parameters != null && parameters.length > i) {
-                        queryString.append(parameters[i]).append(queryParts.get(i + 2));
-                    } else {
-                        queryString.append("?").append(queryParts.get(i + 2));
-                    }
-                }
-                queryString.append(queryParts.get(paramCount + 2));
-                addQueryInfo(queryString.toString(), queryException);
-            }
-            throw queryException;
+            throwErrorWithQuery(queryParts, parameters, queryException, paramCount, true);
         } catch (MaxAllowedPacketException e) {
             if (e.isMustReconnect()) {
                 connect();
@@ -1147,7 +1414,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         try {
             setMaxRows(maxRows);
             fetchActiveStreamingResult();
-            if (hasMoreResults()) {
+            while (hasMoreResults()) {
                 getMoreResults(executionResult);
             }
         } catch (QueryException qe) {

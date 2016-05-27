@@ -109,6 +109,7 @@ public class SendGssApiAuthPacket extends AbstractAuthSwitchSendResponsePacket i
         try {
             //Waffle-jna has jna as dependency, so if not available on classpath, just use standard authentication
             Class platformClass = Class.forName("com.sun.jna.Platform");
+            @SuppressWarnings("unchecked")
             Method method = platformClass.getMethod("isWindows");
             Boolean isWindows = (Boolean) method.invoke(platformClass);
             if (isWindows.booleanValue()) {

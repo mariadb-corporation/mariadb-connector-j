@@ -115,7 +115,7 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
 
     private void prepare(String sql) throws SQLException {
         try {
-            prepareResult = protocol.prepare(sql, false);
+            prepareResult = protocol.prepare(sql);
             parameterCount = prepareResult.getParameters().length;;
             returnTableAlias = protocol.getOptions().useOldAliasMetadataBehavior;
             metadata = new MariaDbResultSetMetaData(prepareResult.getColumns(),

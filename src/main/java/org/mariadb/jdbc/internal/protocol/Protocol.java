@@ -140,10 +140,19 @@ public interface Protocol {
 
     void executeQuery(ExecutionResult executionResult, final String sql, int resultSetScrollType) throws QueryException;
 
+    void executeQuery(ExecutionResult executionResult, final List<String> queryParts, ParameterHolder[] parameters,
+                      int resultSetScrollType) throws QueryException;
+
+    void executeQuery(ExecutionResult executionResult, final List<String> queryParts, ParameterHolder[] parameters,
+                               int resultSetScrollType, boolean isRewritable) throws QueryException;
+
     void executeQueries(ExecutionResult executionResult, List<String> queries, int resultSetScrollType)
             throws QueryException;
 
-    void executeQueries(ExecutionResult executionResult, final List<String> queryParts, List<ParameterHolder[]> parameterList,
+    void executeMultipleQueries(ExecutionResult executionResult, final List<String> queryParts, List<ParameterHolder[]> parameterList,
+                               int resultSetScrollType) throws QueryException;
+
+    void executeRewriteQueries(ExecutionResult executionResult, final List<String> queryParts, List<ParameterHolder[]> parameterList,
                         int resultSetScrollType, boolean isRewritable) throws QueryException;
 
     void executeQueriesRewrite(ExecutionResult executionResult, List<String> queries, int resultSetScrollType, boolean isRewritable,

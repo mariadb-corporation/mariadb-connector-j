@@ -75,6 +75,7 @@ public class ServerPrepareStatementTest extends BaseTest {
 
     @Test
     public void serverCacheStatementTest() throws Throwable {
+        Assume.assumeTrue(sharedUsePrepare());
         Protocol protocol = getProtocolFromConnection(sharedConnection);
         int cacheSize = protocol.prepareStatementCache().size();
         sharedConnection.prepareStatement("INSERT INTO ServerPrepareStatementTestCache(test) VALUES (?)");
@@ -489,6 +490,7 @@ public class ServerPrepareStatementTest extends BaseTest {
 
     @Test(expected = SQLException.class)
     public void parametersNotSetTest() throws Throwable {
+        Assume.assumeTrue(sharedUsePrepare());
         PreparedStatement ps = sharedConnection.prepareStatement(
                 "INSERT INTO ServerPrepareStatementParameters(id, id2) VALUES (?,?)");
         ps.setInt(1, 1);
@@ -514,6 +516,7 @@ public class ServerPrepareStatementTest extends BaseTest {
     @Test
     public void blobMultipleSizeTest() throws Throwable {
         Assume.assumeTrue(checkMaxAllowedPacketMore40m("blobMultipleSizeTest"));
+        Assume.assumeTrue(sharedUsePrepare());
 
         PreparedStatement ps = sharedConnection.prepareStatement(
                 "INSERT INTO ServerPrepareStatementCacheSize4(test) VALUES (?)");

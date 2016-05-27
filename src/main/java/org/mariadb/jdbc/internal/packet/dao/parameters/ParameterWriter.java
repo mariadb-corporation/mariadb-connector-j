@@ -62,7 +62,120 @@ public class ParameterWriter {
     private static final byte[] BINARY_INTRODUCER = {'_', 'b', 'i', 'n', 'a', 'r', 'y', ' ', '\''};
     public static final byte QUOTE = (byte)'\'';
 
-    private static void writeBytesEscaped(PacketOutputStream out, byte[] bytes, int count, boolean noBackslashEscapes) {
+    /**
+     * Encode char array to UTF-8 byte array, with SQL escape.
+     *
+     * @param chars characters to encode
+     * @param off offset
+     * @param len length
+     * @param byteArray result byte array
+     * @param noBackslashEscapes escape type
+     * @return array end position
+     */
+    public static int encodeUtf8Escaped(char[] chars, int off, int len, byte[] byteArray, boolean noBackslashEscapes) {
+        int maxCharIndex = off + len;
+        int index = 0;
+        int maxLength = Math.min(len, byteArray.length);
+
+        // ASCII only optimized loop
+        if (noBackslashEscapes) {
+            while (index < maxLength && chars[off] < '\u0080') {
+                if (chars[off] == '\'') {
+                    byteArray[index++] = (byte) 0x27;
+                }
+                byteArray[index++] = (byte) chars[off++];
+            }
+        } else {
+            while (index < maxLength && chars[off] < '\u0080') {
+                switch (chars[off]) {
+                    case '\'':
+                        byteArray[index++] = (byte) 0x5c;
+                        byteArray[index++] = (byte) chars[off++];
+                        break;
+                    case '\\':
+                    case '"':
+                    case 0:
+                        byteArray[index++] = (byte) 0x5c;
+                        byteArray[index++] = (byte) chars[off++];
+                        break;
+                    default:
+                        byteArray[index++] = (byte) chars[off++];
+                }
+            }
+        }
+
+        while (off < maxCharIndex) {
+            char currChar = chars[off++];
+            if (currChar < 0x80) {
+                // Have at most seven bits
+                switch (currChar) {
+                    case '\'':
+                        if (noBackslashEscapes) {
+                            byteArray[index++] = (byte) 0x27;
+                        } else {
+                            byteArray[index++] = (byte) 0x5c;
+                        }
+                        byteArray[index++] = (byte) currChar;
+                        break;
+                    case '\\':
+                    case '"':
+                    case 0:
+                        if (!noBackslashEscapes) {
+                            byteArray[index++] = (byte) 0x5c;
+                        }
+                        byteArray[index++] = (byte) currChar;
+                        break;
+                    default:
+                        byteArray[index++] = (byte) currChar;
+                }
+
+            } else if (currChar < 0x800) {
+                // 2 bytes, 11 bits
+                byteArray[index++] = (byte) (0xc0 | (currChar >> 6));
+                byteArray[index++] = (byte) (0x80 | (currChar & 0x3f));
+            } else if (Character.isSurrogate(currChar)) {
+                int uc = parse(currChar, chars, off - 1, maxCharIndex);
+                if (uc < 0) {
+                    byteArray[index++] = (byte) 63;
+                } else {
+                    byteArray[index++] = (byte) (0xf0 | ((uc >> 18)));
+                    byteArray[index++] = (byte) (0x80 | ((uc >> 12) & 0x3f));
+                    byteArray[index++] = (byte) (0x80 | ((uc >> 6) & 0x3f));
+                    byteArray[index++] = (byte) (0x80 | (uc & 0x3f));
+                    off++;  // 2 chars
+                }
+            } else {
+                // 3 bytes, 16 bits
+                byteArray[index++] = (byte) (0xe0 | ((currChar >> 12)));
+                byteArray[index++] = (byte) (0x80 | ((currChar >> 6) & 0x3f));
+                byteArray[index++] = (byte) (0x80 | (currChar & 0x3f));
+            }
+        }
+        return index;
+    }
+
+    private static int parse(char currChar, char[] chars, int offset, int maxCharIndex) {
+        assert chars[offset] == currChar;
+        if (Character.isHighSurrogate(currChar)) {
+            if (maxCharIndex - offset < 2) {
+                return -1;
+            } else {
+                char var5 = chars[offset + 1];
+                if (Character.isLowSurrogate(var5)) {
+                    return Character.toCodePoint(currChar, var5);
+                } else {
+                    return -1;
+                }
+            }
+        } else if (Character.isLowSurrogate(currChar)) {
+            return -1;
+        } else {
+            return currChar;
+        }
+    }
+
+    private static void writeBytesEscaped(OutputStream out, byte[] bytes, int count, boolean noBackslashEscapes)
+            throws IOException {
         if (noBackslashEscapes) {
             for (int i = 0; i < count; i++) {
                 byte bit = bytes[i];
@@ -165,10 +278,6 @@ public class ParameterWriter {
         return returnValue.toString();
     }
 
-    public static String getWriteValue(String value, boolean noBackslashEscapes) {
-        return "'" + getBytesEscaped(value.toCharArray(), noBackslashEscapes) + "'";
-    }
-
     /**
      * Write byte array in text format.
      *
@@ -177,7 +286,7 @@ public class ParameterWriter {
      * @param noBackslashEscapes must backslash be escape
      * @throws IOException if any error occur when writing to database
      */
-    public static void write(PacketOutputStream out, byte[] bytes, boolean noBackslashEscapes) throws IOException {
+    public static void write(OutputStream out, byte[] bytes, boolean noBackslashEscapes) throws IOException {
         out.write(BINARY_INTRODUCER);
         writeBytesEscaped(out, bytes, bytes.length, noBackslashEscapes);
         out.write(QUOTE);
@@ -206,7 +315,7 @@ public class ParameterWriter {
      * @param noBackslashEscapes must backslash be escape
      * @throws IOException if any error occur when writing to database
      */
-    public static void write(PacketOutputStream out, InputStream is, boolean noBackslashEscapes) throws IOException {
+    public static void write(OutputStream out, InputStream is, boolean noBackslashEscapes) throws IOException {
         out.write(QUOTE);
         byte[] buffer = new byte[1024];
         int len;
@@ -225,7 +334,7 @@ public class ParameterWriter {
      * @param noBackslashEscapes must backslash be escape
      * @throws IOException if any error occur when writing to database
      */
-    public static void write(PacketOutputStream out, InputStream is, long length, boolean noBackslashEscapes) throws IOException {
+    public static void write(OutputStream out, InputStream is, long length, boolean noBackslashEscapes) throws IOException {
         out.write(QUOTE);
         byte[] buffer = new byte[1024];
         long bytesLeft = length;
@@ -254,29 +363,12 @@ public class ParameterWriter {
      * @param noBackslashEscapes must backslash be escape
      * @throws IOException if any error occur when writing to database
      */
-    public static void write(PacketOutputStream out, java.io.Reader reader, boolean noBackslashEscapes) throws IOException {
+    public static void write(OutputStream out, java.io.Reader reader, boolean noBackslashEscapes) throws IOException {
         out.write(QUOTE);
         char[] buffer = new char[1024];
         int len;
         while ((len = reader.read(buffer)) >= 0) {
             byte[] data = new String(buffer, 0, len).getBytes("UTF-8");
-            writeBytesEscaped(out, data, data.length, noBackslashEscapes);
-        }
-        out.write(QUOTE);
-    }
-
-    /**
-     * Write cached reader char array to buffer.
-     *
-     * @param out output buffer
-     * @param readArrays cache char array
-     * @param noBackslashEscapes backslash must be escape flag
-     * @throws IOException if error occur when writing to buffer
-     */
-    public static void write(PacketOutputStream out, ArrayList<char[]> readArrays, boolean noBackslashEscapes) throws IOException {
-        out.write(QUOTE);
-        for (char[] charArray : readArrays) {
-            byte[] data = new String(charArray, 0, charArray.length).getBytes("UTF-8");
             writeBytesEscaped(out, data, data.length, noBackslashEscapes);
         }
         out.write(QUOTE);
@@ -291,7 +383,7 @@ public class ParameterWriter {
      * @param noBackslashEscapes must backslash be escape
      * @throws IOException if any error occur when writing to database
      */
-    public static void write(PacketOutputStream out, java.io.Reader reader, long length, boolean noBackslashEscapes)
+    public static void write(OutputStream out, java.io.Reader reader, long length, boolean noBackslashEscapes)
             throws IOException {
         out.write(QUOTE);
         char[] buffer = new char[1024];
@@ -444,8 +536,10 @@ public class ParameterWriter {
      * @param out buffer
      * @param readArrays cache byte array
      * @param noBackslashEscapes must escape backslash flag
+     * @throws IOException if buffer has writing error
      */
-    public static void writeBytesArray(PacketOutputStream out, ArrayList<byte[]> readArrays, boolean noBackslashEscapes) {
+    public static void writeBytesArray(OutputStream out, ArrayList<byte[]> readArrays, boolean noBackslashEscapes)
+            throws IOException {
         out.write(QUOTE);
         for (byte[] buffer : readArrays) {
             writeBytesEscaped(out, buffer, buffer.length, noBackslashEscapes);

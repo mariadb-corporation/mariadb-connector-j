@@ -13,4 +13,4 @@ call %BINDIR%\mysqladmin -uroot shutdown
 #mvn package -Dmaven.test.skip=true -P test,package-source
 
 #deployment
-#mvn deploy -Dmaven.test.skip=true -Dpackage-source=true
+#mvn clean deploy -Dmaven.test.skip=true -Dpackage-source=true

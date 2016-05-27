@@ -413,6 +413,7 @@ public class DriverTest extends BaseTest {
 
     @Test
     public void batchTest() throws SQLException {
+        Assume.assumeFalse(sharedIsRewrite());
         PreparedStatement ps = sharedConnection.prepareStatement("insert into test_batch values (null, ?)", 
                 Statement.RETURN_GENERATED_KEYS);
         ps.setString(1, "aaa");
@@ -1132,10 +1133,23 @@ public class DriverTest extends BaseTest {
         } catch (BatchUpdateException bue) {
             int[] updateCounts = bue.getUpdateCounts();
             assertEquals(4, updateCounts.length);
-            assertEquals(1, updateCounts[0]);
-            assertEquals(1, updateCounts[1]);
-            assertEquals(Statement.EXECUTE_FAILED, updateCounts[2]);
-            assertEquals(1, updateCounts[3]);
+            if (sharedUsePrepare()) {
+                //prepare or allowMultiQueries options
+                assertEquals(1, updateCounts[0]);
+                assertEquals(1, updateCounts[1]);
+                assertEquals(Statement.EXECUTE_FAILED, updateCounts[2]);
+                assertEquals(1, updateCounts[3]);
+            } else if (sharedIsRewrite()) {
+                assertEquals(Statement.EXECUTE_FAILED, updateCounts[0]);
+                assertEquals(0, updateCounts[1]);
+                assertEquals(0, updateCounts[2]);
+                assertEquals(0, updateCounts[3]);
+            } else {
+                assertEquals(1, updateCounts[0]);
+                assertEquals(0, updateCounts[1]);
+                assertEquals(0, updateCounts[2]);
+                assertEquals(0, updateCounts[3]);
+            }
             assertTrue(bue.getCause() instanceof SQLIntegrityConstraintViolationException);
         }
 

@@ -51,30 +51,47 @@ package org.mariadb.jdbc.internal.packet.dao.parameters;
 
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 import org.mariadb.jdbc.internal.MariaDbType;
-
-import java.io.IOException;
-import java.io.OutputStream;
+import java.sql.SQLException;
 
 
 public class StringParameter extends NotLongDataParameterHolder {
     private String string;
     private boolean noBackslashEscapes;
+    private byte[] escapeValueUtf8 = null;
+    private int endPos;
 
-    public StringParameter(String string, boolean noBackslashEscapes) {
+    public StringParameter(String string, boolean noBackslashEscapes) throws SQLException {
         this.string = string;
         this.noBackslashEscapes = noBackslashEscapes;
     }
 
-    public void writeTo(final PacketOutputStream os) throws IOException {
-        ParameterWriter.write(os, string, noBackslashEscapes);
+    /**
+     * Send escaped String to outputStream.
+     *
+     * @param os outpustream.
+     */
+    public void writeTo(final PacketOutputStream os) {
+        if (escapeValueUtf8 == null) escapeForText();
+        os.write(ParameterWriter.QUOTE);
+        os.write(escapeValueUtf8, 0, endPos);
+        os.write(ParameterWriter.QUOTE);
     }
 
-    public void writeUnsafeTo(final PacketOutputStream os) throws IOException {
-        ParameterWriter.writeUnsafe(os, string, noBackslashEscapes);
+    /**
+     * Send escaped String to outputStream, without checking outputStream buffer capacity.
+     *
+     * @param os outpustream.
+     */
+    public void writeUnsafeTo(final PacketOutputStream os) {
+        if (escapeValueUtf8 == null) escapeForText();
+        os.writeUnsafe(ParameterWriter.QUOTE);
+        os.writeUnsafe(escapeValueUtf8, 0, endPos);
+        os.writeUnsafe(ParameterWriter.QUOTE);
     }
 
-    public long getApproximateTextProtocolLength() throws IOException {
-        return string.getBytes().length * 2 + 2;
+    public long getApproximateTextProtocolLength() {
+        escapeForText();
+        return endPos + 2;
     }
 
     public void writeBinary(final PacketOutputStream writeBuffer) {
@@ -87,7 +104,26 @@ public class StringParameter extends NotLongDataParameterHolder {
 
     @Override
     public String toString() {
-        return ParameterWriter.getWriteValue(string, noBackslashEscapes);
+        if (string != null) {
+            if (string.length() < 1024) {
+                return "'" + string + "'";
+            } else {
+                return "'" + string.substring(0, 1024) + "...'";
+            }
+        } else {
+            if (endPos > 1024) {
+                return "'" + new String(escapeValueUtf8, 0, 1024) + "...'";
+            } else {
+                return "'" + new String(escapeValueUtf8, 0, endPos) + "'";
+            }
+        }
     }
 
+    private void escapeForText() {
+        char[] chars = string.toCharArray();
+        string = null;
+        int charLength = chars.length;
+        escapeValueUtf8 = new byte[charLength * 3];
+        endPos = ParameterWriter.encodeUtf8Escaped(chars, 0, charLength, escapeValueUtf8, noBackslashEscapes);
+    }
 }

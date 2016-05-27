@@ -407,7 +407,7 @@ public class MultiTest extends BaseTest {
 
             final int secondCurrentInsert = retrieveSessionVariableFromServer(tmpConnection, "Com_insert");
 
-            // Test for multiple statements which isn't allowed. rewrite shouldn't work
+            // rewrite for multiple statements isn't possible, so use allowMutipleQueries
             sqlInsert = tmpConnection.prepareStatement("INSERT INTO MultiTestt3 (message) VALUES (?); "
                     + "INSERT INTO MultiTestt3 (message) VALUES ('multiple')");
             sqlInsert.setString(1, "aa");
@@ -416,9 +416,11 @@ public class MultiTest extends BaseTest {
             sqlInsert.addBatch();
             updateCounts = sqlInsert.executeBatch();
 
-            Assert.assertEquals(2, updateCounts.length);
+            Assert.assertEquals(4, updateCounts.length);
             Assert.assertEquals(1, updateCounts[0]);
             Assert.assertEquals(1, updateCounts[1]);
+            Assert.assertEquals(1, updateCounts[2]);
+            Assert.assertEquals(1, updateCounts[3]);
 
             assertEquals(4, retrieveSessionVariableFromServer(tmpConnection, "Com_insert") - secondCurrentInsert);
 
