@@ -1,11 +1,13 @@
 
 # GSSAPI Authentication
 
-The following subsections show how to implement GSSAPI Authentication with the java connector. 
-Server configuration can be found on https://github.com/MariaDB/server/blob/55d61ec878f94cfbdafee43599809dda98803a9f/plugin/auth_gssapi/README.md.
+MariaDB GSSAPI support GSSAPI since the 10.1 version (Server configuration can be found on https://github.com/MariaDB/server/blob/master/plugin/auth_gssapi/README.md).
 
-As part of the security context establishment, the driver will initiate a context that will be authenticated by database. 
-Database also be authenticated back to the driver ("mutual authentication").
+The following subsections show how to implement GSSAPI Authentication with the java connector. 
+
+Support history:
+* version 1.4.0 : java connector support
+* version 1.5.0 : added native windows implementation. 
 
 ## General configuration
 
@@ -23,6 +25,8 @@ The principal (userOne@EXAMPLE.COM in example) must be the one defined on the us
 Database server will wait for a ticket associated for the principal defined in user ('userOne@EXAMPLE').
 That mean on client, user must have obtained a TGT beforehand. 
 
+As part of the security context establishment, the driver will initiate a context that will be authenticated by database. 
+Database also be authenticated back to the driver ("mutual authentication").
 
 ### GSSAPI configuration
 #### Java system properties
