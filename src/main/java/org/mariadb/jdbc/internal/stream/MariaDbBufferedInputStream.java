@@ -1,9 +1,8 @@
-package org.mariadb.jdbc.internal.packet.dao.parameters;
-
 /*
 MariaDB Client for Java
 
 Copyright (c) 2012-2014 Monty Program Ab.
+Copyright (c) 2015-2016 MariaDB Ab.
 
 This library is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License as published by the Free
@@ -49,17 +48,43 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-import org.mariadb.jdbc.internal.stream.PacketOutputStream;
+package org.mariadb.jdbc.internal.stream;
 
+import java.io.BufferedInputStream;
+import java.io.EOFException;
 import java.io.IOException;
+import java.io.InputStream;
 
+public class MariaDbBufferedInputStream extends BufferedInputStream implements MariaDbInputStream {
+    private byte[] headerBuffer = new byte[4];
 
-public abstract class LongDataParameterHolder extends ParameterHolder {
+    public MariaDbBufferedInputStream(InputStream in, int size) {
+        super(in, size);
+    }
 
-    public abstract void writeBinary(PacketOutputStream writeBuffer) throws IOException;
+    /**
+     * Permit to return mysql packet header length super fast if already in cache.
+     * (no System.arraycopy)
+     * @return headerLength.
+     * @throws IOException id stream throw error
+     */
+    public int readHeader() throws IOException {
+        int avail = count - pos;
+        if (avail >= 4) {
+            int returnValue = (buf[pos] & 0xff) + ((buf[pos + 1] & 0xff) << 8) + ((buf[pos + 2] & 0xff) << 16);
+            pos += 4;
+            return returnValue;
+        }
 
-    public boolean isLongData() {
-        return true;
+        int read = 0;
+        do {
+            int count = read(headerBuffer, read, 4 - read);
+            if (count <= 0) {
+                throw new EOFException("unexpected end of stream, read " + read + " bytes from " + 4);
+            }
+            read += count;
+        } while (read < 4);
+        return (headerBuffer[0] & 0xff) + ((headerBuffer[1] & 0xff) << 8) + ((headerBuffer[2] & 0xff) << 16);
     }
 
 }

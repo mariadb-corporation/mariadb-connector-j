@@ -57,7 +57,7 @@ import java.io.IOException;
 import java.io.ObjectOutputStream;
 
 
-public class SerializableParameter extends LongDataParameterHolder {
+public class SerializableParameter implements ParameterHolder {
     private Object object;
     private boolean noBackSlashEscapes;
     private byte[] loadedStream = null;
@@ -128,4 +128,7 @@ public class SerializableParameter extends LongDataParameterHolder {
         return MariaDbType.BLOB;
     }
 
+    public boolean isLongData() {
+        return true;
+    }
 }

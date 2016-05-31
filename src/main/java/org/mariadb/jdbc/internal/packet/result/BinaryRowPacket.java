@@ -51,6 +51,7 @@ package org.mariadb.jdbc.internal.packet.result;
 
 import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
 import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
+import org.mariadb.jdbc.internal.stream.MariaDbInputStream;
 import org.mariadb.jdbc.internal.util.buffer.Buffer;
 
 import java.io.IOException;
@@ -192,7 +193,7 @@ public class BinaryRowPacket implements RowPacket {
      * @return datas object
      * @throws IOException if any connection error occur
      */
-    public byte[][] getRow(ReadPacketFetcher packetFetcher, InputStream inputStream, int remaining, int read) throws IOException {
+    public byte[][] getRow(ReadPacketFetcher packetFetcher, MariaDbInputStream inputStream, int remaining, int read) throws IOException {
         byte[][] valueObjects = new byte[columnInformationLength][];
         int toReadLen;
         int nullCount = (columnInformationLength + 9) / 8;

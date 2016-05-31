@@ -158,7 +158,7 @@ public interface Protocol {
     void executeQueriesRewrite(ExecutionResult executionResult, List<String> queries, int resultSetScrollType, boolean isRewritable,
                                int rewriteOffset) throws QueryException;
 
-    void getResult(ExecutionResult executionResult, int resultSetScrollType, boolean binaryProtocol) throws QueryException;
+    ExecutionResult getResult(ExecutionResult executionResult, int resultSetScrollType, boolean binaryProtocol, boolean loadAllResults) throws QueryException;
 
     void cancelCurrentQuery() throws QueryException, IOException;
 

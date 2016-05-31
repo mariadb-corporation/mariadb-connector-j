@@ -58,7 +58,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 
-public class ReaderParameter extends LongDataParameterHolder {
+public class ReaderParameter implements ParameterHolder {
     private Reader reader;
     private long length;
     private boolean noBackslashEscapes;

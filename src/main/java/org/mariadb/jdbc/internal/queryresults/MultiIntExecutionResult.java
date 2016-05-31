@@ -2,25 +2,39 @@ package org.mariadb.jdbc.internal.queryresults;
 
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 
+import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayDeque;
 import java.util.Deque;
 
-public class MultiIntExecutionResult extends ExecutionResult {
-    MariaSelectResultSet result = null;
-    long[] insertId;
-    int[] affectedRows;
-    int currentStat = 0;
+public class MultiIntExecutionResult implements ExecutionResult {
+
+    private Statement statement = null;
+    private boolean moreResultAvailable;
+    private int fetchSize;
+    private boolean selectPossible;
+    private boolean canHaveCallableResultset;
+    public Deque<ExecutionResult> cachedExecutionResults;
+    private MariaSelectResultSet resultSet = null;
+    private long[] insertId;
+    private int[] affectedRows;
+    private int currentStat = 0;
 
     /**
-     * Constructor. Creating result data with size according to datas.
+     * Constructor. Creating resultSet data with size according to datas.
      *
      * @param statement current statement
      * @param size      data size
      * @param fetchSize resultet fetch size
-     * @param isSelectPossible is select command possible
+     * @param selectPossible is select command possible
      */
-    public MultiIntExecutionResult(Statement statement, int size, int fetchSize, boolean isSelectPossible) {
-        super(statement, fetchSize, isSelectPossible, false);
+    public MultiIntExecutionResult(Statement statement, int size, int fetchSize, boolean selectPossible) {
+        this.statement = statement;
+        this.fetchSize = fetchSize;
+        this.selectPossible = selectPossible;
+        this.canHaveCallableResultset = false;
+        this.cachedExecutionResults = new ArrayDeque<>();
+
         affectedRows = new int[size];
         insertId = new long[size];
     }
@@ -31,8 +45,8 @@ public class MultiIntExecutionResult extends ExecutionResult {
      * @param result              resultset implementation
      * @param moreResultAvailable is there additional packet
      */
-    public void addResult(MariaSelectResultSet result, boolean moreResultAvailable) {
-        this.result = result;
+    public void addResultSet(MariaSelectResultSet result, boolean moreResultAvailable) {
+        this.resultSet = result;
         this.insertId[currentStat] = Statement.SUCCESS_NO_INFO;
         this.affectedRows[currentStat++] = -1;
         this.setMoreResultAvailable(moreResultAvailable);
@@ -73,7 +87,7 @@ public class MultiIntExecutionResult extends ExecutionResult {
     }
 
     /**
-     * Set result for rewrite queries.
+     * Set resultSet for rewrite queries.
      *
      * INSERT INTO XX VALUES (YYY)
      * INSERT INTO XX VALUES (ZZZ)
@@ -96,7 +110,7 @@ public class MultiIntExecutionResult extends ExecutionResult {
     }
 
     /**
-     * Set update result right on multiple rewrite.
+     * Set update resultSet right on multiple rewrite.
      *
      * INSERT XXXX
      * INSERT XXXX
@@ -131,6 +145,57 @@ public class MultiIntExecutionResult extends ExecutionResult {
             affectedRows = newAffectedRows;
             insertId = newInsertIds;
         }
+    }
+
+    public MariaSelectResultSet getResultSet() {
+        return resultSet;
+    }
+
+    public Statement getStatement() {
+        return statement;
+    }
+
+    public boolean hasMoreResultAvailable() {
+        return moreResultAvailable;
+    }
+
+    protected void setMoreResultAvailable(boolean moreResultAvailable) {
+        this.moreResultAvailable = moreResultAvailable;
+    }
+
+    public int getFetchSize() {
+        return fetchSize;
+    }
+
+    public void setFetchSize(int fetchSize) {
+        this.fetchSize = fetchSize;
+    }
+
+    /**
+     * Close resultset if needed.
+     *
+     * @throws SQLException if exception occur during resultset close.
+     */
+    public void close() throws SQLException {
+        if (resultSet != null) {
+            resultSet.close();
+        }
+    }
+
+    public boolean isSelectPossible() {
+        return selectPossible;
+    }
+
+    public boolean isCanHaveCallableResultset() {
+        return canHaveCallableResultset;
+    }
+
+    public Deque<ExecutionResult> getCachedExecutionResults() {
+        return cachedExecutionResults;
+    }
+
+    public void addResult(ExecutionResult executionResult) {
+        cachedExecutionResults.add(executionResult);
     }
 
 }

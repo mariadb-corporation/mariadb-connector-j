@@ -266,14 +266,33 @@ public class StatementTest extends BaseTest {
     @Test
     public void closeOnCompletion() throws SQLException {
         Statement statement = sharedConnection.createStatement();
-        ResultSet rs = statement.executeQuery("SELECT 1");
-
         assertFalse(statement.isCloseOnCompletion());
+        ResultSet rs = statement.executeQuery("SELECT 1");
         statement.closeOnCompletion();
         assertTrue(statement.isCloseOnCompletion());
-
         assertFalse(statement.isClosed());
         rs.close();
         assertTrue(statement.isClosed());
+    }
+
+    @Test
+    public void testFractionalTimeBatch() throws SQLException {
+        createTable("testFractionalTimeBatch", "tt TIMESTAMP(6)");
+        Timestamp currTime = new Timestamp(System.currentTimeMillis());
+        try (PreparedStatement preparedStatement = sharedConnection.prepareStatement(
+                "INSERT INTO testFractionalTimeBatch (tt) values (?)")) {
+            for (int i = 0; i < 2; i++) {
+                preparedStatement.setTimestamp(1, currTime);
+                preparedStatement.addBatch();
+            }
+            preparedStatement.executeBatch();
+        }
+
+        try (Statement statement = sharedConnection.createStatement()) {
+            try (ResultSet resultSet = statement.executeQuery("SELECT * from testFractionalTimeBatch")) {
+                assertTrue(resultSet.next());
+                assertEquals(resultSet.getTimestamp(1).getNanos(), currTime.getNanos());
+            }
+        }
     }
 }

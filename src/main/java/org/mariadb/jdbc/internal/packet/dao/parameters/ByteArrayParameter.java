@@ -57,7 +57,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 
-public class ByteArrayParameter extends NotLongDataParameterHolder {
+public class ByteArrayParameter implements ParameterHolder, Cloneable {
 
     private byte[] bytes;
     private boolean noBackslashEscapes;
@@ -95,4 +95,9 @@ public class ByteArrayParameter extends NotLongDataParameterHolder {
             return "<bytearray:" + new String(bytes) + ">";
         }
     }
+
+    public boolean isLongData() {
+        return false;
+    }
+
 }

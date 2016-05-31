@@ -56,7 +56,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 
-public class NullParameter extends ParameterHolder {
+public class NullParameter implements ParameterHolder, Cloneable {
     private static final byte[] NULL = {'N', 'U', 'L', 'L'};
     private MariaDbType type;
 
@@ -73,13 +73,16 @@ public class NullParameter extends ParameterHolder {
     }
 
     public void writeUnsafeTo(final PacketOutputStream os) {
-        os.writeUnsafe(NULL);
+        os.buffer.put(NULL, 0, 4);
     }
 
     public long getApproximateTextProtocolLength() {
         return 4;
     }
 
+    public void writeBinary(final PacketOutputStream writeBuffer) {
+        //null data are not send in binary format.
+    }
 
     @Override
     public boolean isLongData() {

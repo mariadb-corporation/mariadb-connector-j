@@ -61,7 +61,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 
-public class StreamParameter extends LongDataParameterHolder {
+public class StreamParameter implements ParameterHolder {
     private InputStream is;
     private long length;
     private boolean noBackslashEscapes;
@@ -162,4 +162,7 @@ public class StreamParameter extends LongDataParameterHolder {
         return MariaDbType.BLOB;
     }
 
+    public boolean isLongData() {
+        return true;
+    }
 }

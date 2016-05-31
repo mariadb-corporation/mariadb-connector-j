@@ -53,7 +53,7 @@ OF SUCH DAMAGE.
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 import org.mariadb.jdbc.internal.MariaDbType;
 
-public class FloatParameter extends NotLongDataParameterHolder {
+public class FloatParameter implements ParameterHolder, Cloneable {
     private float value;
 
     public FloatParameter(float value) {
@@ -84,6 +84,10 @@ public class FloatParameter extends NotLongDataParameterHolder {
     @Override
     public String toString() {
         return Float.toString(value);
+    }
+
+    public boolean isLongData() {
+        return false;
     }
 
 }

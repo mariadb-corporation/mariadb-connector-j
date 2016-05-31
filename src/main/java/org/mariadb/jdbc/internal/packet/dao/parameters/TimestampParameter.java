@@ -59,7 +59,7 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
 
-public class TimestampParameter extends NotLongDataParameterHolder {
+public class TimestampParameter implements ParameterHolder, Cloneable {
     private Timestamp ts;
     private Calendar calendar;
     private boolean fractionalSeconds;
@@ -97,10 +97,10 @@ public class TimestampParameter extends NotLongDataParameterHolder {
      * @param os the stream to write to
      */
     public void writeUnsafeTo(final PacketOutputStream os) {
-        os.write(ParameterWriter.QUOTE);
+        os.buffer.put(ParameterWriter.QUOTE);
         os.writeUnsafe(dateToByte());
         ParameterWriter.formatMicrosecondsUnsafe(os, ts.getNanos() / 1000, fractionalSeconds);
-        os.write(ParameterWriter.QUOTE);
+        os.buffer.put(ParameterWriter.QUOTE);
     }
 
     private byte[] dateToByte() {
@@ -134,4 +134,9 @@ public class TimestampParameter extends NotLongDataParameterHolder {
     public String toString() {
         return "'" + ts.toString() + "'";
     }
+
+    public boolean isLongData() {
+        return false;
+    }
+
 }

@@ -54,7 +54,7 @@ import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
 import java.io.IOException;
 
-public class ShortParameter extends NotLongDataParameterHolder {
+public class ShortParameter implements ParameterHolder, Cloneable {
     private short value;
 
     public ShortParameter(short value) {
@@ -84,6 +84,10 @@ public class ShortParameter extends NotLongDataParameterHolder {
     @Override
     public String toString() {
         return Short.toString(value);
+    }
+
+    public boolean isLongData() {
+        return false;
     }
 
 }

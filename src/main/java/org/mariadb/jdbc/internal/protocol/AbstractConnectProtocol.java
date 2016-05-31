@@ -62,6 +62,8 @@ import org.mariadb.jdbc.internal.protocol.authentication.AuthenticationProviderH
 import org.mariadb.jdbc.internal.queryresults.ExecutionResult;
 import org.mariadb.jdbc.internal.queryresults.SingleExecutionResult;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
+import org.mariadb.jdbc.internal.stream.MariaDbBufferedInputStream;
+import org.mariadb.jdbc.internal.stream.MariaDbInputStream;
 import org.mariadb.jdbc.internal.util.*;
 import org.mariadb.jdbc.internal.util.buffer.Buffer;
 import org.mariadb.jdbc.internal.packet.read.ReadInitialConnectPacket;
@@ -82,7 +84,6 @@ import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.X509TrustManager;
 
-import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
@@ -411,9 +412,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
     }
 
     private void handleConnectionPhases() throws QueryException {
-        InputStream reader = null;
+        MariaDbInputStream reader = null;
         try {
-            reader = new BufferedInputStream(socket.getInputStream(), 16384);
+            reader = new MariaDbBufferedInputStream(socket.getInputStream(), 16384);
             packetFetcher = new ReadPacketFetcher(reader);
             writer = new PacketOutputStream(socket.getOutputStream());
 
@@ -440,7 +441,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 sslSocket.startHandshake();
                 socket = sslSocket;
                 writer = new PacketOutputStream(socket.getOutputStream());
-                reader = new BufferedInputStream(socket.getInputStream(), 16384);
+                reader = new MariaDbBufferedInputStream(socket.getInputStream(), 16384);
                 packetFetcher = new ReadPacketFetcher(reader);
 
                 packetSeq++;
@@ -604,7 +605,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                     + "'time_zone', "
                     + "'sql_mode'"
                     + ")", ResultSet.TYPE_FORWARD_ONLY);
-            MariaSelectResultSet resultSet = qr.getResult();
+            MariaSelectResultSet resultSet = qr.getResultSet();
             while (resultSet.next()) {
                 serverData.put(resultSet.getString(1), resultSet.getString(2));
             }

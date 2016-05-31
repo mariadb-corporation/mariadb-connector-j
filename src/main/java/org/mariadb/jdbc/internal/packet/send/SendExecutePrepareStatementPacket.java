@@ -50,7 +50,6 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.packet.send;
 
 import org.mariadb.jdbc.internal.MariaDbType;
-import org.mariadb.jdbc.internal.packet.dao.parameters.NotLongDataParameterHolder;
 import org.mariadb.jdbc.internal.packet.dao.parameters.NullParameter;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
@@ -115,7 +114,7 @@ public class SendExecutePrepareStatementPacket implements InterfaceSendPacket {
                     nullBitsBuffer[i / 8] |= (1 << (i % 8));
                 }
             }
-            pos.write(nullBitsBuffer);/*Null Bit Map*/
+            pos.write(nullBitsBuffer, 0, nullCount);/*Null Bit Map*/
 
             //check if parameters type (using setXXX) have change since previous request, and resend new header type if so
             boolean mustSendHeaderType = false;
@@ -135,16 +134,14 @@ public class SendExecutePrepareStatementPacket implements InterfaceSendPacket {
                 //Store types of parameters in first in first package that is sent to the server.
                 for (int i = 0; i < this.parameterCount; i++) {
                     parameterTypeHeader[i] = parameters[i].getMariaDbType();
-                    parameters[i].writeBufferType(pos);
+                    pos.writeShort((short) parameterTypeHeader[i].getType());
                 }
             } else {
                 pos.buffer.put((byte) 0x00);
             }
         }
         for (int i = 0; i < parameterCount; i++) {
-            if (parameters[i] instanceof NotLongDataParameterHolder) {
-                ((NotLongDataParameterHolder) parameters[i]).writeBinary(pos);
-            }
+            if (!parameters[i].isLongData()) parameters[i].writeBinary(pos);
         }
     }
 }

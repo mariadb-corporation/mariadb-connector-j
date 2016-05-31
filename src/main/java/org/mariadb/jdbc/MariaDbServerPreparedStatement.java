@@ -248,7 +248,6 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
                             prepareResult = protocol.prepareAndExecute(internalExecutionResult, sql, false,
                                     parameterHolder, parameterTypeHeader, resultSetScrollType);
                         }
-                        cacheMoreResults(internalExecutionResult, 0, false);
                     } catch (QueryException queryException) {
                         if (protocol.getOptions().continueBatchOnError) {
                             if (exception == null) {
@@ -291,7 +290,7 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
     @Override
     public ResultSet executeQuery() throws SQLException {
         if (execute()) {
-            return executionResult.getResult();
+            return executionResult.getResultSet();
         }
         return MariaSelectResultSet.EMPTY;
     }
@@ -339,7 +338,8 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
             executeQueryProlog(prepareResult);
             try {
                 batchResultSet = null;
-                SingleExecutionResult internalExecutionResult = new SingleExecutionResult(this, fetchSize, true, canHaveCallableResultset);
+                SingleExecutionResult internalExecutionResult = new SingleExecutionResult(this, fetchSize, true, canHaveCallableResultset,
+                        true);
 
                 if (prepareResult != null) {
                     protocol.executePreparedQuery(prepareResult, internalExecutionResult, sql,
@@ -351,9 +351,8 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
                             currentParameterHolder.values().toArray(new ParameterHolder[0]),
                             new MariaDbType[currentParameterHolder.size()], resultSetScrollType);
                 }
-                cacheMoreResults(internalExecutionResult, fetchSize, canHaveCallableResultset);
                 executionResult = internalExecutionResult;
-                return executionResult.getResult() != null;
+                return executionResult.getResultSet() != null;
 
             } catch (QueryException e) {
                 exception = e;

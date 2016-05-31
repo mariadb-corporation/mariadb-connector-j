@@ -13,7 +13,6 @@ import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.util.constant.ServerStatus;
 import org.mariadb.jdbc.internal.util.buffer.Buffer;
 import org.mariadb.jdbc.internal.packet.read.Packet;
-import org.mariadb.jdbc.internal.packet.dao.parameters.LongDataParameterHolder;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
 import org.mariadb.jdbc.internal.MariaDbType;
@@ -267,7 +266,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                         writer.write((byte) 0x18);
                         writer.writeInt(-1);
                         writer.writeShort((short) i);
-                        ((LongDataParameterHolder) parameters[i]).writeBinary(writer);
+                        parameters[i].writeBinary(writer);
                         subcommandEndPosition = writer.buffer.position();
 
                         //write subcommand length
@@ -305,7 +304,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                         writer.buffer.put((byte) 0x18);
                         writer.buffer.putInt(-1);
                         writer.buffer.putShort((short) i);
-                        ((LongDataParameterHolder) parameters[i]).writeBinary(writer);
+                        parameters[i].writeBinary(writer);
                         writer.finishPacket();
                     }
                 }
@@ -318,7 +317,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             //prepare send, now send parameters
 
 
-            getResult(executionResult, resultSetScrollType, true);
+            getResult(executionResult, resultSetScrollType, true, true);
             return prepareResult;
         } catch (IOException e) {
             throw new QueryException(e.getMessage(), -1,
@@ -445,7 +444,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         }
         writer.sendFile(is, seq);
         is.close();
-        getResult(executionResult, ResultSet.TYPE_FORWARD_ONLY, false);
+        getResult(executionResult, ResultSet.TYPE_FORWARD_ONLY, false, true);
     }
 
     @Override
@@ -476,7 +475,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     writer.buffer.put((byte) 0x18);
                     writer.buffer.putInt(prepareResult.getStatementId());
                     writer.buffer.putShort((short) i);
-                    ((LongDataParameterHolder) parameters[i]).writeBinary(writer);
+                    parameters[i].writeBinary(writer);
                     writer.finishPacket();
                 }
             }
@@ -484,7 +483,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             SendExecutePrepareStatementPacket packet = new SendExecutePrepareStatementPacket(prepareResult.getStatementId(), parameters,
                     parameterCount, parameterTypeHeader);
             packet.send(writer);
-            getResult(executionResult, resultSetScrollType, true);
+            getResult(executionResult, resultSetScrollType, true, true);
 
         } catch (QueryException qex) {
             if (getOptions().dumpQueriesOnException || qex.getErrorCode() == 1064) {
@@ -574,7 +573,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             return;
         }
         getResult(executionResult, ResultSet.TYPE_FORWARD_ONLY,
-                (activeStreamingResult != null) ? activeStreamingResult.isBinaryEncoded() : moreResultsTypeBinary);
+                (activeStreamingResult != null) ? activeStreamingResult.isBinaryEncoded() : moreResultsTypeBinary, false);
     }
 
     /**
@@ -711,7 +710,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         checkClose();
         try {
             writer.sendTextPacket(sql);
-            getResult(executionResult, resultSetScrollType, false);
+            getResult(executionResult, resultSetScrollType, false, true);
         } catch (QueryException queryException) {
             if (getOptions().dumpQueriesOnException || queryException.getErrorCode() == 1064) {
                 String sqlQuery = sql;
@@ -755,7 +754,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 }
 
                 writer.startPacket(0);
-                writer.writeUnsafe(0x03);
+                writer.buffer.put((byte) 0x03);
                 writer.write(queryParts.get(0).getBytes("UTF-8"));
                 for (int i = 0; i < paramCount; i++) {
                     parameters[i].writeTo(writer);
@@ -763,7 +762,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 }
                 writer.finishPacket();
             }
-            getResult(executionResult, resultSetScrollType, false);
+            getResult(executionResult, resultSetScrollType, false, true);
 
         } catch (QueryException queryException) {
             throwErrorWithQuery(queryParts, parameters, queryException, paramCount, false);
@@ -790,7 +789,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                                       int resultSetScrollType, boolean isRewritable) throws QueryException {
         checkClose();
         int paramCount = queryParts.size() - 3;
-        int currentIndex = 0;
 
         try {
             //validate parameters
@@ -803,7 +801,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             this.moreResults = false;
 
             writer.startPacket(0);
-            writer.write(0x03);
+            writer.buffer.put((byte) 0x03);
             writer.write(queryParts.get(0).getBytes("UTF-8"));
             writer.write(queryParts.get(1).getBytes("UTF-8"));
             for (int i = 0; i < paramCount; i++) {
@@ -813,7 +811,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             writer.write(queryParts.get(paramCount + 2).getBytes("UTF-8"));
 
             writer.finishPacket();
-            getResult(executionResult, resultSetScrollType, false);
+            getResult(executionResult, resultSetScrollType, false, true);
 
         } catch (QueryException queryException) {
             throwErrorWithQuery(queryParts, parameters, queryException, paramCount, true);
@@ -827,7 +825,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         }
     }
 
-    private void throwErrorWithQuery(List<String> queryParts, ParameterHolder[] parameters, QueryException queryException, int paramCount, boolean rewrite)
+    private void throwErrorWithQuery(List<String> queryParts, ParameterHolder[] parameters, QueryException queryException, int paramCount,
+                                     boolean rewrite)
             throws QueryException {
         if (getOptions().dumpQueriesOnException || queryException.getErrorCode() == 1064) {
             StringBuilder queryString = new StringBuilder(queryParts.get(0));
@@ -864,7 +863,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             try {
                 sql = queries.get(counter);
                 writer.sendTextPacket(sql);
-                getResult(executionResult, resultSetScrollType, false);
+                getResult(executionResult, resultSetScrollType, false, true);
             } catch (QueryException queryException) {
                 if (getOptions().dumpQueriesOnException || queryException.getErrorCode() == 1064) {
                     addQueryInfo(sql, queryException);
@@ -910,10 +909,11 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
             //validate parameters
             for (ParameterHolder[] parameterHolders : parameterList) {
-                for (ParameterHolder ph : parameterHolders) {
-                    if (ph == null) {
-                        parameters = parameterHolders;
-                        throw new QueryException("You need to set exactly " + paramCount + " parameters on the prepared statement");
+                for (int i = 0; i < paramCount; i++) {
+                    parameters = parameterHolders;
+                    if (parameters[i] == null) {
+                        throw new QueryException("Parameter " + (i + 1) + " is not set. You need to set exactly " + paramCount
+                                + " parameters on the prepared statement");
                     }
                 }
             }
@@ -931,8 +931,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 writer.startPacket(0);
                 writer.write(0x03);
 
+                byte[] firstPart = queryPartsUtf8.get(0);
+
                 //write first
-                writer.write(queryPartsUtf8.get(0));
+                writer.write(firstPart);
 
                 int staticLength = 1;
                 for (int i = 0; i < queryPartsUtf8.size(); i++) staticLength += queryPartsUtf8.get(i).length;
@@ -964,11 +966,11 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                         // - if this query will be separated in a new packet.
                         if (writer.checkRewritableLength(staticLength + parameterLength)) {
                             writer.assureBufferCapacity(staticLength + parameterLength);
-                            writer.writeUnsafe(';');
-                            writer.writeUnsafe(queryPartsUtf8.get(0));
+                            writer.buffer.put((byte) ';');
+                            writer.buffer.put(firstPart, 0, firstPart.length);
                             for (int i = 0; i < paramCount; i++) {
                                 parameters[i].writeUnsafeTo(writer);
-                                writer.writeUnsafe(queryPartsUtf8.get(i + 1));
+                                writer.buffer.put(queryPartsUtf8.get(i + 1));
                             }
                             currentIndex++;
                         } else {
@@ -977,7 +979,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     } else {
                         //we cannot know the additional query part size.
                         writer.write(';');
-                        writer.write(queryPartsUtf8.get(0));
+                        writer.write(firstPart, 0, firstPart.length);
                         for (int i = 0; i < paramCount; i++) {
                             parameters[i].writeTo(writer);
                             writer.write(queryPartsUtf8.get(i + 1));
@@ -987,7 +989,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 }
 
                 writer.finishPacket();
-                getResult(executionResult, resultSetScrollType, false);
+                getResult(executionResult, resultSetScrollType, false, true);
             } while (currentIndex < totalParameterList);
 
         } catch (QueryException queryException) {
@@ -1041,12 +1043,15 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             do {
                 parameters = parameterList.get(currentIndex++);
                 writer.startPacket(0);
-                writer.write(0x03);
+                writer.buffer.put((byte)0x03);
+
+                byte[] firstPart = queryPartsUtf8.get(0);
+                byte[] secondPart = queryPartsUtf8.get(1);
 
                 if (!isRewritable) {
                     //write first
-                    writer.write(queryPartsUtf8.get(0));
-                    writer.write(queryPartsUtf8.get(1));
+                    writer.write(firstPart, 0, firstPart.length);
+                    writer.write(secondPart, 0, secondPart.length);
 
                     int staticLength = 1;
                     for (int i = 0; i < queryPartsUtf8.size(); i++) staticLength += queryPartsUtf8.get(i).length;
@@ -1079,9 +1084,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                             // - if this query will be separated in a new packet.
                             if (writer.checkRewritableLength(staticLength + parameterLength)) {
                                 writer.assureBufferCapacity(staticLength + parameterLength);
-                                writer.writeUnsafe(';');
-                                writer.writeUnsafe(queryPartsUtf8.get(0));
-                                writer.writeUnsafe(queryPartsUtf8.get(1));
+                                writer.buffer.put((byte)';');
+                                writer.buffer.put(firstPart, 0, firstPart.length);
+                                writer.buffer.put(secondPart, 0, secondPart.length);
                                 for (int i = 0; i < paramCount; i++) {
                                     parameters[i].writeUnsafeTo(writer);
                                     writer.writeUnsafe(queryPartsUtf8.get(i + 2));
@@ -1094,8 +1099,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                         } else {
                             //we cannot know the additional query part size.
                             writer.write(';');
-                            writer.write(queryPartsUtf8.get(0));
-                            writer.write(queryPartsUtf8.get(1));
+                            writer.write(firstPart, 0, firstPart.length);
+                            writer.write(secondPart, 0, secondPart.length);
                             for (int i = 0; i < paramCount; i++) {
                                 parameters[i].writeTo(writer);
                                 writer.write(queryPartsUtf8.get(i + 2));
@@ -1106,8 +1111,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     }
 
                 } else {
-                    writer.write(queryPartsUtf8.get(0));
-                    writer.write(queryPartsUtf8.get(1));
+                    writer.write(firstPart, 0, firstPart.length);
+                    writer.write(secondPart, 0, secondPart.length);
                     int lastPartLength = queryPartsUtf8.get(paramCount + 2).length;
                     int intermediatePartLength = queryPartsUtf8.get(1).length;
 
@@ -1138,8 +1143,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                             // - if this query will be separated in a new packet.
                             if (writer.checkRewritableLength(1 + parameterLength + intermediatePartLength + lastPartLength)) {
                                 writer.assureBufferCapacity(1 + parameterLength + intermediatePartLength + lastPartLength);
-                                writer.writeUnsafe((byte) 44); //","
-                                writer.writeUnsafe(queryPartsUtf8.get(1));
+                                writer.buffer.put((byte) ',');
+                                writer.buffer.put(secondPart, 0, secondPart.length);
 
                                 for (int i = 0; i < paramCount; i++) {
                                     parameters[i].writeUnsafeTo(writer);
@@ -1150,8 +1155,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                                 break;
                             }
                         } else {
-                            writer.write((byte) 44); //","
-                            writer.write(queryPartsUtf8.get(1));
+                            writer.write((byte) ',');
+                            writer.write(secondPart, 0, secondPart.length);
 
                             for (int i = 0; i < paramCount; i++) {
                                 parameters[i].writeTo(writer);
@@ -1164,7 +1169,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 }
 
                 writer.finishPacket();
-                getResult(executionResult, resultSetScrollType, false);
+                getResult(executionResult, resultSetScrollType, false, true);
             } while (currentIndex < totalParameterList);
 
         } catch (QueryException queryException) {
@@ -1204,7 +1209,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 firstSql = sql;
                 if (totalQueries == 1) {
                     writer.sendTextPacket(sql);
-                    getResult(executionResult, resultSetScrollType, false);
+                    getResult(executionResult, resultSetScrollType, false, true);
                 } else {
                     writer.startPacket(0);
                     writer.write(0x03);
@@ -1236,7 +1241,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     }
 
                     writer.finishPacket();
-                    getResult(executionResult, resultSetScrollType, false);
+                    getResult(executionResult, resultSetScrollType, false, true);
                 }
             } catch (QueryException queryException) {
                 if (getOptions().dumpQueriesOnException || queryException.getErrorCode() == 1064) {
@@ -1274,7 +1279,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     }
 
     @Override
-    public void getResult(ExecutionResult executionResult, int resultSetScrollType, boolean binaryProtocol) throws QueryException {
+    public ExecutionResult getResult(ExecutionResult executionResult, int resultSetScrollType, boolean binaryProtocol, boolean loadAllResults)
+            throws QueryException {
         Buffer buffer;
         try {
             buffer = packetFetcher.getReusableBuffer();
@@ -1297,7 +1303,17 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 serverStatus = buffer.readShort();
                 this.hasWarnings = (buffer.readShort() > 0);
                 this.moreResults = ((serverStatus & ServerStatus.MORE_RESULTS_EXISTS) != 0);
-                executionResult.addStats(affectedRows, insertId, hasMoreResults());
+
+                if (!loadAllResults) {
+                    return new SingleExecutionResult(executionResult.getStatement(), 0, true, false, affectedRows, insertId);
+                }
+
+                executionResult.addStats(affectedRows, insertId, moreResults);
+                while (moreResults && loadAllResults && executionResult.getFetchSize() == 0) {
+                    //load additional results
+                    executionResult.getCachedExecutionResults().add(getResult(executionResult, ResultSet.TYPE_FORWARD_ONLY,
+                            (activeStreamingResult != null) ? activeStreamingResult.isBinaryEncoded() : moreResultsTypeBinary, false));
+                }
                 break;
             case Packet.ERROR:
                 //Error packet
@@ -1315,7 +1331,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     message = new String(buffer.buf, StandardCharsets.UTF_8);
                     sqlState = "HY000";
                 }
-                executionResult.addStats(Statement.EXECUTE_FAILED, Statement.SUCCESS_NO_INFO, hasMoreResults());
+                executionResult.addStats(Statement.EXECUTE_FAILED, Statement.SUCCESS_NO_INFO, moreResults);
                 throw new QueryException(message, errorNumber, sqlState);
 
             case Packet.LOCAL_INFILE:
@@ -1346,11 +1362,14 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
                 try {
                     boolean callableResult = false;
+
+                    //read columns infos
                     ColumnInformation[] ci = new ColumnInformation[(int) fieldCount];
                     for (int i = 0; i < fieldCount; i++) {
                         ci[i] = new ColumnInformation(packetFetcher.getPacket());
                     }
 
+                    //read EOF packet
                     Buffer bufferEof = packetFetcher.getReusableBuffer();
                     if (bufferEof.getByteAt(0) != Packet.EOF) {
                         throw new QueryException("Packets out of order when reading field packets, expected was EOF stream. "
@@ -1360,14 +1379,21 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                         callableResult = (endOfFilePacket.getStatusFlags() & ServerStatus.PS_OUT_PARAMETERS) != 0;
                     }
 
+                    //fetch Select result
                     MariaSelectResultSet mariaSelectResultset = new MariaSelectResultSet(ci, executionResult.getStatement(), this, packetFetcher,
                             binaryProtocol, resultSetScrollType, executionResult.getFetchSize(), callableResult);
                     mariaSelectResultset.initFetch();
-                    if (!executionResult.isSelectPossible()) {
-                        throw new QueryException("Select command are not permitted via executeBatch() command");
-                    }
-                    executionResult.addResult(mariaSelectResultset, hasMoreResults());
 
+                    if (!executionResult.isSelectPossible()) throw new QueryException("Select command are not permitted via executeBatch() command");
+                    if (!loadAllResults) return new SingleExecutionResult(executionResult.getStatement(), 0, true, false, mariaSelectResultset);
+
+                    executionResult.addResultSet(mariaSelectResultset, moreResults);
+
+                    //load additional results
+                    while (moreResults && loadAllResults && executionResult.getFetchSize() == 0) {
+                        executionResult.getCachedExecutionResults().add(getResult(executionResult, ResultSet.TYPE_FORWARD_ONLY,
+                                (activeStreamingResult != null) ? activeStreamingResult.isBinaryEncoded() : moreResultsTypeBinary, false));
+                    }
 
                 } catch (IOException e) {
                     throw new QueryException("Could not read result set: " + e.getMessage(),
@@ -1378,7 +1404,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 break;
 
         }
-
+        return executionResult;
     }
 
     public void prologProxy(PrepareResult prepareResult, ExecutionResult executionResult, int maxRows, boolean hasProxy,

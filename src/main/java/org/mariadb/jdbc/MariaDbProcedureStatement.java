@@ -168,7 +168,7 @@ public class MariaDbProcedureStatement extends AbstractCallableProcedureStatemen
             validAllParameters();
             super.executeInternal(0, hasOutParameters);
             retrieveOutputResult();
-            return executionResult != null && executionResult.getResult() != null;
+            return executionResult != null && executionResult.getResultSet() != null;
         } finally {
             connection.lock.unlock();
         }

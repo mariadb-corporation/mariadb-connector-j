@@ -82,7 +82,8 @@ public class SendGssApiAuthPacket extends AbstractAuthSwitchSendResponsePacket i
         Buffer buffer = new Buffer(authData);
         final PacketOutputStream writer = (PacketOutputStream) os;
         final String serverPrincipalName = buffer.readString(Charset.forName("UTF-8"));
-        final String mechanisms = buffer.readString(Charset.forName("UTF-8")); //don't use mechanisms now ???? (SPNEGO forced to kerberos)
+        String mechanisms = buffer.readString(Charset.forName("UTF-8"));
+        if (mechanisms.equals("")) mechanisms = "Kerberos";
 
         GssapiAuth gssapiAuth = getAuthenticationMethod();
         gssapiAuth.authenticate(writer, serverPrincipalName, mechanisms);

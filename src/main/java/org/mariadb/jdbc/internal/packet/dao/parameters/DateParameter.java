@@ -58,7 +58,7 @@ import java.sql.Date;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
-public class DateParameter extends NotLongDataParameterHolder {
+public class DateParameter implements ParameterHolder, Cloneable {
     private Date date;
     private Calendar calendar;
     private Options options;
@@ -136,4 +136,9 @@ public class DateParameter extends NotLongDataParameterHolder {
     public String toString() {
         return "'" + date.toString() + "'";
     }
+
+    public boolean isLongData() {
+        return false;
+    }
+
 }

@@ -53,7 +53,7 @@ package org.mariadb.jdbc.internal.packet.dao.parameters;
 import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
-public class LongParameter extends NotLongDataParameterHolder {
+public class LongParameter implements ParameterHolder, Cloneable {
     private long value;
 
     public LongParameter(long value) {
@@ -82,6 +82,10 @@ public class LongParameter extends NotLongDataParameterHolder {
 
     public String toString() {
         return Long.toString(value);
+    }
+
+    public boolean isLongData() {
+        return false;
     }
 
 }

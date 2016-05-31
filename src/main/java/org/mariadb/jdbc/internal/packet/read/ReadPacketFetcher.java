@@ -50,6 +50,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.packet.read;
 
+import org.mariadb.jdbc.internal.stream.MariaDbInputStream;
 import org.mariadb.jdbc.internal.util.buffer.Buffer;
 
 import java.io.EOFException;
@@ -58,12 +59,17 @@ import java.io.InputStream;
 
 public class ReadPacketFetcher {
     public static final int AVOID_CREATE_BUFFER_LENGTH = 4096;
-    private final InputStream inputStream;
+    private final MariaDbInputStream inputStream;
+
     private byte[] headerBuffer = new byte[4];
     private byte[] reusableBuffer = new byte[AVOID_CREATE_BUFFER_LENGTH];
     private int lastPacketSeq;
 
-    public ReadPacketFetcher(final InputStream is) {
+    /**
+     * Reader utility to fetch mysql packet.
+     * @param is inputStream
+     */
+    public ReadPacketFetcher(final MariaDbInputStream is) {
         this.inputStream = is;
     }
 
@@ -74,15 +80,7 @@ public class ReadPacketFetcher {
      * @throws IOException if any
      */
     public int getPacketLength() throws IOException {
-        int read = 0;
-        do {
-            int count = inputStream.read(headerBuffer, read, 4 - read);
-            if (count <= 0) {
-                throw new EOFException("unexpected end of stream, read " + read + " bytes from " + 4);
-            }
-            read += count;
-        } while (read < 4);
-        return (headerBuffer[0] & 0xff) + ((headerBuffer[1] & 0xff) << 8) + ((headerBuffer[2] & 0xff) << 16);
+        return inputStream.readHeader();
     }
 
     /**
@@ -205,7 +203,7 @@ public class ReadPacketFetcher {
         inputStream.close();
     }
 
-    public InputStream getInputStream() {
+    public MariaDbInputStream getInputStream() {
         return inputStream;
     }
 

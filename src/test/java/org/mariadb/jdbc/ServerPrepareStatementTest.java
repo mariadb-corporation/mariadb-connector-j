@@ -73,6 +73,38 @@ public class ServerPrepareStatementTest extends BaseTest {
         }
     }
 
+
+    @Test
+    public void deferredPrepareTest() throws SQLException {
+        Assume.assumeTrue(isMariadbServer());
+        requireMinimumVersion(10,2);
+        Connection connection = null;
+        try {
+            connection = setConnection();
+            Statement statement = connection.createStatement();
+            ResultSet rs = statement.executeQuery("show global status like 'Prepared_stmt_count'");
+            assertTrue(rs.next());
+            final int nbStatementCount = rs.getInt(2);
+
+            PreparedStatement ps = connection.prepareStatement(
+                    "INSERT INTO ServerPrepareStatementTestt (test) VALUES (?)");
+            ps.setBoolean(1, true);
+            ps.addBatch();
+
+            rs = statement.executeQuery("show global status like 'Prepared_stmt_count'");
+            assertTrue(rs.next());
+            assertTrue(rs.getInt(2) == nbStatementCount);
+
+            ps.execute();
+
+            rs = statement.executeQuery("show global status like 'Prepared_stmt_count'");
+            assertTrue(rs.next());
+            assertTrue(rs.getInt(2) == nbStatementCount + 1);
+        } finally {
+            connection.close();
+        }
+    }
+
     @Test
     public void serverCacheStatementTest() throws Throwable {
         Assume.assumeTrue(sharedUsePrepare());

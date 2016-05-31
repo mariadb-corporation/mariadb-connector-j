@@ -87,7 +87,6 @@ public class MariaDbStatement implements Statement, Cloneable {
     boolean isTimedout;
     volatile boolean executing;
     private List<String> batchQueries;
-    Deque<ExecutionResult> cachedExecutionResults;
     //are warnings cleared?
     private boolean warningsCleared;
     protected int queryTimeout;
@@ -110,7 +109,6 @@ public class MariaDbStatement implements Statement, Cloneable {
         this.connection = connection;
         this.resultSetScrollType = resultSetScrollType;
         this.lock = this.connection.lock;
-        cachedExecutionResults = new ArrayDeque<>();
     }
 
     /**
@@ -125,7 +123,6 @@ public class MariaDbStatement implements Statement, Cloneable {
         clone.protocol = protocol;
         clone.timerTaskFuture = null;
         clone.batchQueries = new ArrayList<>();
-        clone.cachedExecutionResults = new ArrayDeque<>();
         clone.executionResult = null;
         clone.closed = false;
         clone.warningsCleared = true;
@@ -173,27 +170,8 @@ public class MariaDbStatement implements Statement, Cloneable {
             throw new SQLException("execute() is called on closed statement");
         }
         protocol.prolog(executionResult, maxRows, protocol.getProxy() != null, connection, this);
-        cachedExecutionResults.clear();
         if (queryTimeout != 0) {
             setTimerTask();
-        }
-    }
-
-    // must have "lock" locked before invoking
-    protected void cacheMoreResults(ExecutionResult execResult, int fetchSize, boolean canHaveCallableResult) throws SQLException {
-        if (fetchSize != 0) {
-            return;
-        }
-        if (execResult.hasMoreResultAvailable()) {
-            try {
-                while (protocol.hasMoreResults()) {
-                    SingleExecutionResult executionResult = new SingleExecutionResult(this, 0, true, canHaveCallableResult);
-                    protocol.getMoreResults(executionResult);
-                    cachedExecutionResults.add(executionResult);
-                }
-            } catch (QueryException e) {
-                throw ExceptionMapper.createException(e, connection, this);
-            }
         }
     }
 
@@ -258,11 +236,10 @@ public class MariaDbStatement implements Statement, Cloneable {
         try {
             executeQueryProlog();
             batchResultSet = null;
-            SingleExecutionResult internalExecutionResult = new SingleExecutionResult(this, fetchSize, true, false);
+            SingleExecutionResult internalExecutionResult = new SingleExecutionResult(this, fetchSize, true, false, true);
             protocol.executeQuery(internalExecutionResult, sql, resultSetScrollType);
-            cacheMoreResults(internalExecutionResult, fetchSize, false);
             executionResult = internalExecutionResult;
-            return executionResult.getResult() != null;
+            return executionResult.getResultSet() != null;
         } catch (QueryException e) {
             exception = e;
             return false;
@@ -382,7 +359,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      */
     public ResultSet executeQuery(String sql) throws SQLException {
         if (executeInternal(sql, fetchSize)) {
-            return executionResult.getResult();
+            return executionResult.getResultSet();
         }
         //throw new SQLException("executeQuery() with query '" + query +"' did not return a result set");
         return MariaSelectResultSet.EMPTY;
@@ -496,11 +473,6 @@ public class MariaDbStatement implements Statement, Cloneable {
                 executionResult = null;
             }
 
-            // No possible future use for the cached results, so these can be cleared
-            // This makes the cache eligible for garbage collection earlier if the statement is not
-            // immediately garbage collected
-            cachedExecutionResults.clear();
-
             if (hasMoreResult) {
                 connection.lock.lock();
                 try {
@@ -528,18 +500,18 @@ public class MariaDbStatement implements Statement, Cloneable {
      * @throws SQLException if any error occur
      */
     protected ResultSet retrieveCallableResult() throws SQLException {
-        if (executionResult != null && executionResult.getResult() != null
-                && executionResult.getResult().isCallableResult()) {
-            MariaSelectResultSet resultSet = executionResult.getResult();
+        if (executionResult != null && executionResult.getResultSet() != null
+                && executionResult.getResultSet().isCallableResult()) {
+            MariaSelectResultSet resultSet = executionResult.getResultSet();
             getMoreResults();
             return resultSet;
         }
-        for (ExecutionResult batchExecutionResult : cachedExecutionResults) {
-            if (batchExecutionResult.getResult() != null
-                    && batchExecutionResult.getResult() != null
-                    && batchExecutionResult.getResult().isCallableResult()) {
-                MariaSelectResultSet resultSet = batchExecutionResult.getResult();
-                cachedExecutionResults.remove(batchExecutionResult);
+        for (ExecutionResult batchExecutionResult : executionResult.getCachedExecutionResults()) {
+            if (batchExecutionResult.getResultSet() != null
+                    && batchExecutionResult.getResultSet() != null
+                    && batchExecutionResult.getResultSet().isCallableResult()) {
+                MariaSelectResultSet resultSet = batchExecutionResult.getResultSet();
+                executionResult.getCachedExecutionResults().remove(batchExecutionResult);
                 return resultSet;
             }
         }
@@ -742,7 +714,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      * @since 1.4
      */
     public ResultSet getGeneratedKeys() throws SQLException {
-        if (executionResult != null && executionResult.getResult() == null) {
+        if (executionResult != null && executionResult.getResultSet() == null) {
             int autoIncrementIncrement = connection.getAutoIncrementIncrement();
             //multi insert in one execution. will create result based on autoincrement
             if (executionResult.hasMoreThanOneAffectedRows()) {
@@ -834,7 +806,7 @@ public class MariaDbStatement implements Statement, Cloneable {
     public ResultSet getResultSet() throws SQLException {
         checkClose();
         if (executionResult != null) {
-            return executionResult.getResult();
+            return executionResult.getResultSet();
         }
         return null;
     }
@@ -847,7 +819,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      * @throws SQLException if a database access error occurs or this method is called on a closed Statement
      */
     public int getUpdateCount() throws SQLException {
-        if (executionResult == null || executionResult.getResult() != null) {
+        if (executionResult == null || executionResult.getResultSet() != null) {
             return -1;  /* Result comes from SELECT , or there are no more results */
         }
         if (executionResult instanceof SingleExecutionResult) {
@@ -905,8 +877,9 @@ public class MariaDbStatement implements Statement, Cloneable {
         //if fetch size is set to read fully, other resultset are put in cache
         if (executionResult != null) {
             if (executionResult.getFetchSize() == 0) {
-                executionResult = cachedExecutionResults.poll();
-                return executionResult != null && executionResult.getResult() != null;
+                executionResult = (executionResult.getCachedExecutionResults() == null)
+                        ? null : executionResult.getCachedExecutionResults().poll();
+                return executionResult != null && executionResult.getResultSet() != null;
             }
 
             //must fetch new data
@@ -918,7 +891,7 @@ public class MariaDbStatement implements Statement, Cloneable {
                 if (internalExecutionResult.hasMoreResultAvailable()) {
                     protocol.getMoreResults(internalExecutionResult);
                     executionResult = internalExecutionResult;
-                    return executionResult.getResult() != null;
+                    return executionResult.getResultSet() != null;
                 } else {
                     executionResult = null;
                     return false;
@@ -1099,7 +1072,6 @@ public class MariaDbStatement implements Statement, Cloneable {
         MultiIntExecutionResult internalExecutionResult = new MultiIntExecutionResult(this, batchQueries.size(), 0, false);
         lock.lock();
         try {
-            cachedExecutionResults.clear();
             QueryException exception = null;
             executing = true;
             executeQueryProlog();
@@ -1108,17 +1080,15 @@ public class MariaDbStatement implements Statement, Cloneable {
                     boolean rewrittenBatch = isRewriteable && getProtocol().getOptions().rewriteBatchedStatements;
                     protocol.executeQueriesRewrite(internalExecutionResult, batchQueries, resultSetScrollType, rewrittenBatch,
                             (rewrittenBatch && rewriteOffset != -1) ? rewriteOffset : 0);
-                    cacheMoreResults(internalExecutionResult, 0, false);
                     if (rewrittenBatch) {
                         //operation will be done on first execution ( or a few execution if max packet size is not enought for one operation)
                         internalExecutionResult.updateResultsForRewrite();
                     } else {
                         //set update result right (first will have one operation, others are on moreResultPacket).
-                        internalExecutionResult.updateResultsMultiple(cachedExecutionResults);
+                        internalExecutionResult.updateResultsMultiple(internalExecutionResult.getCachedExecutionResults());
                     }
                 } else {
                     protocol.executeQueries(internalExecutionResult, batchQueries, resultSetScrollType);
-                    cacheMoreResults(internalExecutionResult, 0, false);
                 }
             } catch (QueryException e) {
                 exception = e;
@@ -1188,9 +1158,14 @@ public class MariaDbStatement implements Statement, Cloneable {
         return mustCloseOnCompletion;
     }
 
+    /**
+     * Check that close on completion is asked, and close if so.
+     * @param resultSet resultset
+     * @throws SQLException if close has error
+     */
     public void checkCloseOnCompletion(ResultSet resultSet) throws SQLException {
         if (mustCloseOnCompletion && !closed && executionResult != null) {
-            if (resultSet.equals(executionResult.getResult())) {
+            if (resultSet.equals(executionResult.getResultSet())) {
                 close();
             }
         }

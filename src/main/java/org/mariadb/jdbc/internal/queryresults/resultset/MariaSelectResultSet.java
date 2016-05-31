@@ -59,6 +59,7 @@ import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
 import org.mariadb.jdbc.internal.packet.result.*;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.queryresults.ColumnNameMap;
+import org.mariadb.jdbc.internal.stream.MariaDbInputStream;
 import org.mariadb.jdbc.internal.util.ExceptionCode;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.Options;
@@ -71,14 +72,12 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
+import java.nio.charset.*;
 import java.sql.*;
+import java.sql.Date;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
 
@@ -92,7 +91,7 @@ public class MariaSelectResultSet implements ResultSet {
 
     private Protocol protocol;
     private ReadPacketFetcher packetFetcher;
-    private InputStream inputStream;
+    private MariaDbInputStream inputStream;
 
     private Statement statement;
     private RowPacket rowPacket;
@@ -105,6 +104,7 @@ public class MariaSelectResultSet implements ResultSet {
     private boolean streaming;
     private int columnInformationLength;
     private List<byte[][]> resultSet;
+    private int resultSetSize;
     private int fetchSize;
     private int resultSetScrollType;
     private int rowPointer;
@@ -161,6 +161,7 @@ public class MariaSelectResultSet implements ResultSet {
         this.fetchSize = fetchSize;
         this.resultSetScrollType = resultSetScrollType;
         this.resultSet = new ArrayList<>();
+        this.resultSetSize = 0;
         this.dataFetchTime = 0;
         this.rowPointer = -1;
         this.callableResult = isCanHaveCallableResultset;
@@ -199,6 +200,7 @@ public class MariaSelectResultSet implements ResultSet {
         this.fetchSize = 1;
         this.resultSetScrollType = resultSetScrollType;
         this.resultSet = resultSet;
+        this.resultSetSize = this.resultSet.size();
         this.dataFetchTime = 0;
         this.rowPointer = -1;
         this.callableResult = false;
@@ -328,6 +330,7 @@ public class MariaSelectResultSet implements ResultSet {
         }
         dataFetchTime++;
         resultSet = valueObjects;
+        this.resultSetSize = resultSet.size();
     }
 
     /**
@@ -342,6 +345,7 @@ public class MariaSelectResultSet implements ResultSet {
                 while (readNextValue(resultSet)) {
                     //fetch all results
                 }
+                resultSetSize = resultSet.size();
 
                 //retrieve other results if needed
                 if (protocolTmp.hasMoreResults()) {
@@ -371,6 +375,7 @@ public class MariaSelectResultSet implements ResultSet {
         }
         dataFetchTime++;
         resultSet = valueObjects;
+        this.resultSetSize = resultSet.size();
     }
 
     /**
@@ -382,7 +387,7 @@ public class MariaSelectResultSet implements ResultSet {
      * @throws QueryException exception
      */
     public boolean readNextValue(List<byte[][]> values) throws IOException, QueryException {
-        int length = packetFetcher.getPacketLength();
+        int length = inputStream.readHeader();
         if (length < 0x00ffffff) {
             //There is only one packet.
             // we don't have to check for every read that packet size is enough to read another packet.
@@ -513,12 +518,8 @@ public class MariaSelectResultSet implements ResultSet {
 
     @Override
     public boolean next() throws SQLException {
-        checkClose();
-        return internalNext();
-    }
-
-    private boolean internalNext() throws SQLException {
-        if (rowPointer < resultSet.size() - 1) {
+        if (isClosed) throw new SQLException("Operation not permit on a closed resultset", "HY000");
+        if (rowPointer < resultSetSize - 1) {
             rowPointer++;
             return true;
         } else {
@@ -534,10 +535,10 @@ public class MariaSelectResultSet implements ResultSet {
                         throw new SQLException(queryException);
                     }
                     rowPointer = 0;
-                    return resultSet.size() > 0;
+                    return resultSetSize > 0;
                 }
             } else {
-                rowPointer = resultSet.size();
+                rowPointer = resultSetSize;
                 return false;
             }
         }
@@ -547,7 +548,7 @@ public class MariaSelectResultSet implements ResultSet {
         if (this.rowPointer < 0) {
             throwError("Current position is before the first row", ExceptionCode.INVALID_PARAMETER_VALUE);
         }
-        if (this.rowPointer >= resultSet.size()) {
+        if (this.rowPointer >= resultSetSize) {
             throwError("Current position is after the last row", ExceptionCode.INVALID_PARAMETER_VALUE);
         }
         byte[][] row = resultSet.get(this.rowPointer);
@@ -588,14 +589,14 @@ public class MariaSelectResultSet implements ResultSet {
     @Override
     public boolean isBeforeFirst() throws SQLException {
         checkClose();
-        return (dataFetchTime > 0) ? rowPointer == -1 && resultSet.size() > 0 : rowPointer == -1;
+        return (dataFetchTime > 0) ? rowPointer == -1 && resultSetSize > 0 : rowPointer == -1;
     }
 
     @Override
     public boolean isAfterLast() throws SQLException {
         checkClose();
         if (dataFetchTime > 0) {
-            return rowPointer >= resultSet.size() && resultSet.size() > 0;
+            return rowPointer >= resultSetSize && resultSetSize > 0;
         }
         return false;
     }
@@ -603,14 +604,14 @@ public class MariaSelectResultSet implements ResultSet {
     @Override
     public boolean isFirst() throws SQLException {
         checkClose();
-        return dataFetchTime == 1 && rowPointer == 0 && resultSet.size() > 0;
+        return dataFetchTime == 1 && rowPointer == 0 && resultSetSize > 0;
     }
 
     @Override
     public boolean isLast() throws SQLException {
         checkClose();
         if (dataFetchTime > 0 && isEof) {
-            return rowPointer == resultSet.size() - 1 && resultSet.size() > 0;
+            return rowPointer == resultSetSize - 1 && resultSetSize > 0;
         } else if (streaming) {
             try {
                 nextStreamingValue();
@@ -619,7 +620,7 @@ public class MariaSelectResultSet implements ResultSet {
             } catch (QueryException queryException) {
                 throw new SQLException(queryException);
             }
-            return rowPointer == resultSet.size() - 1 && resultSet.size() > 0;
+            return rowPointer == resultSetSize - 1 && resultSetSize > 0;
         }
         return false;
     }
@@ -640,7 +641,7 @@ public class MariaSelectResultSet implements ResultSet {
         if (streaming && resultSetScrollType == TYPE_FORWARD_ONLY) {
             throw new SQLException("Invalid operation for result set type TYPE_FORWARD_ONLY");
         } else {
-            rowPointer = resultSet.size();
+            rowPointer = resultSetSize;
         }
     }
 
@@ -651,7 +652,7 @@ public class MariaSelectResultSet implements ResultSet {
             throw new SQLException("Invalid operation for result set type TYPE_FORWARD_ONLY");
         } else {
             rowPointer = 0;
-            return resultSet.size() > 0;
+            return resultSetSize > 0;
         }
     }
 
@@ -661,7 +662,7 @@ public class MariaSelectResultSet implements ResultSet {
         if (streaming && resultSetScrollType == TYPE_FORWARD_ONLY) {
             throw new SQLException("Invalid operation for result set type TYPE_FORWARD_ONLY");
         } else {
-            rowPointer = resultSet.size() - 1;
+            rowPointer = resultSetSize - 1;
             return rowPointer > 0;
         }
     }
@@ -681,11 +682,11 @@ public class MariaSelectResultSet implements ResultSet {
         if (streaming && resultSetScrollType == TYPE_FORWARD_ONLY) {
             throw new SQLException("Invalid operation for result set type TYPE_FORWARD_ONLY");
         } else {
-            if (row >= 0 && row <= resultSet.size()) {
+            if (row >= 0 && row <= resultSetSize) {
                 rowPointer = row - 1;
                 return true;
             } else if (row < 0) {
-                rowPointer = resultSet.size() + row;
+                rowPointer = resultSetSize + row;
             }
             return true;
         }
@@ -698,7 +699,7 @@ public class MariaSelectResultSet implements ResultSet {
             throw new SQLException("Invalid operation for result set type TYPE_FORWARD_ONLY");
         } else {
             int newPos = rowPointer + rows;
-            if (newPos > -1 && newPos <= resultSet.size()) {
+            if (newPos > -1 && newPos <= resultSetSize) {
                 rowPointer = newPos;
                 return true;
             }
@@ -772,7 +773,7 @@ public class MariaSelectResultSet implements ResultSet {
     }
 
     private void checkClose() throws SQLException {
-        if (isClosed()) {
+        if (isClosed) {
             throw new SQLException("Operation not permit on a closed resultset", "HY000");
         }
     }
@@ -819,6 +820,9 @@ public class MariaSelectResultSet implements ResultSet {
         return getInputStream(checkObjectRange(columnIndex));
     }
 
+    /**
+     * {inheritDoc}.
+     */
     public String getString(int columnIndex) throws SQLException {
         byte[] rawByte = checkObjectRange(columnIndex);
         return getString(rawByte, columnsInformation[columnIndex - 1], cal);
@@ -917,7 +921,6 @@ public class MariaSelectResultSet implements ResultSet {
         }
         return new String(rawBytes, StandardCharsets.UTF_8);
     }
-
 
     /**
      * {inheritDoc}.
@@ -3462,6 +3465,8 @@ public class MariaSelectResultSet implements ResultSet {
         return new ByteArrayInputStream(new String(rawBytes, StandardCharsets.UTF_8).getBytes());
     }
 
+    static final String zeroTimestamp = "0000-00-00 00:00:00";
+    static final String zeroDate = "0000-00-00";
 
     /**
      * Is data null.
@@ -3471,8 +3476,6 @@ public class MariaSelectResultSet implements ResultSet {
      * @return true if data is null
      */
     private boolean isNull(byte[] rawBytes, MariaDbType dataType) {
-        String zeroTimestamp = "0000-00-00 00:00:00";
-        String zeroDate = "0000-00-00";
         return (rawBytes == null
                 || (isBinaryEncoded && ((dataType == MariaDbType.DATE || dataType == MariaDbType.TIMESTAMP || dataType == MariaDbType.DATETIME)
                 && rawBytes.length == 0))

@@ -54,26 +54,25 @@ import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
 import java.io.IOException;
 
-public abstract class ParameterHolder implements Cloneable {
+public interface ParameterHolder {
     /**
      * Write parameter value.
      *
      * @param os the stream to write to
      * @throws IOException when something goes wrong
      */
-    public abstract void writeTo(final PacketOutputStream os) throws IOException;
+    void writeTo(final PacketOutputStream os) throws IOException;
 
-    public abstract void writeUnsafeTo(final PacketOutputStream os) throws IOException;
+    void writeUnsafeTo(final PacketOutputStream os) throws IOException;
 
-    public abstract long getApproximateTextProtocolLength() throws IOException;
+    void writeBinary(PacketOutputStream writeBuffer) throws IOException;
 
-    public abstract String toString();
+    long getApproximateTextProtocolLength() throws IOException;
 
-    public abstract boolean isLongData();
+    String toString();
 
-    public abstract MariaDbType getMariaDbType();
+    boolean isLongData();
 
-    public void writeBufferType(final PacketOutputStream buffer) {
-        buffer.writeShort((short) getMariaDbType().getType());
-    }
+    MariaDbType getMariaDbType();
+
 }

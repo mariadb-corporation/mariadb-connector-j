@@ -2,6 +2,7 @@
 MariaDB Client for Java
 
 Copyright (c) 2012-2014 Monty Program Ab.
+Copyright (c) 2015-2016 MariaDB Ab.
 
 This library is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License as published by the Free
@@ -47,15 +48,29 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc.internal.packet.dao.parameters;
+package org.mariadb.jdbc.internal.stream;
 
-import org.mariadb.jdbc.internal.stream.PacketOutputStream;
+import java.io.IOException;
 
+public interface MariaDbInputStream {
+    int readHeader() throws IOException;
 
-public abstract class NotLongDataParameterHolder extends ParameterHolder {
-    public abstract void writeBinary(PacketOutputStream outputStream);
+    int read() throws IOException;
 
-    public boolean isLongData() {
-        return false;
-    }
+    int read(byte[] bytes) throws IOException;
+
+    int read(byte[] bytes, int off, int len) throws IOException;
+
+    long skip(long length) throws IOException;
+
+    int available() throws IOException;
+
+    void close() throws IOException;
+
+    void mark(int readlimit);
+
+    void reset() throws IOException;
+
+    boolean markSupported();
+
 }

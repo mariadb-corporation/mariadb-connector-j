@@ -179,7 +179,7 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
      */
     public ResultSet executeQuery() throws SQLException {
         if (executeInternal()) {
-            return executionResult.getResult();
+            return executionResult.getResultSet();
         }
         return MariaSelectResultSet.EMPTY;
     }
@@ -212,15 +212,14 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
         try {
             executeQueryProlog();
             batchResultSet = null;
-            SingleExecutionResult executionResultTmp = new SingleExecutionResult(this, getFetchSize(), true, false);
+            SingleExecutionResult executionResultTmp = new SingleExecutionResult(this, getFetchSize(), true, false, true);
             if (rewriteType == RewriteType.REWRITE_QUERIES) {
                 protocol.executeQuery(executionResultTmp, queryParts, parameters, resultSetScrollType, false);
             } else {
                 protocol.executeQuery(executionResultTmp, queryParts, parameters, resultSetScrollType);
             }
-            cacheMoreResults(executionResultTmp, getFetchSize(), false);
             executionResult = executionResultTmp;
-            return executionResult.getResult() != null;
+            return executionResult.getResultSet() != null;
         } catch (QueryException e) {
             exception = e;
             return false;
@@ -285,29 +284,24 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
                 if (rewriteType == RewriteType.REWRITE_QUERIES) {
                     if (reWritablePrepare) {
                         protocol.executeRewriteQueries(internalExecutionResult, queryParts, parameterList, resultSetScrollType, true);
-                        cacheMoreResults(internalExecutionResult, 0, false);
                         internalExecutionResult.updateResultsForRewrite();
                     } else if (multipleQueriesPrepare) {
                         protocol.executeRewriteQueries(internalExecutionResult, queryParts, parameterList, resultSetScrollType, false);
-                        cacheMoreResults(internalExecutionResult, 0, false);
-                        internalExecutionResult.updateResultsMultiple(cachedExecutionResults);
+                        internalExecutionResult.updateResultsMultiple(internalExecutionResult.getCachedExecutionResults());
                     } else {
                         for (; batchQueriesCount < size; batchQueriesCount++) {
                             protocol.executeQuery(internalExecutionResult, queryParts, parameterList.get(batchQueriesCount),
                                     resultSetScrollType, false);
-                            cacheMoreResults(internalExecutionResult, 0, false);
                         }
                     }
                 } else {
                     if (multipleQueriesPrepare && rewriteType == RewriteType.MULTI_QUERIES) {
                         protocol.executeMultipleQueries(internalExecutionResult, queryParts, parameterList, resultSetScrollType);
-                        cacheMoreResults(internalExecutionResult, 0, false);
-                        internalExecutionResult.updateResultsMultiple(cachedExecutionResults);
+                        internalExecutionResult.updateResultsMultiple(internalExecutionResult.getCachedExecutionResults());
                     } else {
                         for (; batchQueriesCount < size; batchQueriesCount++) {
                             protocol.executeQuery(internalExecutionResult, queryParts, parameterList.get(batchQueriesCount),
                                     resultSetScrollType);
-                            cacheMoreResults(internalExecutionResult, 0, false);
                         }
                     }
                 }
@@ -703,8 +697,8 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
      *    ")"}
      *
      * @param queryString query
-     * @param noBackslashEscapes
-     * @return
+     * @param noBackslashEscapes escape mode
+     * @return parts list
      */
     private List<String> createParameterParts(String queryString, boolean noBackslashEscapes) {
         reWritablePrepare = false;
