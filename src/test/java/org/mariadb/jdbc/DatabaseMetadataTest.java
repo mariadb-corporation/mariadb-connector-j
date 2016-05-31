@@ -395,8 +395,12 @@ public class DatabaseMetadataTest extends BaseTest {
                         columnType == java.sql.Types.VARCHAR
                                 || columnType == java.sql.Types.NULL
                                 || columnType == Types.LONGVARCHAR);
-            } else if ("int".equals(type) || "short".equals(type)) {
+            } else if ("decimal".equals(type)) {
+                assertTrue("invalid type  " + columnType + "( " + rsmd.getColumnTypeName(col) + " ) for "
+                                + rsmd.getColumnLabel(col) + ",expected decimal",
+                        columnType == Types.DECIMAL);
 
+            } else if ("int".equals(type) || "short".equals(type)) {
                 assertTrue("invalid type  " + columnType + "( " + rsmd.getColumnTypeName(col) + " ) for "
                                 + rsmd.getColumnLabel(col) + ",expected numeric",
                         columnType == java.sql.Types.BIGINT
@@ -522,16 +526,29 @@ public class DatabaseMetadataTest extends BaseTest {
     @Test
     public void getColumnsBasic() throws SQLException {
         cancelForVersion(10, 1); //due to server error MDEV-8984
-        testResultSetColumns(sharedConnection.getMetaData().getColumns(null, null, null, null),
-                "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,COLUMN_NAME String,"
-                        + "DATA_TYPE int,TYPE_NAME String,COLUMN_SIZE int,BUFFER_LENGTH int,"
-                        + "DECIMAL_DIGITS int,NUM_PREC_RADIX int,NULLABLE int,"
-                        + "REMARKS String,COLUMN_DEF String,SQL_DATA_TYPE int,"
-                        + "SQL_DATETIME_SUB int, CHAR_OCTET_LENGTH int,"
-                        + "ORDINAL_POSITION int,IS_NULLABLE String,"
-                        + "SCOPE_CATALOG String,SCOPE_SCHEMA String,"
-                        + "SCOPE_TABLE String,SOURCE_DATA_TYPE null");
+        if (sharedConnection.getMetaData().getDatabaseProductVersion().startsWith("10.2")) {
+            testResultSetColumns(sharedConnection.getMetaData().getColumns(null, null, null, null),
+                    "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,COLUMN_NAME String,"
+                            + "DATA_TYPE int,TYPE_NAME String,COLUMN_SIZE decimal,BUFFER_LENGTH int,"
+                            + "DECIMAL_DIGITS int,NUM_PREC_RADIX int,NULLABLE int,"
+                            + "REMARKS String,COLUMN_DEF String,SQL_DATA_TYPE int,"
+                            + "SQL_DATETIME_SUB int, CHAR_OCTET_LENGTH decimal,"
+                            + "ORDINAL_POSITION int,IS_NULLABLE String,"
+                            + "SCOPE_CATALOG String,SCOPE_SCHEMA String,"
+                            + "SCOPE_TABLE String,SOURCE_DATA_TYPE null");
+        } else {
+            testResultSetColumns(sharedConnection.getMetaData().getColumns(null, null, null, null),
+                    "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,COLUMN_NAME String,"
+                            + "DATA_TYPE int,TYPE_NAME String,COLUMN_SIZE int,BUFFER_LENGTH int,"
+                            + "DECIMAL_DIGITS int,NUM_PREC_RADIX int,NULLABLE int,"
+                            + "REMARKS String,COLUMN_DEF String,SQL_DATA_TYPE int,"
+                            + "SQL_DATETIME_SUB int, CHAR_OCTET_LENGTH int,"
+                            + "ORDINAL_POSITION int,IS_NULLABLE String,"
+                            + "SCOPE_CATALOG String,SCOPE_SCHEMA String,"
+                            + "SCOPE_TABLE String,SOURCE_DATA_TYPE null");
+        }
     }
+
 
     @Test
     public void getProcedureColumnsBasic() throws SQLException {

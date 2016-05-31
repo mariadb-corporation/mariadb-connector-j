@@ -29,6 +29,7 @@ public class ServerPrepareStatementTest extends BaseTest {
     public static void initClass() throws SQLException {
         createTable("ServerPrepareStatementTest", "id int not null primary key auto_increment, test boolean");
         createTable("ServerPrepareStatementTestt", "id int not null primary key auto_increment, test boolean");
+        createTable("ServerPrepareStatementTestt2", "id int not null primary key auto_increment, test boolean");
         createTable("ServerPrepareStatementTestCache", "id int not null primary key auto_increment, test boolean");
         createTable("ServerPrepareStatementCacheSize3", "id int not null primary key auto_increment, test boolean");
         createTable("preparetestFactionnal", "time0 TIME(6) default '22:11:00', timestamp0 timestamp(6), datetime0 datetime(6) ");
@@ -75,9 +76,10 @@ public class ServerPrepareStatementTest extends BaseTest {
 
 
     @Test
-    public void deferredPrepareTest() throws SQLException {
+    public void deferredPrepareTest() throws Throwable {
         Assume.assumeTrue(isMariadbServer());
         requireMinimumVersion(10,2);
+        cancelForVersion(10,2,0); //since 10.2.1
         Connection connection = null;
         try {
             connection = setConnection();
@@ -87,7 +89,7 @@ public class ServerPrepareStatementTest extends BaseTest {
             final int nbStatementCount = rs.getInt(2);
 
             PreparedStatement ps = connection.prepareStatement(
-                    "INSERT INTO ServerPrepareStatementTestt (test) VALUES (?)");
+                    "INSERT INTO ServerPrepareStatementTestt2 (test) VALUES (?)");
             ps.setBoolean(1, true);
             ps.addBatch();
 
