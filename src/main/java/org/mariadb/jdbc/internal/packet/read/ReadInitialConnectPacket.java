@@ -107,11 +107,11 @@ public class ReadInitialConnectPacket {
         }
         buffer.skipBytes(6);
 
-        //mariaDb additional capabilities
+        //mariaDb additional capabilities.valid only if mariadb server.
+        //has value since server 10.2 (was 0 before)
         long mariaDbAdditionalCapacities = buffer.readInt();
-        serverCapabilities = (serverCapabilities4FirstBytes & 0xffffffffL) + (mariaDbAdditionalCapacities << 32);
 
-        if ((serverCapabilities & MariaDbServerCapabilities.SECURE_CONNECTION) != 0) {
+        if ((serverCapabilities4FirstBytes & MariaDbServerCapabilities.SECURE_CONNECTION) != 0) {
             final byte[] seed2 = buffer.readRawBytes(saltLength);
             seed = Utils.copyWithLength(seed1, seed1.length + seed2.length);
             System.arraycopy(seed2, 0, seed, seed1.length, seed2.length);
@@ -125,11 +125,18 @@ public class ReadInitialConnectPacket {
          * check for MariaDB 10.x replication hack , remove fake prefix if needed
          *  (see comments about MARIADB_RPL_HACK_PREFIX)
          */
-        if ((serverCapabilities & MariaDbServerCapabilities.PLUGIN_AUTH) != 0) {
+        if ((serverCapabilities4FirstBytes & MariaDbServerCapabilities.PLUGIN_AUTH) != 0) {
             pluginName = buffer.readString(Charset.forName("ASCII"));
             if (serverVersion.startsWith(MARIADB_RPL_HACK_PREFIX)) {
+                serverCapabilities = (serverCapabilities4FirstBytes & 0xffffffffL) + (mariaDbAdditionalCapacities << 32);
                 serverVersion = serverVersion.substring(MARIADB_RPL_HACK_PREFIX.length());
+            } else {
+                serverCapabilities = serverCapabilities4FirstBytes & 0xffffffffL;
             }
+
+        } else {
+            serverCapabilities = serverCapabilities4FirstBytes & 0xffffffffL;
+
         }
     }
 

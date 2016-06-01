@@ -207,7 +207,11 @@ public class StatementTest extends BaseTest {
     @Test
     public void testLoadDataInvalidColumn() throws SQLException, UnsupportedEncodingException {
         Statement statement = sharedConnection.createStatement();
-        statement.execute("drop view if exists v2");
+        try {
+            statement.execute("drop view if exists v2");
+        } catch (SQLException e) {
+            //if view doesn't exist, and mode throw warning as error
+        }
         statement.execute("CREATE VIEW v2 AS SELECT 1 + 2 AS c0, c1, c2 FROM StatementTestt1;");
         try {
             MariaDbStatement mysqlStatement;
@@ -235,7 +239,11 @@ public class StatementTest extends BaseTest {
                 assertEquals(ER_LOAD_DATA_INVALID_COLUMN_STATE, sqlException.getSQLState());
             }
         } finally {
-            statement.execute("drop view if exists v2");
+            try {
+                statement.execute("drop view if exists v2");
+            } catch (SQLException e) {
+                //if view doesn't exist, and mode throw warning as error
+            }
         }
     }
 

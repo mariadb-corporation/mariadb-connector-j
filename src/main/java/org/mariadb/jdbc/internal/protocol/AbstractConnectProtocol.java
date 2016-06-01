@@ -366,6 +366,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
         connected = true;
 
+        writer.forceCleanupBuffer();
+
         loadServerData();
         setSessionOptions();
         writer.setMaxAllowedPacket(Integer.parseInt(serverData.get("max_allowed_packet")));
@@ -436,7 +438,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(socket,
                         socket.getInetAddress().getHostAddress(), socket.getPort(), true);
 
-                sslSocket.setEnabledProtocols(new String[]{"TLSv1.2", "TLSv1.1", "TLSv1"});
                 sslSocket.setUseClientMode(true);
                 sslSocket.startHandshake();
                 socket = sslSocket;
@@ -522,7 +523,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
                         | MariaDbServerCapabilities.PLUGIN_AUTH
                         | MariaDbServerCapabilities.CONNECT_ATTRS
                         | MariaDbServerCapabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA
-                        | MariaDbServerCapabilities.MARIADB_CLIENT_PROGRESS
                         | MariaDbServerCapabilities.MARIADB_CLIENT_COM_MULTI;
 
         if (options.allowMultiQueries || (options.rewriteBatchedStatements)) {

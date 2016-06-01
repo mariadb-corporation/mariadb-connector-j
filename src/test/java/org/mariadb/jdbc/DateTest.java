@@ -405,8 +405,8 @@ public class DateTest extends BaseTest {
             TimeZone canadaTimeZone = TimeZone.getTimeZone("GMT+5:00");
 
             long clientOffset = tz.getOffset(now.getTime());
-            long serverOffser = canadaTimeZone.getOffset(System.currentTimeMillis());
-            long totalOffset = serverOffser - clientOffset;
+            long serverOffset = canadaTimeZone.getOffset(System.currentTimeMillis());
+            long totalOffset = serverOffset - clientOffset;
             PreparedStatement ps = connection.prepareStatement("select now()");
             ResultSet rs = ps.executeQuery();
             rs.next();

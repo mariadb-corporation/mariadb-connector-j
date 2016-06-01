@@ -57,6 +57,7 @@ import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.sql.Timestamp;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.zip.DeflaterOutputStream;
 
@@ -337,6 +338,13 @@ public class PacketOutputStream extends OutputStream {
         }
 
         this.lastSeq =  (useCompression) ? this.compressSeqNo : this.seqNo;
+    }
+
+    /**
+     * Force buffer cleanup.
+     */
+    public void forceCleanupBuffer() {
+        Arrays.fill(buffer.array(), (byte) 0x00);
     }
 
     @Override

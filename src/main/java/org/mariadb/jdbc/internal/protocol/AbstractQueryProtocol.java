@@ -1328,7 +1328,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     message = buffer.readString(StandardCharsets.UTF_8);
                 } else {
                     // Pre-4.1 message, still can be output in newer versions (e.g with 'Too many connections')
-                    message = new String(buffer.buf, StandardCharsets.UTF_8);
+                    message = new String(buffer.buf, buffer.position, buffer.limit, StandardCharsets.UTF_8);
                     sqlState = "HY000";
                 }
                 executionResult.addStats(Statement.EXECUTE_FAILED, Statement.SUCCESS_NO_INFO, moreResults);
