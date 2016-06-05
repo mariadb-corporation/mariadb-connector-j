@@ -57,31 +57,27 @@ import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
 import org.mariadb.jdbc.internal.MyX509TrustManager;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
+import org.mariadb.jdbc.internal.packet.read.Packet;
+import org.mariadb.jdbc.internal.packet.read.ReadInitialConnectPacket;
+import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
+import org.mariadb.jdbc.internal.packet.result.EndOfFilePacket;
+import org.mariadb.jdbc.internal.packet.result.ErrorPacket;
+import org.mariadb.jdbc.internal.packet.result.OkPacket;
 import org.mariadb.jdbc.internal.packet.send.*;
 import org.mariadb.jdbc.internal.protocol.authentication.AuthenticationProviderHolder;
 import org.mariadb.jdbc.internal.queryresults.ExecutionResult;
 import org.mariadb.jdbc.internal.queryresults.SingleExecutionResult;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
+import org.mariadb.jdbc.internal.stream.DecompressInputStream;
+import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 import org.mariadb.jdbc.internal.util.*;
 import org.mariadb.jdbc.internal.util.buffer.Buffer;
-import org.mariadb.jdbc.internal.packet.read.ReadInitialConnectPacket;
-import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
-import org.mariadb.jdbc.internal.packet.read.Packet;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
 import org.mariadb.jdbc.internal.util.constant.ServerStatus;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
-import org.mariadb.jdbc.internal.packet.result.*;
-import org.mariadb.jdbc.internal.stream.DecompressInputStream;
-import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
-import javax.net.ssl.KeyManager;
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.X509TrustManager;
-
+import javax.net.ssl.*;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -432,10 +428,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(socket,
                         socket.getInetAddress().getHostAddress(), socket.getPort(), true);
 
-                if (JavaVersion.version().isMinimum(7)) {
+                if (supportsTlsv12()) {
                     sslSocket.setEnabledProtocols(new String[]{"TLSv1.2", "TLSv1.1", "TLSv1"});
-                } else if (JavaVersion.version().isMinimum(6)) {
-                    sslSocket.setEnabledProtocols(new String[]{"TLSv1.1", "TLSv1"});
                 } else {
                     sslSocket.setEnabledProtocols(new String[]{"TLSv1"});
                 }
@@ -792,6 +786,47 @@ public abstract class AbstractConnectProtocol implements Protocol {
     }
 
     /**
+    * If the connection string returns MariaDB then it must be as specified.
+     *
+    * @return <code>true</code> if server is MariaDB, otherwise <code>false</code>.
+    */
+    public boolean isMariaDbServer() {
+        return getServerVersion().indexOf("MariaDB") != -1;
+    }
+
+    /**
+    * Returns whether the specific server version supports TLSv1.2 as a protocol, this is based ont he MySQL and MariaDB documentation.
+    *
+    * @return <code>true</code> if supported, otherwise <code>false</code>.
+    */
+    public boolean supportsTlsv12() {
+
+        // minimum java version of 1.7 for TLSv1.2
+        // - ignore TLSv1.1 since minimum JRE version for this connector is 1.7 or higher.
+        if (!JavaVersion.version().isMinimum(7)) {
+            return false;
+        }
+
+        // if mariadb
+        if (isMariaDbServer()) {
+
+            // minimum of MariaDB 10.0.15 for TLSv1.2 support
+            if (versionGreaterOrEqual(10, 0, 15)) {
+                return true;
+            }
+
+            // minimum of MariaDB 5.5.41 for TLSv1.2 support
+            // must not be version 10 otherwise it should be captured by the above statement
+            if (majorVersion != 10 && versionGreaterOrEqual(5, 5, 41)) {
+                return true;
+            }
+        }
+
+        // minimum of MySQL 5.7.10 for TLSv1.2 support
+        return versionGreaterOrEqual(5, 7, 10);
+    }
+
+    /**
      * Utility method to check if database version is greater than parameters.
      * @param major major version
      * @param minor minor version
@@ -826,6 +861,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         // Patch versions are equal => versions are equal.
         return true;
     }
+
 
     public boolean getPinGlobalTxToPhysicalConnection() {
         return this.options.pinGlobalTxToPhysicalConnection;
