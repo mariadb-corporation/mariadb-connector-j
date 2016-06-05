@@ -432,7 +432,14 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(socket,
                         socket.getInetAddress().getHostAddress(), socket.getPort(), true);
 
-                sslSocket.setEnabledProtocols(new String[]{"TLSv1.2", "TLSv1.1", "TLSv1"});
+                if (JavaVersion.version().isMinimum(7)) {
+                    sslSocket.setEnabledProtocols(new String[]{"TLSv1.2", "TLSv1.1", "TLSv1"});
+                } else if (JavaVersion.version().isMinimum(6)) {
+                    sslSocket.setEnabledProtocols(new String[]{"TLSv1.1", "TLSv1"});
+                } else {
+                    sslSocket.setEnabledProtocols(new String[]{"TLSv1"});
+                }
+
                 sslSocket.setUseClientMode(true);
                 sslSocket.startHandshake();
                 socket = sslSocket;
