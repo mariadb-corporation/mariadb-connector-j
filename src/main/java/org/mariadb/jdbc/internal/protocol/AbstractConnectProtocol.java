@@ -428,11 +428,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(socket,
                         socket.getInetAddress().getHostAddress(), socket.getPort(), true);
 
-                if (supportsTlsv12()) {
-                    sslSocket.setEnabledProtocols(new String[]{"TLSv1.2", "TLSv1.1", "TLSv1"});
-                } else {
-                    sslSocket.setEnabledProtocols(new String[]{"TLSv1"});
-                }
+                // Get supported protocols to hardcode (otherwise connection will fail on
+                // authentication on InputRecord#readV3Record, ProtocolVersion will return 0,0 and as such error.
+                // TODO can this be determined from the greetingPacket or via exception-retry-negotiate mechanism?
+                String[] protocols = getSupportedProtocols();
+                sslSocket.setEnabledProtocols(protocols);
 
                 sslSocket.setUseClientMode(true);
                 sslSocket.startHandshake();
@@ -799,12 +799,13 @@ public abstract class AbstractConnectProtocol implements Protocol {
     *
     * @return <code>true</code> if supported, otherwise <code>false</code>.
     */
-    public boolean supportsTlsv12() {
+    public String[] getSupportedProtocols() {
+
 
         // minimum java version of 1.7 for TLSv1.2
         // - ignore TLSv1.1 since minimum JRE version for this connector is 1.7 or higher.
         if (!JavaVersion.version().isMinimum(7)) {
-            return false;
+            return new String[] { "TLSv1" };
         }
 
         // if mariadb
@@ -812,19 +813,25 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
             // minimum of MariaDB 10.0.15 for TLSv1.2 support
             if (versionGreaterOrEqual(10, 0, 15)) {
-                return true;
+                return new String[] { "TLSv1",  "TLSv1.1", "TLSv1.2" };
             }
 
             // minimum of MariaDB 5.5.41 for TLSv1.2 support
             // must not be version 10 otherwise it should be captured by the above statement
             if (majorVersion != 10 && versionGreaterOrEqual(5, 5, 41)) {
-                return true;
+                return new String[] { "TLSv1",  "TLSv1.1", "TLSv1.2" };
             }
         }
 
+        // TODO if yaSSL then TLSv1.1 and TLSv1
         // minimum of MySQL 5.7.10 for TLSv1.2 support
-        return versionGreaterOrEqual(5, 7, 10);
+        if (versionGreaterOrEqual(5, 7, 10)) {
+            return new String[] { "TLSv1", "TLSv1.1" };
+        }
+
+        return new String[] { "TLSv1" };
     }
+
 
     /**
      * Utility method to check if database version is greater than parameters.
