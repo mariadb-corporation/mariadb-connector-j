@@ -1,6 +1,6 @@
 # mariadb-connector-j
 <p align="center">
-  <a href="http://gulpjs.com">
+  <a href="http://mariadb.org/">
     <img height="129" width="413" src="http://badges.mariadb.org/logo/Mariadb-seal-shaded-browntext.png">
   </a>
 </p>
