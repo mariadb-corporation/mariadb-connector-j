@@ -11,7 +11,7 @@ Tracker link <a href="https://mariadb.atlassian.net/projects/CONJ/issues/">https
 
 ## Status
 [![Build Status](https://travis-ci.org/MariaDB/mariadb-connector-j.svg?branch=master)](https://travis-ci.org/MariaDB/mariadb-connector-j)
-[![Maven central](https://maven-badges.herokuapp.com/maven-central/org.mariadb.jdbc/mariadb-java-client /badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.mariadb.jdbc/mariadb-java-client)
+[![Maven central](https://img.shields.io/maven-central/v/org.mariadb.jdbc/mariadb-java-client.svg)](https://maven-badges.herokuapp.com/maven-central/org.mariadb.jdbc/mariadb-java-client)
 [![License (LGPL version 2.1)](https://img.shields.io/badge/license-GNU%20LGPL%20version%202.1-green.svg?style=flat-square)](http://opensource.org/licenses/LGPL-2.1)
 
 ## Obtaining the driver
