@@ -437,7 +437,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 SSLSocketFactory sslSocketFactory = getSslSocketFactory();
                 SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(socket,
                         socket.getInetAddress().getHostAddress(), socket.getPort(), true);
-
+                sslSocket.setEnabledProtocols(new String[]{"TLSv1"});
                 sslSocket.setUseClientMode(true);
                 sslSocket.startHandshake();
                 socket = sslSocket;
