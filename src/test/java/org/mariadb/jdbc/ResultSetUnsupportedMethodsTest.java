@@ -232,12 +232,12 @@ public class ResultSetUnsupportedMethodsTest extends BaseTest {
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateString18() throws SQLException {
-        rs.updateString(1, (java.lang.String) null);
+        rs.updateString(1, (String) null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateString19() throws SQLException {
-        rs.updateString("a", (java.lang.String) null);
+        rs.updateString("a", (String) null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
@@ -372,22 +372,22 @@ public class ResultSetUnsupportedMethodsTest extends BaseTest {
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateObject46() throws SQLException {
-        rs.updateObject(1, (java.lang.Object) null);
+        rs.updateObject(1, (Object) null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateObject47() throws SQLException {
-        rs.updateObject(1, (java.lang.Object) null);
+        rs.updateObject(1, (Object) null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateObject48() throws SQLException {
-        rs.updateObject("a", (java.lang.Object) null);
+        rs.updateObject("a", (Object) null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateObject49() throws SQLException {
-        rs.updateObject("a", (java.lang.Object) null);
+        rs.updateObject("a", (Object) null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
@@ -482,12 +482,12 @@ public class ResultSetUnsupportedMethodsTest extends BaseTest {
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateNString68() throws SQLException {
-        rs.updateNString(1, (java.lang.String) null);
+        rs.updateNString(1, (String) null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateNString69() throws SQLException {
-        rs.updateNString("a", (java.lang.String) null);
+        rs.updateNString("a", (String) null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)

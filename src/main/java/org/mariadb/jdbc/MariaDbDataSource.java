@@ -254,7 +254,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      * Attempts to establish a connection with the data source that this <code>DataSource</code> object represents.
      *
      * @return a connection to the data source
-     * @throws java.sql.SQLException if a database access error occurs
+     * @throws SQLException if a database access error occurs
      */
     public Connection getConnection() throws SQLException {
         try {
@@ -273,7 +273,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      * @param username the database user on whose behalf the connection is being made
      * @param password the user's password
      * @return a connection to the data source
-     * @throws java.sql.SQLException if a database access error occurs
+     * @throws SQLException if a database access error occurs
      * @since 1.4
      */
     public Connection getConnection(final String username, final String password) throws SQLException {
@@ -294,7 +294,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      * logging to be disabled.
      *
      * @return the log writer for this data source or null if logging is disabled
-     * @throws java.sql.SQLException if a database access error occurs
+     * @throws SQLException if a database access error occurs
      * @see #setLogWriter
      * @since 1.4
      */
@@ -314,7 +314,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      * logging to be disabled.
      *
      * @param out the new log writer; to disable logging, set to null
-     * @throws java.sql.SQLException if a database access error occurs
+     * @throws SQLException if a database access error occurs
      * @see #getLogWriter
      * @since 1.4
      */
@@ -328,7 +328,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      * there is no timeout. When a <code>DataSource</code> object is created, the login timeout is initially zero.
      *
      * @return the data source login time limit
-     * @throws java.sql.SQLException if a database access error occurs.
+     * @throws SQLException if a database access error occurs.
      * @see #setLoginTimeout
      * @since 1.4
      */
@@ -342,7 +342,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      * that there is no timeout. When a <code>DataSource</code> object is created, the login timeout is initially zero.
      *
      * @param seconds the data source login time limit
-     * @throws java.sql.SQLException if a database access error occurs.
+     * @throws SQLException if a database access error occurs.
      * @see #getLoginTimeout
      * @since 1.4
      */
@@ -362,7 +362,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      *
      * @param iface A Class defining an interface that the result must implement.
      * @return an object that implements the interface. May be a proxy for the actual implementing object.
-     * @throws java.sql.SQLException If no object found that implements the interface
+     * @throws SQLException If no object found that implements the interface
      * @since 1.6
      */
     public <T> T unwrap(final Class<T> iface) throws SQLException {
@@ -380,7 +380,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      *
      * @param iface a Class defining an interface.
      * @return true if this implements the interface or directly or indirectly wraps an object that does.
-     * @throws java.sql.SQLException if an error occurs while determining whether this is a wrapper for an object with
+     * @throws SQLException if an error occurs while determining whether this is a wrapper for an object with
      *                               the given interface.
      * @since 1.6
      */
@@ -395,7 +395,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      * @return a <code>PooledConnection</code> object that is a physical
      * connection to the database that this
      * <code>ConnectionPoolDataSource</code> object represents
-     * @throws java.sql.SQLException if a database access error occurs
+     * @throws SQLException if a database access error occurs
      *                               if the JDBC driver does not support
      *                               this method
      * @since 1.4
@@ -413,7 +413,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      * @return a <code>PooledConnection</code> object that is a physical
      * connection to the database that this
      * <code>ConnectionPoolDataSource</code> object represents
-     * @throws java.sql.SQLException if a database access error occurs
+     * @throws SQLException if a database access error occurs
      * @since 1.4
      */
     public PooledConnection getPooledConnection(String user, String password) throws SQLException {

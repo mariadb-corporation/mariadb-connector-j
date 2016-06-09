@@ -278,8 +278,8 @@ public abstract class AbstractCallableProcedureStatement extends MariaDbServerPr
         return getResult().getDouble(nameToOutputIndex(parameterName));
     }
 
-    @SuppressWarnings("deprecation")
     @Override
+    @SuppressWarnings("deprecation")
     public BigDecimal getBigDecimal(int parameterIndex, int scale) throws SQLException {
         return getResult().getBigDecimal(indexToOutputIndex(parameterIndex));
     }

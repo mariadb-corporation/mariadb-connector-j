@@ -483,7 +483,7 @@ public class Utils {
      * @throws SQLException if no timezone is found for this Id
      */
     public static TimeZone getTimeZone(String id) throws SQLException {
-        TimeZone tz = java.util.TimeZone.getTimeZone(id);
+        TimeZone tz = TimeZone.getTimeZone(id);
 
         // Validate the timezone ID. JDK maps invalid timezones to GMT
         if (tz.getID().equals("GMT") && !id.equals("GMT")) {

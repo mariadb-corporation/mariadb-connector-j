@@ -1139,16 +1139,11 @@ public class DriverTest extends BaseTest {
                 assertEquals(1, updateCounts[1]);
                 assertEquals(Statement.EXECUTE_FAILED, updateCounts[2]);
                 assertEquals(1, updateCounts[3]);
-            } else if (sharedIsRewrite()) {
-                assertEquals(Statement.EXECUTE_FAILED, updateCounts[0]);
-                assertEquals(0, updateCounts[1]);
-                assertEquals(0, updateCounts[2]);
-                assertEquals(0, updateCounts[3]);
             } else {
                 assertEquals(1, updateCounts[0]);
-                assertEquals(0, updateCounts[1]);
-                assertEquals(0, updateCounts[2]);
-                assertEquals(0, updateCounts[3]);
+                assertEquals(1, updateCounts[1]);
+                assertEquals(Statement.EXECUTE_FAILED, updateCounts[2]);
+                assertEquals(Statement.EXECUTE_FAILED, updateCounts[3]);
             }
             assertTrue(bue.getCause() instanceof SQLIntegrityConstraintViolationException);
         }
@@ -1231,7 +1226,7 @@ public class DriverTest extends BaseTest {
         ps.setString(3, "one");
         ps.setBoolean(4, true);
         Calendar calendar = new GregorianCalendar(1972, 3, 22);
-        ps.setDate(5, new java.sql.Date(calendar.getTime().getTime()));
+        ps.setDate(5, new Date(calendar.getTime().getTime()));
         ps.setDouble(6, 1.5);
         assertEquals("sql : 'SELECT ?,?,?,?,?,?', parameters : [1,1,'one',1,'1972-04-22',1.5]", ps.toString());
         ps.close();

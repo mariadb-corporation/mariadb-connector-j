@@ -11,6 +11,18 @@ remove_mysql(){
 }
 remove_mysql
 
+if [ -n "$REWRITE" ]
+then
+    export URLSTRING=-DdbURL='jdbc:mariadb://localhost:3306/testj?user=root&rewriteBatchedStatements=true'
+else
+    if [ -n "$MULTI" ]
+    then
+        export URLSTRING=-DdbURL='jdbc:mariadb://localhost:3306/testj?user=root&allowMultiQueries=true'
+    else
+        export URLSTRING=-DdbURL='jdbc:mariadb://localhost:3306/testj?user=root'
+    fi
+fi
+
 if [ -n "$AURORA" ]
 then
     # AURORA tests doesn't need an installation

@@ -57,7 +57,7 @@ public class MultiTest extends BaseTest {
         st.execute("INSERT INTO MultiTesttselect2 VALUES (1)");
         PreparedStatement ps = sharedConnection.prepareStatement("/*CLIENT*/ insert into MultiTesttselect1 "
                 + "(LAST_UPDATE_DATETIME, nn) select ?, nn from MultiTesttselect2");
-        ps.setTimestamp(1, new java.sql.Timestamp(System.currentTimeMillis()));
+        ps.setTimestamp(1, new Timestamp(System.currentTimeMillis()));
         ps.executeUpdate();
 
         ResultSet rs = st.executeQuery("SELECT * FROM MultiTesttselect1");
@@ -71,7 +71,7 @@ public class MultiTest extends BaseTest {
         st.execute("INSERT INTO MultiTesttselect4 VALUES (1)");
         PreparedStatement ps = sharedConnection.prepareStatement("insert into MultiTesttselect3 (LAST_UPDATE_DATETIME,"
                 + " nn) select ?, nn from MultiTesttselect4");
-        ps.setTimestamp(1, new java.sql.Timestamp(System.currentTimeMillis()));
+        ps.setTimestamp(1, new Timestamp(System.currentTimeMillis()));
         ps.executeUpdate();
 
         ResultSet rs = st.executeQuery("SELECT * FROM MultiTesttselect3");
@@ -218,13 +218,7 @@ public class MultiTest extends BaseTest {
      */
     @Test
     public void rewriteBatchedStatementsDisabledInsertionTest() throws SQLException {
-        verifyInsertBehaviorBasedOnRewriteBatchedStatements(Boolean.FALSE, 3000, 3000);
-    }
-
-    @Test
-    public void rewriteBatchedStatementsEnabledInsertionTest() throws SQLException {
-        //On batch mode, single insert query will be sent to MariaDB server.
-        verifyInsertBehaviorBasedOnRewriteBatchedStatements(Boolean.TRUE, 3000, 1);
+        verifyInsertBehaviorBasedOnRewriteBatchedStatements(Boolean.FALSE, 3000);
     }
 
 
@@ -235,16 +229,15 @@ public class MultiTest extends BaseTest {
      */
     @Test
     public void rewriteBatchedMaxAllowedSizeTest() throws SQLException {
+
+        createTable("MultiTestt6", "id int, test varchar(10000)");
         Assume.assumeTrue(checkMaxAllowedPacketMore8m("rewriteBatchedMaxAllowedSizeTest"));
         Statement st = sharedConnection.createStatement();
         ResultSet rs = st.executeQuery("select @@max_allowed_packet");
         if (rs.next()) {
-            double maxAllowedPacket = rs.getInt(1);
-            // request will be INSERT INTO MultiTestt6 VALUES ...(1000000, 'testValue1000000'),(1000001, 'testValue1000001')"
-            // average additional part size will be 30 characters (", (1500001, 'testValue1000001')")
-            // so there must be (8000000 * 30) / max_allowed_packet insert send
-            int totalInsertCommands = (int) Math.ceil((1500000 * 31) / maxAllowedPacket );
-            verifyInsertBehaviorBasedOnRewriteBatchedStatements(Boolean.TRUE, 1500000, totalInsertCommands);
+            long maxAllowedPacket = rs.getInt(1);
+            int totalInsertCommands = (int) Math.ceil( maxAllowedPacket / 10050);
+            verifyInsertBehaviorBasedOnRewriteBatchedStatements(Boolean.TRUE, totalInsertCommands);
         } else {
             fail();
         }
@@ -290,7 +283,7 @@ public class MultiTest extends BaseTest {
     }
 
     private void verifyInsertBehaviorBasedOnRewriteBatchedStatements(Boolean rewriteBatchedStatements,
-                                                                     int cycles, int totalInsertCommands) throws SQLException {
+                                                                     int totalInsertCommands) throws SQLException {
         Properties props = new Properties();
         props.setProperty("rewriteBatchedStatements", rewriteBatchedStatements.toString());
         props.setProperty("allowMultiQueries", "true");
@@ -299,17 +292,17 @@ public class MultiTest extends BaseTest {
             tmpConnection = openNewConnection(connUri, props);
             verifyInsertCount(tmpConnection, 0);
             Statement statement = tmpConnection.createStatement();
-            for (int i = 0; i < cycles; i++) {
+            for (int i = 0; i < totalInsertCommands; i++) {
                 statement.addBatch("INSERT INTO MultiTestt6 VALUES (" + i + ", 'testValue" + i + "')");
             }
             int[] updateCounts = statement.executeBatch();
-            assertEquals(cycles, updateCounts.length);
+            assertEquals(totalInsertCommands, updateCounts.length);
             int totalUpdates = 0;
             for (int count = 0; count < updateCounts.length; count++) {
                 assertEquals(1, updateCounts[count]);
                 totalUpdates += updateCounts[count];
             }
-            assertEquals(cycles, totalUpdates);
+            assertEquals(totalInsertCommands, totalUpdates);
             verifyInsertCount(tmpConnection, totalInsertCommands);
         } finally {
             tmpConnection.close();
@@ -460,10 +453,18 @@ public class MultiTest extends BaseTest {
         try {
             tmpConnection = openNewConnection(connUri, props);
             Statement sqlInsert = tmpConnection.createStatement();
+            verifyInsertCount(tmpConnection, 0);
+
             for (int i = 0; i < 100; i++) {
                 sqlInsert.addBatch("insert into MultiTestprepsemi (text) values ('This is a test" + i + "');");
             }
             sqlInsert.executeBatch();
+            verifyInsertCount(tmpConnection, 100);
+            for (int i = 0; i < 100; i++) {
+                sqlInsert.addBatch("insert into MultiTestprepsemi (text) values ('This is a test" + i + "')");
+            }
+            sqlInsert.executeBatch();
+            verifyInsertCount(tmpConnection, 200);
         } finally {
             tmpConnection.close();
         }
@@ -575,9 +576,9 @@ public class MultiTest extends BaseTest {
             assertEquals(100, updateCounts.length);
 
             for (int i = 0; i < updateCounts.length; i++) {
-                assertEquals(MariaDbStatement.SUCCESS_NO_INFO, updateCounts[i]);
+                assertEquals((i < 20) ? 1 : 0, updateCounts[i]);
             }
-            verifyInsertCount(tmpConnection, 1);
+            verifyInsertCount(tmpConnection, 100);
             verifyUpdateCount(tmpConnection, 0);
         } finally {
             if (tmpConnection != null) {
@@ -855,6 +856,82 @@ public class MultiTest extends BaseTest {
 
         for (int count = 1; count <= 10; count++) {
             preparedStatement.close();
+        }
+    }
+
+
+    @Test
+    public void rewriteErrorRewriteValues() throws SQLException {
+        prepareBatchUpdateException(true, true);
+    }
+
+    @Test
+    public void rewriteErrorRewriteMulti() throws SQLException {
+        prepareBatchUpdateException(false, true);
+    }
+
+    @Test
+    public void rewriteErrorStandard() throws SQLException {
+        prepareBatchUpdateException(false, false);
+    }
+
+
+    private void prepareBatchUpdateException(Boolean rewriteBatchedStatements, Boolean allowMultiQueries) throws SQLException {
+
+        createTable("batchUpdateException", "i int,PRIMARY KEY (i)");
+        Properties props = new Properties();
+        props.setProperty("rewriteBatchedStatements", rewriteBatchedStatements.toString());
+        props.setProperty("allowMultiQueries", allowMultiQueries.toString());
+        props.setProperty("useServerPrepStmts", "false");
+        Connection tmpConnection = null;
+        try {
+            tmpConnection = openNewConnection(connUri, props);
+            verifyInsertCount(tmpConnection, 0);
+
+            PreparedStatement ps = tmpConnection.prepareStatement("insert into batchUpdateException values(?)");
+            ps.setInt(1, 1);
+            ps.addBatch();
+            ps.setInt(1, 2);
+            ps.addBatch();
+            ps.setInt(1, 1); // will fail, duplicate primary key
+            ps.addBatch();
+            ps.setInt(1, 3);
+            ps.addBatch();
+
+            try {
+                ps.executeBatch();
+                fail("exception should be throw above");
+            } catch (BatchUpdateException bue) {
+                int[] updateCounts = bue.getUpdateCounts();
+                if (rewriteBatchedStatements) {
+                    assertEquals(4, updateCounts.length);
+                    assertEquals(Statement.EXECUTE_FAILED, updateCounts[0]);
+                    assertEquals(Statement.EXECUTE_FAILED, updateCounts[1]);
+                    assertEquals(Statement.EXECUTE_FAILED, updateCounts[2]);
+                    assertEquals(Statement.EXECUTE_FAILED, updateCounts[3]);
+                    verifyInsertCount(tmpConnection, 1);
+                } else if (allowMultiQueries) {
+                    assertEquals(4, updateCounts.length);
+                    assertEquals(1, updateCounts[0]);
+                    assertEquals(1, updateCounts[1]);
+                    assertEquals(Statement.EXECUTE_FAILED, updateCounts[2]);
+                    assertEquals(Statement.EXECUTE_FAILED, updateCounts[3]);
+                    verifyInsertCount(tmpConnection, 3);
+                } else {
+                    assertEquals(4, updateCounts.length);
+                    assertEquals(1, updateCounts[0]);
+                    assertEquals(1, updateCounts[1]);
+                    assertEquals(Statement.EXECUTE_FAILED, updateCounts[2]);
+                    assertEquals(0, updateCounts[3]);
+                    verifyInsertCount(tmpConnection, 3);
+                }
+                assertTrue(bue.getCause() instanceof SQLIntegrityConstraintViolationException);
+
+            }
+        } finally {
+            if (tmpConnection != null) {
+                tmpConnection.close();
+            }
         }
     }
 }

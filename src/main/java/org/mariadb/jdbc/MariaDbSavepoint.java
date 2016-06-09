@@ -65,7 +65,7 @@ public class MariaDbSavepoint implements Savepoint {
      * Retrieves the generated ID for the savepoint that this <code>Savepoint</code> object represents.
      *
      * @return the numeric ID of this savepoint
-     * @throws java.sql.SQLException if this is a named savepoint
+     * @throws SQLException if this is a named savepoint
      * @since 1.4
      */
     public int getSavepointId() throws SQLException {
@@ -76,7 +76,7 @@ public class MariaDbSavepoint implements Savepoint {
      * Retrieves the name of the savepoint that this <code>Savepoint</code> object represents.
      *
      * @return the name of this savepoint
-     * @throws java.sql.SQLException if this is an un-named savepoint
+     * @throws SQLException if this is an un-named savepoint
      * @since 1.4
      */
     public String getSavepointName() throws SQLException {

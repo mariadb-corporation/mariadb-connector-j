@@ -8,7 +8,7 @@ import org.mariadb.jdbc.internal.queryresults.*;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 import org.mariadb.jdbc.internal.stream.MaxAllowedPacketException;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
-import org.mariadb.jdbc.internal.util.PrepareStatementCache;
+import org.mariadb.jdbc.internal.util.ServerPrepareStatementCache;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.util.constant.ServerStatus;
 import org.mariadb.jdbc.internal.util.buffer.Buffer;
@@ -16,7 +16,7 @@ import org.mariadb.jdbc.internal.packet.read.Packet;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
 import org.mariadb.jdbc.internal.MariaDbType;
-import org.mariadb.jdbc.internal.util.dao.PrepareResult;
+import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 
 import java.io.*;
 import java.net.SocketException;
@@ -27,7 +27,6 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -120,19 +119,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * Prepare query on server side.
      * Will permit to know the parameter number of the query, and permit to send only the data on next results.
      *
-     * @param sql the query
-     * @return state of current connection when creating this prepareStatement
-     * @throws QueryException if any error occur on connection.
-     */
-    @Override
-    public PrepareResult prepare(String sql) throws QueryException {
-        return prepare(sql, false, this.isMasterConnection());
-    }
-
-    /**
-     * Prepare query on server side.
-     * Will permit to know the parameter number of the query, and permit to send only the data on next results.
-     *
      * For failover, two additional information are in the resultset object :
      * - current connection : Since server maintain a state of this prepare statement, all query will be executed on this particular connection.
      * - executeOnMaster : state of current connection when creating this prepareStatement (if was on master, will only be executed on master.
@@ -140,13 +126,12 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * so when a slave is connected back to relaunch this query on slave)
      *
      * @param sql the query
-     * @param forceNew do not use prepared in cache in present.
      * @param executeOnMaster state of current connection when creating this prepareStatement
-     * @return a PrepareResult object that contain prepare result information.
+     * @return a ServerPrepareResult object that contain prepare result information.
      * @throws QueryException if any error occur on connection.
      */
     @Override
-    public PrepareResult prepare(String sql, boolean forceNew, boolean executeOnMaster) throws QueryException {
+    public ServerPrepareResult prepare(String sql, boolean executeOnMaster) throws QueryException {
         lock.lock();
         try {
 
@@ -156,17 +141,16 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             }
 
             checkClose();
-            String key = null;
-            if (!forceNew && options.cachePrepStmts) {
-                key = new StringBuilder(database).append("-").append(sql).toString();
-                PrepareResult pr = prepareStatementCache.get(key);
+            if (options.cachePrepStmts) {
+                String key = new StringBuilder(database).append("-").append(sql).toString();
+                ServerPrepareResult pr = serverPrepareStatementCache.get(key);
                 if (pr != null && pr.incrementShareCounter()) {
                     return pr;
                 }
             }
 
             writer.sendPreparePacket(sql);
-            return readPrepareResult(key, sql, forceNew, executeOnMaster);
+            return readPrepareResult(sql, executeOnMaster);
         } catch (IOException e) {
             throw new QueryException(e.getMessage(), -1,
                     ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(),
@@ -176,7 +160,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         }
     }
 
-    private PrepareResult readPrepareResult(String key, String sql, boolean forceNew, boolean executeOnMaster) throws QueryException, IOException {
+    private ServerPrepareResult readPrepareResult(String sql, boolean executeOnMaster)
+            throws QueryException, IOException {
+
         Buffer buffer = packetFetcher.getReusableBuffer();
         byte firstByte = buffer.getByteAt(0);
 
@@ -208,122 +194,45 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 }
                 readEofPacket();
             }
-            PrepareResult prepareResult = new PrepareResult(statementId, columns, params, this, executeOnMaster);
+            ServerPrepareResult serverPrepareResult = new ServerPrepareResult(sql, statementId, columns, params, this);
             if (options.cachePrepStmts && sql != null && sql.length() < options.prepStmtCacheSqlLimit) {
-                PrepareResult cachedPrepareResult = prepareStatementCache.put(key, prepareResult, forceNew);
-                return cachedPrepareResult != null ? cachedPrepareResult : prepareResult;
+                String key = new StringBuilder(database).append("-").append(sql).toString();
+                ServerPrepareResult cachedServerPrepareResult = serverPrepareStatementCache.put(key, serverPrepareResult);
+                return cachedServerPrepareResult != null ? cachedServerPrepareResult : serverPrepareResult;
             }
-            return prepareResult;
+            return serverPrepareResult;
         } else {
             throw new QueryException("Unexpected packet returned by server, first byte " + firstByte);
         }
     }
 
-    @Override
-    public PrepareResult prepareAndExecute(ExecutionResult executionResult, String sql, boolean forceNew,
-                                           ParameterHolder[] parameters, MariaDbType[] parameterTypeHeader,
-                                           int resultSetScrollType) throws QueryException {
-        try {
-            //send prepare packet
-            if (activeStreamingResult != null) {
-                throw new QueryException("There is an open result set on the current connection, which must be "
-                        + "closed prior to executing a query");
-            }
-            checkClose();
-            PrepareResult prepareResult = null;
-            String key = null;
-            if (!forceNew && options.cachePrepStmts) {
-                key = new StringBuilder(database).append("-").append(sql).toString();
-                prepareResult = prepareStatementCache.get(key);
-            }
-
-            this.moreResults = false;
-            int parameterCount = parameters.length;
-
-            if (prepareResult == null || (prepareResult != null && !prepareResult.incrementShareCounter())) {
-                //USING COM_MULTI
-                writer.startPacket(0, true);
-                writer.buffer.put((byte) 0xfe);
-                byte[] sqlBytes = sql.getBytes("UTF-8");
-                int prepareLengthCommand = sqlBytes.length + 1;
-
-                //prepare length
-                writer.buffer.put((byte) (prepareLengthCommand & 0xff));
-                writer.buffer.put((byte) (prepareLengthCommand >>> 8));
-                writer.buffer.put((byte) (prepareLengthCommand >>> 16));
-
-                //prepare subcommand
-                writer.buffer.put((byte) 0x16);
-                writer.buffer.put(sqlBytes);
-
-                //send long data
-                int initialPosition;
-                int subcommandEndPosition;
-                for (int i = 0; i < parameterCount; i++) {
-                    if (parameters[i].isLongData()) {
-                        initialPosition = writer.buffer.position() + 3;
-                        writer.write(new byte[] {0,0,0}); //subcommand length
-                        writer.write((byte) 0x18);
-                        writer.writeInt(-1);
-                        writer.writeShort((short) i);
-                        parameters[i].writeBinary(writer);
-                        subcommandEndPosition = writer.buffer.position();
-
-                        //write subcommand length
-                        writer.buffer.position(initialPosition - 3);
-                        writer.buffer.put((byte) ((subcommandEndPosition - initialPosition) & 0xff));
-                        writer.buffer.put((byte) ((subcommandEndPosition - initialPosition) >>> 8));
-                        writer.buffer.put((byte) ((subcommandEndPosition - initialPosition) >>> 16));
-                        writer.buffer.position(subcommandEndPosition);
-                    }
+    private ServerPrepareResult getPrepareResultFromCacheIfNeeded(ServerPrepareResult serverPrepareResult, String sql)
+            throws UnsupportedEncodingException {
+        if (serverPrepareResult == null) {
+            if (options.cachePrepStmts) {
+                String key = new StringBuilder(database).append("-").append(sql).toString();
+                serverPrepareResult = serverPrepareStatementCache.get(key);
+                if (serverPrepareResult != null && !serverPrepareResult.incrementShareCounter()) {
+                    //in cache but been de-allocated
+                    return null;
                 }
-
-                initialPosition = writer.buffer.position() + 3;
-                writer.write(new byte[] {0,0,0}); //subcommand length
-                SendExecutePrepareStatementPacket packet = new SendExecutePrepareStatementPacket(-1, parameters,
-                        parameterCount, parameterTypeHeader);
-                packet.comStmtExecuteSubCommand(writer);
-                subcommandEndPosition = writer.buffer.position();
-
-                //write subcommand length
-                writer.buffer.position(initialPosition - 3);
-                writer.buffer.put((byte) ((subcommandEndPosition - initialPosition) & 0xff));
-                writer.buffer.put((byte) ((subcommandEndPosition - initialPosition) >>> 8));
-                writer.buffer.put((byte) ((subcommandEndPosition - initialPosition) >>> 16));
-                writer.buffer.position(subcommandEndPosition);
-                writer.finishPacket();
-                prepareResult = readPrepareResult(key, sql, forceNew, this.isMasterConnection());
-
-            } else {
-                //standard COM_STMT_EXECUTE
-
-                //send binary data in a separate stream
-                for (int i = 0; i < parameterCount; i++) {
-                    if (parameters[i].isLongData()) {
-                        writer.startPacket(0);
-                        writer.buffer.put((byte) 0x18);
-                        writer.buffer.putInt(-1);
-                        writer.buffer.putShort((short) i);
-                        parameters[i].writeBinary(writer);
-                        writer.finishPacket();
-                    }
-                }
-                //send execute query
-                SendExecutePrepareStatementPacket packet = new SendExecutePrepareStatementPacket(
-                        prepareResult.getStatementId(), parameters, parameterCount, parameterTypeHeader);
-                packet.send(writer);
             }
-
-            //prepare send, now send parameters
-
-
-            getResult(executionResult, resultSetScrollType, true, true);
-            return prepareResult;
-        } catch (IOException e) {
-            throw new QueryException(e.getMessage(), -1,
-                    ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(),
-                    e);
         }
+        return serverPrepareResult;
+    }
+
+    private void addPrepareSubCommand(String sql) throws UnsupportedEncodingException {
+        byte[] sqlBytes = sql.getBytes("UTF-8");
+        int prepareLengthCommand = sqlBytes.length + 1;
+
+        //prepare length
+        writer.buffer.put((byte) (prepareLengthCommand & 0xff));
+        writer.buffer.put((byte) (prepareLengthCommand >>> 8));
+        writer.buffer.put((byte) (prepareLengthCommand >>> 16));
+
+        //prepare subCommand
+        writer.buffer.put((byte) 0x16);
+        writer.buffer.put(sqlBytes);
     }
 
     @Override
@@ -447,22 +356,207 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         getResult(executionResult, ResultSet.TYPE_FORWARD_ONLY, false, true);
     }
 
+    /**
+     * Prepare query if needed, and execute send all executes in one packet (or more if &gt; max_allowed_packet).
+     *
+     * @param mustExecuteOnMaster must normally be executed on master connection
+     * @param executionResult results
+     * @param sql query
+     * @param parameters parameters
+     * @param resultSetScrollType  result scroll type
+     * @return server prepare result
+     * @throws QueryException if server return error, of connection fail
+     */
     @Override
-    public void executePreparedQueryAfterFailover(PrepareResult oldPrepareResult, ExecutionResult executionResult, String sql,
-                                                  ParameterHolder[] parameters, MariaDbType[] parameterTypeHeader, int resultSetScrollType)
-            throws QueryException {
-        PrepareResult prepareResult = prepare(sql, true, oldPrepareResult.isExecuteOnMaster());
-        //reset header status
-        for (int i = 0; i < parameterTypeHeader.length; i++) {
-            parameterTypeHeader[i] = null;
+    public ServerPrepareResult prepareAndExecuteComMulti(boolean mustExecuteOnMaster, ExecutionResult executionResult,
+                                                         String sql, ParameterHolder[] parameters,
+                                                         int resultSetScrollType) throws QueryException {
+        try {
+            if (activeStreamingResult != null) {
+                throw new QueryException("There is an open result set on the current connection, which must be "
+                        + "closed prior to executing a query");
+            }
+            checkClose();
+            this.moreResults = false;
+            int parameterNb = parameters.length;
+            ServerPrepareResult serverPrepareResult = getPrepareResultFromCacheIfNeeded(null, sql);
+            int statementId = (serverPrepareResult == null) ? -1 : serverPrepareResult.getStatementId();
+
+            //com multi init packet
+            writer.startPacket(0, true);
+            writer.buffer.put((byte) 0xfe);
+
+            //add prepare sub-command
+            if (statementId == -1) addPrepareSubCommand(sql);
+
+            int subCmdInitialPosition;
+            int subCmdEndPosition;
+
+            //send long data
+            for (int i = 0; i < parameterNb; i++) {
+                if (parameters[i].isLongData()) {
+                    //reserve 3 bytes for sub command length
+                    subCmdInitialPosition = writer.buffer.position();
+                    writer.assureBufferCapacity(3);
+                    writer.buffer.position(subCmdInitialPosition + 3);
+
+                    //add execute sub command
+                    writer.write((byte) 0x18);
+                    writer.writeInt(statementId);
+                    writer.writeShort((short) i);
+                    parameters[i].writeBinary(writer);
+
+                    //write subCommand length
+                    subCmdEndPosition = writer.buffer.position();
+                    writer.buffer.position(subCmdInitialPosition);
+                    writer.buffer.put((byte) ((subCmdEndPosition - (subCmdInitialPosition + 3)) & 0xff));
+                    writer.buffer.put((byte) ((subCmdEndPosition - (subCmdInitialPosition + 3)) >>> 8));
+                    writer.buffer.put((byte) ((subCmdEndPosition - (subCmdInitialPosition + 3)) >>> 16));
+                    writer.buffer.position(subCmdEndPosition);
+                }
+            }
+
+            //reserve 3 bytes for sub command length
+            subCmdInitialPosition = writer.buffer.position();
+            writer.assureBufferCapacity(3);
+            writer.buffer.position(subCmdInitialPosition + 3);
+
+            //add execute sub command
+            SendExecutePrepareStatementPacket.comStmtExecuteSubCommand(statementId, parameters, parameterNb, new MariaDbType[parameterNb], writer);
+
+            //write subCommand length
+            subCmdEndPosition = writer.buffer.position();
+            writer.buffer.position(subCmdInitialPosition);
+            writer.buffer.put((byte) ((subCmdEndPosition - (subCmdInitialPosition + 3)) & 0xff));
+            writer.buffer.put((byte) ((subCmdEndPosition - (subCmdInitialPosition + 3)) >>> 8));
+            writer.buffer.put((byte) ((subCmdEndPosition - (subCmdInitialPosition + 3)) >>> 16));
+            writer.buffer.position(subCmdEndPosition);
+
+            writer.finishPacket();
+
+            if (statementId == -1) serverPrepareResult = readPrepareResult(sql, mustExecuteOnMaster);
+            getResult(executionResult, resultSetScrollType, true, true);
+            return serverPrepareResult;
+        } catch (IOException e) {
+            throw new QueryException(e.getMessage(), -1, ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(), e);
         }
-        oldPrepareResult.failover(prepareResult.getStatementId(), this);
-        executePreparedQuery(oldPrepareResult, executionResult, sql, parameters, parameterTypeHeader, resultSetScrollType);
+    }
+
+    /**
+     * Execute Prepare if needed, and execute COM_STMT_EXECUTE queries in batch using COM_MULTI.
+     *
+     * @param mustExecuteOnMaster must normally be executed on master connection
+     * @param serverPrepareResult prepare result. can be null if not prepared.
+     * @param executionResult execution results
+     * @param sql sql query if needed to be prepared
+     * @param parameterList parameter list
+     * @param resultSetScrollType result scroll type
+     * @return Prepare result
+     * @throws QueryException if parameter error or connection error occur.
+     */
+    public ServerPrepareResult prepareAndExecutesComMulti(boolean mustExecuteOnMaster, ServerPrepareResult serverPrepareResult,
+                                                          ExecutionResult executionResult, String sql,
+                                                          List<ParameterHolder[]> parameterList, int resultSetScrollType)
+            throws QueryException {
+        try {
+            //send prepare packet
+            if (activeStreamingResult != null) {
+                throw new QueryException("There is an open result set on the current connection, which must be "
+                        + "closed prior to executing a query");
+            }
+            this.moreResults = false;
+            int subCmdInitialPosition;
+            int subCmdEndPosition;
+            int subCmdCounter;
+            int currentExecutionNumber = 0;
+            int parameterNbPerExecute = parameterList.get(0).length;
+            int totalExecutionNumber = parameterList.size();
+            ParameterHolder[] parameters;
+            byte[] lastSubCommand = null;
+
+            MariaDbType[] parameterTypeHeader = new MariaDbType[parameterNbPerExecute];
+
+            //check prepare result
+            serverPrepareResult = getPrepareResultFromCacheIfNeeded(serverPrepareResult, sql);
+            int statementId = (serverPrepareResult == null) ? -1 : serverPrepareResult.getStatementId();
+
+            do {
+                subCmdCounter = 0;
+
+                //using COM_MULTI
+                writer.startPacket(0, true);
+                writer.buffer.put((byte) 0xfe);
+
+                if (statementId == -1) addPrepareSubCommand(sql);
+
+                //in case of packet splitting, last subCommand that make packet > to max_allowed_packet
+                if (lastSubCommand != null) {
+                    writer.write(lastSubCommand, 0, lastSubCommand.length);
+                    lastSubCommand = null;
+                    subCmdCounter++;
+                }
+
+                for (; currentExecutionNumber < totalExecutionNumber; currentExecutionNumber++) {
+                    parameters = parameterList.get(currentExecutionNumber);
+
+                    //reserve 3 bytes for sub command length
+                    subCmdInitialPosition = writer.buffer.position();
+                    writer.assureBufferCapacity(3);
+                    writer.buffer.position(subCmdInitialPosition + 3);
+
+                    //add execute sub command
+                    SendExecutePrepareStatementPacket.comStmtExecuteSubCommand(statementId, parameters,
+                            parameterNbPerExecute, parameterTypeHeader, writer);
+
+                    //write command size
+                    subCmdEndPosition = writer.buffer.position();
+                    writer.buffer.position(subCmdInitialPosition);
+                    writer.buffer.put((byte) ((subCmdEndPosition - (subCmdInitialPosition + 3)) & 0xff));
+                    writer.buffer.put((byte) ((subCmdEndPosition - (subCmdInitialPosition + 3)) >>> 8));
+                    writer.buffer.put((byte) ((subCmdEndPosition - (subCmdInitialPosition + 3)) >>> 16));
+                    writer.buffer.position(subCmdEndPosition);
+
+                    //check that packet < max_allowed_packet, loop for next packet if so.
+                    //otherwise, save sub-command, and set position to before this sub-command and send packet.
+                    if (!writer.checkCurrentPacketAllowedSize()) {
+                        //packet size > max_allowed_size -> need to send packet now without last command, and recreate new packet for additional data.
+                        lastSubCommand = new byte[subCmdEndPosition - subCmdInitialPosition];
+                        System.arraycopy(writer.buffer.array(), subCmdInitialPosition, lastSubCommand, 0, subCmdEndPosition - subCmdInitialPosition);
+                        writer.buffer.position(subCmdInitialPosition);
+                        break;
+                    }
+                    subCmdCounter++;
+                }
+
+                writer.finishPacket();
+
+                //read prepare result
+                if (statementId == -1) {
+                    serverPrepareResult = readPrepareResult(sql, this.isMasterConnection());
+                    statementId = serverPrepareResult.getStatementId();
+                }
+
+                //read all execution result
+                for (int counter = 0; counter < subCmdCounter; counter++) {
+                    getResult(executionResult, resultSetScrollType, true, true);
+                }
+            } while (currentExecutionNumber < totalExecutionNumber || lastSubCommand != null);
+
+            return serverPrepareResult;
+
+        } catch (IOException e) {
+            throw new QueryException(e.getMessage(), -1,
+                    ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(),
+                    e);
+        }
+
     }
 
     @Override
-    public void executePreparedQuery(PrepareResult prepareResult, ExecutionResult executionResult, String sql, ParameterHolder[] parameters,
-                                                    MariaDbType[] parameterTypeHeader, int resultSetScrollType) throws QueryException {
+    public void executePreparedQuery(boolean mustExecuteOnMaster, ServerPrepareResult serverPrepareResult, ExecutionResult executionResult,
+                                     ParameterHolder[] parameters, int resultSetScrollType)
+            throws QueryException {
+
         checkClose();
         this.moreResults = false;
         try {
@@ -473,24 +567,24 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
                     writer.startPacket(0);
                     writer.buffer.put((byte) 0x18);
-                    writer.buffer.putInt(prepareResult.getStatementId());
+                    writer.buffer.putInt(serverPrepareResult.getStatementId());
                     writer.buffer.putShort((short) i);
                     parameters[i].writeBinary(writer);
                     writer.finishPacket();
                 }
             }
             //send execute query
-            SendExecutePrepareStatementPacket packet = new SendExecutePrepareStatementPacket(prepareResult.getStatementId(), parameters,
-                    parameterCount, parameterTypeHeader);
-            packet.send(writer);
+            new SendExecutePrepareStatementPacket(serverPrepareResult.getStatementId(), parameters,
+                    parameterCount, serverPrepareResult.getParameterTypeHeader())
+                    .send(writer);
             getResult(executionResult, resultSetScrollType, true, true);
 
         } catch (QueryException qex) {
             if (getOptions().dumpQueriesOnException || qex.getErrorCode() == 1064) {
-                if (sql.length() > 1024) {
-                    qex.setMessage(qex.getMessage() + "\nQuery is: " + sql.substring(0, 1024) + "...");
+                if (serverPrepareResult.getSql().length() > 1024) {
+                    qex.setMessage(qex.getMessage() + "\nQuery is: " + serverPrepareResult.getSql().substring(0, 1024) + "...");
                 } else {
-                    qex.setMessage(qex.getMessage() + "\nQuery is: " + sql);
+                    qex.setMessage(qex.getMessage() + "\nQuery is: " + serverPrepareResult.getSql());
                 }
             }
             if (qex.getCause() instanceof SocketTimeoutException) {
@@ -512,18 +606,18 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
     /**
      * Deallocate prepare statement if not used anymore.
-     * @param prepareResult allocation result
-     * @param sql sql query
+     * @param serverPrepareResult allocation result
      * @throws QueryException if deallocation failed.
      */
     @Override
-    public void releasePrepareStatement(PrepareResult prepareResult, String sql) throws QueryException {
-        //If prepared cache is enable, the PrepareResult can be shared in many PrepStatement, so synchronised use count indicator will be decrement.
-        prepareResult.decrementShareCounter();
+    public void releasePrepareStatement(ServerPrepareResult serverPrepareResult) throws QueryException {
+        //If prepared cache is enable, the ServerPrepareResult can be shared in many PrepStatement,
+        //so synchronised use count indicator will be decrement.
+        serverPrepareResult.decrementShareCounter();
 
         //deallocate from server if not cached
-        if (prepareResult.canBeDeallocate()) {
-            forceReleasePrepareStatement(prepareResult.getStatementId());
+        if (serverPrepareResult.canBeDeallocate()) {
+            forceReleasePrepareStatement(serverPrepareResult.getStatementId());
         }
     }
 
@@ -690,26 +784,29 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         }
     }
 
-    public PrepareStatementCache prepareStatementCache() {
-        return prepareStatementCache;
+    public ServerPrepareStatementCache prepareStatementCache() {
+        return serverPrepareStatementCache;
     }
 
     public void executeQuery(final String sql) throws QueryException {
-        executeQuery(new SingleExecutionResult(null, 0, false, false), sql, ResultSet.TYPE_FORWARD_ONLY);
+        executeQuery(isMasterConnection(), new SingleExecutionResult(null, 0, false, false), sql, ResultSet.TYPE_FORWARD_ONLY);
     }
 
     /**
      * Execute query.
      *
+     * @param mustExecuteOnMaster was intended to be launched on master connection
+     * @param executionResult result
      * @param sql the query to executeInternal
      * @param resultSetScrollType resultSetScrollType
      * @throws QueryException exception
      */
     @Override
-    public void executeQuery(ExecutionResult executionResult, final String sql, int resultSetScrollType) throws QueryException {
+    public void executeQuery(boolean mustExecuteOnMaster, ExecutionResult executionResult,
+                             final String sql, int resultSetScrollType) throws QueryException {
         checkClose();
         try {
-            writer.sendTextPacket(sql);
+            writer.sendTextPacket(sql.getBytes("UTF-8"));
             getResult(executionResult, resultSetScrollType, false, true);
         } catch (QueryException queryException) {
             if (getOptions().dumpQueriesOnException || queryException.getErrorCode() == 1064) {
@@ -728,13 +825,16 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
     /**
      * Specific execution for batch allowMultipleQueries that has specific query for memory.
+     *
+     * @param mustExecuteOnMaster was intended to be launched on master connection
      * @param executionResult result
      * @param queryParts query part
      * @param parameters parameters
      * @param resultSetScrollType resultsetScroll type
      * @throws QueryException exception
      */
-    public void executeQuery(ExecutionResult executionResult, final List<String> queryParts, ParameterHolder[] parameters,
+    public void executeQuery(boolean mustExecuteOnMaster, ExecutionResult executionResult,
+                             final List<byte[]> queryParts, ParameterHolder[] parameters,
                              int resultSetScrollType) throws QueryException {
         checkClose();
         int paramCount = queryParts.size() - 1;
@@ -745,20 +845,12 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             if (paramCount == 0) {
                 writer.sendTextPacket(queryParts.get(0));
             } else {
-
-                //validate parameters
-                for (ParameterHolder ph : parameters) {
-                    if (ph == null) {
-                        throw new QueryException("You need to set exactly " + paramCount + " parameters on the prepared statement");
-                    }
-                }
-
                 writer.startPacket(0);
                 writer.buffer.put((byte) 0x03);
-                writer.write(queryParts.get(0).getBytes("UTF-8"));
+                writer.write(queryParts.get(0));
                 for (int i = 0; i < paramCount; i++) {
                     parameters[i].writeTo(writer);
-                    writer.write(queryParts.get(i + 1).getBytes("UTF-8"));
+                    writer.write(queryParts.get(i + 1));
                 }
                 writer.finishPacket();
             }
@@ -778,6 +870,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
     /**
      * Specific execution for batch rewrite that has specific query for memory.
+     *
+     * @param mustExecuteOnMaster was intended to be launched on master connection
      * @param executionResult result
      * @param queryParts query part
      * @param parameters parameters
@@ -785,30 +879,23 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * @param isRewritable is rewritable flag
      * @throws QueryException exception
      */
-    public void executeQuery(ExecutionResult executionResult, final List<String> queryParts, ParameterHolder[] parameters,
-                                      int resultSetScrollType, boolean isRewritable) throws QueryException {
+    public void executeQuery(boolean mustExecuteOnMaster, ExecutionResult executionResult,
+                             final List<byte[]> queryParts, ParameterHolder[] parameters,
+                             int resultSetScrollType, boolean isRewritable) throws QueryException {
         checkClose();
         int paramCount = queryParts.size() - 3;
 
         try {
-            //validate parameters
-            for (ParameterHolder ph : parameters) {
-                if (ph == null) {
-                    throw new QueryException("You need to set exactly " + paramCount + " parameters on the prepared statement");
-                }
-            }
-
             this.moreResults = false;
-
             writer.startPacket(0);
             writer.buffer.put((byte) 0x03);
-            writer.write(queryParts.get(0).getBytes("UTF-8"));
-            writer.write(queryParts.get(1).getBytes("UTF-8"));
+            writer.write(queryParts.get(0));
+            writer.write(queryParts.get(1));
             for (int i = 0; i < paramCount; i++) {
                 parameters[i].writeTo(writer);
-                writer.write(queryParts.get(2).getBytes("UTF-8"));
+                writer.write(queryParts.get(i + 2));
             }
-            writer.write(queryParts.get(paramCount + 2).getBytes("UTF-8"));
+            writer.write(queryParts.get(paramCount + 2));
 
             writer.finishPacket();
             getResult(executionResult, resultSetScrollType, false, true);
@@ -825,20 +912,20 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         }
     }
 
-    private void throwErrorWithQuery(List<String> queryParts, ParameterHolder[] parameters, QueryException queryException, int paramCount,
+    private void throwErrorWithQuery(List<byte[]> queryParts, ParameterHolder[] parameters, QueryException queryException, int paramCount,
                                      boolean rewrite)
             throws QueryException {
         if (getOptions().dumpQueriesOnException || queryException.getErrorCode() == 1064) {
-            StringBuilder queryString = new StringBuilder(queryParts.get(0));
-            if (rewrite) queryString.append(queryParts.get(1));
+            StringBuilder queryString = new StringBuilder(new String(queryParts.get(0)));
+            if (rewrite) queryString.append(new String(queryParts.get(1)));
             for (int i = 0; i < paramCount; i++) {
                 if (parameters != null && parameters.length > i) {
-                    queryString.append(parameters[i]).append(queryParts.get(i + (rewrite ? 2 : 1)));
+                    queryString.append(parameters[i]).append(new String(queryParts.get(i + (rewrite ? 2 : 1))));
                 } else {
-                    queryString.append("?").append(queryParts.get(i + (rewrite ? 2 : 1)));
+                    queryString.append("?").append(new String(queryParts.get(i + (rewrite ? 2 : 1))));
                 }
             }
-            if (rewrite) queryString.append(queryParts.get(paramCount + 2));
+            if (rewrite) queryString.append(new String(queryParts.get(paramCount + 2)));
             addQueryInfo(queryString.toString(), queryException);
         }
         throw queryException;
@@ -848,11 +935,12 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     /**
      * Execute list of queries not rewritable.
      *
+     * @param mustExecuteOnMaster was intended to be launched on master connection
      * @param queries list of queryes
      * @param resultSetScrollType resultSetScrollType
      * @throws QueryException exception
      */
-    public void executeQueries(ExecutionResult executionResult, List<String> queries, int resultSetScrollType)
+    public void executeStmtBatch(boolean mustExecuteOnMaster, ExecutionResult executionResult, List<String> queries, int resultSetScrollType)
             throws QueryException {
         checkClose();
         int counter = 0;
@@ -862,7 +950,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         for (; counter < size; counter++) {
             try {
                 sql = queries.get(counter);
-                writer.sendTextPacket(sql);
+                writer.sendTextPacket(sql.getBytes("UTF-8"));
                 getResult(executionResult, resultSetScrollType, false, true);
             } catch (QueryException queryException) {
                 if (getOptions().dumpQueriesOnException || queryException.getErrorCode() == 1064) {
@@ -890,14 +978,17 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
     /**
      * Specific execution for batch allowMultipleQueries that has specific query for memory.
+     *
+     * @param mustExecuteOnMaster was intended to be launched on master connection
      * @param executionResult result
      * @param queryParts query part
      * @param parameterList parameters
      * @param resultSetScrollType resultsetScroll type
      * @throws QueryException exception
      */
-    public void executeMultipleQueries(ExecutionResult executionResult, final List<String> queryParts, List<ParameterHolder[]> parameterList,
-                                      int resultSetScrollType) throws QueryException {
+    public void executeBatchMultiple(boolean mustExecuteOnMaster, ExecutionResult executionResult,
+                                     final List<byte[]> queryParts, List<ParameterHolder[]> parameterList,
+                                     int resultSetScrollType) throws QueryException {
         checkClose();
         ParameterHolder[] parameters = null;
         int paramCount = queryParts.size() - 1;
@@ -907,41 +998,21 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         try {
             this.moreResults = false;
 
-            //validate parameters
-            for (ParameterHolder[] parameterHolders : parameterList) {
-                for (int i = 0; i < paramCount; i++) {
-                    parameters = parameterHolders;
-                    if (parameters[i] == null) {
-                        throw new QueryException("Parameter " + (i + 1) + " is not set. You need to set exactly " + paramCount
-                                + " parameters on the prepared statement");
-                    }
-                }
-            }
-
-
             do {
                 parameters = parameterList.get(currentIndex++);
+                byte[] firstPart = queryParts.get(0);
 
-                //change rewritable part to utf8 bytes
-                List<byte[]> queryPartsUtf8 = new ArrayList<>(queryParts.size());
-                for (String part : queryParts) {
-                    queryPartsUtf8.add(part.getBytes("UTF-8"));
-                }
+                //calculate static length for packet splitting
+                int staticLength = 1;
+                for (int i = 0; i < queryParts.size(); i++) staticLength += queryParts.get(i).length;
 
+                //write first query
                 writer.startPacket(0);
                 writer.write(0x03);
-
-                byte[] firstPart = queryPartsUtf8.get(0);
-
-                //write first
                 writer.write(firstPart);
-
-                int staticLength = 1;
-                for (int i = 0; i < queryPartsUtf8.size(); i++) staticLength += queryPartsUtf8.get(i).length;
-
                 for (int i = 0; i < paramCount; i++) {
                     parameters[i].writeTo(writer);
-                    writer.write(queryPartsUtf8.get(i + 1));
+                    writer.write(queryParts.get(i + 1));
                 }
 
                 // write other, separate by ";"
@@ -970,7 +1041,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                             writer.buffer.put(firstPart, 0, firstPart.length);
                             for (int i = 0; i < paramCount; i++) {
                                 parameters[i].writeUnsafeTo(writer);
-                                writer.buffer.put(queryPartsUtf8.get(i + 1));
+                                writer.buffer.put(queryParts.get(i + 1));
                             }
                             currentIndex++;
                         } else {
@@ -982,7 +1053,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                         writer.write(firstPart, 0, firstPart.length);
                         for (int i = 0; i < paramCount; i++) {
                             parameters[i].writeTo(writer);
-                            writer.write(queryPartsUtf8.get(i + 1));
+                            writer.write(queryParts.get(i + 1));
                         }
                         currentIndex++;
                     }
@@ -1006,6 +1077,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
     /**
      * Specific execution for batch rewrite that has specific query for memory.
+     *
+     * @param mustExecuteOnMaster was intended to be launched on master connection
      * @param executionResult result
      * @param queryParts query part
      * @param parameterList parameters
@@ -1013,8 +1086,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * @param isRewritable is rewritable flag
      * @throws QueryException exception
      */
-    public void executeRewriteQueries(ExecutionResult executionResult, final List<String> queryParts, List<ParameterHolder[]> parameterList,
-                               int resultSetScrollType, boolean isRewritable) throws QueryException {
+    public void executeBatchRewrite(boolean mustExecuteOnMaster, ExecutionResult executionResult,
+                                    final List<byte[]> queryParts, List<ParameterHolder[]> parameterList,
+                                    int resultSetScrollType, boolean isRewritable) throws QueryException {
         checkClose();
         ParameterHolder[] parameters = null;
         int paramCount = queryParts.size() - 3;
@@ -1022,22 +1096,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         int totalParameterList = parameterList.size();
 
         try {
-            //validate parameters
-            for (ParameterHolder[] parameterHolders : parameterList) {
-                for (ParameterHolder ph : parameterHolders) {
-                    if (ph == null) {
-                        parameters = parameterHolders;
-                        throw new QueryException("You need to set exactly " + paramCount + " parameters on the prepared statement");
-                    }
-                }
-            }
-
-            //change rewritable part to utf8 bytes
-            List<byte[]> queryPartsUtf8 = new ArrayList<>(queryParts.size());
-            for (String part : queryParts) {
-                queryPartsUtf8.add(part.getBytes("UTF-8"));
-            }
-
             this.moreResults = false;
 
             do {
@@ -1045,8 +1103,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 writer.startPacket(0);
                 writer.buffer.put((byte)0x03);
 
-                byte[] firstPart = queryPartsUtf8.get(0);
-                byte[] secondPart = queryPartsUtf8.get(1);
+                byte[] firstPart = queryParts.get(0);
+                byte[] secondPart = queryParts.get(1);
 
                 if (!isRewritable) {
                     //write first
@@ -1054,13 +1112,13 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     writer.write(secondPart, 0, secondPart.length);
 
                     int staticLength = 1;
-                    for (int i = 0; i < queryPartsUtf8.size(); i++) staticLength += queryPartsUtf8.get(i).length;
+                    for (int i = 0; i < queryParts.size(); i++) staticLength += queryParts.get(i).length;
 
                     for (int i = 0; i < paramCount; i++) {
                         parameters[i].writeTo(writer);
-                        writer.write(queryPartsUtf8.get(i + 2));
+                        writer.write(queryParts.get(i + 2));
                     }
-                    writer.write(queryPartsUtf8.get(paramCount + 2));
+                    writer.write(queryParts.get(paramCount + 2));
 
                     // write other, separate by ";"
                     while (currentIndex < totalParameterList) {
@@ -1089,9 +1147,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                                 writer.buffer.put(secondPart, 0, secondPart.length);
                                 for (int i = 0; i < paramCount; i++) {
                                     parameters[i].writeUnsafeTo(writer);
-                                    writer.writeUnsafe(queryPartsUtf8.get(i + 2));
+                                    writer.writeUnsafe(queryParts.get(i + 2));
                                 }
-                                writer.writeUnsafe(queryPartsUtf8.get(paramCount + 2));
+                                writer.writeUnsafe(queryParts.get(paramCount + 2));
                                 currentIndex++;
                             } else {
                                 break;
@@ -1103,9 +1161,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                             writer.write(secondPart, 0, secondPart.length);
                             for (int i = 0; i < paramCount; i++) {
                                 parameters[i].writeTo(writer);
-                                writer.write(queryPartsUtf8.get(i + 2));
+                                writer.write(queryParts.get(i + 2));
                             }
-                            writer.write(queryPartsUtf8.get(paramCount + 2));
+                            writer.write(queryParts.get(paramCount + 2));
                             currentIndex++;
                         }
                     }
@@ -1113,13 +1171,13 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 } else {
                     writer.write(firstPart, 0, firstPart.length);
                     writer.write(secondPart, 0, secondPart.length);
-                    int lastPartLength = queryPartsUtf8.get(paramCount + 2).length;
-                    int intermediatePartLength = queryPartsUtf8.get(1).length;
+                    int lastPartLength = queryParts.get(paramCount + 2).length;
+                    int intermediatePartLength = queryParts.get(1).length;
 
                     for (int i = 0; i < paramCount; i++) {
                         parameters[i].writeTo(writer);
-                        writer.write(queryPartsUtf8.get(i + 2));
-                        intermediatePartLength += queryPartsUtf8.get(i + 2).length;
+                        writer.write(queryParts.get(i + 2));
+                        intermediatePartLength += queryParts.get(i + 2).length;
                     }
 
                     while (currentIndex < totalParameterList) {
@@ -1148,7 +1206,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
                                 for (int i = 0; i < paramCount; i++) {
                                     parameters[i].writeUnsafeTo(writer);
-                                    writer.writeUnsafe(queryPartsUtf8.get(i + 2));
+                                    byte[] addPart = queryParts.get(i + 2);
+                                    writer.buffer.put(addPart, 0, addPart.length);
                                 }
                                 currentIndex++;
                             } else {
@@ -1160,12 +1219,12 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
                             for (int i = 0; i < paramCount; i++) {
                                 parameters[i].writeTo(writer);
-                                writer.write(queryPartsUtf8.get(i + 2));
+                                writer.write(queryParts.get(i + 2));
                             }
                             currentIndex++;
                         }
                     }
-                    writer.write(queryPartsUtf8.get(paramCount + 2));
+                    writer.write(queryParts.get(paramCount + 2));
                 }
 
                 writer.finishPacket();
@@ -1189,14 +1248,12 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * This method is used when using text batch statement and using rewriting (allowMultiQueries || rewriteBatchedStatements).
      * queries will be send to server according to max_allowed_packet size.
      *
+     * @param mustExecuteOnMaster was intended to be launched on master connection
      * @param queries list of queryes
      * @param resultSetScrollType resultSetScrollType
-     * @param isRewritable is rewritable flag
-     * @param rewriteOffset rewrite offset
      * @throws QueryException exception
      */
-    public void executeQueriesRewrite(ExecutionResult executionResult, List<String> queries, int resultSetScrollType, boolean isRewritable,
-                                      int rewriteOffset)
+    public void executeStmtBatchMultiple(boolean mustExecuteOnMaster, ExecutionResult executionResult, List<String> queries, int resultSetScrollType)
             throws QueryException {
         this.moreResults = false;
         String firstSql = null;
@@ -1208,36 +1265,22 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 String sql = queries.get(currentIndex++);
                 firstSql = sql;
                 if (totalQueries == 1) {
-                    writer.sendTextPacket(sql);
+                    writer.sendTextPacket(sql.getBytes("UTF-8"));
                     getResult(executionResult, resultSetScrollType, false, true);
                 } else {
                     writer.startPacket(0);
                     writer.write(0x03);
 
-                    if (!isRewritable) {
-                        //add query with ";"
-                        writer.write(sql.getBytes("UTF-8"));
+                    //add query with ";"
+                    writer.write(sql.getBytes("UTF-8"));
 
-                        while (currentIndex < totalQueries) {
-                            byte[] sqlByte = queries.get(currentIndex++).getBytes("UTF-8");
-                            if (!writer.checkRewritableLength(sqlByte.length)) {
-                                break;
-                            }
-                            writer.write(';');
-                            writer.write(sqlByte);
+                    while (currentIndex < totalQueries) {
+                        byte[] sqlByte = queries.get(currentIndex++).getBytes("UTF-8");
+                        if (!writer.checkRewritableLength(sqlByte.length + 1)) {
+                            break;
                         }
-                    } else {
-                        writer.write(sql.getBytes("UTF-8"));
-                        while (currentIndex < totalQueries) {
-                            byte[] sqlByte = queries.get(currentIndex).substring(rewriteOffset).getBytes("UTF-8");
-                            if (writer.checkRewritableLength(1 + sqlByte.length)) {
-                                writer.write(',');
-                                writer.write(sqlByte);
-                                currentIndex++;
-                            } else {
-                                break;
-                            }
-                        }
+                        writer.write(';');
+                        writer.write(sqlByte);
                     }
 
                     writer.finishPacket();
@@ -1407,7 +1450,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         return executionResult;
     }
 
-    public void prologProxy(PrepareResult prepareResult, ExecutionResult executionResult, int maxRows, boolean hasProxy,
+    public void prologProxy(ServerPrepareResult serverPrepareResult, ExecutionResult executionResult, int maxRows, boolean hasProxy,
                             MariaDbConnection connection, Statement statement) throws SQLException {
         prolog(executionResult, maxRows, hasProxy, connection, statement);
     }

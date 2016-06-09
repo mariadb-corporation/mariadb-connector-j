@@ -120,7 +120,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     protected boolean explicitClosed = false;
     protected String database;
     protected long serverThreadId;
-    protected PrepareStatementCache prepareStatementCache;
+    protected ServerPrepareStatementCache serverPrepareStatementCache;
     protected boolean moreResults = false;
 
     public boolean moreResultsTypeBinary = false;
@@ -145,7 +145,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         this.username = (urlParser.getUsername() == null ? "" : urlParser.getUsername());
         this.password = (urlParser.getPassword() == null ? "" : urlParser.getPassword());
         if (options.cachePrepStmts) {
-            prepareStatementCache = PrepareStatementCache.newInstance(options.prepStmtCacheSize, this);
+            serverPrepareStatementCache = ServerPrepareStatementCache.newInstance(options.prepStmtCacheSize, this);
         }
         setDataTypeMappingFlags();
     }
@@ -191,7 +191,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
         try {
             if (options.cachePrepStmts) {
-                prepareStatementCache.clear();
+                serverPrepareStatementCache.clear();
             }
             close(packetFetcher, writer, socket);
         } catch (Exception e) {
@@ -434,12 +434,15 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 SendSslConnectionRequestPacket amcap = new SendSslConnectionRequestPacket((int) clientCapabilities);
                 amcap.send(writer);
 
+
                 SSLSocketFactory sslSocketFactory = getSslSocketFactory();
                 SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(socket,
                         socket.getInetAddress().getHostAddress(), socket.getPort(), true);
-                sslSocket.setEnabledProtocols(new String[]{"TLSv1"});
+                sslSocket.setEnabledProtocols(new String[] {"TLSv1", "TLSv1.1"});
+
                 sslSocket.setUseClientMode(true);
                 sslSocket.startHandshake();
+
                 socket = sslSocket;
                 writer = new PacketOutputStream(socket.getOutputStream());
                 reader = new MariaDbBufferedInputStream(socket.getInputStream(), 16384);
@@ -599,7 +602,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         serverData = new TreeMap<>();
         SingleExecutionResult qr = new SingleExecutionResult(null, 0, true, false);
         try {
-            executeQuery(qr, "SHOW VARIABLES WHERE Variable_name in ("
+            executeQuery(true, qr, "SHOW VARIABLES WHERE Variable_name in ("
                     + "'max_allowed_packet', "
                     + "'system_time_zone', "
                     + "'time_zone', "
@@ -910,8 +913,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
         return moreResults;
     }
 
-    public PrepareStatementCache getPrepareStatementCache() {
-        return prepareStatementCache;
+    public ServerPrepareStatementCache getServerPrepareStatementCache() {
+        return serverPrepareStatementCache;
     }
 
     public abstract void executeQuery(final String sql) throws QueryException;
@@ -919,4 +922,5 @@ public abstract class AbstractConnectProtocol implements Protocol {
     public boolean isServerComMulti() {
         return serverAcceptComMulti;
     }
+
 }

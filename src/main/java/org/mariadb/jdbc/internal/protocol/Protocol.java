@@ -56,11 +56,12 @@ import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
 import org.mariadb.jdbc.internal.queryresults.ExecutionResult;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
+import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 import org.mariadb.jdbc.internal.util.Options;
-import org.mariadb.jdbc.internal.util.PrepareStatementCache;
+import org.mariadb.jdbc.internal.util.ServerPrepareStatementCache;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
-import org.mariadb.jdbc.internal.util.dao.PrepareResult;
+import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -72,13 +73,7 @@ import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
 public interface Protocol {
-    PrepareResult prepare(String sql) throws QueryException;
-
-    PrepareResult prepare(String sql, boolean forceNew, boolean executeOnMaster) throws QueryException;
-
-    PrepareResult prepareAndExecute(ExecutionResult executionResult, String sql, boolean forceNew,
-                                           ParameterHolder[] parameters, MariaDbType[] parameterTypeHeader,
-                                           int resultSetScrollType) throws QueryException;
+    ServerPrepareResult prepare(String sql, boolean executeOnMaster) throws QueryException;
 
     boolean getAutocommit();
 
@@ -138,27 +133,46 @@ public interface Protocol {
 
     void executeQuery(String sql) throws QueryException;
 
-    void executeQuery(ExecutionResult executionResult, final String sql, int resultSetScrollType) throws QueryException;
+    void executeQuery(boolean mustExecuteOnMaster, ExecutionResult executionResult, final String sql, int resultSetScrollType) throws QueryException;
 
-    void executeQuery(ExecutionResult executionResult, final List<String> queryParts, ParameterHolder[] parameters,
+    void executeQuery(boolean mustExecuteOnMaster, ExecutionResult executionResult, final List<byte[]> queryParts, ParameterHolder[] parameters,
                       int resultSetScrollType) throws QueryException;
 
-    void executeQuery(ExecutionResult executionResult, final List<String> queryParts, ParameterHolder[] parameters,
-                               int resultSetScrollType, boolean isRewritable) throws QueryException;
+    void executeQuery(boolean mustExecuteOnMaster, ExecutionResult executionResult, final List<byte[]> queryParts, ParameterHolder[] parameters,
+                      int resultSetScrollType, boolean isRewritable) throws QueryException;
 
-    void executeQueries(ExecutionResult executionResult, List<String> queries, int resultSetScrollType)
+    void executeStmtBatch(boolean mustExecuteOnMaster, ExecutionResult executionResult, List<String> queries, int resultSetScrollType)
             throws QueryException;
 
-    void executeMultipleQueries(ExecutionResult executionResult, final List<String> queryParts, List<ParameterHolder[]> parameterList,
-                               int resultSetScrollType) throws QueryException;
+    void executeBatchMultiple(boolean mustExecuteOnMaster, ExecutionResult executionResult, final List<byte[]> queryParts,
+                              List<ParameterHolder[]> parameterList,
+                              int resultSetScrollType) throws QueryException;
 
-    void executeRewriteQueries(ExecutionResult executionResult, final List<String> queryParts, List<ParameterHolder[]> parameterList,
-                        int resultSetScrollType, boolean isRewritable) throws QueryException;
+    void executeBatchRewrite(boolean mustExecuteOnMaster, ExecutionResult executionResult, final List<byte[]> queryParts,
+                             List<ParameterHolder[]> parameterList,
+                             int resultSetScrollType, boolean isRewritable) throws QueryException;
 
-    void executeQueriesRewrite(ExecutionResult executionResult, List<String> queries, int resultSetScrollType, boolean isRewritable,
-                               int rewriteOffset) throws QueryException;
+    void executeStmtBatchMultiple(boolean mustExecuteOnMaster, ExecutionResult executionResult, List<String> queries,
+                                  int resultSetScrollType) throws QueryException;
 
-    ExecutionResult getResult(ExecutionResult executionResult, int resultSetScrollType, boolean binaryProtocol, boolean loadAllResults) throws QueryException;
+
+    void executePreparedQuery(boolean mustExecuteOnMaster, ServerPrepareResult serverPrepareResult,
+                              ExecutionResult executionResult, ParameterHolder[] parameters,
+                              int resultSetScrollType) throws QueryException;
+
+    ServerPrepareResult prepareAndExecutesComMulti(boolean mustExecuteOnMaster, ServerPrepareResult serverPrepareResult,
+                                                   ExecutionResult executionResult, String sql,
+                                                   List<ParameterHolder[]> parameterList, int resultSetScrollType)
+            throws QueryException;
+
+    ServerPrepareResult prepareAndExecuteComMulti(boolean mustExecuteOnMaster, ExecutionResult executionResult, String sql,
+                                                  ParameterHolder[] parameters, int resultSetScrollType) throws QueryException;
+
+
+
+
+    ExecutionResult getResult(ExecutionResult executionResult, int resultSetScrollType, boolean binaryProtocol, boolean loadAllResults)
+            throws QueryException;
 
     void cancelCurrentQuery() throws QueryException, IOException;
 
@@ -204,17 +218,11 @@ public interface Protocol {
 
     void setHostFailedWithoutProxy();
 
-    void executePreparedQuery(PrepareResult prepareResult, ExecutionResult executionResult, String sql, ParameterHolder[] parameters,
-                              MariaDbType[] parameterTypeHeader, int resultSetScrollType) throws QueryException;
-
-    void executePreparedQueryAfterFailover(PrepareResult oldPrepareResult, ExecutionResult executionResult, String sql, ParameterHolder[] parameters,
-                                                  MariaDbType[] parameterTypeHeader, int resultSetScrollType) throws QueryException; //used
-
-    void releasePrepareStatement(PrepareResult prepareResult, String sql) throws QueryException;
+    void releasePrepareStatement(ServerPrepareResult serverPrepareResult) throws QueryException;
 
     void forceReleasePrepareStatement(int statementId) throws QueryException;
 
-    PrepareStatementCache prepareStatementCache();
+    ServerPrepareStatementCache prepareStatementCache();
 
 
     String getServerData(String code);
@@ -224,8 +232,8 @@ public interface Protocol {
     void prolog(ExecutionResult executionResult, int maxRows, boolean hasProxy, MariaDbConnection connection,
                 Statement statement) throws SQLException;
 
-    void prologProxy(PrepareResult prepareResult, ExecutionResult executionResult, int maxRows, boolean hasProxy,
-                     MariaDbConnection connection,Statement statement) throws SQLException;
+    void prologProxy(ServerPrepareResult serverPrepareResult, ExecutionResult executionResult, int maxRows, boolean hasProxy,
+                     MariaDbConnection connection, Statement statement) throws SQLException;
 
     MariaSelectResultSet getActiveStreamingResult();
 
@@ -240,4 +248,5 @@ public interface Protocol {
     void setHasWarnings(boolean hasWarnings);
 
     boolean isServerComMulti();
+
 }

@@ -60,7 +60,7 @@ public class DateTest extends BaseTest {
             createTable("date_test", "id int not null primary key auto_increment, d_test date,dt_test datetime, "
                     + "t_test time");
             Statement stmt = connection.createStatement();
-            java.sql.Date date = java.sql.Date.valueOf("2009-01-17");
+            Date date = Date.valueOf("2009-01-17");
             Timestamp timestamp = Timestamp.valueOf("2009-01-17 15:41:01");
             Time time = Time.valueOf("23:59:59");
             PreparedStatement ps = connection.prepareStatement("insert into date_test (d_test, dt_test, t_test) "
@@ -71,8 +71,8 @@ public class DateTest extends BaseTest {
             ps.executeUpdate();
             ResultSet rs = stmt.executeQuery("select d_test, dt_test, t_test from date_test");
             assertEquals(true, rs.next());
-            java.sql.Date date2 = rs.getDate(1);
-            java.sql.Date date3 = rs.getDate("d_test");
+            Date date2 = rs.getDate(1);
+            Date date3 = rs.getDate("d_test");
             Time time2 = rs.getTime(3);
             assertEquals(date.toString(), date2.toString());
             assertEquals(date.toString(), date3.toString());
@@ -410,7 +410,7 @@ public class DateTest extends BaseTest {
             PreparedStatement ps = connection.prepareStatement("select now()");
             ResultSet rs = ps.executeQuery();
             rs.next();
-            java.sql.Timestamp ts = rs.getTimestamp(1);
+            Timestamp ts = rs.getTimestamp(1);
             long differenceToServer = ts.getTime() - now.getTime();
             long diff = Math.abs(differenceToServer - totalOffset);
             /* query take less than a second but taking in account server and client time second diff ... */
@@ -421,7 +421,7 @@ public class DateTest extends BaseTest {
             rs = ps.executeQuery();
             rs.next();
             ts = rs.getTimestamp(1);
-            java.sql.Timestamp ts2 = rs.getTimestamp(2);
+            Timestamp ts2 = rs.getTimestamp(2);
             long diff2 = Math.abs(ts.getTime() - ts2.getTime()) - clientOffset;
             assertTrue(diff2 < 5000); /* query take less than a second */
         } finally {
@@ -475,7 +475,7 @@ public class DateTest extends BaseTest {
             connection = setConnection("&serverTimezone=UTC");
 
             PreparedStatement pst = connection.prepareStatement("insert into date_test3 values (?)");
-            java.sql.Date date = java.sql.Date.valueOf("2013-02-01");
+            Date date = Date.valueOf("2013-02-01");
             pst.setDate(1, date);
             pst.execute();
 
@@ -498,7 +498,7 @@ public class DateTest extends BaseTest {
             connection = setConnection("&serverTimezone=UTC");
 
             PreparedStatement pst = connection.prepareStatement("/*CLIENT*/insert into date_test4 values (?)");
-            java.sql.Date date = java.sql.Date.valueOf("2013-02-01");
+            Date date = Date.valueOf("2013-02-01");
             pst.setDate(1, date);
             pst.execute();
 
