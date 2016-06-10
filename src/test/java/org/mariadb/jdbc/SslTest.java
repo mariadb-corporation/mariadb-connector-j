@@ -100,7 +100,7 @@ public class SslTest extends BaseTest {
     @Test
     public void useSslForceTlsv11() throws Exception {
         // must either be mariadb or mysql version 5.7.10
-        if (!isMariadbServer() || minVersion(5, 7)) {
+        if (isMariadbServer() || minVersion(5, 7)) {
             useSslForceTls("TLSv1.1");
         }
     }
