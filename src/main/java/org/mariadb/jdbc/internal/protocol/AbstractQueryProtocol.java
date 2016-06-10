@@ -150,7 +150,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             }
 
             writer.sendPreparePacket(sql);
-            return readPrepareResult(sql, executeOnMaster);
+            return readPrepareResult(sql);
         } catch (IOException e) {
             throw new QueryException(e.getMessage(), -1,
                     ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(),
@@ -160,7 +160,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         }
     }
 
-    private ServerPrepareResult readPrepareResult(String sql, boolean executeOnMaster)
+    private ServerPrepareResult readPrepareResult(String sql)
             throws QueryException, IOException {
 
         Buffer buffer = packetFetcher.getReusableBuffer();
@@ -434,7 +434,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
             writer.finishPacket();
 
-            if (statementId == -1) serverPrepareResult = readPrepareResult(sql, mustExecuteOnMaster);
+            if (statementId == -1) serverPrepareResult = readPrepareResult(sql);
             getResult(executionResult, resultSetScrollType, true, true);
             return serverPrepareResult;
         } catch (IOException e) {
@@ -532,7 +532,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
                 //read prepare result
                 if (statementId == -1) {
-                    serverPrepareResult = readPrepareResult(sql, this.isMasterConnection());
+                    serverPrepareResult = readPrepareResult(sql);
                     statementId = serverPrepareResult.getStatementId();
                 }
 

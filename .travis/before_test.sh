@@ -38,8 +38,8 @@ END
 
         sudo apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys $MYSQ_GPG_KEY
 
-        sudo apt-get -qq update
-        sudo apt-get -qq install mysql-server
+        sudo apt-get -qq update --force-yes
+        sudo apt-get -qq install mysql-server --force-yes
 
         dpkg -l|grep ^ii|grep mysql-server|grep ${MYSQL_VERSION/-dmr/}
 
