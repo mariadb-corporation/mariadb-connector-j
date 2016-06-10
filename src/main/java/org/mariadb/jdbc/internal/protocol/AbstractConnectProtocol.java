@@ -124,6 +124,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
     public int dataTypeMappingFlags;
     public short serverStatus;
 
+    public static final String TLSv1 = "TLSv1";
+    public static final String TLSv11 = "TLSv1.1";
+    public static final String TLSv12 = "TLSv1.2";
+    public static final String TLSv13 = "TLSv1.3"; // not yet supported - in draft mode.
+
     /**
      * Get a protocol instance.
      *
@@ -428,10 +433,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(socket,
                         socket.getInetAddress().getHostAddress(), socket.getPort(), true);
 
-                // Get supported protocols to hardcode (otherwise connection will fail on
-                // authentication on InputRecord#readV3Record, ProtocolVersion will return 0,0 and as such error.
-                // TODO can this be determined from the greetingPacket or via exception-retry-negotiate mechanism?
-                String[] protocols = getSupportedProtocols();
+                // get a list of protocols enabled or defaults
+                String[] protocols = getEnabledSslProtocolSuites();
                 sslSocket.setEnabledProtocols(protocols);
 
                 sslSocket.setUseClientMode(true);
@@ -795,41 +798,99 @@ public abstract class AbstractConnectProtocol implements Protocol {
     }
 
     /**
-    * Returns whether the specific server version supports TLSv1.2 as a protocol, this is based ont he MySQL and MariaDB documentation.
-    *
-    * @return <code>true</code> if supported, otherwise <code>false</code>.
+     * Whether MariaDB server version is consistent with TLSv1.2 support.
+     *
+     * @return <code>true</code> if server version is consistent with TLSv1.2 support, otherwise <code>false</code>
+     */
+    protected boolean isMariaDbCapableTlsv12() {
+
+        // if not mariadb then immediate false
+        if (!isMariaDbServer()) {
+            return false;
+        }
+
+        // minimum of MariaDB 10.0.15 for TLSv1.2 support
+        if (!versionGreaterOrEqual(10, 0, 15)) {
+            return true;
+        }
+
+        // minimum of MariaDB 5.5.41 for TLSv1.2 support
+        // must not be version 10 otherwise it should be captured by the above statement
+        if (majorVersion != 10 && versionGreaterOrEqual(5, 5, 41)) {
+            return true;
+        }
+
+        // otherwise
+        return false;
+    }
+
+    /**
+     * Returns the default enabled ssl protocols for the specific version of MariaDB or MySQL
+     *
+     * @return array of string of protocols (ex. TLSv1, TLSv1.1, TLSv1.2)
     */
-    public String[] getSupportedProtocols() {
+    protected String[] getDefaultEnabledSslProtocolSuites() {
 
-
-        // minimum java version of 1.7 for TLSv1.2
-        // - ignore TLSv1.1 since minimum JRE version for this connector is 1.7 or higher.
-        if (!JavaVersion.version().isMinimum(7)) {
-            return new String[] { "TLSv1" };
+        // check whether MariaDB supports TLSv1.2
+        if (isMariaDbCapableTlsv12()) {
+            return new String[] { TLSv1,  TLSv11, TLSv12 };
         }
 
-        // if mariadb
-        if (isMariaDbServer()) {
+        // TODO For MySQL: if yaSSL then TLSv1.1 and TLSv1
+        if (!isMariaDbServer() && versionGreaterOrEqual(5, 7, 10)) {
+            return new String[] { TLSv1, TLSv11 };
+        }
 
-            // minimum of MariaDB 10.0.15 for TLSv1.2 support
-            if (versionGreaterOrEqual(10, 0, 15)) {
-                return new String[] { "TLSv1",  "TLSv1.1", "TLSv1.2" };
+        return new String[] { TLSv1 };
+    }
+
+    /**
+     * Returns an array of enabled SSL protocols, defined as part of the enabledSslProtocolSuites property otherwise default values.
+     *
+     * If enabledSslProtocolSuites is not set then it will choose based on MariaDB and or MySQL version the connector is connected to.
+     *   MariaDB versions -ge 10.0.15 and -eq 5.5.41 supports TLSv1.2 and lower
+     *   MySQL versions -ge 5.7.10 is set to TLSv1.1 and lower since most packaged versions are compiled with yaSSL
+     *
+     * @return array of string representing enabled or default SSL protocols.
+     * @throws QueryException if protocols are outside the normal TLSv1, TLSv1.1 and TLSv1.2 then through an error.
+     */
+    protected String[] getEnabledSslProtocolSuites() throws QueryException {
+
+        // if default value then return the TLS protocols we know will work for the specific versions of MariaDB and MySQL
+        if (options.isDefault(DefaultOptions.ENABLED_SSL_PROTOCOL_SUITES, options.enabledSslProtocolSuites)) {
+            return getDefaultEnabledSslProtocolSuites();
+        }
+
+        // split the string
+        String[] protocols = options.enabledSslProtocolSuites.split("[,;]+");
+
+        // clean up the strings and warn the user if protocols passed in are invalid
+        // or out of range of the MariaDB and MySQL version current connected to
+        for (int i = 0; i < protocols.length; i++) {
+            String protocol = protocols[i].trim();
+            protocols[i] = protocol;
+
+            if (TLSv1.equalsIgnoreCase(protocol)) {
+                protocols[i] = TLSv1;
+                continue;
             }
 
-            // minimum of MariaDB 5.5.41 for TLSv1.2 support
-            // must not be version 10 otherwise it should be captured by the above statement
-            if (majorVersion != 10 && versionGreaterOrEqual(5, 5, 41)) {
-                return new String[] { "TLSv1",  "TLSv1.1", "TLSv1.2" };
+            if (TLSv11.equalsIgnoreCase(protocol)) {
+                protocols[i] = TLSv11;
+                continue;
             }
+
+            if (TLSv12.equalsIgnoreCase(protocol)) {
+                protocols[i] = TLSv12;
+                continue;
+            }
+
+            throw new QueryException(String.format("Unsupported SSL protocol %s, please use comma separated list of: %s, %s, %s",
+                    protocol, TLSv1, TLSv11, TLSv12));
         }
 
-        // TODO if yaSSL then TLSv1.1 and TLSv1
-        // minimum of MySQL 5.7.10 for TLSv1.2 support
-        if (versionGreaterOrEqual(5, 7, 10)) {
-            return new String[] { "TLSv1", "TLSv1.1" };
-        }
 
-        return new String[] { "TLSv1" };
+        return protocols;
     }
 
 

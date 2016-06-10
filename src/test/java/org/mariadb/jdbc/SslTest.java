@@ -72,6 +72,53 @@ public class SslTest extends BaseTest {
         }
     }
 
+    /**
+     * Helper method when checking/enabling secure connections for a specific TLS protocol suite.
+     **/
+    protected void useSslForceTls(String tls) throws Exception {
+        Assume.assumeTrue(haveSsl(sharedConnection));
+        //Skip SSL test on java 7 since SSL stream size JDK-6521495).
+        Assume.assumeFalse(System.getProperty("java.version").contains("1.7."));
+        Properties info = new Properties();
+        info.setProperty("useSSL", "true");
+        info.setProperty("trustServerCertificate", "true");
+        info.setProperty("enabledSslProtocolSuites", tls);
+
+        Connection connection = setConnection(info);
+        try {
+            connection.createStatement().execute("select 1");
+        } finally {
+            connection.close();
+        }
+    }
+
+    @Test
+    public void useSslForceTlsv1() throws Exception {
+        useSslForceTls("TLSv1");
+    }
+
+    @Test
+    public void useSslForceTlsv11() throws Exception {
+        useSslForceTls("TLSv1.1");
+    }
+
+    @Test
+    public void useSslForceTlsv12() throws Exception {
+        // Only test with MariaDB since MySQL community is compiled with yaSSL
+        if (isMariadbServer()) {
+            useSslForceTls("TLSv1.2");
+        }
+    }
+
+    @Test
+    public void useSslForceTlsCombination() throws Exception {
+        if (isMariadbServer()) {
+            useSslForceTls("TLSv1, TLSv1.1, TLSv1.2");
+        } else {
+            useSslForceTls("TLSv1, TLSv1");
+        }
+    }
+
     private String getServerCertificate() {
         BufferedReader br = null;
         try {
