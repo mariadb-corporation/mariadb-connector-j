@@ -57,31 +57,30 @@ import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
 import org.mariadb.jdbc.internal.MyX509TrustManager;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
+import org.mariadb.jdbc.internal.packet.read.Packet;
+import org.mariadb.jdbc.internal.packet.read.ReadInitialConnectPacket;
+import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
+import org.mariadb.jdbc.internal.packet.result.EndOfFilePacket;
+import org.mariadb.jdbc.internal.packet.result.ErrorPacket;
+import org.mariadb.jdbc.internal.packet.result.OkPacket;
 import org.mariadb.jdbc.internal.packet.send.*;
 import org.mariadb.jdbc.internal.protocol.authentication.AuthenticationProviderHolder;
 import org.mariadb.jdbc.internal.queryresults.ExecutionResult;
 import org.mariadb.jdbc.internal.queryresults.SingleExecutionResult;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
-import org.mariadb.jdbc.internal.util.*;
+import org.mariadb.jdbc.internal.stream.DecompressInputStream;
+import org.mariadb.jdbc.internal.stream.PacketOutputStream;
+import org.mariadb.jdbc.internal.util.ExceptionMapper;
+import org.mariadb.jdbc.internal.util.Options;
+import org.mariadb.jdbc.internal.util.PrepareStatementCache;
+import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.buffer.Buffer;
-import org.mariadb.jdbc.internal.packet.read.ReadInitialConnectPacket;
-import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
-import org.mariadb.jdbc.internal.packet.read.Packet;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
 import org.mariadb.jdbc.internal.util.constant.ServerStatus;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
-import org.mariadb.jdbc.internal.packet.result.*;
-import org.mariadb.jdbc.internal.stream.DecompressInputStream;
-import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
-import javax.net.ssl.KeyManager;
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.X509TrustManager;
-
+import javax.net.ssl.*;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -687,6 +686,19 @@ public abstract class AbstractConnectProtocol implements Protocol {
         Random rand = new Random();
         List<HostAddress> addrs = urlParser.getHostAddresses();
         List<HostAddress> hosts = new LinkedList<>(addrs);
+
+        //CONJ-293 : handle name-pipe without host
+        if (hosts.isEmpty() && options.pipe != null) {
+            try {
+                connect(null, 0);
+                return;
+            } catch (IOException e) {
+                if (hosts.isEmpty()) {
+                    throw new QueryException("Could not connect to named pipe '" + options.pipe + "' : "
+                            + e.getMessage(), -1, ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(), e);
+                }
+            }
+        }
 
         // There could be several addresses given in the URL spec, try all of them, and throw exception if all hosts
         // fail.
