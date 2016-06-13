@@ -878,7 +878,7 @@ public class MariaSelectResultSet implements ResultSet {
                 if (isBinaryEncoded) {
                     try {
                         Date date = getDate(rawBytes, columnInfo, cal);
-                        return date == null ? null : date.toString();
+                        return (date == null) ? null : date.toString();
                     } catch (ParseException e) {
                     }
                 }
@@ -886,7 +886,8 @@ public class MariaSelectResultSet implements ResultSet {
             case YEAR:
                 if (options.yearIsDateType) {
                     try {
-                        return getDate(rawBytes, columnInfo, cal).toString();
+                        Date date = getDate(rawBytes, columnInfo, cal);
+                        return (date == null) ? null : date.toString();
                     } catch (ParseException e) {
                         //eat exception
                     }
@@ -898,18 +899,19 @@ public class MariaSelectResultSet implements ResultSet {
             case TIMESTAMP:
             case DATETIME:
                 try {
-                    return getTimestamp(rawBytes, columnInfo, cal).toString();
+                    Timestamp timestamp = getTimestamp(rawBytes, columnInfo, cal);
+                    return (timestamp == null) ? null : timestamp.toString();
                 } catch (ParseException e) {
                 }
                 break;
             case DECIMAL:
-                return getBigDecimal(rawBytes, columnInfo).toString();
+            case OLDDECIMAL:
+                BigDecimal bigDecimal = getBigDecimal(rawBytes, columnInfo);
+                return (bigDecimal == null ) ? null : bigDecimal.toString();
             case GEOMETRY:
                 return new String(rawBytes);
             case NULL:
                 return null;
-            case OLDDECIMAL:
-                return getBigDecimal(rawBytes, columnInfo).toString();
             default:
                 return new String(rawBytes, StandardCharsets.UTF_8);
         }
@@ -3257,7 +3259,8 @@ public class MariaSelectResultSet implements ResultSet {
         switch (columnInfo.getType()) {
             case TIMESTAMP:
             case DATETIME:
-                return new Date(getTimestamp(rawBytes, columnInfo, cal).getTime());
+                Timestamp timestamp = getTimestamp(rawBytes, columnInfo, cal);
+                return (timestamp == null) ? null : new Date(timestamp.getTime());
             default:
                 if (rawBytes.length == 0) {
                     return null;
@@ -3305,7 +3308,7 @@ public class MariaSelectResultSet implements ResultSet {
             case TIMESTAMP:
             case DATETIME:
                 Timestamp ts = binaryTimestamp(rawBytes, columnInfo, cal);
-                return new Time(ts.getTime());
+                return (ts == null) ? null : new Time(ts.getTime());
             case DATE:
                 Calendar tmpCalendar = Calendar.getInstance();
                 tmpCalendar.clear();
