@@ -694,6 +694,19 @@ public abstract class AbstractConnectProtocol implements Protocol {
         List<HostAddress> addrs = urlParser.getHostAddresses();
         List<HostAddress> hosts = new LinkedList<>(addrs);
 
+        //CONJ-293 : handle name-pipe without host
+        if (hosts.isEmpty() && options.pipe != null) {
+            try {
+                connect(null, 0);
+                return;
+            } catch (IOException e) {
+                if (hosts.isEmpty()) {
+                    throw new QueryException("Could not connect to named pipe '" + options.pipe + "' : "
+                            + e.getMessage(), -1, ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(), e);
+                }
+            }
+        }
+
         // There could be several addresses given in the URL spec, try all of them, and throw exception if all hosts
         // fail.
         while (!hosts.isEmpty()) {
