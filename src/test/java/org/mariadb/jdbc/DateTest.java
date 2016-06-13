@@ -540,4 +540,35 @@ public class DateTest extends BaseTest {
         }
     }
 
+    /**
+     * Conj-317 : null pointer exception on getDate on null timestamp.
+     */
+    @Test
+    public void nullDateFromTimestamp() throws Throwable {
+
+        createTable("nulltimestamp", "ts timestamp(6) NULL ");
+        Statement stmt = sharedConnection.createStatement();
+        try {
+            stmt.execute("INSERT INTO nulltimestamp (ts) VALUES ('0000-00-00'), (null)");
+
+            PreparedStatement pst = sharedConnection.prepareStatement("SELECT * FROM nulltimestamp WHERE 1 = ?");
+            pst.setInt(1, 1);
+            ResultSet rs = pst.executeQuery();
+            Assert.assertTrue(rs.next());
+            Assert.assertNull(rs.getString(1));
+            Assert.assertNull(rs.getDate(1));
+            Assert.assertNull(rs.getTimestamp(1));
+            Assert.assertNull(rs.getTime(1));
+
+            Assert.assertTrue(rs.next());
+            Assert.assertNull(rs.getString(1));
+            Assert.assertNull(rs.getDate(1));
+            Assert.assertNull(rs.getTimestamp(1));
+            Assert.assertNull(rs.getTime(1));
+
+        } catch (SQLDataException sqldataException) {
+            //'0000-00-00' doesn't work anymore on mysql 5.7.
+        }
+    }
+
 }
