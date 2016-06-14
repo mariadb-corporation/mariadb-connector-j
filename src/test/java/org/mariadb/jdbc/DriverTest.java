@@ -1088,33 +1088,50 @@ public class DriverTest extends BaseTest {
     }
 
     @Test
-    public void namedpipe() throws Exception {
-        String namedPipeName = null;
+    public void namedPipe() throws Exception {
         try {
             ResultSet rs = sharedConnection.createStatement().executeQuery("select @@named_pipe,@@socket");
             rs.next();
             if (rs.getBoolean(1)) {
-                namedPipeName = rs.getString(2);
-            } else {
-                System.out.println("test 'namedpipe' skipped");
+                String namedPipeName = rs.getString(2);
+                //skip test if no namedPipeName was obtained because then we do not use a socket connection
+                Assume.assumeTrue(namedPipeName != null);
+                try (Connection connection = setConnection("&pipe=" + namedPipeName)) {
+                    Statement stmt = connection.createStatement();
+                    rs = stmt.executeQuery("SELECT 1");
+                    assertTrue(rs.next());
+                    rs.close();
+                }
             }
         } catch (SQLException e) {
-            //named pipe not found,
-            System.out.println("test 'namedpipe' skipped");
+            //not on windows
         }
+    }
 
-        //skip test if no namedPipeName was obtained because then we do not use a socket connection
-        Assume.assumeTrue(namedPipeName != null);
-
-        Connection connection = null;
+    /**
+     * CONJ-293 : permit connection to named pipe when no host is defined.
+     *
+     * @throws Exception mustn't occur.
+     */
+    @Test
+    public void namedPipeWithoutHost() throws Exception {
         try {
-            connection = setConnection("&pipe=" + namedPipeName);
-            Statement stmt = connection.createStatement();
-            ResultSet rs = stmt.executeQuery("SELECT 1");
-            assertTrue(rs.next());
-            rs.close();
-        } finally {
-            connection.close();
+            ResultSet rs = sharedConnection.createStatement().executeQuery("select @@named_pipe,@@socket");
+            rs.next();
+            if (rs.getBoolean(1)) {
+                String namedPipeName = rs.getString(2);
+                //skip test if no namedPipeName was obtained because then we do not use a socket connection
+                Assume.assumeTrue(namedPipeName != null);
+                try (Connection connection = DriverManager.getConnection("jdbc:mariadb://localhost/testj?user="
+                        + username + "&pipe=" + namedPipeName)) {
+                    Statement stmt = connection.createStatement();
+                    rs = stmt.executeQuery("SELECT 1");
+                    assertTrue(rs.next());
+                    rs.close();
+                }
+            }
+        } catch (SQLException e) {
+            //not on windows
         }
     }
 

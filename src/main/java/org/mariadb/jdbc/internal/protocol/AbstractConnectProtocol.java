@@ -70,7 +70,14 @@ import org.mariadb.jdbc.internal.queryresults.SingleExecutionResult;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 import org.mariadb.jdbc.internal.stream.DecompressInputStream;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
+<<<<<<< HEAD
 import org.mariadb.jdbc.internal.util.*;
+=======
+import org.mariadb.jdbc.internal.util.ExceptionMapper;
+import org.mariadb.jdbc.internal.util.Options;
+import org.mariadb.jdbc.internal.util.PrepareStatementCache;
+import org.mariadb.jdbc.internal.util.Utils;
+>>>>>>> 89657fcb71e399da4510bd3f21f4a133795f5aea
 import org.mariadb.jdbc.internal.util.buffer.Buffer;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
@@ -691,6 +698,19 @@ public abstract class AbstractConnectProtocol implements Protocol {
         Random rand = new Random();
         List<HostAddress> addrs = urlParser.getHostAddresses();
         List<HostAddress> hosts = new LinkedList<>(addrs);
+
+        //CONJ-293 : handle name-pipe without host
+        if (hosts.isEmpty() && options.pipe != null) {
+            try {
+                connect(null, 0);
+                return;
+            } catch (IOException e) {
+                if (hosts.isEmpty()) {
+                    throw new QueryException("Could not connect to named pipe '" + options.pipe + "' : "
+                            + e.getMessage(), -1, ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(), e);
+                }
+            }
+        }
 
         // There could be several addresses given in the URL spec, try all of them, and throw exception if all hosts
         // fail.
