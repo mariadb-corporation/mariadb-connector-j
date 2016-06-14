@@ -70,14 +70,11 @@ import org.mariadb.jdbc.internal.queryresults.SingleExecutionResult;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 import org.mariadb.jdbc.internal.stream.DecompressInputStream;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
-<<<<<<< HEAD
 import org.mariadb.jdbc.internal.util.*;
-=======
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.PrepareStatementCache;
 import org.mariadb.jdbc.internal.util.Utils;
->>>>>>> 89657fcb71e399da4510bd3f21f4a133795f5aea
 import org.mariadb.jdbc.internal.util.buffer.Buffer;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
