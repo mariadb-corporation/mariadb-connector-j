@@ -1180,9 +1180,9 @@ public class CallableStatementTest extends BaseTest {
      */
     @Test
     public void testFunctionWithSpace() throws SQLException {
-        createFunction("hello", "()\n" +
-                "    RETURNS CHAR(50) DETERMINISTIC\n" +
-                "    RETURN CONCAT('Hello, !');");
+        createFunction("hello", "()\n"
+                + "    RETURNS CHAR(50) DETERMINISTIC\n"
+                + "    RETURN CONCAT('Hello, !');");
         CallableStatement callableStatement = sharedConnection.prepareCall("{? = call `hello` ()}");
         callableStatement.registerOutParameter(1, Types.INTEGER);
         assertFalse(callableStatement.execute());
