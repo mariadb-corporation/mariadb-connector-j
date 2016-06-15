@@ -1,5 +1,6 @@
 # Changelog
 * [1.5.0](#1.5.0) Snapshot available, not released 
+* [1.4.6](#1.4.6) Released on 13 june 2016 
 * [1.4.5](#1.4.5) Released on 18 mai 2016 
 * [1.4.4](#1.4.4) Released on 04 mai 2016 
 * [1.4.3](#1.4.3) Released on 22 april 2016 
@@ -11,6 +12,12 @@
 ## 1.5.0
 * [CONJ-291] Globally performance improvement
 * [CONJ-296] Support prepare + execute in one call (COM_MULTI protocol)
+
+## 1.4.6
+* [CONJ-293] Permit named pipe connection without host
+* [CONJ-309] Possible NPE on aurora when failover occur during connection initialisation
+* [CONJ-312] NPE while loading a null from TIMESTAMP field using binary protocol
+* [misc] batch with one parameter correction (using rewriteBatchedStatements option)
 
 ## 1.4.5
 * [CONJ-297] Useless memory consumption when using Statement.setQueryTimeout
