@@ -131,7 +131,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
     public static final String TLSv1 = "TLSv1";
     public static final String TLSv11 = "TLSv1.1";
     public static final String TLSv12 = "TLSv1.2";
-    public static final String TLSv13 = "TLSv1.3"; // not yet supported - in draft mode.
 
     /**
      * Get a protocol instance.
@@ -827,7 +826,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
 
         // minimum of MariaDB 10.0.15 for TLSv1.2 support
-        if (!versionGreaterOrEqual(10, 0, 15)) {
+        if (versionGreaterOrEqual(10, 0, 15)) {
             return true;
         }
 
