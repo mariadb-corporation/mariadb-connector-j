@@ -81,9 +81,7 @@ public final class MariaDbConnection implements Connection {
      * {[?=]call[(arg1,..,,argn)]}
      */
     private static Pattern CALLABLE_STATEMENT_PATTERN =
-            Pattern.compile("^\\s*(\\?\\s*=)?(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*call"
-                    + "(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*((((`[^`]+`)|([^`]+))\\.)?((`[^`]+`)|([^`(]+)))+(\\(.*\\))?"
-                    + "(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*(#.*)?$",
+            Pattern.compile("^\\s*(\\?\\s*=)?(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*call(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*((((`[^`]+`)|([^`]+))\\.)?((`[^`]+`)|([^`(]+)))+(\\(.*\\))?(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*(#.*)?$",
                     Pattern.CASE_INSENSITIVE);
 
     public MariaDbPooledConnection pooledConnection;
