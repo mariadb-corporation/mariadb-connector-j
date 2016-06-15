@@ -72,7 +72,6 @@ public final class MariaDbConnection implements Connection {
      * the protocol to communicate with.
      */
     private final Protocol protocol;
-    public Pattern requestWithoutComments = Pattern.compile("((?<![\\\\])['\"])((?:.(?!(?<![\\\\])\\1))*.?)\\1", Pattern.CASE_INSENSITIVE);
     protected CallableStatementCache callableStatementCache;
 
     /**
@@ -81,9 +80,8 @@ public final class MariaDbConnection implements Connection {
      * {[?=]call[(arg1,..,,argn)]}
      */
     private static Pattern CALLABLE_STATEMENT_PATTERN =
-            Pattern.compile("^\\s*(\\?\\s*=)?(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*call"
-                    + "(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*((((`[^`]+`)|([^`]+))\\.)?((`[^`]+`)|([^`(]+)))+(\\(.*\\))?"
-                    + "(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*(#.*)?$",
+            Pattern.compile("^\\s*(\\?\\s*=)?(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*call(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*"
+                    + "((((`[^`]+`)|([^`]+))\\.)?((`[^`]+`)|([^`(]+)))+(\\(.*\\))?(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*(#.*)?$",
                     Pattern.CASE_INSENSITIVE);
 
     public MariaDbPooledConnection pooledConnection;
