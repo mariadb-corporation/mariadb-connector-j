@@ -850,7 +850,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
         // check whether MariaDB supports TLSv1.2
         if (isMariaDbCapableTlsv12()) {
-            return new String[] { TLSv1,  TLSv11, TLSv12 };
+            // some users may be compiling with yaSSL, thus risk in returning "TLSv1.2" as "DEFAULT" behaviour
+            // alternatively, users will need to force TLSv1.2 via the enabledSslProtocolSuites attribute
+            // -disabled default TLSv1.2--- return new String[] { TLSv1,  TLSv11, TLSv12 };
+
+            return new String[] { TLSv1, TLSv11 };
         }
 
         // TODO For MySQL: if yaSSL then TLSv1.1 and TLSv1
