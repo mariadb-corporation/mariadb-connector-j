@@ -60,6 +60,17 @@ public class StoredProcedureTest extends BaseTest {
         rs.next();
         int result = rs.getInt(1);
         assertEquals(result, 4);
+        executeAnotherRequest();
+    }
+
+    /**
+     * Execute another query to verify exchange integrity.
+     **/
+    private void executeAnotherRequest() throws SQLException {
+        //another request to verify packet exchange integrity
+        ResultSet rs = sharedConnection.createStatement().executeQuery("SELECT 10");
+        rs.next();
+        assertEquals(10, rs.getInt(1));
     }
 
     @Test
@@ -72,6 +83,7 @@ public class StoredProcedureTest extends BaseTest {
         rs.next();
         int result = rs.getInt(1);
         assertEquals(result, 4);
+        executeAnotherRequest();
     }
 
     @Test
@@ -83,8 +95,8 @@ public class StoredProcedureTest extends BaseTest {
         } catch (SQLSyntaxErrorException sqle) {
             assertTrue(sqle.getMessage().contains("PROCEDURE testj.stmtSimpleFunction does not exist"));
         }
+        executeAnotherRequest();
     }
-
 
     @Test
     public void prepareStmtSimpleFunction() throws SQLException {
@@ -99,8 +111,37 @@ public class StoredProcedureTest extends BaseTest {
         } catch (SQLSyntaxErrorException sqle) {
             assertTrue(sqle.getMessage().contains("PROCEDURE testj.stmtSimpleFunction does not exist"));
         }
+        executeAnotherRequest();
     }
 
+
+    @Test
+    public void callWithOutParameter() throws SQLException {
+        createProcedure("prepareStmtWithOutParameter", "(x int, INOUT y int)\n"
+                + "BEGIN\n"
+                + "SELECT 1;end\n");
+        CallableStatement callableStatement = sharedConnection.prepareCall("{call prepareStmtWithOutParameter(?,?)}");
+        callableStatement.registerOutParameter(2, Types.INTEGER);
+        callableStatement.setInt(1, 2);
+        callableStatement.setInt(2, 3);
+        callableStatement.execute();
+        assertEquals(3, callableStatement.getInt(2));
+
+        executeAnotherRequest();
+    }
+
+    @Test
+    public void prepareStmtWithOutParameter() throws SQLException {
+        createProcedure("prepareStmtWithOutParameter", "(x int, INOUT y int)\n"
+                + "BEGIN\n"
+                + "SELECT 1;end\n");
+        PreparedStatement preparedStatement = sharedConnection.prepareStatement("{call prepareStmtWithOutParameter(?,?)}");
+        preparedStatement.setInt(1, 2);
+        preparedStatement.setInt(2, 3);
+        preparedStatement.execute();
+
+        executeAnotherRequest();
+    }
 
     @Test
     public void callWithResultSet() throws Exception {
@@ -111,6 +152,7 @@ public class StoredProcedureTest extends BaseTest {
         rs.next();
         int res = rs.getInt(1);
         assertEquals(res, 1);
+        executeAnotherRequest();
     }
 
     @Test
@@ -121,6 +163,7 @@ public class StoredProcedureTest extends BaseTest {
         rs.next();
         int res = rs.getInt(1);
         assertEquals(res, 1);
+        executeAnotherRequest();
     }
 
     @Test(expected = SQLException.class)
@@ -144,6 +187,7 @@ public class StoredProcedureTest extends BaseTest {
         assertTrue(rs.next());
         assertEquals(2, rs.getInt(1));
         assertFalse(rs.next());
+        executeAnotherRequest();
     }
 
     @Test
@@ -159,6 +203,7 @@ public class StoredProcedureTest extends BaseTest {
         assertTrue(rs.next());
         assertEquals(2, rs.getInt(1));
         assertFalse(rs.next());
+        executeAnotherRequest();
     }
 
     @Test
@@ -174,18 +219,15 @@ public class StoredProcedureTest extends BaseTest {
         assertTrue(rs.next());
         assertEquals(2, rs.getInt(1));
         assertFalse(rs.next());
+        executeAnotherRequest();
     }
 
 
     @Test
     public void callInoutParam() throws SQLException {
-        CallableStatement storedProc = null;
-
-
-        storedProc = sharedConnection.prepareCall("{call inOutParam(?)}");
-
-        storedProc.setInt(1, 1);
+        CallableStatement storedProc = sharedConnection.prepareCall("{call inOutParam(?)}");
         storedProc.registerOutParameter(1, Types.INTEGER);
+        storedProc.setInt(1, 1);
         storedProc.execute();
         assertEquals(2, storedProc.getObject(1));
     }
@@ -208,6 +250,7 @@ public class StoredProcedureTest extends BaseTest {
         PreparedStatement preparedStatement = sharedConnection.prepareStatement("{call inOutParam(?)}");
         preparedStatement.setInt(1, 1);
         preparedStatement.execute();
+        executeAnotherRequest();
     }
 
     @Test
@@ -223,6 +266,7 @@ public class StoredProcedureTest extends BaseTest {
                 rs.getObject(i);
             }
         }
+        executeAnotherRequest();
     }
 
     @Test
@@ -242,6 +286,7 @@ public class StoredProcedureTest extends BaseTest {
         assertThat(rs.getDouble(1), is(not(tooMuch)));
         rs.close();
         stmt.close();
+        executeAnotherRequest();
     }
 
     @Test
@@ -500,6 +545,7 @@ public class StoredProcedureTest extends BaseTest {
         assertEquals(Types.FLOAT, callableStatement.getParameterMetaData().getParameterType(2));
         assertEquals(Types.BIGINT, callableStatement.getParameterMetaData().getParameterType(3));
         assertEquals(Types.INTEGER, callableStatement.getParameterMetaData().getParameterType(4));
+        executeAnotherRequest();
     }
 
     @Test
@@ -555,6 +601,7 @@ public class StoredProcedureTest extends BaseTest {
         callableStatement.registerOutParameter(1, Types.VARCHAR);
         callableStatement.execute();
         Assert.assertEquals("mike", callableStatement.getString(1));
+        executeAnotherRequest();
     }
 
     @Test
@@ -568,6 +615,7 @@ public class StoredProcedureTest extends BaseTest {
         ResultSet rs = preparedStatement.executeQuery();
         rs.next();
         Assert.assertEquals("mike", rs.getString(1));
+        executeAnotherRequest();
     }
 
     @Test
@@ -625,6 +673,7 @@ public class StoredProcedureTest extends BaseTest {
         } else {
             fail();
         }
+        executeAnotherRequest();
     }
 
     @Test
@@ -650,6 +699,7 @@ public class StoredProcedureTest extends BaseTest {
             }
             callableStatement.close();
         }
+        executeAnotherRequest();
     }
 
     @Test
@@ -698,6 +748,7 @@ public class StoredProcedureTest extends BaseTest {
             callableStatement.registerOutParameter(274, Types.VARCHAR);
             callableStatement.execute();
         }
+        executeAnotherRequest();
     }
 
     @Test
@@ -733,6 +784,7 @@ public class StoredProcedureTest extends BaseTest {
 
             cstmt.close();
         }
+        executeAnotherRequest();
     }
 
     @Test
@@ -881,6 +933,7 @@ public class StoredProcedureTest extends BaseTest {
         try (CallableStatement callable = sharedConnection.prepareCall("{call testCallableNullSettersProc(?,?,?)}")) {
             testSetter(callable);
         }
+        executeAnotherRequest();
     }
 
     private void testSetter(CallableStatement callable) throws Throwable {
