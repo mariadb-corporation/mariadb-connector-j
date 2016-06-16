@@ -77,9 +77,8 @@ public class CollationTest extends BaseTest {
         if (rs.next()) {
             String emoji = "\uD83C\uDF1F";
             boolean mustThrowError = true;
-            if ("utf8mb4".equals(rs.getString(1))) {
-                mustThrowError = false;
-            }
+            String serverCharset = rs.getString(1);
+            if ("utf8mb4".equals(serverCharset)) mustThrowError = false;
 
             PreparedStatement ps = sharedConnection.prepareStatement("INSERT INTO unicodeTestChar (id, field1, field2) VALUES (1, ?, ?)");
             ps.setString(1, emoji);
@@ -97,10 +96,10 @@ public class CollationTest extends BaseTest {
 
                 assertEquals(4, rs.getBytes(2).length);
                 assertEquals(emoji, rs.getString(2));
-            } catch (SQLDataException b) {
-                if (!mustThrowError) {
-                    fail("Must not have thrown error");
-                }
+            } catch (SQLException exception) {
+                //mysql server thrown an HY000 state (not 22007), so a SQLException will be thrown, not a SQLDataException
+                if (isMariadbServer()) assertTrue(exception instanceof SQLDataException);
+                if (!mustThrowError) fail("Must not have thrown error");
             }
         } else {
             fail();
