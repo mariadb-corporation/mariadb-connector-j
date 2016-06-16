@@ -55,14 +55,19 @@ import org.mariadb.jdbc.internal.queryresults.MultiIntExecutionResult;
 import org.mariadb.jdbc.internal.queryresults.SingleExecutionResult;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
+import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.*;
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
 
@@ -237,7 +242,7 @@ public class MariaDbStatement implements Statement, Cloneable {
             executeQueryProlog();
             batchResultSet = null;
             SingleExecutionResult internalExecutionResult = new SingleExecutionResult(this, fetchSize, true, false, true);
-            protocol.executeQuery(internalExecutionResult, sql, resultSetScrollType);
+            protocol.executeQuery(internalExecutionResult, Utils.nativeSql(sql, connection.noBackslashEscapes), resultSetScrollType);
             executionResult = internalExecutionResult;
             return executionResult.getResultSet() != null;
         } catch (QueryException e) {
@@ -719,7 +724,7 @@ public class MariaDbStatement implements Statement, Cloneable {
             //multi insert in one execution. will create result based on autoincrement
             if (executionResult.hasMoreThanOneAffectedRows()) {
                 long[] data;
-                if (executionResult instanceof  SingleExecutionResult) {
+                if (executionResult instanceof SingleExecutionResult) {
                     int updateCount = executionResult.getFirstAffectedRows();
                     data = new long[updateCount];
                     for (int i = 0; i < updateCount; i++) {

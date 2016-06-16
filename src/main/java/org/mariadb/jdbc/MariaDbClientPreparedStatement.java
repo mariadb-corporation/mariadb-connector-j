@@ -55,10 +55,14 @@ import org.mariadb.jdbc.internal.queryresults.SingleExecutionResult;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.Options;
+import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import java.sql.*;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.List;
 
 
 public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatement implements Cloneable {
@@ -89,7 +93,7 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
      */
     public MariaDbClientPreparedStatement(MariaDbConnection connection, String sql, int resultSetScrollType) throws SQLException {
         super(connection, resultSetScrollType);
-        this.sqlQuery = sql;
+        this.sqlQuery = Utils.nativeSql(sql, connection.noBackslashEscapes);
         Options options = this.protocol.getOptions();
         useFractionalSeconds = options.useFractionalSeconds;
 
@@ -97,10 +101,10 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
                 ? RewriteType.REWRITE_QUERIES : (options.allowMultiQueries ? RewriteType.MULTI_QUERIES : RewriteType.NO_REWRITE);
 
         if (rewriteType == RewriteType.REWRITE_QUERIES) {
-            queryParts = createRewritableParts(sql, connection.noBackslashEscapes);
+            queryParts = createRewritableParts(sqlQuery, connection.noBackslashEscapes);
             paramCount = queryParts.size() - 3;
         } else {
-            queryParts = createParameterParts(sql, connection.noBackslashEscapes);
+            queryParts = createParameterParts(sqlQuery, connection.noBackslashEscapes);
             paramCount = queryParts.size() - 1;
         }
         parameters = new ParameterHolder[paramCount];

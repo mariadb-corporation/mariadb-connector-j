@@ -50,11 +50,11 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
+import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.*;
 import org.mariadb.jdbc.internal.util.dao.CallableStatementCacheKey;
 import org.mariadb.jdbc.internal.util.dao.CloneableCallableStatement;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
-import org.mariadb.jdbc.internal.protocol.Protocol;
 
 import java.net.SocketException;
 import java.sql.*;
@@ -72,7 +72,6 @@ public final class MariaDbConnection implements Connection {
      * the protocol to communicate with.
      */
     private final Protocol protocol;
-    public Pattern requestWithoutComments = Pattern.compile("((?<![\\\\])['\"])((?:.(?!(?<![\\\\])\\1))*.?)\\1", Pattern.CASE_INSENSITIVE);
     protected CallableStatementCache callableStatementCache;
 
     /**
@@ -430,6 +429,7 @@ public final class MariaDbConnection implements Connection {
 
         String cleanSql = sql.toUpperCase().trim();
         if (cleanSql.contains("SELECT")
+                || cleanSql.contains("CALL")
                 || cleanSql.contains("UPDATE")
                 || cleanSql.contains("INSERT")
                 || cleanSql.contains("DELETE")) {

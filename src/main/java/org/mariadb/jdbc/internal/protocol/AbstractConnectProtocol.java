@@ -101,6 +101,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private final String password;
     private boolean hostFailed;
     private String version;
+    protected boolean isMariaServer;
     private int majorVersion;
     private int minorVersion;
     private int patchVersion;
@@ -423,6 +424,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
             final ReadInitialConnectPacket greetingPacket = new ReadInitialConnectPacket(packetFetcher);
             this.serverThreadId = greetingPacket.getServerThreadId();
             this.version = greetingPacket.getServerVersion();
+            this.isMariaServer = this.version.indexOf("MariaDB") != -1;
             this.serverAcceptComMulti = (greetingPacket.getServerCapabilities() & MariaDbServerCapabilities.MARIADB_CLIENT_COM_MULTI) != 0;
 
             parseVersion();
@@ -932,4 +934,5 @@ public abstract class AbstractConnectProtocol implements Protocol {
     public boolean isServerComMulti() {
         return serverAcceptComMulti;
     }
+
 }
