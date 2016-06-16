@@ -97,7 +97,7 @@ public class CollationTest extends BaseTest {
 
                 assertEquals(4, rs.getBytes(2).length);
                 assertEquals(emoji, rs.getString(2));
-            } catch (BatchUpdateException b) {
+            } catch (SQLDataException b) {
                 if (!mustThrowError) {
                     fail("Must not have thrown error");
                 }
