@@ -2,7 +2,7 @@
 > **This guide will teach you:**
 > * The goal of the failover threads
 
-# Failover reconnection  
+= Failover reconnection
 
 > ** This concern only master/slave cluster ** 
 
@@ -17,7 +17,7 @@ Failover thread will then create a new slave connection that will replace the fa
 
 A pool of threads is initialized when using a master/slave configuration. The pool size evolves according to the number of connection. 
 
-## Illustration
+== Illustration
 
 Here is an example of a failover on a aurora cluster of 3 instances (one master and 2 slaves).<br/>
 (Source code https://github.com/rusher/connector-aurora-fail-test/tree/master)
@@ -26,7 +26,7 @@ We can see 2 kinds of threads :
 * Threads named "test-thread-XXX" do 130 queries "SELECT 1". 1/3 use master connection, 2/3 slave connection.
 * Threads "mariaDb-reconnection-XXX" are created by the driver to handle failover.
 
-#### Colour signification: 
+==== Colour signification:
 "test-thread-XXX" threads: 
 * blue: querying
 * red: blocked waiting to connect

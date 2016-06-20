@@ -49,12 +49,13 @@ Development snapshot are available on sonatype nexus repository
 ## Documentation
 
 For a Getting started guide, API docs, recipes,  etc. see the 
-* [About MariaDB connector/J](/documentation/About-MariaDB-Connector-J.md)
-* [Use MariaDB connector/j driver](/documentation/Use-MariaDB-Connector-j-driver.md)
-* [Failover and high-availability](/documentation/Failover-and-high-availability.md)
+* [About MariaDB connector/J](/documentation/about-mariadb-connector-j)
+* [Use MariaDB connector/j driver](/documentation/use-mariadb-connector-j-driver)
+* [Changelog](/documentation/changelog)
+* [Failover and high-availability](/documentation/failover-and-high-availability-with-mariadb-connector-j)
 
 
 ## Contributing
 To get started with a development installation and learn more about contributing, please follow the instructions at our 
-[Developers Guide.](/documentation/Developers-Guide.md)
+[Developers Guide.](/documentation/developers-guide)
 
