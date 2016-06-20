@@ -1,12 +1,12 @@
 = Changelog
-* [[1.5.0]] Snapshot available, not released
-* [[1.4.6]] Released on 13 june 2016
-* [[1.4.5]] Released on 18 mai 2016
-* [[1.4.4]] Released on 04 mai 2016
-* [[1.4.3]] Released on 22 april 2016
-* [[1.4.2]] Released on 08 april 2016
-* [[1.4.1]] Released on 07 april 2016
-* [[1.4.0]] Released on 31 march 2016
+* [[#150|1.5.0]] Snapshot available, not released
+* [[#146|1.4.6]] Released on 13 june 2016
+* [[#146|1.4.5]] Released on 18 mai 2016
+* [[#144|1.4.4]] Released on 04 mai 2016
+* [[#143|1.4.3]] Released on 22 april 2016
+* [[#142|1.4.2]] Released on 08 april 2016
+* [[#141|1.4.1]] Released on 07 april 2016
+* [[#140|1.4.0]] Released on 31 march 2016
 
 ---
 == 1.5.0
