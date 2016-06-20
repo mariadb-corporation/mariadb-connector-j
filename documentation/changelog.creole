@@ -1,12 +1,12 @@
 = Changelog
-* [1.5.0](=1.5.0) Snapshot available, not released 
-* [1.4.6](=1.4.6) Released on 13 june 2016 
-* [1.4.5](=1.4.5) Released on 18 mai 2016 
-* [1.4.4](=1.4.4) Released on 04 mai 2016 
-* [1.4.3](=1.4.3) Released on 22 april 2016 
-* [1.4.2](=1.4.2) Released on 08 april 2016
-* [1.4.1](=1.4.1) Released on 07 april 2016
-* [1.4.0](=1.4.0) Released on 31 march 2016
+* [[1.5.0]] Snapshot available, not released
+* [[1.4.6]] Released on 13 june 2016
+* [[1.4.5]] Released on 18 mai 2016
+* [[1.4.4]] Released on 04 mai 2016
+* [[1.4.3]] Released on 22 april 2016
+* [[1.4.2]] Released on 08 april 2016
+* [[1.4.1]] Released on 07 april 2016
+* [[1.4.0]] Released on 31 march 2016
 
 ---
 == 1.5.0
@@ -59,7 +59,7 @@ CONJ-26
 JDBC allows to specify the number of rows fetched for a query, and this number is referred to as the fetch size
 Before version 1.4.0, query were loading all results or row by row using Statement.setFetchSize(Integer.MIN_VALUE).
 Now it's possible to set fetch size according to your need. 
-Loading all results for large result sets is using a lot of memory. This functionnality permit to save memory without having performance decrease.
+Loading all results for large result sets is using a lot of memory. This functionality permit to save memory without having performance decrease.
 
 === Memory footprint improvement
 CONJ-125
@@ -70,21 +70,21 @@ CONJ-209
 Calling function / procedure performance is now optimized according to query. Depending on queries, difference can be up to 300%.
 
 === Authentication evolution
-CONJ-251 Permit now new authentication possibility : [PAM authentication](https://mariadb.com/kb/en/mariadb/pam-authentication-plugin/), and GSSAPI/SSPI authentication.
+CONJ-251 Permit now new authentication possibility : [[https://mariadb.com/kb/en/mariadb/pam-authentication-plugin/|PAM authentication]], and GSSAPI/SSPI authentication.
 
 GSSAPI/SSPI authentication authentication plugin for MariaDB permit a passwordless login.
 
 On Unix systems, GSSAPI is usually synonymous with Kerberos authentication. Windows has slightly different but very similar API called SSPI, that along with Kerberos, also supports NTLM authentication.
-See more detail in [GSSAPI/SSPI configuration](https://github.com/MariaDB/mariadb-connector-j/blob/master/documentation/plugin/GSSAPI.md)
+See more detail in [[https://github.com/MariaDB/mariadb-connector-j/blob/master/documentation/plugin/GSSAPI|GSSAPI/SSPI configuration]]
 
 === Connection attributes
 CONJ-217
-Driver information informations are now send to [connection attributes tables](https://mariadb.com/kb/en/mariadb/performance-schema-session_connect_attrs-table/) (performance_schema must be activated).
+Driver information informations are now send to [[https://mariadb.com/kb/en/mariadb/performance-schema-session_connect_attrs-table/|connection attributes tables]] (performance_schema must be activated).
 A new option "connectionAttributes" permit to add client specifics data.
 
 For example when connecting with the following connection string {{{"jdbc:mysql://localhost:3306/testj?user=root&connectionAttributes=myOption:1,mySecondOption:'jj'"}}}, 
 if performance_schema is activated, information about this connection will be available during the time this connection is active :
-``` java
+{{{
 select * from performance_schema.session_connect_attrs where processList_id = 5
 +----------------+-----------------+---------------------+------------------+
 | PROCESSLIST_ID | ATTR_NAME       | ATTR_VALUE          | ORDINAL_POSITION |
@@ -99,7 +99,7 @@ select * from performance_schema.session_connect_attrs where processList_id = 5
 |5               |myOption         |1	                 |7                 |
 |5               |mySecondOption   |'jj'                 |8                 |
 +----------------+-----------------+---------------------+------------------+
-```
+}}}
 
 
 == Minor evolution

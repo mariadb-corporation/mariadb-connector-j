@@ -36,13 +36,18 @@ Using maven :
 
 == Requirements
 
-* Java 7 or 8 (Last compatible version with java 6 is [1.1.9](https://downloads.mariadb.org/connector-java/1.1.9/))
-* com.sun.JNA is used by some library functions and a jar is available at
-  https://github.com/twall/jna
-** only needed when connecting to the server with unix sockets or windows
-   shared memory
-* A MariaDB or MySQL Server 
-* maven (only if you want build from source)
+* Java 7 or 8 (Last compatible version with java 6 is [[https://downloads.mariadb.org/connector-java/1.1.9/|1.1.9]])
+
+Dependencies (not mandatory):
+* [[https://maven-badges.herokuapp.com/maven-central/com.github.dblock.waffle/waffle-jna|waffle-jna 1.8.1]]
+* [[https://maven-badges.herokuapp.com/maven-central/net.java.dev.jna/jna|jna 4.2.1]]
+* [[https://maven-badges.herokuapp.com/maven-central/net.java.dev.jna/jna-platform|jna-platform 4.2.1]]
+* [[https://maven-badges.herokuapp.com/maven-central/org.slf4j/jcl-over-slf4j|jcl-over-slf4j 1.7.14]]
+* [[https://maven-badges.herokuapp.com/maven-central/org.slf4j/slf4j-api|slf4j-api 1.7.14]]
+* [[https://maven-badges.herokuapp.com/com.google.guava/guava|guava 19.0]]
+
+jna is needed when when connecting to the server with unix sockets or windows shared memory
+All of them are needed for native windows kerberos implementation. (see  [[plugin/GSSAPI|Gssapi documentation]]
 
 == Source code
 
@@ -77,9 +82,11 @@ localhost (on default TCP port 3306) and a database called 'test', and user
 {{{
 git clone https://github.com/MariaDB/mariadb-connector-j.git =  Or, unpack the source distribution tarball
 cd mariadb-connector-j
+
 # For the unit test run, start local mysqld mysqld,
 # ensure that user root with empty password can login
 mvn package
+
 # If you want to build without running unit  tests, use
 # mvn -Dmaven.test.skip=true package
 }}}

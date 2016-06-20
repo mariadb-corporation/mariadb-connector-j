@@ -1,14 +1,15 @@
 
-> **This guide will teach you:**
-> * How to install a local version of connector/J
-> * How to run tests locally and on travis CI
-> * How to submit a request
+//This guide will teach you://
+
+ * How to install a local version of connector/J
+ * How to run tests locally and on travis CI
+ * How to submit a request
 
 = Contributing
 
 Each pull request should address a single issue, and contain both the fix as well as a description of how the pull request and tests that validate that the PR fixes the issue in question.
 
-For significant feature additions, we like to have an open issue in [MariaDB JIRA](https://mariadb.atlassian.net/secure/RapidBoard.jspa?projectKey=CONJ). It is expected that discussion will have taken place in the attached issue.
+For significant feature additions, we like to have an open issue in [[https://mariadb.atlassian.net/secure/RapidBoard.jspa?projectKey=CONJ|MariaDB JIRA]]. It is expected that discussion will have taken place in the attached issue.
 
 = Install Prerequisites
 
@@ -67,7 +68,7 @@ max_allowed_packet :
 * 16M
 * 32M
 
-For that, you have to go on [travis website](https://travis-ci.org), connect with your github account, and activate your mariadb-connector-j repository. 
+For that, you have to go on [[https://travis-ci.org|travis website]], connect with your github account, and activate your mariadb-connector-j repository.
 After this step, every push to your repository will launch a travis test. 
 
 == Submitting a request
