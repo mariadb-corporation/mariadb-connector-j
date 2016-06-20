@@ -10,8 +10,29 @@
 
 ---
 == 1.5.0
-* [CONJ-291] Globally performance improvement
-* [CONJ-296] Support prepare + execute in one call (COM_MULTI protocol)
+
+=== Support for TLSv1.1 and TLSv1.2
+CONJ-249.
+
+MariaDB and MySQL community server permit TLSv1 and TLSv1.1.
+Default supported protocol are now TLSv1 and TLSv1.1 (only TLSv1 was supported).
+
+MariaDB server from version 10.0.15 is using the openSSL library permitting TLSv1.2 (>= 5.5.41 for the 5.5 branch).
+TLSv1.2 can be enabled by setting option {{{enabledSslProtocolSuites}}} to values {{{"TLSv1, TLSv1.1, TLSv1.2"}}}.
+
+//YaSSL doesn't support TLSv1.2, so if MariaDB server is build from sources with YaSSL, only TLSv1 and TLSv1.1 will be available, even for version > 10.0.15//
+
+A new option {{{enabledSslCipherSuites}}} permit to set specific cipher.
+
+New Options :
+ |=enabledSslProtocolSuites|Force TLS/SSL protocol to a specific set of TLS versions (comma separated list). \\Example : "TLSv1, TLSv1.1, TLSv1.2"\\//Default: TLSv1, TLSv1.1. Since 1.5.0//|
+ |=enabledSslCipherSuites|Force TLS/SSL cipher (comma separated list).\\ Example : "TLS_DHE_RSA_WITH_AES_256_GCM_SHA384, TLS_DHE_DSS_WITH_AES_256_GCM_SHA384"\\//Default: use JRE ciphers. Since 1.5.0//|
+
+=== Performance improvement
+[CONJ-291]
+
+=== Prepare + execute in one call
+[CONJ-296] Support prepare + execute in one call (COM_MULTI protocol)
 
 == 1.4.6
 * [CONJ-293] Permit named pipe connection without host
