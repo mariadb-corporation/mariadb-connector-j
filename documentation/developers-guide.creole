@@ -15,7 +15,7 @@ For significant feature additions, we like to have an open issue in [[https://ma
 
 These are the set of tools which are required in order to complete any build.  Follow the links to download and install them on your own before continuing.
 
-* [[http://www.oracle.com/technetwork/java/javase/downloads/index.html|Oracle JDK 8]] With [[http://www.oracle.com/technetwork/java/javase/downloads/jce8-download-2133166.html|JCE policies]]
+* [[http://www.oracle.com/technetwork/java/javase/downloads/index.html|Oracle JDK 8]] ( with [[http://www.oracle.com/technetwork/java/javase/downloads/jce8-download-2133166.html|JCE policies]] if using TLS/SSL)
 * IDE (eclipse / netbean / intelliJ) with maven and GIT plugins
 
 = Fork source

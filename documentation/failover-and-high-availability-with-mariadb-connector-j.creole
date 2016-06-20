@@ -43,7 +43,7 @@ It’s the application that has to decide to use master or slave connection (the
 Switching the type of connection is done by using JDBC [[http://docs.oracle.com/javase/7/docs/api/java/sql/Connection.html#setReadOnly(boolean)|connection.setReadOnly(boolean readOnly)]] method. Setting read-only to true will use the slave connection, false, the master connection.\\
 
 Example in standard java:
-{{{ java
+{{{
 connection = DriverManager.getConnection("jdbc:mysql:replication://master1,slave1/test");
 stmt = connection.createStatement();
 stmt.execute("SELECT 1"); // will execute query on the underlying master1 connection
@@ -53,7 +53,7 @@ stmt.execute("SELECT 1"); // will execute query on the underlying slave1 connect
 
 Some frameworks render this kind of operation easier, as for example Spring [[http://docs.spring.io/spring/docs/current/javadoc-api/org/springframework/transaction/annotation/Transactional.html#readOnly--|@transactionnal]] readOnly parameter (since spring 3.0.1).
 In this example, setting readOnly to false will call the connection.setReadOnly(false) and therefore use the master connection.
-{{{ java
+{{{
 @Autowired
 private EntityManager em;
 
@@ -214,7 +214,17 @@ There is another endpoint named “cluster endpoint” which is assigned to the 
 
 This cluster endpoint must never be used in the URL connection string for 2 reasons:
 * When a failover occurs, a new master is promoted. The cluster endpoint change to this new master is not immediately effective. The connector doesn’t use this cluster endpoint. Instead it points to the new master immediately.
-* More important, an instance will not be used, and load will be poorly distributed. \\Example : \\Normally JDBC url string must be like :\\`jdbc:mysql:aurora://A.XX.com,B.XX.com,C.XX.com/db`\\if the master endpoint is used : \\`jdbc:mysql:aurora://master.XX.com,B.XX.com,C.XX.com/db` \\If B become master, A will not be used at all and C will receive all the read queries.
+* More important, an instance will not be used, and load will be poorly distributed. \\Example :
+\\Normally JDBC url string must be like :\\
+{{{
+    jdbc:mysql:aurora://A.XX.com,B.XX.com,C.XX.com/db
+}}}
+
+if the master endpoint is used : \\
+{{{
+    jdbc:mysql:aurora://master.XX.com,B.XX.com,C.XX.com/db
+}}} \\
+If B become master, A will not be used at all and C will receive all the read queries.
 
 ===JDBC connection string
 
@@ -228,7 +238,9 @@ Host declaration use instance endpoint (never cluster endpoint).
 The replication role of each instance must not be defined for Aurora, because the role of each instance changes over time. The driver will check the instance role after connection initialisation.
 
 Example of connection string
- `jdbc:mysql:aurora://host1.xxxx.us-east-1.rds.amazonaws.com,host2.xxxx.us-east-1.rds.amazonaws.com/db`
+{{{
+    jdbc:mysql:aurora://host1.xxxx.us-east-1.rds.amazonaws.com,host2.xxxx.us-east-1.rds.amazonaws.com/db
+}}}
 
 Another difference is the option "socketTimeout" that defaults to 10 seconds, meaning that - if not changed - queries exceeding 10 seconds will throw exceptions.  
 

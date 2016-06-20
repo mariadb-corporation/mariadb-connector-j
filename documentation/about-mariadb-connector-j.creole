@@ -47,7 +47,7 @@ Dependencies (not mandatory):
 * [[https://maven-badges.herokuapp.com/com.google.guava/guava|guava 19.0]]
 
 jna is needed when when connecting to the server with unix sockets or windows shared memory
-All of them are needed for native windows kerberos implementation. (see  [[plugin/GSSAPI|Gssapi documentation]]
+All of them are needed for native windows kerberos implementation. (see  [[plugin/GSSAPI.creole|Gssapi documentation]])
 
 == Source code
 

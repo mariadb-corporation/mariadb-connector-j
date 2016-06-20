@@ -40,6 +40,6 @@ We can see 2 kinds of threads :
 When the failover occur, most of the wasted time to reconnect is supported by the reconnection thread.
 Most of query will be executed normally, only a few query executions will have a small additional delay (red block on "test-thread-XXX" threads).    
 
-[[misc/images/telemetry.png|complete results]]
+[[misc/images/telemetry.png|complete results]]\\
 {{misc/images/aurora_fail_extract.png}}
  
