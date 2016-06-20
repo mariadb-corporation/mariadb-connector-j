@@ -318,6 +318,13 @@ public enum DefaultOptions {
     CLIENT_CERTIFICATE_KEYSTORE_PASSWORD("clientCertificateKeyStorePassword", "1.3.0"),
 
     /**
+     * Force TLS/SSL protocol to a specific set of TLS versions (comma separated list)
+     *
+     * Supported values are are "auto", "TLSv1", "TLSv1.1", and "TLSv1.2"
+     */
+    ENABLED_SSL_PROTOCOL_SUITES("enabledSslProtocolSuites", ""),
+
+    /**
      * When executing batch queries, must batch continue on error.
      * default to true.
      */
