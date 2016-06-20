@@ -23,7 +23,7 @@ or maven :
 <dependency>
 	<groupId>org.mariadb.jdbc</groupId>
 	<artifactId>mariadb-java-client</artifactId>
-	<version>1.4.5</version>
+	<version>1.4.6</version>
 </dependency>
 ```
 
@@ -49,12 +49,13 @@ Development snapshot are available on sonatype nexus repository
 ## Documentation
 
 For a Getting started guide, API docs, recipes,  etc. see the 
-* [About MariaDB connector/J](/documentation/About-MariaDB-Connector-J.md)
-* [Use MariaDB connector/j driver](/documentation/Use-MariaDB-Connector-j-driver.md)
-* [Failover and high-availability](/documentation/Failover-and-high-availability.md)
+* [About MariaDB connector/J](/documentation/about-mariadb-connector-j.creole)
+* [Use MariaDB connector/j driver](/documentation/use-mariadb-connector-j-driver.creole)
+* [Changelog](/documentation/changelog.creole)
+* [Failover and high-availability](/documentation/failover-and-high-availability-with-mariadb-connector-j.creole)
 
 
 ## Contributing
 To get started with a development installation and learn more about contributing, please follow the instructions at our 
-[Developers Guide.](/documentation/Developers-Guide.md)
+[Developers Guide.](/documentation/developers-guide.creole)
 
