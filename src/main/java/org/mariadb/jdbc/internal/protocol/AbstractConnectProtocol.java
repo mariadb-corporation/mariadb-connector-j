@@ -57,33 +57,32 @@ import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
 import org.mariadb.jdbc.internal.MyX509TrustManager;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
+import org.mariadb.jdbc.internal.packet.read.Packet;
+import org.mariadb.jdbc.internal.packet.read.ReadInitialConnectPacket;
+import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
+import org.mariadb.jdbc.internal.packet.result.EndOfFilePacket;
+import org.mariadb.jdbc.internal.packet.result.ErrorPacket;
+import org.mariadb.jdbc.internal.packet.result.OkPacket;
 import org.mariadb.jdbc.internal.packet.send.*;
 import org.mariadb.jdbc.internal.protocol.authentication.AuthenticationProviderHolder;
 import org.mariadb.jdbc.internal.queryresults.ExecutionResult;
 import org.mariadb.jdbc.internal.queryresults.SingleExecutionResult;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
+import org.mariadb.jdbc.internal.stream.DecompressInputStream;
 import org.mariadb.jdbc.internal.stream.MariaDbBufferedInputStream;
 import org.mariadb.jdbc.internal.stream.MariaDbInputStream;
-import org.mariadb.jdbc.internal.util.*;
+import org.mariadb.jdbc.internal.stream.PacketOutputStream;
+import org.mariadb.jdbc.internal.util.ExceptionMapper;
+import org.mariadb.jdbc.internal.util.Options;
+import org.mariadb.jdbc.internal.util.PrepareStatementCache;
+import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.buffer.Buffer;
-import org.mariadb.jdbc.internal.packet.read.ReadInitialConnectPacket;
-import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
-import org.mariadb.jdbc.internal.packet.read.Packet;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
 import org.mariadb.jdbc.internal.util.constant.ServerStatus;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
-import org.mariadb.jdbc.internal.packet.result.*;
-import org.mariadb.jdbc.internal.stream.DecompressInputStream;
-import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
-import javax.net.ssl.KeyManager;
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.X509TrustManager;
-
+import javax.net.ssl.*;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
@@ -426,20 +425,23 @@ public abstract class AbstractConnectProtocol implements Protocol {
             this.version = greetingPacket.getServerVersion();
             this.isMariaServer = this.version.indexOf("MariaDB") != -1;
             this.serverAcceptComMulti = (greetingPacket.getServerCapabilities() & MariaDbServerCapabilities.MARIADB_CLIENT_COM_MULTI) != 0;
-
+            byte exchangeCharset = decideLanguage(greetingPacket.getServerLanguage());
             parseVersion();
             long clientCapabilities = initializeClientCapabilities();
 
             byte packetSeq = 1;
             if (options.useSsl && (greetingPacket.getServerCapabilities() & MariaDbServerCapabilities.SSL) != 0) {
                 clientCapabilities |= MariaDbServerCapabilities.SSL;
-                SendSslConnectionRequestPacket amcap = new SendSslConnectionRequestPacket((int) clientCapabilities);
+                SendSslConnectionRequestPacket amcap = new SendSslConnectionRequestPacket(clientCapabilities, exchangeCharset);
                 amcap.send(writer);
 
                 SSLSocketFactory sslSocketFactory = getSslSocketFactory();
                 SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(socket,
                         socket.getInetAddress().getHostAddress(), socket.getPort(), true);
-                sslSocket.setEnabledProtocols(new String[]{"TLSv1"});
+
+                enabledSslProtocolSuites(sslSocket);
+                enabledSslCipherSuites(sslSocket);
+
                 sslSocket.setUseClientMode(true);
                 sslSocket.startHandshake();
                 socket = sslSocket;
@@ -452,7 +454,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 throw new QueryException("Trying to connect with ssl, but ssl not enabled in the server");
             }
 
-            authentication(greetingPacket.getServerLanguage(), clientCapabilities, greetingPacket.getSeed(), packetSeq,
+            authentication(exchangeCharset, clientCapabilities, greetingPacket.getSeed(), packetSeq,
                     greetingPacket.getPluginName(), greetingPacket.getServerCapabilities());
 
         } catch (IOException e) {
@@ -468,13 +470,13 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
     }
 
-    private void authentication(byte serverLanguage, long clientCapabilities, byte[] seed, byte packetSeq, String plugin, long serverCapabilities)
+    private void authentication(byte exchangeCharset, long clientCapabilities, byte[] seed, byte packetSeq, String plugin, long serverCapabilities)
             throws QueryException, IOException {
         final SendHandshakeResponsePacket cap = new SendHandshakeResponsePacket(this.username,
                 this.password,
                 database,
                 clientCapabilities,
-                decideLanguage(serverLanguage),
+                exchangeCharset,
                 seed,
                 packetSeq,
                 plugin,
@@ -803,6 +805,50 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     public int getMinorServerVersion() {
         return minorVersion;
+    }
+
+    /**
+     * Return possible protocols : values of option enabledSslProtocolSuites is set, or default to "TLSv1,TLSv1.1".
+     *   MariaDB versions &ge; 10.0.15 and &ge; 5.5.41 supports TLSv1.2 if compiled with openSSL (default).
+     *   MySQL community versions &ge; 5.7.10 is compile with yaSSL, so max TLS is TLSv1.1.
+     *
+     * @param sslSocket current sslSocket
+     * @throws QueryException if protocol isn't a supported protocol
+     */
+    protected void enabledSslProtocolSuites(SSLSocket sslSocket) throws QueryException {
+        if (options.enabledSslProtocolSuites == null) {
+            sslSocket.setEnabledProtocols(new String[] {"TLSv1", "TLSv1.1"});
+        } else {
+            List<String> possibleProtocols = Arrays.asList(sslSocket.getSupportedProtocols());
+            String[] protocols = options.enabledSslProtocolSuites.split("[,;\\s]+");
+            for (String protocol : protocols) {
+                if (!possibleProtocols.contains(protocol)) {
+                    throw new QueryException("Unsupported SSL protocol '" + protocol + "'. Supported protocols : "
+                            + possibleProtocols.toString().replace("[", "").replace("]", ""));
+                }
+            }
+            sslSocket.setEnabledProtocols(protocols);
+        }
+    }
+
+    /**
+     * Set ssl socket cipher according to options.
+     *
+     * @param sslSocket current ssl socket
+     * @throws QueryException if a cipher isn't known
+     */
+    protected void enabledSslCipherSuites(SSLSocket sslSocket) throws QueryException {
+        if (options.enabledSslCipherSuites != null) {
+            List<String> possibleCiphers = Arrays.asList(sslSocket.getEnabledCipherSuites());
+            String[] ciphers = options.enabledSslCipherSuites.split("[,;\\s]+");
+            for (String cipher : ciphers) {
+                if (!possibleCiphers.contains(cipher)) {
+                    throw new QueryException("Unsupported SSL cipher '" + cipher + "'. Supported ciphers : "
+                            + possibleCiphers.toString().replace("[", "").replace("]", ""));
+                }
+            }
+            sslSocket.setEnabledCipherSuites(ciphers);
+        }
     }
 
     /**

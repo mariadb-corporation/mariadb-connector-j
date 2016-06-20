@@ -58,10 +58,12 @@ import java.io.OutputStream;
  * Used for starting ssl connections.
  */
 public class SendSslConnectionRequestPacket implements InterfaceSendPacket {
-    private final int clientCapabilities;
+    private final long clientCapabilities;
+    private final byte serverLanguage;
 
-    public SendSslConnectionRequestPacket(int clientCapabilities) {
+    public SendSslConnectionRequestPacket(long clientCapabilities, byte serverLanguage) {
         this.clientCapabilities = clientCapabilities;
+        this.serverLanguage = serverLanguage;
     }
 
     /**
@@ -72,7 +74,15 @@ public class SendSslConnectionRequestPacket implements InterfaceSendPacket {
     public void send(final OutputStream os) throws IOException {
         PacketOutputStream pos = (PacketOutputStream) os;
         pos.startPacket(1);
-        pos.writeInt(this.clientCapabilities);
+        pos.writeInt((int) this.clientCapabilities);
+        pos.writeInt((int) clientCapabilities)
+                .writeInt(1024 * 1024 * 1024)
+                .writeByte(serverLanguage); //1
+
+        pos.writeBytes((byte) 0, 19)    //19
+                .writeInt((int) (clientCapabilities >> 32)); //Maria extended flag
+
+
         pos.finishPacket();
     }
 }

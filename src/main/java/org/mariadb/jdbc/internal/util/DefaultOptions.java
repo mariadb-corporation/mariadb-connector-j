@@ -319,10 +319,15 @@ public enum DefaultOptions {
 
     /**
      * Force TLS/SSL protocol to a specific set of TLS versions (comma separated list)
-     *
-     * Supported values are are "auto", "TLSv1", "TLSv1.1", and "TLSv1.2"
+     * example : "TLSv1, TLSv1.1, TLSv1.2"
      */
-    ENABLED_SSL_PROTOCOL_SUITES("enabledSslProtocolSuites", ""),
+    ENABLED_SSL_PROTOCOL_SUITES("enabledSslProtocolSuites", "1.5.0"),
+
+    /**
+     * Force TLS/SSL cipher. (comma separated list)
+     * example : "TLS_DHE_RSA_WITH_AES_256_GCM_SHA384, TLS_DHE_DSS_WITH_AES_256_GCM_SHA384"
+     */
+    ENABLED_SSL_CIPHER_SUITES("enabledSslCipherSuites", "1.5.0"),
 
     /**
      * When executing batch queries, must batch continue on error.
@@ -478,6 +483,8 @@ public enum DefaultOptions {
                         propertyValue = properties.getProperty("createDB");
                     } else if (o.name.equals("useSsl")) {
                         propertyValue = properties.getProperty("useSSL");
+                    } else if (o.name.equals("enabledSslCipherSuites")) {
+                        propertyValue = properties.getProperty("enabledSSLCipherSuites");
                     }
                 }
 
