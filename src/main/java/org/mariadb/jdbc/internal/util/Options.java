@@ -62,6 +62,7 @@ public class Options {
     public String trustCertificateKeyStorePassword;
     public String clientCertificateKeyStoreUrl;
     public String clientCertificateKeyStorePassword;
+    public String enabledSslProtocolSuites;
     public boolean useFractionalSeconds;
     public boolean pinGlobalTxToPhysicalConnection;
     public String socketFactory;
@@ -126,6 +127,7 @@ public class Options {
                 + ", trustCertificateKeyStorePassword='" + trustCertificateKeyStorePassword + '\''
                 + ", clientCertificateKeyStoreUrl='" + clientCertificateKeyStoreUrl + '\''
                 + ", clientCertificateKeyStorePassword='" + clientCertificateKeyStorePassword + '\''
+                + ", enabledSslProtocolSuites='" + enabledSslProtocolSuites + '\''
                 + ", socketFactory='" + socketFactory + '\''
                 + ", connectTimeout=" + connectTimeout
                 + ", pipe='" + pipe + '\''
@@ -171,6 +173,33 @@ public class Options {
                 + "}";
     }
 
+    /**
+     * Is the value default for the specific DefaultOptions enum?
+     *
+     * @param option the enum to check against,
+     *               ex. {@link org.mariadb.jdbc.internal.util.DefaultOptions#ENABLED_SSL_PROTOCOL_SUITES }
+     * @param value the value to check against
+     * @return <code>true</code> if the value is set to default, otheriwse <code>false</code>
+    */
+    public boolean isDefault(DefaultOptions option, Object value) {
+        Object defaultValue = option.defaultValue;
+
+        // if default value == value, including if they are both null
+        if (defaultValue == value) {
+            return true;
+        }
+
+        // if default value == null, value must not be null but can be blank
+        if (defaultValue == null) {
+            return false;
+        }
+
+        if (defaultValue.equals(value)) {
+            return true;
+        }
+
+        return false;
+    }
 
     @Override
     public boolean equals(Object obj) {
@@ -277,6 +306,11 @@ public class Options {
             return false;
         }
         if (serverSslCert != null ? !serverSslCert.equals(options.serverSslCert) : options.serverSslCert != null) {
+            return false;
+        }
+        if (enabledSslProtocolSuites != null
+                ? !enabledSslProtocolSuites.equals(options.enabledSslProtocolSuites)
+                : options.enabledSslProtocolSuites != null) {
             return false;
         }
         if (socketFactory != null ? !socketFactory.equals(options.socketFactory) : options.socketFactory != null) {

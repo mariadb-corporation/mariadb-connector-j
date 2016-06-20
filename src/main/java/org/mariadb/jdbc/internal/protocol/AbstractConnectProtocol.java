@@ -70,6 +70,7 @@ import org.mariadb.jdbc.internal.queryresults.SingleExecutionResult;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 import org.mariadb.jdbc.internal.stream.DecompressInputStream;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
+import org.mariadb.jdbc.internal.util.*;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.PrepareStatementCache;
@@ -126,6 +127,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
     public MariaSelectResultSet activeStreamingResult = null;
     public int dataTypeMappingFlags;
     public short serverStatus;
+
+    public static final String TLSv1 = "TLSv1";
+    public static final String TLSv11 = "TLSv1.1";
+    public static final String TLSv12 = "TLSv1.2";
 
     /**
      * Get a protocol instance.
@@ -431,7 +436,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(socket,
                         socket.getInetAddress().getHostAddress(), socket.getPort(), true);
 
-                sslSocket.setEnabledProtocols(new String[]{"TLSv1"});
+                // get a list of protocols enabled or defaults
+                String[] protocols = getEnabledSslProtocolSuites();
+                sslSocket.setEnabledProtocols(protocols);
+
                 sslSocket.setUseClientMode(true);
                 sslSocket.startHandshake();
                 socket = sslSocket;
@@ -797,6 +805,116 @@ public abstract class AbstractConnectProtocol implements Protocol {
     }
 
     /**
+    * If the connection string returns MariaDB then it must be as specified.
+     *
+    * @return <code>true</code> if server is MariaDB, otherwise <code>false</code>.
+    */
+    public boolean isMariaDbServer() {
+        return getServerVersion().indexOf("MariaDB") != -1;
+    }
+
+    /**
+     * Whether MariaDB server version is consistent with TLSv1.2 support.
+     *
+     * @return <code>true</code> if server version is consistent with TLSv1.2 support, otherwise <code>false</code>
+     */
+    protected boolean isMariaDbCapableTlsv12() {
+
+        // if not mariadb then immediate false
+        if (!isMariaDbServer()) {
+            return false;
+        }
+
+        // minimum of MariaDB 10.0.15 for TLSv1.2 support
+        if (versionGreaterOrEqual(10, 0, 15)) {
+            return true;
+        }
+
+        // minimum of MariaDB 5.5.41 for TLSv1.2 support
+        // must not be version 10 otherwise it should be captured by the above statement
+        if (majorVersion != 10 && versionGreaterOrEqual(5, 5, 41)) {
+            return true;
+        }
+
+        // otherwise
+        return false;
+    }
+
+    /**
+     * Returns the default enabled ssl protocols for the specific version of MariaDB or MySQL
+     *
+     * @return array of string of protocols (ex. TLSv1, TLSv1.1, TLSv1.2)
+    */
+    protected String[] getDefaultEnabledSslProtocolSuites() {
+
+        // check whether MariaDB supports TLSv1.2
+        if (isMariaDbCapableTlsv12()) {
+            // some users may be compiling with yaSSL, thus risk in returning "TLSv1.2" as "DEFAULT" behaviour
+            // alternatively, users will need to force TLSv1.2 via the enabledSslProtocolSuites attribute
+            // -disabled default TLSv1.2--- return new String[] { TLSv1,  TLSv11, TLSv12 };
+
+            return new String[] { TLSv1, TLSv11 };
+        }
+
+        // TODO For MySQL: if yaSSL then TLSv1.1 and TLSv1
+        if (!isMariaDbServer() && versionGreaterOrEqual(5, 7, 10)) {
+            return new String[] { TLSv1, TLSv11 };
+        }
+
+        return new String[] { TLSv1 };
+    }
+
+    /**
+     * Returns an array of enabled SSL protocols, defined as part of the enabledSslProtocolSuites property otherwise default values.
+     *
+     * If enabledSslProtocolSuites is not set then it will choose based on MariaDB and or MySQL version the connector is connected to.
+     *   MariaDB versions -ge 10.0.15 and -eq 5.5.41 supports TLSv1.2 and lower
+     *   MySQL versions -ge 5.7.10 is set to TLSv1.1 and lower since most packaged versions are compiled with yaSSL
+     *
+     * @return array of string representing enabled or default SSL protocols.
+     * @throws QueryException if protocols are outside the normal TLSv1, TLSv1.1 and TLSv1.2 then through an error.
+     */
+    protected String[] getEnabledSslProtocolSuites() throws QueryException {
+
+        // if default value then return the TLS protocols we know will work for the specific versions of MariaDB and MySQL
+        if (options.isDefault(DefaultOptions.ENABLED_SSL_PROTOCOL_SUITES, options.enabledSslProtocolSuites)) {
+            return getDefaultEnabledSslProtocolSuites();
+        }
+
+        // split the string
+        String[] protocols = options.enabledSslProtocolSuites.split("[,;]+");
+
+        // clean up the strings and warn the user if protocols passed in are invalid
+        // or out of range of the MariaDB and MySQL version current connected to
+        for (int i = 0; i < protocols.length; i++) {
+            String protocol = protocols[i].trim();
+            protocols[i] = protocol;
+
+            if (TLSv1.equalsIgnoreCase(protocol)) {
+                protocols[i] = TLSv1;
+                continue;
+            }
+
+            if (TLSv11.equalsIgnoreCase(protocol)) {
+                protocols[i] = TLSv11;
+                continue;
+            }
+
+            if (TLSv12.equalsIgnoreCase(protocol)) {
+                protocols[i] = TLSv12;
+                continue;
+            }
+
+            throw new QueryException(String.format("Unsupported SSL protocol %s, please use comma separated list of: %s, %s, %s",
+                    protocol, TLSv1, TLSv11, TLSv12));
+        }
+
+
+        return protocols;
+    }
+
+
+    /**
      * Utility method to check if database version is greater than parameters.
      * @param major major version
      * @param minor minor version
@@ -831,6 +949,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         // Patch versions are equal => versions are equal.
         return true;
     }
+
 
     public boolean getPinGlobalTxToPhysicalConnection() {
         return this.options.pinGlobalTxToPhysicalConnection;
