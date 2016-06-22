@@ -18,13 +18,11 @@ then
 else
     if [ -n "$MYSQL_VERSION" ]
     then
-        export MYSQ_GPG_KEY=5072E1F5
         sudo tee /etc/apt/sources.list.d/mysql.list << END
 deb http://repo.mysql.com/apt/ubuntu/ precise mysql-$MYSQL_VERSION
 deb-src http://repo.mysql.com/apt/ubuntu/ precise mysql-$MYSQL_VERSION
 END
-
-        sudo apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys $MYSQ_GPG_KEY
+        sudo apt-key adv --keyserver pgp.mit.edu --recv-keys 5072E1F5
 
         sudo apt-get -qq update
         sudo apt-get -qq install mysql-server
