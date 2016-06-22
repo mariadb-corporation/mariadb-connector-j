@@ -168,6 +168,8 @@ public class SendHandshakeResponsePacket implements InterfaceSendPacket {
         writeBuffer.writeBytes((byte) 0, 19)    //19
                 .writeInt((int) (clientCapabilities >> 32)); //Maria extended flag
 
+        if (username == null || "".equals(username)) username = System.getProperty("user.name"); //permit SSO
+        
         writeBuffer.writeString(username)     //strlen username
                 .writeByte((byte) 0);        //1
 
