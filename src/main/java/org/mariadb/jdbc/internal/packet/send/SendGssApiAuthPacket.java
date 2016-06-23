@@ -92,11 +92,15 @@ public class SendGssApiAuthPacket extends AbstractAuthSwitchSendResponsePacket i
 
     @Override
     public void handleResultPacket(ReadPacketFetcher packetFetcher) throws QueryException, IOException {
-        Buffer buffer = packetFetcher.getReusableBuffer();
-        if (buffer.getByteAt(0) == Packet.ERROR) {
-            ErrorPacket ep = new ErrorPacket(buffer);
-            String message = ep.getMessage();
-            throw new QueryException("Could not connect: " + message, ep.getErrorNumber(), ep.getSqlState());
+        try {
+            Buffer buffer = packetFetcher.getReusableBuffer();
+            if (buffer.getByteAt(0) == Packet.ERROR) {
+                ErrorPacket ep = new ErrorPacket(buffer);
+                String message = ep.getMessage();
+                throw new QueryException("Could not connect: " + message, ep.getErrorNumber(), ep.getSqlState());
+            }
+        } catch (EOFException e) {
+            throw new QueryException("Authentication exception", 1045, "28000", e);
         }
     }
 

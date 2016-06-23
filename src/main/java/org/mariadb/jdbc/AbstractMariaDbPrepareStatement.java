@@ -562,7 +562,7 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      * @since 1.6
      */
     public void setNString(final int parameterIndex, final String value) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("NStrings not supported");
+        setString(parameterIndex, value);
     }
 
     /**
@@ -580,7 +580,7 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      */
     public void setNCharacterStream(final int parameterIndex, final Reader value, final long length) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("NCharstreams not supported");
+        setCharacterStream(parameterIndex, value, length);
     }
 
 
@@ -618,7 +618,7 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      */
     public void setNClob(final int parameterIndex, final java.sql.NClob value) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("NClobs not supported");
+        setClob(parameterIndex, value);
     }
 
     /**
@@ -641,7 +641,7 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
      */
     public void setNClob(final int parameterIndex, final Reader reader, final long length) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("NClobs not supported");
+        setClob(parameterIndex, reader, length);
     }
 
 
@@ -727,7 +727,7 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      * @see java.sql.Types
      */
     public void setObject(final int parameterIndex, final Object obj, final int targetSqlType, final int scaleOrLength) throws SQLException {
-        setObject(parameterIndex, obj, targetSqlType);
+        setInternalObject(parameterIndex, obj, targetSqlType, scaleOrLength);
     }
 
     /**
@@ -749,16 +749,14 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      * @see java.sql.Types
      */
     public void setObject(final int parameterIndex, final Object obj, final int targetSqlType) throws SQLException {
+        setInternalObject(parameterIndex, obj, targetSqlType, Long.MAX_VALUE);
+    }
 
+    private void setInternalObject(final int parameterIndex, final Object obj, final int targetSqlType, final long scaleOrLength) throws SQLException {
         switch (targetSqlType) {
             case Types.ARRAY:
-            case Types.CLOB:
             case Types.DATALINK:
             case Types.JAVA_OBJECT:
-            case Types.NCHAR:
-            case Types.NCLOB:
-            case Types.NVARCHAR:
-            case Types.LONGNVARCHAR:
             case Types.REF:
             case Types.ROWID:
             case Types.SQLXML:
@@ -803,9 +801,14 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
                     case Types.NUMERIC:
                         setBigDecimal(parameterIndex, new BigDecimal(str));
                         break;
+                    case Types.CLOB:
+                    case Types.NCLOB:
                     case Types.CHAR:
                     case Types.VARCHAR:
                     case Types.LONGVARCHAR:
+                    case Types.NCHAR:
+                    case Types.NVARCHAR:
+                    case Types.LONGNVARCHAR:
                         setString(parameterIndex, str);
                         break;
                     case Types.TIMESTAMP:
@@ -897,11 +900,16 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
             setBlob(parameterIndex, (Blob) obj);
         } else if (obj instanceof BigInteger) {
             setString(parameterIndex, obj.toString());
+        } else if (obj instanceof Clob) {
+            setClob(parameterIndex, (Clob) obj);
+        } else if (obj instanceof InputStream) {
+            setBinaryStream(parameterIndex, (InputStream) obj, scaleOrLength);
+        } else if (obj instanceof Reader) {
+            setCharacterStream(parameterIndex, (Reader) obj, scaleOrLength);
         } else {
             throw ExceptionMapper.getSqlException("Could not set parameter in setObject, could not convert: " + obj.getClass() + " to "
                     + targetSqlType);
         }
-
     }
 
     /**

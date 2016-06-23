@@ -429,12 +429,12 @@ public abstract class AbstractCallableFunctionStatement extends MariaDbClientPre
 
     @Override
     public NClob getNClob(int parameterIndex) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("NClob not supported");
+        return getResult().getNClob(indexToOutputIndex(parameterIndex));
     }
 
     @Override
     public NClob getNClob(String parameterName) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("NClob not supported");
+        return getResult().getNClob(nameToOutputIndex(parameterName));
     }
 
     @Override
@@ -449,22 +449,22 @@ public abstract class AbstractCallableFunctionStatement extends MariaDbClientPre
 
     @Override
     public String getNString(int parameterIndex) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("NString not supported");
+        return getResult().getNString(indexToOutputIndex(parameterIndex));
     }
 
     @Override
     public String getNString(String parameterName) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("NString not supported");
+        return getResult().getNString(nameToOutputIndex(parameterName));
     }
 
     @Override
     public Reader getNCharacterStream(int parameterIndex) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("NCharacterStream not supported");
+        return getResult().getNCharacterStream(indexToOutputIndex(parameterIndex));
     }
 
     @Override
     public Reader getNCharacterStream(String parameterName) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("NCharacterStream not supported");
+        return getResult().getNCharacterStream(nameToOutputIndex(parameterName));
     }
 
     @Override
@@ -605,32 +605,32 @@ public abstract class AbstractCallableFunctionStatement extends MariaDbClientPre
 
     @Override
     public void setNString(String parameterName, String value) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("NStrings not supported");
+        setNString(nameToIndex(parameterName), value);
     }
 
     @Override
-    public void setNCharacterStream(String parameterName, Reader value, long length) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("NCharacterStream not supported");
+    public void setNCharacterStream(String parameterName, Reader reader, long length) throws SQLException {
+        setCharacterStream(nameToIndex(parameterName), reader, length);
     }
 
     @Override
-    public void setNCharacterStream(String parameterName, Reader value) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("NCharacterStream not supported");
+    public void setNCharacterStream(String parameterName, Reader reader) throws SQLException {
+        setCharacterStream(nameToIndex(parameterName), reader);
     }
 
     @Override
     public void setNClob(String parameterName, NClob value) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("NClob not supported");
+        setClob(nameToIndex(parameterName), value);
     }
 
     @Override
     public void setNClob(String parameterName, Reader reader, long length) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("NClob not supported");
+        setClob(nameToIndex(parameterName), reader, length);
     }
 
     @Override
     public void setNClob(String parameterName, Reader reader) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("NCLOB not supported");
+        setClob(nameToIndex(parameterName), reader);
     }
 
     @Override
