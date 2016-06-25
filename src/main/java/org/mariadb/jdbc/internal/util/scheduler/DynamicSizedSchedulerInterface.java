@@ -49,9 +49,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.util.scheduler;
 
-import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 public interface DynamicSizedSchedulerInterface extends ScheduledExecutorService {
     /**
@@ -60,34 +58,5 @@ public interface DynamicSizedSchedulerInterface extends ScheduledExecutorService
      * @param newSize New pool size that is superior to 0
      */
     public void setPoolSize(int newSize);
-    
-    /**
-     * Adjusts the pool size by a given delta.  This should atomically change the pool size in a 
-     * thread safe way.
-     * 
-     * @param delta A positive or negative number to adjust the pool size by.
-     */
-    public void adjustPoolSize(int delta);
-    
-    /**
-     * Used when you want to ensure an extra thread is available to execute task.  This will adjust 
-     * the pool size so that a thread can be created (if necessary), and then execute the task.  
-     * Once the task completes the pool size will be adjusted back down.
-     * 
-     * @param task Task to be executed
-     * @return Future which represents task execution
-     */
-    public Future<?> addThreadAndExecute(Runnable task);
 
-    /**
-     * Used when you want to ensure an extra thread is available for scheduled task.  This will 
-     * adjust the pool size so that a thread can be created (if necessary), and then execute the 
-     * task.  Once the task completes the pool size will be adjusted back down.
-     * 
-     * @param task Task to be executed
-     * @param delay delay before execution
-     * @param unit unit of delay
-     * @return Future which represents task execution
-     */
-    public Future<?> addThreadAndSchedule(Runnable task, long delay, TimeUnit unit);
 }

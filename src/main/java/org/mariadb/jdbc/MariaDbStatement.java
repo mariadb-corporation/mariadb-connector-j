@@ -49,8 +49,6 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
-import org.mariadb.jdbc.internal.queryresults.*;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.queryresults.ExecutionResult;
 import org.mariadb.jdbc.internal.queryresults.MultiIntExecutionResult;
@@ -58,24 +56,20 @@ import org.mariadb.jdbc.internal.queryresults.SingleExecutionResult;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
-import org.mariadb.jdbc.internal.util.scheduler.DynamicSizedSchedulerInterface;
 import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
-
-import org.mariadb.jdbc.internal.protocol.Protocol;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.*;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.locks.ReentrantLock;
 
 
 public class MariaDbStatement implements Statement, Cloneable {
-    private static final DynamicSizedSchedulerInterface timeoutScheduler =
-            SchedulerServiceProviderHolder.getScheduler(0);
+    //timeout scheduler
+    private static final ScheduledExecutorService timeoutScheduler = SchedulerServiceProviderHolder.getTimeoutScheduler();
+
     /**
      * the protocol used to talk to the server.
      */
@@ -161,9 +155,7 @@ public class MariaDbStatement implements Statement, Cloneable {
     protected void setTimerTask() {
         assert (timerTaskFuture == null);
 
-        // because canceling needs to establish a new connection, we want to ensure that this
-        // possible blocking call can be run in parallel if multiple queries need to timeout
-        timerTaskFuture = timeoutScheduler.addThreadAndSchedule(new Runnable() {
+        timerTaskFuture = timeoutScheduler.schedule(new Runnable() {
             @Override
             public void run() {
                 try {

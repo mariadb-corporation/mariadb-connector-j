@@ -32,61 +32,67 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
      */
     @BeforeClass()
     public static void initClass() throws SQLException {
+        if (testSingleHost) {
+            Statement st = null;
+            try {
+                st = sharedConnection.createStatement();
+                ResultSet rs = st.executeQuery("SELECT count(*) from mysql.time_zone_name "
+                        + "where Name in ('Europe/Paris','Canada/Atlantic')");
+                rs.next();
+                if (rs.getInt(1) == 0) {
+                    ResultSet rs2 = st.executeQuery("SELECT DATABASE()");
+                    rs2.next();
+                    String currentDatabase = rs2.getString(1);
+                    st.execute("USE mysql");
 
-        Statement st = null;
-        try {
-            st = sharedConnection.createStatement();
-            ResultSet rs = st.executeQuery("SELECT count(*) from mysql.time_zone_name "
-                    + "where Name in ('Europe/Paris','Canada/Atlantic')");
-            rs.next();
-            if (rs.getInt(1) == 0) {
-                ResultSet rs2 = st.executeQuery("SELECT DATABASE()");
-                rs2.next();
-                String currentDatabase = rs2.getString(1);
-                st.execute("USE mysql");
+                    ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+                    importSql(sharedConnection, classLoader.getResourceAsStream("timezoneTest.sql"));
+                    st.execute("USE " + currentDatabase);
+                }
 
-                ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-                importSql(sharedConnection, classLoader.getResourceAsStream("timezoneTest.sql"));
-                st.execute("USE " + currentDatabase);
+            } finally {
+                if (st != null) {
+                    st.close();
+                }
             }
 
-        } finally {
-            if (st != null) {
-                st.close();
-            }
+            //Save the previous FORMAT locate so we can restore it later
+            previousFormatLocale = Locale.getDefault();
+            //Save the previous timezone so we can restore it later
+            previousTimeZone = TimeZone.getDefault();
+
+            //I have tried to represent all times written in the code in the UTC time zone
+            utcTimeZone = TimeZone.getTimeZone("UTC");
+
+            parisTimeZone = TimeZone.getTimeZone("Europe/Paris");
+            canadaTimeZone = TimeZone.getTimeZone("Canada/Atlantic");
+            TimeZone.setDefault(parisTimeZone);
+
+
+            //Use a date formatter for UTC timezone in ISO 8601 so users in different
+            //timezones can compare the test results easier.
+            dateFormatISO8601 = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
+            utcDateFormatISO8601 = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
+            utcDateFormatISO8601.setTimeZone(utcTimeZone);
+
+            utcDateFormatSimple = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            utcDateFormatSimple.setTimeZone(utcTimeZone);
+            createTable("timeZoneTime", "id int, tt TIME(6)");
+            createTable("daylightMysql", " tt DATE");
         }
-
-        //Save the previous FORMAT locate so we can restore it later
-        previousFormatLocale = Locale.getDefault();
-        //Save the previous timezone so we can restore it later
-        previousTimeZone = TimeZone.getDefault();
-
-        //I have tried to represent all times written in the code in the UTC time zone
-        utcTimeZone = TimeZone.getTimeZone("UTC");
-
-        parisTimeZone = TimeZone.getTimeZone("Europe/Paris");
-        canadaTimeZone = TimeZone.getTimeZone("Canada/Atlantic");
-        TimeZone.setDefault(parisTimeZone);
-
-
-        //Use a date formatter for UTC timezone in ISO 8601 so users in different
-        //timezones can compare the test results easier.
-        dateFormatISO8601 = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
-        utcDateFormatISO8601 = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
-        utcDateFormatISO8601.setTimeZone(utcTimeZone);
-
-        utcDateFormatSimple = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        utcDateFormatSimple.setTimeZone(utcTimeZone);
-        createTable("timeZoneTime", "id int, tt TIME(6)");
-        createTable("daylightMysql", " tt DATE");
-
 
     }
 
+    /**
+     * Put the TimeZone to previous state.
+     * @throws SQLException exception
+     */
     @AfterClass()
     public static void endClass() throws SQLException {
-        TimeZone.setDefault(previousTimeZone);
-        Locale.setDefault(previousFormatLocale);
+        if (testSingleHost) {
+            TimeZone.setDefault(previousTimeZone);
+            Locale.setDefault(previousFormatLocale);
+        }
     }
 
     /**

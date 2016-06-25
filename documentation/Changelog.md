@@ -1,18 +1,32 @@
 # Changelog
-* [1.4.4](#1.4.4)
-* [1.4.3](#1.4.3)
-* [1.4.2](#1.4.2)
-* [1.4.1](#1.4.1)
-* [1.4.0](#1.4.0)
+* [1.4.6](#1.4.6) Released on 13 june 2016 
+* [1.4.5](#1.4.5) Released on 18 mai 2016 
+* [1.4.4](#1.4.4) Released on 04 mai 2016 
+* [1.4.3](#1.4.3) Released on 22 april 2016 
+* [1.4.2](#1.4.2) Released on 08 april 2016
+* [1.4.1](#1.4.1) Released on 07 april 2016
+* [1.4.0](#1.4.0) Released on 31 march 2016
 
 ---
+
+## 1.4.6
+* [CONJ-293] Permit named pipe connection without host
+* [CONJ-309] Possible NPE on aurora when failover occur during connection initialisation
+* [CONJ-312] NPE while loading a null from TIMESTAMP field using binary protocol
+* [misc] batch with one parameter correction (using rewriteBatchedStatements option)
+
+## 1.4.5
+* [CONJ-297] Useless memory consumption when using Statement.setQueryTimeout
+* [CONJ-294] PrepareStatement on master reconnection after a failover
+* [CONJ-288] using SHOW VARIABLES to replace SELECT on connection to permit connection on a galera non primary node
+* [CONJ-290] Timestamps format error when using prepareStatement with options useFractionalSeconds and useServerPrepStmts
+
 ## 1.4.4
-Released on 29 april 2016 
 * [CONJ-289] PrepareStatement on master reconnection after a failover
 * [CONJ-288] using SHOW VARIABLES to replace SELECT on connection to permit connection on a galera non primary node
 
 ## 1.4.3
-Released on 22 april 2016 
+
 * [CONJ-284] Cannot read autoincremented IDs bigger than Short.MAX_VALUE
 * [CONJ-283] Parsing correction on MariaDbClientPreparedStatement - syntax error on insert values
 * [CONJ-282] Handling YEARs with binary prepareStatement
@@ -20,12 +34,12 @@ Released on 22 april 2016
 * [CONJ-278] Improve prepared statement on failover
 
 ## 1.4.2
-Released on 08 april 2016
+
 * [CONJ-275] Streaming result without result throw "Current position is before the first row"
 
 
 ## 1.4.1
-Released on 07 april 2016
+
 
 * [CONJ-274] correction to permit connection to MySQL 5.1 server
 * [CONJ-273] correction when using prepareStatement without parameters and option rewriteBatchedStatements to true
@@ -35,7 +49,7 @@ Released on 07 april 2016
 * [misc] performance improvement for select result.
 
 ## 1.4.0
-Released on 31 march 2016
+
 ### Complete implementation of fetch size.
 CONJ-26
 JDBC allows to specify the number of rows fetched for a query, and this number is referred to as the fetch size

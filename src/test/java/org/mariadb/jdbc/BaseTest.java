@@ -128,17 +128,19 @@ public class BaseTest {
     public static void beforeClassBaseTest() throws SQLException {
         String url = System.getProperty("dbUrl", mDefUrl);
         testSingleHost = Boolean.parseBoolean(System.getProperty("testSingleHost", "true"));
-        UrlParser urlParser = UrlParser.parse(url);
+        if (testSingleHost) {
+            UrlParser urlParser = UrlParser.parse(url);
 
-        hostname = urlParser.getHostAddresses().get(0).host;
-        port = urlParser.getHostAddresses().get(0).port;
-        database = urlParser.getDatabase();
-        username = urlParser.getUsername();
-        password = urlParser.getPassword();
+            hostname = urlParser.getHostAddresses().get(0).host;
+            port = urlParser.getHostAddresses().get(0).port;
+            database = urlParser.getDatabase();
+            username = urlParser.getUsername();
+            password = urlParser.getPassword();
 
-        setUri();
+            setUri();
 
-        sharedConnection = DriverManager.getConnection(url);
+            sharedConnection = DriverManager.getConnection(url);
+        }
     }
 
 
@@ -155,46 +157,48 @@ public class BaseTest {
      */
     @AfterClass
     public static void afterClassBaseTest() throws SQLException {
-        if (!sharedConnection.isClosed()) {
-            if (!tempTableList.isEmpty()) {
-                Statement stmt = sharedConnection.createStatement();
-                String tableName;
-                while ( (tableName = tempTableList.poll()) != null) {
-                    try {
-                        stmt.execute("DROP TABLE IF EXISTS " + tableName);
-                    } catch (SQLException e) {
-                        //eat exception
+        if (testSingleHost) {
+            if (!sharedConnection.isClosed()) {
+                if (!tempTableList.isEmpty()) {
+                    Statement stmt = sharedConnection.createStatement();
+                    String tableName;
+                    while ((tableName = tempTableList.poll()) != null) {
+                        try {
+                            stmt.execute("DROP TABLE IF EXISTS " + tableName);
+                        } catch (SQLException e) {
+                            //eat exception
+                        }
                     }
                 }
-            }
-            if (!tempProcedureList.isEmpty()) {
-                Statement stmt = sharedConnection.createStatement();
-                String procedureName;
-                while ( (procedureName = tempProcedureList.poll()) != null) {
-                    try {
-                        stmt.execute("DROP procedure IF EXISTS " + procedureName);
-                    } catch (SQLException e) {
-                        //eat exception
+                if (!tempProcedureList.isEmpty()) {
+                    Statement stmt = sharedConnection.createStatement();
+                    String procedureName;
+                    while ((procedureName = tempProcedureList.poll()) != null) {
+                        try {
+                            stmt.execute("DROP procedure IF EXISTS " + procedureName);
+                        } catch (SQLException e) {
+                            //eat exception
+                        }
                     }
                 }
-            }
-            if (!tempFunctionList.isEmpty()) {
-                Statement stmt = sharedConnection.createStatement();
-                String functionName;
-                while ( (functionName = tempFunctionList.poll()) != null) {
-                    try {
-                        stmt.execute("DROP FUNCTION IF EXISTS " + functionName);
-                    } catch (SQLException e) {
-                        //eat exception
+                if (!tempFunctionList.isEmpty()) {
+                    Statement stmt = sharedConnection.createStatement();
+                    String functionName;
+                    while ((functionName = tempFunctionList.poll()) != null) {
+                        try {
+                            stmt.execute("DROP FUNCTION IF EXISTS " + functionName);
+                        } catch (SQLException e) {
+                            //eat exception
+                        }
                     }
                 }
-            }
 
-        }
-        try {
-            sharedConnection.close();
-        } catch (SQLException e) {
-            e.printStackTrace();
+            }
+            try {
+                sharedConnection.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -221,10 +225,12 @@ public class BaseTest {
      * @throws SQLException exception
      */
     public static void createTable(String tableName, String tableColumns, String engine) throws SQLException {
-        Statement stmt = sharedConnection.createStatement();
-        stmt.execute("drop table if exists " + tableName);
-        stmt.execute("create table " + tableName + " (" + tableColumns + ") " + ((engine != null) ? engine : ""));
-        tempTableList.add(tableName);
+        if (testSingleHost) {
+            Statement stmt = sharedConnection.createStatement();
+            stmt.execute("drop table if exists " + tableName);
+            stmt.execute("create table " + tableName + " (" + tableColumns + ") " + ((engine != null) ? engine : ""));
+            tempTableList.add(tableName);
+        }
     }
 
     /**
@@ -234,11 +240,12 @@ public class BaseTest {
      * @throws SQLException exception
      */
     public static void createProcedure(String name, String body) throws SQLException {
-        Statement stmt = sharedConnection.createStatement();
-        stmt.execute("drop procedure IF EXISTS " + name);
-        stmt.execute("create  procedure " + name + body);
-        tempProcedureList.add(name);
-
+        if (testSingleHost) {
+            Statement stmt = sharedConnection.createStatement();
+            stmt.execute("drop procedure IF EXISTS " + name);
+            stmt.execute("create  procedure " + name + body);
+            tempProcedureList.add(name);
+        }
     }
 
     /**
@@ -248,11 +255,12 @@ public class BaseTest {
      * @throws SQLException exception
      */
     public static void createFunction(String name, String body) throws SQLException {
-        Statement stmt = sharedConnection.createStatement();
-        stmt.execute("drop function IF EXISTS " + name);
-        stmt.execute("create function " + name + body);
-        tempProcedureList.add(name);
-
+        if (testSingleHost) {
+            Statement stmt = sharedConnection.createStatement();
+            stmt.execute("drop function IF EXISTS " + name);
+            stmt.execute("create function " + name + body);
+            tempProcedureList.add(name);
+        }
     }
 
 
