@@ -325,10 +325,10 @@ public class MariaSelectResultSet implements ResultSet {
              * setFetchSize(Integer.MIN_VALUE) is used to signal streaming=true, so we still have to respect that.
              * but, MariaDbStatement.setFetchSize(Integer.MIN_VALUE), sets it to 1
              */
-            if(fetchSize <= 1) {
-            	streaming = true;
+            if (fetchSize <= 1) {
+                streaming = true;
             } else {
-            	streaming = false;
+                streaming = false;
             }
         }
     }
