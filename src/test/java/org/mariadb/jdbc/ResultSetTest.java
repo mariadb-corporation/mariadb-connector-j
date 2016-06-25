@@ -273,7 +273,7 @@ public class ResultSetTest extends BaseTest {
     public void scrollScrollableResultTest() throws SQLException {
         insertRows(2);
         PreparedStatement stmt = sharedConnection.prepareStatement("SELECT * FROM result_set_test", ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-        stmt.setFetchSize(1);
+        stmt.setFetchSize(2);	// setting it to 1, would indicate streaming to driver
         ResultSet rs = stmt.executeQuery();
         try {
         	rs.beforeFirst();
