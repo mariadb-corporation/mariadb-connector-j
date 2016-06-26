@@ -815,8 +815,8 @@ public class ServerPrepareStatementTest extends BaseTest {
             for (int i = 0; i < 280; i++) {
                 map[i] = connection.prepareStatement(
                         "INSERT INTO test_cache_table1 (text1, text2) values (" + i + ", ?)");
-                map[i].setString(1, i+"");
-                map[i].setString(2, i+"");
+                map[i].setString(1, i + "");
+                map[i].setString(2, i + "");
                 map[i].addBatch();
                 map[i].executeBatch();
 

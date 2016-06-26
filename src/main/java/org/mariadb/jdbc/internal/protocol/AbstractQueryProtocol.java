@@ -168,7 +168,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         if (firstByte == Packet.ERROR) {
             ErrorPacket ep = new ErrorPacket(buffer);
             String message = ep.getMessage();
-            throw new QueryException("Error preparing query: " + message + "\nIf a parameter type cannot be identified (example 'select ? `field1` from dual'). Use CAST function to solve this problem (example 'select CAST(? as integer) `field1` from dual')", ep.getErrorNumber(), ep.getSqlState());
+            throw new QueryException("Error preparing query: " + message
+                    + "\nIf a parameter type cannot be identified (example 'select ? `field1` from dual'). "
+                    + "Use CAST function to solve this problem (example 'select CAST(? as integer) `field1` from dual')",
+                    ep.getErrorNumber(), ep.getSqlState());
         }
 
         if (firstByte == Packet.OK) {
@@ -438,7 +441,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 //if prepare fail, results must be read, before throwing the exception
                 try {
                     getResult(executionResult, resultSetScrollType, true, true);
-                } catch (QueryException qe) {}
+                } catch (QueryException qe) { }
                 throw queryException;
             }
             getResult(executionResult, resultSetScrollType, true, true);

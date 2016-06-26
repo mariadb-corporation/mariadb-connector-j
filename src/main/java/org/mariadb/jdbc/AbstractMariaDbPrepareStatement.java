@@ -760,7 +760,89 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
         setInternalObject(parameterIndex, obj, targetSqlType, Long.MAX_VALUE);
     }
 
-    private void setInternalObject(final int parameterIndex, final Object obj, final int targetSqlType, final long scaleOrLength) throws SQLException {
+    /**
+     * <p>Sets the value of the designated parameter using the given object. The second parameter must be of type
+     * <code>Object</code>; therefore, the <code>java.lang</code> equivalent objects should be used for built-in types.
+     * <br>
+     * <p>The JDBC specification specifies a standard mapping from Java <code>Object</code> types to SQL types.  The
+     * given argument will be converted to the corresponding SQL type before being sent to the database.
+     * <br>
+     * <p>Note that this method may be used to pass datatabase- specific abstract data types, by using a driver-specific
+     * Java type.
+     * <br>
+     * If the object is of a class implementing the interface <code>SQLData</code>, the JDBC driver should call the
+     * method <code>SQLData.writeSQL</code> to write it to the SQL data stream. If, on the other hand, the object is of
+     * a class implementing <code>Ref</code>, <code>Blob</code>, <code>Clob</code>,  <code>NClob</code>,
+     * <code>Struct</code>, <code>java.net.URL</code>, <code>RowId</code>, <code>SQLXML</code> or <code>Array</code>,
+     * the driver should pass it to the database as a value of the corresponding SQL type.
+     * <br>
+     * <b>Note:</b> Not all databases allow for a non-typed Null to be sent to the backend. For maximum portability, the
+     * <code>setNull</code> or the <code>setObject(int parameterIndex, Object x, int sqlType)</code> method should be
+     * used instead of <code>setObject(int parameterIndex, Object x)</code>.
+     * <br>
+     * <b>Note:</b> This method throws an exception if there is an ambiguity, for example, if the object is of a class
+     * implementing more than one of the interfaces named above.
+     *
+     * @param parameterIndex the first parameter is 1, the second is 2, ...
+     * @param obj              the object containing the input parameter value
+     * @throws SQLException if parameterIndex does not correspond to a parameter marker in the SQL statement;
+     *                               if a database access error occurs; this method is called on a closed
+     *                               <code>PreparedStatement</code> or the type of the given object is ambiguous
+     */
+    public void setObject(final int parameterIndex, final Object obj) throws SQLException {
+        if (obj == null) {
+            setNull(parameterIndex, Types.INTEGER);
+        } else if (obj instanceof String) {
+            setString(parameterIndex, (String) obj);
+        } else if (obj instanceof Integer) {
+            setInt(parameterIndex, (Integer) obj);
+        } else if (obj instanceof Long) {
+            setLong(parameterIndex, (Long) obj);
+        } else if (obj instanceof Short) {
+            setShort(parameterIndex, (Short) obj);
+        } else if (obj instanceof Double) {
+            setDouble(parameterIndex, (Double) obj);
+        } else if (obj instanceof Float) {
+            setFloat(parameterIndex, (Float) obj);
+        } else if (obj instanceof Byte) {
+            setByte(parameterIndex, (Byte) obj);
+        } else if (obj instanceof byte[]) {
+            setBytes(parameterIndex, (byte[]) obj);
+        } else if (obj instanceof Date) {
+            setDate(parameterIndex, (Date) obj);
+        } else if (obj instanceof Time) {
+            setTime(parameterIndex, (Time) obj);
+        } else if (obj instanceof Timestamp) {
+            setTimestamp(parameterIndex, (Timestamp) obj);
+        } else if (obj instanceof java.util.Date) {
+            setTimestamp(parameterIndex, new Timestamp(((java.util.Date) obj).getTime()));
+        } else if (obj instanceof Boolean) {
+            setBoolean(parameterIndex, (Boolean) obj);
+        } else if (obj instanceof Blob) {
+            setBlob(parameterIndex, (Blob) obj);
+        } else if (obj instanceof InputStream) {
+            setBinaryStream(parameterIndex, (InputStream) obj);
+        } else if (obj instanceof Reader) {
+            setCharacterStream(parameterIndex, (Reader) obj);
+        } else if (obj instanceof BigDecimal) {
+            setBigDecimal(parameterIndex, (BigDecimal) obj);
+        } else if (obj instanceof BigInteger) {
+            setString(parameterIndex, obj.toString());
+        } else if (obj instanceof Clob) {
+            setClob(parameterIndex, (Clob) obj);
+        } else {
+            try {
+                setParameter(parameterIndex, new SerializableParameter(obj, isNoBackslashEscapes()));
+                hasLongData = true;
+            } catch (IOException e) {
+                throw ExceptionMapper.getSqlException("Could not set serializable parameter in setObject: " + e.getMessage(), e);
+            }
+        }
+
+    }
+
+    private void setInternalObject(final int parameterIndex, final Object obj, final int targetSqlType,
+                                   final long scaleOrLength) throws SQLException {
         switch (targetSqlType) {
             case Types.ARRAY:
             case Types.DATALINK:
@@ -920,86 +1002,6 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
         }
     }
 
-    /**
-     * <p>Sets the value of the designated parameter using the given object. The second parameter must be of type
-     * <code>Object</code>; therefore, the <code>java.lang</code> equivalent objects should be used for built-in types.
-     * <br>
-     * <p>The JDBC specification specifies a standard mapping from Java <code>Object</code> types to SQL types.  The
-     * given argument will be converted to the corresponding SQL type before being sent to the database.
-     * <br>
-     * <p>Note that this method may be used to pass datatabase- specific abstract data types, by using a driver-specific
-     * Java type.
-     * <br>
-     * If the object is of a class implementing the interface <code>SQLData</code>, the JDBC driver should call the
-     * method <code>SQLData.writeSQL</code> to write it to the SQL data stream. If, on the other hand, the object is of
-     * a class implementing <code>Ref</code>, <code>Blob</code>, <code>Clob</code>,  <code>NClob</code>,
-     * <code>Struct</code>, <code>java.net.URL</code>, <code>RowId</code>, <code>SQLXML</code> or <code>Array</code>,
-     * the driver should pass it to the database as a value of the corresponding SQL type.
-     * <br>
-     * <b>Note:</b> Not all databases allow for a non-typed Null to be sent to the backend. For maximum portability, the
-     * <code>setNull</code> or the <code>setObject(int parameterIndex, Object x, int sqlType)</code> method should be
-     * used instead of <code>setObject(int parameterIndex, Object x)</code>.
-     * <br>
-     * <b>Note:</b> This method throws an exception if there is an ambiguity, for example, if the object is of a class
-     * implementing more than one of the interfaces named above.
-     *
-     * @param parameterIndex the first parameter is 1, the second is 2, ...
-     * @param obj              the object containing the input parameter value
-     * @throws SQLException if parameterIndex does not correspond to a parameter marker in the SQL statement;
-     *                               if a database access error occurs; this method is called on a closed
-     *                               <code>PreparedStatement</code> or the type of the given object is ambiguous
-     */
-    public void setObject(final int parameterIndex, final Object obj) throws SQLException {
-        if (obj == null) {
-            setNull(parameterIndex, Types.INTEGER);
-        } else if (obj instanceof String) {
-            setString(parameterIndex, (String) obj);
-        } else if (obj instanceof Integer) {
-            setInt(parameterIndex, (Integer) obj);
-        } else if (obj instanceof Long) {
-            setLong(parameterIndex, (Long) obj);
-        } else if (obj instanceof Short) {
-            setShort(parameterIndex, (Short) obj);
-        } else if (obj instanceof Double) {
-            setDouble(parameterIndex, (Double) obj);
-        } else if (obj instanceof Float) {
-            setFloat(parameterIndex, (Float) obj);
-        } else if (obj instanceof Byte) {
-            setByte(parameterIndex, (Byte) obj);
-        } else if (obj instanceof byte[]) {
-            setBytes(parameterIndex, (byte[]) obj);
-        } else if (obj instanceof Date) {
-            setDate(parameterIndex, (Date) obj);
-        } else if (obj instanceof Time) {
-            setTime(parameterIndex, (Time) obj);
-        } else if (obj instanceof Timestamp) {
-            setTimestamp(parameterIndex, (Timestamp) obj);
-        } else if (obj instanceof java.util.Date) {
-            setTimestamp(parameterIndex, new Timestamp(((java.util.Date) obj).getTime()));
-        } else if (obj instanceof Boolean) {
-            setBoolean(parameterIndex, (Boolean) obj);
-        } else if (obj instanceof Blob) {
-            setBlob(parameterIndex, (Blob) obj);
-        } else if (obj instanceof InputStream) {
-            setBinaryStream(parameterIndex, (InputStream) obj);
-        } else if (obj instanceof Reader) {
-            setCharacterStream(parameterIndex, (Reader) obj);
-        } else if (obj instanceof BigDecimal) {
-            setBigDecimal(parameterIndex, (BigDecimal) obj);
-        } else if (obj instanceof BigInteger) {
-            setString(parameterIndex, obj.toString());
-        } else if (obj instanceof Clob) {
-            setClob(parameterIndex, (Clob) obj);
-        } else {
-            try {
-                setParameter(parameterIndex, new SerializableParameter(obj, isNoBackslashEscapes()));
-                hasLongData = true;
-            } catch (IOException e) {
-                throw ExceptionMapper.getSqlException("Could not set serializable parameter in setObject: " + e.getMessage(), e);
-            }
-        }
-
-    }
 
     /**
      * Sets the designated parameter to the given input stream, which will have the specified number of bytes. When a

@@ -239,7 +239,8 @@ public class MariaDbStatement implements Statement, Cloneable {
             executeQueryProlog();
             batchResultSet = null;
             SingleExecutionResult internalExecutionResult = new SingleExecutionResult(this, fetchSize, true, false, true);
-            protocol.executeQuery(protocol.isMasterConnection(), internalExecutionResult, Utils.nativeSql(sql, connection.noBackslashEscapes), resultSetScrollType);
+            protocol.executeQuery(protocol.isMasterConnection(), internalExecutionResult,
+                    Utils.nativeSql(sql, connection.noBackslashEscapes), resultSetScrollType);
             executionResult = internalExecutionResult;
             return executionResult.getResultSet() != null;
         } catch (QueryException e) {

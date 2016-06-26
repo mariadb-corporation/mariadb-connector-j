@@ -791,7 +791,8 @@ public class MultiTest extends BaseTest {
         continueOnBatchError(false, 0, 9, false, true);
     }
 
-    private void continueOnBatchError(boolean continueBatch, int waitedResult, int waitedResultComMulti, boolean server, boolean rewrite) throws SQLException {
+    private void continueOnBatchError(boolean continueBatch, int waitedResult, int waitedResultComMulti, boolean server,
+                                      boolean rewrite) throws SQLException {
         try (Connection connection = setConnection(
                 "&useServerPrepStmts=" + server
                         + "&continueBatchOnError=" + continueBatch

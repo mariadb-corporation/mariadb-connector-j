@@ -11,7 +11,10 @@ import java.sql.Statement;
 import static org.junit.Assert.fail;
 
 public class ScrollTypeTest extends BaseTest {
-
+    /**
+     * Data initialisation.
+     * @throws SQLException exception
+     */
     @BeforeClass()
     public static void initClass() throws SQLException {
         createTable("resultsSetReadingTest", "id int not null primary key auto_increment, test int");

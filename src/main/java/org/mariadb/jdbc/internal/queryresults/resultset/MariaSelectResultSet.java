@@ -1716,6 +1716,9 @@ public class MariaSelectResultSet implements ResultSet {
         return getObject(findColumn(columnLabel));
     }
 
+    /**
+     * {inheritDoc}.
+     */
     @SuppressWarnings("unchecked")
     public <T> T getObject(int parameterIndex, Class<T> type) throws SQLException {
         if (type == null) throw new SQLException("Class type cannot be null");
@@ -1766,7 +1769,7 @@ public class MariaSelectResultSet implements ResultSet {
         if (obj.getClass().isInstance(type)) {
             return (T) obj;
         } else {
-            throw new SQLException("result cannot be cast as  '" + type.getName() + "' (is '" + obj.getClass().getName()+"'");
+            throw new SQLException("result cannot be cast as  '" + type.getName() + "' (is '" + obj.getClass().getName() + "'");
         }
     }
 
