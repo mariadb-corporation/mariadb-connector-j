@@ -120,7 +120,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     protected boolean explicitClosed = false;
     protected String database;
     protected long serverThreadId;
-    protected ServerPrepareStatementCache serverPrepareStatementCache;
+    protected PrepareStatementCache prepareStatementCache;
     protected boolean moreResults = false;
 
     public boolean moreResultsTypeBinary = false;
@@ -145,7 +145,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         this.username = (urlParser.getUsername() == null ? "" : urlParser.getUsername());
         this.password = (urlParser.getPassword() == null ? "" : urlParser.getPassword());
         if (options.cachePrepStmts) {
-            serverPrepareStatementCache = ServerPrepareStatementCache.newInstance(options.prepStmtCacheSize, this);
+            prepareStatementCache = PrepareStatementCache.newInstance(options.prepStmtCacheSize, this);
         }
         setDataTypeMappingFlags();
     }
@@ -191,7 +191,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
         try {
             if (options.cachePrepStmts) {
-                serverPrepareStatementCache.clear();
+                prepareStatementCache.clear();
             }
             close(packetFetcher, writer, socket);
         } catch (Exception e) {
@@ -423,26 +423,27 @@ public abstract class AbstractConnectProtocol implements Protocol {
             final ReadInitialConnectPacket greetingPacket = new ReadInitialConnectPacket(packetFetcher);
             this.serverThreadId = greetingPacket.getServerThreadId();
             this.version = greetingPacket.getServerVersion();
+            this.isMariaServer = this.version.indexOf("MariaDB") != -1;
             this.serverAcceptComMulti = (greetingPacket.getServerCapabilities() & MariaDbServerCapabilities.MARIADB_CLIENT_COM_MULTI) != 0;
-
+            byte exchangeCharset = decideLanguage(greetingPacket.getServerLanguage());
             parseVersion();
             long clientCapabilities = initializeClientCapabilities();
 
             byte packetSeq = 1;
             if (options.useSsl && (greetingPacket.getServerCapabilities() & MariaDbServerCapabilities.SSL) != 0) {
                 clientCapabilities |= MariaDbServerCapabilities.SSL;
-                SendSslConnectionRequestPacket amcap = new SendSslConnectionRequestPacket((int) clientCapabilities);
+                SendSslConnectionRequestPacket amcap = new SendSslConnectionRequestPacket(clientCapabilities, exchangeCharset);
                 amcap.send(writer);
-
 
                 SSLSocketFactory sslSocketFactory = getSslSocketFactory();
                 SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(socket,
                         socket.getInetAddress().getHostAddress(), socket.getPort(), true);
-                sslSocket.setEnabledProtocols(new String[] {"TLSv1", "TLSv1.1"});
+
+                enabledSslProtocolSuites(sslSocket);
+                enabledSslCipherSuites(sslSocket);
 
                 sslSocket.setUseClientMode(true);
                 sslSocket.startHandshake();
-
                 socket = sslSocket;
                 writer = new PacketOutputStream(socket.getOutputStream());
                 reader = new MariaDbBufferedInputStream(socket.getInputStream(), 16384);
@@ -453,7 +454,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 throw new QueryException("Trying to connect with ssl, but ssl not enabled in the server");
             }
 
-            authentication(greetingPacket.getServerLanguage(), clientCapabilities, greetingPacket.getSeed(), packetSeq,
+            authentication(exchangeCharset, clientCapabilities, greetingPacket.getSeed(), packetSeq,
                     greetingPacket.getPluginName(), greetingPacket.getServerCapabilities());
 
         } catch (IOException e) {
@@ -469,13 +470,13 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
     }
 
-    private void authentication(byte serverLanguage, long clientCapabilities, byte[] seed, byte packetSeq, String plugin, long serverCapabilities)
+    private void authentication(byte exchangeCharset, long clientCapabilities, byte[] seed, byte packetSeq, String plugin, long serverCapabilities)
             throws QueryException, IOException {
         final SendHandshakeResponsePacket cap = new SendHandshakeResponsePacket(this.username,
                 this.password,
                 database,
                 clientCapabilities,
-                decideLanguage(serverLanguage),
+                exchangeCharset,
                 seed,
                 packetSeq,
                 plugin,
@@ -697,6 +698,19 @@ public abstract class AbstractConnectProtocol implements Protocol {
         List<HostAddress> addrs = urlParser.getHostAddresses();
         List<HostAddress> hosts = new LinkedList<>(addrs);
 
+        //CONJ-293 : handle name-pipe without host
+        if (hosts.isEmpty() && options.pipe != null) {
+            try {
+                connect(null, 0);
+                return;
+            } catch (IOException e) {
+                if (hosts.isEmpty()) {
+                    throw new QueryException("Could not connect to named pipe '" + options.pipe + "' : "
+                            + e.getMessage(), -1, ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(), e);
+                }
+            }
+        }
+
         // There could be several addresses given in the URL spec, try all of them, and throw exception if all hosts
         // fail.
         while (!hosts.isEmpty()) {
@@ -791,6 +805,50 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     public int getMinorServerVersion() {
         return minorVersion;
+    }
+
+    /**
+     * Return possible protocols : values of option enabledSslProtocolSuites is set, or default to "TLSv1,TLSv1.1".
+     *   MariaDB versions &ge; 10.0.15 and &ge; 5.5.41 supports TLSv1.2 if compiled with openSSL (default).
+     *   MySQL community versions &ge; 5.7.10 is compile with yaSSL, so max TLS is TLSv1.1.
+     *
+     * @param sslSocket current sslSocket
+     * @throws QueryException if protocol isn't a supported protocol
+     */
+    protected void enabledSslProtocolSuites(SSLSocket sslSocket) throws QueryException {
+        if (options.enabledSslProtocolSuites == null) {
+            sslSocket.setEnabledProtocols(new String[] {"TLSv1", "TLSv1.1"});
+        } else {
+            List<String> possibleProtocols = Arrays.asList(sslSocket.getSupportedProtocols());
+            String[] protocols = options.enabledSslProtocolSuites.split("[,;\\s]+");
+            for (String protocol : protocols) {
+                if (!possibleProtocols.contains(protocol)) {
+                    throw new QueryException("Unsupported SSL protocol '" + protocol + "'. Supported protocols : "
+                            + possibleProtocols.toString().replace("[", "").replace("]", ""));
+                }
+            }
+            sslSocket.setEnabledProtocols(protocols);
+        }
+    }
+
+    /**
+     * Set ssl socket cipher according to options.
+     *
+     * @param sslSocket current ssl socket
+     * @throws QueryException if a cipher isn't known
+     */
+    protected void enabledSslCipherSuites(SSLSocket sslSocket) throws QueryException {
+        if (options.enabledSslCipherSuites != null) {
+            List<String> possibleCiphers = Arrays.asList(sslSocket.getEnabledCipherSuites());
+            String[] ciphers = options.enabledSslCipherSuites.split("[,;\\s]+");
+            for (String cipher : ciphers) {
+                if (!possibleCiphers.contains(cipher)) {
+                    throw new QueryException("Unsupported SSL cipher '" + cipher + "'. Supported ciphers : "
+                            + possibleCiphers.toString().replace("[", "").replace("]", ""));
+                }
+            }
+            sslSocket.setEnabledCipherSuites(ciphers);
+        }
     }
 
     /**

@@ -54,6 +54,7 @@ package org.mariadb.jdbc.internal.queryresults.resultset;
 import org.mariadb.jdbc.*;
 import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
+import org.mariadb.jdbc.internal.packet.dao.parameters.SerializableParameter;
 import org.mariadb.jdbc.internal.packet.read.Packet;
 import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
 import org.mariadb.jdbc.internal.packet.result.*;
@@ -884,7 +885,7 @@ public class MariaSelectResultSet implements ResultSet {
                 if (isBinaryEncoded) {
                     try {
                         Date date = getDate(rawBytes, columnInfo, cal);
-                        return date == null ? null : date.toString();
+                        return (date == null) ? null : date.toString();
                     } catch (ParseException e) {
                     }
                 }
@@ -892,7 +893,8 @@ public class MariaSelectResultSet implements ResultSet {
             case YEAR:
                 if (options.yearIsDateType) {
                     try {
-                        return getDate(rawBytes, columnInfo, cal).toString();
+                        Date date = getDate(rawBytes, columnInfo, cal);
+                        return (date == null) ? null : date.toString();
                     } catch (ParseException e) {
                         //eat exception
                     }
@@ -904,18 +906,19 @@ public class MariaSelectResultSet implements ResultSet {
             case TIMESTAMP:
             case DATETIME:
                 try {
-                    return getTimestamp(rawBytes, columnInfo, cal).toString();
+                    Timestamp timestamp = getTimestamp(rawBytes, columnInfo, cal);
+                    return (timestamp == null) ? null : timestamp.toString();
                 } catch (ParseException e) {
                 }
                 break;
             case DECIMAL:
-                return getBigDecimal(rawBytes, columnInfo).toString();
+            case OLDDECIMAL:
+                BigDecimal bigDecimal = getBigDecimal(rawBytes, columnInfo);
+                return (bigDecimal == null ) ? null : bigDecimal.toString();
             case GEOMETRY:
                 return new String(rawBytes);
             case NULL:
                 return null;
-            case OLDDECIMAL:
-                return getBigDecimal(rawBytes, columnInfo).toString();
             default:
                 return new String(rawBytes, StandardCharsets.UTF_8);
         }
@@ -1714,8 +1717,57 @@ public class MariaSelectResultSet implements ResultSet {
     }
 
     @SuppressWarnings("unchecked")
-    public <T> T getObject(int columnIndex, Class<T> arg1) throws SQLException {
-        return (T) getObject(columnIndex);
+    public <T> T getObject(int parameterIndex, Class<T> type) throws SQLException {
+        if (type == null) throw new SQLException("Class type cannot be null");
+        if (type.equals(String.class)) {
+            return (T) getString(parameterIndex);
+        } else if (type.equals(Integer.class)) {
+            getInt(parameterIndex);
+        } else if (type.equals(Long.class)) {
+            return (T) (Long) getLong(parameterIndex);
+        } else if (type.equals(Short.class)) {
+            return (T) (Short) getShort(parameterIndex);
+        } else if (type.equals(Double.class)) {
+            return (T) (Double) getDouble(parameterIndex);
+        } else if (type.equals(Float.class)) {
+            return (T) (Float) getFloat(parameterIndex);
+        } else if (type.equals(Byte.class)) {
+            return (T) (Byte) getByte(parameterIndex);
+        } else if (type.equals(byte[].class)) {
+            return (T) getBytes(parameterIndex);
+        } else if (type.equals(Date.class)) {
+            return (T) getDate(parameterIndex);
+        } else if (type.equals(Time.class)) {
+            return (T) getTime(parameterIndex);
+        } else if (type.equals(Timestamp.class)) {
+            return (T) getTimestamp(parameterIndex);
+        } else if (type.equals(Boolean.class)) {
+            return (T) (Boolean) getBoolean(parameterIndex);
+        } else if (type.equals(Blob.class)) {
+            return (T) getBlob(parameterIndex);
+        } else if (type.equals(Clob.class)) {
+            return (T) getClob(parameterIndex);
+        } else if (type.equals(NClob.class)) {
+            return (T) getNClob(parameterIndex);
+        } else if (type.equals(InputStream.class)) {
+            return (T) getBinaryStream(parameterIndex);
+        } else if (type.equals(Reader.class)) {
+            return (T) getCharacterStream(parameterIndex);
+        } else if (type.equals(BigDecimal.class)) {
+            return (T) getBigDecimal(parameterIndex);
+        } else if (type.equals(BigInteger.class)) {
+            return (T) getBigInteger(checkObjectRange(parameterIndex), columnsInformation[parameterIndex - 1]);
+        } else if (type.equals(Clob.class)) {
+            return (T) getClob(parameterIndex);
+        }
+
+        Object obj = getObject(parameterIndex);
+        if (obj == null) return null;
+        if (obj.getClass().isInstance(type)) {
+            return (T) obj;
+        } else {
+            throw new SQLException("result cannot be cast as  '" + type.getName() + "' (is '" + obj.getClass().getName()+"'");
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -1856,7 +1908,7 @@ public class MariaSelectResultSet implements ResultSet {
      * {inheritDoc}.
      */
     public Reader getNCharacterStream(String columnLabel) throws SQLException {
-        return getCharacterStream(columnLabel);
+        return getCharacterStream(findColumn(columnLabel));
     }
 
     /**
@@ -2574,14 +2626,16 @@ public class MariaSelectResultSet implements ResultSet {
      * {inheritDoc}.
      */
     public NClob getNClob(int columnIndex) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("NClobs are not supported");
+        byte[] bytes = checkObjectRange(columnIndex);
+        if (bytes == null) return null;
+        return new MariaDbClob(bytes);
     }
 
     /**
      * {inheritDoc}.
      */
     public NClob getNClob(String columnLabel) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("NClobs are not supported");
+        return getNClob(findColumn(columnLabel));
     }
 
     /**
@@ -2620,14 +2674,14 @@ public class MariaSelectResultSet implements ResultSet {
      * {inheritDoc}.
      */
     public String getNString(int columnIndex) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("NString not supported");
+        return getString(columnIndex);
     }
 
     /**
      * {inheritDoc}.
      */
     public String getNString(String columnLabel) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("NString not supported");
+        return getString(findColumn(columnLabel));
     }
 
     /**
@@ -3262,7 +3316,8 @@ public class MariaSelectResultSet implements ResultSet {
         switch (columnInfo.getType()) {
             case TIMESTAMP:
             case DATETIME:
-                return new Date(getTimestamp(rawBytes, columnInfo, cal).getTime());
+                Timestamp timestamp = getTimestamp(rawBytes, columnInfo, cal);
+                return (timestamp == null) ? null : new Date(timestamp.getTime());
             default:
                 if (rawBytes.length == 0) {
                     return null;
@@ -3310,7 +3365,7 @@ public class MariaSelectResultSet implements ResultSet {
             case TIMESTAMP:
             case DATETIME:
                 Timestamp ts = binaryTimestamp(rawBytes, columnInfo, cal);
-                return new Time(ts.getTime());
+                return (ts == null) ? null : new Time(ts.getTime());
             case DATE:
                 Calendar tmpCalendar = Calendar.getInstance();
                 tmpCalendar.clear();

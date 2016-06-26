@@ -48,6 +48,8 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
+import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.queryresults.ExecutionResult;
 import org.mariadb.jdbc.internal.queryresults.MultiIntExecutionResult;
 import org.mariadb.jdbc.internal.queryresults.SingleExecutionResult;
@@ -56,6 +58,9 @@ import org.mariadb.jdbc.internal.util.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
+import org.mariadb.jdbc.internal.util.Utils;
+import org.mariadb.jdbc.internal.util.dao.PrepareResult;
+import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import java.sql.*;
 import java.util.*;
@@ -83,13 +88,13 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
     public MariaDbServerPreparedStatement(MariaDbConnection connection, String sql, int resultSetScrollType)
             throws SQLException {
         super(connection, resultSetScrollType);
-        this.sql = sql;
+        this.sql = Utils.nativeSql(sql, connection.noBackslashEscapes);;
 
         useFractionalSeconds = options.useFractionalSeconds;
         returnTableAlias = options.useOldAliasMetadataBehavior;
         currentParameterHolder = new TreeMap<>();
         mustExecuteOnMaster = protocol.isMasterConnection();
-        if (!connection.isServerComMulti()) prepare(sql);
+        if (!connection.isServerComMulti()) prepare(this.sql);
     }
 
     /**
@@ -357,8 +362,6 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
                 executeQueryEpilog(exception);
                 executing = false;
             }
-        } catch (SQLException sqle) {
-            throw new BatchUpdateException(sqle.getMessage(), sqle.getSQLState(), sqle.getErrorCode(), new int[]{0}, sqle);
         } finally {
             lock.unlock();
         }

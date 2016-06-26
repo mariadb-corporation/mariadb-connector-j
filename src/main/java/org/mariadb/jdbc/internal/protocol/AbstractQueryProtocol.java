@@ -1417,7 +1417,12 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     if (bufferEof.getByteAt(0) != Packet.EOF) {
                         throw new QueryException("Packets out of order when reading field packets, expected was EOF stream. "
                                 + "Packet contents (hex) = " + MasterProtocol.hexdump(bufferEof.buf, 0));
-                    } else if (executionResult.isCanHaveCallableResultset()) {
+                    } else if (executionResult.isCanHaveCallableResultset() || !isMariaServer) {
+                        //Identify if this is a "callable OUT packet" (callableResult=true)
+                        //needed because :
+                        // - will permit for callableStatement to identify the output result packet
+                        // - after "OUT packet", a OK packet is send, but mysql send the "OUT packet with a bad "more result flag",
+                        //   so need to check that this is a "OUT packet" to known there is another packet.
                         EndOfFilePacket endOfFilePacket = new EndOfFilePacket(bufferEof);
                         callableResult = (endOfFilePacket.getStatusFlags() & ServerStatus.PS_OUT_PARAMETERS) != 0;
                     }

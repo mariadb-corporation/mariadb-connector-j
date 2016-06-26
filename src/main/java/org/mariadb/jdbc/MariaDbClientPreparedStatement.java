@@ -54,6 +54,7 @@ import org.mariadb.jdbc.internal.queryresults.MultiIntExecutionResult;
 import org.mariadb.jdbc.internal.queryresults.SingleExecutionResult;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
+import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 
@@ -86,11 +87,11 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
      */
     public MariaDbClientPreparedStatement(MariaDbConnection connection, String sql, int resultSetScrollType) throws SQLException {
         super(connection, resultSetScrollType);
-        this.sqlQuery = sql;
+        this.sqlQuery = Utils.nativeSql(sql, connection.noBackslashEscapes);
         useFractionalSeconds = options.useFractionalSeconds;
 
         if (options.cachePrepStmts) {
-            String key = new StringBuilder(this.protocol.getDatabase()).append("-").append(sql).toString();
+            String key = new StringBuilder(this.protocol.getDatabase()).append("-").append(sqlQuery).toString();
             prepareResult = connection.getClientPrepareStatementCache().get(key);
         }
         rewriteType = options.rewriteBatchedStatements
@@ -98,12 +99,12 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
 
         if (prepareResult == null) {
             if (rewriteType == RewriteType.REWRITE_QUERIES) {
-                prepareResult = ClientPrepareResult.createRewritableParts(sql, connection.noBackslashEscapes);
+                prepareResult = ClientPrepareResult.createRewritableParts(sqlQuery, connection.noBackslashEscapes);
             } else {
-                prepareResult = ClientPrepareResult.createParameterParts(sql, connection.noBackslashEscapes);
+                prepareResult = ClientPrepareResult.createParameterParts(sqlQuery, connection.noBackslashEscapes);
             }
             if (options.cachePrepStmts && sql.length() < 1024) {
-                String key = new StringBuilder(this.protocol.getDatabase()).append("-").append(sql).toString();
+                String key = new StringBuilder(this.protocol.getDatabase()).append("-").append(sqlQuery).toString();
                 connection.getClientPrepareStatementCache().put(key, prepareResult);
             }
         }
