@@ -2334,8 +2334,8 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         return false;
     }
 
-    public java.sql.RowIdLifetime getRowIdLifetime() throws SQLException {
-        return java.sql.RowIdLifetime.ROWID_UNSUPPORTED;
+    public RowIdLifetime getRowIdLifetime() throws SQLException {
+        return RowIdLifetime.ROWID_UNSUPPORTED;
     }
 
     public boolean supportsStoredFunctionsUsingCallSyntax() throws SQLException {

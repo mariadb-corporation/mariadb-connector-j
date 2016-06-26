@@ -140,19 +140,19 @@ public class DatabaseMetadataTest extends BaseTest {
         assertEquals(rs.getString("FUNCTION_SCHEM"), null);
         assertEquals(rs.getString("COLUMN_NAME"), null); /* No name, since it is return value */
         assertEquals(rs.getInt("COLUMN_TYPE"), DatabaseMetaData.functionReturn);
-        assertEquals(rs.getInt("DATA_TYPE"), java.sql.Types.CHAR);
+        assertEquals(rs.getInt("DATA_TYPE"), Types.CHAR);
         assertEquals(rs.getString("TYPE_NAME"), "char");
 
         rs.next();
         assertEquals(rs.getString("COLUMN_NAME"), "s"); /* input parameter 's' (CHAR) */
         assertEquals(rs.getInt("COLUMN_TYPE"), DatabaseMetaData.functionColumnIn);
-        assertEquals(rs.getInt("DATA_TYPE"), java.sql.Types.CHAR);
+        assertEquals(rs.getInt("DATA_TYPE"), Types.CHAR);
         assertEquals(rs.getString("TYPE_NAME"), "char");
 
         rs.next();
         assertEquals(rs.getString("COLUMN_NAME"), "i"); /* input parameter 'i' (INT) */
         assertEquals(rs.getInt("COLUMN_TYPE"), DatabaseMetaData.functionColumnIn);
-        assertEquals(rs.getInt("DATA_TYPE"), java.sql.Types.INTEGER);
+        assertEquals(rs.getInt("DATA_TYPE"), Types.INTEGER);
         assertEquals(rs.getString("TYPE_NAME"), "int");
         stmt.execute("DROP FUNCTION IF EXISTS hello");
     }
@@ -392,8 +392,8 @@ public class DatabaseMetadataTest extends BaseTest {
             int columnType = rsmd.getColumnType(col);
             if (type.equals("String")) {
                 assertTrue("invalid type  " + columnType + " for " + rsmd.getColumnLabel(col) + ",expected String",
-                        columnType == java.sql.Types.VARCHAR
-                                || columnType == java.sql.Types.NULL
+                        columnType == Types.VARCHAR
+                                || columnType == Types.NULL
                                 || columnType == Types.LONGVARCHAR);
             } else if ("decimal".equals(type)) {
                 assertTrue("invalid type  " + columnType + "( " + rsmd.getColumnTypeName(col) + " ) for "
@@ -403,19 +403,19 @@ public class DatabaseMetadataTest extends BaseTest {
             } else if ("int".equals(type) || "short".equals(type)) {
                 assertTrue("invalid type  " + columnType + "( " + rsmd.getColumnTypeName(col) + " ) for "
                                 + rsmd.getColumnLabel(col) + ",expected numeric",
-                        columnType == java.sql.Types.BIGINT
-                                || columnType == java.sql.Types.INTEGER
-                                || columnType == java.sql.Types.SMALLINT
-                                || columnType == java.sql.Types.TINYINT);
+                        columnType == Types.BIGINT
+                                || columnType == Types.INTEGER
+                                || columnType == Types.SMALLINT
+                                || columnType == Types.TINYINT);
 
             } else if (type.equals("boolean")) {
                 assertTrue("invalid type  " + columnType + "( " + rsmd.getColumnTypeName(col) + " ) for "
                                 + rsmd.getColumnLabel(col) + ",expected boolean",
-                        columnType == java.sql.Types.BOOLEAN || columnType == java.sql.Types.BIT);
+                        columnType == Types.BOOLEAN || columnType == Types.BIT);
 
             } else if (type.equals("null")) {
                 assertTrue("invalid type  " + columnType + " for " + rsmd.getColumnLabel(col) + ",expected null",
-                        columnType == java.sql.Types.NULL);
+                        columnType == Types.NULL);
             } else {
                 assertTrue("invalid type '" + type + "'", false);
             }

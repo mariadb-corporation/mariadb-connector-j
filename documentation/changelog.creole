@@ -11,8 +11,14 @@
 ---
 == 1.5.0
 
+=== Use native SSPI windows implementation
+CONJ-295.
+Kerberos GSSAPI implementation on windows in now based on [[https://github.com/dblock/waffle|Waffle]] that support windows SSPI based on [[https://github.com/java-native-access/jna|JNA]].
+if on waffle-jna (and dependencies) is on classpath, native implementation will automatically be used.
+This permit to avoid all java specific problems on windows (need admin right, registry entry, kinit ...)
+
 === Support for TLSv1.1 and TLSv1.2
-CONJ-249.
+CONJ-249/CONJ-301
 
 MariaDB and MySQL community server permit TLSv1 and TLSv1.1.
 Default supported protocol are now TLSv1 and TLSv1.1 (only TLSv1 was supported).
@@ -32,7 +38,29 @@ New Options :
 [CONJ-291]
 
 === Prepare + execute in one call
-[CONJ-296] Support prepare + execute in one call (COM_MULTI protocol)
+CONJ-296
+
+When using MySQL/MariaDB prepared statement, there will be 3 exchanges with server :
+* PREPARE - Prepares statement for execution.</li>
+* EXECUTE - Executes a prepared statement preparing by a PREPARE statement.</li>
+* DEALLOCATE PREPARE - Releases a prepared statement.</li>
+
+See <a href="https://mariadb.com/kb/en/mariadb/prepare-statement/">Server prepare documentation</a> for more information.
+
+PREPARE and DEALLOCATE PREPARE are 2 additional client-server round-trip.
+Since MariaDB 10.2, a new functionality named COM-MULTI to execute different execution.
+Main use of this functionality by driver is to PREPARE and EXECUTE in on client-server round-trip.
+
+New Options :
+ |=useComMulti|Indicate that if COM_MULTI protocol exist, this protocol will be used.\\2 different use :\\* PREPARE + EXECUTE in one round trip to server.\\* executeBatch() will be send in one round trip (or in many packet if command size &gt; max_allowed_packet)\\//Default: true. Since 1.5.0//|
+
+== Minor evolution
+* CONJ-260 : Add jdbc nString, nCharacterStream, nClob implementation
+
+== Bugfix
+* CONJ-316 : Wrong Exception thrown for ScrollType TYPE_SCROLL_INSENSITIVE
+* CONJ-298 : Error on Callable function exception when no parameter and space before parenthesis
+* CONJ-314 : Permit using Call with Statement / Prepare Statement
 
 == 1.4.6
 * [CONJ-293] Permit named pipe connection without host

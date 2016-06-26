@@ -32,7 +32,7 @@ public class SslTest extends BaseTest {
         try {
             Field field = Class.forName("javax.crypto.JceSecurity").getDeclaredField("isRestricted");
             field.setAccessible(true);
-            field.set(null, java.lang.Boolean.FALSE);
+            field.set(null, Boolean.FALSE);
         } catch (Exception ex) {
             ex.printStackTrace();
         }

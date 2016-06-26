@@ -362,9 +362,12 @@ public enum DefaultOptions {
 
     /**
      * Indicate that if COM_MULTI protocol exist, this protocol will be used.
-     * (Main use will be PREPARE + EXECUTE in one COMMAND to avoid one round trip to server).
+     * 2 different use :
+     * - PREPARE + EXECUTE in one round trip to server.
+     * - executeBatch() will be send in one round trip (or in many packet if command size &gt; max_allowed_packet)
+     *
      */
-    USE_MULTI_STATEMENT("useMultiStatement", Boolean.FALSE, "1.5.0");
+    USE_COM_MULTI("useComMulti", Boolean.TRUE, "1.5.0");
 
     protected final String name;
     protected final Object objType;

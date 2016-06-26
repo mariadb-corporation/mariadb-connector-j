@@ -96,14 +96,16 @@ public class MultiIntExecutionResult implements ExecutionResult {
      *
      * so modified row, will all be on the first row, or on a few rows :
      * queries will split to have query size under the max_allowed_size, so data can be on multiple rows
+     *
+     * @param hasException has exception
      */
-    public void updateResultsForRewrite() {
+    public void updateResultsForRewrite(boolean hasException) {
         long totalAffectedRows = 0;
         int row = 0;
         while (row < affectedRows.length && affectedRows[row] > 0) {
             totalAffectedRows += affectedRows[row++];
         }
-        int resultVal = totalAffectedRows == affectedRows.length ? 1 : Statement.SUCCESS_NO_INFO;
+        int resultVal = hasException ? Statement.EXECUTE_FAILED : (totalAffectedRows == affectedRows.length ? 1 : Statement.SUCCESS_NO_INFO);
         for (row = 0; row < affectedRows.length; row++) {
             affectedRows[row] = resultVal;
         }
@@ -120,12 +122,26 @@ public class MultiIntExecutionResult implements ExecutionResult {
      * So affected rows and insert Id are separate in as many okPacket.
      *
      * @param cachedExecutionResults other okPacket.
+     * @param hasException has exception
      */
-    public void updateResultsMultiple(Deque<ExecutionResult> cachedExecutionResults) {
-        for (int i = 1 ; i < affectedRows.length; i++) {
-            SingleExecutionResult executionResult = (SingleExecutionResult) cachedExecutionResults.poll();
-            affectedRows[i] = (int) executionResult.getAffectedRows();
-            insertId[i] = executionResult.getInsertId();
+    public void updateResultsMultiple(Deque<ExecutionResult> cachedExecutionResults, boolean hasException) {
+        if (!hasException) {
+            for (int i = 1 ; i < affectedRows.length; i++) {
+                SingleExecutionResult executionResult = (SingleExecutionResult) cachedExecutionResults.poll();
+                affectedRows[i] = (int) executionResult.getAffectedRows();
+                insertId[i] = executionResult.getInsertId();
+            }
+        } else {
+            for (int i = 1 ; i < affectedRows.length; i++) {
+                SingleExecutionResult executionResult = (SingleExecutionResult) cachedExecutionResults.poll();
+                if (executionResult != null) {
+                    affectedRows[i] = (int) executionResult.getAffectedRows();
+                    insertId[i] = executionResult.getInsertId();
+                } else {
+                    affectedRows[i] = Statement.EXECUTE_FAILED;
+                    insertId[i] = Statement.EXECUTE_FAILED;
+                }
+            }
         }
 
         if (!cachedExecutionResults.isEmpty()) {

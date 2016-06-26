@@ -146,19 +146,19 @@ public class DatatypeTest extends BaseTest {
         checkClass("float0", Float.class, "FLOAT", Types.REAL);
         checkClass("double0", Double.class, "DOUBLE", Types.DOUBLE);
         checkClass("decimal0", BigDecimal.class, "DECIMAL", Types.DECIMAL);
-        checkClass("date0", java.sql.Date.class, "DATE", Types.DATE);
-        checkClass("time0", java.sql.Time.class, "TIME", Types.TIME);
-        checkClass("timestamp0", java.sql.Timestamp.class, "TIMESTAMP", Types.TIMESTAMP);
-        checkClass("timestamp_zero", java.sql.Timestamp.class, "TIMESTAMP", Types.TIMESTAMP);
+        checkClass("date0", Date.class, "DATE", Types.DATE);
+        checkClass("time0", Time.class, "TIME", Types.TIME);
+        checkClass("timestamp0", Timestamp.class, "TIMESTAMP", Types.TIMESTAMP);
+        checkClass("timestamp_zero", Timestamp.class, "TIMESTAMP", Types.TIMESTAMP);
 
         if (isMariadbServer() || !minVersion(5, 6)) {
             //MySQL deprecated YEAR(2) since 5.6
             checkClass("year2",
-                    yearIsDateType ? java.sql.Date.class : Short.class, "YEAR",
+                    yearIsDateType ? Date.class : Short.class, "YEAR",
                     yearIsDateType ? Types.DATE : Types.SMALLINT);
         }
         checkClass("year4",
-                yearIsDateType ? java.sql.Date.class : Short.class, "YEAR",
+                yearIsDateType ? Date.class : Short.class, "YEAR",
                 yearIsDateType ? Types.DATE : Types.SMALLINT);
         checkClass("char0", String.class, "CHAR", Types.CHAR);
         checkClass("char_binary", String.class, "CHAR", Types.CHAR);

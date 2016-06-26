@@ -222,7 +222,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
         proxy.lock.lock();
         try {
             SingleExecutionResult executionResult = new SingleExecutionResult(null, 0, true, false);
-            executeQuery(executionResult, "show global variables like 'innodb_read_only'", ResultSet.TYPE_FORWARD_ONLY);
+            executeQuery(this.isMasterConnection(), executionResult, "show global variables like 'innodb_read_only'", ResultSet.TYPE_FORWARD_ONLY);
             MariaSelectResultSet queryResult = executionResult.getResultSet();
             if (queryResult != null) {
                 queryResult.next();

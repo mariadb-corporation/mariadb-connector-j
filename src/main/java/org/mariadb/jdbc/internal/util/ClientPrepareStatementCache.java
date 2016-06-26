@@ -1,7 +1,7 @@
 /*
 MariaDB Client for Java
 
-Copyright (c) 2016 MariaDB Corporation AB
+Copyright (c) 2012-2014 Monty Program Ab.
 
 This library is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License as published by the Free
@@ -49,40 +49,36 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.util;
 
-import org.mariadb.jdbc.internal.util.dao.CallableStatementCacheKey;
+import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
 
-import java.sql.CallableStatement;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public class CallableStatementCache extends LinkedHashMap<CallableStatementCacheKey, CallableStatement> {
-    private int maxSize;
 
-    private CallableStatementCache(int size) {
+public final class ClientPrepareStatementCache extends LinkedHashMap<String, ClientPrepareResult> {
+    private final int maxSize;
+
+    private ClientPrepareStatementCache(int size) {
         super(size, .75f, true);
-        maxSize = size;
-    }
-
-    public static CallableStatementCache newInstance(int size) {
-        return new CallableStatementCache(size);
-    }
-
-    /**
-     * Add prepared statement to cache.
-     * @param key sql
-     * @param value prepareResult
-     * @return ServerPrepareResult to avoid to prepare statement.
-     */
-    public CallableStatement putIfNone(CallableStatementCacheKey key, CallableStatement value) {
-        if (!containsKey(key)) {
-            put(key, value);
-        }
-        return value;
+        this.maxSize = size;
     }
 
     @Override
-    protected boolean removeEldestEntry(Map.Entry<CallableStatementCacheKey, CallableStatement> eldest) {
-        return this.size() > maxSize;
+    protected boolean removeEldestEntry(Map.Entry<String, ClientPrepareResult> eldest) {
+        return size() > maxSize;
     }
 
+    public static ClientPrepareStatementCache newInstance(int size) {
+        return new ClientPrepareStatementCache(size);
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder stringBuilder = new StringBuilder("ClientPrepareStatementCache.map[");
+        for (Map.Entry<String, ClientPrepareResult> entry : this.entrySet()) {
+            stringBuilder.append("\n").append(entry.getKey());
+        }
+        stringBuilder.append("]");
+        return stringBuilder.toString();
+    }
 }

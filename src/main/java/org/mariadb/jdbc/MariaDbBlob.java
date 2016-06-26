@@ -88,7 +88,7 @@ public class MariaDbBlob implements Blob, Serializable {
         this.actualSize = bytes.length;
     }
 
-    private void writeObject(java.io.ObjectOutputStream out)
+    private void writeObject(ObjectOutputStream out)
             throws IOException {
         out.writeInt(actualSize);
         if (actualSize > 0) {
@@ -96,7 +96,7 @@ public class MariaDbBlob implements Blob, Serializable {
         }
     }
 
-    private void readObject(java.io.ObjectInputStream in)
+    private void readObject(ObjectInputStream in)
             throws IOException, ClassNotFoundException {
         actualSize = in.readInt();
         blobContent = new byte[actualSize];
@@ -109,7 +109,7 @@ public class MariaDbBlob implements Blob, Serializable {
      * Returns the number of bytes in the <code>BLOB</code> value designated by this <code>Blob</code> object.
      *
      * @return length of the <code>BLOB</code> in bytes
-     * @throws java.sql.SQLException if there is an error accessing the length of the <code>BLOB</code>
+     * @throws SQLException if there is an error accessing the length of the <code>BLOB</code>
      */
     public long length() throws SQLException {
         return actualSize;
@@ -125,7 +125,7 @@ public class MariaDbBlob implements Blob, Serializable {
      * @param length the number of consecutive bytes to be copied; the value for length must be 0 or greater
      * @return a byte array containing up to <code>length</code> consecutive bytes from the <code>BLOB</code> value
      * designated by this <code>Blob</code> object, starting with the byte at position <code>pos</code>
-     * @throws java.sql.SQLException if there is an error accessing the <code>BLOB</code> value; if pos is less than 1
+     * @throws SQLException if there is an error accessing the <code>BLOB</code> value; if pos is less than 1
      *                               or length is less than 0
      * @see #setBytes
      * @since 1.2
@@ -157,7 +157,7 @@ public class MariaDbBlob implements Blob, Serializable {
      *               <code>Blob</code> is at position 1
      * @param length the length in bytes of the partial value to be retrieved
      * @return <code>InputStream</code> through which the partial <code>Blob</code> value can be read.
-     * @throws java.sql.SQLException if pos is less than 1 or if pos is greater than the number of bytes in the
+     * @throws SQLException if pos is less than 1 or if pos is greater than the number of bytes in the
      *                               <code>Blob</code> or if pos + length is greater than the number of bytes in the
      *                               <code>Blob</code>
      */
@@ -280,7 +280,7 @@ public class MariaDbBlob implements Blob, Serializable {
      * @param len    the number of bytes to be written to the <code>BLOB</code> value from the array of bytes
      *               <code>bytes</code>
      * @return the number of bytes written
-     * @throws java.sql.SQLException if there is an error accessing the <code>BLOB</code> value or if pos is less than
+     * @throws SQLException if there is an error accessing the <code>BLOB</code> value or if pos is less than
      *                               1
      * @see #getBytes
      */
@@ -318,7 +318,7 @@ public class MariaDbBlob implements Blob, Serializable {
      *
      * @param pos the position in the <code>BLOB</code> value at which to start writing; the first position is 1
      * @return a <code>java.io.OutputStream</code> object to which data can be written
-     * @throws java.sql.SQLException if there is an error accessing the <code>BLOB</code> value or if pos is less than
+     * @throws SQLException if there is an error accessing the <code>BLOB</code> value or if pos is less than
      *                               1
      * @see #getBinaryStream
      * @since 1.4
@@ -340,7 +340,7 @@ public class MariaDbBlob implements Blob, Serializable {
      *
      * @param len the length, in bytes, to which the <code>BLOB</code> value that this <code>Blob</code> object
      *            represents should be truncated
-     * @throws java.sql.SQLException if there is an error accessing the <code>BLOB</code> value or if len is less than
+     * @throws SQLException if there is an error accessing the <code>BLOB</code> value or if len is less than
      *                               0
      */
     public void truncate(final long len) throws SQLException {

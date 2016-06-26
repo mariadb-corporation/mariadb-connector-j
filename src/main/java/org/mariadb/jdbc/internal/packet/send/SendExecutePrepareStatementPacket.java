@@ -88,22 +88,27 @@ public class SendExecutePrepareStatementPacket implements InterfaceSendPacket {
     public void send(final OutputStream os) throws IOException {
         PacketOutputStream buffer = (PacketOutputStream) os;
         buffer.startPacket(0, true);
-        comStmtExecuteSubCommand(buffer);
+        comStmtExecuteSubCommand(statementId, parameters, parameterCount, parameterTypeHeader, buffer);
         buffer.finishPacket();
     }
 
     /**
      * Send COM_STMT_EXECUTE subcommand.
      *
+     * @param statementId         prepareResult object received after preparation.
+     * @param parameters          parameters
+     * @param parameterCount      parameters number
+     * @param parameterTypeHeader parameters header
      * @param pos outputStream
      * @throws IOException if a connection error occur
      */
-    public void comStmtExecuteSubCommand(final PacketOutputStream pos) throws IOException {
+    public static void comStmtExecuteSubCommand(final int statementId, final ParameterHolder[] parameters, final int parameterCount,
+                                           MariaDbType[] parameterTypeHeader, final PacketOutputStream pos) throws IOException {
 
-        pos.buffer.put((byte) 0x17);
-        pos.buffer.putInt(statementId);
-        pos.buffer.put((byte) 0x00); //CURSOR TYPE NO CURSOR TODO implement when using cursor
-        pos.buffer.putInt(1); //Iteration count
+        pos.write((byte) 0x17);
+        pos.writeInt(statementId);
+        pos.write((byte) 0x00); //CURSOR TYPE NO CURSOR
+        pos.writeInt(1); //Iteration count
 
         //create null bitmap
         if (parameterCount > 0) {
@@ -118,10 +123,10 @@ public class SendExecutePrepareStatementPacket implements InterfaceSendPacket {
 
             //check if parameters type (using setXXX) have change since previous request, and resend new header type if so
             boolean mustSendHeaderType = false;
-            if (this.parameterCount == 0 || parameterTypeHeader[0] == null) {
+            if (parameterCount == 0 || parameterTypeHeader[0] == null) {
                 mustSendHeaderType = true;
             } else {
-                for (int i = 0; i < this.parameterCount; i++) {
+                for (int i = 0; i < parameterCount; i++) {
                     if (!parameterTypeHeader[i].equals(parameters[i].getMariaDbType())) {
                         mustSendHeaderType = true;
                         break;
@@ -130,14 +135,14 @@ public class SendExecutePrepareStatementPacket implements InterfaceSendPacket {
             }
 
             if (mustSendHeaderType) {
-                pos.buffer.put((byte) 0x01);
+                pos.write((byte) 0x01);
                 //Store types of parameters in first in first package that is sent to the server.
-                for (int i = 0; i < this.parameterCount; i++) {
+                for (int i = 0; i < parameterCount; i++) {
                     parameterTypeHeader[i] = parameters[i].getMariaDbType();
                     pos.writeShort((short) parameterTypeHeader[i].getType());
                 }
             } else {
-                pos.buffer.put((byte) 0x00);
+                pos.write((byte) 0x00);
             }
         }
         for (int i = 0; i < parameterCount; i++) {

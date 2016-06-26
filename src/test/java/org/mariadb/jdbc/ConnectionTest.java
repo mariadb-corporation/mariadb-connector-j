@@ -36,8 +36,13 @@ public class ConnectionTest extends BaseTest {
             DriverManager.getConnection("jdbc:mysql://" + hostname + ":" + port + "/" + database + "?user=foo");
             Assert.fail();
         } catch (SQLException e) {
-            Assert.assertTrue("28000".equals(e.getSQLState()));
-            Assert.assertEquals(1045, e.getErrorCode());
+            if (1524 == e.getErrorCode()) {
+                //GSSAPI plugin not loaded
+                Assert.assertTrue("HY000".equals(e.getSQLState()));
+            } else {
+                Assert.assertTrue("28000".equals(e.getSQLState()));
+                Assert.assertEquals(1045, e.getErrorCode());
+            }
         }
     }
 

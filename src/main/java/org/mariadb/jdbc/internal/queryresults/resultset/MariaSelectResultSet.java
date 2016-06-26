@@ -1716,6 +1716,9 @@ public class MariaSelectResultSet implements ResultSet {
         return getObject(findColumn(columnLabel));
     }
 
+    /**
+     * {inheritDoc}.
+     */
     @SuppressWarnings("unchecked")
     public <T> T getObject(int parameterIndex, Class<T> type) throws SQLException {
         if (type == null) throw new SQLException("Class type cannot be null");
@@ -1766,7 +1769,7 @@ public class MariaSelectResultSet implements ResultSet {
         if (obj.getClass().isInstance(type)) {
             return (T) obj;
         } else {
-            throw new SQLException("result cannot be cast as  '" + type.getName() + "' (is '" + obj.getClass().getName()+"'");
+            throw new SQLException("result cannot be cast as  '" + type.getName() + "' (is '" + obj.getClass().getName() + "'");
         }
     }
 
@@ -2532,21 +2535,21 @@ public class MariaSelectResultSet implements ResultSet {
     /**
      * {inheritDoc}.
      */
-    public java.sql.RowId getRowId(int columnIndex) throws SQLException {
+    public RowId getRowId(int columnIndex) throws SQLException {
         throw ExceptionMapper.getFeatureNotSupportedException("RowIDs not supported");
     }
 
     /**
      * {inheritDoc}.
      */
-    public java.sql.RowId getRowId(String columnLabel) throws SQLException {
+    public RowId getRowId(String columnLabel) throws SQLException {
         throw ExceptionMapper.getFeatureNotSupportedException("RowIDs not supported");
     }
 
     /**
      * {inheritDoc}.
      */
-    public void updateRowId(int columnIndex, java.sql.RowId rowId) throws SQLException {
+    public void updateRowId(int columnIndex, RowId rowId) throws SQLException {
         throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
 
     }
@@ -2554,7 +2557,7 @@ public class MariaSelectResultSet implements ResultSet {
     /**
      * {inheritDoc}.
      */
-    public void updateRowId(String columnLabel, java.sql.RowId rowId) throws SQLException {
+    public void updateRowId(String columnLabel, RowId rowId) throws SQLException {
         throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
 
     }

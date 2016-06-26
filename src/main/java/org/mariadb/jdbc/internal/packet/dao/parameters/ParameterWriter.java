@@ -252,7 +252,7 @@ public class ParameterWriter {
      * @param noBackslashEscapes must backslash be escape
      * @throws IOException if any error occur when writing to database
      */
-    public static void write(OutputStream out, java.io.Reader reader, boolean noBackslashEscapes) throws IOException {
+    public static void write(OutputStream out, Reader reader, boolean noBackslashEscapes) throws IOException {
         out.write(QUOTE);
         char[] buffer = new char[1024];
         int len;
@@ -272,7 +272,7 @@ public class ParameterWriter {
      * @param noBackslashEscapes must backslash be escape
      * @throws IOException if any error occur when writing to database
      */
-    public static void write(OutputStream out, java.io.Reader reader, long length, boolean noBackslashEscapes)
+    public static void write(OutputStream out, Reader reader, long length, boolean noBackslashEscapes)
             throws IOException {
         out.write(QUOTE);
         char[] buffer = new char[1024];
@@ -315,7 +315,7 @@ public class ParameterWriter {
      * @param noBackslashEscapes must backslash be escape
      * @throws IOException if any error occur when writing to database
      */
-    public static void writeUnsafe(PacketOutputStream out, java.io.Reader reader, boolean noBackslashEscapes) throws IOException {
+    public static void writeUnsafe(PacketOutputStream out, Reader reader, boolean noBackslashEscapes) throws IOException {
         out.writeUnsafe(QUOTE);
         char[] buffer = new char[1024];
         int len;

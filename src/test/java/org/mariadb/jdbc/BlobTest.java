@@ -291,7 +291,7 @@ public class BlobTest extends BaseTest {
         assertEquals(3, blobBytes[2]);
 
 
-        java.sql.Clob clob = new MariaDbClob(new byte[]{1, 2, 3});
+        Clob clob = new MariaDbClob(new byte[]{1, 2, 3});
         baos = new ByteArrayOutputStream();
         oos = new ObjectOutputStream(baos);
         oos.writeObject(clob);
@@ -308,7 +308,7 @@ public class BlobTest extends BaseTest {
     @Test
     public void conj73() throws Exception {
        /* CONJ-73: Assertion error: UTF8 length calculation reports invalid ut8 characters */
-        java.sql.Clob clob = new MariaDbClob(new byte[]{(byte) 0x10, (byte) 0xD0, (byte) 0xA0, (byte) 0xe0, (byte) 0xa1, (byte) 0x8e});
+        Clob clob = new MariaDbClob(new byte[]{(byte) 0x10, (byte) 0xD0, (byte) 0xA0, (byte) 0xe0, (byte) 0xa1, (byte) 0x8e});
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ObjectOutputStream oos = new ObjectOutputStream(baos);
         oos.writeObject(clob);
