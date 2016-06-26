@@ -112,9 +112,14 @@ public class ServerPrepareStatementTest extends BaseTest {
         Assume.assumeTrue(sharedUsePrepare());
         Protocol protocol = getProtocolFromConnection(sharedConnection);
         int cacheSize = protocol.prepareStatementCache().size();
-        sharedConnection.prepareStatement("INSERT INTO ServerPrepareStatementTestCache(test) VALUES (?)");
+        PreparedStatement preparedStatement = sharedConnection.prepareStatement("INSERT INTO ServerPrepareStatementTestCache(test) VALUES (?)");
+        preparedStatement.setBoolean(1, true);
+        preparedStatement.execute();
         assertTrue(cacheSize + 1 == protocol.prepareStatementCache().size());
-        sharedConnection.prepareStatement("INSERT INTO ServerPrepareStatementTestCache(test) VALUES (?)");
+
+        PreparedStatement preparedStatement2 = sharedConnection.prepareStatement("INSERT INTO ServerPrepareStatementTestCache(test) VALUES (?)");
+        preparedStatement2.setBoolean(1, true);
+        preparedStatement2.execute();
         assertTrue(cacheSize + 1 == protocol.prepareStatementCache().size());
     }
 
@@ -125,7 +130,9 @@ public class ServerPrepareStatementTest extends BaseTest {
             connection = setConnection("&prepStmtCacheSize=10");
             List<PreparedStatement> activePrepareStatement = new ArrayList<>(20);
             for (int i = 0; i < 20; i++) {
-                activePrepareStatement.add(connection.prepareStatement("SELECT " + i));
+                PreparedStatement preparedStatement = connection.prepareStatement("SELECT " + i);
+                preparedStatement.execute();
+                activePrepareStatement.add(preparedStatement);
             }
             //check max cache size
             Protocol protocol = getProtocolFromConnection(connection);
@@ -156,7 +163,9 @@ public class ServerPrepareStatementTest extends BaseTest {
                     + "testj-SELECT 19-0]", protocol.prepareStatementCache().toString());
 
             for (int i = 12; i < 15; i++) {
-                activePrepareStatement.add(connection.prepareStatement("SELECT " + i));
+                PreparedStatement preparedStatement = connection.prepareStatement("SELECT " + i);
+                preparedStatement.execute();
+                activePrepareStatement.add(preparedStatement);
             }
 
             assertEquals("ServerPrepareStatementCache.map[\n"
@@ -172,7 +181,9 @@ public class ServerPrepareStatementTest extends BaseTest {
                     + "testj-SELECT 14-1]", protocol.prepareStatementCache().toString());
 
             for (int i = 1; i < 5; i++) {
-                activePrepareStatement.add(connection.prepareStatement("SELECT " + i));
+                PreparedStatement preparedStatement = connection.prepareStatement("SELECT " + i);
+                preparedStatement.execute();
+                activePrepareStatement.add(preparedStatement);
             }
             assertEquals("ServerPrepareStatementCache.map[\n"
                     + "testj-SELECT 17-0\n"
@@ -186,7 +197,9 @@ public class ServerPrepareStatementTest extends BaseTest {
                     + "testj-SELECT 3-1\n"
                     + "testj-SELECT 4-1]", protocol.prepareStatementCache().toString());
             for (int i = 12; i < 15; i++) {
-                activePrepareStatement.add(connection.prepareStatement("SELECT " + i));
+                PreparedStatement preparedStatement = connection.prepareStatement("SELECT " + i);
+                preparedStatement.execute();
+                activePrepareStatement.add(preparedStatement);
             }
             assertEquals("ServerPrepareStatementCache.map[\n"
                     + "testj-SELECT 17-0\n"
@@ -201,7 +214,9 @@ public class ServerPrepareStatementTest extends BaseTest {
                     + "testj-SELECT 14-2]", protocol.prepareStatementCache().toString());
 
             for (int i = 20; i < 30; i++) {
-                activePrepareStatement.add(connection.prepareStatement("SELECT " + i));
+                PreparedStatement preparedStatement = connection.prepareStatement("SELECT " + i);
+                preparedStatement.execute();
+                activePrepareStatement.add(preparedStatement);
             }
             assertEquals("ServerPrepareStatementCache.map[\n"
                     + "testj-SELECT 20-1\n"
@@ -529,6 +544,7 @@ public class ServerPrepareStatementTest extends BaseTest {
                 "INSERT INTO ServerPrepareStatementParameters(id, id2) VALUES (?,?)");
         ps.setInt(1, 1);
         ps.addBatch();
+        ps.executeBatch();
     }
 
     @Test
@@ -799,6 +815,11 @@ public class ServerPrepareStatementTest extends BaseTest {
             for (int i = 0; i < 280; i++) {
                 map[i] = connection.prepareStatement(
                         "INSERT INTO test_cache_table1 (text1, text2) values (" + i + ", ?)");
+                map[i].setString(1, i+"");
+                map[i].setString(2, i+"");
+                map[i].addBatch();
+                map[i].executeBatch();
+
                 if (i < 250) {
                     Assert.assertEquals(i + 1, protocol.prepareStatementCache().size());
                 } else {

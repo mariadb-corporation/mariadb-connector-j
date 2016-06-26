@@ -83,9 +83,10 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
      * @param sql Sql String to prepare
      * @param resultSetScrollType one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
      * <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param forcePrepare force immediate prepare
      * @throws SQLException exception
      */
-    public MariaDbServerPreparedStatement(MariaDbConnection connection, String sql, int resultSetScrollType)
+    public MariaDbServerPreparedStatement(MariaDbConnection connection, String sql, int resultSetScrollType, boolean forcePrepare)
             throws SQLException {
         super(connection, resultSetScrollType);
         this.sql = Utils.nativeSql(sql, connection.noBackslashEscapes);;
@@ -94,7 +95,7 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
         returnTableAlias = options.useOldAliasMetadataBehavior;
         currentParameterHolder = new TreeMap<>();
         mustExecuteOnMaster = protocol.isMasterConnection();
-        if (!connection.isServerComMulti()) prepare(this.sql);
+        if (forcePrepare || !connection.isServerComMulti()) prepare(this.sql);
     }
 
     /**
@@ -260,10 +261,10 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
                         }
                     }
                 }
-                executionResult = internalExecutionResult;
             } catch (QueryException queryException) {
                 exception = queryException;
             } finally {
+                executionResult = internalExecutionResult;
                 executeQueryEpilog(exception);
                 executing = false;
             }
@@ -445,7 +446,7 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
                 } else {
                     sb.append(holder.toString());
                 }
-                if (i != parameterCount - 1) {
+                if (i != currentParameterHolder.size() - 1) {
                     sb.append(",");
                 }
             }

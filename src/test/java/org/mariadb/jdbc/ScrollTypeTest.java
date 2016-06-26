@@ -15,7 +15,10 @@ public class ScrollTypeTest extends BaseTest {
     @BeforeClass()
     public static void initClass() throws SQLException {
         createTable("resultsSetReadingTest", "id int not null primary key auto_increment, test int");
-        sharedConnection.createStatement().execute("INSERT INTO resultsSetReadingTest (test) values (1), (2), (3)");
+        if (testSingleHost) {
+            Statement st = sharedConnection.createStatement();
+            st.execute("INSERT INTO resultsSetReadingTest (test) values (1), (2), (3)");
+        }
     }
 
     @Test

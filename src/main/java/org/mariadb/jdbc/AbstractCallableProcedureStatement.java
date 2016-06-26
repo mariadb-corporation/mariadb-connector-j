@@ -85,7 +85,7 @@ public abstract class AbstractCallableProcedureStatement extends MariaDbServerPr
      */
     public AbstractCallableProcedureStatement(MariaDbConnection connection, String sql, int resultSetScrollType)
             throws SQLException {
-        super(connection, sql, resultSetScrollType);
+        super(connection, sql, resultSetScrollType, true);
     }
 
     /**

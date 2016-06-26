@@ -104,7 +104,7 @@ public class Options {
     public boolean cacheCallableStmts;
     public Integer callableStmtCacheSize;
     public String connectionAttributes;
-    public boolean useMultiStatement;
+    public boolean useComMulti;
 
     //HA options
     public boolean assureReadOnly;
@@ -171,7 +171,7 @@ public class Options {
                 + ", continueBatchOnError=" + continueBatchOnError
                 + ", jdbcCompliantTruncation=" + jdbcCompliantTruncation
                 + ", cacheCallableStmts=" + cacheCallableStmts
-                + ", useMultiStatement=" + useMultiStatement
+                + ", useComMulti=" + useComMulti
                 + ", callableStmtCacheSize=" + callableStmtCacheSize
                 + ", connectionAttributes=" + connectionAttributes
                 + "}";
@@ -248,7 +248,7 @@ public class Options {
             return false;
         }
 
-        if (useMultiStatement != options.useMultiStatement) return false;
+        if (useComMulti != options.useComMulti) return false;
 
         return !(prepStmtCacheSqlLimit != null ? !prepStmtCacheSqlLimit.equals(options.prepStmtCacheSqlLimit)
                 : options.prepStmtCacheSqlLimit != null);

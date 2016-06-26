@@ -8,7 +8,6 @@ import org.mariadb.jdbc.internal.queryresults.*;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 import org.mariadb.jdbc.internal.stream.MaxAllowedPacketException;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
-import org.mariadb.jdbc.internal.util.ServerPrepareStatementCache;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.util.constant.ServerStatus;
 import org.mariadb.jdbc.internal.util.buffer.Buffer;
@@ -169,7 +168,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         if (firstByte == Packet.ERROR) {
             ErrorPacket ep = new ErrorPacket(buffer);
             String message = ep.getMessage();
-            throw new QueryException("Error preparing query: " + message, ep.getErrorNumber(), ep.getSqlState());
+            throw new QueryException("Error preparing query: " + message + "\nIf a parameter type cannot be identified (example 'select ? `field1` from dual'). Use CAST function to solve this problem (example 'select CAST(? as integer) `field1` from dual')", ep.getErrorNumber(), ep.getSqlState());
         }
 
         if (firstByte == Packet.OK) {
@@ -232,7 +231,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
         //prepare subCommand
         writer.buffer.put((byte) 0x16);
-        writer.buffer.put(sqlBytes);
+        writer.write(sqlBytes);
     }
 
     @Override
@@ -433,8 +432,15 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             writer.buffer.position(subCmdEndPosition);
 
             writer.finishPacket();
-
-            if (statementId == -1) serverPrepareResult = readPrepareResult(sql);
+            try {
+                if (statementId == -1) serverPrepareResult = readPrepareResult(sql);
+            } catch (QueryException queryException) {
+                //if prepare fail, results must be read, before throwing the exception
+                try {
+                    getResult(executionResult, resultSetScrollType, true, true);
+                } catch (QueryException qe) {}
+                throw queryException;
+            }
             getResult(executionResult, resultSetScrollType, true, true);
             return serverPrepareResult;
         } catch (IOException e) {
@@ -473,7 +479,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             int totalExecutionNumber = parameterList.size();
             ParameterHolder[] parameters;
             byte[] lastSubCommand = null;
-
+            QueryException exception = null;
             MariaDbType[] parameterTypeHeader = new MariaDbType[parameterNbPerExecute];
 
             //check prepare result
@@ -492,6 +498,12 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 //in case of packet splitting, last subCommand that make packet > to max_allowed_packet
                 if (lastSubCommand != null) {
                     writer.write(lastSubCommand, 0, lastSubCommand.length);
+                    if (!writer.checkCurrentPacketAllowedSize()) {
+                        //one sub-command is bigger than max packet Size
+                        releasePrepareStatement(serverPrepareResult);
+                        throw new QueryException("max_allowed_packet=" + getServerData("max_allowed_packet") + ". stream size "
+                                + lastSubCommand.length + " is > to max_allowed_packet");
+                    }
                     lastSubCommand = null;
                     subCmdCounter++;
                 }
@@ -519,8 +531,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     //check that packet < max_allowed_packet, loop for next packet if so.
                     //otherwise, save sub-command, and set position to before this sub-command and send packet.
                     if (!writer.checkCurrentPacketAllowedSize()) {
-                        //packet size > max_allowed_size -> need to send packet now without last command, and recreate new packet for additional data.
                         lastSubCommand = new byte[subCmdEndPosition - subCmdInitialPosition];
+                        //packet size > max_allowed_size -> need to send packet now without last command, and recreate new packet for additional data.
                         System.arraycopy(writer.buffer.array(), subCmdInitialPosition, lastSubCommand, 0, subCmdEndPosition - subCmdInitialPosition);
                         writer.buffer.position(subCmdInitialPosition);
                         break;
@@ -532,14 +544,24 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
                 //read prepare result
                 if (statementId == -1) {
-                    serverPrepareResult = readPrepareResult(sql);
-                    statementId = serverPrepareResult.getStatementId();
+                    try {
+                        serverPrepareResult = readPrepareResult(sql);
+                        statementId = serverPrepareResult.getStatementId();
+                    } catch (QueryException queryException) {
+                        exception = queryException;
+                    }
                 }
 
                 //read all execution result
                 for (int counter = 0; counter < subCmdCounter; counter++) {
-                    getResult(executionResult, resultSetScrollType, true, true);
+                    try {
+                        getResult(executionResult, resultSetScrollType, true, true);
+                    } catch (QueryException queryException) {
+                        if (exception == null) exception = queryException;
+                    }
                 }
+                if (exception != null) throw exception;
+
             } while (currentExecutionNumber < totalExecutionNumber || lastSubCommand != null);
 
             return serverPrepareResult;
@@ -560,7 +582,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         checkClose();
         this.moreResults = false;
         try {
-            int parameterCount = parameters.length;
+            int parameterCount = serverPrepareResult.getParameters().length;
             //send binary data in a separate stream
             for (int i = 0; i < parameterCount; i++) {
                 if (parameters[i].isLongData()) {
@@ -782,10 +804,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         if (activeStreamingResult != null) {
             activeStreamingResult.fetchAllStreaming();
         }
-    }
-
-    public ServerPrepareStatementCache prepareStatementCache() {
-        return serverPrepareStatementCache;
     }
 
     public void executeQuery(final String sql) throws QueryException {

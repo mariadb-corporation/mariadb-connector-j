@@ -326,8 +326,16 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
                         internalExecutionResult.updateResultsMultiple(internalExecutionResult.getCachedExecutionResults(), false);
                     } else {
                         for (int batchQueriesCount = 0; batchQueriesCount < size; batchQueriesCount++) {
-                            protocol.executeQuery(protocol.isMasterConnection(), internalExecutionResult, prepareResult.getQueryParts(),
-                                    parameterList.get(batchQueriesCount), resultSetScrollType);
+                            try {
+                                protocol.executeQuery(protocol.isMasterConnection(), internalExecutionResult, prepareResult.getQueryParts(),
+                                        parameterList.get(batchQueriesCount), resultSetScrollType);
+                            } catch (QueryException e) {
+                                if (options.continueBatchOnError) {
+                                    exception = e;
+                                } else {
+                                    throw e;
+                                }
+                            }
                         }
                     }
                 }
@@ -422,7 +430,8 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
     }
 
     private void setParametersData() throws SQLException {
-        MariaDbServerPreparedStatement ssps = new MariaDbServerPreparedStatement(connection, this.sqlQuery, ResultSet.TYPE_SCROLL_INSENSITIVE);
+        MariaDbServerPreparedStatement ssps = new MariaDbServerPreparedStatement(connection, this.sqlQuery,
+                ResultSet.TYPE_SCROLL_INSENSITIVE, true);
         resultSetMetaData = ssps.getMetaData();
         parameterMetaData = ssps.getParameterMetaData();
         ssps.close();

@@ -111,7 +111,7 @@ public final class MariaDbConnection implements Connection {
         this.protocol = protocol;
         options = protocol.getOptions();
         noBackslashEscapes = protocol.noBackslashEscapes();
-        serverComMulti = options.useMultiStatement && protocol.isServerComMulti();
+        serverComMulti = options.useComMulti && protocol.isServerComMulti();
         nullCatalogMeansCurrent = options.nullCatalogMeansCurrent;
         if (options.cacheCallableStmts) {
             callableStatementCache = CallableStatementCache.newInstance(options.callableStmtCacheSize);
@@ -407,7 +407,7 @@ public final class MariaDbConnection implements Connection {
         checkConnection();
         if (!options.allowMultiQueries && !options.rewriteBatchedStatements && options.useServerPrepStmts && checkIfPreparable(sql)) {
             try {
-                return new MariaDbServerPreparedStatement(this, sql, resultSetScrollType);
+                return new MariaDbServerPreparedStatement(this, sql, resultSetScrollType, false);
             } catch (SQLNonTransientConnectionException e) {
                 throw e;
             } catch (SQLException e) {

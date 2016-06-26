@@ -779,21 +779,25 @@ public class MultiTest extends BaseTest {
         }
     }
 
+
     @Test
     public void continueOnBatchError() throws SQLException {
-        continueOnBatchError(true, 9, true, false);
-        continueOnBatchError(false, 5, true, false);
-        continueOnBatchError(true, 9, false, false);
-        continueOnBatchError(false, 5, false, false);
-        continueOnBatchError(true, 0, false, true);
-        continueOnBatchError(false, 0, false, true);
+        createTable("MultiTestt9", "id int not null primary key");
+        continueOnBatchError(true, 9, 9, true, false);
+        continueOnBatchError(false, 5, 9, true, false);
+        continueOnBatchError(true, 9, 9, false, false);
+        continueOnBatchError(false, 5, 9, false, false);
+        continueOnBatchError(true, 0, 9, false, true);
+        continueOnBatchError(false, 0, 9, false, true);
     }
 
-    private void continueOnBatchError(boolean continueBatch, int waitedResult, boolean server, boolean rewrite) throws SQLException {
-        try (Connection connection = setConnection("&continueBatchOnError=" + continueBatch + "&rewriteBatchedStatements=" + rewrite)) {
+    private void continueOnBatchError(boolean continueBatch, int waitedResult, int waitedResultComMulti, boolean server, boolean rewrite) throws SQLException {
+        try (Connection connection = setConnection(
+                "&useServerPrepStmts=" + server
+                        + "&continueBatchOnError=" + continueBatch
+                        + "&rewriteBatchedStatements=" + rewrite)) {
             connection.createStatement().execute("TRUNCATE TABLE MultiTestt9");
-            PreparedStatement pstmt = connection.prepareStatement(((server || rewrite) ? "" : "/*CLIENT*/ ")
-                    + "INSERT INTO MultiTestt9 (id) VALUES (?)");
+            PreparedStatement pstmt = connection.prepareStatement("INSERT INTO MultiTestt9 (id) VALUES (?)");
             for (int i = 0; i < 10; i++) {
                 pstmt.setInt(1, (i == 5) ? 0 : i);
                 pstmt.addBatch();
@@ -804,7 +808,8 @@ public class MultiTest extends BaseTest {
             } catch (SQLException e) {
                 ResultSet rs = connection.createStatement().executeQuery("SELECT COUNT(*) FROM MultiTestt9");
                 if (rs.next()) {
-                    assertEquals(waitedResult, rs.getInt(1));
+                    int waited = minVersion(10, 2) ? ((!rewrite && server) ? waitedResultComMulti : waitedResult) : waitedResult;
+                    assertEquals(waited, rs.getInt(1));
                 } else {
                     fail("Must have one result");
                 }
@@ -922,8 +927,8 @@ public class MultiTest extends BaseTest {
                     assertEquals(1, updateCounts[0]);
                     assertEquals(1, updateCounts[1]);
                     assertEquals(Statement.EXECUTE_FAILED, updateCounts[2]);
-                    assertEquals(0, updateCounts[3]);
-                    verifyInsertCount(tmpConnection, 3);
+                    assertEquals(1, updateCounts[3]);
+                    verifyInsertCount(tmpConnection, 4);
                 }
                 assertTrue(bue.getCause() instanceof SQLIntegrityConstraintViolationException);
 

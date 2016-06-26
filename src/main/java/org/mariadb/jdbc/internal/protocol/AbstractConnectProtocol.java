@@ -101,6 +101,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private final String password;
     private boolean hostFailed;
     private String version;
+    protected boolean isMariaServer;
     private int majorVersion;
     private int minorVersion;
     private int patchVersion;
@@ -120,7 +121,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     protected boolean explicitClosed = false;
     protected String database;
     protected long serverThreadId;
-    protected PrepareStatementCache prepareStatementCache;
+    protected ServerPrepareStatementCache serverPrepareStatementCache;
     protected boolean moreResults = false;
 
     public boolean moreResultsTypeBinary = false;
@@ -145,7 +146,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         this.username = (urlParser.getUsername() == null ? "" : urlParser.getUsername());
         this.password = (urlParser.getPassword() == null ? "" : urlParser.getPassword());
         if (options.cachePrepStmts) {
-            prepareStatementCache = PrepareStatementCache.newInstance(options.prepStmtCacheSize, this);
+            serverPrepareStatementCache = ServerPrepareStatementCache.newInstance(options.prepStmtCacheSize, this);
         }
         setDataTypeMappingFlags();
     }
@@ -191,7 +192,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
         try {
             if (options.cachePrepStmts) {
-                prepareStatementCache.clear();
+                serverPrepareStatementCache.clear();
             }
             close(packetFetcher, writer, socket);
         } catch (Exception e) {
@@ -971,7 +972,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         return moreResults;
     }
 
-    public ServerPrepareStatementCache getServerPrepareStatementCache() {
+    public ServerPrepareStatementCache prepareStatementCache() {
         return serverPrepareStatementCache;
     }
 
@@ -980,5 +981,4 @@ public abstract class AbstractConnectProtocol implements Protocol {
     public boolean isServerComMulti() {
         return serverAcceptComMulti;
     }
-
 }
