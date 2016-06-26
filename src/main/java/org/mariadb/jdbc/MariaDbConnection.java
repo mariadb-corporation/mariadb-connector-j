@@ -191,9 +191,7 @@ public final class MariaDbConnection implements Connection {
      * <code>ResultSet</code> constants indicating type and concurrency
      */
     public Statement createStatement(final int resultSetType, final int resultSetConcurrency) throws SQLException {
-        // for now resultSetType and resultSetConcurrency are ignored
-        // TODO: fix
-        return createStatement();
+        return new MariaDbStatement(this, resultSetType);
     }
 
     /**
@@ -277,9 +275,7 @@ public final class MariaDbConnection implements Connection {
      */
     public PreparedStatement prepareStatement(final String sql, final int resultSetType, final int resultSetConcurrency)
             throws SQLException {
-        // for now resultSetType and resultSetConcurrency are ignored
-        // TODO: fix
-        return prepareStatement(sql);
+        return internalPrepareStatement(sql, resultSetType);
     }
 
     /**

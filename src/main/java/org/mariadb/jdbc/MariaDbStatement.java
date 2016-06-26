@@ -998,7 +998,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      * @since 1.2
      */
     public int getResultSetType() throws SQLException {
-        return ResultSet.TYPE_SCROLL_INSENSITIVE;
+        return resultSetScrollType;
     }
 
     /**
