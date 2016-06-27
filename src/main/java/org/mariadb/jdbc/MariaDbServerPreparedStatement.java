@@ -459,11 +459,4 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
         return executionResult;
     }
 
-    public Collection<ParameterHolder> getCurrentParameterHolder() {
-        return currentParameterHolder.values();
-    }
-
-    public List<ParameterHolder[]> getParameterHolderList() {
-        return queryParameters;
-    }
 }

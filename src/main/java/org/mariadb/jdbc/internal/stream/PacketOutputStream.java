@@ -81,6 +81,7 @@ public class PacketOutputStream extends OutputStream {
     boolean checkPacketLength;
     int maxRewritableLengthAllowed;
     boolean useCompression;
+    boolean logQuery;
     public OutputStream outputStream;
     private volatile boolean closed = false;
 
@@ -88,11 +89,12 @@ public class PacketOutputStream extends OutputStream {
      * Initialization with server outputStream.
      * @param outputStream server outPutStream
      */
-    public PacketOutputStream(OutputStream outputStream) {
+    public PacketOutputStream(OutputStream outputStream, boolean logQuery) {
         this.outputStream = outputStream;
         buffer = firstBuffer = ByteBuffer.allocate(BUFFER_DEFAULT_SIZE).order(ByteOrder.LITTLE_ENDIAN);
         useCompression = false;
         buffer.position(4);
+        this.logQuery = logQuery;
     }
 
     protected void increase(int newCapacity) {
@@ -318,10 +320,33 @@ public class PacketOutputStream extends OutputStream {
     }
 
     /**
+     * Reinitialized buffer to smaller size if needed to avoid memory consumption.
+     */
+    public void releaseBuffer() {
+        //save big buffer next query to avoid new allocation if next query size is similar
+        if ((buffer.capacity() > 4194304 && buffer.limit() * BIG_SIZE_INCREASE < buffer.capacity())
+                || (buffer.capacity() <= 4194304 && buffer.limit() * NORMAL_INCREASE < buffer.capacity())) {
+            buffer = firstBuffer;
+        }
+    }
+
+    /**
+     * If logging is not active, release buffer.
+     * (if logging is active, it will use the buffer to know send query and release buffer after a while)
+     */
+    public void releaseBufferIfNotLogging() {
+        //save big buffer next query to avoid new allocation if next query size is similar
+        if (!logQuery && buffer != null && ((buffer.capacity() > 4194304 && buffer.limit() * BIG_SIZE_INCREASE < buffer.capacity())
+                || (buffer.capacity() <= 4194304 && buffer.limit() * NORMAL_INCREASE < buffer.capacity()))) {
+            buffer = firstBuffer;
+        }
+    }
+
+    /**
      * Ending command that tell to send buffer to server.
      * @throws IOException if any connection error occur
      */
-    public void finishPacket() throws IOException {
+    public void finishPacketWithoutRelease() throws IOException {
         if (buffer.position() > 4) {
             checkPacketMaxSize(buffer.position());
 
@@ -331,14 +356,15 @@ public class PacketOutputStream extends OutputStream {
                 flushDirect();
             }
         }
-
-        //save big buffer next query to avoid new allocation if next query size is similar
-        if ((buffer.capacity() > 4194304 && buffer.limit() * BIG_SIZE_INCREASE < buffer.capacity())
-                || (buffer.capacity() <= 4194304 && buffer.limit() * NORMAL_INCREASE < buffer.capacity())) {
-            buffer = firstBuffer;
-        }
-
         this.lastSeq =  (useCompression) ? this.compressSeqNo : this.seqNo;
+    }
+    /**
+     * Ending command that tell to send buffer to server.
+     * @throws IOException if any connection error occur
+     */
+    public void finishPacket() throws IOException {
+        finishPacketWithoutRelease();
+        releaseBuffer();
     }
 
     /**

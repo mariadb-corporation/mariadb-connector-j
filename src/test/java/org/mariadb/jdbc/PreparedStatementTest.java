@@ -189,7 +189,6 @@ public class PreparedStatementTest extends BaseTest {
             fail("Must have thrown error");
         } catch (SQLException sqle) {
             //must have thrown error.
-            System.out.println(sqle.getMessage());
             assertTrue(sqle instanceof SQLSyntaxErrorException);
         }
     }

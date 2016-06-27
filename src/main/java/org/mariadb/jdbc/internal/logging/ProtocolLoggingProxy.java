@@ -50,66 +50,197 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.logging;
 
-import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.MariaDbStatement;
-import org.mariadb.jdbc.internal.util.Utils;
+import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
+import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.util.Options;
+import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.sql.Statement;
+import java.nio.ByteBuffer;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
+import java.util.List;
 
 public class ProtocolLoggingProxy implements InvocationHandler {
-    Logger logger = LoggerFactory.getLogger(MariaDbStatement.class);
+    private static Logger logger = LoggerFactory.getLogger(MariaDbStatement.class);
+    private static final NumberFormat numberFormat = DecimalFormat.getInstance();
+
     protected boolean profileSql;
     protected Long slowQueryThresholdNanos;
     protected int maxQuerySizeToLog;
-    protected Statement statement;
+    protected Protocol protocol;
 
     public ProtocolLoggingProxy() { }
 
-    public ProtocolLoggingProxy(MariaDbConnection connection, int resultSetScrollType, boolean profileSql, Long slowQueryThresholdNanos, int maxQuerySizeToLog) {
-        this.statement = new MariaDbStatement(connection, resultSetScrollType);
-        this.profileSql = profileSql;
-        this.slowQueryThresholdNanos = slowQueryThresholdNanos;
-        this.maxQuerySizeToLog = maxQuerySizeToLog;
+    /**
+     * Constructor. Will create a proxy around protocol to log queries.
+     * @param protocol protocol to proxy
+     * @param options options
+     */
+    public ProtocolLoggingProxy(Protocol protocol, Options options) {
+        this.protocol = protocol;
+        this.profileSql = options.profileSql;
+        this.slowQueryThresholdNanos = options.slowQueryThresholdNanos;
+        this.maxQuerySizeToLog = options.maxQuerySizeToLog;
     }
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+        long startTime = System.nanoTime();
         try {
             switch (method.getName()) {
-                case "execute":
                 case "executeQuery":
-                case "executeUpdate":
+                case "executePreparedQuery":
                 case "executeBatch":
-                    long startTime = System.nanoTime();
-                    Object obj = method.invoke(statement, args);
+                case "executeBatchRewrite":
+                case "executeBatchMultiple":
+                case "prepareAndExecuteComMulti":
+                case "prepareAndExecutesComMulti":
+                    Object returnObj = method.invoke(protocol, args);
                     if (logger.isInfoEnabled() && (profileSql
                             || (slowQueryThresholdNanos != null && System.nanoTime() - startTime > slowQueryThresholdNanos.longValue()))) {
-                        logger.info("duration " + Utils.formatTime(System.nanoTime() - startTime) + logQuery(method.getName(), args));
+                        logger.info("Query - conn:" + protocol.getServerThreadId()
+                                + " - " + numberFormat.format(((double) System.nanoTime() - startTime) / 1000000) + " ms"
+                                + logQuery(method.getName(), args, returnObj));
                     }
-                    return obj;
+                    return returnObj;
                 default:
-                    return method.invoke(statement, args);
+                    return method.invoke(protocol, args);
             }
         } catch (InvocationTargetException e) {
+//            if (e.getCause() instanceof QueryException) {
+//                switch (method.getName()) {
+//                    case "executeQuery":
+//                    case "executePreparedQuery":
+//                    case "executeBatch":
+//                    case "executeBatchRewrite":
+//                    case "executeBatchMultiple":
+//                    case "prepareAndExecuteComMulti":
+//                    case "prepareAndExecutesComMulti":
+//                        if (logger.isWarnEnabled()) {
+//                            logger.warn("Query exception - conn:" + protocol.getServerThreadId()
+//                                    + " - " + numberFormat.format(((double) System.nanoTime() - startTime) / 1000000), e.getCause());
+//                        }
+//                }
+//            }
             throw e.getCause();
+        } finally {
+            try {
+                protocol.releaseWriterBuffer();
+            } catch (NullPointerException e) {
+                //if method is "close"
+            }
         }
     }
 
-    private String logQuery(String methodName, Object[] args) {
-        String sql;
+    @SuppressWarnings("unchecked")
+    private String logQuery(String methodName, Object[] args, Object returnObj) {
+        String sql = "";
         switch (methodName) {
-            case "execute":
             case "executeQuery":
-            case "executeUpdate":
-                sql = (String) args[0];
-                return " - query is \"" + ((sql.length() < maxQuerySizeToLog) ? sql : sql.substring(0, maxQuerySizeToLog) + "...") + "\"";
+                switch (args.length) {
+                    case 1:
+                        sql = (String) args[0];
+                        break;
+                    case 4:
+                        sql = (String) args[2];
+                        break;
+                    case 5:
+                        List<byte[]> queryParts = (List<byte[]>) args[2];
+                        if (queryParts.size() == 1) {
+                            sql = new String(queryParts.get(0));
+                        } else {
+                            sql = getQueryFromWriterBuffer();
+                        }
+                        break;
+                    default:
+                        sql = getQueryFromWriterBuffer();
+                }
+                break;
+            case "executeBatch":
+                List<String> queries = (List<String>) args[2];
+                for (int counter = 0; counter < queries.size(); counter++) {
+                    sql += queries.get(counter) + ";";
+                    if (maxQuerySizeToLog > 0 && sql.length() > maxQuerySizeToLog) break;
+                }
+                break;
+            case "executeBatchMultiple":
+                if (args.length == 4) {
+                    List<String> multipleQueries = (List<String>) args[2];
+                    if (multipleQueries.size() == 1) {
+                        sql = multipleQueries.get(0);
+                        break;
+                    }
+                }
+                sql = getQueryFromWriterBuffer();
+                break;
+            case "prepareAndExecuteComMulti":
+                sql = (String) args[2];
+                ParameterHolder[] params = (ParameterHolder[]) args[3];
+                if (params.length > 0) {
+                    sql += ", parameters [";
+                    for (int i = 0; i < params.length; i++) {
+                        sql += params[i].toString() + ",";
+                        if (maxQuerySizeToLog > 0 && sql.length() > maxQuerySizeToLog) break;
+                        sql = sql.substring(0, sql.length() - 1);
+                    }
+                    sql += "]";
+                }
+                break;
+            case "prepareAndExecutesComMulti":
+                sql = (String) args[3];
+                List<ParameterHolder[]> parameterList = (List<ParameterHolder[]>) args[4];
+                ServerPrepareResult serverPrepareResult = (ServerPrepareResult) returnObj;
+                sql += ", parameters ";
+                for (int paramNo = 0; paramNo < parameterList.size(); paramNo++) {
+                    ParameterHolder[] parameters = parameterList.get(paramNo);
+                    sql += "[";
+                    for (int i = 0; i < serverPrepareResult.getParameters().length; i++) {
+                        sql += parameters[i].toString() + ",";
+                        sql = sql.substring(0, sql.length() - 1);
+                    }
+
+                    if (maxQuerySizeToLog > 0 && sql.length() > maxQuerySizeToLog) {
+                        break;
+                    } else {
+                        sql += "],";
+                    }
+                }
+                sql = sql.substring(0, sql.length() - 1);
+                break;
+            case "executePreparedQuery":
+                sql = ((ServerPrepareResult) args[1]).getSql() ;
+                ParameterHolder[] paramHolder = (ParameterHolder[]) args[3];
+                if (paramHolder.length > 0) {
+                    sql += ", parameters [";
+                    for (int i = 0; i < ((ServerPrepareResult) args[1]).getParameters().length; i++) {
+                        sql += paramHolder[i].toString();
+                        if (maxQuerySizeToLog > 0 && sql.length() > maxQuerySizeToLog) break;
+                    }
+                    sql += "]";
+                }
+                break;
             default:
-                return " - batch execution";
+                sql = getQueryFromWriterBuffer();
+                break;
+        }
+        if (maxQuerySizeToLog > 0) {
+            return " - \"" + ((sql.length() < maxQuerySizeToLog) ? sql : sql.substring(0, maxQuerySizeToLog) + "...") + "\"";
+        } else {
+            return " - \"" + sql + "\"";
         }
 
+    }
+
+    private String getQueryFromWriterBuffer() {
+        ByteBuffer buffer = protocol.getWriter();
+        //log first 1024 utf-8 characters
+        String queryString = new String(buffer.array(), 5, Math.min(buffer.limit(), (1024 * 3) + 5));
+        if (queryString.length() > 1021 ) queryString = queryString.substring(0, 1021) + "...";
+        return queryString;
     }
 
 }

@@ -54,6 +54,7 @@ import org.mariadb.jdbc.internal.failover.impl.AuroraListener;
 import org.mariadb.jdbc.internal.failover.impl.MastersFailoverListener;
 import org.mariadb.jdbc.internal.failover.impl.MastersSlavesListener;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
+import org.mariadb.jdbc.internal.logging.ProtocolLoggingProxy;
 import org.mariadb.jdbc.internal.protocol.AuroraProtocol;
 import org.mariadb.jdbc.internal.protocol.MasterProtocol;
 import org.mariadb.jdbc.internal.protocol.MastersSlavesProtocol;
@@ -73,30 +74,10 @@ import java.sql.SQLException;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
 
 public class Utils {
-
-    /**
-     * Format query execution time.
-     * @param nano execution time.
-     * @return formatted text
-     */
-    public static String formatTime(long nano) {
-        NumberFormat numberFormat = DecimalFormat.getInstance();
-        double dec = ((double) nano) / 1000000;
-        return numberFormat.format(dec) + " ms";
-//        if (nano < 10000) {
-//            return numberFormat.format(nano) + "ns";
-//        } else if (nano < 10000000) {
-//            return numberFormat.format(nano / 1000) + "µs";
-//        } else if (nano < 10000000000L) {
-//            return numberFormat.format(nano / 1000000) + "ms";
-//        }
-//        return numberFormat.format(nano / 1000000000) + "s";
-    }
 
     /**
      * Escape String.
@@ -466,37 +447,48 @@ public class Utils {
      */
     public static Protocol retrieveProxy(final UrlParser urlParser, final ReentrantLock lock) throws QueryException, SQLException {
         LoggerFactory.init(urlParser.getOptions().logger || urlParser.getOptions().profileSql);
+        Protocol protocol;
         switch (urlParser.getHaMode()) {
             case AURORA:
                 if (urlParser.getHostAddresses().size() == 1) {
                     //single node cluster consider like "FAILOVER"
-                    return (Protocol) Proxy.newProxyInstance(
+                    return getProxyLoggingIfNeeded(urlParser, (Protocol) Proxy.newProxyInstance(
                             MasterProtocol.class.getClassLoader(),
                             new Class[]{Protocol.class},
-                            new FailoverProxy(new MastersFailoverListener(urlParser), lock));
+                            new FailoverProxy(new MastersFailoverListener(urlParser), lock)));
                 }
-                return (Protocol) Proxy.newProxyInstance(
-                        AuroraProtocol.class.getClassLoader(),
-                        new Class[]{Protocol.class},
-                        new FailoverProxy(new AuroraListener(urlParser), lock));
+                return getProxyLoggingIfNeeded(urlParser, (Protocol) Proxy.newProxyInstance(
+                            AuroraProtocol.class.getClassLoader(),
+                            new Class[]{Protocol.class},
+                            new FailoverProxy(new AuroraListener(urlParser), lock)));
             case REPLICATION:
-                return (Protocol) Proxy.newProxyInstance(
+                return getProxyLoggingIfNeeded(urlParser,
+                        (Protocol) Proxy.newProxyInstance(
                         MastersSlavesProtocol.class.getClassLoader(),
                         new Class[]{Protocol.class},
-                        new FailoverProxy(new MastersSlavesListener(urlParser), lock));
+                        new FailoverProxy(new MastersSlavesListener(urlParser), lock)));
             case FAILOVER:
             case SEQUENTIAL:
-                return (Protocol) Proxy.newProxyInstance(
+                return getProxyLoggingIfNeeded(urlParser, (Protocol) Proxy.newProxyInstance(
                         MasterProtocol.class.getClassLoader(),
                         new Class[]{Protocol.class},
-                        new FailoverProxy(new MastersFailoverListener(urlParser), lock));
+                        new FailoverProxy(new MastersFailoverListener(urlParser), lock)));
             default:
-                MasterProtocol protocol = new MasterProtocol(urlParser, lock);
+                protocol = getProxyLoggingIfNeeded(urlParser, new MasterProtocol(urlParser, lock));
                 protocol.connectWithoutProxy();
                 return protocol;
         }
     }
 
+    private static Protocol getProxyLoggingIfNeeded(UrlParser urlParser, Protocol protocol) {
+        if (urlParser.getOptions().profileSql || urlParser.getOptions().slowQueryThresholdNanos != null) {
+            return (Protocol) Proxy.newProxyInstance(
+                    MasterProtocol.class.getClassLoader(),
+                    new Class[]{Protocol.class},
+                    new ProtocolLoggingProxy(protocol, urlParser.getOptions()));
+        }
+        return protocol;
+    }
     /**
      * Get timezone from Id.
      * This differ from java implementation : by default, if timezone Id is unknown, java return GMT timezone.

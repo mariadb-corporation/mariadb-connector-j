@@ -53,6 +53,8 @@ import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.failover.thread.ConnectionValidator;
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.queryresults.ExecutionResult;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
@@ -74,6 +76,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class AbstractMastersListener implements Listener {
 
+    private static Logger logger = LoggerFactory.getLogger(AbstractMastersListener.class);
     /**
      * List the recent failedConnection.
      */
@@ -163,7 +166,9 @@ public abstract class AbstractMastersListener implements Listener {
             throw new QueryException("Connection has been closed !");
         }
         if (setMasterHostFail()) {
-//            log.warn("SQL Primary node [" + this.currentProtocol.getHostAddress().toString() + "] connection fail ");
+            logger.warn("SQL Primary node [" + this.currentProtocol.getHostAddress().toString()
+                    + ", conn " + this.currentProtocol.getServerThreadId()
+                    + " ] connection fail ");
             addToBlacklist(currentProtocol.getHostAddress());
         }
         return primaryFail(method, args);
@@ -329,10 +334,9 @@ public abstract class AbstractMastersListener implements Listener {
                 case "prepareAndExecuteComMulti":
                     if (!((Boolean) args[0])) return true; //launched on slave connection
                     return ((String) args[2]).toUpperCase().startsWith("SELECT");
-                case "executeStmtBatch":
+                case "executeBatch":
                 case "executeBatchMultiple":
                 case "executeBatchRewrite":
-                case "executeStmtBatchMultiple":
                 case "prepareAndExecutesComMulti":
                     if (!((Boolean) args[0])) return true; //launched on slave connection
                     return false;

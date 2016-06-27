@@ -1075,13 +1075,13 @@ public class MariaDbStatement implements Statement, Cloneable {
                     }
                     if (batchQueryMultiRewritable) {
                         multipleExecution = true;
-                        protocol.executeStmtBatchMultiple(protocol.isMasterConnection(), internalExecutionResult, batchQueries, resultSetScrollType);
+                        protocol.executeBatchMultiple(protocol.isMasterConnection(), internalExecutionResult, batchQueries, resultSetScrollType);
                         internalExecutionResult.updateResultsMultiple(internalExecutionResult.getCachedExecutionResults(), false);
                     } else {
-                        protocol.executeStmtBatch(protocol.isMasterConnection(), internalExecutionResult, batchQueries, resultSetScrollType);
+                        protocol.executeBatch(protocol.isMasterConnection(), internalExecutionResult, batchQueries, resultSetScrollType);
                     }
                 } else {
-                    protocol.executeStmtBatch(protocol.isMasterConnection(), internalExecutionResult, batchQueries, resultSetScrollType);
+                    protocol.executeBatch(protocol.isMasterConnection(), internalExecutionResult, batchQueries, resultSetScrollType);
                 }
             } catch (QueryException e) {
                 exception = e;

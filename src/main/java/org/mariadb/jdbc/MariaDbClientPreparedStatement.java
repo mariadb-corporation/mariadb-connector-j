@@ -490,13 +490,4 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
         return prepareResult;
     }
 
-    @Override
-    public Collection<ParameterHolder> getCurrentParameterHolder() {
-        return Arrays.asList(parameters);
-    }
-
-    @Override
-    public List<ParameterHolder[]> getParameterHolderList() {
-        return parameterList;
-    }
 }

@@ -89,6 +89,7 @@ import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URL;
+import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.security.KeyStore;
 import java.sql.ResultSet;
@@ -420,7 +421,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         try {
             reader = new MariaDbBufferedInputStream(socket.getInputStream(), 16384);
             packetFetcher = new ReadPacketFetcher(reader);
-            writer = new PacketOutputStream(socket.getOutputStream());
+            writer = new PacketOutputStream(socket.getOutputStream(), options.profileSql || options.slowQueryThresholdNanos != null);
 
             final ReadInitialConnectPacket greetingPacket = new ReadInitialConnectPacket(packetFetcher);
             this.serverThreadId = greetingPacket.getServerThreadId();
@@ -447,7 +448,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 sslSocket.setUseClientMode(true);
                 sslSocket.startHandshake();
                 socket = sslSocket;
-                writer = new PacketOutputStream(socket.getOutputStream());
+                writer = new PacketOutputStream(socket.getOutputStream(), options.profileSql || options.slowQueryThresholdNanos != null);
                 reader = new MariaDbBufferedInputStream(socket.getInputStream(), 16384);
                 packetFetcher = new ReadPacketFetcher(reader);
 
@@ -675,6 +676,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
         return urlParser;
     }
 
+    /**
+     * Indicate if current protocol is a master protocol.
+     * @return is master flag
+     */
     public boolean isMasterConnection() {
         return ParameterConstant.TYPE_MASTER.equals(currentHost.type);
     }
@@ -981,5 +986,13 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     public boolean isServerComMulti() {
         return serverAcceptComMulti;
+    }
+
+    public void releaseWriterBuffer() {
+        writer.releaseBuffer();
+    }
+
+    public ByteBuffer getWriter() {
+        return writer.buffer;
     }
 }

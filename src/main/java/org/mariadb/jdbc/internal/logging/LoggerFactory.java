@@ -17,6 +17,7 @@ public class LoggerFactory {
      * @param mustLog indicate if must initiate Slf4j logger
      * @throws QueryException if Slf4j dependency is not present.
      */
+    @SuppressWarnings("unchecked")
     public static void init(boolean mustLog) throws QueryException {
         if (hasToLog == null || hasToLog.booleanValue() != mustLog) {
             if (mustLog) {
