@@ -147,6 +147,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         if (options.cachePrepStmts) {
             prepareStatementCache = PrepareStatementCache.newInstance(options.prepStmtCacheSize, this);
         }
+
         setDataTypeMappingFlags();
     }
 

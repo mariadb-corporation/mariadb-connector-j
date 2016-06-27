@@ -50,12 +50,15 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
+import org.mariadb.jdbc.internal.logging.PrepareStatementLoggingProxy;
+import org.mariadb.jdbc.internal.logging.StatementLoggingProxy;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.*;
 import org.mariadb.jdbc.internal.util.dao.CallableStatementCacheKey;
 import org.mariadb.jdbc.internal.util.dao.CloneableCallableStatement;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 
+import java.lang.reflect.Proxy;
 import java.net.SocketException;
 import java.sql.*;
 import java.util.Map;
@@ -166,6 +169,13 @@ public final class MariaDbConnection implements Connection {
      */
     public Statement createStatement() throws SQLException {
         checkConnection();
+        if (options.profileSql || options.slowQueryThresholdNanos != null) {
+            return (Statement) Proxy.newProxyInstance(
+                    this.getClass().getClassLoader(),
+                    new Class[]{Statement.class},
+                    new StatementLoggingProxy(this, ResultSet.TYPE_FORWARD_ONLY, options.profileSql,
+                            options.slowQueryThresholdNanos, options.maxQuerySizeToLog));
+        }
         return new MariaDbStatement(this, ResultSet.TYPE_FORWARD_ONLY);
     }
 
@@ -404,13 +414,28 @@ public final class MariaDbConnection implements Connection {
         checkConnection();
         if (!options.allowMultiQueries && !options.rewriteBatchedStatements && options.useServerPrepStmts && checkIfPreparable(sql)) {
             try {
+                if (options.profileSql || options.slowQueryThresholdNanos != null) {
+                    return (PreparedStatement) Proxy.newProxyInstance(
+                            this.getClass().getClassLoader(),
+                            new Class[]{PreparedStatement.class},
+                            new PrepareStatementLoggingProxy(false, this, sql, resultSetScrollType, options.profileSql,
+                                    options.slowQueryThresholdNanos, options.maxQuerySizeToLog, options.useCompression));
+                }
                 return new MariaDbServerPreparedStatement(this, sql, resultSetScrollType);
             } catch (SQLNonTransientConnectionException e) {
                 throw e;
             } catch (SQLException e) {
                 //on some specific case, server cannot prepared data (CONJ-238)
-                return new MariaDbClientPreparedStatement(this, sql, resultSetScrollType);
+                //will use clientPreparedStatement
+                // -> corrected on MariaDB server 10.2.1 (https://jira.mariadb.org/browse/MDEV-5535)
             }
+        }
+        if (options.profileSql || options.slowQueryThresholdNanos != null) {
+            return (PreparedStatement) Proxy.newProxyInstance(
+                    this.getClass().getClassLoader(),
+                    new Class[]{PreparedStatement.class},
+                    new PrepareStatementLoggingProxy(true, this, sql, resultSetScrollType, options.profileSql,
+                            options.slowQueryThresholdNanos, options.maxQuerySizeToLog, options.useCompression));
         }
         return new MariaDbClientPreparedStatement(this, sql, resultSetScrollType);
     }

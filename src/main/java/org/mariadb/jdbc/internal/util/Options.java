@@ -106,6 +106,12 @@ public class Options {
     public String connectionAttributes;
     public boolean useMultiStatement;
 
+    //logging options
+    public boolean logger;
+    public boolean profileSql;
+    public Integer maxQuerySizeToLog;
+    public Long slowQueryThresholdNanos;
+
     //HA options
     public boolean assureReadOnly;
     public boolean autoReconnect;
@@ -174,6 +180,10 @@ public class Options {
                 + ", useMultiStatement=" + useMultiStatement
                 + ", callableStmtCacheSize=" + callableStmtCacheSize
                 + ", connectionAttributes=" + connectionAttributes
+                + ", logger=" + logger
+                + ", profileSql=" + profileSql
+                + ", maxQuerySizeToLog=" + maxQuerySizeToLog
+                + ", slowQueryThresholdNanos=" + slowQueryThresholdNanos
                 + "}";
     }
 
@@ -212,6 +222,8 @@ public class Options {
         if (maximizeMysqlCompatibility != options.maximizeMysqlCompatibility) return false;
         if (useServerPrepStmts != options.useServerPrepStmts) return false;
         if (assureReadOnly != options.assureReadOnly) return false;
+        if (logger != options.logger) return false;
+        if (profileSql != options.profileSql) return false;
         if (autoReconnect != options.autoReconnect) return false;
         if (failOnReadOnly != options.failOnReadOnly) return false;
         if (retriesAllDown != options.retriesAllDown) return false;
@@ -244,7 +256,14 @@ public class Options {
         if (callableStmtCacheSize != null ? !callableStmtCacheSize.equals(options.callableStmtCacheSize) : options.callableStmtCacheSize != null) {
             return false;
         }
+        if (maxQuerySizeToLog != null ? !maxQuerySizeToLog.equals(options.maxQuerySizeToLog) : options.maxQuerySizeToLog != null) {
+            return false;
+        }
         if (connectionAttributes != null ? !connectionAttributes.equals(options.connectionAttributes) : options.connectionAttributes != null) {
+            return false;
+        }
+        if (slowQueryThresholdNanos != null
+                ? !slowQueryThresholdNanos.equals(options.slowQueryThresholdNanos) : options.slowQueryThresholdNanos != null) {
             return false;
         }
 

@@ -59,10 +59,7 @@ import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.List;
+import java.util.*;
 
 
 public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatement implements Cloneable {
@@ -818,5 +815,15 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
 
     public boolean isMultipleQueriesPrepare() {
         return multipleQueriesPrepare;
+    }
+
+    @Override
+    public Collection<ParameterHolder> getCurrentParameterHolder() {
+        return Arrays.asList(parameters);
+    }
+
+    @Override
+    public List<ParameterHolder[]> getParameterHolderList() {
+        return parameterList;
     }
 }

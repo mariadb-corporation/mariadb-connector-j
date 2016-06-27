@@ -484,7 +484,8 @@ public abstract class AbstractCallableProcedureStatement extends MariaDbServerPr
 
     @Override
     public String getNString(String parameterName) throws SQLException {
-        return getResult().getString(nameToOutputIndex(parameterName));    }
+        return getResult().getString(nameToOutputIndex(parameterName));
+    }
 
     @Override
     public Reader getNCharacterStream(int parameterIndex) throws SQLException {

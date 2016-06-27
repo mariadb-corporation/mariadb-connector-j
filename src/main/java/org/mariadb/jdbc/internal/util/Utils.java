@@ -53,6 +53,7 @@ import org.mariadb.jdbc.internal.failover.FailoverProxy;
 import org.mariadb.jdbc.internal.failover.impl.AuroraListener;
 import org.mariadb.jdbc.internal.failover.impl.MastersFailoverListener;
 import org.mariadb.jdbc.internal.failover.impl.MastersSlavesListener;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.protocol.AuroraProtocol;
 import org.mariadb.jdbc.internal.protocol.MasterProtocol;
 import org.mariadb.jdbc.internal.protocol.MastersSlavesProtocol;
@@ -69,11 +70,33 @@ import java.net.Socket;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
 
 public class Utils {
+
+    /**
+     * Format query execution time.
+     * @param nano execution time.
+     * @return formatted text
+     */
+    public static String formatTime(long nano) {
+        NumberFormat numberFormat = DecimalFormat.getInstance();
+        double dec = ((double) nano) / 1000000;
+        return numberFormat.format(dec) + " ms";
+//        if (nano < 10000) {
+//            return numberFormat.format(nano) + "ns";
+//        } else if (nano < 10000000) {
+//            return numberFormat.format(nano / 1000) + "µs";
+//        } else if (nano < 10000000000L) {
+//            return numberFormat.format(nano / 1000000) + "ms";
+//        }
+//        return numberFormat.format(nano / 1000000000) + "s";
+    }
 
     /**
      * Escape String.
@@ -442,6 +465,7 @@ public class Utils {
      * @throws SQLException if any error occur during connection
      */
     public static Protocol retrieveProxy(final UrlParser urlParser, final ReentrantLock lock) throws QueryException, SQLException {
+        LoggerFactory.init(urlParser.getOptions().logger || urlParser.getOptions().profileSql);
         switch (urlParser.getHaMode()) {
             case AURORA:
                 if (urlParser.getHostAddresses().size() == 1) {

@@ -126,7 +126,7 @@ public class ReadInitialConnectPacket {
          *  (see comments about MARIADB_RPL_HACK_PREFIX)
          */
         if ((serverCapabilities4FirstBytes & MariaDbServerCapabilities.PLUGIN_AUTH) != 0) {
-            pluginName = buffer.readString(Charset.forName("ASCII"));
+            pluginName = buffer.readString(StandardCharsets.US_ASCII);
             if (serverVersion.startsWith(MARIADB_RPL_HACK_PREFIX)) {
                 serverCapabilities = (serverCapabilities4FirstBytes & 0xffffffffL) + (mariaDbAdditionalCapacities << 32);
                 serverVersion = serverVersion.substring(MARIADB_RPL_HACK_PREFIX.length());

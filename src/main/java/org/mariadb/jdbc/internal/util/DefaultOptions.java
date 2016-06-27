@@ -364,7 +364,34 @@ public enum DefaultOptions {
      * Indicate that if COM_MULTI protocol exist, this protocol will be used.
      * (Main use will be PREPARE + EXECUTE in one COMMAND to avoid one round trip to server).
      */
-    USE_MULTI_STATEMENT("useMultiStatement", Boolean.FALSE, "1.5.0");
+    USE_MULTI_STATEMENT("useMultiStatement", Boolean.FALSE, "1.5.0"),
+
+    /**
+     * Enable log information. require Slf4j version &gt; 1.4 dependency.
+     * log informations :
+     *  - info : query log
+     *  -
+     * default to false.
+     */
+    LOGGER("logger", Boolean.FALSE, "1.5.0"),
+
+    /**
+     * log query execution time.
+     */
+    PROFILESQL("profileSql", Boolean.FALSE, "1.5.0"),
+
+    /**
+     * Max query log size.
+     * default to 1024.
+     */
+    MAX_QUERY_LOG_SIZE("maxQuerySizeToLog", new Integer(1024), new Integer(0), Integer.MAX_VALUE, "1.5.0"),
+
+    /**
+     * Will log query with execution time superior to this value (if defined )
+     * default to null.
+     */
+    SLOW_QUERY_TIME("slowQueryThresholdNanos", (Long) null, new Long(0), Long.MAX_VALUE, "1.5.0");
+
 
     protected final String name;
     protected final Object objType;
@@ -393,6 +420,15 @@ public enum DefaultOptions {
     }
 
     DefaultOptions(String name, Integer defaultValue, Integer minValue, Integer maxValue, String implementationVersion) {
+        this.name = name;
+        this.objType = Integer.class;
+        this.defaultValue = defaultValue;
+        this.minValue = minValue;
+        this.maxValue = maxValue;
+        this.implementationVersion = implementationVersion;
+    }
+
+    DefaultOptions(String name, Long defaultValue, Long minValue, Long maxValue, String implementationVersion) {
         this.name = name;
         this.objType = Integer.class;
         this.defaultValue = defaultValue;
@@ -483,6 +519,8 @@ public enum DefaultOptions {
                         propertyValue = properties.getProperty("createDB");
                     } else if (o.name.equals("useSsl")) {
                         propertyValue = properties.getProperty("useSSL");
+                    } else if (o.name.equals("profileSql")) {
+                        propertyValue = properties.getProperty("profileSQL");
                     } else if (o.name.equals("enabledSslCipherSuites")) {
                         propertyValue = properties.getProperty("enabledSSLCipherSuites");
                     }
@@ -514,6 +552,18 @@ public enum DefaultOptions {
                             Options.class.getField(o.name).set(options, value);
                         } catch (NumberFormatException n) {
                             throw new IllegalArgumentException("Optional parameter " + o.name + " must be Integer, was \"" + propertyValue + "\"");
+                        }
+                    } else if (o.objType.equals(Long.class)) {
+                        try {
+                            Long value = Long.parseLong(propertyValue);
+                            if (value.compareTo((Long) o.minValue) < 0 || value.compareTo((Long) o.maxValue) > 0) {
+                                throw new IllegalArgumentException("Optional parameter " + o.name + " must be greater or equal to " + o.minValue
+                                        + ((((Long) o.maxValue).intValue() != Long.MAX_VALUE) ? " and smaller than " + o.maxValue : " ")
+                                        + ", was \"" + propertyValue + "\"");
+                            }
+                            Options.class.getField(o.name).set(options, value);
+                        } catch (NumberFormatException n) {
+                            throw new IllegalArgumentException("Optional parameter " + o.name + " must be Long, was \"" + propertyValue + "\"");
                         }
                     }
                 } else {

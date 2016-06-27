@@ -93,7 +93,6 @@ public final class Driver implements java.sql.Driver {
         //log.debug("Connecting to: " + url);
         try {
             UrlParser urlParser = UrlParser.parse(url, props);
-            //
             if (urlParser == null) {
                 return null;
             }
