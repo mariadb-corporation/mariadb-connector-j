@@ -88,14 +88,14 @@ New Options :
  |=slowQueryThresholdNanos|Will log query with execution time superior to this value (if defined )\\//Default: 1024. Since 1.5.0//|
  |=profileSql|log query execution time.\\//Default: false. Since 1.5.0//|
 
-== Minor evolution
+=== Minor evolution
 * CONJ-260 : Add jdbc nString, nCharacterStream, nClob implementation
 
-== Bugfix
+=== Bugfix
 * CONJ-316 : Wrong Exception thrown for ScrollType TYPE_SCROLL_INSENSITIVE
 * CONJ-298 : Error on Callable function exception when no parameter and space before parenthesis
 * CONJ-314 : Permit using Call with Statement / Prepare Statement
-
+\\\\\\
 == 1.4.6
 * [CONJ-293] Permit named pipe connection without host
 * [CONJ-309] Possible NPE on aurora when failover occur during connection initialisation
