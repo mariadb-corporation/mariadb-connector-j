@@ -8,6 +8,7 @@ import org.junit.runner.Description;
 import org.mariadb.jdbc.failover.TcpProxy;
 import org.mariadb.jdbc.internal.failover.AbstractMastersListener;
 import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 
 import java.io.IOException;
@@ -586,6 +587,14 @@ public class BaseTest {
         return urlParser.getOptions().useServerPrepStmts
                 && !urlParser.getOptions().rewriteBatchedStatements
                 && !urlParser.getOptions().allowMultiQueries;
+    }
+
+    /**
+     * Permit access to current sharedConnection options.
+     * @return Options
+     */
+    public Options sharedOptions() {
+        return urlParser.getOptions();
     }
 
     /**

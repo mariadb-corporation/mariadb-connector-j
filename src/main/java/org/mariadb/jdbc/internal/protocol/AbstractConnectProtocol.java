@@ -57,32 +57,33 @@ import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
 import org.mariadb.jdbc.internal.MyX509TrustManager;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
-import org.mariadb.jdbc.internal.packet.read.Packet;
-import org.mariadb.jdbc.internal.packet.read.ReadInitialConnectPacket;
-import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
-import org.mariadb.jdbc.internal.packet.result.EndOfFilePacket;
-import org.mariadb.jdbc.internal.packet.result.ErrorPacket;
-import org.mariadb.jdbc.internal.packet.result.OkPacket;
 import org.mariadb.jdbc.internal.packet.send.*;
 import org.mariadb.jdbc.internal.protocol.authentication.AuthenticationProviderHolder;
 import org.mariadb.jdbc.internal.queryresults.ExecutionResult;
 import org.mariadb.jdbc.internal.queryresults.SingleExecutionResult;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
-import org.mariadb.jdbc.internal.stream.DecompressInputStream;
 import org.mariadb.jdbc.internal.stream.MariaDbBufferedInputStream;
 import org.mariadb.jdbc.internal.stream.MariaDbInputStream;
-import org.mariadb.jdbc.internal.stream.PacketOutputStream;
-import org.mariadb.jdbc.internal.util.ExceptionMapper;
-import org.mariadb.jdbc.internal.util.Options;
-import org.mariadb.jdbc.internal.util.PrepareStatementCache;
-import org.mariadb.jdbc.internal.util.Utils;
+import org.mariadb.jdbc.internal.util.*;
 import org.mariadb.jdbc.internal.util.buffer.Buffer;
+import org.mariadb.jdbc.internal.packet.read.ReadInitialConnectPacket;
+import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
+import org.mariadb.jdbc.internal.packet.read.Packet;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
 import org.mariadb.jdbc.internal.util.constant.ServerStatus;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
+import org.mariadb.jdbc.internal.packet.result.*;
+import org.mariadb.jdbc.internal.stream.DecompressInputStream;
+import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
-import javax.net.ssl.*;
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.X509TrustManager;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
@@ -120,7 +121,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     protected boolean explicitClosed = false;
     protected String database;
     protected long serverThreadId;
-    protected PrepareStatementCache prepareStatementCache;
+    protected ServerPrepareStatementCache serverPrepareStatementCache;
     protected boolean moreResults = false;
 
     public boolean moreResultsTypeBinary = false;
@@ -145,7 +146,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         this.username = (urlParser.getUsername() == null ? "" : urlParser.getUsername());
         this.password = (urlParser.getPassword() == null ? "" : urlParser.getPassword());
         if (options.cachePrepStmts) {
-            prepareStatementCache = PrepareStatementCache.newInstance(options.prepStmtCacheSize, this);
+            serverPrepareStatementCache = ServerPrepareStatementCache.newInstance(options.prepStmtCacheSize, this);
         }
 
         setDataTypeMappingFlags();
@@ -192,7 +193,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
         try {
             if (options.cachePrepStmts) {
-                prepareStatementCache.clear();
+                serverPrepareStatementCache.clear();
             }
             close(packetFetcher, writer, socket);
         } catch (Exception e) {
@@ -604,7 +605,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         serverData = new TreeMap<>();
         SingleExecutionResult qr = new SingleExecutionResult(null, 0, true, false);
         try {
-            executeQuery(qr, "SHOW VARIABLES WHERE Variable_name in ("
+            executeQuery(true, qr, "SHOW VARIABLES WHERE Variable_name in ("
                     + "'max_allowed_packet', "
                     + "'system_time_zone', "
                     + "'time_zone', "
@@ -972,8 +973,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
         return moreResults;
     }
 
-    public PrepareStatementCache getPrepareStatementCache() {
-        return prepareStatementCache;
+    public ServerPrepareStatementCache prepareStatementCache() {
+        return serverPrepareStatementCache;
     }
 
     public abstract void executeQuery(final String sql) throws QueryException;
@@ -981,5 +982,4 @@ public abstract class AbstractConnectProtocol implements Protocol {
     public boolean isServerComMulti() {
         return serverAcceptComMulti;
     }
-
 }

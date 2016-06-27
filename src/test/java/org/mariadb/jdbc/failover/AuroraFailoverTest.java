@@ -256,7 +256,7 @@ public class AuroraFailoverTest extends BaseReplication {
 
             //Goal is to check that on a failover, master connection will be used, and slave will be used back when up.
             //check on 2 failover
-            while (nbExecutionOnSlave + nbExecutionOnMasterFirstFailover < 1000) {
+            while (nbExecutionOnSlave + nbExecutionOnMasterFirstFailover < 5000) {
                 ResultSet rs = preparedStatement.executeQuery();
                 rs.next();
                 if (rs.getInt(1) == 1) {
@@ -269,7 +269,7 @@ public class AuroraFailoverTest extends BaseReplication {
                 }
             }
             launchAuroraFailover();
-            while (nbExecutionOnSlave + nbExecutionOnMasterSecondFailover < 1000) {
+            while (nbExecutionOnSlave + nbExecutionOnMasterSecondFailover < 5000) {
                 ResultSet rs = preparedStatement.executeQuery();
                 rs.next();
                 if (rs.getInt(1) == 1) {
@@ -284,13 +284,14 @@ public class AuroraFailoverTest extends BaseReplication {
             System.out.println("back using slave connection. nbExecutionOnSlave=" + nbExecutionOnSlave
                     + " nbExecutionOnMasterFirstFailover=" + nbExecutionOnMasterFirstFailover
                     + " nbExecutionOnMasterSecondFailover=" + nbExecutionOnMasterSecondFailover);
-            assertTrue(nbExecutionOnSlave + nbExecutionOnMasterFirstFailover + nbExecutionOnMasterSecondFailover < 800);
+            assertTrue(nbExecutionOnSlave + nbExecutionOnMasterFirstFailover + nbExecutionOnMasterSecondFailover < 2000);
         } finally {
             if (connection != null) {
                 connection.close();
             }
         }
     }
+
 
     /**
      * Test that master complete failover (not just a network error) server will changed, PrepareStatement will be closed
@@ -299,7 +300,7 @@ public class AuroraFailoverTest extends BaseReplication {
      * @throws Throwable if any error occur
      */
     @Test
-    public void failoverPrepareStatementOnMaster() throws Throwable {
+    public void failoverPrepareStatementOnMasterWithException() throws Throwable {
         Connection connection = null;
         try {
             connection = getNewConnection("&validConnectionTimeout=120"
@@ -312,11 +313,11 @@ public class AuroraFailoverTest extends BaseReplication {
             boolean failLaunched = false;
             PreparedStatement preparedStatement1 = connection.prepareStatement("select ?");
             assertEquals(1, getPrepareResult((MariaDbServerPreparedStatement) preparedStatement1).getStatementId());
-            PreparedStatement otherPrepareStatement = connection.prepareStatement("select @@innodb_read_only as is_read_only");
+            PreparedStatement otherPrepareStatement = connection.prepareStatement(" select 1");
 
             while (nbExceptionBeforeUp < 1000) {
                 try {
-                    PreparedStatement preparedStatement = connection.prepareStatement("select @@innodb_read_only as is_read_only");
+                    PreparedStatement preparedStatement = connection.prepareStatement(" select 1");
                     preparedStatement.executeQuery();
                     int currentPrepareId = getPrepareResult((MariaDbServerPreparedStatement) preparedStatement).getStatementId();
                     if (nbExceptionBeforeUp > 0) {
@@ -330,11 +331,56 @@ public class AuroraFailoverTest extends BaseReplication {
                     assertEquals(2, currentPrepareId);
 
                 } catch (SQLException e) {
-                    assertTrue(e.getSQLState().startsWith("08"));
                     nbExceptionBeforeUp++;
                 }
             }
             assertTrue(nbExceptionBeforeUp < 50);
+        } finally {
+            if (connection != null) {
+                connection.close();
+            }
+        }
+    }
+
+    /**
+     * Same than failoverPrepareStatementOnMasterWithException, but since query is a select, mustn't throw an exception.
+     *
+     * @throws Throwable if any error occur
+     */
+    @Test
+    public void failoverPrepareStatementOnMaster() throws Throwable {
+        Connection connection = null;
+        try {
+            connection = getNewConnection("&validConnectionTimeout=120"
+                    + "&socketTimeout=1000"
+                    + "&failoverLoopRetries=120"
+                    + "&connectTimeout=250"
+                    + "&loadBalanceBlacklistTimeout=50", false);
+
+            int nbExecutionBeforeRePrepared = 0;
+            boolean failLaunched = false;
+            PreparedStatement preparedStatement1 = connection.prepareStatement("select ?");
+            assertEquals(1, getPrepareResult((MariaDbServerPreparedStatement) preparedStatement1).getStatementId());
+            PreparedStatement otherPrepareStatement = connection.prepareStatement("select @@innodb_read_only as is_read_only");
+            int currentPrepareId = 0;
+            while (nbExecutionBeforeRePrepared < 1000) {
+                PreparedStatement preparedStatement = connection.prepareStatement("select @@innodb_read_only as is_read_only");
+                preparedStatement.executeQuery();
+                currentPrepareId = getPrepareResult((MariaDbServerPreparedStatement) preparedStatement).getStatementId();
+
+                if (nbExecutionBeforeRePrepared == 0) {
+                    assertEquals(2, currentPrepareId);
+                } else {
+                    if (!failLaunched) {
+                        launchAuroraFailover();
+                        failLaunched = true;
+                    }
+                    if (currentPrepareId == 1) break;
+                }
+                nbExecutionBeforeRePrepared++;
+            }
+            assertEquals(1, currentPrepareId);
+            assertTrue(nbExecutionBeforeRePrepared < 200);
         } finally {
             if (connection != null) {
                 connection.close();

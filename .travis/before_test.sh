@@ -11,6 +11,18 @@ remove_mysql(){
 }
 remove_mysql
 
+if [ -n "$REWRITE" ]
+then
+    export URLSTRING=-DdbURL='jdbc:mariadb://localhost:3306/testj?user=root&rewriteBatchedStatements=true'
+else
+    if [ -n "$MULTI" ]
+    then
+        export URLSTRING=-DdbURL='jdbc:mariadb://localhost:3306/testj?user=root&allowMultiQueries=true'
+    else
+        export URLSTRING=-DdbURL='jdbc:mariadb://localhost:3306/testj?user=root'
+    fi
+fi
+
 if [ -n "$AURORA" ]
 then
     # AURORA tests doesn't need an installation
@@ -24,8 +36,8 @@ deb-src http://repo.mysql.com/apt/ubuntu/ precise mysql-$MYSQL_VERSION
 END
         sudo apt-key adv --keyserver pgp.mit.edu --recv-keys 5072E1F5
 
-        sudo apt-get -qq update
-        sudo apt-get -qq install mysql-server
+        sudo apt-get -qq update --force-yes
+        sudo apt-get -qq install mysql-server --force-yes
 
         dpkg -l|grep ^ii|grep mysql-server|grep ${MYSQL_VERSION/-dmr/}
 

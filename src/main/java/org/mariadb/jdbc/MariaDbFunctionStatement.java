@@ -97,11 +97,11 @@ public class MariaDbFunctionStatement extends AbstractCallableFunctionStatement 
     }
 
     /**
-     * Executes the CALL statement
+     * Executes the CALL statement.
      *
      * @return either (1) the row count for SQL Data Manipulation Language (DML) statements or (2) 0 for SQL statements
      * that return nothing
-     * @throws java.sql.SQLException if a database access error occurs; this method is called on a closed
+     * @throws SQLException if a database access error occurs; this method is called on a closed
      *                               <code>PreparedStatement</code> or the SQL statement returns a
      *                               <code>ResultSet</code> object
      */

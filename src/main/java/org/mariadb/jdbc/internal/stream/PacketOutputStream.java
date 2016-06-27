@@ -333,7 +333,8 @@ public class PacketOutputStream extends OutputStream {
         }
 
         //save big buffer next query to avoid new allocation if next query size is similar
-        if (buffer.limit() * 2 < buffer.capacity()) {
+        if ((buffer.capacity() > 4194304 && buffer.limit() * BIG_SIZE_INCREASE < buffer.capacity())
+                || (buffer.capacity() <= 4194304 && buffer.limit() * NORMAL_INCREASE < buffer.capacity())) {
             buffer = firstBuffer;
         }
 
@@ -398,6 +399,10 @@ public class PacketOutputStream extends OutputStream {
             return false;
         }
         return true;
+    }
+
+    public boolean checkCurrentPacketAllowedSize() throws MaxAllowedPacketException {
+        return buffer.position() <= (maxAllowedPacket - 1);
     }
 
     private void checkPacketMaxSize(int limit) throws MaxAllowedPacketException {
@@ -576,7 +581,7 @@ public class PacketOutputStream extends OutputStream {
     public void assureBufferCapacity(final int len) {
         while (len > buffer.remaining()) {
             int newCapacity = Math.max(
-                    (int)(len + buffer.position() * NORMAL_INCREASE),
+                    (int)(len + buffer.position() * BIG_SIZE_INCREASE),
                     (int) ((buffer.capacity() > 4194304) ? buffer.capacity() * BIG_SIZE_INCREASE : buffer.capacity() * NORMAL_INCREASE));
             increase(newCapacity);
         }
@@ -826,17 +831,16 @@ public class PacketOutputStream extends OutputStream {
 
     /**
      * Send directly to socket the sql data.
-     * @param sql the query
+     * @param sqlBytes the query in UTF-8 bytes
      * @throws IOException if connection error occur
      * @throws QueryException if packet max size is to big.
      */
-    public void sendTextPacket(String sql) throws IOException, QueryException {
+    public void sendTextPacket(byte[] sqlBytes) throws IOException, QueryException {
         if (closed) {
             throw new IOException("Stream has already closed");
         }
         seqNo = 0;
         compressSeqNo = 0;
-        byte[] sqlBytes = sql.getBytes("UTF-8");
         int sqlLength = sqlBytes.length;
 
         if (sqlLength + 1 > maxAllowedPacket) {

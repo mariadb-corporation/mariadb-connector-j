@@ -49,12 +49,14 @@ public class PreparedStatementTest extends BaseTest {
      *
      * @throws SQLException exception
      */
-    @org.junit.Test
+    @Test
     public void insertSelect() throws Exception {
-        PreparedStatement stmt = sharedConnection.prepareStatement(
-                "insert into test_insert_select ( field1) (select  TMP.field1 from (select ? `field1` from dual) TMP)");
-        stmt.setString(1, "test");
-        stmt.executeUpdate();
+        if (!sharedOptions().useComMulti) {
+            PreparedStatement stmt = sharedConnection.prepareStatement(
+                    "insert into test_insert_select ( field1) (select  TMP.field1 from (select ? `field1` from dual) TMP)");
+            stmt.setString(1, "test");
+            stmt.executeUpdate();
+        }
     }
 
     /**

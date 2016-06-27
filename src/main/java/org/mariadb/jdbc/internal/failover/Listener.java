@@ -52,7 +52,7 @@ package org.mariadb.jdbc.internal.failover;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.MariaDbType;
-import org.mariadb.jdbc.internal.util.dao.PrepareResult;
+import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
@@ -129,5 +129,5 @@ public interface Listener {
 
     boolean checkMasterStatus(SearchFilter searchFilter);
 
-    void rePrepareOnSlave(PrepareResult oldPrepareResult, String sql, MariaDbType[] parameterTypeHeader) throws QueryException;
+    void rePrepareOnSlave(ServerPrepareResult oldServerPrepareResult, boolean mustExecuteOnMaster) throws QueryException;
 }

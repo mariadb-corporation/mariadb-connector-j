@@ -85,7 +85,7 @@ public abstract class AbstractCallableProcedureStatement extends MariaDbServerPr
      */
     public AbstractCallableProcedureStatement(MariaDbConnection connection, String sql, int resultSetScrollType)
             throws SQLException {
-        super(connection, sql, resultSetScrollType);
+        super(connection, sql, resultSetScrollType, true);
     }
 
     /**
@@ -278,8 +278,8 @@ public abstract class AbstractCallableProcedureStatement extends MariaDbServerPr
         return getResult().getDouble(nameToOutputIndex(parameterName));
     }
 
-    @SuppressWarnings("deprecation")
     @Override
+    @SuppressWarnings("deprecation")
     public BigDecimal getBigDecimal(int parameterIndex, int scale) throws SQLException {
         return getResult().getBigDecimal(indexToOutputIndex(parameterIndex));
     }

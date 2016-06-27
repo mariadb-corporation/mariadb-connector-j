@@ -2536,21 +2536,21 @@ public class MariaSelectResultSet implements ResultSet {
     /**
      * {inheritDoc}.
      */
-    public java.sql.RowId getRowId(int columnIndex) throws SQLException {
+    public RowId getRowId(int columnIndex) throws SQLException {
         throw ExceptionMapper.getFeatureNotSupportedException("RowIDs not supported");
     }
 
     /**
      * {inheritDoc}.
      */
-    public java.sql.RowId getRowId(String columnLabel) throws SQLException {
+    public RowId getRowId(String columnLabel) throws SQLException {
         throw ExceptionMapper.getFeatureNotSupportedException("RowIDs not supported");
     }
 
     /**
      * {inheritDoc}.
      */
-    public void updateRowId(int columnIndex, java.sql.RowId rowId) throws SQLException {
+    public void updateRowId(int columnIndex, RowId rowId) throws SQLException {
         throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
 
     }
@@ -2558,7 +2558,7 @@ public class MariaSelectResultSet implements ResultSet {
     /**
      * {inheritDoc}.
      */
-    public void updateRowId(String columnLabel, java.sql.RowId rowId) throws SQLException {
+    public void updateRowId(String columnLabel, RowId rowId) throws SQLException {
         throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
 
     }

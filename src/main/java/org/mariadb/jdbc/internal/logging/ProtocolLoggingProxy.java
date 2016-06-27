@@ -59,16 +59,16 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.Statement;
 
-public class StatementLoggingProxy implements InvocationHandler {
+public class ProtocolLoggingProxy implements InvocationHandler {
     Logger logger = LoggerFactory.getLogger(MariaDbStatement.class);
     protected boolean profileSql;
     protected Long slowQueryThresholdNanos;
     protected int maxQuerySizeToLog;
     protected Statement statement;
 
-    public StatementLoggingProxy() { }
+    public ProtocolLoggingProxy() { }
 
-    public StatementLoggingProxy(MariaDbConnection connection, int resultSetScrollType, boolean profileSql, Long slowQueryThresholdNanos, int maxQuerySizeToLog) {
+    public ProtocolLoggingProxy(MariaDbConnection connection, int resultSetScrollType, boolean profileSql, Long slowQueryThresholdNanos, int maxQuerySizeToLog) {
         this.statement = new MariaDbStatement(connection, resultSetScrollType);
         this.profileSql = profileSql;
         this.slowQueryThresholdNanos = slowQueryThresholdNanos;

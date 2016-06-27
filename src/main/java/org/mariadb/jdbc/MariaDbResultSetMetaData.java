@@ -82,7 +82,7 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
      * Returns the number of columns in this <code>ResultSet</code> object.
      *
      * @return the number of columns
-     * @throws java.sql.SQLException if a database access error occurs
+     * @throws SQLException if a database access error occurs
      */
     public int getColumnCount() throws SQLException {
         return fieldPackets.length;
@@ -93,7 +93,7 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
      *
      * @param column the first column is 1, the second is 2, ...
      * @return <code>true</code> if so; <code>false</code> otherwise
-     * @throws java.sql.SQLException if a database access error occurs
+     * @throws SQLException if a database access error occurs
      */
     public boolean isAutoIncrement(final int column) throws SQLException {
         return (getColumnInformation(column).getFlags() & ColumnFlags.AUTO_INCREMENT) != 0;
@@ -104,7 +104,7 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
      *
      * @param column the first column is 1, the second is 2, ...
      * @return <code>true</code> if so; <code>false</code> otherwise
-     * @throws java.sql.SQLException if a database access error occurs
+     * @throws SQLException if a database access error occurs
      */
     public boolean isCaseSensitive(final int column) throws SQLException {
         return (getColumnInformation(column).getFlags() & ColumnFlags.BINARY_COLLATION) != 0;
@@ -115,7 +115,7 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
      *
      * @param column the first column is 1, the second is 2, ...
      * @return <code>true</code> if so; <code>false</code> otherwise
-     * @throws java.sql.SQLException if a database access error occurs
+     * @throws SQLException if a database access error occurs
      */
     public boolean isSearchable(final int column) throws SQLException {
         return true;
@@ -126,7 +126,7 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
      *
      * @param column the first column is 1, the second is 2, ...
      * @return <code>true</code> if so; <code>false</code> otherwise
-     * @throws java.sql.SQLException if a database access error occurs
+     * @throws SQLException if a database access error occurs
      */
     public boolean isCurrency(final int column) throws SQLException {
         return false;
@@ -138,7 +138,7 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
      * @param column the first column is 1, the second is 2, ...
      * @return the nullability status of the given column; one of <code>columnNoNulls</code>,
      * <code>columnNullable</code> or <code>columnNullableUnknown</code>
-     * @throws java.sql.SQLException if a database access error occurs
+     * @throws SQLException if a database access error occurs
      */
     public int isNullable(final int column) throws SQLException {
         if ((getColumnInformation(column).getFlags() & ColumnFlags.NOT_NULL) == 0) {
@@ -153,7 +153,7 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
      *
      * @param column the first column is 1, the second is 2, ...
      * @return <code>true</code> if so; <code>false</code> otherwise
-     * @throws java.sql.SQLException if a database access error occurs
+     * @throws SQLException if a database access error occurs
      */
     public boolean isSigned(int column) throws SQLException {
         return getColumnInformation(column).isSigned();
@@ -164,7 +164,7 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
      *
      * @param column the first column is 1, the second is 2, ...
      * @return the normal maximum number of characters allowed as the width of the designated column
-     * @throws java.sql.SQLException if a database access error occurs
+     * @throws SQLException if a database access error occurs
      */
     public int getColumnDisplaySize(final int column) throws SQLException {
         return getColumnInformation(column).getDisplaySize();
@@ -177,7 +177,7 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
      *
      * @param column the first column is 1, the second is 2, ...
      * @return the suggested column title
-     * @throws java.sql.SQLException if a database access error occurs
+     * @throws SQLException if a database access error occurs
      */
     public String getColumnLabel(final int column) throws SQLException {
         return getColumnInformation(column).getName();
@@ -188,7 +188,7 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
      *
      * @param column the first column is 1, the second is 2, ...
      * @return column name
-     * @throws java.sql.SQLException if a database access error occurs
+     * @throws SQLException if a database access error occurs
      */
     public String getColumnName(final int column) throws SQLException {
         String columnName = getColumnInformation(column).getOriginalName();
@@ -208,7 +208,7 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
      *
      * @param column the first column is 1, the second is 2, ...
      * @return schema name or "" if not applicable
-     * @throws java.sql.SQLException if a database access error occurs
+     * @throws SQLException if a database access error occurs
      */
     public String getCatalogName(int column) throws SQLException {
         return getColumnInformation(column).getDb();
@@ -223,7 +223,7 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
      *
      * @param column the first column is 1, the second is 2, ...
      * @return precision
-     * @throws java.sql.SQLException if a database access error occurs
+     * @throws SQLException if a database access error occurs
      */
     public int getPrecision(final int column) throws SQLException {
         return (int) getColumnInformation(column).getLength();
@@ -235,7 +235,7 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
      *
      * @param column the first column is 1, the second is 2, ...
      * @return scale
-     * @throws java.sql.SQLException if a database access error occurs
+     * @throws SQLException if a database access error occurs
      */
     public int getScale(final int column) throws SQLException {
         return getColumnInformation(column).getDecimals();
@@ -246,7 +246,7 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
      *
      * @param column the first column is 1, the second is 2, ...
      * @return table name or "" if not applicable
-     * @throws java.sql.SQLException if a database access error occurs
+     * @throws SQLException if a database access error occurs
      */
     public String getTableName(final int column) throws SQLException {
         if (returnTableAlias == true) {
@@ -266,8 +266,8 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
      *
      * @param column the first column is 1, the second is 2, ...
      * @return SQL type from java.sql.Types
-     * @throws java.sql.SQLException if a database access error occurs
-     * @see java.sql.Types
+     * @throws SQLException if a database access error occurs
+     * @see Types
      */
     public int getColumnType(final int column) throws SQLException {
         ColumnInformation ci = getColumnInformation(column);
@@ -320,7 +320,7 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
      * @param column the first column is 1, the second is 2, ...
      * @return type name used by the database. If the column type is a user-defined type, then a fully-qualified type
      * name is returned.
-     * @throws java.sql.SQLException if a database access error occurs
+     * @throws SQLException if a database access error occurs
      */
     public String getColumnTypeName(final int column) throws SQLException {
         ColumnInformation ci = getColumnInformation(column);
@@ -333,7 +333,7 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
      *
      * @param column the first column is 1, the second is 2, ...
      * @return <code>true</code> if so; <code>false</code> otherwise
-     * @throws java.sql.SQLException if a database access error occurs
+     * @throws SQLException if a database access error occurs
      */
     public boolean isReadOnly(final int column) throws SQLException {
         return false;
@@ -344,7 +344,7 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
      *
      * @param column the first column is 1, the second is 2, ...
      * @return <code>true</code> if so; <code>false</code> otherwise
-     * @throws java.sql.SQLException if a database access error occurs
+     * @throws SQLException if a database access error occurs
      */
     public boolean isWritable(final int column) throws SQLException {
         return !isReadOnly(column);
@@ -355,7 +355,7 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
      *
      * @param column the first column is 1, the second is 2, ...
      * @return <code>true</code> if so; <code>false</code> otherwise
-     * @throws java.sql.SQLException if a database access error occurs
+     * @throws SQLException if a database access error occurs
      */
     public boolean isDefinitelyWritable(final int column) throws SQLException {
         return !isReadOnly(column);
@@ -370,7 +370,7 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
      * @return the fully-qualified name of the class in the Java programming language that would be used by the method
      * <code>ResultSet.getObject</code> to retrieve the value in the specified column. This is the class name
      * used for custom mapping.
-     * @throws java.sql.SQLException if a database access error occurs
+     * @throws SQLException if a database access error occurs
      * @since 1.2
      */
 
@@ -399,7 +399,7 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
      *
      * @param iface A Class defining an interface that the result must implement.
      * @return an object that implements the interface. May be a proxy for the actual implementing object.
-     * @throws java.sql.SQLException If no object found that implements the interface
+     * @throws SQLException If no object found that implements the interface
      * @since 1.6
      */
     public <T> T unwrap(final Class<T> iface) throws SQLException {
@@ -417,7 +417,7 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
      *
      * @param iface a Class defining an interface.
      * @return true if this implements the interface or directly or indirectly wraps an object that does.
-     * @throws java.sql.SQLException if an error occurs while determining whether this is a wrapper for an object with
+     * @throws SQLException if an error occurs while determining whether this is a wrapper for an object with
      *                               the given interface.
      * @since 1.6
      */

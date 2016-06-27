@@ -54,7 +54,7 @@ import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.failover.AbstractMastersSlavesListener;
 import org.mariadb.jdbc.internal.failover.thread.FailoverLoop;
-import org.mariadb.jdbc.internal.util.dao.PrepareResult;
+import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 import org.mariadb.jdbc.internal.util.dao.ReconnectDuringTransactionException;
 import org.mariadb.jdbc.internal.util.scheduler.DynamicSizedSchedulerInterface;
 import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
@@ -743,7 +743,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
     }
 
     @Override
-    public void rePrepareOnSlave(PrepareResult oldPrepareResult, String sql, MariaDbType[] parameterTypeHeader) throws QueryException {
+    public void rePrepareOnSlave(ServerPrepareResult oldServerPrepareResult, boolean mustBeOnMaster) throws QueryException {
         if (isSecondaryHostFail()) {
             Protocol waitingProtocol = waitNewSecondaryProtocol.getAndSet(null);
             if (waitingProtocol != null) {
@@ -760,22 +760,17 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
 
         if (secondaryProtocol != null && !isSecondaryHostFail()) {
             //prepare on slave
-            PrepareResult prepareResult = secondaryProtocol.prepare(sql, true, oldPrepareResult.isExecuteOnMaster());
-
-            //reset header status
-            for (int i = 0; i < parameterTypeHeader.length; i++) {
-                parameterTypeHeader[i] = null;
-            }
+            ServerPrepareResult serverPrepareResult = secondaryProtocol.prepare(oldServerPrepareResult.getSql(), mustBeOnMaster);
 
             //release prepare on master
             try {
-                prepareResult.getUnProxiedProtocol().releasePrepareStatement(prepareResult, sql);
+                serverPrepareResult.getUnProxiedProtocol().releasePrepareStatement(serverPrepareResult);
             } catch (QueryException exception) {
                 //released failed.
             }
 
             //replace prepare data
-            oldPrepareResult.failover(prepareResult.getStatementId(), secondaryProtocol);
+            oldServerPrepareResult.failover(serverPrepareResult.getStatementId(), secondaryProtocol);
         }
     }
 }

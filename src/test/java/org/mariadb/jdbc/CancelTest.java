@@ -41,7 +41,7 @@ public class CancelTest extends BaseTest {
 
     }
 
-    @Test(expected = java.sql.SQLTimeoutException.class)
+    @Test(expected = SQLTimeoutException.class)
     public void timeoutSleep() throws Exception {
         Connection tmpConnection = null;
         try {

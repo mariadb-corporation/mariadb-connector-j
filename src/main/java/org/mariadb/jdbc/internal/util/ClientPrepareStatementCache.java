@@ -2,7 +2,6 @@
 MariaDB Client for Java
 
 Copyright (c) 2012-2014 Monty Program Ab.
-Copyright (c) 2015-2016 MariaDb Ab.
 
 This library is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License as published by the Free
@@ -21,7 +20,7 @@ This particular MariaDB Client for Java file is work
 derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
 the following copyright and notice provisions:
 
-Copyright (c) 2009-2011, Marcus Eriksson, Trond Norbye, Stephane Giron
+Copyright (c) 2009-2011, Marcus Eriksson
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
@@ -48,17 +47,38 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc;
+package org.mariadb.jdbc.internal.util;
 
-import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
+import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
 
-import java.util.Collection;
-import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
-public interface MariaDbPreparedStatementLoggingInfo {
 
-    Collection<ParameterHolder> getCurrentParameterHolder();
+public final class ClientPrepareStatementCache extends LinkedHashMap<String, ClientPrepareResult> {
+    private final int maxSize;
 
-    List<ParameterHolder[]> getParameterHolderList();
+    private ClientPrepareStatementCache(int size) {
+        super(size, .75f, true);
+        this.maxSize = size;
+    }
 
+    @Override
+    protected boolean removeEldestEntry(Map.Entry<String, ClientPrepareResult> eldest) {
+        return size() > maxSize;
+    }
+
+    public static ClientPrepareStatementCache newInstance(int size) {
+        return new ClientPrepareStatementCache(size);
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder stringBuilder = new StringBuilder("ClientPrepareStatementCache.map[");
+        for (Map.Entry<String, ClientPrepareResult> entry : this.entrySet()) {
+            stringBuilder.append("\n").append(entry.getKey());
+        }
+        stringBuilder.append("]");
+        return stringBuilder.toString();
+    }
 }

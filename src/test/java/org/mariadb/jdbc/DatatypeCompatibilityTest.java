@@ -144,7 +144,7 @@ public class DatatypeCompatibilityTest extends BaseTest {
     @SuppressWarnings("deprecation")
     @Test
     public void timeAsTimestamp() throws Exception {
-        java.sql.Time testTime = new java.sql.Time(12, 0, 0);
+        Time testTime = new Time(12, 0, 0);
         PreparedStatement ps = sharedConnection.prepareStatement("SELECT CONVERT(?, TIME)");
         ps.setTime(1, testTime);
         ResultSet rs = ps.executeQuery();
