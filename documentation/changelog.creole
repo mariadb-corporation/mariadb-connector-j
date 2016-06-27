@@ -15,23 +15,25 @@
 CONJ-295.\\
 
 Java kerberos implementation is not well implemented with windows :
-- need a windows registry entry (HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Lsa\Kerberos\Parameters\AllowTGTSessionKey) so windows shared current ticket to java.
-- java kinit must be executed to create a Ticket.
-- restriction when client with local admin rights
-- ...
-([[see openJDK issue|https://bugs.openjdk.java.net/browse/JDK-6722928]]
+* need a windows registry entry (HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Lsa\Kerberos\Parameters\AllowTGTSessionKey) so windows shared current ticket to java.
+* java kinit must be executed to create a Ticket.
+* restriction when client with local admin rights
+* ...
 
-Kerberos GSSAPI implementation on windows in now based on [[https://github.com/dblock/waffle|Waffle]] that support windows SSPI based on [[https://github.com/java-native-access/jna|JNA]].
+[[https://bugs.openjdk.java.net/browse/JDK-6722928|see openJDK issue]] for more informations
+
+Kerberos GSSAPI implementation on windows in now based on [[https://github.com/dblock/waffle|Waffle]] that support windows SSPI based on [[https://github.com/java-native-access/jna|JNA]].\\
 if waffle-jna (and dependencies) is on classpath, native implementation will automatically be used.
 
-This removes all these problems
+This removes all those problems
 
 === Support for TLSv1.1 and TLSv1.2
 CONJ-249/CONJ-301\\
 
-Driver before version 1.5 support only TLSv1. Default supported protocol are now TLSv1 and TLSv1.1 and other protocol can be activate by options.
+Driver before version 1.5 support only TLSv1.\\ 
+Default supported protocol are now TLSv1 and TLSv1.1, other protocols can be activated by options.
 
-MariaDB and MySQL community server permit TLSv1 and TLSv1.1.
+MariaDB and MySQL community server permit TLSv1 and TLSv1.1.\\
 MariaDB server from version 10.0.15 is using the openSSL library permitting TLSv1.2 (>= 5.5.41 for the 5.5 branch).
 //YaSSL doesn't support TLSv1.2, so if MariaDB server is build from sources with YaSSL, only TLSv1 and TLSv1.1 will be available, even for version > 10.0.15//
 
@@ -62,14 +64,14 @@ When using MySQL/MariaDB prepared statement, there will be 3 exchanges with serv
 * EXECUTE - Executes a prepared statement preparing by a PREPARE statement.
 * DEALLOCATE PREPARE - Releases a prepared statement.
 
-See [[Server prepare documentation|https://mariadb.com/kb/en/mariadb/prepare-statement/]] for more information.
+See [[https://mariadb.com/kb/en/mariadb/prepare-statement/|Server prepare documentation]] for more information.
 
 PREPARE and DEALLOCATE PREPARE are 2 additional client-server round-trip.
 Since MariaDB 10.2, a new functionality named COM-MULTI to permitting to send different task to server in one round-trip.
 
 Driver is using this functionality to
 * PREPARE and EXECUTE in one client-server round-trip.
-* Prepared statement batch will send all datas by packet according to max_allowed_packet size.
+* Prepared statement batch will send all datas in packets whose size depends to max_allowed_packet size.
 
 New Options :
  |=useComMulti|Indicate that if COM_MULTI protocol exist, this protocol will be used.\\2 different use :\\* PREPARE + EXECUTE in one round trip to server.\\* executeBatch() will be send in one round trip (or in many packet if command size &gt; max_allowed_packet)\\//Default: true. Since 1.5.0//|
