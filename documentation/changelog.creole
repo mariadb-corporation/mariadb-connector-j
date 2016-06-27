@@ -12,21 +12,30 @@
 == 1.5.0
 
 === Use native SSPI windows implementation
-CONJ-295.
+CONJ-295.\\
+
+Java kerberos implementation is not well implemented with windows :
+- need a windows registry entry (HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Lsa\Kerberos\Parameters\AllowTGTSessionKey) so windows shared current ticket to java.
+- java kinit must be executed to create a Ticket.
+- restriction when client with local admin rights
+- ...
+([[see openJDK issue|https://bugs.openjdk.java.net/browse/JDK-6722928]]
+
 Kerberos GSSAPI implementation on windows in now based on [[https://github.com/dblock/waffle|Waffle]] that support windows SSPI based on [[https://github.com/java-native-access/jna|JNA]].
-if on waffle-jna (and dependencies) is on classpath, native implementation will automatically be used.
-This permit to avoid all java specific problems on windows (need admin right, registry entry, kinit ...)
+if waffle-jna (and dependencies) is on classpath, native implementation will automatically be used.
+
+This removes all these problems
 
 === Support for TLSv1.1 and TLSv1.2
-CONJ-249/CONJ-301
+CONJ-249/CONJ-301\\
+
+Driver before version 1.5 support only TLSv1. Default supported protocol are now TLSv1 and TLSv1.1 and other protocol can be activate by options.
 
 MariaDB and MySQL community server permit TLSv1 and TLSv1.1.
-Default supported protocol are now TLSv1 and TLSv1.1 (only TLSv1 was supported).
-
 MariaDB server from version 10.0.15 is using the openSSL library permitting TLSv1.2 (>= 5.5.41 for the 5.5 branch).
-TLSv1.2 can be enabled by setting option {{{enabledSslProtocolSuites}}} to values {{{"TLSv1, TLSv1.1, TLSv1.2"}}}.
-
 //YaSSL doesn't support TLSv1.2, so if MariaDB server is build from sources with YaSSL, only TLSv1 and TLSv1.1 will be available, even for version > 10.0.15//
+
+TLSv1.2 can be enabled by setting option {{{enabledSslProtocolSuites}}} to values {{{"TLSv1, TLSv1.1, TLSv1.2"}}}.
 
 A new option {{{enabledSslCipherSuites}}} permit to set specific cipher.
 
@@ -35,24 +44,47 @@ New Options :
  |=enabledSslCipherSuites|Force TLS/SSL cipher (comma separated list).\\ Example : "TLS_DHE_RSA_WITH_AES_256_GCM_SHA384, TLS_DHE_DSS_WITH_AES_256_GCM_SHA384"\\//Default: use JRE ciphers. Since 1.5.0//|
 
 === Performance improvement
-[CONJ-291]
+[CONJ-291]\\
+
+Different performance improvement have been done :
+* Using PreparedStatement on client side use a simple query parser to identify query parameters. This parsing was taking up to 7% of query time, reduced to 3%.
+* Better UTF-8 decoding avoiding memory consumption and gain 1-2% query time for big String.
+* client parsing optimization : rewriteBatchedStatements (insert into ab (i) values (1) and insert into ab (i) values (2) rewritten as insert into ab (i) values (1), (2))
+    is now 19% faster (Depending on queries 40-50% of CPU time was spend testing that buffer size is big enough to contain query).
+* (not finished) there is some memory wastage when query return big resultset (> 10kb), slowing query.
+* ...
 
 === Prepare + execute in one call
 CONJ-296
 
 When using MySQL/MariaDB prepared statement, there will be 3 exchanges with server :
-* PREPARE - Prepares statement for execution.</li>
-* EXECUTE - Executes a prepared statement preparing by a PREPARE statement.</li>
-* DEALLOCATE PREPARE - Releases a prepared statement.</li>
+* PREPARE - Prepares statement for execution.
+* EXECUTE - Executes a prepared statement preparing by a PREPARE statement.
+* DEALLOCATE PREPARE - Releases a prepared statement.
 
-See <a href="https://mariadb.com/kb/en/mariadb/prepare-statement/">Server prepare documentation</a> for more information.
+See [[Server prepare documentation|https://mariadb.com/kb/en/mariadb/prepare-statement/]] for more information.
 
 PREPARE and DEALLOCATE PREPARE are 2 additional client-server round-trip.
-Since MariaDB 10.2, a new functionality named COM-MULTI to execute different execution.
-Main use of this functionality by driver is to PREPARE and EXECUTE in on client-server round-trip.
+Since MariaDB 10.2, a new functionality named COM-MULTI to permitting to send different task to server in one round-trip.
+
+Driver is using this functionality to
+* PREPARE and EXECUTE in one client-server round-trip.
+* Prepared statement batch will send all datas by packet according to max_allowed_packet size.
 
 New Options :
  |=useComMulti|Indicate that if COM_MULTI protocol exist, this protocol will be used.\\2 different use :\\* PREPARE + EXECUTE in one round trip to server.\\* executeBatch() will be send in one round trip (or in many packet if command size &gt; max_allowed_packet)\\//Default: true. Since 1.5.0//|
+
+=== Client logging
+
+Client logging can be enable, permitting to log query information, execution time and different failover information.
+This implementation need the standard SLF4J dependency.
+//TODO finish documentation on logging to explain the differents information logged according to level.
+
+New Options :
+ |=logger|Enable log information. require Slf4j version > 1.4 dependency.\\//Default: false. Since 1.5.0//|
+ |=maxQuerySizeToLog|Only the first characters corresponding to this options size will be displayed in logs\\//Default: 1024. Since 1.5.0//|
+ |=slowQueryThresholdNanos|Will log query with execution time superior to this value (if defined )\\//Default: 1024. Since 1.5.0//|
+ |=profileSql|log query execution time.\\//Default: false. Since 1.5.0//|
 
 == Minor evolution
 * CONJ-260 : Add jdbc nString, nCharacterStream, nClob implementation
