@@ -1,7 +1,10 @@
+package org.mariadb.jdbc.internal.logging;
+
 /*
 MariaDB Client for Java
 
 Copyright (c) 2012-2014 Monty Program Ab.
+Copyright (c) 2014-2016 MariaDB Corporation AB
 
 This library is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License as published by the Free
@@ -47,87 +50,66 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc.internal.failover;
+public interface Logger {
 
-import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.UrlParser;
-import org.mariadb.jdbc.internal.MariaDbType;
-import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
-import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
+    boolean isTraceEnabled();
 
-import java.lang.reflect.Method;
-import java.sql.SQLException;
-import java.util.Set;
+    void trace(String msg);
 
-public interface Listener {
-    FailoverProxy getProxy();
+    void trace(String format, Object arg);
 
-    void setProxy(FailoverProxy proxy);
+    void trace(String format, Object arg1, Object arg2);
 
-    void initializeConnection() throws QueryException;
+    void trace(String format, Object... arguments);
 
-    void preExecute() throws QueryException;
+    void trace(String msg, Throwable throwable);
 
-    void preClose() throws SQLException;
+    boolean isDebugEnabled();
 
-    void reconnectFailedConnection(SearchFilter filter) throws QueryException;
+    void debug(String msg);
 
-    void switchReadOnlyConnection(Boolean readonly) throws QueryException;
+    void debug(String format, Object arg);
 
-    HandleErrorResult primaryFail(Method method, Object[] args) throws Throwable;
+    void debug(String format, Object arg1, Object arg2);
 
-    Object invoke(Method method, Object[] args, Protocol specificProtocol) throws Throwable ;
+    void debug(String format, Object... arguments);
 
-    Object invoke(Method method, Object[] args) throws Throwable;
+    void debug(String msg, Throwable throwable);
 
-    HandleErrorResult handleFailover(QueryException qe, Method method, Object[] args, Protocol protocol) throws Throwable;
+    boolean isInfoEnabled();
 
-    void foundActiveMaster(Protocol protocol) throws QueryException;
+    void info(String msg);
 
-    Set<HostAddress> getBlacklistKeys();
+    void info(String format, Object arg);
 
-    void addToBlacklist(HostAddress hostAddress);
+    void info(String format, Object arg1, Object arg2);
 
-    void removeFromBlacklist(HostAddress hostAddress);
+    void info(String format, Object... arguments);
 
-    void syncConnection(Protocol from, Protocol to) throws QueryException;
+    void info(String msg, Throwable throwable);
 
-    UrlParser getUrlParser();
+    boolean isWarnEnabled();
 
-    void throwFailoverMessage(HostAddress failHostAddress, boolean wasMaster, QueryException queryException,
-                              boolean reconnected) throws QueryException;
+    void warn(String msg);
 
-    boolean isAutoReconnect();
+    void warn(String format, Object arg);
 
-    int getRetriesAllDown();
+    void warn(String format, Object... arguments);
 
-    boolean isExplicitClosed();
+    void warn(String format, Object arg1, Object arg2);
 
-    void reconnect() throws QueryException;
+    void warn(String msg, Throwable throwable);
 
-    boolean isReadOnly();
+    boolean isErrorEnabled();
 
-    boolean isClosed();
+    void error(String msg);
 
-    Protocol getCurrentProtocol();
+    void error(String format, Object arg);
 
-    boolean hasHostFail();
+    void error(String format, Object arg1, Object arg2);
 
-    boolean canRetryFailLoop();
+    void error(String format, Object... arguments);
 
-    SearchFilter getFilterForFailedHost();
+    void error(String msg, Throwable throwable);
 
-    boolean isMasterConnected();
-
-    boolean setMasterHostFail();
-
-    boolean isMasterHostFail();
-
-    long getLastQueryNanos();
-
-    boolean checkMasterStatus(SearchFilter searchFilter);
-
-    void rePrepareOnSlave(ServerPrepareResult oldServerPrepareResult, boolean mustExecuteOnMaster) throws QueryException;
 }

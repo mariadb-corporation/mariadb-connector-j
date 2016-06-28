@@ -1716,6 +1716,7 @@ public class MariaSelectResultSet implements ResultSet {
         return getObject(findColumn(columnLabel));
     }
 
+
     /**
      * {inheritDoc}.
      */

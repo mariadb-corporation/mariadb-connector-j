@@ -83,7 +83,7 @@ This implementation need the standard SLF4J dependency.
 //TODO finish documentation on logging to explain the differents information logged according to level.
 
 New Options :
- |=logger|Enable log information. require Slf4j version > 1.4 dependency.\\//Default: false. Since 1.5.0//|
+ |=log|Enable log information. require Slf4j version > 1.4 dependency.\\//Default: false. Since 1.5.0//|
  |=maxQuerySizeToLog|Only the first characters corresponding to this options size will be displayed in logs\\//Default: 1024. Since 1.5.0//|
  |=slowQueryThresholdNanos|Will log query with execution time superior to this value (if defined )\\//Default: 1024. Since 1.5.0//|
  |=profileSql|log query execution time.\\//Default: false. Since 1.5.0//|

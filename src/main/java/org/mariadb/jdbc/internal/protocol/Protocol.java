@@ -66,6 +66,7 @@ import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.SocketException;
+import java.nio.ByteBuffer;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Calendar;
@@ -141,19 +142,19 @@ public interface Protocol {
     void executeQuery(boolean mustExecuteOnMaster, ExecutionResult executionResult, final List<byte[]> queryParts, ParameterHolder[] parameters,
                       int resultSetScrollType, boolean isRewritable) throws QueryException;
 
-    void executeStmtBatch(boolean mustExecuteOnMaster, ExecutionResult executionResult, List<String> queries, int resultSetScrollType)
+    void executeBatch(boolean mustExecuteOnMaster, ExecutionResult executionResult, List<String> queries, int resultSetScrollType)
             throws QueryException;
 
     void executeBatchMultiple(boolean mustExecuteOnMaster, ExecutionResult executionResult, final List<byte[]> queryParts,
                               List<ParameterHolder[]> parameterList,
                               int resultSetScrollType) throws QueryException;
 
+    void executeBatchMultiple(boolean mustExecuteOnMaster, ExecutionResult executionResult, List<String> queries,
+                              int resultSetScrollType) throws QueryException;
+
     void executeBatchRewrite(boolean mustExecuteOnMaster, ExecutionResult executionResult, final List<byte[]> queryParts,
                              List<ParameterHolder[]> parameterList,
                              int resultSetScrollType, boolean isRewritable) throws QueryException;
-
-    void executeStmtBatchMultiple(boolean mustExecuteOnMaster, ExecutionResult executionResult, List<String> queries,
-                                  int resultSetScrollType) throws QueryException;
 
 
     void executePreparedQuery(boolean mustExecuteOnMaster, ServerPrepareResult serverPrepareResult,
@@ -249,4 +250,7 @@ public interface Protocol {
 
     boolean isServerComMulti();
 
+    void releaseWriterBuffer();
+
+    ByteBuffer getWriter();
 }

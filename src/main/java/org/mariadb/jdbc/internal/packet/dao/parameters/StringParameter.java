@@ -51,10 +51,21 @@ package org.mariadb.jdbc.internal.packet.dao.parameters;
 
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 import org.mariadb.jdbc.internal.MariaDbType;
+
+import java.lang.reflect.Field;
 import java.sql.SQLException;
 
 
 public class StringParameter implements ParameterHolder, Cloneable {
+    public static Field charsFieldValue;
+
+    static {
+        try {
+            charsFieldValue = String.class.getDeclaredField("value");
+        } catch (NoSuchFieldException e) { }
+        charsFieldValue.setAccessible(true);
+    }
+
     private String string;
     private boolean noBackslashEscapes;
     private byte[] escapedArray = null;
@@ -122,7 +133,12 @@ public class StringParameter implements ParameterHolder, Cloneable {
      *  to outputBuffer with offset 0, length the return end position)
      **/
     private void escapeForText() {
-        char[] chars = string.toCharArray();
+        char[] chars;
+        try {
+            chars = (char[]) charsFieldValue.get(string);
+        } catch (IllegalAccessException e) {
+            chars = string.toCharArray();
+        }
         string = null;
         int charsLength = chars.length;
         int charsOffset = 0;

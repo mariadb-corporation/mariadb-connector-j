@@ -405,14 +405,17 @@ public final class MariaDbConnection implements Connection {
     public PreparedStatement internalPrepareStatement(final String sql, final int resultSetScrollType)
             throws SQLException {
         checkConnection();
-        if (!options.allowMultiQueries && !options.rewriteBatchedStatements && options.useServerPrepStmts && checkIfPreparable(sql)) {
+        if (!options.allowMultiQueries && !options.rewriteBatchedStatements
+                && (options.useServerPrepStmts || serverComMulti)
+                && checkIfPreparable(sql)) {
             try {
                 return new MariaDbServerPreparedStatement(this, sql, resultSetScrollType, false);
             } catch (SQLNonTransientConnectionException e) {
                 throw e;
             } catch (SQLException e) {
                 //on some specific case, server cannot prepared data (CONJ-238)
-                return new MariaDbClientPreparedStatement(this, sql, resultSetScrollType);
+                //will use clientPreparedStatement
+                // -> corrected on MariaDB server 10.2.1 (https://jira.mariadb.org/browse/MDEV-5535)
             }
         }
         return new MariaDbClientPreparedStatement(this, sql, resultSetScrollType);

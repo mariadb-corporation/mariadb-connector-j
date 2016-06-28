@@ -56,6 +56,8 @@ import org.mariadb.jdbc.internal.failover.AbstractMastersListener;
 import org.mariadb.jdbc.internal.failover.HandleErrorResult;
 import org.mariadb.jdbc.internal.failover.thread.FailoverLoop;
 import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
@@ -70,6 +72,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class MastersFailoverListener extends AbstractMastersListener {
+    private static Logger logger = LoggerFactory.getLogger(MastersFailoverListener.class);
     private final HaMode mode;
 
     /**
@@ -155,6 +158,8 @@ public class MastersFailoverListener extends AbstractMastersListener {
             reconnectFailedConnection(new SearchFilter(true, false));
             handleFailLoop();
             if (alreadyClosed || (!alreadyClosed && !inTransaction && isQueryRelaunchable(method, args))) {
+                logger.info("Connection to master lost, new master " + currentProtocol.getHostAddress() + " found"
+                        + ", query type permit to be re-execute on new server without throwing exception");
                 return relaunchOperation(method, args);
             }
             return new HandleErrorResult(true);

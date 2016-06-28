@@ -87,6 +87,7 @@ The following options are currently supported.
 |=rewriteBatchedStatements| For insert queries, rewrite batchedStatement to execute in a single executeQuery.\\example:\\{{{insert into ab (i) values (1)}}}\\{{{insert into ab (i) values (2)}}}\\will be rewritten \\{{{insert into ab (i) values (1), (2)}}}.\\\\when active, the useServerPrepStmts option is set to false\\//Default: false. Since 1.1.8//|
 |=connectTimeout| The connect timeout value, in milliseconds, or zero for no timeout.\\//Default: 0. Since 1.1.8//|
 |=useServerPrepStmts|Queries are prepared on the server side before executing, permitting faster execution next time.\\if allowMultiQueries or rewriteBatchedStatements is set to true, this option will be set to false.\\//Default: true. Since 1.3.0//|
+|=useComMulti|Indicate that if COM_MULTI protocol exist, this protocol will be used.\\2 different use :\\* PREPARE + EXECUTE in one round trip to server.\\* executeBatch() will be send in one round trip (or in many packet if command size &gt; max_allowed_packet)\\//Default: true. Since 1.5.0//|
 
 \\
 
@@ -104,6 +105,13 @@ The following options are currently supported.
 
 \\
 
+=== Log
+ |=log|Enable log information. require Slf4j version > 1.4 dependency.\\//Default: false. Since 1.5.0//|
+ |=maxQuerySizeToLog|Only the first characters corresponding to this options size will be displayed in logs\\//Default: 1024. Since 1.5.0//|
+ |=slowQueryThresholdNanos|Will log query with execution time superior to this value (if defined )\\//Default: 1024. Since 1.5.0//|
+ |=profileSql|log query execution time.\\//Default: false. Since 1.5.0//|
+
+\\
 === Infrequently used
 
 |=useFractionalSeconds| Correctly handle subsecond precision in timestamps (feature available with MariaDB 5.3 and later).\\May confuse 3rd party components (Hibernated).\\//Default: true. Since 1.0.0//|

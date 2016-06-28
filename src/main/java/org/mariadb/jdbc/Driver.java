@@ -93,7 +93,6 @@ public final class Driver implements java.sql.Driver {
         //log.debug("Connecting to: " + url);
         try {
             UrlParser urlParser = UrlParser.parse(url, props);
-            //
             if (urlParser == null) {
                 return null;
             }
@@ -165,7 +164,6 @@ public final class Driver implements java.sql.Driver {
     }
 
     public java.util.logging.Logger getParentLogger() throws SQLFeatureNotSupportedException {
-        // TODO Auto-generated method stub
-        return null;
+        throw new SQLFeatureNotSupportedException("Use logging parameters for enabling logging.");
     }
 }
