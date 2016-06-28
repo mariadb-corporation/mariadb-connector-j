@@ -349,6 +349,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             for (LocalInfileInterceptor interceptor : loader) {
                 if (!interceptor.validate(fileName)) {
                     writer.writeEmptyPacket(seq++);
+                    packetFetcher.getReusableBuffer();
                     throw new QueryException("LOCAL DATA LOCAL INFILE request to send local file named \""
                             + fileName + "\" not validated by interceptor \"" + interceptor.getClass().getName()
                             + "\"");
