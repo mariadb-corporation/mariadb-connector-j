@@ -199,7 +199,7 @@ public class PreparedStatementTest extends BaseTest {
         ResultSet rs = statement.executeQuery("select @@max_allowed_packet");
         rs.next();
         int maxAllowedPacket = rs.getInt(1);
-        if (maxAllowedPacket < 16000000) { //to avoid OutOfMemory
+        if (maxAllowedPacket < 21000000) { //to avoid OutOfMemory
 
             char[] arr = new char[maxAllowedPacket - 100];
             for (int i = 0; i < arr.length; i++) {
