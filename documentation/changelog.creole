@@ -81,12 +81,58 @@ New Options :
 Client logging can be enable, permitting to log query information, execution time and different failover information.
 This implementation need the standard SLF4J dependency.
 //TODO finish documentation on logging to explain the differents information logged according to level.
-
 New Options :
  |=log|Enable log information. require Slf4j version > 1.4 dependency.\\//Default: false. Since 1.5.0//|
  |=maxQuerySizeToLog|Only the first characters corresponding to this options size will be displayed in logs\\//Default: 1024. Since 1.5.0//|
  |=slowQueryThresholdNanos|Will log query with execution time superior to this value (if defined )\\//Default: 1024. Since 1.5.0//|
  |=profileSql|log query execution time.\\//Default: false. Since 1.5.0//|
+
+
+=== "LOAD DATA INFILE"
+LOAD DATA INFILE The fastest way to load many datas is using query [[https://mariadb
+.com/kb/en/mariadb/load-data-infile/|LOAD DATA INFILE]].
+\\Problem is using "LOAD DATA LOCAL INFILE" (ie : loading a file from client), may be a security problem :
+* A "man in the middle" proxy server can change the actual file asked from server so client will send a Local file to
+ this proxy.
+* if someone has can execute query from client, he can have access to any file on client (according to the rights of the user running the client process).
+
+see [[./use-mariadb-connector-j-driver.creole#load-data-infile|load-data-infile documentation]] for more informations.
+
+Interceptors can now filter LOAD DATA LOCAL INFILE query according to filename.
+
+Thoses interceptors must implement interface {{{org.mariadb.jdbc.LocalInfileInterceptor}}}.
+Interceptors are  using the [[http://docs.oracle.com/javase/7/docs/api/java/util/ServiceLoader.html|ServiceLoader]] pattern, so interceptors must be defined in file META-INF/services/org.mariadb.jdbc.LocalInfileInterceptor.
+
+Example :
+create file META-INF/services/org.mariadb.jdbc.LocalInfileInterceptor with content org.project.LocalInfileInterceptorImpl.
+{{{
+public class LocalInfileInterceptorImpl implements LocalInfileInterceptor {
+    @Override
+    public boolean validate(String fileName) {
+        File file = new File(fileName);
+        String absolutePath = file.getAbsolutePath();
+        String filePath = absolutePath.substring(0,absolutePath.lastIndexOf(File.separator));
+        return filePath.equals("/var/tmp/exchanges");
+    }
+}
+}}}
+
+You can get ride of defining the META-INF/services file using [[https://github.com/google/auto/tree/master/service|google auto-service] framework
+Using the previous example, just add {{{@AutoService(LocalInfileInterceptor.class)}}}, and your interceptor will be automatically defined.
+{{{
+@AutoService(LocalInfileInterceptor.class)
+public class LocalInfileInterceptorImpl implements LocalInfileInterceptor {
+    @Override
+    public boolean validate(String fileName) {
+        File file = new File(fileName);
+        String absolutePath = file.getAbsolutePath();
+        String filePath = absolutePath.substring(0,absolutePath.lastIndexOf(File.separator));
+        return filePath.equals("/var/tmp/exchanges");
+    }
+}
+}}}
+
+
 
 === Minor evolution
 * CONJ-260 : Add jdbc nString, nCharacterStream, nClob implementation

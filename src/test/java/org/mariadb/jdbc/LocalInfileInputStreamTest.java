@@ -14,6 +14,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class LocalInfileInputStreamTest extends BaseTest {
     /**
@@ -59,8 +61,25 @@ public class LocalInfileInputStreamTest extends BaseTest {
 
     @Test
     public void testLocalInfile() throws SQLException {
-        Statement st = sharedConnection.createStatement();
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+        testLocalInfile(classLoader.getResource("test.txt").getPath());
+    }
+
+    @Test
+    public void testLocalInfileInterceptor() throws SQLException {
+        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+        try {
+            testLocalInfile(classLoader.getResource("test2.txt").getPath());
+            fail("Must have been intercepted");
+        } catch (SQLException sqle) {
+            assertTrue(sqle.getMessage().contains("LOCAL DATA LOCAL INFILE request to send local file named")
+                    && sqle.getMessage().contains("not validated by interceptor \"org.mariadb.jdbc.LocalInfileInterceptorImpl\""));
+        }
+    }
+
+
+    public void testLocalInfile(String file) throws SQLException {
+        Statement st = sharedConnection.createStatement();
         ResultSet rs = st.executeQuery("select @@version_compile_os");
         if (!rs.next()) {
             return;
@@ -68,13 +87,13 @@ public class LocalInfileInputStreamTest extends BaseTest {
 
         String os = rs.getString(1);
         if (os.toLowerCase().startsWith("win") || System.getProperty("os.name").startsWith("Windows")) {
-            st.executeUpdate("LOAD DATA LOCAL INFILE '" + classLoader.getResource("test.txt").getPath()
+            st.executeUpdate("LOAD DATA LOCAL INFILE '" + file
                     + "' INTO TABLE tt_local "
                     + "  FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"'"
                     + "  LINES TERMINATED BY '\\r\\n' "
                     + "  (id, test)");
         } else {
-            st.executeUpdate("LOAD DATA LOCAL INFILE '" + classLoader.getResource("test.txt").getPath()
+            st.executeUpdate("LOAD DATA LOCAL INFILE '" + file
                     + "' INTO TABLE tt_local "
                     + "  FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"'"
                     + "  LINES TERMINATED BY '\\n' "

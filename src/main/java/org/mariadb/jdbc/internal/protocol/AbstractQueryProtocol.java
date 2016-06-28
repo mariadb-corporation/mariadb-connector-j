@@ -1,7 +1,6 @@
 package org.mariadb.jdbc.internal.protocol;
 
 import org.mariadb.jdbc.MariaDbConnection;
-import org.mariadb.jdbc.MariaDbStatement;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
@@ -19,6 +18,7 @@ import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
 import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
+import org.mariadb.jdbc.LocalInfileInterceptor;
 
 import java.io.*;
 import java.net.SocketException;
@@ -31,6 +31,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
+import java.util.ServiceLoader;
 import java.util.concurrent.locks.ReentrantLock;
 
 /*
@@ -334,12 +335,24 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         int seq = 2;
         InputStream is;
         if (localInfileInputStream == null) {
+
             if (!getUrlParser().getOptions().allowLocalInfile) {
                 writer.writeEmptyPacket(seq++);
                 throw new QueryException(
                         "Usage of LOCAL INFILE is disabled. To use it enable it via the connection property allowLocalInfile=true",
                         -1,
                         ExceptionMapper.SqlStates.FEATURE_NOT_SUPPORTED.getSqlState());
+            }
+
+            //validate all defined interceptors
+            ServiceLoader<LocalInfileInterceptor> loader = ServiceLoader.load(LocalInfileInterceptor.class);
+            for (LocalInfileInterceptor interceptor : loader) {
+                if (!interceptor.validate(fileName)) {
+                    writer.writeEmptyPacket(seq++);
+                    throw new QueryException("LOCAL DATA LOCAL INFILE request to send local file named \""
+                            + fileName + "\" not validated by interceptor \"" + interceptor.getClass().getName()
+                            + "\"");
+                }
             }
 
             try {
