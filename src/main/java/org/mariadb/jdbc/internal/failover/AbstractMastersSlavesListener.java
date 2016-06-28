@@ -89,7 +89,7 @@ public abstract class AbstractMastersSlavesListener extends AbstractMastersListe
      * @return HandleErrorResult object to indicate if query has finally been relaunched or exception if not.
      * @throws Throwable if method with parameters doesn't exist
      */
-    public HandleErrorResult handleFailover(Method method, Object[] args, Protocol protocol) throws Throwable {
+    public HandleErrorResult handleFailover(QueryException qe, Method method, Object[] args, Protocol protocol) throws Throwable {
         if (isExplicitClosed()) {
             throw new QueryException("Connection has been closed !");
         }
@@ -97,7 +97,8 @@ public abstract class AbstractMastersSlavesListener extends AbstractMastersListe
             if (setMasterHostFail()) {
                 logger.warn("SQL Primary node [" + this.currentProtocol.getHostAddress().toString()
                         + ", conn " + this.currentProtocol.getServerThreadId()
-                        + " ] connection fail ");
+                        + " ] connection fail. Reason : " + qe.getMessage());
+
                 addToBlacklist(protocol.getHostAddress());
             }
             return primaryFail(method, args);
@@ -105,7 +106,7 @@ public abstract class AbstractMastersSlavesListener extends AbstractMastersListe
             if (setSecondaryHostFail()) {
                 logger.warn("SQL secondary node [" + this.currentProtocol.getHostAddress().toString()
                         + ", conn " + this.currentProtocol.getServerThreadId()
-                        + " ] connection fail ");
+                        + " ] connection fail. Reason : " + qe.getMessage());
                 addToBlacklist(protocol.getHostAddress());
             }
             return secondaryFail(method, args);

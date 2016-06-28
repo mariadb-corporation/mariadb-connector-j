@@ -161,14 +161,14 @@ public abstract class AbstractMastersListener implements Listener {
      * @return a HandleErrorResult object to indicate if query has been relaunched, and the exception if not
      * @throws Throwable when method and parameters does not exist.
      */
-    public HandleErrorResult handleFailover(Method method, Object[] args, Protocol protocol) throws Throwable {
+    public HandleErrorResult handleFailover(QueryException qe, Method method, Object[] args, Protocol protocol) throws Throwable {
         if (isExplicitClosed()) {
             throw new QueryException("Connection has been closed !");
         }
         if (setMasterHostFail()) {
             logger.warn("SQL Primary node [" + this.currentProtocol.getHostAddress().toString()
                     + ", conn " + this.currentProtocol.getServerThreadId()
-                    + " ] connection fail ");
+                    + " ] connection fail. Reason : " + qe.getMessage());
             addToBlacklist(currentProtocol.getHostAddress());
         }
         return primaryFail(method, args);

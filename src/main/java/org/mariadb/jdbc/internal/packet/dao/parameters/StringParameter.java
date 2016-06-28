@@ -58,6 +58,7 @@ import java.sql.SQLException;
 
 public class StringParameter implements ParameterHolder, Cloneable {
     public static Field charsFieldValue;
+
     static {
         try {
             charsFieldValue = String.class.getDeclaredField("value");

@@ -219,7 +219,7 @@ public class FailoverProxy implements InvocationHandler {
             failHostAddress = protocol.getHostAddress();
             failIsMaster = protocol.isMasterConnection();
         }
-        HandleErrorResult handleErrorResult = listener.handleFailover(method, args, protocol);
+        HandleErrorResult handleErrorResult = listener.handleFailover(qe, method, args, protocol);
         if (handleErrorResult.mustThrowError) {
             listener.throwFailoverMessage(failHostAddress, failIsMaster, qe, handleErrorResult.isReconnected);
         }

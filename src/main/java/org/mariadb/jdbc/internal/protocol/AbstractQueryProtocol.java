@@ -676,9 +676,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 if (serverPrepareResult.getParameters().length > 0) {
                     sql += ", parameters [";
                     for (int i = 0; i < serverPrepareResult.getParameters().length; i++) {
-                        if (!parameters[i].isLongData()) sql += parameters[i].toString();
+                        if (!parameters[i].isLongData()) sql += parameters[i].toString() + ",";
                     }
-                    sql += "]";
+                    sql = sql.substring(0, sql.length() - 1) + "]";
                 }
                 if (options.maxQuerySizeToLog != 0 && sql.length() > options.maxQuerySizeToLog - 3) {
                     qex.setMessage(qex.getMessage() + "\nQuery is: " + sql.substring(0, options.maxQuerySizeToLog - 3) + "...");

@@ -185,9 +185,8 @@ public class ProtocolLoggingProxy implements InvocationHandler {
                     for (int i = 0; i < params.length; i++) {
                         sql += params[i].toString() + ",";
                         if (maxQuerySizeToLog > 0 && sql.length() > maxQuerySizeToLog) break;
-                        sql = sql.substring(0, sql.length() - 1);
                     }
-                    sql += "]";
+                    sql = sql.substring(0, sql.length() - 1) + "]";
                 }
                 break;
             case "prepareAndExecutesComMulti":
@@ -200,8 +199,8 @@ public class ProtocolLoggingProxy implements InvocationHandler {
                     sql += "[";
                     for (int i = 0; i < serverPrepareResult.getParameters().length; i++) {
                         sql += parameters[i].toString() + ",";
-                        sql = sql.substring(0, sql.length() - 1);
                     }
+                    sql = sql.substring(0, sql.length() - 1);
 
                     if (maxQuerySizeToLog > 0 && sql.length() > maxQuerySizeToLog) {
                         break;
@@ -217,10 +216,10 @@ public class ProtocolLoggingProxy implements InvocationHandler {
                 if (paramHolder.length > 0) {
                     sql += ", parameters [";
                     for (int i = 0; i < ((ServerPrepareResult) args[1]).getParameters().length; i++) {
-                        sql += paramHolder[i].toString();
+                        sql += paramHolder[i].toString() + ",";
                         if (maxQuerySizeToLog > 0 && sql.length() > maxQuerySizeToLog) break;
                     }
-                    sql += "]";
+                    sql = sql.substring(0, sql.length() - 1) + "]";
                 }
                 break;
             default:

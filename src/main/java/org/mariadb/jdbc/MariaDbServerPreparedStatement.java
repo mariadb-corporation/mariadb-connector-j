@@ -89,7 +89,7 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
     public MariaDbServerPreparedStatement(MariaDbConnection connection, String sql, int resultSetScrollType, boolean forcePrepare)
             throws SQLException {
         super(connection, resultSetScrollType);
-        this.sql = Utils.nativeSql(sql, connection.noBackslashEscapes);;
+        this.sql = Utils.nativeSql(sql, connection.noBackslashEscapes);
 
         useFractionalSeconds = options.useFractionalSeconds;
         returnTableAlias = options.useOldAliasMetadataBehavior;
