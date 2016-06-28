@@ -107,7 +107,7 @@ public class Options {
     public boolean useComMulti;
 
     //logging options
-    public boolean logger;
+    public boolean log;
     public boolean profileSql;
     public Integer maxQuerySizeToLog;
     public Long slowQueryThresholdNanos;
@@ -180,7 +180,7 @@ public class Options {
                 + ", useComMulti=" + useComMulti
                 + ", callableStmtCacheSize=" + callableStmtCacheSize
                 + ", connectionAttributes=" + connectionAttributes
-                + ", logger=" + logger
+                + ", log=" + log
                 + ", profileSql=" + profileSql
                 + ", maxQuerySizeToLog=" + maxQuerySizeToLog
                 + ", slowQueryThresholdNanos=" + slowQueryThresholdNanos
@@ -222,7 +222,7 @@ public class Options {
         if (maximizeMysqlCompatibility != options.maximizeMysqlCompatibility) return false;
         if (useServerPrepStmts != options.useServerPrepStmts) return false;
         if (assureReadOnly != options.assureReadOnly) return false;
-        if (logger != options.logger) return false;
+        if (log != options.log) return false;
         if (profileSql != options.profileSql) return false;
         if (autoReconnect != options.autoReconnect) return false;
         if (failOnReadOnly != options.failOnReadOnly) return false;

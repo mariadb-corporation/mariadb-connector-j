@@ -14,7 +14,7 @@ public class LoggerFactory {
 
     /**
      * Initialize factory.
-     * @param mustLog indicate if must initiate Slf4j logger
+     * @param mustLog indicate if must initiate Slf4j log
      * @throws QueryException if Slf4j dependency is not present.
      */
     @SuppressWarnings("unchecked")

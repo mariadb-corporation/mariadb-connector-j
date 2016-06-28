@@ -51,9 +51,10 @@ package org.mariadb.jdbc.internal.failover.impl;
 
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.UrlParser;
-import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.failover.AbstractMastersSlavesListener;
 import org.mariadb.jdbc.internal.failover.thread.FailoverLoop;
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 import org.mariadb.jdbc.internal.util.dao.ReconnectDuringTransactionException;
 import org.mariadb.jdbc.internal.util.scheduler.DynamicSizedSchedulerInterface;
@@ -75,6 +76,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * this class handle the operation when multiple hosts.
  */
 public class MastersSlavesListener extends AbstractMastersSlavesListener {
+    private static Logger logger = LoggerFactory.getLogger(MastersSlavesListener.class);
     private static final double POOL_SIZE_TO_LISTENER_RATIO = 0.3d;
     private static final double FAIL_LOOP_TO_LISTENER_RATIO = 0.3d;
 
@@ -590,7 +592,10 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                     || alreadyClosed //connection was already close
                     || (!alreadyClosed && !inTransaction && isQueryRelaunchable(method, args) )) { //connection was not in transaction
 
-                    //can relaunch query
+                //can relaunch query
+                logger.info("Connection to master lost, new master " + currentProtocol.getHostAddress() + ", conn:"
+                        + currentProtocol.getServerThreadId() + " found"
+                        + ", query type permit to be re-execute on new server without throwing exception");
                 return relaunchOperation(method, args);
             }
             //throw Exception because must inform client, even if connection is reconnected
@@ -704,6 +709,9 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                     proxy.lock.unlock();
                 }
             }
+            logger.info("Connection to slave lost, new slave " + currentProtocol.getHostAddress() + ", conn:"
+                    + currentProtocol.getServerThreadId() + " found"
+                    + ", query is re-execute on new server without throwing exception");
             return relaunchOperation(method, args); //now that we are reconnect, relaunched result if the result was not crashing the node
         } catch (Exception ee) {
             //we will throw a Connection exception that will close connection

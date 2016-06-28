@@ -405,7 +405,9 @@ public final class MariaDbConnection implements Connection {
     public PreparedStatement internalPrepareStatement(final String sql, final int resultSetScrollType)
             throws SQLException {
         checkConnection();
-        if (!options.allowMultiQueries && !options.rewriteBatchedStatements && options.useServerPrepStmts && checkIfPreparable(sql)) {
+        if (!options.allowMultiQueries && !options.rewriteBatchedStatements
+                && (options.useServerPrepStmts || serverComMulti)
+                && checkIfPreparable(sql)) {
             try {
                 return new MariaDbServerPreparedStatement(this, sql, resultSetScrollType, false);
             } catch (SQLNonTransientConnectionException e) {

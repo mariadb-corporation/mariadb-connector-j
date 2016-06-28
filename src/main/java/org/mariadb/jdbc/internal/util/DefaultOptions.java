@@ -376,7 +376,7 @@ public enum DefaultOptions {
      *  -
      * default to false.
      */
-    LOGGER("logger", Boolean.FALSE, "1.5.0"),
+    LOGGING("log", Boolean.FALSE, "1.5.0"),
 
     /**
      * log query execution time.

@@ -146,6 +146,8 @@ public class FailoverProxy implements InvocationHandler {
                         //PrepareStatement was to be executed on slave, but since a failover was running on master connection. Slave connection is up
                         // again, so has to be re-prepared on slave
                         try {
+                            logger.trace("re-prepare query \"" + serverPrepareResult.getSql() + "\" on slave (was "
+                                    + "temporary on master since failover)");
                             this.listener.rePrepareOnSlave(serverPrepareResult, mustBeOnMaster);
                         } catch (QueryException q) {
                             //error during re-prepare, will do executed on master.
