@@ -1,12 +1,12 @@
 = Changelog
-* [[#150|1.5.0]] Snapshot available, not released
-* [[#146|1.4.6]] Released on 13 june 2016
-* [[#146|1.4.5]] Released on 18 mai 2016
-* [[#144|1.4.4]] Released on 04 mai 2016
-* [[#143|1.4.3]] Released on 22 april 2016
-* [[#142|1.4.2]] Released on 08 april 2016
-* [[#141|1.4.1]] Released on 07 april 2016
-* [[#140|1.4.0]] Released on 31 march 2016
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#150|1.5.0]] Snapshot available, not released
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#146|1.4.6]] Released on 13 june 2016
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#146|1.4.5]] Released on 18 mai 2016
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#144|1.4.4]] Released on 04 mai 2016
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#143|1.4.3]] Released on 22 april 2016
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#142|1.4.2]] Released on 08 april 2016
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#141|1.4.1]] Released on 07 april 2016
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#140|1.4.0]] Released on 31 march 2016
 
 ---
 == 1.5.0
@@ -88,24 +88,24 @@ New Options :
  |=profileSql|log query execution time.\\//Default: false. Since 1.5.0//|
 
 
-=== "LOAD DATA INFILE"
-LOAD DATA INFILE The fastest way to load many datas is using query [[https://mariadb
-.com/kb/en/mariadb/load-data-infile/|LOAD DATA INFILE]].
+=== "LOAD DATA INFILE" Interceptors
+CONJ-305
+LOAD DATA INFILE The fastest way to load many datas is using query [[https://mariadb.com/kb/en/mariadb/load-data-infile/|LOAD DATA INFILE]].
 \\Problem is using "LOAD DATA LOCAL INFILE" (ie : loading a file from client), may be a security problem :
 * A "man in the middle" proxy server can change the actual file asked from server so client will send a Local file to
  this proxy.
 * if someone has can execute query from client, he can have access to any file on client (according to the rights of the user running the client process).
 
-see [[./use-mariadb-connector-j-driver.creole#load-data-infile|load-data-infile documentation]] for more informations.
+See [[./use-mariadb-connector-j-driver.creole#load-data-infile|load-data-infile documentation]] for more information.
 
 Interceptors can now filter LOAD DATA LOCAL INFILE query according to filename.
-
-Thoses interceptors must implement interface {{{org.mariadb.jdbc.LocalInfileInterceptor}}}.
-Interceptors are  using the [[http://docs.oracle.com/javase/7/docs/api/java/util/ServiceLoader.html|ServiceLoader]] pattern, so interceptors must be defined in file META-INF/services/org.mariadb.jdbc.LocalInfileInterceptor.
+Those interceptors :
+* must implement interface {{{org.mariadb.jdbc.LocalInfileInterceptor}}}.
+* use [[http://docs.oracle.com/javase/7/docs/api/java/util/ServiceLoader.html|ServiceLoader]] implementation, so interceptors classes must be listed in file META-INF/services/org.mariadb.jdbc.LocalInfileInterceptor.
 
 Example :
-create file META-INF/services/org.mariadb.jdbc.LocalInfileInterceptor with content org.project.LocalInfileInterceptorImpl.
 {{{
+package org.project;
 public class LocalInfileInterceptorImpl implements LocalInfileInterceptor {
     @Override
     public boolean validate(String fileName) {
@@ -116,9 +116,11 @@ public class LocalInfileInterceptorImpl implements LocalInfileInterceptor {
     }
 }
 }}}
+file META-INF/services/org.mariadb.jdbc.LocalInfileInterceptor must exist with content {{{org.project.LocalInfileInterceptorImpl}}}.
 
-You can get ride of defining the META-INF/services file using [[https://github.com/google/auto/tree/master/service|google auto-service] framework
-Using the previous example, just add {{{@AutoService(LocalInfileInterceptor.class)}}}, and your interceptor will be automatically defined.
+You can get ride of defining the META-INF/services file using [[https://github.com/google/auto/tree/master/service|google auto-service]] framework, permitting to use annotation {{{@AutoService(LocalInfileInterceptor.class)}}} that will register the implementation as a service automatically.  
+
+Using the previous example : 
 {{{
 @AutoService(LocalInfileInterceptor.class)
 public class LocalInfileInterceptorImpl implements LocalInfileInterceptor {
