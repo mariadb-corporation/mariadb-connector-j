@@ -92,18 +92,17 @@ New Options :
 CONJ-305
 LOAD DATA INFILE The fastest way to load many datas is using query [[https://mariadb.com/kb/en/mariadb/load-data-infile/|LOAD DATA INFILE]].
 \\Problem is using "LOAD DATA LOCAL INFILE" (ie : loading a file from client), may be a security problem :
-* A "man in the middle" proxy server can change the actual file asked from server so client will send a Local file to
- this proxy.
-* if someone has can execute query from client, he can have access to any file on client (according to the rights of the user running the client process).
+* A "man in the middle" proxy server can change the actual file asked from server so client will send a Local file to this proxy.
+* If someone has can execute query from client, he can have access to any file on client (according to the rights of the user running the client process).
 
 See [[./use-mariadb-connector-j-driver.creole#load-data-infile|load-data-infile documentation]] for more information.
 
-Interceptors can now filter LOAD DATA LOCAL INFILE query according to filename.
-Those interceptors :
-* must implement interface {{{org.mariadb.jdbc.LocalInfileInterceptor}}}.
-* use [[http://docs.oracle.com/javase/7/docs/api/java/util/ServiceLoader.html|ServiceLoader]] implementation, so interceptors classes must be listed in file META-INF/services/org.mariadb.jdbc.LocalInfileInterceptor.
+Interceptors can now filter LOAD DATA LOCAL INFILE query's file location to validate path / file name.
+Those interceptors:
+* Must implement interface {{{org.mariadb.jdbc.LocalInfileInterceptor}}}.
+* Use [[http://docs.oracle.com/javase/7/docs/api/java/util/ServiceLoader.html|ServiceLoader]] implementation, so interceptors classes must be listed in file META-INF/services/org.mariadb.jdbc.LocalInfileInterceptor.
 
-Example :
+Example:
 {{{
 package org.project;
 public class LocalInfileInterceptorImpl implements LocalInfileInterceptor {
@@ -120,7 +119,7 @@ file META-INF/services/org.mariadb.jdbc.LocalInfileInterceptor must exist with c
 
 You can get ride of defining the META-INF/services file using [[https://github.com/google/auto/tree/master/service|google auto-service]] framework, permitting to use annotation {{{@AutoService(LocalInfileInterceptor.class)}}} that will register the implementation as a service automatically.  
 
-Using the previous example : 
+Using the previous example: 
 {{{
 @AutoService(LocalInfileInterceptor.class)
 public class LocalInfileInterceptorImpl implements LocalInfileInterceptor {
