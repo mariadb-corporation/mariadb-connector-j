@@ -54,7 +54,7 @@ import org.mariadb.jdbc.internal.util.buffer.Buffer;
 import java.nio.charset.StandardCharsets;
 
 
-public class ErrorPacket extends AbstractResultPacket {
+public class ErrorPacket {
     private final short errorNumber;
     private final byte sqlStateMarker;
     private final byte[] sqlState;
@@ -103,10 +103,6 @@ public class ErrorPacket extends AbstractResultPacket {
 
     public String getMessage() {
         return message;
-    }
-
-    public ResultType getResultType() {
-        return ResultType.ERROR;
     }
 
     public byte getPacketSeq() {

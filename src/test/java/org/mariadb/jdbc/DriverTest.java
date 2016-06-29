@@ -1076,15 +1076,15 @@ public class DriverTest extends BaseTest {
 
     @Test
     public void conj25() throws Exception {
-        Statement stmt;
-        stmt = sharedConnection.createStatement();
-        String st = "INSERT INTO conj25 VALUES (REPEAT('a',1024))";
-        for (int i = 1; i <= 100; i++) {
-            st = st + ",(REPEAT('a',1024))";
+        try (Statement stmt = sharedConnection.createStatement()) {
+            String st = "INSERT INTO conj25 VALUES (REPEAT('a',1024))";
+            for (int i = 1; i <= 100; i++) {
+                st = st + ",(REPEAT('a',1024))";
+            }
+            stmt.setFetchSize(Integer.MIN_VALUE);
+            stmt.execute(st);
+            stmt.executeQuery("SELECT * FROM conj25 a, conj25 b");
         }
-        stmt.setFetchSize(Integer.MIN_VALUE);
-        stmt.execute(st);
-        stmt.executeQuery("SELECT * FROM conj25 a, conj25 b");
 
     }
 

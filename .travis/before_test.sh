@@ -19,7 +19,13 @@ else
     then
         export URLSTRING=-DdbURL='jdbc:mariadb://localhost:3306/testj?user=root&allowMultiQueries=true'
     else
-        export URLSTRING=-DdbURL='jdbc:mariadb://localhost:3306/testj?user=root'
+
+        if [ -n "$COMPRESSION" ]
+        then
+            export URLSTRING=-DdbURL='jdbc:mariadb://localhost:3306/testj?user=root&useCompression=true'
+        else
+            export URLSTRING=-DdbURL='jdbc:mariadb://localhost:3306/testj?user=root'
+        fi
     fi
 fi
 

@@ -52,6 +52,7 @@ package org.mariadb.jdbc.internal.packet.send;
 import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.packet.dao.parameters.NullParameter;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
+import org.mariadb.jdbc.internal.packet.Packet;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
 import java.io.IOException;
@@ -105,7 +106,7 @@ public class SendExecutePrepareStatementPacket implements InterfaceSendPacket {
     public static void comStmtExecuteSubCommand(final int statementId, final ParameterHolder[] parameters, final int parameterCount,
                                            MariaDbType[] parameterTypeHeader, final PacketOutputStream pos) throws IOException {
 
-        pos.write((byte) 0x17);
+        pos.write(Packet.COM_STMT_EXECUTE);
         pos.writeInt(statementId);
         pos.write((byte) 0x00); //CURSOR TYPE NO CURSOR
         pos.writeInt(1); //Iteration count

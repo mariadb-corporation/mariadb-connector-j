@@ -13,7 +13,7 @@ import org.mariadb.jdbc.internal.util.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.util.constant.ServerStatus;
 import org.mariadb.jdbc.internal.util.buffer.Buffer;
-import org.mariadb.jdbc.internal.packet.read.Packet;
+import org.mariadb.jdbc.internal.packet.Packet;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
 import org.mariadb.jdbc.internal.MariaDbType;
@@ -239,7 +239,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         writer.buffer.put((byte) (prepareLengthCommand >>> 16));
 
         //prepare subCommand
-        writer.buffer.put((byte) 0x16);
+        writer.buffer.put(Packet.COM_STMT_PREPARE);
         writer.write(sqlBytes);
     }
 
@@ -334,10 +334,12 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         // set, use that.
         int seq = 2;
         InputStream is;
+        writer.setCompressSeqNo(2);
         if (localInfileInputStream == null) {
 
             if (!getUrlParser().getOptions().allowLocalInfile) {
                 writer.writeEmptyPacket(seq++);
+                packetFetcher.getReusableBuffer();
                 throw new QueryException(
                         "Usage of LOCAL INFILE is disabled. To use it enable it via the connection property allowLocalInfile=true",
                         -1,
@@ -422,7 +424,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     writer.buffer.position(subCmdInitialPosition + 3);
 
                     //add execute sub command
-                    writer.write((byte) 0x18);
+                    writer.write(Packet.COM_STMT_SEND_LONG_DATA);
                     writer.writeInt(statementId);
                     writer.writeShort((short) i);
                     parameters[i].writeBinary(writer);
@@ -671,7 +673,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 if (parameters[i].isLongData()) {
 
                     writer.startPacket(0);
-                    writer.buffer.put((byte) 0x18);
+                    writer.buffer.put(Packet.COM_STMT_SEND_LONG_DATA);
                     writer.buffer.putInt(serverPrepareResult.getStatementId());
                     writer.buffer.putShort((short) i);
                     parameters[i].writeBinary(writer);
@@ -957,7 +959,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 writer.sendTextPacket(queryParts.get(0));
             } else {
                 writer.startPacket(0);
-                writer.buffer.put((byte) 0x03);
+                writer.buffer.put(Packet.COM_QUERY);
                 writer.write(queryParts.get(0));
                 for (int i = 0; i < paramCount; i++) {
                     parameters[i].writeTo(writer);
@@ -1001,7 +1003,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         try {
             this.moreResults = false;
             writer.startPacket(0);
-            writer.buffer.put((byte) 0x03);
+            writer.buffer.put(Packet.COM_QUERY);
             writer.write(queryParts.get(0));
             writer.write(queryParts.get(1));
             for (int i = 0; i < paramCount; i++) {
@@ -1122,7 +1124,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
                 //write first query
                 writer.startPacket(0);
-                writer.write(0x03);
+                writer.write(Packet.COM_QUERY);
                 writer.write(firstPart);
                 for (int i = 0; i < paramCount; i++) {
                     parameters[i].writeTo(writer);
@@ -1218,7 +1220,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     getResult(executionResult, resultSetScrollType, false, true);
                 } else {
                     writer.startPacket(0);
-                    writer.write(0x03);
+                    writer.write(Packet.COM_QUERY);
 
                     //add query with ";"
                     writer.write(sql.getBytes("UTF-8"));
@@ -1291,7 +1293,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             do {
                 parameters = parameterList.get(currentIndex++);
                 writer.startPacket(0);
-                writer.buffer.put((byte)0x03);
+                writer.buffer.put(Packet.COM_QUERY);
 
                 byte[] firstPart = queryParts.get(0);
                 byte[] secondPart = queryParts.get(1);

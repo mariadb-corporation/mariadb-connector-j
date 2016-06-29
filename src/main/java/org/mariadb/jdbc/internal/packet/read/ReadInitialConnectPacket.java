@@ -50,13 +50,13 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.packet.read;
 
 import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
+import org.mariadb.jdbc.internal.packet.Packet;
 import org.mariadb.jdbc.internal.util.buffer.Buffer;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.packet.result.ErrorPacket;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
 

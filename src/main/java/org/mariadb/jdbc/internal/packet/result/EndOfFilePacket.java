@@ -52,7 +52,7 @@ package org.mariadb.jdbc.internal.packet.result;
 
 import org.mariadb.jdbc.internal.util.buffer.Buffer;
 
-public class EndOfFilePacket extends AbstractResultPacket {
+public class EndOfFilePacket {
 
     private final short warningCount;
     private final short statusFlags;
@@ -65,10 +65,6 @@ public class EndOfFilePacket extends AbstractResultPacket {
         buffer.skipByte();
         warningCount = buffer.readShort();
         statusFlags = buffer.readShort();
-    }
-
-    public ResultType getResultType() {
-        return ResultType.EOF;
     }
 
     public short getWarningCount() {

@@ -58,18 +58,19 @@ public class LocalInfileInputStreamTest extends BaseTest {
     }
 
     @Test
-    public void testLocalInfile() throws SQLException {
+    public void testLocalInfileValidInterceptor() throws SQLException {
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
         testLocalInfile(classLoader.getResource("validateInfile.txt").getPath());
     }
 
     @Test
-    public void testLocalInfileInterceptor() throws SQLException {
+    public void testLocalInfileUnValidInterceptor() throws SQLException {
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
         try {
             testLocalInfile(classLoader.getResource("localInfile.txt").getPath());
             fail("Must have been intercepted");
         } catch (SQLException sqle) {
+            sqle.printStackTrace();
             assertTrue(sqle.getMessage().contains("LOCAL DATA LOCAL INFILE request to send local file named")
                     && sqle.getMessage().contains("not validated by interceptor \"org.mariadb.jdbc.LocalInfileInterceptorImpl\""));
         }
@@ -81,7 +82,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
     }
 
 
-    public void testLocalInfile(String file) throws SQLException {
+    private void testLocalInfile(String file) throws SQLException {
         Statement st = sharedConnection.createStatement();
         ResultSet rs = st.executeQuery("select @@version_compile_os");
         if (!rs.next()) {
@@ -147,6 +148,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
             Assert.fail();
         } catch (SQLException e) {
             //check that connection is alright
+e.printStackTrace();
             try {
                 Assert.assertFalse(sharedConnection.isClosed());
                 Statement st = sharedConnection.createStatement();
