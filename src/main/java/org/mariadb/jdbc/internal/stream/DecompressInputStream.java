@@ -62,7 +62,6 @@ import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 
 public class DecompressInputStream extends InputStream implements MariaDbInputStream {
-    private static Logger logger = LoggerFactory.getLogger(DecompressInputStream.class);
     private InputStream baseStream;
     private int remainingBytes;
     private byte[] header;
@@ -151,7 +150,6 @@ public class DecompressInputStream extends InputStream implements MariaDbInputSt
 
         int compressedLength = (header[0] & 0xff) + ((header[1] & 0xff) << 8) + ((header[2] & 0xff) << 16);
 
-        logger.trace("<= compressSeqNo=" + header[3]);
         int decompressedLength = (header[4] & 0xff) + ((header[5] & 0xff) << 8) + ((header[6] & 0xff) << 16);
         if (decompressedLength != 0) {
             doDecompress = true;

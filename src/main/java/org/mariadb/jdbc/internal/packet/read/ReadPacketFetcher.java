@@ -62,7 +62,6 @@ import java.io.InputStream;
 
 public class ReadPacketFetcher {
 
-    private static Logger logger = LoggerFactory.getLogger(ReadPacketFetcher.class);
     public static final int AVOID_CREATE_BUFFER_LENGTH = 4096;
     private final MariaDbInputStream inputStream;
 
@@ -108,7 +107,6 @@ public class ReadPacketFetcher {
         lastPacketSeq = headerBuffer[3];
         int length = (headerBuffer[0] & 0xff) + ((headerBuffer[1] & 0xff) << 8) + ((headerBuffer[2] & 0xff) << 16);
         byte[] rawBytes = new byte[length];
-        logger.trace("<= seqNo=" + headerBuffer[3]);
         remaining = length;
         off = 0;
         do {
@@ -174,7 +172,6 @@ public class ReadPacketFetcher {
             off += count;
         } while (remaining > 0);
         lastPacketSeq = headerBuffer[3];
-        logger.trace("<= seqNo=" + headerBuffer[3]);
         int length = (headerBuffer[0] & 0xff) + ((headerBuffer[1] & 0xff) << 8) + ((headerBuffer[2] & 0xff) << 16);
         byte[] rawBytes;
 

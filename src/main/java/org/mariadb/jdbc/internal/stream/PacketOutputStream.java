@@ -93,7 +93,8 @@ public class PacketOutputStream extends OutputStream {
 
     /**
      * Initialization with server outputStream.
-     * @param outputStream server outPutStream
+     * @param outputStream server outputStream
+     * @param logQuery is query logging enable ?
      */
     public PacketOutputStream(OutputStream outputStream, boolean logQuery) {
         this.outputStream = outputStream;
@@ -171,7 +172,6 @@ public class PacketOutputStream extends OutputStream {
             header[2] = ((byte) 0);
             header[3] = ((byte) seqNo);
             outputStream.write(header, 0, 4);
-            logger.trace("=> compressSeqNo="+compressSeqNo+" seqNo="+seqNo+" (writeEmptyPacket)");
         }
         outputStream.flush();
     }
@@ -462,7 +462,6 @@ public class PacketOutputStream extends OutputStream {
                     .put((byte) (dataLength >>> 8))
                     .put((byte) (dataLength >>> 16))
                     .put((byte) seqNo++);
-            logger.trace("=> SeqNo=" + seqNo);
             outputStream.write(buffer.array(), 0, buffer.limit());
             outputStream.flush();
         } else {
@@ -472,7 +471,6 @@ public class PacketOutputStream extends OutputStream {
                     .put((byte) (maxPacketSize >>> 8))
                     .put((byte) (maxPacketSize >>> 16))
                     .put((byte) seqNo++);
-            logger.trace("=> SeqNo=" + seqNo);
             outputStream.write(buffer.array(), 0, maxPacketSize + 4);
             outputStream.flush();
             buffer.position(maxPacketSize + 4);
@@ -487,7 +485,6 @@ public class PacketOutputStream extends OutputStream {
                             .put((byte) seqNo++);
 
                     outputStream.write(buffer.array(), buffer.position() - 4, maxPacketSize + 4);
-                    logger.trace("=> SeqNo=" + seqNo);
                     outputStream.flush();
                     buffer.position(buffer.position() + maxPacketSize);
                 } else {
@@ -496,7 +493,6 @@ public class PacketOutputStream extends OutputStream {
                             .put((byte) (length >>> 16))
                             .put((byte) seqNo++);
                     outputStream.write(buffer.array(), buffer.position() - 4, length + 4);
-                    logger.trace("=> SeqNo=" + seqNo);
                     outputStream.flush();
                     break;
                 }
@@ -585,7 +581,6 @@ public class PacketOutputStream extends OutputStream {
         header[4] = (byte) (initialLength & 0xff);
         header[5] = (byte) ((initialLength >> 8) & 0xff);
         header[6] = (byte) ((initialLength >> 16) & 0xff);
-        logger.trace("=> compressSeqNo=" + compressSeqNo + " SeqNo=" + header[3]);
         outputStream.write(header);
     }
 
@@ -859,7 +854,6 @@ public class PacketOutputStream extends OutputStream {
 
         if (!useCompression) {
             outputStream.write(packetBuffer);
-            logger.trace("=> SeqNo=0");
             outputStream.flush();
         } else {
             compressedAndSend(sqlLength + 4, packetBuffer);
@@ -898,7 +892,6 @@ public class PacketOutputStream extends OutputStream {
                 System.arraycopy(sqlBytes, 0, packetBuffer, 5, sqlLength);
 
                 outputStream.write(packetBuffer);
-                logger.trace("=> SeqNo=" + seqNo);
                 outputStream.flush();
             } else {
                 //send first packet
@@ -911,7 +904,6 @@ public class PacketOutputStream extends OutputStream {
                 System.arraycopy(sqlBytes, 0, packetBuffer, 5, maxPacketSize - 1);
                 int sqlBytesPosition = maxPacketSize - 1;
                 outputStream.write(packetBuffer);
-                logger.trace("=> SeqNo=" + seqNo);
                 outputStream.flush();
                 int length;
                 while ((length = sqlLength - sqlBytesPosition) > 0) {
@@ -922,7 +914,6 @@ public class PacketOutputStream extends OutputStream {
                         packetBuffer[3] = (byte) seqNo++;
                         System.arraycopy(sqlBytes, sqlBytesPosition, packetBuffer, 4, maxPacketSize);
                         outputStream.write(packetBuffer);
-                        logger.trace("=> SeqNo=" + seqNo);
                         outputStream.flush();
                         sqlBytesPosition += maxPacketSize;
                     } else {
@@ -932,7 +923,6 @@ public class PacketOutputStream extends OutputStream {
                         packetBuffer[3] = (byte) seqNo++;
                         System.arraycopy(sqlBytes, sqlBytesPosition, packetBuffer, 4, length);
                         outputStream.write(packetBuffer, 0, length + 4);
-                        logger.trace("=> SeqNo=" + seqNo);
                         outputStream.flush();
                         break;
                     }
@@ -949,7 +939,6 @@ public class PacketOutputStream extends OutputStream {
                 packetBuffer[4] = Packet.COM_QUERY;
 
                 System.arraycopy(sqlBytes, 0, packetBuffer, 5, sqlLength);
-                logger.trace("=> SeqNo=" + seqNo);
                 compressedAndSend(sqlLength + 5, packetBuffer);
 
             } else {
@@ -986,7 +975,6 @@ public class PacketOutputStream extends OutputStream {
                         break;
                     }
                 }
-                logger.trace("=> SeqNo=" + seqNo);
                 compressedAndSend(expectedPacketSize, packetBuffer);
             }
         }

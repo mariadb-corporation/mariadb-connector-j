@@ -148,7 +148,6 @@ public class LocalInfileInputStreamTest extends BaseTest {
             Assert.fail();
         } catch (SQLException e) {
             //check that connection is alright
-e.printStackTrace();
             try {
                 Assert.assertFalse(sharedConnection.isClosed());
                 Statement st = sharedConnection.createStatement();
