@@ -157,7 +157,8 @@ The following options are currently supported.
 
 == "LOAD DATA INFILE"
 The fastest way to load many datas is using query [[https://mariadb.com/kb/en/mariadb/load-data-infile/|LOAD DATA INFILE]]. \\Problem is using "LOAD DATA LOCAL INFILE" (ie : loading a file from client), may be a security problem :
-* if server sources has been changed, server mays asked for a different file than the file in query.
+* A "man in the middle" proxy server can change the actual file asked from server so client will send a Local file to
+ this proxy.
 * if someone has can execute query from client, he can have access to any file on client (according to the rights of the user running the client process).
 
 A specific option "allowLocalInfile" (default to true) can deactivate functionality on client side.
@@ -184,6 +185,42 @@ Code example:
         }
 
 }}}
+
+Since 1.5.0 version, Interceptors can now filter LOAD DATA LOCAL INFILE query according to filename.
+
+Thoses interceptors must implement interface {{{org.mariadb.jdbc.LocalInfileInterceptor}}}.
+Interceptors are  using the [[http://docs.oracle.com/javase/7/docs/api/java/util/ServiceLoader.html|ServiceLoader]] pattern, so interceptors must be defined in file META-INF/services/org.mariadb.jdbc.LocalInfileInterceptor.
+
+Example :
+create file META-INF/services/org.mariadb.jdbc.LocalInfileInterceptor with content org.project.LocalInfileInterceptorImpl.
+{{{
+ public class LocalInfileInterceptorImpl implements LocalInfileInterceptor {
+     @Override
+     public boolean validate(String fileName) {
+         File file = new File(fileName);
+         String absolutePath = file.getAbsolutePath();
+         String filePath = absolutePath.substring(0,absolutePath.lastIndexOf(File.separator));
+         return filePath.equals("/var/tmp/exchanges");
+     }
+ }
+}}}
+
+You can get ride of defining the META-INF/services file using [[https://github.com/google/auto/tree/master/service|google auto-service] framework
+Using the previous example, just add {{{@AutoService(LocalInfileInterceptor.class)}}}, and your interceptor will be automatically defined.
+{{{
+ @AutoService(LocalInfileInterceptor.class)
+ public class LocalInfileInterceptorImpl implements LocalInfileInterceptor {
+     @Override
+     public boolean validate(String fileName) {
+         File file = new File(fileName);
+         String absolutePath = file.getAbsolutePath();
+         String filePath = absolutePath.substring(0,absolutePath.lastIndexOf(File.separator));
+         return filePath.equals("/var/tmp/exchanges");
+     }
+ }
+}}}
+
+
 
 == Streaming result sets
 By default, {{{Statement.executeQuery()}}} will read the full result set

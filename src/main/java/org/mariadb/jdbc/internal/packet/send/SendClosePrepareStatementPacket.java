@@ -49,8 +49,8 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.packet.send;
 
+import org.mariadb.jdbc.internal.packet.Packet;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
-import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterWriter;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -71,7 +71,7 @@ public class SendClosePrepareStatementPacket implements InterfaceSendPacket {
     public void send(final OutputStream os) throws IOException {
         PacketOutputStream pos = (PacketOutputStream) os;
         pos.startPacket(0);
-        pos.write(0x19);
+        pos.write(Packet.COM_STMT_CLOSE);
         pos.write((byte) (statementId & 0xff));
         pos.write((byte) ((statementId >> 8) & 0xff));
         pos.write((byte) ((statementId >> 16) & 0xff));

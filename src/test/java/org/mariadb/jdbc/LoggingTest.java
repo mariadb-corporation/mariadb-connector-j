@@ -18,7 +18,7 @@ public class LoggingTest extends BaseTest {
         PrintStream old = System.out;
 
         System.setOut(ps);
-        try (Connection connection = setConnection("&profileSQL=true&maxQuerySizeToLog=1024")){
+        try (Connection connection = setConnection("&profileSQL=true&maxQuerySizeToLog=1024")) {
             Statement stmt = connection.createStatement();
             stmt.execute("SELECT 1");
             System.out.flush();

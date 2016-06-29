@@ -51,7 +51,7 @@ OF SUCH DAMAGE.
 
 import org.mariadb.jdbc.internal.util.buffer.Buffer;
 
-public class OkPacket extends AbstractResultPacket {
+public class OkPacket {
 
     private final long affectedRows;
     private final long insertId;
@@ -68,10 +68,6 @@ public class OkPacket extends AbstractResultPacket {
         insertId = buffer.getLengthEncodedBinary();
         serverStatus = buffer.readShort();
         warnings = buffer.readShort();
-    }
-
-    public ResultType getResultType() {
-        return ResultType.OK;
     }
 
     @Override

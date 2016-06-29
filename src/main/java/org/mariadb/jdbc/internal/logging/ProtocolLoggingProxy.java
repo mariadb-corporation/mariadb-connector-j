@@ -178,49 +178,18 @@ public class ProtocolLoggingProxy implements InvocationHandler {
                 sql = getQueryFromWriterBuffer();
                 break;
             case "prepareAndExecuteComMulti":
-                sql = (String) args[2];
-                ParameterHolder[] params = (ParameterHolder[]) args[3];
-                if (params.length > 0) {
-                    sql += ", parameters [";
-                    for (int i = 0; i < params.length; i++) {
-                        sql += params[i].toString() + ",";
-                        if (maxQuerySizeToLog > 0 && sql.length() > maxQuerySizeToLog) break;
-                    }
-                    sql = sql.substring(0, sql.length() - 1) + "]";
-                }
+                ServerPrepareResult serverPrepareResult1 = (ServerPrepareResult) returnObj;
+                sql = getQueryFromPrepareParameters(serverPrepareResult1.getSql(), (ParameterHolder[]) args[3],
+                        serverPrepareResult1.getParameters().length);
                 break;
             case "prepareAndExecutesComMulti":
-                sql = (String) args[3];
                 List<ParameterHolder[]> parameterList = (List<ParameterHolder[]>) args[4];
                 ServerPrepareResult serverPrepareResult = (ServerPrepareResult) returnObj;
-                sql += ", parameters ";
-                for (int paramNo = 0; paramNo < parameterList.size(); paramNo++) {
-                    ParameterHolder[] parameters = parameterList.get(paramNo);
-                    sql += "[";
-                    for (int i = 0; i < serverPrepareResult.getParameters().length; i++) {
-                        sql += parameters[i].toString() + ",";
-                    }
-                    sql = sql.substring(0, sql.length() - 1);
-
-                    if (maxQuerySizeToLog > 0 && sql.length() > maxQuerySizeToLog) {
-                        break;
-                    } else {
-                        sql += "],";
-                    }
-                }
-                sql = sql.substring(0, sql.length() - 1);
+                sql = getQueryFromPrepareParameters((String) args[3], parameterList, serverPrepareResult.getParameters().length);
                 break;
             case "executePreparedQuery":
-                sql = ((ServerPrepareResult) args[1]).getSql() ;
-                ParameterHolder[] paramHolder = (ParameterHolder[]) args[3];
-                if (paramHolder.length > 0) {
-                    sql += ", parameters [";
-                    for (int i = 0; i < ((ServerPrepareResult) args[1]).getParameters().length; i++) {
-                        sql += paramHolder[i].toString() + ",";
-                        if (maxQuerySizeToLog > 0 && sql.length() > maxQuerySizeToLog) break;
-                    }
-                    sql = sql.substring(0, sql.length() - 1) + "]";
-                }
+                ServerPrepareResult prepareResult = (ServerPrepareResult) args[1];
+                sql = getQueryFromPrepareParameters(prepareResult.getSql(), (ParameterHolder[]) args[3], prepareResult.getParameters().length);
                 break;
             default:
                 sql = getQueryFromWriterBuffer();
@@ -232,6 +201,37 @@ public class ProtocolLoggingProxy implements InvocationHandler {
             return " - \"" + sql + "\"";
         }
 
+    }
+
+    private String getQueryFromPrepareParameters(final String sql, List<ParameterHolder[]> parameterList, int parameterLength) {
+
+        String stringParameters = ", parameters ";
+        for (int paramNo = 0; paramNo < parameterList.size(); paramNo++) {
+            ParameterHolder[] parameters = parameterList.get(paramNo);
+            stringParameters += "[";
+            for (int i = 0; i < parameterLength; i++) {
+                stringParameters += parameters[i].toString() + ",";
+            }
+            stringParameters = stringParameters.substring(0, stringParameters.length() - 1);
+            if (maxQuerySizeToLog > 0 && stringParameters.length() > maxQuerySizeToLog) {
+                break;
+            } else {
+                stringParameters += "],";
+            }
+        }
+        return sql + stringParameters.substring(0, stringParameters.length() - 1);
+    }
+
+    private String getQueryFromPrepareParameters(String sql, ParameterHolder[] paramHolders, int parameterLength) {
+        if (paramHolders.length > 0) {
+            sql += ", parameters [";
+            for (int i = 0; i < parameterLength; i++) {
+                sql += paramHolders[i].toString() + ",";
+                if (maxQuerySizeToLog > 0 && sql.length() > maxQuerySizeToLog) break;
+            }
+            return sql.substring(0, sql.length() - 1) + "]";
+        }
+        return sql;
     }
 
     private String getQueryFromWriterBuffer() {

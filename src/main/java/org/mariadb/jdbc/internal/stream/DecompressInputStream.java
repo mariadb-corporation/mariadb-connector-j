@@ -50,6 +50,9 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.stream;
 
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
+
 import java.io.ByteArrayInputStream;
 import java.io.EOFException;
 import java.io.IOException;
@@ -178,7 +181,6 @@ public class DecompressInputStream extends InputStream implements MariaDbInputSt
             }
             inflater.end();
             decompressedByteStream = new ByteArrayInputStream(decompressedBuffer);
-
         } else {
             doDecompress = false;
             remainingBytes += compressedLength;

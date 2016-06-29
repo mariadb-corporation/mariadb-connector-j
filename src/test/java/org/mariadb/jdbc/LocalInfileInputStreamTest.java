@@ -13,7 +13,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.*;
 
 public class LocalInfileInputStreamTest extends BaseTest {
     /**
@@ -22,8 +22,8 @@ public class LocalInfileInputStreamTest extends BaseTest {
      */
     @BeforeClass()
     public static void initClass() throws SQLException {
-        createTable("t_local", "id int, test varchar(100)");
-        createTable("tt_local", "id int, test varchar(100)");
+        createTable("LocalInfileInputStreamTest", "id int, test varchar(100)");
+        createTable("ttlocal", "id int, test varchar(100)");
         createTable("ldinfile", "a varchar(10)");
     }
 
@@ -40,16 +40,16 @@ public class LocalInfileInputStreamTest extends BaseTest {
         InputStream inputStream = new ByteArrayInputStream(builder.toString().getBytes());
         ((MariaDbStatement) st).setLocalInfileInputStream(inputStream);
 
-        st.executeUpdate("LOAD DATA LOCAL INFILE 'dummy.tsv' INTO TABLE t_local (id, test)");
+        st.executeUpdate("LOAD DATA LOCAL INFILE 'dummy.tsv' INTO TABLE LocalInfileInputStreamTest (id, test)");
 
-        ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM t_local");
+        ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM LocalInfileInputStreamTest");
         boolean next = rs.next();
         Assert.assertTrue(next);
 
         int count = rs.getInt(1);
         Assert.assertEquals(2, count);
 
-        rs = st.executeQuery("SELECT * FROM t_local");
+        rs = st.executeQuery("SELECT * FROM LocalInfileInputStreamTest");
 
         validateRecord(rs, 1, "hello");
         validateRecord(rs, 2, "world");
@@ -58,9 +58,32 @@ public class LocalInfileInputStreamTest extends BaseTest {
     }
 
     @Test
-    public void testLocalInfile() throws SQLException {
-        Statement st = sharedConnection.createStatement();
+    public void testLocalInfileValidInterceptor() throws SQLException {
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+        testLocalInfile(classLoader.getResource("validateInfile.txt").getPath());
+    }
+
+    @Test
+    public void testLocalInfileUnValidInterceptor() throws SQLException {
+        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+        try {
+            testLocalInfile(classLoader.getResource("localInfile.txt").getPath());
+            fail("Must have been intercepted");
+        } catch (SQLException sqle) {
+            sqle.printStackTrace();
+            assertTrue(sqle.getMessage().contains("LOCAL DATA LOCAL INFILE request to send local file named")
+                    && sqle.getMessage().contains("not validated by interceptor \"org.mariadb.jdbc.LocalInfileInterceptorImpl\""));
+        }
+        //check that connection state is correct
+        Statement st = sharedConnection.createStatement();
+        ResultSet rs = st.executeQuery("SELECT 1");
+        rs.next();
+        assertEquals(1, rs.getInt(1));
+    }
+
+
+    private void testLocalInfile(String file) throws SQLException {
+        Statement st = sharedConnection.createStatement();
         ResultSet rs = st.executeQuery("select @@version_compile_os");
         if (!rs.next()) {
             return;
@@ -68,21 +91,21 @@ public class LocalInfileInputStreamTest extends BaseTest {
 
         String os = rs.getString(1);
         if (os.toLowerCase().startsWith("win") || System.getProperty("os.name").startsWith("Windows")) {
-            st.executeUpdate("LOAD DATA LOCAL INFILE '" + classLoader.getResource("test.txt").getPath()
-                    + "' INTO TABLE tt_local "
+            st.executeUpdate("LOAD DATA LOCAL INFILE '" + file
+                    + "' INTO TABLE ttlocal "
                     + "  FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"'"
                     + "  LINES TERMINATED BY '\\r\\n' "
                     + "  (id, test)");
         } else {
-            st.executeUpdate("LOAD DATA LOCAL INFILE '" + classLoader.getResource("test.txt").getPath()
-                    + "' INTO TABLE tt_local "
+            st.executeUpdate("LOAD DATA LOCAL INFILE '" + file
+                    + "' INTO TABLE ttlocal "
                     + "  FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"'"
                     + "  LINES TERMINATED BY '\\n' "
                     + "  (id, test)");
         }
 
 
-        rs = st.executeQuery("SELECT COUNT(*) FROM tt_local");
+        rs = st.executeQuery("SELECT COUNT(*) FROM ttlocal");
         boolean next = rs.next();
 
         Assert.assertTrue(next);
@@ -90,7 +113,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
         int count = rs.getInt(1);
         Assert.assertEquals(2, count);
 
-        rs = st.executeQuery("SELECT * FROM tt_local");
+        rs = st.executeQuery("SELECT * FROM ttlocal");
 
         validateRecord(rs, 1, "hello");
         validateRecord(rs, 2, "world");
@@ -102,7 +125,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
     @Test
     public void loadDataInfileEmpty() throws SQLException, IOException {
         // Create temp file.
-        File temp = File.createTempFile("ldinfile", ".tmp");
+        File temp = File.createTempFile("validateInfile", ".tmp");
 
         try {
             Statement st = sharedConnection.createStatement();
@@ -119,7 +142,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
     @Test
     public void testPrepareLocalInfileWithoutInputStream() throws SQLException {
         try {
-            PreparedStatement st = sharedConnection.prepareStatement("LOAD DATA LOCAL INFILE 'dummy.tsv' "
+            PreparedStatement st = sharedConnection.prepareStatement("LOAD DATA LOCAL INFILE 'validateInfile.tsv' "
                     + "INTO TABLE t (id, test)");
             st.execute();
             Assert.fail();

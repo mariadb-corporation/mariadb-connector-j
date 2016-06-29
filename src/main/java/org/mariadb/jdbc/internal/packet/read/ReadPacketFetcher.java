@@ -50,7 +50,10 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.packet.read;
 
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.stream.MariaDbInputStream;
+import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 import org.mariadb.jdbc.internal.util.buffer.Buffer;
 
 import java.io.EOFException;
@@ -58,6 +61,7 @@ import java.io.IOException;
 import java.io.InputStream;
 
 public class ReadPacketFetcher {
+
     public static final int AVOID_CREATE_BUFFER_LENGTH = 4096;
     private final MariaDbInputStream inputStream;
 
@@ -103,7 +107,6 @@ public class ReadPacketFetcher {
         lastPacketSeq = headerBuffer[3];
         int length = (headerBuffer[0] & 0xff) + ((headerBuffer[1] & 0xff) << 8) + ((headerBuffer[2] & 0xff) << 16);
         byte[] rawBytes = new byte[length];
-
         remaining = length;
         off = 0;
         do {
@@ -169,7 +172,6 @@ public class ReadPacketFetcher {
             off += count;
         } while (remaining > 0);
         lastPacketSeq = headerBuffer[3];
-
         int length = (headerBuffer[0] & 0xff) + ((headerBuffer[1] & 0xff) << 8) + ((headerBuffer[2] & 0xff) << 16);
         byte[] rawBytes;
 
