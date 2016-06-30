@@ -161,6 +161,10 @@ public interface Protocol {
                               ExecutionResult executionResult, ParameterHolder[] parameters,
                               int resultSetScrollType) throws QueryException;
 
+    void executePreparedQuery(boolean mustExecuteOnMaster, ServerPrepareResult serverPrepareResult,
+                              ExecutionResult executionResult, List<ParameterHolder[]> parametersList,
+                              int resultSetScrollType) throws QueryException;
+
     ServerPrepareResult prepareAndExecutesComMulti(boolean mustExecuteOnMaster, ServerPrepareResult serverPrepareResult,
                                                    ExecutionResult executionResult, String sql,
                                                    List<ParameterHolder[]> parameterList, int resultSetScrollType)

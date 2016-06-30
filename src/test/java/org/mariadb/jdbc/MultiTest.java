@@ -784,7 +784,7 @@ public class MultiTest extends BaseTest {
     public void continueOnBatchError() throws SQLException {
         createTable("MultiTestt9", "id int not null primary key");
         continueOnBatchError(true, 9, 9, true, false);
-        continueOnBatchError(false, 5, 9, true, false);
+        continueOnBatchError(false, 9, 9, true, false);
         continueOnBatchError(true, 9, 9, false, false);
         continueOnBatchError(false, 5, 9, false, false);
         continueOnBatchError(true, 0, 9, false, true);
@@ -795,6 +795,7 @@ public class MultiTest extends BaseTest {
                                       boolean rewrite) throws SQLException {
         try (Connection connection = setConnection(
                 "&useServerPrepStmts=" + server
+                        + "&useComMulti=" + server
                         + "&continueBatchOnError=" + continueBatch
                         + "&rewriteBatchedStatements=" + rewrite)) {
             connection.createStatement().execute("TRUNCATE TABLE MultiTestt9");

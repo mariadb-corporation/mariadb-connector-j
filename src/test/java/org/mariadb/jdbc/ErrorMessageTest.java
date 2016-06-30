@@ -70,7 +70,7 @@ public class ErrorMessageTest extends BaseTest {
     @Test
     public void testSmallComMultiErrorMessage() throws SQLException {
         Assume.assumeTrue(sharedUsePrepare());
-        try (Connection connection = setConnection("&useComMulti=true")) {
+        try (Connection connection = setConnection("&useComMulti=true&useBatchComMulti=true")) {
             executeBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
@@ -121,7 +121,7 @@ public class ErrorMessageTest extends BaseTest {
     @Test
     public void testBigComMultiErrorMessage() throws SQLException {
         Assume.assumeTrue(sharedUsePrepare());
-        try (Connection connection = setConnection("&useComMulti=true")) {
+        try (Connection connection = setConnection("&useComMulti=true&useBatchComMulti=true")) {
             executeBigBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {

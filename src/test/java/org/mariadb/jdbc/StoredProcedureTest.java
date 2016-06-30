@@ -176,7 +176,15 @@ public class StoredProcedureTest extends BaseTest {
 
     @Test
     public void callMultiResultSets() throws Exception {
-        CallableStatement stmt = sharedConnection.prepareCall("{call multiResultSets()}");
+        executeAndCheckResult(sharedConnection.prepareCall("{call multiResultSets()}"));
+    }
+
+    @Test
+    public void prepareMultiResultSets() throws Exception {
+        executeAndCheckResult(sharedConnection.prepareStatement("{call multiResultSets()}"));
+    }
+
+    private void executeAndCheckResult(PreparedStatement stmt) throws Exception {
         stmt.execute();
         ResultSet rs = stmt.getResultSet();
         assertTrue(rs.next());
@@ -187,6 +195,19 @@ public class StoredProcedureTest extends BaseTest {
         assertTrue(rs.next());
         assertEquals(2, rs.getInt(1));
         assertFalse(rs.next());
+        executeAnotherRequest();
+    }
+
+    @Test
+    public void prepareBatchMultiResultSets() throws Exception {
+        PreparedStatement stmt = sharedConnection.prepareStatement("{call multiResultSets()}");
+        stmt.addBatch();
+        stmt.addBatch();
+        try {
+            stmt.executeBatch();
+        } catch (SQLException e) {
+            assertTrue(e.getMessage().contains("Select command are not permitted via executeBatch() command"));
+        }
         executeAnotherRequest();
     }
 

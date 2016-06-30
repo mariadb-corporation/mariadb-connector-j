@@ -189,7 +189,11 @@ public class ProtocolLoggingProxy implements InvocationHandler {
                 break;
             case "executePreparedQuery":
                 ServerPrepareResult prepareResult = (ServerPrepareResult) args[1];
-                sql = getQueryFromPrepareParameters(prepareResult.getSql(), (ParameterHolder[]) args[3], prepareResult.getParameters().length);
+                if (args[3] instanceof ParameterHolder[]) {
+                    sql = getQueryFromPrepareParameters(prepareResult.getSql(), (ParameterHolder[]) args[3], prepareResult.getParameters().length);
+                } else {
+                    sql = getQueryFromPrepareParameters(prepareResult.getSql(), (List<ParameterHolder[]>) args[3], prepareResult.getParameters().length);
+                }
                 break;
             default:
                 sql = getQueryFromWriterBuffer();

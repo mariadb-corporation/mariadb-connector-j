@@ -84,7 +84,7 @@ public class BufferTest extends BaseTest {
     @Test
     public void send20mSqlNotCompressDataException() throws SQLException {
         try {
-            Assume.assumeTrue(!checkMaxAllowedPacketMore20m("send20mSqlNotCompressDataException"));
+            Assume.assumeTrue(checkMaxAllowedPacketMore20m("send20mSqlNotCompressDataException"));
             sendSqlData(false, array20m);
             fail("must have thrown exception");
         } catch (SQLException sqlexception) {
@@ -97,7 +97,7 @@ public class BufferTest extends BaseTest {
     @Test
     public void send20mSqlCompressDataException() throws SQLException {
         try {
-            Assume.assumeTrue(!checkMaxAllowedPacketMore20m("send20mSqlCompressDataException"));
+            Assume.assumeTrue(checkMaxAllowedPacketMore20m("send20mSqlCompressDataException"));
             sendSqlData(true, array20m);
             fail("must have thrown exception");
         } catch (SQLException sqlexception) {
@@ -110,7 +110,7 @@ public class BufferTest extends BaseTest {
     @Test
     public void send40mSqlNotCompressDataException() throws SQLException {
         try {
-            Assume.assumeTrue(!checkMaxAllowedPacketMore40m("send40mSqlNotCompressDataException"));
+            Assume.assumeTrue(checkMaxAllowedPacketMore40m("send40mSqlNotCompressDataException"));
             sendSqlData(false, array40m);
             fail("must have thrown exception");
         } catch (SQLException sqlexception) {
@@ -123,7 +123,7 @@ public class BufferTest extends BaseTest {
     @Test
     public void send40mSqlCompressDataException() throws SQLException {
         try {
-            Assume.assumeTrue(!checkMaxAllowedPacketMore40m("send40mSqlCompressDataException"));
+            Assume.assumeTrue(checkMaxAllowedPacketMore40m("send40mSqlCompressDataException"));
             sendSqlData(true, array40m);
             fail("must have thrown exception");
         } catch (SQLException sqlexception) {
@@ -137,7 +137,7 @@ public class BufferTest extends BaseTest {
     @Test
     public void send20mByteBufferNotCompressDataException() throws SQLException {
         try {
-            Assume.assumeTrue(!checkMaxAllowedPacketMore20m("send20mByteBufferNotCompressDataException"));
+            Assume.assumeTrue(checkMaxAllowedPacketMore20m("send20mByteBufferNotCompressDataException"));
             sendByteBufferData(false, array20m);
             fail("must have thrown exception");
         } catch (SQLException sqlexception) {
@@ -150,7 +150,7 @@ public class BufferTest extends BaseTest {
     @Test
     public void send20mByteBufferCompressDataException() throws SQLException {
         try {
-            Assume.assumeTrue(!checkMaxAllowedPacketMore20m("send20mByteBufferCompressDataException"));
+            Assume.assumeTrue(checkMaxAllowedPacketMore20m("send20mByteBufferCompressDataException"));
             sendByteBufferData(true, array20m);
             fail("must have thrown exception");
         } catch (SQLException sqlexception) {
@@ -163,7 +163,7 @@ public class BufferTest extends BaseTest {
     @Test
     public void send40mByteBufferNotCompressDataException() throws SQLException {
         try {
-            Assume.assumeTrue(!checkMaxAllowedPacketMore40m("send40mByteBufferNotCompressDataException"));
+            Assume.assumeTrue(checkMaxAllowedPacketMore40m("send40mByteBufferNotCompressDataException"));
             sendByteBufferData(false, array40m);
             fail("must have thrown exception");
         } catch (SQLException sqlexception) {
@@ -176,7 +176,7 @@ public class BufferTest extends BaseTest {
     @Test
     public void send40mByteBufferCompressDataException() throws SQLException {
         try {
-            Assume.assumeTrue(!checkMaxAllowedPacketMore40m("send40mByteBufferCompressDataException"));
+            Assume.assumeTrue(checkMaxAllowedPacketMore40m("send40mByteBufferCompressDataException"));
             sendByteBufferData(true, array40m);
             fail("must have thrown exception");
         } catch (SQLException sqlexception) {

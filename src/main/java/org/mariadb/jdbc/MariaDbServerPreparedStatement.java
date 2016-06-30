@@ -237,8 +237,11 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
                                 queryParameters, resultSetScrollType);
                     if (metadata == null) setMetaFromResult(); //firs prepare
 
+                } else if (options.useBulkExecute && !hasLongData) {
+                    if (serverPrepareResult == null) prepare(this.sql);
+                    protocol.executePreparedQuery(mustExecuteOnMaster, serverPrepareResult, internalExecutionResult,
+                            queryParameters, resultSetScrollType);
                 } else {
-
                     for (int counter = 0; counter < queryParameterSize; counter++) {
                         try {
                             ParameterHolder[] parameterHolder = queryParameters.get(counter);

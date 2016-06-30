@@ -105,6 +105,7 @@ public class Options {
     public Integer callableStmtCacheSize;
     public String connectionAttributes;
     public boolean useComMulti;
+    public boolean useBulkExecute;
 
     //logging options
     public boolean log;
@@ -178,6 +179,7 @@ public class Options {
                 + ", jdbcCompliantTruncation=" + jdbcCompliantTruncation
                 + ", cacheCallableStmts=" + cacheCallableStmts
                 + ", useComMulti=" + useComMulti
+                + ", useBulkExecute=" + useBulkExecute
                 + ", callableStmtCacheSize=" + callableStmtCacheSize
                 + ", connectionAttributes=" + connectionAttributes
                 + ", log=" + log
@@ -266,8 +268,8 @@ public class Options {
                 ? !slowQueryThresholdNanos.equals(options.slowQueryThresholdNanos) : options.slowQueryThresholdNanos != null) {
             return false;
         }
-
         if (useComMulti != options.useComMulti) return false;
+        if (useBulkExecute != options.useBulkExecute) return false;
 
         return !(prepStmtCacheSqlLimit != null ? !prepStmtCacheSqlLimit.equals(options.prepStmtCacheSqlLimit)
                 : options.prepStmtCacheSqlLimit != null);

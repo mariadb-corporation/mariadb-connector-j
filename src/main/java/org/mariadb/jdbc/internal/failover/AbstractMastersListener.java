@@ -326,10 +326,6 @@ public abstract class AbstractMastersListener implements Listener {
                 case "executePreparedQuery":
                     if (!((Boolean) args[0])) return true; //launched on slave connection
                     ServerPrepareResult serverPrepareResult = (ServerPrepareResult) args[1];
-                    if (!((Boolean) args[0])) { //mustExecuteOnMaster
-                        //query must normally be launched on slave.
-                        return true;
-                    }
                     return (serverPrepareResult.getSql()).toUpperCase().startsWith("SELECT");
                 case "prepareAndExecuteComMulti":
                     if (!((Boolean) args[0])) return true; //launched on slave connection
