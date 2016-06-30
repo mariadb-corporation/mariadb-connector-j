@@ -62,35 +62,20 @@ public class ParameterWriter {
     private static final byte[] BINARY_INTRODUCER = {'_', 'b', 'i', 'n', 'a', 'r', 'y', ' ', '\''};
     public static final byte QUOTE = (byte)'\'';
 
-
     private static void writeBytesEscaped(OutputStream out, byte[] bytes, int count, boolean noBackslashEscapes)
             throws IOException {
         if (noBackslashEscapes) {
             for (int i = 0; i < count; i++) {
-                byte bit = bytes[i];
-                switch (bit) {
-                    case '\'':
-                        out.write('\'');
-                        out.write(bit);
-                        break;
-                    default:
-                        out.write(bit);
-                }
+                if ('\'' == bytes[i]) out.write('\'');
+                out.write(bytes[i]);
             }
         } else {
             for (int i = 0; i < count; i++) {
-                byte bit = bytes[i];
-                switch (bit) {
-                    case '\\':
-                    case '\'':
-                    case '"':
-                    case 0:
-                        out.write('\\');
-                        out.write(bit);
-                        break;
-                    default:
-                        out.write(bit);
-                }
+                if (bytes[i]  == '\''
+                        || bytes[i]  == '\\'
+                        || bytes[i]  == '"'
+                        || bytes[i]  == 0) out.write('\\'); //add escape slash
+                out.write(bytes[i]);
             }
         }
     }
@@ -98,73 +83,18 @@ public class ParameterWriter {
     private static void writeBytesEscapedUnsafe(PacketOutputStream out, byte[] bytes, int count, boolean noBackslashEscapes) {
         if (noBackslashEscapes) {
             for (int i = 0; i < count; i++) {
-                byte bit = bytes[i];
-                switch (bit) {
-                    case '\'':
-                        out.writeUnsafe('\'');
-                        out.writeUnsafe(bit);
-                        break;
-                    default:
-                        out.writeUnsafe(bit);
-                }
+                if ('\'' == bytes[i]) out.writeUnsafe('\'');
+                out.writeUnsafe(bytes[i]);
             }
         } else {
             for (int i = 0; i < count; i++) {
-                byte bit = bytes[i];
-                switch (bit) {
-                    case '\\':
-                    case '\'':
-                    case '"':
-                    case 0:
-                        out.writeUnsafe('\\');
-                        out.writeUnsafe(bit);
-                        break;
-                    default:
-                        out.writeUnsafe(bit);
-                }
+                if (bytes[i]  == '\''
+                        || bytes[i]  == '\\'
+                        || bytes[i]  == '"'
+                        || bytes[i]  == 0) out.writeUnsafe('\\'); //add escape slash
+                out.writeUnsafe(bytes[i]);
             }
         }
-    }
-
-    /**
-     * Escape string value.
-     *
-     * @param bytes string in utf-8 bytes
-     * @param noBackslashEscapes flag
-     * @return escaped string
-     */
-    public static String getBytesEscaped(char[] bytes, boolean noBackslashEscapes) {
-        StringBuilder returnValue = new StringBuilder();
-        int count = bytes.length;
-        if (noBackslashEscapes) {
-            for (int i = 0; i < count; i++) {
-                char bit = bytes[i];
-                switch (bit) {
-                    case '\'':
-                        returnValue.append('\'');
-                        returnValue.append(bit);
-                        break;
-                    default:
-                        returnValue.append(bit);
-                }
-            }
-        } else {
-            for (int i = 0; i < count; i++) {
-                char bit = bytes[i];
-                switch (bit) {
-                    case '\\':
-                    case '\'':
-                    case '"':
-                    case 0:
-                        returnValue.append('\\');
-                        returnValue.append(bit);
-                        break;
-                    default:
-                        returnValue.append(bit);
-                }
-            }
-        }
-        return returnValue.toString();
     }
 
     /**
@@ -416,38 +346,6 @@ public class ParameterWriter {
     public static void writeUnsafe(PacketOutputStream out, byte[] bytes, boolean noBackslashEscapes) {
         out.writeUnsafe(BINARY_INTRODUCER);
         writeBytesEscapedUnsafe(out, bytes, bytes.length, noBackslashEscapes);
-        out.writeUnsafe(QUOTE);
-    }
-
-    /**
-     * Write cache byte array to buffer.
-     *
-     * @param out buffer
-     * @param readArrays cache byte array
-     * @param noBackslashEscapes must escape backslash flag
-     * @throws IOException if buffer has writing error
-     */
-    public static void writeBytesArray(OutputStream out, ArrayList<byte[]> readArrays, boolean noBackslashEscapes)
-            throws IOException {
-        out.write(QUOTE);
-        for (byte[] buffer : readArrays) {
-            writeBytesEscaped(out, buffer, buffer.length, noBackslashEscapes);
-        }
-        out.write(QUOTE);
-    }
-
-    /**
-     * Write cache byte array to buffer without checking buffer size
-     * .
-     * @param out buffer
-     * @param readArrays cache byte array
-     * @param noBackslashEscapes must escape backslash flag
-     */
-    public static void writeBytesArrayUnsafe(PacketOutputStream out, ArrayList<byte[]> readArrays, boolean noBackslashEscapes) {
-        out.writeUnsafe(QUOTE);
-        for (byte[] buffer : readArrays) {
-            writeBytesEscapedUnsafe(out, buffer, buffer.length, noBackslashEscapes);
-        }
         out.writeUnsafe(QUOTE);
     }
 

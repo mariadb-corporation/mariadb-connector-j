@@ -53,18 +53,13 @@ import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 import org.mariadb.jdbc.internal.MariaDbType;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.ReflectPermission;
+import java.nio.charset.StandardCharsets;
+import java.security.Permission;
 import java.sql.SQLException;
 
 
 public class StringParameter implements ParameterHolder, Cloneable {
-    public static Field charsFieldValue;
-
-    static {
-        try {
-            charsFieldValue = String.class.getDeclaredField("value");
-        } catch (NoSuchFieldException e) { }
-        charsFieldValue.setAccessible(true);
-    }
 
     private String string;
     private boolean noBackslashEscapes;
@@ -82,7 +77,7 @@ public class StringParameter implements ParameterHolder, Cloneable {
      * @param os outpustream.
      */
     public void writeTo(final PacketOutputStream os) {
-        if (escapedArray == null) escapeForText();
+        if (escapedArray == null) escapeUtf8();
         os.write(escapedArray, 0, position);
     }
 
@@ -92,12 +87,12 @@ public class StringParameter implements ParameterHolder, Cloneable {
      * @param os outpustream.
      */
     public void writeUnsafeTo(final PacketOutputStream os) {
-        if (escapedArray == null) escapeForText();
+        if (escapedArray == null) escapeUtf8();
         os.buffer.put(escapedArray, 0, position);
     }
 
     public long getApproximateTextProtocolLength() {
-        escapeForText();
+        escapeUtf8();
         return position;
     }
 
@@ -128,15 +123,46 @@ public class StringParameter implements ParameterHolder, Cloneable {
 
     /**
      * Encode char array to UTF-8 byte array, with SQL escape.
-     * (this permit to create an array with string length * 3 with UTF-8 byte value directly escape.
-     *  so doesn't have to make a array shrink when size is known, to escape value. This buffer can directly be put
-     *  to outputBuffer with offset 0, length the return end position)
-     **/
-    private void escapeForText() {
+     *
+     * Driver exchange with server use exclusively UTF-8 and lot of parameters are string.
+     * Most the time spend using driver is spend transforming String parameters in UTF-8 escaped bytes.
+     *
+     * Every String as to be escaped to avoid SQL injection, so whe must loop through the String char array
+     * to add escape chars, creating a new char array, and after decoding this char array to UTF-8 bytes.
+     *
+     * Using standard java, this result in :
+     * - recreating a lot of char array (and copy to new array) during escape.
+     * - utf-8 encoding is using internally a byte array initialized to 3 * the char length and will be spliced when final length is known.
+     * when dealing with big string, that is using a lot of array for nothing (and so memory issues)
+     *
+     * Resulting byte array will be send to outputStream, so :
+     * - escape characters are ASCII characters (one byte) -> the escaped characters can be put directly in array
+     * - driver don't need the final byte array shrink, the byte array can be send directly in outputStream.
+     *
+     *
+     * Example for a 1k character String :
+     * if using standard java
+     * - getting toCharArray() will create a new 1k char array (and copy existing array into it).
+     * - escaping (using a StringBuffer) will use a new 1k char array and the internal array may expand (=> new allocation + copy) if there is
+     *   any char to be escape
+     * - getBytes("UTF-8") : a new 3k byte buffer will be created, and finally a new one (+copy into it) when real length is known.
+     *
+     * Current implementation :
+     * - creating a 3k bytes array, send directly these array with length into outputStream.
+     * => only one array.
+     *
+     */
+    private void escapeUtf8() {
+        string.getBytes(StandardCharsets.UTF_8);
+        //get char array
         char[] chars;
-        try {
-            chars = (char[]) charsFieldValue.get(string);
-        } catch (IllegalAccessException e) {
+        if (charsFieldValue != null) {
+            try {
+                chars = (char[]) charsFieldValue.get(string);
+            } catch (IllegalAccessException e) {
+                chars = string.toCharArray();
+            }
+        } else {
             chars = string.toCharArray();
         }
         string = null;
@@ -144,63 +170,39 @@ public class StringParameter implements ParameterHolder, Cloneable {
         int charsOffset = 0;
         position = 0;
 
+        //create UTF-8 byte array
         escapedArray = new byte[(charsLength * 3) + 2];
-        escapedArray[position++] = ParameterWriter.QUOTE;
+        escapedArray[position++] = (byte)'\'';
 
         int maxCharIndex = charsOffset + charsLength;
         int maxLength = Math.min(charsLength, escapedArray.length);
 
-        // ASCII only optimized loop
+        //ASCII loop
         if (noBackslashEscapes) {
-            while (position < maxLength && chars[charsOffset] < '\u0080') {
-                if (chars[charsOffset] == '\'') {
-                    escapedArray[position++] = (byte) 0x27;
-                }
+            while (position < maxLength && chars[charsOffset] < 0x80) {
+                if (chars[charsOffset] == '\'') escapedArray[position++] = (byte) '\''; //add a single escape quote
                 escapedArray[position++] = (byte) chars[charsOffset++];
             }
         } else {
-            while (position < maxLength && chars[charsOffset] < '\u0080') {
-                switch (chars[charsOffset]) {
-                    case '\'':
-                        escapedArray[position++] = (byte) 0x5c;
-                        escapedArray[position++] = (byte) chars[charsOffset++];
-                        break;
-                    case '\\':
-                    case '"':
-                    case 0:
-                        escapedArray[position++] = (byte) 0x5c;
-                        escapedArray[position++] = (byte) chars[charsOffset++];
-                        break;
-                    default:
-                        escapedArray[position++] = (byte) chars[charsOffset++];
-                }
+            while (position < maxLength && chars[charsOffset] < 0x80) {
+                if (chars[charsOffset]  == '\''
+                        || chars[charsOffset]  == '\\'
+                        || chars[charsOffset]  == '"'
+                        || chars[charsOffset]  == 0) escapedArray[position++] = (byte) '\\'; //add escape slash
+                escapedArray[position++] = (byte) chars[charsOffset++];
             }
         }
 
+        //if contain non ASCII chars
         while (charsOffset < maxCharIndex) {
             char currChar = chars[charsOffset++];
             if (currChar < 0x80) {
-                switch (currChar) {
-                    case '\'':
-                        if (noBackslashEscapes) {
-                            escapedArray[position++] = (byte) 0x27;
-                        } else {
-                            escapedArray[position++] = (byte) 0x5c;
-                        }
-                        escapedArray[position++] = (byte) currChar;
-                        break;
-                    case '\\':
-                    case '"':
-                    case 0:
-                        if (!noBackslashEscapes) {
-                            escapedArray[position++] = (byte) 0x5c;
-                        }
-                        escapedArray[position++] = (byte) currChar;
-                        break;
-                    default:
-                        escapedArray[position++] = (byte) currChar;
+                if (currChar == '\'') {
+                    escapedArray[position++] = noBackslashEscapes ? (byte) '\'' : (byte) '\\';
+                } else if (!noBackslashEscapes && (currChar  == '\\' || currChar  == '"' || currChar  == 0)) {
+                    escapedArray[position++] = (byte) '\\';
                 }
-
+                escapedArray[position++] = (byte) currChar;
             } else if (currChar < 0x800) {
                 escapedArray[position++] = (byte) (0xc0 | (currChar >> 6));
                 escapedArray[position++] = (byte) (0x80 | (currChar & 0x3f));
@@ -223,8 +225,7 @@ public class StringParameter implements ParameterHolder, Cloneable {
                 escapedArray[position++] = (byte) (0x80 | (currChar & 0x3f));
             }
         }
-
-        escapedArray[position++] = ParameterWriter.QUOTE;
+        escapedArray[position++] = (byte) '\'';
     }
 
     private static int parseSurrogatePair(char currChar, char[] chars, int offset, int maxCharIndex) {
@@ -249,6 +250,37 @@ public class StringParameter implements ParameterHolder, Cloneable {
 
     public boolean isLongData() {
         return false;
+    }
+
+    private static Field charsFieldValue;
+
+    static {
+        RuntimePermission runtimePermission = new RuntimePermission("accessDeclaredMembers");
+        Permission accessPermission = new ReflectPermission("suppressAccessChecks");
+        boolean securityException = false;
+
+        //check security
+        SecurityManager securityManager = System.getSecurityManager();
+        if (securityManager != null) {
+            try {
+
+                if (runtimePermission != null) securityManager.checkPermission(runtimePermission);
+                if (accessPermission != null) securityManager.checkPermission(accessPermission);
+            } catch (SecurityException exception) {
+                securityException = true;
+            }
+        }
+
+        if (!securityException) {
+            try {
+                charsFieldValue = String.class.getDeclaredField("value");
+                charsFieldValue.setAccessible(true);
+            } catch (NoSuchFieldException e) {
+                charsFieldValue = null;
+            }
+        } else {
+            charsFieldValue = null;
+        }
     }
 
 }
