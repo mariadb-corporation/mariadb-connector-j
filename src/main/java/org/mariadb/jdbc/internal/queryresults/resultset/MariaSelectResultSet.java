@@ -592,10 +592,7 @@ public class MariaSelectResultSet implements ResultSet {
     @Override
     public boolean isAfterLast() throws SQLException {
         checkClose();
-        if (dataFetchTime > 0) {
-            return rowPointer >= resultSet.size() && resultSet.size() > 0;
-        }
-        return false;
+        return dataFetchTime > 0 && rowPointer >= resultSet.size() && resultSet.size() > 0;
     }
 
     @Override
@@ -712,11 +709,7 @@ public class MariaSelectResultSet implements ResultSet {
         } else {
             if (rowPointer > -1) {
                 rowPointer--;
-                if (rowPointer == -1) {
-                    return false;
-                } else {
-                    return true;
-                }
+                return rowPointer != -1;
             }
             return false;
         }

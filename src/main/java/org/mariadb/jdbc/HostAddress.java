@@ -107,11 +107,16 @@ public class HostAddress {
         String[] tokens = spec.trim().split(",");
         List<HostAddress> arr = new ArrayList<>(tokens.length);
 
-        for (int i = 0; i < tokens.length; i++) {
-            if (tokens[i].startsWith("address=")) {
-                arr.add(parseParameterHostAddress(tokens[i]));
+        // Allow only cluster endpoint to be given unless testing
+        if (haMode == HaMode.AURORA && (tokens.length > 1 || (tokens.length == 1 && spec.indexOf(".cluster-") < 0)) && System.getProperty("auroraFailoverTesting") == null) {
+            throw new IllegalArgumentException("Invalid Aurora connection URL, address should correspond to cluster endpoint");
+        }
+
+        for (String token : tokens) {
+            if (token.startsWith("address=")) {
+                arr.add(parseParameterHostAddress(token));
             } else {
-                arr.add(parseSimpleHostAddress(tokens[i]));
+                arr.add(parseSimpleHostAddress(token));
             }
         }
 
@@ -242,13 +247,7 @@ public class HostAddress {
 
         HostAddress that = (HostAddress) obj;
 
-        if (port != that.port) {
-            return false;
-        }
-        if (host != null ? !host.equals(that.host) : that.host != null) {
-            return false;
-        }
-        return !(type != null ? !type.equals(that.type) : that.type != null);
+        return port == that.port && (host != null ? host.equals(that.host) : that.host == null && !(type != null ? !type.equals(that.type) : that.type != null));
 
     }
 
@@ -261,4 +260,3 @@ public class HostAddress {
 
 
 }
-

@@ -362,12 +362,12 @@ public class DatabaseMetadataTest extends BaseTest {
 
         String tableName = tableSet.getString("TABLE_NAME");
         assertEquals("table_type_test", tableName);
-        
+
         String tableType = tableSet.getString("TABLE_TYPE");
         assertEquals("TABLE", tableType);
         // see for possible values https://docs.oracle.com/javase/7/docs/api/java/sql/DatabaseMetaData.html#getTableTypes%28%29
     }
-    
+
     @Test
     public void testGetColumns() throws SQLException {
         DatabaseMetaData dbmd = sharedConnection.getMetaData();
@@ -390,30 +390,37 @@ public class DatabaseMetadataTest extends BaseTest {
             int col = i + 1;
             assertEquals(label, rsmd.getColumnLabel(col));
             int columnType = rsmd.getColumnType(col);
-            if (type.equals("String")) {
-                assertTrue("invalid type  " + columnType + " for " + rsmd.getColumnLabel(col) + ",expected String",
-                        columnType == java.sql.Types.VARCHAR
-                                || columnType == java.sql.Types.NULL
-                                || columnType == Types.LONGVARCHAR);
-            } else if ("int".equals(type) || "short".equals(type)) {
+            switch (type) {
+                case "String":
+                    assertTrue("invalid type  " + columnType + " for " + rsmd.getColumnLabel(col) + ",expected String",
+                            columnType == Types.VARCHAR
+                                    || columnType == Types.NULL
+                                    || columnType == Types.LONGVARCHAR);
+                    break;
+                case "int":
+                case "short":
 
-                assertTrue("invalid type  " + columnType + "( " + rsmd.getColumnTypeName(col) + " ) for "
-                                + rsmd.getColumnLabel(col) + ",expected numeric",
-                        columnType == java.sql.Types.BIGINT
-                                || columnType == java.sql.Types.INTEGER
-                                || columnType == java.sql.Types.SMALLINT
-                                || columnType == java.sql.Types.TINYINT);
+                    assertTrue("invalid type  " + columnType + "( " + rsmd.getColumnTypeName(col) + " ) for "
+                                    + rsmd.getColumnLabel(col) + ",expected numeric",
+                            columnType == Types.BIGINT
+                                    || columnType == Types.INTEGER
+                                    || columnType == Types.SMALLINT
+                                    || columnType == Types.TINYINT);
 
-            } else if (type.equals("boolean")) {
-                assertTrue("invalid type  " + columnType + "( " + rsmd.getColumnTypeName(col) + " ) for "
-                                + rsmd.getColumnLabel(col) + ",expected boolean",
-                        columnType == java.sql.Types.BOOLEAN || columnType == java.sql.Types.BIT);
+                    break;
+                case "boolean":
+                    assertTrue("invalid type  " + columnType + "( " + rsmd.getColumnTypeName(col) + " ) for "
+                                    + rsmd.getColumnLabel(col) + ",expected boolean",
+                            columnType == Types.BOOLEAN || columnType == Types.BIT);
 
-            } else if (type.equals("null")) {
-                assertTrue("invalid type  " + columnType + " for " + rsmd.getColumnLabel(col) + ",expected null",
-                        columnType == java.sql.Types.NULL);
-            } else {
-                assertTrue("invalid type '" + type + "'", false);
+                    break;
+                case "null":
+                    assertTrue("invalid type  " + columnType + " for " + rsmd.getColumnLabel(col) + ",expected null",
+                            columnType == Types.NULL);
+                    break;
+                default:
+                    assertTrue("invalid type '" + type + "'", false);
+                    break;
             }
         }
     }

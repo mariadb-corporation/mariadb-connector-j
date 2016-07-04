@@ -68,10 +68,7 @@ public class CallableStatementCacheKey {
             return false;
         }
         CallableStatementCacheKey that = (CallableStatementCacheKey) object;
-        if (!database.equals(that.database)) {
-            return false;
-        }
-        return query.equals(that.query);
+        return database.equals(that.database) && query.equals(that.query);
 
     }
 
