@@ -207,7 +207,6 @@ public class AuroraListener extends MastersSlavesListener {
         }
 
         if (getCurrentProtocol() != null && !getCurrentProtocol().isClosed()) {
-            System.out.println("Retrieving");
             retrieveAllEndpointsAndSet(getCurrentProtocol());
         }
 
