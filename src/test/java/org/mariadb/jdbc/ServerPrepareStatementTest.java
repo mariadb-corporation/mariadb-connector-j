@@ -77,9 +77,7 @@ public class ServerPrepareStatementTest extends BaseTest {
 
     @Test
     public void deferredPrepareTest() throws Throwable {
-        Assume.assumeTrue(isMariadbServer());
-        requireMinimumVersion(10,2);
-        cancelForVersion(10,2,0); //since 10.2.1
+        Assume.assumeTrue(sharedComMultiCapacity());
         Connection connection = null;
         try {
             connection = setConnection();

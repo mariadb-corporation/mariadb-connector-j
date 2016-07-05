@@ -92,7 +92,7 @@ public class StringParameter implements ParameterHolder, Cloneable {
     }
 
     public long getApproximateTextProtocolLength() {
-        escapeUtf8();
+        if (escapedArray == null) escapeUtf8();
         return position;
     }
 
@@ -153,7 +153,6 @@ public class StringParameter implements ParameterHolder, Cloneable {
      *
      */
     private void escapeUtf8() {
-        string.getBytes(StandardCharsets.UTF_8);
         //get char array
         char[] chars;
         if (charsFieldValue != null) {

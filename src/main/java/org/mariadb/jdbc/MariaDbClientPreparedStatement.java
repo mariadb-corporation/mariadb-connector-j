@@ -292,9 +292,7 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
     public int[] executeBatch() throws SQLException {
         checkClose();
         int size = parameterList.size();
-        if (size == 0) {
-            return new int[0];
-        }
+        if (size == 0) return new int[0];
 
         MultiIntExecutionResult internalExecutionResult = new MultiIntExecutionResult(this, size, 0, false);
 
@@ -303,42 +301,7 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
             QueryException exception = null;
             executeQueryProlog();
             try {
-                if (rewriteType == RewriteType.REWRITE_QUERIES) {
-                    if (prepareResult.isRewritableValuesQuery()) {
-                        protocol.executeBatchRewrite(protocol.isMasterConnection(), internalExecutionResult, prepareResult.getQueryParts(),
-                                parameterList, resultSetScrollType, true);
-                        internalExecutionResult.updateResultsForRewrite(false);
-                    } else if (prepareResult.isRewritableMultipleQuery()) {
-                        protocol.executeBatchRewrite(protocol.isMasterConnection(), internalExecutionResult, prepareResult.getQueryParts(),
-                                parameterList, resultSetScrollType, false);
-                        internalExecutionResult.updateResultsMultiple(internalExecutionResult.getCachedExecutionResults(), false);
-                    } else {
-                        for (int batchQueriesCount = 0; batchQueriesCount < size; batchQueriesCount++) {
-                            protocol.executeQuery(protocol.isMasterConnection(), internalExecutionResult, prepareResult.getQueryParts(),
-                                    parameterList.get(batchQueriesCount),
-                                    resultSetScrollType, false);
-                        }
-                    }
-                } else {
-                    if (prepareResult.isRewritableMultipleQuery() && rewriteType == RewriteType.MULTI_QUERIES) {
-                        protocol.executeBatchMultiple(protocol.isMasterConnection(), internalExecutionResult, prepareResult.getQueryParts(),
-                                parameterList, resultSetScrollType);
-                        internalExecutionResult.updateResultsMultiple(internalExecutionResult.getCachedExecutionResults(), false);
-                    } else {
-                        for (int batchQueriesCount = 0; batchQueriesCount < size; batchQueriesCount++) {
-                            try {
-                                protocol.executeQuery(protocol.isMasterConnection(), internalExecutionResult, prepareResult.getQueryParts(),
-                                        parameterList.get(batchQueriesCount), resultSetScrollType);
-                            } catch (QueryException e) {
-                                if (options.continueBatchOnError) {
-                                    exception = e;
-                                } else {
-                                    throw e;
-                                }
-                            }
-                        }
-                    }
-                }
+                executeInternalBatch(internalExecutionResult, size);
             } catch (QueryException e) {
                 exception = e;
             } finally {
@@ -367,6 +330,63 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
             clearBatch();
         }
         return internalExecutionResult.getAffectedRows();
+    }
+
+    /**
+     * Choose better way to execute queries according to query and options.
+     *
+     * @param internalExecutionResult results
+     * @param size parameters number
+     * @throws QueryException if any error occur
+     */
+    private void executeInternalBatch(MultiIntExecutionResult internalExecutionResult, int size) throws QueryException {
+
+        if (rewriteType == RewriteType.REWRITE_QUERIES) {
+            if (prepareResult.isRewritableValuesQuery()) {
+                //values rewritten in one query :
+                // INSERT INTO X(a,b) VALUES (1,2), (3,4), ...
+                protocol.executeBatchRewrite(protocol.isMasterConnection(), internalExecutionResult, prepareResult.getQueryParts(),
+                        parameterList, resultSetScrollType, true);
+                internalExecutionResult.updateResultsForRewrite(false);
+                return;
+            } else if (prepareResult.isRewritableMultipleQuery()) {
+                //multi rewritten in one query :
+                // INSERT INTO X(a,b) VALUES (1,2);INSERT INTO X(a,b) VALUES (3,4); ...
+                protocol.executeBatchRewrite(protocol.isMasterConnection(), internalExecutionResult, prepareResult.getQueryParts(),
+                        parameterList, resultSetScrollType, false);
+                internalExecutionResult.updateResultsMultiple(internalExecutionResult.getCachedExecutionResults(), false);
+                return;
+            }
+        }
+
+        if (prepareResult.isRewritableMultipleQuery() && rewriteType == RewriteType.MULTI_QUERIES) {
+            //multi rewritten in one query :
+            // INSERT INTO X(a,b) VALUES (1,2);INSERT INTO X(a,b) VALUES (3,4); ...
+            // Difference is query parts are not the same than if rewrite type is REWRITE_QUERIES
+            protocol.executeBatchMultiple(protocol.isMasterConnection(), internalExecutionResult, prepareResult.getQueryParts(),
+                    parameterList, resultSetScrollType);
+            internalExecutionResult.updateResultsMultiple(internalExecutionResult.getCachedExecutionResults(), false);
+        } else if (options.useBatchBulkSend) {
+            //send by bulk : send data by bulk before reading corresponding results
+            protocol.executeBatchBulk(protocol.isMasterConnection(), internalExecutionResult, prepareResult.getQueryParts(),
+                    parameterList, resultSetScrollType);
+        } else {
+            //send query one by one, reading results for each query before sending another one
+            QueryException exception = null;
+            for (int batchQueriesCount = 0; batchQueriesCount < size; batchQueriesCount++) {
+                try {
+                    protocol.executeQuery(protocol.isMasterConnection(), internalExecutionResult, prepareResult.getQueryParts(),
+                            parameterList.get(batchQueriesCount), resultSetScrollType);
+                } catch (QueryException e) {
+                    if (options.continueBatchOnError) {
+                        exception = e;
+                    } else {
+                        throw e;
+                    }
+                }
+            }
+            if (exception != null) throw exception;
+        }
     }
 
     /**

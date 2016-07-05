@@ -105,7 +105,8 @@ public class Options {
     public Integer callableStmtCacheSize;
     public String connectionAttributes;
     public boolean useComMulti;
-    public boolean useBulkExecute;
+    public boolean useBatchBulkSend;
+    public Integer useBatchBulkSendNumber;
 
     //logging options
     public boolean log;
@@ -179,7 +180,8 @@ public class Options {
                 + ", jdbcCompliantTruncation=" + jdbcCompliantTruncation
                 + ", cacheCallableStmts=" + cacheCallableStmts
                 + ", useComMulti=" + useComMulti
-                + ", useBulkExecute=" + useBulkExecute
+                + ", useBatchBulkSend=" + useBatchBulkSend
+                + ", useBatchBulkSendNumber=" + useBatchBulkSendNumber
                 + ", callableStmtCacheSize=" + callableStmtCacheSize
                 + ", connectionAttributes=" + connectionAttributes
                 + ", log=" + log
@@ -269,7 +271,11 @@ public class Options {
             return false;
         }
         if (useComMulti != options.useComMulti) return false;
-        if (useBulkExecute != options.useBulkExecute) return false;
+        if (useBatchBulkSend != options.useBatchBulkSend) return false;
+        if (useBatchBulkSendNumber != null
+                ? !useBatchBulkSendNumber.equals(options.useBatchBulkSendNumber) : options.useBatchBulkSendNumber != null) {
+            return false;
+        }
 
         return !(prepStmtCacheSqlLimit != null ? !prepStmtCacheSqlLimit.equals(options.prepStmtCacheSqlLimit)
                 : options.prepStmtCacheSqlLimit != null);

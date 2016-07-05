@@ -44,11 +44,11 @@ public class BaseTest {
 
     @Rule
     public TestRule watcher = new TestWatcher() {
-//        protected void starting(Description description) {
-//            if (testSingleHost) {
-//                System.out.println("start test : " + description.getClassName() + "." + description.getMethodName());
-//            }
-//        }
+        protected void starting(Description description) {
+            if (testSingleHost) {
+                System.out.println("start test : " + description.getClassName() + "." + description.getMethodName());
+            }
+        }
 
         protected void succeeded(Description description) {
             if (testSingleHost) {
@@ -395,6 +395,10 @@ public class BaseTest {
     }
 
     boolean checkMaxAllowedPacketMore20m(String testName) throws SQLException {
+        return checkMaxAllowedPacketMore20m(testName, true);
+    }
+
+    boolean checkMaxAllowedPacketMore20m(String testName, boolean displayMessage) throws SQLException {
         Statement st = sharedConnection.createStatement();
         ResultSet rs = st.executeQuery("select @@max_allowed_packet");
         rs.next();
@@ -406,17 +410,21 @@ public class BaseTest {
 
         if (maxAllowedPacket < 20 * 1024 * 1024) {
 
-            System.out.println("test '" + testName + "' skipped  due to server variable max_allowed_packet < 20M");
+            if (displayMessage) System.out.println("test '" + testName + "' skipped  due to server variable max_allowed_packet < 20M");
             return false;
         }
         if (innodbLogFileSize < 200 * 1024 * 1024) {
-            System.out.println("test '" + testName + "' skipped  due to server variable innodb_log_file_size < 200M");
+            if (displayMessage) System.out.println("test '" + testName + "' skipped  due to server variable innodb_log_file_size < 200M");
             return false;
         }
         return true;
     }
 
     boolean checkMaxAllowedPacketMore40m(String testName) throws SQLException {
+        return checkMaxAllowedPacketMore40m(testName, true);
+    }
+
+    boolean checkMaxAllowedPacketMore40m(String testName, boolean displayMsg) throws SQLException {
         Statement st = sharedConnection.createStatement();
         ResultSet rs = st.executeQuery("select @@max_allowed_packet");
         rs.next();
@@ -428,11 +436,11 @@ public class BaseTest {
 
 
         if (maxAllowedPacket < 40 * 1024 * 1024) {
-            System.out.println("test '" + testName + "' skipped  due to server variable max_allowed_packet < 40M");
+            if (displayMsg) System.out.println("test '" + testName + "' skipped  due to server variable max_allowed_packet < 40M");
             return false;
         }
         if (innodbLogFileSize < 400 * 1024 * 1024) {
-            System.out.println("test '" + testName + "' skipped  due to server variable innodb_log_file_size < 400M");
+            if (displayMsg) System.out.println("test '" + testName + "' skipped  due to server variable innodb_log_file_size < 400M");
             return false;
         }
 
@@ -604,5 +612,18 @@ public class BaseTest {
      */
     public boolean sharedIsRewrite() {
         return urlParser.getOptions().rewriteBatchedStatements;
+    }
+
+    /**
+     * Has server Com multi capacity.
+     *
+     * @return true if server has COM_MULTI capacity and option not disabled
+     */
+    public boolean sharedComMultiCapacity() {
+        return comMultiCapacity(sharedConnection);
+    }
+
+    public boolean comMultiCapacity(Connection connection) {
+        return ((MariaDbConnection) connection).isServerComMulti();
     }
 }

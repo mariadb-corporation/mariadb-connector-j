@@ -535,14 +535,14 @@ public class DriverTest extends BaseTest {
     @Test
     public void bigUpdateCountTest() throws SQLException {
         Statement stmt = sharedConnection.createStatement();
-        for (int i = 0; i < 4000; i++) {
+        for (int i = 0; i < 4; i++) {
             stmt.execute("insert into test_big_update values (" + i + "," + i + ")");
         }
         ResultSet rs = stmt.executeQuery("select count(*) from test_big_update");
         assertEquals(true, rs.next());
-        assertEquals(4000, rs.getInt(1));
+        assertEquals(4, rs.getInt(1));
         int updateCount = stmt.executeUpdate("update test_big_update set updateme=updateme+1");
-        assertEquals(4000, updateCount);
+        assertEquals(4, updateCount);
     }
 
 

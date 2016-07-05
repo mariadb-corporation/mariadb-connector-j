@@ -95,6 +95,7 @@ public class ProtocolLoggingProxy implements InvocationHandler {
                 case "executeQuery":
                 case "executePreparedQuery":
                 case "executeBatch":
+                case "executeBatchBulk":
                 case "executeBatchRewrite":
                 case "executeBatchMultiple":
                 case "prepareAndExecuteComMulti":
@@ -160,6 +161,9 @@ public class ProtocolLoggingProxy implements InvocationHandler {
                         sql = getQueryFromWriterBuffer();
                 }
                 break;
+            case "executeBatchBulk":
+                sql = getQueryFromWriterBuffer();
+                break;
             case "executeBatch":
                 List<String> queries = (List<String>) args[2];
                 for (int counter = 0; counter < queries.size(); counter++) {
@@ -192,7 +196,8 @@ public class ProtocolLoggingProxy implements InvocationHandler {
                 if (args[3] instanceof ParameterHolder[]) {
                     sql = getQueryFromPrepareParameters(prepareResult.getSql(), (ParameterHolder[]) args[3], prepareResult.getParameters().length);
                 } else {
-                    sql = getQueryFromPrepareParameters(prepareResult.getSql(), (List<ParameterHolder[]>) args[3], prepareResult.getParameters().length);
+                    sql = getQueryFromPrepareParameters(prepareResult.getSql(), (List<ParameterHolder[]>) args[3],
+                            prepareResult.getParameters().length);
                 }
                 break;
             default:

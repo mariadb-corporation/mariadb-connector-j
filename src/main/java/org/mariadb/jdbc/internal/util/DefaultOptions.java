@@ -370,10 +370,16 @@ public enum DefaultOptions {
     USE_COM_MULTI("useComMulti", Boolean.TRUE, "1.5.0"),
 
     /**
-     * PreparedStatement.executeBatch() will send all QUERY before reading result packets.
+     * PreparedStatement.executeBatch() will send many QUERY before reading result packets.
      * default to true.
      */
-    USE_BULK_EXECUTE("useBulkExecute", Boolean.TRUE, "1.5.0"),
+    USE_BATCH_BULK_SEND("useBatchBulkSend", Boolean.TRUE, "1.5.0"),
+
+    /**
+     * When using useBatchBulkSend, indicate maximum query that can be send at a time.
+     * default to 100
+     */
+    USE_BATCH_BULK_SEND_NUMBER("useBatchBulkSendNumber", new Integer(100), new Integer(1), Integer.MAX_VALUE, "1.5.0"),
 
     /**
      * Enable log information. require Slf4j version &gt; 1.4 dependency.

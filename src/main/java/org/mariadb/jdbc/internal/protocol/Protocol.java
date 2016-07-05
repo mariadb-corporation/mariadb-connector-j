@@ -54,9 +54,11 @@ import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
+import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
 import org.mariadb.jdbc.internal.queryresults.ExecutionResult;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
+import org.mariadb.jdbc.internal.util.BulkStatus;
 import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.ServerPrepareStatementCache;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
@@ -122,7 +124,7 @@ public interface Protocol {
 
     int getPort();
 
-    void rollback();
+    void rollback() throws QueryException;
 
     String getDatabase();
 
@@ -142,6 +144,9 @@ public interface Protocol {
     void executeQuery(boolean mustExecuteOnMaster, ExecutionResult executionResult, final List<byte[]> queryParts, ParameterHolder[] parameters,
                       int resultSetScrollType, boolean isRewritable) throws QueryException;
 
+    void executeBatchBulk(boolean mustExecuteOnMaster, ExecutionResult executionResult, final List<byte[]> queryParts,
+                      List<ParameterHolder[]> parameterList, int resultSetScrollType) throws QueryException;
+
     void executeBatch(boolean mustExecuteOnMaster, ExecutionResult executionResult, List<String> queries, int resultSetScrollType)
             throws QueryException;
 
@@ -154,7 +159,7 @@ public interface Protocol {
 
     void executeBatchRewrite(boolean mustExecuteOnMaster, ExecutionResult executionResult, final List<byte[]> queryParts,
                              List<ParameterHolder[]> parameterList,
-                             int resultSetScrollType, boolean isRewritable) throws QueryException;
+                             int resultSetScrollType, boolean rewriteValues) throws QueryException;
 
 
     void executePreparedQuery(boolean mustExecuteOnMaster, ServerPrepareResult serverPrepareResult,
@@ -257,4 +262,13 @@ public interface Protocol {
     void releaseWriterBuffer();
 
     ByteBuffer getWriter();
+
+    ServerPrepareResult addPrepareInCache(String key, ServerPrepareResult serverPrepareResult);
+
+    void readEofPacket() throws QueryException, IOException;
+
+    ReadPacketFetcher getPacketFetcher();
+
+    void writeSavedSubCmd(BulkStatus status) throws QueryException;
+
 }

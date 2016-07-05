@@ -48,7 +48,6 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.queryresults.ExecutionResult;
 import org.mariadb.jdbc.internal.queryresults.MultiIntExecutionResult;
@@ -56,11 +55,8 @@ import org.mariadb.jdbc.internal.queryresults.SingleExecutionResult;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
-import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 import org.mariadb.jdbc.internal.util.Utils;
-import org.mariadb.jdbc.internal.util.dao.PrepareResult;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import java.sql.*;
 import java.util.*;
@@ -231,39 +227,7 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
             executeQueryProlog(serverPrepareResult);
             try {
                 internalExecutionResult = new MultiIntExecutionResult(this, queryParameterSize, 0, false);
-                if (!hasLongData && connection.isServerComMulti()) {
-                    //send all sub-command in one packet (or more if > max_allowed_packet)
-                    serverPrepareResult = protocol.prepareAndExecutesComMulti(mustExecuteOnMaster, serverPrepareResult, internalExecutionResult, sql,
-                                queryParameters, resultSetScrollType);
-                    if (metadata == null) setMetaFromResult(); //firs prepare
-
-                } else if (options.useBulkExecute && !hasLongData) {
-                    if (serverPrepareResult == null) prepare(this.sql);
-                    protocol.executePreparedQuery(mustExecuteOnMaster, serverPrepareResult, internalExecutionResult,
-                            queryParameters, resultSetScrollType);
-                } else {
-                    for (int counter = 0; counter < queryParameterSize; counter++) {
-                        try {
-                            ParameterHolder[] parameterHolder = queryParameters.get(counter);
-                            //if no com-multi prepare has been done on class instantiation.
-                            if (serverPrepareResult != null) {
-                                serverPrepareResult.resetParameterTypeHeader();
-                                protocol.executePreparedQuery(mustExecuteOnMaster, serverPrepareResult, internalExecutionResult,
-                                        parameterHolder, resultSetScrollType);
-                            } else {
-                                serverPrepareResult = protocol.prepareAndExecuteComMulti(mustExecuteOnMaster, internalExecutionResult, sql,
-                                        parameterHolder, resultSetScrollType);
-                                setMetaFromResult();
-                            }
-                        } catch (QueryException queryException) {
-                            if (options.continueBatchOnError) {
-                                if (exception == null) exception = queryException;
-                            } else {
-                                throw queryException;
-                            }
-                        }
-                    }
-                }
+                executeBatchInternal(internalExecutionResult, queryParameterSize);
             } catch (QueryException queryException) {
                 exception = queryException;
             } finally {
@@ -281,6 +245,58 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
         }
     }
 
+    /**
+     * Send batch datas according to options.
+     *
+     * @param internalExecutionResult results.
+     * @param queryParameterSize batch size
+     * @throws QueryException if any error occur.
+     * @throws SQLException if prepare fail
+     */
+    private void executeBatchInternal(MultiIntExecutionResult internalExecutionResult, int queryParameterSize) throws QueryException, SQLException {
+
+        //if COM_MULTI capacity
+        if (!hasLongData && connection.isServerComMulti()) {
+            //send all sub-command in one packet (or more if > max_allowed_packet)
+            serverPrepareResult = protocol.prepareAndExecutesComMulti(mustExecuteOnMaster, serverPrepareResult, internalExecutionResult, sql,
+                    queryParameters, resultSetScrollType);
+            if (metadata == null) setMetaFromResult(); //first prepare
+            return;
+        }
+
+        //send by bulk : send data by bulk before reading corresponding results
+        if (options.useBatchBulkSend && !hasLongData) {
+            if (serverPrepareResult == null) prepare(this.sql);
+            protocol.executePreparedQuery(mustExecuteOnMaster, serverPrepareResult, internalExecutionResult,
+                    queryParameters, resultSetScrollType);
+            return;
+        }
+
+        //send query one by one, reading results for each query before sending another one
+        QueryException exception = null;
+        for (int counter = 0; counter < queryParameterSize; counter++) {
+            ParameterHolder[] parameterHolder = queryParameters.get(counter);
+            try {
+                //if no com-multi prepare has been done on class instantiation.
+                if (serverPrepareResult != null) {
+                    serverPrepareResult.resetParameterTypeHeader();
+                    protocol.executePreparedQuery(mustExecuteOnMaster, serverPrepareResult, internalExecutionResult,
+                            parameterHolder, resultSetScrollType);
+                } else {
+                    serverPrepareResult = protocol.prepareAndExecuteComMulti(mustExecuteOnMaster, internalExecutionResult, sql,
+                            parameterHolder, resultSetScrollType);
+                    setMetaFromResult();
+                }
+            } catch (QueryException queryException) {
+                if (options.continueBatchOnError) {
+                    if (exception == null) exception = queryException;
+                } else {
+                    throw queryException;
+                }
+            }
+        }
+        if (exception != null) throw exception;
+    }
 
     // must have "lock" locked before invoking
     private void executeQueryProlog(ServerPrepareResult serverPrepareResult) throws SQLException {

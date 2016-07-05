@@ -47,18 +47,19 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc.internal.packet.send;
+package org.mariadb.jdbc.internal.packet;
 
 import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.packet.dao.parameters.NullParameter;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
-import org.mariadb.jdbc.internal.packet.Packet;
+import org.mariadb.jdbc.internal.packet.send.InterfaceSendPacket;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
+import org.mariadb.jdbc.internal.util.BulkStatus;
 
 import java.io.IOException;
 import java.io.OutputStream;
 
-public class SendExecutePrepareStatementPacket implements InterfaceSendPacket {
+public class ComStmtExecute implements InterfaceSendPacket {
     private final int parameterCount;
     private final ParameterHolder[] parameters;
     private final int statementId;
@@ -72,8 +73,8 @@ public class SendExecutePrepareStatementPacket implements InterfaceSendPacket {
      * @param parameterCount      parameters number
      * @param parameterTypeHeader parameters header
      */
-    public SendExecutePrepareStatementPacket(final int statementId, final ParameterHolder[] parameters, final int parameterCount,
-                                             MariaDbType[] parameterTypeHeader) {
+    public ComStmtExecute(final int statementId, final ParameterHolder[] parameters, final int parameterCount,
+                          MariaDbType[] parameterTypeHeader) {
         this.parameterCount = parameterCount;
         this.parameters = parameters;
         this.statementId = statementId;
@@ -89,7 +90,7 @@ public class SendExecutePrepareStatementPacket implements InterfaceSendPacket {
     public void send(final OutputStream os) throws IOException {
         PacketOutputStream buffer = (PacketOutputStream) os;
         buffer.startPacket(0, true);
-        comStmtExecuteSubCommand(statementId, parameters, parameterCount, parameterTypeHeader, buffer);
+        writeCmd(statementId, parameters, parameterCount, parameterTypeHeader, buffer);
         buffer.finishPacket();
     }
 
@@ -98,14 +99,46 @@ public class SendExecutePrepareStatementPacket implements InterfaceSendPacket {
      *
      * @param statementId         prepareResult object received after preparation.
      * @param parameters          parameters
-     * @param parameterCount      parameters number
+     * @param parameterCount      parameters count
      * @param parameterTypeHeader parameters header
+     * @param writer outputStream
+     * @param status bulk status
+     * @return current buffer position
+     * @throws IOException if a connection error occur
+     */
+    public static int sendComMulti(final int statementId, final ParameterHolder[] parameters, final int parameterCount,
+                                    MariaDbType[] parameterTypeHeader, final PacketOutputStream writer, BulkStatus status)
+            throws IOException {
+        status.subCmdInitialPosition = writer.buffer.position();
+        writer.assureBufferCapacity(3);
+        writer.buffer.position(status.subCmdInitialPosition + 3);
+
+        //add execute sub command
+        writeCmd(statementId, parameters, parameterCount, parameterTypeHeader, writer);
+
+        //write subCommand length
+        int subCmdEndPosition = writer.buffer.position();
+        writer.buffer.position(status.subCmdInitialPosition);
+        writer.buffer.put((byte) ((subCmdEndPosition - (status.subCmdInitialPosition + 3)) & 0xff));
+        writer.buffer.put((byte) ((subCmdEndPosition - (status.subCmdInitialPosition + 3)) >>> 8));
+        writer.buffer.put((byte) ((subCmdEndPosition - (status.subCmdInitialPosition + 3)) >>> 16));
+        writer.buffer.position(subCmdEndPosition);
+        return subCmdEndPosition;
+
+    }
+
+    /**
+     * Write COM_STMT_EXECUTE sub-command to outtput buffer.
+     *
+     * @param statementId         prepareResult object received after preparation.
+     * @param parameters          parameters
+     * @param parameterCount      parameters number
+     * @param parameterTypeHeader parameters header1
      * @param pos outputStream
      * @throws IOException if a connection error occur
      */
-    public static void comStmtExecuteSubCommand(final int statementId, final ParameterHolder[] parameters, final int parameterCount,
-                                           MariaDbType[] parameterTypeHeader, final PacketOutputStream pos) throws IOException {
-
+    public static void writeCmd(final int statementId, final ParameterHolder[] parameters, final int parameterCount,
+                                MariaDbType[] parameterTypeHeader, final PacketOutputStream pos) throws IOException {
         pos.write(Packet.COM_STMT_EXECUTE);
         pos.writeInt(statementId);
         pos.write((byte) 0x00); //CURSOR TYPE NO CURSOR

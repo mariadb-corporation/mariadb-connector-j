@@ -995,4 +995,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
     public ByteBuffer getWriter() {
         return writer.buffer;
     }
+
+    public ReadPacketFetcher getPacketFetcher() {
+        return packetFetcher;
+    }
 }
