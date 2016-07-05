@@ -393,7 +393,7 @@ public class ComExecute {
         }
         if (!writer.isUseCompression()) {
 
-            if (sqlLength + 1 <= writer.getMaxAllowedPacket()) {
+            if (sqlLength + 1 <= writer.getMaxPacketSize()) {
                 byte[] packetBuffer = new byte[sqlLength + 5];
                 packetBuffer[0] = (byte) ((sqlLength + 1) & 0xff);
                 packetBuffer[1] = (byte) ((sqlLength + 1) >>> 8);

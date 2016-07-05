@@ -85,7 +85,7 @@ public class BigQueryTest extends BaseTest {
         try {
             connection = setConnection();
             int selectSize = 9;
-            char[] arr = new char[16 * 1024 * 1024 - selectSize - 1];
+            char[] arr = new char[16 * 1024 * 1024 - selectSize];
             Arrays.fill(arr, 'a');
             String request = "select '" + new String(arr) + "'";
             ResultSet rs = connection.createStatement().executeQuery(request);

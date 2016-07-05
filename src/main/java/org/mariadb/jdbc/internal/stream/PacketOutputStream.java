@@ -599,7 +599,7 @@ public class PacketOutputStream extends OutputStream {
     public void setMaxAllowedPacket(int maxAllowedPacket) {
         this.maxAllowedPacket = maxAllowedPacket;
         if (maxAllowedPacket > 0) {
-            maxPacketSize = Math.min(maxAllowedPacket - 1, MAX_PACKET_LENGTH);
+            maxPacketSize = Math.min(maxAllowedPacket, MAX_PACKET_LENGTH);
             maxRewritableLengthAllowed = (int) (maxAllowedPacket - 4 * Math.ceil(((double)maxAllowedPacket) / maxPacketSize));
         } else {
             maxPacketSize = MAX_PACKET_LENGTH;
