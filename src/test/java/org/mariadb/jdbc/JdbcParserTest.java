@@ -305,7 +305,6 @@ public class JdbcParserTest {
             Assert.assertEquals(msg, se.getMessage());
             throw se;
         }
-        fail("Invalid URL exception did not get thrown");
     }
 
     @Test(expected=SQLException.class)
@@ -318,7 +317,6 @@ public class JdbcParserTest {
             Assert.assertEquals(msg, se.getMessage());
             throw se;
         }
-        fail("Invalid URL exception did not get thrown");
     }
 
     @Test(expected=SQLException.class)
@@ -331,7 +329,6 @@ public class JdbcParserTest {
             Assert.assertEquals(msg, se.getMessage());
             throw se;
         }
-        fail("Invalid URL exception did not get thrown");
     }
 
     /**
