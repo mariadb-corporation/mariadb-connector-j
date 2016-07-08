@@ -300,25 +300,32 @@ public class AuroraListener extends MastersSlavesListener {
      * @param port          port that is common to all endpoints
      */
     private void setUrlParserFromEndpoints(List<String> endpoints, String clusterHost, int port) {
-        List<HostAddress> addresses = urlParser.getHostAddresses();
+        List<HostAddress> addresses = Collections.synchronizedList(urlParser.getHostAddresses());
 
         List<String> currentHosts = new ArrayList<>();
-        for (HostAddress address: addresses) {
-            currentHosts.add(address.host);
-        }
-
-        for (int i = 0; i < addresses.size() && endpoints.size() > 0; i++) {
-            if (!addresses.get(i).host.equals(clusterHost) && !endpoints.contains(addresses.get(i).host)) {
-                removeFromBlacklist(addresses.get(i));
-                addresses.remove(i);
-                i--;
+        synchronized (addresses) {
+            for (HostAddress address : addresses) {
+                currentHosts.add(address.host);
             }
         }
 
-        for (String endpoint: endpoints) {
-            if (!currentHosts.contains(endpoint)) {
-                HostAddress newHostAddress = new HostAddress(endpoint, port, null);
-                addresses.add(newHostAddress);
+        synchronized (addresses) {
+            Iterator<HostAddress> iterator = addresses.iterator();
+            while (iterator.hasNext() && endpoints.size() > 0) {
+                HostAddress address = iterator.next();
+                if (!address.host.equals(clusterHost) && !endpoints.contains(address.host)) {
+                    removeFromBlacklist(address);
+                    iterator.remove();
+                }
+            }
+        }
+
+        synchronized (addresses) {
+            for (String endpoint : endpoints) {
+                if (!currentHosts.contains(endpoint)) {
+                    HostAddress newHostAddress = new HostAddress(endpoint, port, null);
+                    addresses.add(newHostAddress);
+                }
             }
         }
     }
