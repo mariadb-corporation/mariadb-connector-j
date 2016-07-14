@@ -312,16 +312,16 @@ public class AuroraFailoverTest extends BaseReplication {
             int nbExceptionBeforeUp = 0;
             boolean failLaunched = false;
             PreparedStatement preparedStatement1 = connection.prepareStatement("select ?");
-            assertEquals(1, getPrepareResult((MariaDbServerPreparedStatement) preparedStatement1).getStatementId());
+            assertEquals(1L, getPrepareResult((MariaDbServerPreparedStatement) preparedStatement1).getStatementId());
             PreparedStatement otherPrepareStatement = connection.prepareStatement(" select 1");
 
             while (nbExceptionBeforeUp < 1000) {
                 try {
                     PreparedStatement preparedStatement = connection.prepareStatement(" select 1");
                     preparedStatement.executeQuery();
-                    int currentPrepareId = getPrepareResult((MariaDbServerPreparedStatement) preparedStatement).getStatementId();
+                    long currentPrepareId = getPrepareResult((MariaDbServerPreparedStatement) preparedStatement).getStatementId();
                     if (nbExceptionBeforeUp > 0) {
-                        assertEquals(1, currentPrepareId);
+                        assertEquals(1L, currentPrepareId);
                         break;
                     }
                     if (!failLaunched) {
@@ -360,9 +360,9 @@ public class AuroraFailoverTest extends BaseReplication {
             int nbExecutionBeforeRePrepared = 0;
             boolean failLaunched = false;
             PreparedStatement preparedStatement1 = connection.prepareStatement("select ?");
-            assertEquals(1, getPrepareResult((MariaDbServerPreparedStatement) preparedStatement1).getStatementId());
+            assertEquals(1L, getPrepareResult((MariaDbServerPreparedStatement) preparedStatement1).getStatementId());
             PreparedStatement otherPrepareStatement = connection.prepareStatement("select @@innodb_read_only as is_read_only");
-            int currentPrepareId = 0;
+            long currentPrepareId = 0;
             while (nbExecutionBeforeRePrepared < 1000) {
                 PreparedStatement preparedStatement = connection.prepareStatement("select @@innodb_read_only as is_read_only");
                 preparedStatement.executeQuery();

@@ -77,7 +77,7 @@ public class ServerPrepareStatementTest extends BaseTest {
 
     @Test
     public void deferredPrepareTest() throws Throwable {
-        Assume.assumeTrue(sharedComMultiCapacity());
+        Assume.assumeTrue(sharedBulkCapacity());
         Connection connection = null;
         try {
             connection = setConnection();
@@ -108,6 +108,18 @@ public class ServerPrepareStatementTest extends BaseTest {
     @Test
     public void serverCacheStatementTest() throws Throwable {
         Assume.assumeTrue(sharedUsePrepare());
+        Connection connection = null;
+        try {
+            connection = setConnection();
+            PreparedStatement ps = connection.prepareStatement("INSERT INTO ServerPrepareStatementTestCache(test) VALUES (?)  ");
+            ps.setBoolean(1, true);
+            ps.addBatch();
+            ps.executeBatch();
+        } finally {
+            connection.close();
+        }
+
+
         Protocol protocol = getProtocolFromConnection(sharedConnection);
         int cacheSize = protocol.prepareStatementCache().size();
         PreparedStatement preparedStatement = sharedConnection.prepareStatement("INSERT INTO ServerPrepareStatementTestCache(test) VALUES (?)");
@@ -558,7 +570,7 @@ public class ServerPrepareStatementTest extends BaseTest {
         ps.setInt(1, Integer.MIN_VALUE);
         ps.setInt(2, Integer.MAX_VALUE);
         ps.addBatch();
-        ps.execute();
+        ps.executeBatch();
     }
 
     @Test
@@ -608,6 +620,7 @@ public class ServerPrepareStatementTest extends BaseTest {
         ResultSet rs = ps.executeQuery("select count(*) from ServerPrepareStatementParameters");
         rs.next();
         assertEquals(rs.getInt(1), 3);
+        ps.close();
     }
 
     private PreparedStatement prepareInsert() throws Throwable {

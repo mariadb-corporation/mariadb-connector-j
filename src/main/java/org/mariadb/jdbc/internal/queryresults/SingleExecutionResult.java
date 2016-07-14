@@ -17,7 +17,7 @@ public class SingleExecutionResult implements ExecutionResult {
     private boolean canHaveCallableResultset;
     private Deque<ExecutionResult> cachedExecutionResults;
     private long insertId;
-    private long affectedRows;
+    private long affectedRows = -1;
 
     /**
      * Default constructor.

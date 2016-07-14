@@ -57,6 +57,7 @@ import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.queryresults.ExecutionResult;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
+import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
@@ -317,9 +318,9 @@ public abstract class AbstractMastersListener implements Listener {
                     if (!((Boolean) args[0])) return true; //launched on slave connection
                     if (args[2] instanceof String) {
                         return ((String) args[2]).toUpperCase().startsWith("SELECT");
-                    } else if (args[2] instanceof List) {
+                    } else if (args[2] instanceof ClientPrepareResult) {
                         @SuppressWarnings("unchecked")
-                        String query = new String(((List<byte[]>) args[2]).get(0)).toUpperCase();
+                        String query = new String(((ClientPrepareResult) args[2]).getQueryParts().get(0)).toUpperCase();
                         return query.startsWith("SELECT");
                     }
                     break;
@@ -327,13 +328,14 @@ public abstract class AbstractMastersListener implements Listener {
                     if (!((Boolean) args[0])) return true; //launched on slave connection
                     ServerPrepareResult serverPrepareResult = (ServerPrepareResult) args[1];
                     return (serverPrepareResult.getSql()).toUpperCase().startsWith("SELECT");
-                case "prepareAndExecuteComMulti":
+                case "prepareAndExecute":
                     if (!((Boolean) args[0])) return true; //launched on slave connection
                     return ((String) args[2]).toUpperCase().startsWith("SELECT");
                 case "executeBatch":
                 case "executeBatchMultiple":
                 case "executeBatchRewrite":
-                case "prepareAndExecutesComMulti":
+                case "prepareAndExecutes":
+                case "executeBatchBulk":
                     if (!((Boolean) args[0])) return true; //launched on slave connection
                     return false;
                 default:

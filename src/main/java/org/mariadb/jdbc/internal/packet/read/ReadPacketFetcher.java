@@ -50,15 +50,10 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.packet.read;
 
-import org.mariadb.jdbc.internal.logging.Logger;
-import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.stream.MariaDbInputStream;
-import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 import org.mariadb.jdbc.internal.util.buffer.Buffer;
-
 import java.io.EOFException;
 import java.io.IOException;
-import java.io.InputStream;
 
 public class ReadPacketFetcher {
 

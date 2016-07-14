@@ -1,54 +1,113 @@
+/*
+MariaDB Client for Java
+
+Copyright (c) 2012-2014 Monty Program Ab.
+Copyright (c) 2015-2016 MariaDB Ab.
+
+This library is free software; you can redistribute it and/or modify it under
+the terms of the GNU Lesser General Public License as published by the Free
+Software Foundation; either version 2.1 of the License, or (at your option)
+any later version.
+
+This library is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+for more details.
+
+You should have received a copy of the GNU Lesser General Public License along
+with this library; if not, write to Monty Program Ab info@montyprogram.com.
+
+This particular MariaDB Client for Java file is work
+derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
+the following copyright and notice provisions:
+
+Copyright (c) 2009-2011, Marcus Eriksson
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+Redistributions of source code must retain the above copyright notice, this list
+of conditions and the following disclaimer.
+
+Redistributions in binary form must reproduce the above copyright notice, this
+list of conditions and the following disclaimer in the documentation and/or
+other materials provided with the distribution.
+
+Neither the name of the driver nor the names of its contributors may not be
+used to endorse or promote products derived from this software without specific
+prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS  AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
+OF SUCH DAMAGE.
+*/
+
 package org.mariadb.jdbc.internal.protocol;
 
 import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.packet.ComExecute;
 import org.mariadb.jdbc.internal.packet.ComStmtPrepare;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.queryresults.ExecutionResult;
 import org.mariadb.jdbc.internal.stream.MaxAllowedPacketException;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 import org.mariadb.jdbc.internal.util.BulkStatus;
+import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
+import org.mariadb.jdbc.internal.util.dao.PrepareResult;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
+import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.ScheduledExecutorService;
 
 import static org.mariadb.jdbc.internal.util.ExceptionMapper.SqlStates.CONNECTION_EXCEPTION;
 import static org.mariadb.jdbc.internal.util.ExceptionMapper.SqlStates.INTERRUPTED_EXCEPTION;
 
 public abstract class AbstractBulkSend {
+
+    private static final ScheduledExecutorService readScheduler = SchedulerServiceProviderHolder.getBulkScheduler();
+
     private Protocol protocol;
     private PacketOutputStream writer;
     private ExecutionResult executionResult;
-    private List<byte[]> queryParts;
     private List<ParameterHolder[]> parametersList;
+    private PrepareResult prepareResult;
     private int resultSetScrollType;
     private List<String> queries;
-    private ServerPrepareResult serverPrepareResult;
     private boolean binaryProtocol;
     private boolean readPrepareStmtResult;
     private String sql;
-    int statementId = -1;
+    long statementId = -1;
     MariaDbType[] parameterTypeHeader;
 
     /**
      * Bulk execute for Server PreparedStatement.executeBatch (when no COM_MULTI)
      *
-     * @param protocol protocol
-     * @param writer outputStream
-     * @param executionResult query results
-     * @param serverPrepareResult Prepare result
-     * @param parametersList parameters
-     * @param resultSetScrollType resultSet scroll type
+     * @param protocol              protocol
+     * @param writer                outputStream
+     * @param executionResult       query results
+     * @param serverPrepareResult   Prepare result
+     * @param parametersList        parameters
+     * @param resultSetScrollType   resultSet scroll type
      * @param readPrepareStmtResult must execute prepare result
-     * @param sql sql query.
+     * @param sql                   sql query.
      */
     public AbstractBulkSend(Protocol protocol, PacketOutputStream writer, ExecutionResult executionResult, ServerPrepareResult serverPrepareResult,
                             List<ParameterHolder[]> parametersList, int resultSetScrollType, boolean readPrepareStmtResult, String sql) {
         this.protocol = protocol;
         this.writer = writer;
         this.executionResult = executionResult;
-        this.serverPrepareResult = serverPrepareResult;
+        this.prepareResult = serverPrepareResult;
         this.parametersList = parametersList;
         this.resultSetScrollType = resultSetScrollType;
         this.binaryProtocol = true;
@@ -59,19 +118,19 @@ public abstract class AbstractBulkSend {
     /**
      * Bulk execute for client-sier PreparedStatement.executeBatch (no prepare).
      *
-     * @param protocol current protocol
-     * @param writer outputStream
-     * @param executionResult results
-     * @param queryParts query parts
-     * @param parametersList parameters
+     * @param protocol            current protocol
+     * @param writer              outputStream
+     * @param executionResult     results
+     * @param clientPrepareResult clientPrepareResult
+     * @param parametersList      parameters
      * @param resultSetScrollType resultSet scroll type
      */
-    public AbstractBulkSend(Protocol protocol, PacketOutputStream writer, ExecutionResult executionResult, final List<byte[]> queryParts,
-                            List<ParameterHolder[]> parametersList, int resultSetScrollType) {
+    public AbstractBulkSend(Protocol protocol, PacketOutputStream writer, ExecutionResult executionResult,
+                            final ClientPrepareResult clientPrepareResult, List<ParameterHolder[]> parametersList, int resultSetScrollType) {
         this.protocol = protocol;
         this.writer = writer;
         this.executionResult = executionResult;
-        this.queryParts = queryParts;
+        this.prepareResult = clientPrepareResult;
         this.parametersList = parametersList;
         this.resultSetScrollType = resultSetScrollType;
         this.binaryProtocol = false;
@@ -81,10 +140,10 @@ public abstract class AbstractBulkSend {
     /**
      * Bulk execute for statement.executeBatch().
      *
-     * @param protocol protocol
-     * @param writer outputStream
-     * @param executionResult results
-     * @param queries query list
+     * @param protocol            protocol
+     * @param writer              outputStream
+     * @param executionResult     results
+     * @param queries             query list
      * @param resultSetScrollType resultset type
      */
     public AbstractBulkSend(Protocol protocol, PacketOutputStream writer, ExecutionResult executionResult, List<String> queries,
@@ -99,13 +158,13 @@ public abstract class AbstractBulkSend {
     }
 
 
-    public abstract void sendCmd(PacketOutputStream writer, ExecutionResult executionResult, List<byte[]> queryParts,
+    public abstract void sendCmd(PacketOutputStream writer, ExecutionResult executionResult,
                                  List<ParameterHolder[]> parametersList, List<String> queries, int paramCount, BulkStatus status,
-                                 ServerPrepareResult serverPrepareResult) throws QueryException, IOException;
+                                 PrepareResult prepareResult) throws QueryException, IOException;
 
-    public abstract QueryException handleResultException(QueryException qex, ExecutionResult executionResult, List<byte[]> queryParts,
-                                 List<ParameterHolder[]> parametersList, List<String> queries, int currentCounter, BulkStatus status, int paramCount,
-                                                         ServerPrepareResult serverPrepareResult)
+    public abstract QueryException handleResultException(QueryException qex, ExecutionResult executionResult,
+                                                         List<ParameterHolder[]> parametersList, List<String> queries, int currentCounter,
+                                                         int sendCmdCounter, int paramCount, PrepareResult prepareResult)
             throws QueryException;
 
     public abstract int getParamCount();
@@ -113,102 +172,122 @@ public abstract class AbstractBulkSend {
     public abstract int getTotalExecutionNumber();
 
 
+    public PrepareResult getPrepareResult() {
+        return prepareResult;
+    }
+
     /**
      * Execute Bulk execution (send packets by batch of  useBatchBulkSendNumber or when max packet is reached) before reading results.
      *
-     * @param useComMulti can use com_multi
+     * @param handleMinusOnePrepare can use '-1' for last prepareStatementId
      * @return prepare result
-     * @throws QueryException if connection
+     * @throws QueryException if any error occur
      */
-    public ServerPrepareResult executeBatch(boolean useComMulti) throws QueryException {
+    public PrepareResult executeBatch(boolean handleMinusOnePrepare) throws QueryException {
         int paramCount = getParamCount();
         int totalExecutionNumber = getTotalExecutionNumber();
         QueryException exception = null;
-
         BulkStatus status = new BulkStatus();
 
         //Handle prepare if needed
-        if (readPrepareStmtResult)   {
-            parameterTypeHeader = new MariaDbType[paramCount];
-            if (serverPrepareResult == null) {
-                if (protocol.getOptions().cachePrepStmts) {
-                    String key = new StringBuilder(protocol.getDatabase()).append("-").append(sql).toString();
-                    serverPrepareResult = protocol.prepareStatementCache().get(key);
-                    if (serverPrepareResult != null && !serverPrepareResult.incrementShareCounter()) {
-                        //in cache but been de-allocated
-                        serverPrepareResult = null;
-                    }
-                }
-            }
-            statementId = (serverPrepareResult == null) ? -1 : serverPrepareResult.getStatementId();
-        } else if (serverPrepareResult != null) {
-            statementId = serverPrepareResult.getStatementId();
-        }
-
-        try {
-            do {
-                if (useComMulti) {
-                    writer.startPacket(0, true);
-                    writer.buffer.put((byte) 0xfe);
-                }
-
-                status.sendSubCmdCounter = 0;
-
-                //add prepare sub-command
-                if (readPrepareStmtResult && statementId == -1) new ComStmtPrepare(protocol, sql).sendComMulti(writer);
-
-                protocol.writeSavedSubCmd(status);
-
-                while (status.sendCmdCounter < totalExecutionNumber && status.sendSubCmdCounter < protocol.getOptions().useBatchBulkSendNumber) {
-                    if (!useComMulti) writer.startPacket(0, true);
-
-                    status.subCmdInitialPosition = writer.buffer.position();
-                    sendCmd(writer, executionResult, queryParts, parametersList, queries, paramCount, status, serverPrepareResult);
-                    if (!writer.checkCurrentPacketAllowedSize()) {
-                        status.lastSubCommand = new byte[writer.buffer.position() - status.subCmdInitialPosition];
-                        //packet size > max_allowed_size -> need to send packet now without last command, and recreate new packet for additional data.
-                        System.arraycopy(writer.buffer.array(), status.subCmdInitialPosition, status.lastSubCommand, 0,
-                                writer.buffer.position() - status.subCmdInitialPosition);
-                        writer.buffer.position(status.subCmdInitialPosition);
-                        break;
-                    }
-                    status.sendSubCmdCounter++;
-                    status.sendCmdCounter++;
-                    if (!useComMulti) writer.finishPacketWithoutRelease();
-
-                }
-
-                if (useComMulti) writer.finishPacketWithoutRelease();
-
-                if (readPrepareStmtResult && statementId == -1) {
-                    try {
-                        serverPrepareResult = new ComStmtPrepare(protocol, sql).read(protocol.getPacketFetcher());
-                        statementId = serverPrepareResult.getStatementId();
-                    } catch (QueryException queryException) {
-                        exception = queryException;
-                    }
-                }
-
-                //read all corresponding results
-                for (int counter = 0; counter < status.sendSubCmdCounter; counter++) {
-                    try {
-                        protocol.getResult(executionResult, resultSetScrollType, binaryProtocol, true);
-                    } catch (QueryException qex) {
-                        if (exception == null) {
-                            exception = handleResultException(qex, executionResult, queryParts, parametersList, queries, counter,
-                                    status, paramCount, serverPrepareResult);
+        if (binaryProtocol) {
+            if (readPrepareStmtResult) {
+                parameterTypeHeader = new MariaDbType[paramCount];
+                if (prepareResult == null) {
+                    if (protocol.getOptions().cachePrepStmts) {
+                        String key = new StringBuilder(protocol.getDatabase()).append("-").append(sql).toString();
+                        prepareResult = protocol.prepareStatementCache().get(key);
+                        if (prepareResult != null && !((ServerPrepareResult) prepareResult).incrementShareCounter()) {
+                            //in cache but been de-allocated
+                            prepareResult = null;
                         }
                     }
                 }
+                statementId = (prepareResult == null) ? -1 : ((ServerPrepareResult) prepareResult).getStatementId();
+            } else if (prepareResult != null) {
+                statementId = ((ServerPrepareResult) prepareResult).getStatementId();
+            }
+        }
 
-                if (exception != null && ((readPrepareStmtResult && statementId == -1) || !protocol.getOptions().continueBatchOnError)) {
-                    throw exception;
+        ComStmtPrepare comStmtPrepare = null;
+        FutureTask<PrepareResult> futureReadTask = null;
+        int requestNumberByBulk;
+        try {
+            do {
+                status.sendSubCmdCounter = 0;
+                requestNumberByBulk = Math.min(totalExecutionNumber - status.sendCmdCounter, protocol.getOptions().useBatchBulkSendNumber);
+
+                //add prepare sub-command
+                if (readPrepareStmtResult && prepareResult == null) {
+                    comStmtPrepare = new ComStmtPrepare(protocol, sql);
+                    comStmtPrepare.send(writer);
+
+                    if (!handleMinusOnePrepare) {
+                        //read prepare result
+                        if (readPrepareStmtResult && prepareResult == null) {
+                            try {
+                                prepareResult = comStmtPrepare.read(protocol.getPacketFetcher());
+                                statementId = ((ServerPrepareResult) prepareResult).getStatementId();
+                            } catch (QueryException queryException) {
+                                throw queryException;
+                            }
+                        }
+                    } else {
+                        futureReadTask = new FutureTask<>(new BulkRead(comStmtPrepare, requestNumberByBulk, status.sendCmdCounter,
+                                handleMinusOnePrepare, protocol, readPrepareStmtResult && prepareResult == null, this, paramCount,
+                                resultSetScrollType, binaryProtocol, executionResult, parametersList, queries, prepareResult));
+                        readScheduler.execute(futureReadTask);
+                    }
+
                 }
 
-            } while (status.sendCmdCounter < totalExecutionNumber);
+                while (status.sendCmdCounter < totalExecutionNumber && status.sendSubCmdCounter < protocol.getOptions().useBatchBulkSendNumber) {
+                    sendCmd(writer, executionResult, parametersList, queries, paramCount, status, prepareResult);
+                    status.sendSubCmdCounter++;
+                    status.sendCmdCounter++;
+                    writer.finishPacketWithoutRelease();
 
+                    if (futureReadTask == null) {
+                        futureReadTask = new FutureTask<>(new BulkRead(comStmtPrepare, requestNumberByBulk, (status.sendCmdCounter - 1),
+                                handleMinusOnePrepare, protocol, false, this, paramCount,
+                                resultSetScrollType, binaryProtocol, executionResult, parametersList, queries, prepareResult));
+                        readScheduler.execute(futureReadTask);
+                    }
+                }
+
+                try {
+                    PrepareResult readPrepareResult = futureReadTask.get();
+                    if (readPrepareResult != null) {
+                        prepareResult = readPrepareResult;
+                        statementId = ((ServerPrepareResult) prepareResult).getStatementId();
+                    }
+                } catch (ExecutionException executionException) {
+                    if (executionException.getCause() instanceof QueryException) {
+                        if (((readPrepareStmtResult && prepareResult == null) || !protocol.getOptions().continueBatchOnError)) {
+                            throw (QueryException) executionException.getCause();
+                        } else {
+                            exception = (QueryException) executionException.getCause();
+                        }
+                        break;
+                    } else if (executionException.getCause() instanceof IOException) {
+                        throw (IOException) executionException.getCause();
+                    }
+                    if (executionException.getCause() == null) {
+                        throw new QueryException("Error reading results " + executionException.getMessage());
+                    }
+                    throw new QueryException("Error reading results " + executionException.getCause().getMessage());
+                } catch (InterruptedException interruptedException) {
+                } finally {
+                    //bulk can prepare, and so if prepare cache is enable, can replace an already cached prepareStatement
+                    //this permit to release those old prepared statement without conflict.
+                    protocol.forceReleaseWaitingPrepareStatement();
+                }
+
+                futureReadTask = null;
+
+            } while (status.sendCmdCounter < totalExecutionNumber);
             if (exception != null) throw exception;
-            return serverPrepareResult;
+            return prepareResult;
         } catch (MaxAllowedPacketException e) {
             if (e.isMustReconnect()) protocol.connect();
             throw new QueryException("Could not send query: " + e.getMessage(), -1, INTERRUPTED_EXCEPTION.getSqlState(), e);
@@ -218,7 +297,4 @@ public abstract class AbstractBulkSend {
 
     }
 
-    public ServerPrepareResult getServerPrepareResult() {
-        return serverPrepareResult;
-    }
 }

@@ -55,8 +55,8 @@ import org.mariadb.jdbc.internal.protocol.Protocol;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class ServerPrepareResult {
-    private int statementId;
+public class ServerPrepareResult implements PrepareResult {
+    private long statementId;
     private ColumnInformation[] columns;
     private ColumnInformation[] parameters;
     private MariaDbType[] parameterTypeHeader;
@@ -78,7 +78,8 @@ public class ServerPrepareResult {
      * @param parameters parameters information
      * @param unProxiedProtocol indicate the protocol on which the prepare has been done
      */
-    public ServerPrepareResult(String sql, int statementId, ColumnInformation[] columns, ColumnInformation[] parameters, Protocol unProxiedProtocol) {
+    public ServerPrepareResult(String sql, long statementId, ColumnInformation[] columns, ColumnInformation[] parameters,
+                               Protocol unProxiedProtocol) {
         this.sql = sql;
         this.statementId = statementId;
         this.columns = columns;
@@ -96,7 +97,7 @@ public class ServerPrepareResult {
      * @param statementId new statement Id
      * @param unProxiedProtocol the protocol on which the prepare has been done
      */
-    public void failover(int statementId, Protocol unProxiedProtocol) {
+    public void failover(long statementId, Protocol unProxiedProtocol) {
         this.statementId = statementId;
         this.unProxiedProtocol = unProxiedProtocol;
         this.parameterTypeHeader = new MariaDbType[parameters.length];
@@ -151,7 +152,7 @@ public class ServerPrepareResult {
         return shareCounter;
     }
 
-    public int getStatementId() {
+    public long getStatementId() {
         return statementId;
     }
 

@@ -61,6 +61,7 @@ import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 import org.mariadb.jdbc.internal.util.BulkStatus;
 import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.ServerPrepareStatementCache;
+import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
@@ -73,6 +74,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Calendar;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
 public interface Protocol {
@@ -138,26 +140,23 @@ public interface Protocol {
 
     void executeQuery(boolean mustExecuteOnMaster, ExecutionResult executionResult, final String sql, int resultSetScrollType) throws QueryException;
 
-    void executeQuery(boolean mustExecuteOnMaster, ExecutionResult executionResult, final List<byte[]> queryParts, ParameterHolder[] parameters,
-                      int resultSetScrollType) throws QueryException;
+    void executeQuery(boolean mustExecuteOnMaster, ExecutionResult executionResult, final ClientPrepareResult clientPrepareResult,
+                      ParameterHolder[] parameters, int resultSetScrollType) throws QueryException;
 
-    void executeQuery(boolean mustExecuteOnMaster, ExecutionResult executionResult, final List<byte[]> queryParts, ParameterHolder[] parameters,
-                      int resultSetScrollType, boolean isRewritable) throws QueryException;
-
-    void executeBatchBulk(boolean mustExecuteOnMaster, ExecutionResult executionResult, final List<byte[]> queryParts,
-                      List<ParameterHolder[]> parameterList, int resultSetScrollType) throws QueryException;
+    void executeBatchBulk(boolean mustExecuteOnMaster, ExecutionResult executionResult, final ClientPrepareResult clientPrepareResult,
+                          List<ParameterHolder[]> parameterList, int resultSetScrollType) throws QueryException;
 
     void executeBatch(boolean mustExecuteOnMaster, ExecutionResult executionResult, List<String> queries, int resultSetScrollType)
             throws QueryException;
 
-    void executeBatchMultiple(boolean mustExecuteOnMaster, ExecutionResult executionResult, final List<byte[]> queryParts,
+    void executeBatchMultiple(boolean mustExecuteOnMaster, ExecutionResult executionResult, ClientPrepareResult prepareResult,
                               List<ParameterHolder[]> parameterList,
                               int resultSetScrollType) throws QueryException;
 
     void executeBatchMultiple(boolean mustExecuteOnMaster, ExecutionResult executionResult, List<String> queries,
                               int resultSetScrollType) throws QueryException;
 
-    void executeBatchRewrite(boolean mustExecuteOnMaster, ExecutionResult executionResult, final List<byte[]> queryParts,
+    void executeBatchRewrite(boolean mustExecuteOnMaster, ExecutionResult executionResult, final ClientPrepareResult prepareResult,
                              List<ParameterHolder[]> parameterList,
                              int resultSetScrollType, boolean rewriteValues) throws QueryException;
 
@@ -166,20 +165,13 @@ public interface Protocol {
                               ExecutionResult executionResult, ParameterHolder[] parameters,
                               int resultSetScrollType) throws QueryException;
 
-    void executePreparedQuery(boolean mustExecuteOnMaster, ServerPrepareResult serverPrepareResult,
-                              ExecutionResult executionResult, List<ParameterHolder[]> parametersList,
-                              int resultSetScrollType) throws QueryException;
-
-    ServerPrepareResult prepareAndExecutesComMulti(boolean mustExecuteOnMaster, ServerPrepareResult serverPrepareResult,
+    ServerPrepareResult prepareAndExecutes(boolean mustExecuteOnMaster, ServerPrepareResult serverPrepareResult,
                                                    ExecutionResult executionResult, String sql,
-                                                   List<ParameterHolder[]> parameterList, int resultSetScrollType)
-            throws QueryException;
+                                                   List<ParameterHolder[]> parameterList, int resultSetScrollType) throws QueryException;
 
-    ServerPrepareResult prepareAndExecuteComMulti(boolean mustExecuteOnMaster, ExecutionResult executionResult, String sql,
-                                                  ParameterHolder[] parameters, int resultSetScrollType) throws QueryException;
-
-
-
+    ServerPrepareResult prepareAndExecute(boolean mustExecuteOnMaster, ServerPrepareResult serverPrepareResult,
+                                           ExecutionResult executionResult, String sql,
+                                           ParameterHolder[] parameters, int resultSetScrollType) throws QueryException;
 
     ExecutionResult getResult(ExecutionResult executionResult, int resultSetScrollType, boolean binaryProtocol, boolean loadAllResults)
             throws QueryException;
@@ -230,7 +222,9 @@ public interface Protocol {
 
     void releasePrepareStatement(ServerPrepareResult serverPrepareResult) throws QueryException;
 
-    void forceReleasePrepareStatement(int statementId) throws QueryException;
+    boolean forceReleasePrepareStatement(long statementId) throws QueryException;
+
+    void forceReleaseWaitingPrepareStatement() throws QueryException;
 
     ServerPrepareStatementCache prepareStatementCache();
 
@@ -268,7 +262,4 @@ public interface Protocol {
     void readEofPacket() throws QueryException, IOException;
 
     ReadPacketFetcher getPacketFetcher();
-
-    void writeSavedSubCmd(BulkStatus status) throws QueryException;
-
 }

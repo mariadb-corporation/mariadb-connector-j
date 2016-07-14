@@ -51,12 +51,22 @@ public class PreparedStatementTest extends BaseTest {
      */
     @Test
     public void insertSelect() throws Exception {
-        if (!sharedOptions().useComMulti) {
+        try {
             PreparedStatement stmt = sharedConnection.prepareStatement(
                     "insert into test_insert_select ( field1) (select  TMP.field1 from (select ? `field1` from dual) TMP)");
             stmt.setString(1, "test");
             stmt.executeUpdate();
+            if (sharedOptions().useBatchBulkSend) fail("Must have fail");
+        } catch (SQLException e) {
+            if (!sharedOptions().useBatchBulkSend) {
+                fail("Must have fallback to client preparedStatement");
+            }
         }
+
+        //check protocol well
+        ResultSet rs = sharedConnection.createStatement().executeQuery("SELECT 1");
+        assertTrue(rs.next());
+        assertEquals(1, rs.getInt(1));
     }
 
     /**
@@ -194,25 +204,43 @@ public class PreparedStatementTest extends BaseTest {
     }
 
     @Test
-    public void testRewriteMultiPacket() throws SQLException {
+    public void testRewriteValuesMaxSizeOneParam() throws SQLException {
+        testRewriteMultiPacket(false);
+    }
+
+    @Test
+    public void testRewriteMultiMaxSizeOneParam() throws SQLException {
+        testRewriteMultiPacket(true);
+    }
+
+    private void testRewriteMultiPacket(boolean notRewritable) throws SQLException {
         Statement statement = sharedConnection.createStatement();
+        statement.execute("TRUNCATE PreparedStatementTest1");
         ResultSet rs = statement.executeQuery("select @@max_allowed_packet");
         rs.next();
         int maxAllowedPacket = rs.getInt(1);
         if (maxAllowedPacket < 21000000) { //to avoid OutOfMemory
-
-            char[] arr = new char[maxAllowedPacket - 100];
+            String query = "INSERT INTO PreparedStatementTest1 VALUES (null, ?)"
+                    + (notRewritable ? " ON DUPLICATE KEY UPDATE id=?" : "");
+            //to have query exacting maxAllowedPacket size :
+            // query size minus the ?
+            // add first byte COM_QUERY
+            // add 2 bytes (2 QUOTES for string parameter without need of escaping)
+            char[] arr = new char[maxAllowedPacket - (query.length() + 3 )];
             for (int i = 0; i < arr.length; i++) {
                 arr[i] = (char) ('a' + (i % 10));
             }
 
-            try (Connection connection = setConnection("&rewriteBatchedStatements=true")) {
-                PreparedStatement pstmt = connection.prepareStatement("INSERT INTO PreparedStatementTest1 VALUES (null, ?)");
-                for (int i = 0; i < 10; i++) {
+            try (Connection connection = setConnection("&rewriteBatchedStatements=true&profileSql=true")) {
+                PreparedStatement pstmt = connection.prepareStatement(query);
+                for (int i = 0; i < 2; i++) {
                     pstmt.setString(1, new String(arr));
+                    if (notRewritable) pstmt.setInt(2, 1);
                     pstmt.addBatch();
                 }
-                pstmt.executeBatch();
+                int[] results = pstmt.executeBatch();
+                assertEquals(2, results.length);
+                for (int result : results) assertEquals(1, result);
             }
 
             rs = statement.executeQuery("select * from PreparedStatementTest1");
@@ -225,10 +253,66 @@ public class PreparedStatementTest extends BaseTest {
                     assertEquals(arr[i], newBytes[i]);
                 }
             }
-            assertEquals(10, counter);
+            assertEquals(2, counter);
         }
     }
 
+
+    @Test
+    public void testRewriteValuesMaxSize2Param() throws SQLException {
+        testRewriteMultiPacket2param(false);
+    }
+
+    @Test
+    public void testRewriteMultiMaxSize2Param() throws SQLException {
+        testRewriteMultiPacket2param(true);
+    }
+
+    /**
+     * Goal is send rewritten query with 2 parameters with size exacting max_allowed_packet.
+     * @param notRewritable rewritable
+     * @throws SQLException exception
+     */
+    private void testRewriteMultiPacket2param(boolean notRewritable) throws SQLException {
+        Statement statement = sharedConnection.createStatement();
+        statement.execute("TRUNCATE PreparedStatementTest1");
+        ResultSet rs = statement.executeQuery("select @@max_allowed_packet");
+        rs.next();
+        int maxAllowedPacket = rs.getInt(1);
+        if (maxAllowedPacket < 21000000) { //to avoid OutOfMemory
+            String query = "INSERT INTO PreparedStatementTest1 VALUES (null, ?)"
+                    + (notRewritable ? " ON DUPLICATE KEY UPDATE id=?" : "");
+            //to have query with exactly 2 values exacting maxAllowedPacket size :
+            char[] arr = new char[(maxAllowedPacket - (query.length() + 18) ) / 2];
+            for (int i = 0; i < arr.length; i++) {
+                arr[i] = (char) ('a' + (i % 10));
+            }
+
+            try (Connection connection = setConnection("&rewriteBatchedStatements=true&profileSql=true")) {
+                PreparedStatement pstmt = connection.prepareStatement(query);
+                for (int i = 0; i < 4; i++) {
+                    pstmt.setString(1, new String(arr));
+                    if (notRewritable) pstmt.setInt(2, 1);
+                    pstmt.addBatch();
+                }
+                int[] results = pstmt.executeBatch();
+                assertEquals(4, results.length);
+                for (int result : results) assertEquals(1, result);
+            }
+
+            rs = statement.executeQuery("select * from PreparedStatementTest1");
+            int counter = 0;
+            while (rs.next()) {
+                counter++;
+                byte[] newBytes = rs.getBytes(2);
+                assertEquals(arr.length, newBytes.length);
+                for (int i = 0; i < arr.length; i++) {
+                    assertEquals(arr[i], newBytes[i]);
+                }
+            }
+            assertEquals(4, counter);
+        }
+    }
 
     /**
      * CONJ-273: permit client PrepareParameter without parameters.

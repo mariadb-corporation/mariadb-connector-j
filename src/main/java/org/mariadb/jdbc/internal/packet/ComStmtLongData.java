@@ -70,46 +70,14 @@ public class ComStmtLongData {
      * @param param parameter
      * @throws IOException if socket orror occur
      */
-    public void send(PacketOutputStream writer, int statementId, short parameterId, ParameterHolder param) throws IOException {
+    public void send(PacketOutputStream writer, long statementId, short parameterId, ParameterHolder param) throws IOException {
         writer.startPacket(0);
         writer.buffer.put(Packet.COM_STMT_SEND_LONG_DATA);
-        writer.buffer.putInt(statementId);
+        writer.writeUInt(statementId);
         writer.buffer.putShort(parameterId);
         param.writeBinary(writer);
         writer.finishPacketWithoutRelease();
     }
 
-    /**
-     * Send COM_MULTI long data sub-command .
-     *
-     * @param writer output stream
-     * @param statementId statement id
-     * @param parameterId parameter id
-     * @param param parameter
-     * @param status bulk status
-     * @return current buffer position
-     * @throws IOException if socket orror occur
-     */
-    public static int sendComMulti(PacketOutputStream writer, int statementId, short parameterId, ParameterHolder param, BulkStatus status)
-            throws IOException {
-        status.subCmdInitialPosition = writer.buffer.position();
-        writer.assureBufferCapacity(3);
-        writer.buffer.position(status.subCmdInitialPosition + 3);
-
-        //add execute sub command
-        writer.buffer.put(Packet.COM_STMT_SEND_LONG_DATA);
-        writer.buffer.putInt(statementId);
-        writer.buffer.putShort(parameterId);
-        param.writeBinary(writer);
-
-        //write subCommand length
-        int subCmdEndPosition = writer.buffer.position();
-        writer.buffer.position(status.subCmdInitialPosition);
-        writer.buffer.put((byte) ((subCmdEndPosition - (status.subCmdInitialPosition + 3)) & 0xff));
-        writer.buffer.put((byte) ((subCmdEndPosition - (status.subCmdInitialPosition + 3)) >>> 8));
-        writer.buffer.put((byte) ((subCmdEndPosition - (status.subCmdInitialPosition + 3)) >>> 16));
-        writer.buffer.position(subCmdEndPosition);
-        return subCmdEndPosition;
-    }
 
 }

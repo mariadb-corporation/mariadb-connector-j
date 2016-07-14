@@ -52,6 +52,7 @@ package org.mariadb.jdbc.internal.protocol;
 
 import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.UrlParser;
+import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.packet.ComStmtLongData;
 import org.mariadb.jdbc.internal.packet.ComStmtPrepare;
 import org.mariadb.jdbc.internal.packet.ComStmtExecute;
@@ -65,13 +66,14 @@ import org.mariadb.jdbc.internal.stream.MaxAllowedPacketException;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 import org.mariadb.jdbc.internal.util.BulkStatus;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
+import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
+import org.mariadb.jdbc.internal.util.dao.PrepareResult;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.util.constant.ServerStatus;
 import org.mariadb.jdbc.internal.util.buffer.Buffer;
 import org.mariadb.jdbc.internal.packet.Packet;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
-import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 import org.mariadb.jdbc.LocalInfileInterceptor;
 
@@ -87,6 +89,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 import java.util.ServiceLoader;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static org.mariadb.jdbc.internal.util.ExceptionMapper.SqlStates.CONNECTION_EXCEPTION;
@@ -99,6 +103,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     private int transactionIsolationLevel = 0;
     private InputStream localInfileInputStream;
     private int maxRows;  /* max rows returned by a statement */
+    private volatile long statementIdToRelease = -1;
 
     /**
      * Get a protocol instance.
@@ -119,8 +124,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * Execute query directly to outputStream.
      *
      * @param mustExecuteOnMaster was intended to be launched on master connection
-     * @param executionResult result
-     * @param sql the query to executeInternal
+     * @param executionResult     result
+     * @param sql                 the query to executeInternal
      * @param resultSetScrollType resultSetScrollType
      * @throws QueryException exception
      */
@@ -145,51 +150,24 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * Execute a unique clientPrepareQuery.
      *
      * @param mustExecuteOnMaster was intended to be launched on master connection
-     * @param executionResult result
-     * @param queryParts query part
-     * @param parameters parameters
+     * @param executionResult     result
+     * @param clientPrepareResult clientPrepareResult
+     * @param parameters          parameters
      * @param resultSetScrollType resultsetScroll type
      * @throws QueryException exception
      */
     public void executeQuery(boolean mustExecuteOnMaster, ExecutionResult executionResult,
-                             final List<byte[]> queryParts, ParameterHolder[] parameters,
+                             final ClientPrepareResult clientPrepareResult, ParameterHolder[] parameters,
                              int resultSetScrollType) throws QueryException {
         cmdPrologue();
         try {
-
-            ComExecute.send(writer, queryParts, parameters);
-            getResult(executionResult, resultSetScrollType, false, true);
-
-        } catch (QueryException queryException) {
-            throwErrorWithQuery(writer.buffer, queryException);
-        } catch (MaxAllowedPacketException e) {
-            if (e.isMustReconnect()) connect();
-            throw new QueryException("Could not send query: " + e.getMessage(), -1, INTERRUPTED_EXCEPTION.getSqlState(), e);
-        } catch (IOException e) {
-            throw new QueryException("Could not send query: " + e.getMessage(), -1, CONNECTION_EXCEPTION.getSqlState(), e);
-        } finally {
-            writer.releaseBufferIfNotLogging();
-        }
-    }
-
-    /**
-     * Specific execution for batch rewrite that has specific query for memory.
-     *
-     * @param mustExecuteOnMaster was intended to be launched on master connection
-     * @param executionResult result
-     * @param queryParts query part
-     * @param parameters parameters
-     * @param resultSetScrollType resultsetScroll type
-     * @param isRewritable is rewritable flag
-     * @throws QueryException exception
-     */
-    public void executeQuery(boolean mustExecuteOnMaster, ExecutionResult executionResult,
-                             final List<byte[]> queryParts, ParameterHolder[] parameters,
-                             int resultSetScrollType, boolean isRewritable) throws QueryException {
-        cmdPrologue();
-        try {
-
-            ComExecute.sendRewrite(writer, queryParts, parameters);
+            if (clientPrepareResult.getParamCount() == 0 && !clientPrepareResult.isRewritableValuesQuery()) {
+                ComExecute.sendDirect(writer, clientPrepareResult.getQueryParts().get(0));
+            } else {
+                writer.startPacket(0);
+                ComExecute.sendSubCmd(writer, clientPrepareResult, parameters);
+                writer.finishPacketWithoutRelease();
+            }
             getResult(executionResult, resultSetScrollType, false, true);
 
         } catch (QueryException queryException) {
@@ -208,32 +186,34 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * Execute clientPrepareQuery batch.
      *
      * @param mustExecuteOnMaster was intended to be launched on master connection
-     * @param executionResult result
-     * @param queryParts query part
-     * @param parametersList List of parameters
+     * @param executionResult     result
+     * @param clientPrepareResult ClientPrepareResult
+     * @param parametersList      List of parameters
      * @param resultSetScrollType resultsetScroll type
      * @throws QueryException exception
      */
-    public void executeBatchBulk(boolean mustExecuteOnMaster, ExecutionResult executionResult, final List<byte[]> queryParts,
-                             final List<ParameterHolder[]> parametersList, int resultSetScrollType) throws QueryException {
+    public void executeBatchBulk(boolean mustExecuteOnMaster, ExecutionResult executionResult, final ClientPrepareResult clientPrepareResult,
+                                 final List<ParameterHolder[]> parametersList, int resultSetScrollType) throws QueryException {
         cmdPrologue();
-        new AbstractBulkSend(this, writer, executionResult, queryParts, parametersList, resultSetScrollType) {
+        new AbstractBulkSend(this, writer, executionResult, clientPrepareResult, parametersList, resultSetScrollType) {
 
             @Override
-            public void sendCmd(PacketOutputStream writer, ExecutionResult executionResult, List<byte[]> queryParts,
+            public void sendCmd(PacketOutputStream writer, ExecutionResult executionResult,
                                 List<ParameterHolder[]> parametersList, List<String> queries, int paramCount, BulkStatus status,
-                                ServerPrepareResult serverPrepareResult)
+                                PrepareResult prepareResult)
                     throws QueryException, IOException {
                 ParameterHolder[] parameters = parametersList.get(status.sendCmdCounter);
-                ComExecute.sendSubCmd(writer, queryParts, parameters, paramCount);
+                writer.startPacket(0);
+                ComExecute.sendSubCmd(writer, clientPrepareResult, parameters);
             }
 
             @Override
-            public QueryException handleResultException(QueryException qex, ExecutionResult executionResult, List<byte[]> queryParts,
+            public QueryException handleResultException(QueryException qex, ExecutionResult executionResult,
                                                         List<ParameterHolder[]> parametersList, List<String> queries, int currentCounter,
-                                                        BulkStatus status, int paramCount, ServerPrepareResult serverPrepareResult)
+                                                        int sendCmdCounter, int paramCount, PrepareResult prepareResult)
                     throws QueryException {
-                ParameterHolder[] parameters = parametersList.get(currentCounter + status.sendCmdCounter - status.sendSubCmdCounter);
+                ParameterHolder[] parameters = parametersList.get(currentCounter + sendCmdCounter);
+                List<byte[]> queryParts = clientPrepareResult.getQueryParts();
                 String sql = new String(queryParts.get(0));
                 for (int i = 0; i < paramCount; i++) sql += parameters[i].toString() + new String(queryParts.get(i + 1));
                 return addQueryInfo(sql, qex);
@@ -241,7 +221,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
             @Override
             public int getParamCount() {
-                return queryParts.size() - 1;
+                return clientPrepareResult.getQueryParts().size() - 1;
             }
 
             @Override
@@ -249,7 +229,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 return parametersList.size();
             }
 
-        }.executeBatch(false);
+        }.executeBatch(isServerComMulti());
 
     }
 
@@ -257,7 +237,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * Execute list of queries not rewritable.
      *
      * @param mustExecuteOnMaster was intended to be launched on master connection
-     * @param queries list of queries
+     * @param queries             list of queries
      * @param resultSetScrollType resultSetScrollType
      * @throws QueryException exception
      */
@@ -268,20 +248,20 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         new AbstractBulkSend(this, writer, executionResult, queries, resultSetScrollType) {
 
             @Override
-            public void sendCmd(PacketOutputStream writer, ExecutionResult executionResult, List<byte[]> queryParts,
+            public void sendCmd(PacketOutputStream writer, ExecutionResult executionResult,
                                 List<ParameterHolder[]> parametersList, List<String> queries, int paramCount, BulkStatus status,
-                                ServerPrepareResult serverPrepareResult)
+                                PrepareResult prepareResult)
                     throws QueryException, IOException {
                 String sql = queries.get(status.sendCmdCounter);
                 ComExecute.sendDirect(writer, sql.getBytes("UTF-8"));
             }
 
             @Override
-            public QueryException handleResultException(QueryException qex, ExecutionResult executionResult, List<byte[]> queryParts,
+            public QueryException handleResultException(QueryException qex, ExecutionResult executionResult,
                                                         List<ParameterHolder[]> parametersList, List<String> queries, int currentCounter,
-                                                        BulkStatus status, int paramCount, ServerPrepareResult serverPrepareResult)
+                                                        int sendCmdCounter, int paramCount, PrepareResult prepareResult)
                     throws QueryException {
-                String sql = queries.get(currentCounter + status.sendCmdCounter - status.sendSubCmdCounter);
+                String sql = queries.get(currentCounter + sendCmdCounter);
                 return addQueryInfo(sql, qex);
             }
 
@@ -295,42 +275,21 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 return queries.size();
             }
 
-        }.executeBatch(false);
+        }.executeBatch(isServerComMulti());
 
     }
-
-    /**
-     * Write to buffer current saved cmd.
-     * @param status bulk status infos
-     * @throws QueryException if these command only is bigger than max_allowed_packet.
-     */
-    public void writeSavedSubCmd(BulkStatus status) throws QueryException {
-        if (status.lastSubCommand != null) {
-            writer.write(status.lastSubCommand, 0, status.lastSubCommand.length);
-            if (!writer.checkCurrentPacketAllowedSize()) {
-                //one sub-command is bigger than max packet Size
-                throw new QueryException("max_allowed_packet=" + writer.getMaxAllowedPacket() + ". stream size "
-                        + status.lastSubCommand.length + " is > to max_allowed_packet");
-            }
-
-            status.lastSubCommand = null;
-            status.sendSubCmdCounter++;
-            status.sendCmdCounter++;
-        }
-    }
-
 
     /**
      * Prepare query on server side.
      * Will permit to know the parameter number of the query, and permit to send only the data on next results.
-     *
+     * <p>
      * For failover, two additional information are in the resultset object :
      * - current connection : Since server maintain a state of this prepare statement, all query will be executed on this particular connection.
      * - executeOnMaster : state of current connection when creating this prepareStatement (if was on master, will only be executed on master.
      * If was on a slave, can be execute temporary on master, but we keep this flag,
      * so when a slave is connected back to relaunch this query on slave)
      *
-     * @param sql the query
+     * @param sql             the query
      * @param executeOnMaster state of current connection when creating this prepareStatement
      * @return a ServerPrepareResult object that contain prepare result information.
      * @throws QueryException if any error occur on connection.
@@ -350,7 +309,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             writer.startPacket(0, true);
             ComStmtPrepare comStmtPrepare = new ComStmtPrepare(this, sql);
             comStmtPrepare.send(writer);
-            return comStmtPrepare.read(packetFetcher);
+            ServerPrepareResult result = comStmtPrepare.read(packetFetcher);
+            return result;
         } catch (IOException e) {
             throw new QueryException(e.getMessage(), -1, CONNECTION_EXCEPTION.getSqlState(),
                     e);
@@ -364,19 +324,18 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * Specific execution for batch allowMultipleQueries that has specific query for memory.
      *
      * @param mustExecuteOnMaster was intended to be launched on master connection
-     * @param executionResult result
-     * @param queryParts query part
-     * @param parameterList parameters
+     * @param executionResult     result
+     * @param prepareResult       prepareResult
+     * @param parameterList       parameters
      * @param resultSetScrollType resultsetScroll type
      * @throws QueryException exception
      */
     public void executeBatchMultiple(boolean mustExecuteOnMaster, ExecutionResult executionResult,
-                                     final List<byte[]> queryParts, List<ParameterHolder[]> parameterList,
+                                     final ClientPrepareResult prepareResult, List<ParameterHolder[]> parameterList,
                                      int resultSetScrollType) throws QueryException {
         cmdPrologue();
-
+        List<byte[]> queryParts = prepareResult.getQueryParts();
         ParameterHolder[] parameters;
-        int paramCount = queryParts.size() - 1;
         int currentIndex = 0;
         int totalParameterList = parameterList.size();
 
@@ -390,8 +349,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 int staticLength = 1;
                 for (int i = 0; i < queryParts.size(); i++) staticLength += queryParts.get(i).length;
 
-                currentIndex = ComExecute.sendMultiple(writer, queryParts, parameters, firstPart, currentIndex, paramCount, parameterList,
-                        staticLength);
+                currentIndex = ComExecute.sendMultiple(writer, queryParts, parameters, firstPart, currentIndex, prepareResult.getParamCount(),
+                        parameterList, staticLength);
                 getResult(executionResult, resultSetScrollType, false, true);
             } while (currentIndex < totalParameterList);
 
@@ -414,7 +373,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * queries will be send to server according to max_allowed_packet size.
      *
      * @param mustExecuteOnMaster was intended to be launched on master connection
-     * @param queries list of queryes
+     * @param queries             list of queryes
      * @param resultSetScrollType resultSetScrollType
      * @throws QueryException exception
      */
@@ -459,27 +418,26 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * Specific execution for batch rewrite that has specific query for memory.
      *
      * @param mustExecuteOnMaster was intended to be launched on master connection
-     * @param executionResult result
-     * @param queryParts query part
-     * @param parameterList parameters
+     * @param executionResult     result
+     * @param prepareResult       prepareResult
+     * @param parameterList       parameters
      * @param resultSetScrollType resultsetScroll type
-     * @param rewriteValues is rewritable flag
+     * @param rewriteValues       is rewritable flag
      * @throws QueryException exception
      */
     public void executeBatchRewrite(boolean mustExecuteOnMaster, ExecutionResult executionResult,
-                                    final List<byte[]> queryParts, List<ParameterHolder[]> parameterList,
+                                    final ClientPrepareResult prepareResult, List<ParameterHolder[]> parameterList,
                                     int resultSetScrollType, boolean rewriteValues) throws QueryException {
         cmdPrologue();
         ParameterHolder[] parameters;
-        int paramCount = queryParts.size() - 3;
         int currentIndex = 0;
         int totalParameterList = parameterList.size();
 
         try {
-
             do {
                 parameters = parameterList.get(currentIndex++);
-                currentIndex = ComExecute.sendRewrite(writer, queryParts, parameters, currentIndex, paramCount, parameterList, rewriteValues);
+                currentIndex = ComExecute.sendRewriteCmd(writer, prepareResult.getQueryParts(), parameters, currentIndex,
+                        prepareResult.getParamCount(), parameterList, rewriteValues);
                 getResult(executionResult, resultSetScrollType, false, true);
 
             } while (currentIndex < totalParameterList);
@@ -497,157 +455,56 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     }
 
     /**
-     * Prepare query if needed, and execute send all executes in one packet (or more if &gt; max_allowed_packet).
-     *
-     * @param mustExecuteOnMaster must normally be executed on master connection
-     * @param executionResult results
-     * @param sql query
-     * @param parameters parameters
-     * @param resultSetScrollType  result scroll type
-     * @return server prepare result
-     * @throws QueryException if server return error, of connection fail
-     */
-    @Override
-    public ServerPrepareResult prepareAndExecuteComMulti(boolean mustExecuteOnMaster, ExecutionResult executionResult,
-                                                         String sql, ParameterHolder[] parameters,
-                                                         int resultSetScrollType) throws QueryException {
-        cmdPrologue();
-        BulkStatus status = new BulkStatus();
-
-        try {
-            int parameterNb = parameters.length;
-            ServerPrepareResult serverPrepareResult = getPrepareResultFromCacheIfNeeded(null, sql);
-            int statementId = (serverPrepareResult == null) ? -1 : serverPrepareResult.getStatementId();
-            int subCmdEndPosition;
-            int sendLongDataCounter = 0;
-            boolean isParamSubCmd = true;
-            QueryException exception = null;
-            boolean containCmd;
-
-            //com multi init packet
-            do {
-                writer.startPacket(0, true);
-                writer.buffer.put((byte) 0xfe);
-                containCmd = false;
-                //add prepare sub-command
-                if (statementId == -1) new ComStmtPrepare(this, sql).sendComMulti(writer);
-
-                if (status.lastSubCommand != null) {
-                    writeSavedSubCmd(status);
-                    if (isParamSubCmd) sendLongDataCounter++;
-                    containCmd = true;
-                }
-
-                //send long data
-                if (isParamSubCmd) {
-                    for (int i = sendLongDataCounter; i < parameterNb; i++) {
-                        if (parameters[i].isLongData()) {
-
-                            //add execute sub command
-                            subCmdEndPosition = ComStmtLongData.sendComMulti(writer, statementId, (short) i, parameters[i], status);
-
-                            if (!writer.checkCurrentPacketAllowedSize()) {
-                                status.lastSubCommand = new byte[subCmdEndPosition - status.subCmdInitialPosition];
-                                //packet size > max_allowed_size -> need to send packet now without last command, and recreate new packet for
-                                //additional data.
-                                System.arraycopy(writer.buffer.array(), status.subCmdInitialPosition, status.lastSubCommand, 0,
-                                        subCmdEndPosition - status.subCmdInitialPosition);
-                                writer.buffer.position(status.subCmdInitialPosition);
-                                if (isParamSubCmd) writer.releaseBufferIfNotLogging();
-                                isParamSubCmd = true;
-                                continue;
-                            }
-                            containCmd = true;
-                        }
-                        sendLongDataCounter++;
-                    }
-                }
-
-                if (status.lastSubCommand == null) {
-                    isParamSubCmd = false;
-
-                    //add execute sub command
-                    subCmdEndPosition = ComStmtExecute.sendComMulti(statementId, parameters, parameterNb, new MariaDbType[parameterNb], writer,
-                            status);
-
-                    if (!writer.checkCurrentPacketAllowedSize()) {
-                        status.lastSubCommand = new byte[subCmdEndPosition - status.subCmdInitialPosition];
-                        //packet size > max_allowed_size -> need to send packet now without last command, and recreate new packet for additional data.
-                        System.arraycopy(writer.buffer.array(), status.subCmdInitialPosition, status.lastSubCommand, 0,
-                                subCmdEndPosition - status.subCmdInitialPosition);
-                        writer.buffer.position(status.subCmdInitialPosition);
-                        continue;
-                    }
-                    containCmd = true;
-                }
-
-                if (containCmd) writer.finishPacketWithoutRelease();
-
-                try {
-                    if (statementId == -1) {
-                        serverPrepareResult = new ComStmtPrepare(this, sql).read(packetFetcher);
-                        if (serverPrepareResult != null) statementId = serverPrepareResult.getStatementId();
-                    }
-                } catch (QueryException qex) {
-                    exception = qex;
-                }
-
-                try {
-                    if (!isParamSubCmd) getResult(executionResult, resultSetScrollType, true, true);
-                } catch (QueryException qex) {
-                    if (exception == null) exception = throwErrorWithQuery(parameters, qex, serverPrepareResult);
-                }
-
-                if (exception != null) throw exception;
-            } while (sendLongDataCounter < parameterNb || status.lastSubCommand != null);
-
-            if (exception != null) throw exception;
-            return serverPrepareResult;
-        } catch (IOException e) {
-            throw new QueryException(e.getMessage(), -1, CONNECTION_EXCEPTION.getSqlState(), e);
-        } finally {
-            writer.releaseBufferIfNotLogging();
-        }
-    }
-
-    /**
-     * Execute Prepare if needed, and execute COM_STMT_EXECUTE queries in batch using COM_MULTI.
+     * Execute Prepare if needed, and execute COM_STMT_EXECUTE queries in batch.
      *
      * @param mustExecuteOnMaster must normally be executed on master connection
      * @param serverPrepareResult prepare result. can be null if not prepared.
-     * @param executionResult execution results
-     * @param sql sql query if needed to be prepared
-     * @param parametersList parameter list
+     * @param executionResult     execution results
+     * @param sql                 sql query if needed to be prepared
+     * @param parametersList      parameter list
      * @param resultSetScrollType result scroll type
      * @return Prepare result
      * @throws QueryException if parameter error or connection error occur.
      */
-    public ServerPrepareResult prepareAndExecutesComMulti(boolean mustExecuteOnMaster, ServerPrepareResult serverPrepareResult,
-                                                          ExecutionResult executionResult, String sql,
-                                                          final List<ParameterHolder[]> parametersList, int resultSetScrollType)
+    public ServerPrepareResult prepareAndExecutes(boolean mustExecuteOnMaster, ServerPrepareResult serverPrepareResult,
+                                                  ExecutionResult executionResult, String sql,
+                                                  final List<ParameterHolder[]> parametersList, int resultSetScrollType)
             throws QueryException {
         cmdPrologue();
-        return new AbstractBulkSend(this, writer, executionResult, serverPrepareResult, parametersList, resultSetScrollType, true, sql) {
+        return (ServerPrepareResult) new AbstractBulkSend(this, writer, executionResult, serverPrepareResult, parametersList, resultSetScrollType,
+                true, sql) {
             @Override
-            public void sendCmd(PacketOutputStream writer, ExecutionResult executionResult, List<byte[]> queryParts,
+            public void sendCmd(PacketOutputStream writer, ExecutionResult executionResult,
                                 List<ParameterHolder[]> parametersList, List<String> queries, int paramCount, BulkStatus status,
-                                ServerPrepareResult serverPrepareResult)
+                                PrepareResult prepareResult)
                     throws QueryException, IOException {
+
+                int parameterCount = getParamCount();
                 ParameterHolder[] parameters = parametersList.get(status.sendCmdCounter);
-                ComStmtExecute.sendComMulti(statementId, parameters, parametersList.get(0).length, parameterTypeHeader, writer, status);
+                if (parameters.length < parameterCount) {
+                    throw new QueryException("Parameter at position " + (parameterCount - 1) + " is not set", -1, "07004");
+                }
+                //send binary data in a separate stream
+                for (int i = 0; i < parameterCount; i++) {
+                    if (parameters[i].isLongData()) {
+                        new ComStmtLongData().send(writer, statementId, (short) i, parameters[i]);
+                    }
+                }
+                writer.startPacket(0);
+                ComStmtExecute.writeCmd(statementId, parameters, parameterCount, parameterTypeHeader, writer);
             }
 
             @Override
-            public QueryException handleResultException(QueryException qex, ExecutionResult executionResult, List<byte[]> queryParts,
+            public QueryException handleResultException(QueryException qex, ExecutionResult executionResult,
                                                         List<ParameterHolder[]> parametersList, List<String> queries, int currentCounter,
-                                                        BulkStatus status, int paramCount, ServerPrepareResult serverPrepareResult)
+                                                        int sendCmdCounter, int paramCount, PrepareResult prepareResult)
                     throws QueryException {
-                return throwErrorWithQuery(parametersList, qex, serverPrepareResult);
+                return throwErrorWithQuery(parametersList, qex, (ServerPrepareResult) prepareResult);
             }
 
             @Override
             public int getParamCount() {
-                return getServerPrepareResult() == null ? parametersList.get(0).length : getServerPrepareResult().getParameters().length;
+                return getPrepareResult() == null ? parametersList.get(0).length : ((ServerPrepareResult) getPrepareResult()).getParameters().length;
             }
 
             @Override
@@ -655,16 +512,115 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 return parametersList.size();
             }
 
-        }.executeBatch(true);
+        }.executeBatch(isServerComMulti());
+
+    }
+
+    /**
+     * Execute Prepare if needed, and execute COM_STMT_EXECUTE queries in batch.
+     *
+     * @param mustExecuteOnMaster must normally be executed on master connection
+     * @param serverPrepareResult prepare result. can be null if not prepared.
+     * @param executionResult     execution results
+     * @param sql                 sql query if needed to be prepared
+     * @param parameters          parameters
+     * @param resultSetScrollType result scroll type
+     * @return Prepare result
+     * @throws QueryException if parameter error or connection error occur.
+     */
+    public ServerPrepareResult prepareAndExecute(boolean mustExecuteOnMaster, ServerPrepareResult serverPrepareResult,
+                                                  ExecutionResult executionResult, String sql,
+                                                  final ParameterHolder[] parameters, int resultSetScrollType)
+            throws QueryException {
+
+        cmdPrologue();
+        long statementId = -1;
+        int parameterCount = parameters.length;
+        MariaDbType[] parameterTypeHeader = new MariaDbType[parameters.length];
+
+        if (getOptions().cachePrepStmts) {
+            String key = new StringBuilder(getDatabase()).append("-").append(sql).toString();
+            serverPrepareResult = prepareStatementCache().get(key);
+            if (serverPrepareResult != null && !serverPrepareResult.incrementShareCounter()) {
+                //in cache but been de-allocated
+                serverPrepareResult = null;
+            }
+            statementId = (serverPrepareResult == null) ? -1 : serverPrepareResult.getStatementId();
+        }
+
+        ComStmtPrepare comStmtPrepare = null;
+        QueryException exception = null;
+        try {
+
+            //add prepare sub-command
+            if (serverPrepareResult == null) {
+                comStmtPrepare = new ComStmtPrepare(this, sql);
+                comStmtPrepare.send(writer);
+
+                if (!isServerComMulti()) {
+                    //read prepare result
+                    try {
+                        serverPrepareResult = comStmtPrepare.read(getPacketFetcher());
+                        statementId = serverPrepareResult.getStatementId();
+                        parameterCount = serverPrepareResult.getParameters().length;
+                    } catch (QueryException queryException) {
+                        throw queryException;
+                    }
+                }
+
+            }
+
+            if (serverPrepareResult != null && parameters.length < parameterCount) {
+                throw new QueryException("Parameter at position " + (parameterCount) + " is not set", -1, "07004");
+            }
+
+            //send binary data in a separate stream
+            for (int i = 0; i < parameterCount; i++) {
+                if (parameters[i].isLongData()) {
+                    new ComStmtLongData().send(writer, statementId, (short) i, parameters[i]);
+                }
+            }
+
+            writer.startPacket(0);
+            ComStmtExecute.writeCmd(statementId, parameters, parameterCount, parameterTypeHeader, writer);
+            writer.finishPacketWithoutRelease();
+
+            if (serverPrepareResult == null) {
+                try {
+                    serverPrepareResult = comStmtPrepare.read(getPacketFetcher());
+                } catch (QueryException queryException) {
+                    exception = queryException;
+                }
+            }
+
+            //read result
+            try {
+                getResult(executionResult, resultSetScrollType, true, true);
+            } catch (QueryException qex) {
+                if (exception == null) {
+                    throw throwErrorWithQuery(parameters, qex, serverPrepareResult);
+                }
+            }
+
+            if (exception != null) throw exception;
+            return serverPrepareResult;
+
+        } catch (MaxAllowedPacketException e) {
+            if (e.isMustReconnect()) connect();
+            throw new QueryException("Could not send query: " + e.getMessage(), -1, INTERRUPTED_EXCEPTION.getSqlState(), e);
+        } catch (IOException e) {
+            throw new QueryException("Could not send query: " + e.getMessage(), -1, CONNECTION_EXCEPTION.getSqlState(), e);
+        }
 
     }
 
     /**
      * Execute a query that is already prepared.
+     *
      * @param mustExecuteOnMaster must execute on master
      * @param serverPrepareResult prepare result
-     * @param executionResult execution result
-     * @param parameters parameters
+     * @param executionResult     execution result
+     * @param parameters          parameters
      * @param resultSetScrollType scroll type.
      * @throws QueryException exception
      */
@@ -698,56 +654,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     }
 
     /**
-     * Execute queries already prepared.
-     * @param mustExecuteOnMaster must execute on master
-     * @param serverPrepareResult prepare result
-     * @param executionResult execution result
-     * @param parametersList parameters
-     * @param resultSetScrollType scroll type.
-     * @throws QueryException exception
-     */
-    @Override
-    public void executePreparedQuery(boolean mustExecuteOnMaster, final ServerPrepareResult serverPrepareResult, ExecutionResult executionResult,
-                                     final List<ParameterHolder[]> parametersList, int resultSetScrollType)
-            throws QueryException {
-        cmdPrologue();
-        new AbstractBulkSend(this, writer, executionResult, serverPrepareResult, parametersList, resultSetScrollType, false, null) {
-            @Override
-            public void sendCmd(PacketOutputStream writer, ExecutionResult executionResult, List<byte[]> queryParts,
-                                List<ParameterHolder[]> parametersList, List<String> queries, int paramCount, BulkStatus status,
-                                ServerPrepareResult serverPrepareResult)
-                    throws QueryException, IOException {
-                ParameterHolder[] parameters = parametersList.get(status.sendCmdCounter);
-                ComStmtExecute.writeCmd(serverPrepareResult.getStatementId(), parameters,
-                        paramCount, serverPrepareResult.getParameterTypeHeader(), writer);
-            }
-
-            @Override
-            public QueryException handleResultException(QueryException qex, ExecutionResult executionResult, List<byte[]> queryParts,
-                                                        List<ParameterHolder[]> parametersList, List<String> queries, int currentCounter,
-                                                        BulkStatus status, int paramCount, ServerPrepareResult serverPrepareResult)
-                    throws QueryException {
-                return throwErrorWithQuery(parametersList.get(currentCounter + status.sendCmdCounter - status.sendSubCmdCounter), qex,
-                        serverPrepareResult);
-            }
-
-            @Override
-            public int getParamCount() {
-                return serverPrepareResult.getParameters().length;
-            }
-
-            @Override
-            public int getTotalExecutionNumber() {
-                return parametersList.size();
-            }
-
-
-        }.executeBatch(false);
-
-    }
-
-
-    /**
      * Rollback transaction.
      */
     public void rollback() throws QueryException {
@@ -770,21 +676,41 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * problem.
      *
      * @param statementId prepared statement Id to remove.
+     * @return true if successfully released
      * @throws QueryException if connection exception.
      */
-    public void forceReleasePrepareStatement(int statementId) throws QueryException {
-        cmdPrologue();
-        lock.lock();
-        try {
-            checkClose();
-            final SendClosePrepareStatementPacket packet = new SendClosePrepareStatementPacket(statementId);
+    public boolean forceReleasePrepareStatement(long statementId) throws QueryException {
+        if (lock.tryLock()) {
+            cmdPrologue();
             try {
-                packet.send(writer);
-            } catch (IOException e) {
-                throw new QueryException("Could not send query: " + e.getMessage(), -1, CONNECTION_EXCEPTION.getSqlState(), e);
+                checkClose();
+                final SendClosePrepareStatementPacket packet = new SendClosePrepareStatementPacket(statementId);
+                try {
+                    packet.send(writer);
+                    return true;
+                } catch (IOException e) {
+                    throw new QueryException("Could not send query: " + e.getMessage(), -1, CONNECTION_EXCEPTION.getSqlState(), e);
+                }
+            } finally {
+                lock.unlock();
             }
-        } finally {
-            lock.unlock();
+        } else {
+            //lock is used by another thread (bulk reading)
+            statementIdToRelease = statementId;
+        }
+        return false;
+    }
+
+    /**
+     * Force release of prepare statement that are not used.
+     * This permit to deallocate a statement that cannot be release due to multi-thread use.
+     * @throws QueryException if connection occur
+     */
+    public void forceReleaseWaitingPrepareStatement() throws QueryException {
+        if (statementIdToRelease != -1) {
+            if (forceReleasePrepareStatement(statementIdToRelease)) {
+                statementIdToRelease = -1;
+            }
         }
     }
 
@@ -938,6 +864,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
     /**
      * Deallocate prepare statement if not used anymore.
+     *
      * @param serverPrepareResult allocation result
      * @throws QueryException if deallocation failed.
      */
@@ -1064,6 +991,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
     /**
      * Close active result.
+     *
      * @throws SQLException if socket error.
      */
     public void fetchActiveStreamingResult() throws SQLException {
@@ -1091,7 +1019,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 queryString = new String(buffer.array(), 5, buffer.limit());
             } else {
                 queryString = new String(buffer.array(), 5, Math.min(buffer.limit(), (options.maxQuerySizeToLog * 3) + 5));
-                if (queryString.length() > options.maxQuerySizeToLog - 3 ) {
+                if (queryString.length() > options.maxQuerySizeToLog - 3) {
                     queryString = queryString.substring(0, options.maxQuerySizeToLog - 3) + "...";
                 }
             }
@@ -1173,7 +1101,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     writer.writeEmptyPacket(packetFetcher.getLastPacketSeq() + 1);
                     packetFetcher.getReusableBuffer();
                 }
-            } catch (IOException ee) { }
+            } catch (IOException ee) {
+            }
             throw new QueryException("Could not read resultset: " + e.getMessage(), -1, CONNECTION_EXCEPTION.getSqlState(), e);
         }
 
@@ -1190,11 +1119,12 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 this.hasWarnings = (buffer.readShort() > 0);
                 this.moreResults = ((serverStatus & ServerStatus.MORE_RESULTS_EXISTS) != 0);
 
+                executionResult.addStats(affectedRows, insertId, moreResults);
+
                 if (!loadAllResults) {
                     return new SingleExecutionResult(executionResult.getStatement(), 0, true, false, affectedRows, insertId);
                 }
 
-                executionResult.addStats(affectedRows, insertId, moreResults);
                 while (moreResults && loadAllResults && executionResult.getFetchSize() == 0) {
                     //load additional results
                     executionResult.getCachedExecutionResults().add(getResult(executionResult, ResultSet.TYPE_FORWARD_ONLY,
@@ -1224,9 +1154,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 executionResult.addStats(Statement.EXECUTE_FAILED, Statement.SUCCESS_NO_INFO, moreResults);
                 throw new QueryException(message, errorNumber, sqlState);
 
-            //*********************************************************************************************************
-            //* LOCAL INFILE response
-            //*********************************************************************************************************
+                //*********************************************************************************************************
+                //* LOCAL INFILE response
+                //*********************************************************************************************************
             case Packet.LOCAL_INFILE:
                 //Send fileName
                 buffer.getLengthEncodedBinary(); //field count
@@ -1239,7 +1169,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                             writer.writeEmptyPacket(packetFetcher.getLastPacketSeq() + 1);
                             packetFetcher.getReusableBuffer();
                         }
-                    } catch (IOException ee) { }
+                    } catch (IOException ee) {
+                    }
                     throw new QueryException("Could not read resultset: " + e.getMessage(), -1, CONNECTION_EXCEPTION.getSqlState(), e);
                 }
                 break;
@@ -1253,9 +1184,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 }
                 //no break, because if size >=9 it's a resultset
 
-            //*********************************************************************************************************
-            //* RESULTSET
-            //*********************************************************************************************************
+                //*********************************************************************************************************
+                //* RESULTSET
+                //*********************************************************************************************************
             default:
                 this.hasWarnings = false;
                 long fieldCount = buffer.getLengthEncodedBinary();
@@ -1294,7 +1225,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                             try {
                                 getResult(executionResult, ResultSet.TYPE_FORWARD_ONLY,
                                         (activeStreamingResult != null) ? activeStreamingResult.isBinaryEncoded() : moreResultsTypeBinary, false);
-                            } catch (QueryException e) { }
+                            } catch (QueryException e) {
+                            }
                         }
                         throw new QueryException("Select command are not permitted via executeBatch() command");
                     }
@@ -1324,11 +1256,12 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
     /**
      * Preparation before command.
+     *
      * @param executionResult result
-     * @param maxRows query max rows
-     * @param hasProxy has proxy
-     * @param connection current connection
-     * @param statement current statement
+     * @param maxRows         query max rows
+     * @param hasProxy        has proxy
+     * @param connection      current connection
+     * @param statement       current statement
      * @throws SQLException if any error occur.
      */
     public void prolog(ExecutionResult executionResult, int maxRows, boolean hasProxy, MariaDbConnection connection, Statement statement)

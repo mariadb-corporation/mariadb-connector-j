@@ -11,23 +11,26 @@ remove_mysql(){
 }
 remove_mysql
 
-if [ -n "$REWRITE" ]
-then
-    export URLSTRING=-DdbURL='jdbc:mariadb://localhost:3306/testj?user=root&rewriteBatchedStatements=true'
-else
-    if [ -n "$MULTI" ]
-    then
-        export URLSTRING=-DdbURL='jdbc:mariadb://localhost:3306/testj?user=root&allowMultiQueries=true'
-    else
-
-        if [ -n "$COMPRESSION" ]
-        then
-            export URLSTRING=-DdbURL='jdbc:mariadb://localhost:3306/testj?user=root&useCompression=true'
-        else
-            export URLSTRING=-DdbURL='jdbc:mariadb://localhost:3306/testj?user=root'
-        fi
-    fi
-fi
+case "$TYPE" in
+ "REWRITE" )
+   export URLSTRING=-DdbURL='jdbc:mariadb://localhost:3306/testj?user=root&rewriteBatchedStatements=true'
+   ;;
+ "MULTI" )
+   export URLSTRING=-DdbURL='jdbc:mariadb://localhost:3306/testj?user=root&allowMultiQueries=true'
+   ;;
+ "BULK_CLIENT" )
+   export URLSTRING=-DdbURL='jdbc:mariadb://localhost:3306/testj?user=root&useBatchBulkSend=true&useServerPrepStmts=false'
+   ;;
+ "NO_BULK_CLIENT" )
+   export URLSTRING=-DdbURL='jdbc:mariadb://localhost:3306/testj?user=root&useBatchBulkSend=false&useServerPrepStmts=false'
+   ;;
+ "NO_BULK_SERVER" )
+   export URLSTRING=-DdbURL='jdbc:mariadb://localhost:3306/testj?user=root&useBatchBulkSend=false'
+   ;;
+ "COMPRESSION" )
+   export URLSTRING=-DdbURL='jdbc:mariadb://localhost:3306/testj?user=root&useCompression=true'
+   ;;
+esac;
 
 if [ -n "$AURORA" ]
 then

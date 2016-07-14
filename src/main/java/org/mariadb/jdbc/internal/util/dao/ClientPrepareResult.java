@@ -53,7 +53,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ClientPrepareResult {
+public class ClientPrepareResult implements PrepareResult {
     private String sql;
     private List<byte[]> queryParts;
     private boolean rewritableValuesQuery = true;

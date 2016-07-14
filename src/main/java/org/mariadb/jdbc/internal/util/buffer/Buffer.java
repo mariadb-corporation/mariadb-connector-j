@@ -121,6 +121,18 @@ public class Buffer {
     }
 
     /**
+     * Read unsigned int (4 bytes) from buffer.
+     *
+     * @return a long
+     */
+    public long readUInt() {
+        return ((buf[position++] & 0xff)
+                + ((buf[position++] & 0xff) << 8)
+                + ((buf[position++] & 0xff) << 16)
+                + ((buf[position++] & 0xff) << 24));
+    }
+
+    /**
      * Read a long (8 bytes) from the buffer.
      *
      * @return a long

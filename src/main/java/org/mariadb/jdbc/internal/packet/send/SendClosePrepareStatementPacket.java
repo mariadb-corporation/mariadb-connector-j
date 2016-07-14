@@ -57,9 +57,9 @@ import java.io.OutputStream;
 
 public class SendClosePrepareStatementPacket implements InterfaceSendPacket {
 
-    private int statementId;
+    private long statementId;
 
-    public SendClosePrepareStatementPacket(int statementId) {
+    public SendClosePrepareStatementPacket(long statementId) {
         this.statementId = statementId;
     }
 

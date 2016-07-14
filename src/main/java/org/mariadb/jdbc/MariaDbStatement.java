@@ -50,9 +50,7 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc;
 
 import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.queryresults.ExecutionResult;
-import org.mariadb.jdbc.internal.queryresults.MultiIntExecutionResult;
-import org.mariadb.jdbc.internal.queryresults.SingleExecutionResult;
+import org.mariadb.jdbc.internal.queryresults.*;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.Utils;
@@ -238,7 +236,13 @@ public class MariaDbStatement implements Statement, Cloneable {
         try {
             executeQueryProlog();
             batchResultSet = null;
-            SingleExecutionResult internalExecutionResult = new SingleExecutionResult(this, fetchSize, true, false, true);
+            ExecutionResult internalExecutionResult;
+            if (options.allowMultiQueries || options.rewriteBatchedStatements) {
+                //permit multi query in one execution
+                internalExecutionResult = new MultiVariableIntExecutionResult(this, 1, fetchSize, true);
+            } else {
+                internalExecutionResult = new SingleExecutionResult(this, fetchSize, true, false, true);
+            }
             protocol.executeQuery(protocol.isMasterConnection(), internalExecutionResult,
                     Utils.nativeSql(sql, connection.noBackslashEscapes), resultSetScrollType);
             executionResult = internalExecutionResult;
@@ -729,7 +733,7 @@ public class MariaDbStatement implements Statement, Cloneable {
                         data[i] = ((SingleExecutionResult) executionResult).getInsertId() + i * autoIncrementIncrement;
                     }
                 } else {
-                    MultiIntExecutionResult multiExecution = (MultiIntExecutionResult) executionResult;
+                    MultiVariableIntExecutionResult multiExecution = (MultiVariableIntExecutionResult) executionResult;
                     int size = 0;
                     int affectedRowslength = multiExecution.getAffectedRows().length;
                     for (int i = 0; i < affectedRowslength; i++) {
@@ -822,13 +826,13 @@ public class MariaDbStatement implements Statement, Cloneable {
      * @throws SQLException if a database access error occurs or this method is called on a closed Statement
      */
     public int getUpdateCount() throws SQLException {
-        if (executionResult == null || executionResult.getResultSet() != null) {
+        if (executionResult == null) {
             return -1;  /* Result comes from SELECT , or there are no more results */
         }
         if (executionResult instanceof SingleExecutionResult) {
             return (int) ((SingleExecutionResult) executionResult).getAffectedRows();
         } else {
-            return ((MultiIntExecutionResult) executionResult).getAffectedRows()[0];
+            return ((MultiExecutionResult) executionResult).getAffectedRows()[0];
         }
     }
 
@@ -1056,7 +1060,7 @@ public class MariaDbStatement implements Statement, Cloneable {
         if (batchQueries == null || batchQueries.size() == 0) {
             return new int[0];
         }
-        MultiIntExecutionResult internalExecutionResult = new MultiIntExecutionResult(this, batchQueries.size(), 0, false);
+        MultiFixedIntExecutionResult internalExecutionResult = new MultiFixedIntExecutionResult(this, batchQueries.size(), 0, false);
         boolean multipleExecution = false;
         lock.lock();
         try {
@@ -1076,7 +1080,7 @@ public class MariaDbStatement implements Statement, Cloneable {
                     if (batchQueryMultiRewritable) {
                         multipleExecution = true;
                         protocol.executeBatchMultiple(protocol.isMasterConnection(), internalExecutionResult, batchQueries, resultSetScrollType);
-                        internalExecutionResult.updateResultsMultiple(internalExecutionResult.getCachedExecutionResults(), false);
+                        internalExecutionResult.updateResultsMultiple(batchQueries.size(), false);
                     } else {
                         protocol.executeBatch(protocol.isMasterConnection(), internalExecutionResult, batchQueries, resultSetScrollType);
                     }
@@ -1087,7 +1091,7 @@ public class MariaDbStatement implements Statement, Cloneable {
                 exception = e;
             } finally {
                 if (exception != null && multipleExecution) {
-                    internalExecutionResult.updateResultsMultiple(internalExecutionResult.getCachedExecutionResults(), true);
+                    internalExecutionResult.updateResultsMultiple(batchQueries.size(), true);
                 }
                 executionResult = internalExecutionResult;
                 executing = false;

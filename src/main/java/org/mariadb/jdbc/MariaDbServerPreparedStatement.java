@@ -50,7 +50,7 @@ OF SUCH DAMAGE.
 
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.queryresults.ExecutionResult;
-import org.mariadb.jdbc.internal.queryresults.MultiIntExecutionResult;
+import org.mariadb.jdbc.internal.queryresults.MultiFixedIntExecutionResult;
 import org.mariadb.jdbc.internal.queryresults.SingleExecutionResult;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
@@ -91,7 +91,7 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
         returnTableAlias = options.useOldAliasMetadataBehavior;
         currentParameterHolder = new TreeMap<>();
         mustExecuteOnMaster = protocol.isMasterConnection();
-        if (forcePrepare || !connection.isServerComMulti()) prepare(this.sql);
+        if (forcePrepare || !options.useBatchBulkSend) prepare(this.sql);
     }
 
     /**
@@ -222,11 +222,11 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
         lock.lock();
         executing = true;
         QueryException exception = null;
-        MultiIntExecutionResult internalExecutionResult = null;
+        MultiFixedIntExecutionResult internalExecutionResult = null;
         try {
             executeQueryProlog(serverPrepareResult);
             try {
-                internalExecutionResult = new MultiIntExecutionResult(this, queryParameterSize, 0, false);
+                internalExecutionResult = new MultiFixedIntExecutionResult(this, queryParameterSize, 0, false);
                 executeBatchInternal(internalExecutionResult, queryParameterSize);
             } catch (QueryException queryException) {
                 exception = queryException;
@@ -253,22 +253,15 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
      * @throws QueryException if any error occur.
      * @throws SQLException if prepare fail
      */
-    private void executeBatchInternal(MultiIntExecutionResult internalExecutionResult, int queryParameterSize) throws QueryException, SQLException {
+    private void executeBatchInternal(MultiFixedIntExecutionResult internalExecutionResult, int queryParameterSize)
+            throws QueryException, SQLException {
 
         //if COM_MULTI capacity
-        if (!hasLongData && connection.isServerComMulti()) {
+        if (options.useBatchBulkSend) {
             //send all sub-command in one packet (or more if > max_allowed_packet)
-            serverPrepareResult = protocol.prepareAndExecutesComMulti(mustExecuteOnMaster, serverPrepareResult, internalExecutionResult, sql,
+            serverPrepareResult = protocol.prepareAndExecutes(mustExecuteOnMaster, serverPrepareResult, internalExecutionResult, sql,
                     queryParameters, resultSetScrollType);
             if (metadata == null) setMetaFromResult(); //first prepare
-            return;
-        }
-
-        //send by bulk : send data by bulk before reading corresponding results
-        if (options.useBatchBulkSend && !hasLongData) {
-            if (serverPrepareResult == null) prepare(this.sql);
-            protocol.executePreparedQuery(mustExecuteOnMaster, serverPrepareResult, internalExecutionResult,
-                    queryParameters, resultSetScrollType);
             return;
         }
 
@@ -277,16 +270,9 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
         for (int counter = 0; counter < queryParameterSize; counter++) {
             ParameterHolder[] parameterHolder = queryParameters.get(counter);
             try {
-                //if no com-multi prepare has been done on class instantiation.
-                if (serverPrepareResult != null) {
-                    serverPrepareResult.resetParameterTypeHeader();
-                    protocol.executePreparedQuery(mustExecuteOnMaster, serverPrepareResult, internalExecutionResult,
-                            parameterHolder, resultSetScrollType);
-                } else {
-                    serverPrepareResult = protocol.prepareAndExecuteComMulti(mustExecuteOnMaster, internalExecutionResult, sql,
-                            parameterHolder, resultSetScrollType);
-                    setMetaFromResult();
-                }
+                serverPrepareResult.resetParameterTypeHeader();
+                protocol.executePreparedQuery(mustExecuteOnMaster, serverPrepareResult, internalExecutionResult,
+                        parameterHolder, resultSetScrollType);
             } catch (QueryException queryException) {
                 if (options.continueBatchOnError) {
                     if (exception == null) exception = queryException;
@@ -362,14 +348,14 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
                 batchResultSet = null;
                 SingleExecutionResult internalExecutionResult = new SingleExecutionResult(this, fetchSize, true, canHaveCallableResultset,
                         true);
-
+                ParameterHolder[] parameterHolders = currentParameterHolder.values().toArray(new ParameterHolder[0]);
                 if (serverPrepareResult != null) {
                     serverPrepareResult.resetParameterTypeHeader();
                     protocol.executePreparedQuery(mustExecuteOnMaster, serverPrepareResult, internalExecutionResult,
-                            currentParameterHolder.values().toArray(new ParameterHolder[0]), resultSetScrollType);
+                            parameterHolders, resultSetScrollType);
                 } else {
-                    serverPrepareResult = protocol.prepareAndExecuteComMulti(mustExecuteOnMaster, internalExecutionResult, sql,
-                            currentParameterHolder.values().toArray(new ParameterHolder[0]), resultSetScrollType);
+                    serverPrepareResult = protocol.prepareAndExecute(mustExecuteOnMaster, null, internalExecutionResult, sql,
+                            parameterHolders, resultSetScrollType);
                     setMetaFromResult();
                 }
                 executionResult = internalExecutionResult;

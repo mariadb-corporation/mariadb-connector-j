@@ -53,8 +53,5 @@ package org.mariadb.jdbc.internal.util;
 public class BulkStatus {
     public int sendSubCmdCounter;
     public int sendCmdCounter = 0;
-    public int subCmdInitialPosition;
-
-    public byte[] lastSubCommand = null;
 
 }

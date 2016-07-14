@@ -81,42 +81,22 @@ public class ComStmtPrepare {
      * @throws QueryException if packet max size is to big.
      */
     public void send(PacketOutputStream writer) throws IOException, QueryException {
-        if (writer.isClosed()) throw new IOException("Stream has already closed");
-        byte[] sqlBytes = sql.getBytes("UTF-8");
-        int sqlLength = sqlBytes.length + 1;
-        if (sqlLength > writer.getMaxAllowedPacket()) {
-            throw new QueryException("Could not send query: max_allowed_packet=" + writer.getMaxAllowedPacket() + " but packet size is : "
-                    + sqlLength, -1, ExceptionMapper.SqlStates.INTERRUPTED_EXCEPTION.getSqlState());
-        }
-        byte[] packetBuffer = new byte[sqlLength + 4];
-        packetBuffer[0] = (byte) (sqlLength & 0xff);
-        packetBuffer[1] = (byte) (sqlLength >>> 8);
-        packetBuffer[2] = (byte) (sqlLength >>> 16);
-        packetBuffer[3] = (byte) 0;
-        packetBuffer[4] = Packet.COM_STMT_PREPARE;
-
-        System.arraycopy(sqlBytes, 0, packetBuffer, 5, sqlLength - 1);
-        writer.send(packetBuffer, sqlLength + 4);
-    }
-
-    /**
-     * Send Prepare statement sub-command COM_MULTI (with 3 bytes length prefix).
-     *
-     * @param writer outputStream
-     */
-    public void sendComMulti(PacketOutputStream writer) {
         try {
             byte[] sqlBytes = sql.getBytes("UTF-8");
-            int prepareLengthCommand = sqlBytes.length + 1;
+            int sqlLength = sqlBytes.length + 1;
+            if (sqlLength > writer.getMaxAllowedPacket()) {
+                throw new QueryException("Could not send query: max_allowed_packet=" + writer.getMaxAllowedPacket() + " but packet size is : "
+                        + sqlLength, -1, ExceptionMapper.SqlStates.INTERRUPTED_EXCEPTION.getSqlState());
+            }
+            byte[] packetBuffer = new byte[sqlLength + 4];
+            packetBuffer[0] = (byte) (sqlLength & 0xff);
+            packetBuffer[1] = (byte) (sqlLength >>> 8);
+            packetBuffer[2] = (byte) (sqlLength >>> 16);
+            packetBuffer[3] = (byte) 0;
+            packetBuffer[4] = Packet.COM_STMT_PREPARE;
 
-            //prepare length
-            writer.buffer.put((byte) (prepareLengthCommand & 0xff));
-            writer.buffer.put((byte) (prepareLengthCommand >>> 8));
-            writer.buffer.put((byte) (prepareLengthCommand >>> 16));
-
-            //prepare subCommand
-            writer.buffer.put(Packet.COM_STMT_PREPARE);
-            writer.write(sqlBytes);
+            System.arraycopy(sqlBytes, 0, packetBuffer, 5, sqlLength - 1);
+            writer.send(packetBuffer, sqlLength + 4);
         } catch (UnsupportedEncodingException exception) {
             //cannot happen
         }
@@ -146,7 +126,7 @@ public class ComStmtPrepare {
         if (firstByte == Packet.OK) {
                 /* Prepared Statement OK */
             buffer.readByte(); /* skip field count */
-            final int statementId = buffer.readInt();
+            final long statementId = buffer.readUInt();
             final int numColumns = buffer.readShort() & 0xffff;
             final int numParams = buffer.readShort() & 0xffff;
             buffer.readByte(); // reserved
@@ -172,11 +152,10 @@ public class ComStmtPrepare {
                 return cachedServerPrepareResult != null ? cachedServerPrepareResult : serverPrepareResult;
             }
             return serverPrepareResult;
+
         } else {
             throw new QueryException("Unexpected packet returned by server, first byte " + firstByte);
         }
     }
-
-
 
 }

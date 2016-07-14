@@ -4,10 +4,9 @@ import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayDeque;
-import java.util.Deque;
+import java.util.*;
 
-public class MultiIntExecutionResult implements ExecutionResult {
+public class MultiVariableIntExecutionResult implements MultiExecutionResult {
 
     private Statement statement = null;
     private boolean moreResultAvailable;
@@ -16,27 +15,26 @@ public class MultiIntExecutionResult implements ExecutionResult {
     private boolean canHaveCallableResultset;
     public Deque<ExecutionResult> cachedExecutionResults;
     private MariaSelectResultSet resultSet = null;
-    private long[] insertId;
-    private int[] affectedRows;
-    private int currentStat = 0;
+    private List<Long> insertId;
+    private List<Integer> affectedRows;
 
     /**
      * Constructor. Creating resultSet data with size according to datas.
      *
      * @param statement current statement
-     * @param size      data size
+     * @param size      initial data size
      * @param fetchSize resultet fetch size
      * @param selectPossible is select command possible
      */
-    public MultiIntExecutionResult(Statement statement, int size, int fetchSize, boolean selectPossible) {
+    public MultiVariableIntExecutionResult(Statement statement, int size, int fetchSize, boolean selectPossible) {
         this.statement = statement;
         this.fetchSize = fetchSize;
         this.selectPossible = selectPossible;
         this.canHaveCallableResultset = false;
         this.cachedExecutionResults = new ArrayDeque<>();
 
-        affectedRows = new int[size];
-        insertId = new long[size];
+        affectedRows = new ArrayList<>(size);
+        insertId = new ArrayList<>(size);
     }
 
     /**
@@ -47,8 +45,8 @@ public class MultiIntExecutionResult implements ExecutionResult {
      */
     public void addResultSet(MariaSelectResultSet result, boolean moreResultAvailable) {
         this.resultSet = result;
-        this.insertId[currentStat] = Statement.SUCCESS_NO_INFO;
-        this.affectedRows[currentStat++] = -1;
+        this.insertId.add((long) Statement.SUCCESS_NO_INFO);
+        this.affectedRows.add(-1);
         this.setMoreResultAvailable(moreResultAvailable);
     }
 
@@ -60,30 +58,48 @@ public class MultiIntExecutionResult implements ExecutionResult {
      * @param moreResultAvailable is there additional packet
      */
     public void addStats(long affectedRows, long insertId, boolean moreResultAvailable) {
-        this.insertId[currentStat] = insertId;
-        this.affectedRows[currentStat++] = (int) affectedRows;
+        this.insertId.add(insertId);
+        this.affectedRows.add((int) affectedRows);
         setMoreResultAvailable(moreResultAvailable);
     }
 
+    /**
+     * Get insert ids.
+     * @return insert ids results
+     */
     public long[] getInsertIds() {
-        return insertId;
+        long[] ret = new long[insertId.size()];
+        Iterator<Long> iterator = insertId.iterator();
+        for (int i = 0; i < ret.length; i++) {
+            ret[i] = iterator.next().longValue();
+        }
+        return ret;
     }
 
+    /**
+     * Get update array.
+     * @return update array.
+     */
     public int[] getAffectedRows() {
-        return affectedRows;
+        int[] ret = new int[affectedRows.size()];
+        Iterator<Integer> iterator = affectedRows.iterator();
+        for (int i = 0; i < ret.length; i++) {
+            ret[i] = iterator.next().intValue();
+        }
+        return ret;
     }
 
     public boolean hasMoreThanOneAffectedRows() {
-        return affectedRows.length > 0 && affectedRows[0] > 1;
+        return affectedRows.size() > 0;
     }
 
     public int getFirstAffectedRows() {
-        return affectedRows[0];
+        return affectedRows.get(0);
     }
 
     public void addStatsError() {
-        this.insertId[currentStat] = Statement.EXECUTE_FAILED;
-        this.affectedRows[currentStat++] = Statement.EXECUTE_FAILED;
+        this.insertId.add(new Long(Statement.EXECUTE_FAILED));
+        this.affectedRows.add(Statement.EXECUTE_FAILED);
     }
 
     /**
@@ -97,18 +113,22 @@ public class MultiIntExecutionResult implements ExecutionResult {
      * so modified row, will all be on the first row, or on a few rows :
      * queries will split to have query size under the max_allowed_size, so data can be on multiple rows
      *
+     * @param waitedSize  batchSize
      * @param hasException has exception
      */
-    public void updateResultsForRewrite(boolean hasException) {
+    public void updateResultsForRewrite(int waitedSize, boolean hasException) {
         long totalAffectedRows = 0;
-        int row = 0;
-        while (row < affectedRows.length && affectedRows[row] > 0) {
-            totalAffectedRows += affectedRows[row++];
+        Iterator<Integer> iterator = affectedRows.iterator();
+
+        while (iterator.hasNext()) {
+            totalAffectedRows += iterator.next().intValue();
         }
-        int resultVal = hasException ? Statement.EXECUTE_FAILED : (totalAffectedRows == affectedRows.length ? 1 : Statement.SUCCESS_NO_INFO);
-        for (row = 0; row < affectedRows.length; row++) {
-            affectedRows[row] = resultVal;
-        }
+        int realSize = Math.max(waitedSize, affectedRows.size());
+        int resultVal = hasException ? Statement.EXECUTE_FAILED : (totalAffectedRows == realSize ? 1 : Statement.SUCCESS_NO_INFO);
+
+        Integer[] arr = new Integer[realSize];
+        Arrays.fill(arr, resultVal);
+        affectedRows = Arrays.asList(arr);
     }
 
     /**
@@ -121,46 +141,33 @@ public class MultiIntExecutionResult implements ExecutionResult {
      *
      * So affected rows and insert Id are separate in as many okPacket.
      *
-     * @param cachedExecutionResults other okPacket.
+     * @param waitedSize  batchSize
      * @param hasException has exception
      */
-    public void updateResultsMultiple(Deque<ExecutionResult> cachedExecutionResults, boolean hasException) {
-        if (!hasException) {
-            for (int i = 1 ; i < affectedRows.length; i++) {
-                SingleExecutionResult executionResult = (SingleExecutionResult) cachedExecutionResults.poll();
-                affectedRows[i] = (int) executionResult.getAffectedRows();
-                insertId[i] = executionResult.getInsertId();
-            }
-        } else {
-            for (int i = 1 ; i < affectedRows.length; i++) {
-                SingleExecutionResult executionResult = (SingleExecutionResult) cachedExecutionResults.poll();
-                if (executionResult != null) {
-                    affectedRows[i] = (int) executionResult.getAffectedRows();
-                    insertId[i] = executionResult.getInsertId();
-                } else {
-                    affectedRows[i] = Statement.EXECUTE_FAILED;
-                    insertId[i] = Statement.EXECUTE_FAILED;
-                }
+    public void updateResultsMultiple(int waitedSize, boolean hasException) {
+        if (hasException) {
+            for (int i = affectedRows.size() ; i < waitedSize; i++) {
+                addStatsError();
             }
         }
 
-        if (!cachedExecutionResults.isEmpty()) {
-            //was rewrite with multiple insert
-            int[] newAffectedRows = new int[affectedRows.length + cachedExecutionResults.size()];
-            long[] newInsertIds = new long[insertId.length + cachedExecutionResults.size()];
-            int counter = 0;
-            for (; counter < affectedRows.length; counter++) {
-                newAffectedRows[counter] = affectedRows[counter];
-                newInsertIds[counter] = insertId[counter];
-            }
-            SingleExecutionResult executionResult;
-            while ((executionResult = (SingleExecutionResult) cachedExecutionResults.poll()) != null) {
-                newAffectedRows[counter] = (int) executionResult.getAffectedRows();
-                newInsertIds[counter++] = executionResult.getInsertId();
-            }
-            affectedRows = newAffectedRows;
-            insertId = newInsertIds;
-        }
+//        if (!cachedExecutionResults.isEmpty()) {
+//            //was rewrite with multiple insert
+//            int[] newAffectedRows = new int[affectedRows.length + cachedExecutionResults.size()];
+//            long[] newInsertIds = new long[insertId.length + cachedExecutionResults.size()];
+//            int counter = 0;
+//            for (; counter < affectedRows.length; counter++) {
+//                newAffectedRows[counter] = affectedRows[counter];
+//                newInsertIds[counter] = insertId[counter];
+//            }
+//            SingleExecutionResult executionResult;
+//            while ((executionResult = (SingleExecutionResult) cachedExecutionResults.poll()) != null) {
+//                newAffectedRows[counter] = (int) executionResult.getAffectedRows();
+//                newInsertIds[counter++] = executionResult.getInsertId();
+//            }
+//            affectedRows = newAffectedRows;
+//            insertId = newInsertIds;
+//        }
     }
 
     public MariaSelectResultSet getResultSet() {

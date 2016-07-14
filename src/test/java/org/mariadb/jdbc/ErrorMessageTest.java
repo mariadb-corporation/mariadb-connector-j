@@ -58,7 +58,7 @@ public class ErrorMessageTest extends BaseTest {
     @Test
     public void testSmallPrepareErrorMessage() throws SQLException {
         Assume.assumeTrue(sharedUsePrepare());
-        try (Connection connection = setConnection("&useComMulti=false")) {
+        try (Connection connection = setConnection("&useBatchBulkSend=false")) {
             executeBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
@@ -68,21 +68,16 @@ public class ErrorMessageTest extends BaseTest {
     }
 
     @Test
-    public void testSmallComMultiErrorMessage() throws SQLException {
+    public void testSmallBulkErrorMessage() throws SQLException {
         Assume.assumeTrue(sharedUsePrepare());
-        Connection connection = setConnection("&useComMulti=true&useBatchComMulti=true");
+        Connection connection = setConnection("&useBatchBulkSend=true");
         try {
             executeBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
-            if (comMultiCapacity(connection)) {
-                assertTrue(sqle.getMessage().contains("INSERT INTO testErrorMessage(test, test2) values (?, ?), parameters "
-                        + "['whoua0',0],['whoua1',1],['whoua2',2],['whoua3',3],['whoua4',4],['whoua5',5],['whoua6',6],"
-                        + "['whoua7',7],['whoua8',8],['whoua9',9],['more than 10 characters to provoc error',10]"));
-            } else {
-                assertTrue(sqle.getMessage().contains("INSERT INTO testErrorMessage(test, test2) values (?, ?), "
-                        + "parameters ['more than 10 characters to provoc error',10]"));
-            }
+            assertTrue(sqle.getMessage().contains("INSERT INTO testErrorMessage(test, test2) values (?, ?), parameters "
+                    + "['whoua0',0],['whoua1',1],['whoua2',2],['whoua3',3],['whoua4',4],['whoua5',5],['whoua6',6],"
+                    + "['whoua7',7],['whoua8',8],['whoua9',9],['more than 10 characters to provoc error',10]"));
         } finally {
             connection.close();
         }
@@ -112,7 +107,7 @@ public class ErrorMessageTest extends BaseTest {
     @Test
     public void testBigPrepareErrorMessage() throws SQLException {
         Assume.assumeTrue(sharedUsePrepare());
-        try (Connection connection = setConnection("&useComMulti=false")) {
+        try (Connection connection = setConnection("&useBatchBulkSend=false")) {
             executeBigBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
@@ -122,19 +117,14 @@ public class ErrorMessageTest extends BaseTest {
     }
 
     @Test
-    public void testBigComMultiErrorMessage() throws SQLException {
+    public void testBigBulkErrorMessage() throws SQLException {
         Assume.assumeTrue(sharedUsePrepare());
-        Connection connection = setConnection("&useComMulti=true");
+        Connection connection = setConnection("&useBatchBulkSend=true");
         try {
             executeBigBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
-            if (comMultiCapacity(connection)) {
-                assertTrue(sqle.getMessage().contains(",['whoua60',60],['whoua61',61],['whoua62',62],['whoua63',63],['whoua64',64..."));
-            } else {
-                assertTrue(sqle.getMessage().contains("INSERT INTO testErrorMessage(test, test2) values (?, ?), parameters "
-                        + "['more than 10 characters to provoc error',200]"));
-            }
+            assertTrue(sqle.getMessage().contains(",['whoua60',60],['whoua61',61],['whoua62',62],['whoua63',63],['whoua64',64..."));
         } finally {
             connection.close();
         }

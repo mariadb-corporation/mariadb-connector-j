@@ -52,13 +52,9 @@ package org.mariadb.jdbc.internal.stream;
 
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
-import org.mariadb.jdbc.internal.packet.Packet;
-import org.mariadb.jdbc.internal.util.ExceptionMapper;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import java.io.*;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
+import java.nio.*;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -85,7 +81,6 @@ public class PacketOutputStream extends OutputStream {
     int maxAllowedPacket = MAX_PACKET_LENGTH;
     int maxPacketSize = MAX_PACKET_LENGTH;
     boolean checkPacketLength;
-    int maxRewritableLengthAllowed;
     boolean useCompression;
     boolean logQuery;
     public OutputStream outputStream;
@@ -130,7 +125,6 @@ public class PacketOutputStream extends OutputStream {
         this.checkPacketLength = checkPacketLength;
         buffer.clear();
         buffer.position(4);
-
     }
 
     /**
@@ -354,20 +348,22 @@ public class PacketOutputStream extends OutputStream {
 
     /**
      * Ending command that tell to send buffer to server.
+     *
      * @throws IOException if any connection error occur
      */
     public void finishPacketWithoutRelease() throws IOException {
         if (buffer.position() > 4) {
-            checkPacketMaxSize(buffer.position());
+            checkPacketMaxSize(buffer.position() - 4);
 
             if (useCompression) {
-                flushWithCompression();
+                generatePacketWithCompression();
             } else {
-                flushDirect();
+                generatePacket();
             }
         }
         this.lastSeq =  (useCompression) ? this.compressSeqNo : this.seqNo;
     }
+
     /**
      * Ending command that tell to send buffer to server.
      * @throws IOException if any connection error occur
@@ -431,14 +427,10 @@ public class PacketOutputStream extends OutputStream {
      * @return true if with this additional length stream can be send in the same stream
      */
     public boolean checkRewritableLength(int length) {
-        if (checkPacketLength && buffer.position() + length > maxRewritableLengthAllowed) {
+        if (checkPacketLength && (buffer.position() + length > maxAllowedPacket - 1)) {
             return false;
         }
         return true;
-    }
-
-    public boolean checkCurrentPacketAllowedSize() {
-        return buffer.position() <= (maxAllowedPacket - 1);
     }
 
     private void checkPacketMaxSize(int limit) throws MaxAllowedPacketException {
@@ -446,12 +438,12 @@ public class PacketOutputStream extends OutputStream {
                 && maxAllowedPacket > 0
                 && limit > (maxAllowedPacket - 1)) {
             this.seqNo = -1;
-            throw new MaxAllowedPacketException("max_allowed_packet=" + maxAllowedPacket + ". stream size " + limit
+            throw new MaxAllowedPacketException("max_allowed_packet=" + (maxAllowedPacket - 1) + ". stream size " + limit
                     + " is > to max_allowed_packet", this.seqNo != 0);
         }
     }
 
-    private void flushDirect() throws IOException {
+    private void generatePacket() throws IOException {
         buffer.flip();
         // the 4th first byte are reserved for first header.
         int dataLength = buffer.remaining() - 4;
@@ -474,7 +466,6 @@ public class PacketOutputStream extends OutputStream {
             outputStream.write(buffer.array(), 0, maxPacketSize + 4);
             outputStream.flush();
             buffer.position(maxPacketSize + 4);
-
             while (buffer.remaining() > 0 ) {
                 int length = buffer.remaining();
                 buffer.position(buffer.position() - 4);
@@ -501,7 +492,7 @@ public class PacketOutputStream extends OutputStream {
     }
 
 
-    private void flushWithCompression() throws IOException {
+    private void generatePacketWithCompression() throws IOException {
         buffer.flip();
         int limit = buffer.limit();
         buffer.position(4);
@@ -600,7 +591,6 @@ public class PacketOutputStream extends OutputStream {
         this.maxAllowedPacket = maxAllowedPacket;
         if (maxAllowedPacket > 0) {
             maxPacketSize = Math.min(maxAllowedPacket, MAX_PACKET_LENGTH);
-            maxRewritableLengthAllowed = (int) (maxAllowedPacket - 4 * Math.ceil(((double)maxAllowedPacket) / maxPacketSize));
         } else {
             maxPacketSize = MAX_PACKET_LENGTH;
         }
@@ -701,6 +691,20 @@ public class PacketOutputStream extends OutputStream {
     public PacketOutputStream writeInt(final int theInt) {
         assureBufferCapacity(4);
         buffer.putInt(theInt);
+        return this;
+    }
+
+    /**
+     * Write int data in binary format.
+     * @param theUInt int data
+     * @return this.
+     */
+    public PacketOutputStream writeUInt(final long theUInt) {
+        assureBufferCapacity(4);
+        buffer.put((byte) (theUInt & 0xff));
+        buffer.put((byte) (theUInt >>> 8));
+        buffer.put((byte) (theUInt >>> 16));
+        buffer.put((byte) (theUInt >>> 24));
         return this;
     }
 
@@ -844,6 +848,7 @@ public class PacketOutputStream extends OutputStream {
             outputStream.write(packetBuffer);
             outputStream.flush();
         } else {
+            this.setCompressSeqNo(0);
             compressedAndSend(packetSize, packetBuffer);
         }
     }

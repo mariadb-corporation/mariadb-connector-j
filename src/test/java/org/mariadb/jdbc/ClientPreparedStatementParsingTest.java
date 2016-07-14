@@ -162,8 +162,8 @@ public class ClientPreparedStatementParsingTest extends BaseTest {
         checkParsing("SELECT testFunction()",
                 0, false, true,
                 new String[] {
-                        "",
                         "SELECT testFunction()",
+                        "",
                         ""},
                 new String[] {"SELECT testFunction()"});
     }
@@ -173,8 +173,8 @@ public class ClientPreparedStatementParsingTest extends BaseTest {
         checkParsing("SELECT 1",
                 0, false, true,
                 new String[] {
-                        "",
                         "SELECT 1",
+                        "",
                         ""},
                 new String[] {"SELECT 1"});
     }

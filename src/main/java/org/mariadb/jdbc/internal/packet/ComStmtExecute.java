@@ -62,7 +62,7 @@ import java.io.OutputStream;
 public class ComStmtExecute implements InterfaceSendPacket {
     private final int parameterCount;
     private final ParameterHolder[] parameters;
-    private final int statementId;
+    private final long statementId;
     private MariaDbType[] parameterTypeHeader;
 
     /**
@@ -73,7 +73,7 @@ public class ComStmtExecute implements InterfaceSendPacket {
      * @param parameterCount      parameters number
      * @param parameterTypeHeader parameters header
      */
-    public ComStmtExecute(final int statementId, final ParameterHolder[] parameters, final int parameterCount,
+    public ComStmtExecute(final long statementId, final ParameterHolder[] parameters, final int parameterCount,
                           MariaDbType[] parameterTypeHeader) {
         this.parameterCount = parameterCount;
         this.parameters = parameters;
@@ -95,40 +95,7 @@ public class ComStmtExecute implements InterfaceSendPacket {
     }
 
     /**
-     * Send COM_STMT_EXECUTE subcommand.
-     *
-     * @param statementId         prepareResult object received after preparation.
-     * @param parameters          parameters
-     * @param parameterCount      parameters count
-     * @param parameterTypeHeader parameters header
-     * @param writer outputStream
-     * @param status bulk status
-     * @return current buffer position
-     * @throws IOException if a connection error occur
-     */
-    public static int sendComMulti(final int statementId, final ParameterHolder[] parameters, final int parameterCount,
-                                    MariaDbType[] parameterTypeHeader, final PacketOutputStream writer, BulkStatus status)
-            throws IOException {
-        status.subCmdInitialPosition = writer.buffer.position();
-        writer.assureBufferCapacity(3);
-        writer.buffer.position(status.subCmdInitialPosition + 3);
-
-        //add execute sub command
-        writeCmd(statementId, parameters, parameterCount, parameterTypeHeader, writer);
-
-        //write subCommand length
-        int subCmdEndPosition = writer.buffer.position();
-        writer.buffer.position(status.subCmdInitialPosition);
-        writer.buffer.put((byte) ((subCmdEndPosition - (status.subCmdInitialPosition + 3)) & 0xff));
-        writer.buffer.put((byte) ((subCmdEndPosition - (status.subCmdInitialPosition + 3)) >>> 8));
-        writer.buffer.put((byte) ((subCmdEndPosition - (status.subCmdInitialPosition + 3)) >>> 16));
-        writer.buffer.position(subCmdEndPosition);
-        return subCmdEndPosition;
-
-    }
-
-    /**
-     * Write COM_STMT_EXECUTE sub-command to outtput buffer.
+     * Write COM_STMT_EXECUTE sub-command to output buffer.
      *
      * @param statementId         prepareResult object received after preparation.
      * @param parameters          parameters
@@ -137,10 +104,10 @@ public class ComStmtExecute implements InterfaceSendPacket {
      * @param pos outputStream
      * @throws IOException if a connection error occur
      */
-    public static void writeCmd(final int statementId, final ParameterHolder[] parameters, final int parameterCount,
+    public static void writeCmd(final long statementId, final ParameterHolder[] parameters, final int parameterCount,
                                 MariaDbType[] parameterTypeHeader, final PacketOutputStream pos) throws IOException {
         pos.write(Packet.COM_STMT_EXECUTE);
-        pos.writeInt(statementId);
+        pos.writeUInt(statementId);
         pos.write((byte) 0x00); //CURSOR TYPE NO CURSOR
         pos.writeInt(1); //Iteration count
 

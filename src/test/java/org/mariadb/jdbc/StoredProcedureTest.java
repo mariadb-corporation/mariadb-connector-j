@@ -13,6 +13,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.*;
 import java.util.Properties;
+import java.util.Random;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
@@ -68,9 +69,12 @@ public class StoredProcedureTest extends BaseTest {
      **/
     private void executeAnotherRequest() throws SQLException {
         //another request to verify packet exchange integrity
-        ResultSet rs = sharedConnection.createStatement().executeQuery("SELECT 10");
+        Random random = new Random();
+        int value = random.nextInt();
+        PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT " + value);
+        ResultSet rs = preparedStatement.executeQuery();
         rs.next();
-        assertEquals(10, rs.getInt(1));
+        assertEquals(value, rs.getInt(1));
     }
 
     @Test
@@ -578,6 +582,7 @@ public class StoredProcedureTest extends BaseTest {
             noDbConn.prepareCall("{call `testj2`.otherDbProcedure()}").execute();
         }
         sharedConnection.createStatement().executeUpdate("DROP DATABASE testj2");
+        executeAnotherRequest();
     }
 
     @Test
@@ -814,6 +819,7 @@ public class StoredProcedureTest extends BaseTest {
         stmt.executeUpdate("DROP PROCEDURE IF EXISTS testDefinerCallableStatement");
         stmt.executeUpdate("CREATE DEFINER=CURRENT_USER PROCEDURE testDefinerCallableStatement(I INT) COMMENT 'abcdefg'\nBEGIN\nSELECT I * 10;\nEND");
         sharedConnection.prepareCall("{call testDefinerCallableStatement(?)}").close();
+        executeAnotherRequest();
     }
 
     @Test
@@ -832,6 +838,7 @@ public class StoredProcedureTest extends BaseTest {
                 fail("must have a result !");
             }
         }
+        executeAnotherRequest();
     }
 
     @Test
@@ -903,6 +910,7 @@ public class StoredProcedureTest extends BaseTest {
                 new int[] { 20, 10 },
                 new int[] { 0, 2 },
                 new int[] { DatabaseMetaData.procedureColumnIn, DatabaseMetaData.procedureColumnOut });
+        executeAnotherRequest();
     }
 
     private void validateResult(ResultSet rs, String[] parameterNames, int[] parameterTypes, int[] precision,
@@ -929,6 +937,7 @@ public class StoredProcedureTest extends BaseTest {
             index++;
         }
         rs.close();
+        executeAnotherRequest();
 
     }
 
@@ -1069,6 +1078,7 @@ public class StoredProcedureTest extends BaseTest {
                 }
             }
         }
+        executeAnotherRequest();
     }
 
     @Test
@@ -1112,6 +1122,7 @@ public class StoredProcedureTest extends BaseTest {
                 assertEquals("23000", sqlEx.getSQLState());
             }
         }
+        executeAnotherRequest();
     }
 
     @Test
@@ -1140,8 +1151,8 @@ public class StoredProcedureTest extends BaseTest {
             System.out.println("getBoolean returns the Minimum value ");
         } else {
             System.out.println("getBoolean() did not return the Minimum value, getBoolean Failed!");
-
         }
+        executeAnotherRequest();
     }
 
     @Test
@@ -1151,6 +1162,7 @@ public class StoredProcedureTest extends BaseTest {
         } catch (Exception exception) {
             assertTrue(exception.getMessage().startsWith("invalid callable syntax"));
         }
+        executeAnotherRequest();
     }
 
     @Test
@@ -1164,6 +1176,7 @@ public class StoredProcedureTest extends BaseTest {
             callable.setString(3, "BAR");
             callable.executeUpdate();
         }
+        executeAnotherRequest();
     }
 
 
@@ -1249,6 +1262,7 @@ public class StoredProcedureTest extends BaseTest {
         } finally {
             conn1.close();
         }
+        executeAnotherRequest();
     }
 
     @Test
@@ -1293,7 +1307,7 @@ public class StoredProcedureTest extends BaseTest {
             sharedConnection.setCatalog(originalCatalog);
             sharedConnection.createStatement().executeUpdate("DROP DATABASE testProcMultiDb");
         }
-
+        executeAnotherRequest();
     }
 
 
@@ -1334,7 +1348,7 @@ public class StoredProcedureTest extends BaseTest {
         call.setNull(1, Types.INTEGER);
         call.execute();
         assertEquals(10, call.getInt(1));
-
+        executeAnotherRequest();
     }
 
     /**
@@ -1353,6 +1367,7 @@ public class StoredProcedureTest extends BaseTest {
             //must have thrown error.
             assertTrue(sqle.getMessage().contains("Test error from SP"));
         }
+        executeAnotherRequest();
     }
 
     /**
@@ -1369,6 +1384,7 @@ public class StoredProcedureTest extends BaseTest {
         callableStatement.registerOutParameter(1, Types.INTEGER);
         assertFalse(callableStatement.execute());
         assertEquals("Hello, !", callableStatement.getString(1));
+        executeAnotherRequest();
     }
 
 }

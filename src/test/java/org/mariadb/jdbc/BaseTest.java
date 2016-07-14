@@ -9,7 +9,6 @@ import org.mariadb.jdbc.failover.TcpProxy;
 import org.mariadb.jdbc.internal.failover.AbstractMastersListener;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.Options;
-import org.mariadb.jdbc.internal.util.constant.HaMode;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
@@ -41,6 +40,7 @@ public class BaseTest {
     private static Deque<String> tempFunctionList = new ArrayDeque<>();
     private static TcpProxy proxy = null;
     private static UrlParser urlParser;
+    protected static boolean runLongTest = false;
 
     @Rule
     public TestRule watcher = new TestWatcher() {
@@ -48,6 +48,21 @@ public class BaseTest {
             if (testSingleHost) {
                 System.out.println("start test : " + description.getClassName() + "." + description.getMethodName());
             }
+        }
+
+        //execute another query to ensure connection is stable
+        protected void finished(Description description) {
+            Random random = new Random();
+            int randInt = random.nextInt();
+
+            try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT " + randInt)) {
+                ResultSet rs = preparedStatement.executeQuery();
+                Assert.assertTrue(rs.next());
+                Assert.assertEquals(randInt, rs.getInt(1));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
         }
 
         protected void succeeded(Description description) {
@@ -129,6 +144,7 @@ public class BaseTest {
     @BeforeClass()
     public static void beforeClassBaseTest() throws SQLException {
         String url = System.getProperty("dbUrl", mDefUrl);
+        runLongTest = Boolean.getBoolean(System.getProperty("runLongTest", "false"));
         testSingleHost = Boolean.parseBoolean(System.getProperty("testSingleHost", "true"));
         if (testSingleHost) {
             urlParser = UrlParser.parse(url);
@@ -615,15 +631,12 @@ public class BaseTest {
     }
 
     /**
-     * Has server Com multi capacity.
+     * Has server bulk capacity.
      *
-     * @return true if server has COM_MULTI capacity and option not disabled
+     * @return true if server has bulk capacity and option not disabled
      */
-    public boolean sharedComMultiCapacity() {
-        return comMultiCapacity(sharedConnection);
+    public boolean sharedBulkCapacity() {
+        return urlParser.getOptions().useBatchBulkSend;
     }
 
-    public boolean comMultiCapacity(Connection connection) {
-        return ((MariaDbConnection) connection).isServerComMulti();
-    }
 }

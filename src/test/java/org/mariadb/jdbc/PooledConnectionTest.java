@@ -74,8 +74,9 @@ public class PooledConnectionTest extends BaseTest {
             Assert.assertTrue("should never get there", false);
         } catch (Exception e) {
             Assert.assertTrue(listener.statementErrorOccured);
-            if (comMultiCapacity(connection)) {
-                Assert.assertTrue(e.getMessage().contains("Incorrect arguments to mysqld_stmt_execute"));
+            if (sharedBulkCapacity()) {
+                Assert.assertTrue(e.getMessage().contains("Parameter at position 1 is not set")
+                        || e.getMessage().contains("Incorrect arguments to mysqld_stmt_execute"));
             } else {
                 Assert.assertEquals(listener.sqlException.getSQLState(), "07004");
             }

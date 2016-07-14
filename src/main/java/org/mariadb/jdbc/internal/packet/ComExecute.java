@@ -52,6 +52,7 @@ package org.mariadb.jdbc.internal.packet;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
+import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import java.io.IOException;
@@ -62,43 +63,37 @@ public class ComExecute {
     public ComExecute() { }
 
     /**
-     * Send a COM_EXECUTE query.
+     * Client-side PrepareStatement.execute() packet send.
      *
      * @param writer outputStream
-     * @param queryParts query parts
-     * @param parameters parameters
-     * @throws IOException if a connection error occur
-     * @throws QueryException if query &gt; max_allowed_packet
-     */
-    public static void send(final PacketOutputStream writer, final List<byte[]> queryParts, ParameterHolder[] parameters)
-            throws IOException, QueryException {
-        int paramCount = queryParts.size() - 1;
-        if (paramCount == 0) {
-            sendDirect(writer, queryParts.get(0));
-        } else {
-            writer.startPacket(0);
-            sendSubCmd(writer, queryParts, parameters, paramCount);
-            writer.finishPacketWithoutRelease();
-        }
-    }
-
-    /**
-     * write sub-command to buffer.
-     *
-     * @param writer outputStream
-     * @param queryParts query parts
-     * @param parameters parameters
-     * @param paramCount parameter number
+     * @param clientPrepareResult clientPrepareResult
+     * @param parameters parameter
      * @throws IOException if connection fail
      */
-    public static void sendSubCmd(final PacketOutputStream writer, final List<byte[]> queryParts, ParameterHolder[] parameters, int paramCount)
+    public static void sendSubCmd(final PacketOutputStream writer, final ClientPrepareResult clientPrepareResult, ParameterHolder[] parameters)
             throws IOException {
         writer.buffer.put(Packet.COM_QUERY);
-        writer.write(queryParts.get(0));
-        for (int i = 0; i < paramCount; i++) {
-            parameters[i].writeTo(writer);
-            writer.write(queryParts.get(i + 1));
+
+        if (clientPrepareResult.isRewritableValuesQuery()) {
+
+            writer.write(clientPrepareResult.getQueryParts().get(0));
+            writer.write(clientPrepareResult.getQueryParts().get(1));
+            for (int i = 0; i < clientPrepareResult.getParamCount(); i++) {
+                parameters[i].writeTo(writer);
+                writer.write(clientPrepareResult.getQueryParts().get(i + 2));
+            }
+            writer.write(clientPrepareResult.getQueryParts().get(clientPrepareResult.getParamCount() + 2));
+
+        } else {
+
+            writer.write(clientPrepareResult.getQueryParts().get(0));
+            for (int i = 0; i < clientPrepareResult.getParamCount(); i++) {
+                parameters[i].writeTo(writer);
+                writer.write(clientPrepareResult.getQueryParts().get(i + 1));
+            }
+
         }
+
     }
 
     /**
@@ -114,8 +109,9 @@ public class ComExecute {
      * @return current index
      * @throws IOException if connection fail
      */
-    public static int sendRewrite(final PacketOutputStream writer, final List<byte[]> queryParts, ParameterHolder[] parameters,
-                                  int currentIndex, int paramCount, List<ParameterHolder[]> parameterList, boolean rewriteValues) throws IOException {
+    public static int sendRewriteCmd(final PacketOutputStream writer, final List<byte[]> queryParts, ParameterHolder[] parameters,
+                                     int currentIndex, int paramCount, List<ParameterHolder[]> parameterList, boolean rewriteValues)
+            throws IOException {
         writer.startPacket(0);
         writer.buffer.put(Packet.COM_QUERY);
 
@@ -245,29 +241,6 @@ public class ComExecute {
 
         writer.finishPacketWithoutRelease();
         return currentIndex;
-    }
-
-    /**
-     * Client-side PrepareStatement.execute() packet send.
-     *
-     * @param writer outputStream
-     * @param queryParts queryPart
-     * @param parameters parameter
-     * @throws IOException if connection fail
-     */
-    public static void sendRewrite(final PacketOutputStream writer, final List<byte[]> queryParts, ParameterHolder[] parameters) throws IOException {
-        writer.startPacket(0);
-        writer.buffer.put(Packet.COM_QUERY);
-        writer.write(queryParts.get(0));
-        writer.write(queryParts.get(1));
-        int paramCount = queryParts.size() - 3;
-
-        for (int i = 0; i < paramCount; i++) {
-            parameters[i].writeTo(writer);
-            writer.write(queryParts.get(i + 2));
-        }
-        writer.write(queryParts.get(paramCount + 2));
-        writer.finishPacketWithoutRelease();
     }
 
     /**

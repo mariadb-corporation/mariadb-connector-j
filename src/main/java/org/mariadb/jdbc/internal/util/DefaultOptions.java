@@ -367,7 +367,7 @@ public enum DefaultOptions {
      * - executeBatch() will be send in one round trip (or in many packet if command size &gt; max_allowed_packet)
      *
      */
-    USE_COM_MULTI("useComMulti", Boolean.TRUE, "1.5.0"),
+    USE_COM_MULTI("useComMulti", Boolean.FALSE, "1.5.0"),
 
     /**
      * PreparedStatement.executeBatch() will send many QUERY before reading result packets.
