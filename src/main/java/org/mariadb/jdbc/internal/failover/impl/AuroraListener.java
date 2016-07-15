@@ -62,6 +62,7 @@ import org.mariadb.jdbc.internal.util.dao.ReconnectDuringTransactionException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -71,13 +72,17 @@ import java.util.List;
 import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class AuroraListener extends MastersSlavesListener {
 
     private final Logger log = Logger.getLogger(AuroraListener.class.getName());
-    private final String CLUSTER_IDENTIFIER = ".cluster-";
+    private final Pattern clusterPattern = Pattern.compile("(.+)\\.cluster-([a-z0-9]+\\.[a-z0-9\\-]+\\.rds\\.amazonaws\\.com)");
     private final HostAddress clusterHostAddress;
-    private String dbName;
+    private String urlEndStr = "";
+    private final SimpleDateFormat sqlDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+    private String dbName = "information_schema";
 
     /**
      * Constructor for Aurora.
@@ -92,7 +97,6 @@ public class AuroraListener extends MastersSlavesListener {
         masterProtocol = null;
         secondaryProtocol = null;
         clusterHostAddress = findClusterHostAddress(urlParser);
-        dbName = "information_schema";
     }
 
     /**
@@ -103,8 +107,11 @@ public class AuroraListener extends MastersSlavesListener {
      */
     private HostAddress findClusterHostAddress(UrlParser urlParser) {
         List<HostAddress> hostAddresses = urlParser.getHostAddresses();
+        Matcher matcher;
         for (HostAddress hostAddress: hostAddresses) {
-            if (hostAddress.host.indexOf(CLUSTER_IDENTIFIER) >= 0) {
+            matcher = clusterPattern.matcher(hostAddress.host);
+            if (matcher.find()) {
+                urlEndStr = "." + matcher.group(2);
                 return hostAddress;
             }
         }
@@ -223,16 +230,12 @@ public class AuroraListener extends MastersSlavesListener {
     private void retrieveAllEndpointsAndSet(Protocol protocol) throws QueryException {
         // For a given cluster, same port for all endpoints and same end host address
         int port = protocol.getPort();
-        String urlEndStr = "";
-        String clusterHost = "";
-        if (getClusterHostAddress() != null) {
-            clusterHost = getClusterHostAddress().host;
-            urlEndStr = "." + clusterHost.substring(clusterHost.indexOf(CLUSTER_IDENTIFIER) + CLUSTER_IDENTIFIER.length());
-        } else if (protocol.getHost().indexOf(".") > -1){
+        String clusterHost = (getClusterHostAddress() == null) ? "": getClusterHostAddress().host;
+        if (urlEndStr.equals("") && protocol.getHost().indexOf(".") > -1){
             urlEndStr = protocol.getHost().substring(protocol.getHost().indexOf("."));
         }
 
-        List<String> endpoints = getCurrentEndpointIdentifiers(protocol, urlEndStr);
+        List<String> endpoints = getCurrentEndpointIdentifiers(protocol);
         if (System.getProperty("auroraFailoverTesting") != null) {
             if (urlParser.getHostAddresses().size() != endpoints.size()+1) {
                 setUrlParserFromEndpoints(endpoints, clusterHost, port);
@@ -247,25 +250,24 @@ public class AuroraListener extends MastersSlavesListener {
      * Retrieves all endpoints of a cluster from the appropriate database table.
      *
      * @param protocol      current protocol connected to
-     * @param urlEndStr     endpoint URL that is common to all nodes of a cluster
      * @return instance endpoints of the cluster
      * @throws QueryException
      */
-    private List<String> getCurrentEndpointIdentifiers(Protocol protocol, String urlEndStr) throws QueryException {
+    private List<String> getCurrentEndpointIdentifiers(Protocol protocol) throws QueryException {
         List<String> endpoints = new ArrayList<>();
         try {
             proxy.lock.lock();
             try {
                 // Deleted instance may remain in db for 24 hours so ignoring instances that have had no change for IGNORE_TIME_IN_MINUTES
                 Date date = new Date();
-                TimeZone.setDefault(TimeZone.getTimeZone(protocol.getServerData("system_time_zone")));
                 int IGNORE_TIME_IN_MINUTES = 3;
                 Timestamp currentTime = new Timestamp(date.getTime() - IGNORE_TIME_IN_MINUTES*60*1000);
+                sqlDateFormat.setTimeZone(TimeZone.getTimeZone(protocol.getServerData("system_time_zone")));
 
                 SingleExecutionResult queryResult = new SingleExecutionResult(null, 0, true, false);
                 protocol.executeQuery(queryResult,
                         "select server_id, session_id from " + dbName + ".replica_host_status " +
-                                "where last_update_timestamp > '" + currentTime + "'",
+                                "where last_update_timestamp > '" + sqlDateFormat.format(currentTime) + "'",
                         ResultSet.TYPE_FORWARD_ONLY);
                 MariaSelectResultSet resultSet = queryResult.getResult();
 
@@ -394,9 +396,9 @@ public class AuroraListener extends MastersSlavesListener {
         proxy.lock.lock();
         try {
             Date date = new Date();
-            TimeZone.setDefault(TimeZone.getTimeZone(protocol.getServerData("system_time_zone")));
             int IGNORE_TIME_IN_MINUTES = 3;
             Timestamp currentTime = new Timestamp(date.getTime() - IGNORE_TIME_IN_MINUTES*60*1000);
+            sqlDateFormat.setTimeZone(TimeZone.getTimeZone(protocol.getServerData("system_time_zone")));
 
             SingleExecutionResult executionResult = new SingleExecutionResult(null, 0, true, false);
             protocol.executeQuery(executionResult,
@@ -422,18 +424,17 @@ public class AuroraListener extends MastersSlavesListener {
             proxy.lock.unlock();
         }
 
+        Matcher matcher;
         if (masterHostName != null) {
             for (HostAddress hostAddress: loopAddress) {
-                if (hostAddress.host.startsWith(masterHostName) && hostAddress.host.indexOf(CLUSTER_IDENTIFIER) < 0) {
+                matcher = clusterPattern.matcher(hostAddress.host);
+                if (hostAddress.host.startsWith(masterHostName) && !matcher.find()) {
                     return hostAddress;
                 }
             }
 
             HostAddress masterHostAddress;
-            String urlEndStr;
-            if (getClusterHostAddress() != null) {
-                urlEndStr = "." + getClusterHostAddress().host.substring(getClusterHostAddress().host.indexOf(CLUSTER_IDENTIFIER) + CLUSTER_IDENTIFIER.length());
-            } else if (protocol.getHost().indexOf(".") > -1) {
+            if (urlEndStr.equals("") && protocol.getHost().indexOf(".") > -1) {
                 urlEndStr = protocol.getHost().substring(protocol.getHost().indexOf("."));
             } else {
                 return null;

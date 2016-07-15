@@ -165,9 +165,20 @@ public class AuroraProtocol extends MastersSlavesProtocol {
                 listener.removeFromBlacklist(protocol.getHostAddress());
 
                 if (listener.isMasterHostFailReconnect() && protocol.isMasterConnection()) {
-                    if (foundMaster(listener, protocol, searchFilter)) {
+                    if (protocol.getHostAddress().equals(listener.getClusterHostAddress())) {
+                        probableMasterHost = listener.searchByStartName(protocol, listener.getUrlParser().getHostAddresses());
+                        if (probableMasterHost != null) {
+                            if (!loopAddresses.contains(probableMasterHost)) {
+                                loopAddresses.add(probableMasterHost);
+                            }
+                            AuroraProtocol.searchProbableMaster(listener, probableMasterHost);
+                        } else if (foundMaster(listener, protocol, searchFilter)) {
+                            return;
+                        }
+                    } else if (foundMaster(listener, protocol, searchFilter)) {
                         return;
                     }
+
                 } else if (!protocol.isMasterConnection()) {
                     if (listener.isSecondaryHostFailReconnect()) {
                         if (foundSecondary(listener, protocol, searchFilter)) {
@@ -206,8 +217,8 @@ public class AuroraProtocol extends MastersSlavesProtocol {
             }
 
             // Try to connect to the cluster if no other connection is good
-            if (maxConnectionTry == 1 && !loopAddresses.contains(listener.getClusterHostAddress()) && listener.getClusterHostAddress() != null) {
-                loopAddresses.addFirst(listener.getClusterHostAddress());
+            if (maxConnectionTry == 0 && !loopAddresses.contains(listener.getClusterHostAddress()) && listener.getClusterHostAddress() != null) {
+                loopAddresses.add(listener.getClusterHostAddress());
             }
 
         }
