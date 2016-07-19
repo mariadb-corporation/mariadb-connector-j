@@ -295,42 +295,6 @@ public class JdbcParserTest {
         Assert.assertTrue(jdbc.getHaMode().equals(HaMode.AURORA));
     }
 
-    @Test(expected=SQLException.class)
-    public void testJdbcParserNotClusterEndpointUrlAurora() throws SQLException{
-        String url = "jdbc:mysql:aurora://instance-identifier.customerID.region.rds.amazonaws.com/";
-        try {
-            UrlParser.parse(url);
-        } catch (SQLException se) {
-            String msg = "Invalid Aurora connection URL, address should correspond to cluster endpoint";
-            Assert.assertEquals(msg, se.getMessage());
-            throw se;
-        }
-    }
-
-    @Test(expected=SQLException.class)
-    public void testJdbcParserMultipleEndpointsUrlAurora() throws SQLException{
-        String url = "jdbc:mysql:aurora://master,slave/";
-        try {
-            UrlParser.parse(url);
-        } catch (SQLException se) {
-            String msg = "Invalid Aurora connection URL, address should correspond to cluster endpoint";
-            Assert.assertEquals(msg, se.getMessage());
-            throw se;
-        }
-    }
-
-    @Test(expected=SQLException.class)
-    public void testJdbcParserMultipleEndpointsWithClusterUrlAurora() throws SQLException{
-        String url = "jdbc:mysql:aurora://master,slave,cluster-identifier.cluster-customerID.region.rds.amazonaws.com/";
-        try {
-            UrlParser.parse(url);
-        } catch (SQLException se) {
-            String msg = "Invalid Aurora connection URL, address should correspond to cluster endpoint";
-            Assert.assertEquals(msg, se.getMessage());
-            throw se;
-        }
-    }
-
     /**
      * Conj-167 : Driver is throwing IllegalArgumentException instead of returning null.
      */

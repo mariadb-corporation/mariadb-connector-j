@@ -50,13 +50,11 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
+import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class HostAddress {
     public String host;
@@ -108,15 +106,6 @@ public class HostAddress {
         }
         String[] tokens = spec.trim().split(",");
         List<HostAddress> arr = new ArrayList<>(tokens.length);
-
-        // Allow only cluster endpoint to be given unless testing
-        if (haMode == HaMode.AURORA && System.getProperty("auroraFailoverTesting") == null) {
-            Pattern clusterPattern = Pattern.compile("(.+)\\.cluster-([a-z0-9]+\\.[a-z0-9\\-]+\\.rds\\.amazonaws\\.com)");
-            Matcher matcher = clusterPattern.matcher(spec);
-            if ((tokens.length > 1 || (tokens.length == 1 && !matcher.find()))) {
-                throw new IllegalArgumentException("Invalid Aurora connection URL, address should correspond to cluster endpoint");
-            }
-        }
 
         for (String token : tokens) {
             if (token.startsWith("address=")) {
