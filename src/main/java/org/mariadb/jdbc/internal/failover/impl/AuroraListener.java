@@ -156,20 +156,6 @@ public class AuroraListener extends MastersSlavesListener {
 
         resetOldsBlackListHosts();
 
-        // Initial connection to cluster - retrieve endpoints immediately
-        if (searchFilter.isInitialConnection() && urlParser.getHostAddresses().size() == 1 && getClusterHostAddress() != null) {
-            AuroraProtocol tempProtocol = AuroraProtocol.getNewProtocol(getProxy(), getUrlParser());
-            tempProtocol.setHostAddress(getClusterHostAddress());
-            try {
-                tempProtocol.connect();
-                retrieveAllEndpointsAndSet(tempProtocol);
-            } catch (QueryException e) {
-                addToBlacklist(tempProtocol.getHostAddress());
-            } finally {
-                tempProtocol.close();
-            }
-        }
-
         //put the list in the following order
         // - random order not connected host and not blacklisted
         // - random blacklisted host
@@ -361,17 +347,16 @@ public class AuroraListener extends MastersSlavesListener {
 
             // Handling special case where no writer is found from secondaryProtocol
             if (currentWriter == null && getClusterHostAddress() != null) {
-                AuroraProtocol tempProtocol = AuroraProtocol.getNewProtocol(getProxy(), getUrlParser());
-                tempProtocol.setHostAddress(getClusterHostAddress());
+                AuroraProtocol possibleMasterProtocol = AuroraProtocol.getNewProtocol(getProxy(), getUrlParser());
+                possibleMasterProtocol.setHostAddress(getClusterHostAddress());
                 try {
-                    tempProtocol.connect();
-                    return searchForMasterHostAddress(tempProtocol, loopAddress);
+                    possibleMasterProtocol.connect();
+                    possibleMasterProtocol.setMustBeMasterConnection(true);
+                    foundActiveMaster(possibleMasterProtocol);
                 } catch (QueryException qe) {
                     if (proxy.hasToHandleFailover(qe)) {
-                        addToBlacklist(tempProtocol.getHostAddress());
+                        addToBlacklist(possibleMasterProtocol.getHostAddress());
                     }
-                } finally {
-                    tempProtocol.close();
                 }
             }
 
