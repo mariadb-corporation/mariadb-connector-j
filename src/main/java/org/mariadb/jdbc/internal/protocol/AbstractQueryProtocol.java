@@ -89,8 +89,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 import java.util.ServiceLoader;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.FutureTask;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static org.mariadb.jdbc.internal.util.ExceptionMapper.SqlStates.CONNECTION_EXCEPTION;
@@ -479,19 +477,21 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                                 PrepareResult prepareResult)
                     throws QueryException, IOException {
 
-                int parameterCount = getParamCount();
                 ParameterHolder[] parameters = parametersList.get(status.sendCmdCounter);
-                if (parameters.length < parameterCount) {
-                    throw new QueryException("Parameter at position " + (parameterCount - 1) + " is not set", -1, "07004");
+
+                //validate parameter set
+                if (parameters.length < paramCount) {
+                    throw new QueryException("Parameter at position " + (paramCount - 1) + " is not set", -1, "07004");
                 }
+
                 //send binary data in a separate stream
-                for (int i = 0; i < parameterCount; i++) {
+                for (int i = 0; i < paramCount; i++) {
                     if (parameters[i].isLongData()) {
                         new ComStmtLongData().send(writer, statementId, (short) i, parameters[i]);
                     }
                 }
                 writer.startPacket(0);
-                ComStmtExecute.writeCmd(statementId, parameters, parameterCount, parameterTypeHeader, writer);
+                ComStmtExecute.writeCmd(statementId, parameters, paramCount, parameterTypeHeader, writer);
             }
 
             @Override
@@ -534,7 +534,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             throws QueryException {
 
         cmdPrologue();
-        long statementId = -1;
+        int statementId = -1;
         int parameterCount = parameters.length;
         MariaDbType[] parameterTypeHeader = new MariaDbType[parameters.length];
 
@@ -567,7 +567,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                         throw queryException;
                     }
                 }
-
             }
 
             if (serverPrepareResult != null && parameters.length < parameterCount) {
@@ -610,6 +609,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             throw new QueryException("Could not send query: " + e.getMessage(), -1, INTERRUPTED_EXCEPTION.getSqlState(), e);
         } catch (IOException e) {
             throw new QueryException("Could not send query: " + e.getMessage(), -1, CONNECTION_EXCEPTION.getSqlState(), e);
+        } finally {
+            writer.releaseBufferIfNotLogging();
         }
 
     }
@@ -650,6 +651,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             throw new QueryException("Could not send query: " + e.getMessage(), -1, INTERRUPTED_EXCEPTION.getSqlState(), e);
         } catch (IOException e) {
             throw new QueryException("Could not send query: " + e.getMessage(), -1, CONNECTION_EXCEPTION.getSqlState(), e);
+        } finally {
+            writer.releaseBufferIfNotLogging();
         }
     }
 
@@ -1205,7 +1208,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     if (bufferEof.getByteAt(0) != Packet.EOF) {
                         throw new QueryException("Packets out of order when reading field packets, expected was EOF stream. "
                                 + "Packet contents (hex) = " + MasterProtocol.hexdump(bufferEof.buf, 0));
-                    } else if (executionResult.isCanHaveCallableResultset() || !isMariaServer) {
+                    } else if (executionResult.isCanHaveCallableResultset() || checkCallableResultSet) {
                         //Identify if this is a "callable OUT packet" (callableResult=true)
                         //needed because :
                         // - will permit for callableStatement to identify the output result packet

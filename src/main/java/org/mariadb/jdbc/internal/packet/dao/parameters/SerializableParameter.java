@@ -131,4 +131,9 @@ public class SerializableParameter implements ParameterHolder {
     public boolean isLongData() {
         return true;
     }
+
+    public boolean isNullData() {
+        return false;
+    }
+
 }

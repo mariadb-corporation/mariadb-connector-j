@@ -100,4 +100,8 @@ public class ByteArrayParameter implements ParameterHolder, Cloneable {
         return false;
     }
 
+    public boolean isNullData() {
+        return false;
+    }
+
 }

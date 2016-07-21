@@ -88,4 +88,8 @@ public class LongParameter implements ParameterHolder, Cloneable {
         return false;
     }
 
+    public boolean isNullData() {
+        return false;
+    }
+
 }

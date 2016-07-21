@@ -218,4 +218,8 @@ public class MultiFixedIntExecutionResult implements MultiExecutionResult {
         cachedExecutionResults.add(executionResult);
     }
 
+    public boolean isSingleExecutionResult() {
+        return false;
+    }
+
 }

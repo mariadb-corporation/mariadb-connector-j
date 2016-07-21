@@ -166,12 +166,12 @@ public interface Protocol {
                               int resultSetScrollType) throws QueryException;
 
     ServerPrepareResult prepareAndExecutes(boolean mustExecuteOnMaster, ServerPrepareResult serverPrepareResult,
-                                                   ExecutionResult executionResult, String sql,
-                                                   List<ParameterHolder[]> parameterList, int resultSetScrollType) throws QueryException;
+                                           ExecutionResult executionResult, String sql,
+                                           List<ParameterHolder[]> parameterList, int resultSetScrollType) throws QueryException;
 
     ServerPrepareResult prepareAndExecute(boolean mustExecuteOnMaster, ServerPrepareResult serverPrepareResult,
-                                           ExecutionResult executionResult, String sql,
-                                           ParameterHolder[] parameters, int resultSetScrollType) throws QueryException;
+                                          ExecutionResult executionResult, String sql,
+                                          ParameterHolder[] parameters, int resultSetScrollType) throws QueryException;
 
     ExecutionResult getResult(ExecutionResult executionResult, int resultSetScrollType, boolean binaryProtocol, boolean loadAllResults)
             throws QueryException;
@@ -261,5 +261,10 @@ public interface Protocol {
 
     void readEofPacket() throws QueryException, IOException;
 
+    void skipEofPacket() throws QueryException, IOException;
+
     ReadPacketFetcher getPacketFetcher();
+
+    void changeSocketTcpNoDelay(boolean setTcpNoDelay) throws SocketException;
+
 }

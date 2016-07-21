@@ -165,4 +165,9 @@ public class StreamParameter implements ParameterHolder {
     public boolean isLongData() {
         return true;
     }
+
+    public boolean isNullData() {
+        return false;
+    }
+
 }

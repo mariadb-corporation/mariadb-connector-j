@@ -166,4 +166,9 @@ public class ReaderParameter implements ParameterHolder {
     public boolean isStream() {
         return true;
     }
+
+    public boolean isNullData() {
+        return false;
+    }
+
 }

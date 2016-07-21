@@ -141,4 +141,8 @@ public class DateParameter implements ParameterHolder, Cloneable {
         return false;
     }
 
+    public boolean isNullData() {
+        return false;
+    }
+
 }

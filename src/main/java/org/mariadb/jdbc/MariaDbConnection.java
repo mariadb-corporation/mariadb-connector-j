@@ -438,7 +438,9 @@ public final class MariaDbConnection implements Connection {
                 || cleanSql.contains("CALL")
                 || cleanSql.contains("UPDATE")
                 || cleanSql.contains("INSERT")
-                || cleanSql.contains("DELETE")) {
+                || cleanSql.contains("DELETE")
+                || cleanSql.contains("REPLACE")
+                || cleanSql.contains("DO")) {
             return true;
         }
         return false;

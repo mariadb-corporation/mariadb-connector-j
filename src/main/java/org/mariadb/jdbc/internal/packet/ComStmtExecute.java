@@ -62,7 +62,7 @@ import java.io.OutputStream;
 public class ComStmtExecute implements InterfaceSendPacket {
     private final int parameterCount;
     private final ParameterHolder[] parameters;
-    private final long statementId;
+    private final int statementId;
     private MariaDbType[] parameterTypeHeader;
 
     /**
@@ -73,7 +73,7 @@ public class ComStmtExecute implements InterfaceSendPacket {
      * @param parameterCount      parameters number
      * @param parameterTypeHeader parameters header
      */
-    public ComStmtExecute(final long statementId, final ParameterHolder[] parameters, final int parameterCount,
+    public ComStmtExecute(final int statementId, final ParameterHolder[] parameters, final int parameterCount,
                           MariaDbType[] parameterTypeHeader) {
         this.parameterCount = parameterCount;
         this.parameters = parameters;
@@ -104,23 +104,25 @@ public class ComStmtExecute implements InterfaceSendPacket {
      * @param pos outputStream
      * @throws IOException if a connection error occur
      */
-    public static void writeCmd(final long statementId, final ParameterHolder[] parameters, final int parameterCount,
+    public static void writeCmd(final int statementId, final ParameterHolder[] parameters, final int parameterCount,
                                 MariaDbType[] parameterTypeHeader, final PacketOutputStream pos) throws IOException {
-        pos.write(Packet.COM_STMT_EXECUTE);
-        pos.writeUInt(statementId);
-        pos.write((byte) 0x00); //CURSOR TYPE NO CURSOR
-        pos.writeInt(1); //Iteration count
+        pos.buffer.put(Packet.COM_STMT_EXECUTE);
+        pos.buffer.putInt(statementId);
+        pos.buffer.put((byte) 0x00); //CURSOR TYPE NO CURSOR
+        pos.buffer.putInt(1); //Iteration count
 
         //create null bitmap
         if (parameterCount > 0) {
             int nullCount = (parameterCount + 7) / 8;
+            pos.assureBufferCapacity(nullCount + 1); //nullcount + header type
+
             byte[] nullBitsBuffer = new byte[nullCount];
             for (int i = 0; i < parameterCount; i++) {
-                if (parameters[i] instanceof NullParameter) {
+                if (parameters[i].isNullData()) {
                     nullBitsBuffer[i / 8] |= (1 << (i % 8));
                 }
             }
-            pos.write(nullBitsBuffer, 0, nullCount);/*Null Bit Map*/
+            pos.buffer.put(nullBitsBuffer, 0, nullCount);
 
             //check if parameters type (using setXXX) have change since previous request, and resend new header type if so
             boolean mustSendHeaderType = false;
@@ -136,16 +138,18 @@ public class ComStmtExecute implements InterfaceSendPacket {
             }
 
             if (mustSendHeaderType) {
-                pos.write((byte) 0x01);
+                pos.assureBufferCapacity(1 + parameterCount * 2);
+                pos.buffer.put((byte) 0x01);
                 //Store types of parameters in first in first package that is sent to the server.
                 for (int i = 0; i < parameterCount; i++) {
                     parameterTypeHeader[i] = parameters[i].getMariaDbType();
-                    pos.writeShort((short) parameterTypeHeader[i].getType());
+                    pos.buffer.putShort((short) parameterTypeHeader[i].getType());
                 }
             } else {
-                pos.write((byte) 0x00);
+                pos.buffer.put((byte) 0x00);
             }
         }
+
         for (int i = 0; i < parameterCount; i++) {
             if (!parameters[i].isLongData()) parameters[i].writeBinary(pos);
         }

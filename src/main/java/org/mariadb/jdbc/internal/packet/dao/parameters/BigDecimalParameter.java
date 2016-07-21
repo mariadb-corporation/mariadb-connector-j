@@ -84,6 +84,10 @@ public class BigDecimalParameter implements ParameterHolder, Cloneable {
         return false;
     }
 
+    public boolean isNullData() {
+        return false;
+    }
+
     @Override
     public String toString() {
         return bigDecimal.toString();

@@ -90,4 +90,8 @@ public class DoubleParameter implements ParameterHolder, Cloneable {
         return false;
     }
 
+    public boolean isNullData() {
+        return false;
+    }
+
 }

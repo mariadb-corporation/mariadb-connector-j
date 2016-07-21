@@ -79,10 +79,9 @@ public class SchedulerServiceProviderHolder {
         }
 
         @Override
-        public ScheduledThreadPoolExecutor getBulkScheduler() {
-            ScheduledThreadPoolExecutor timeoutScheduler = new ScheduledThreadPoolExecutor(10, new MariaDbThreadFactory());
-            timeoutScheduler.setRemoveOnCancelPolicy(true);
-            return timeoutScheduler;
+        @SuppressWarnings("unchecked")
+        public ThreadPoolExecutor getBulkScheduler() {
+            return new ThreadPoolExecutor(5, 100, 1, TimeUnit.MINUTES, new SynchronousQueue(), new MariaDbThreadFactory());
         }
 
     };
@@ -144,7 +143,7 @@ public class SchedulerServiceProviderHolder {
         return getSchedulerProvider().getTimeoutScheduler();
     }
 
-    public static ScheduledThreadPoolExecutor getBulkScheduler() {
+    public static ThreadPoolExecutor getBulkScheduler() {
         return getSchedulerProvider().getBulkScheduler();
     }
 
@@ -174,7 +173,7 @@ public class SchedulerServiceProviderHolder {
          */
         public ScheduledThreadPoolExecutor getTimeoutScheduler();
 
-        public ScheduledThreadPoolExecutor getBulkScheduler();
+        public ThreadPoolExecutor getBulkScheduler();
     }
 
 

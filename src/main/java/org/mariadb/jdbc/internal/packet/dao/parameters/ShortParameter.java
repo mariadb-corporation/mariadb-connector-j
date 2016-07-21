@@ -90,4 +90,8 @@ public class ShortParameter implements ParameterHolder, Cloneable {
         return false;
     }
 
+    public boolean isNullData() {
+        return false;
+    }
+
 }

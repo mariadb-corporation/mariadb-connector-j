@@ -70,10 +70,10 @@ public class ComStmtLongData {
      * @param param parameter
      * @throws IOException if socket orror occur
      */
-    public void send(PacketOutputStream writer, long statementId, short parameterId, ParameterHolder param) throws IOException {
+    public void send(PacketOutputStream writer, int statementId, short parameterId, ParameterHolder param) throws IOException {
         writer.startPacket(0);
         writer.buffer.put(Packet.COM_STMT_SEND_LONG_DATA);
-        writer.writeUInt(statementId);
+        writer.writeInt(statementId);
         writer.buffer.putShort(parameterId);
         param.writeBinary(writer);
         writer.finishPacketWithoutRelease();

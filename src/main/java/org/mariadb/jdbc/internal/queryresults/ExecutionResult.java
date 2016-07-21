@@ -40,5 +40,7 @@ public interface ExecutionResult {
     boolean isCanHaveCallableResultset();
 
     Deque<ExecutionResult> getCachedExecutionResults();
+
+    boolean isSingleExecutionResult();
 }
 

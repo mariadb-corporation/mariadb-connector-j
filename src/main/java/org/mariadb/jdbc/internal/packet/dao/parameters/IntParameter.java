@@ -72,7 +72,8 @@ public class IntParameter implements ParameterHolder, Cloneable {
     }
 
     public void writeBinary(final PacketOutputStream writeBuffer) {
-        writeBuffer.writeInt(value);
+        writeBuffer.assureBufferCapacity(4);
+        writeBuffer.buffer.putInt(value);
     }
 
     public MariaDbType getMariaDbType() {
@@ -85,6 +86,10 @@ public class IntParameter implements ParameterHolder, Cloneable {
     }
 
     public boolean isLongData() {
+        return false;
+    }
+
+    public boolean isNullData() {
         return false;
     }
 

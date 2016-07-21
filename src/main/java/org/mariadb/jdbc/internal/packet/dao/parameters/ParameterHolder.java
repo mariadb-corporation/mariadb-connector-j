@@ -73,6 +73,8 @@ public interface ParameterHolder {
 
     boolean isLongData();
 
+    boolean isNullData();
+
     MariaDbType getMariaDbType();
 
 }

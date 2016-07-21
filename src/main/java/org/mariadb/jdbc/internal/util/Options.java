@@ -106,7 +106,7 @@ public class Options {
     public String connectionAttributes;
     public boolean useComMulti;
     public boolean useBatchBulkSend;
-    public Integer useBatchBulkSendNumber;
+    public int useBatchBulkSendNumber;
 
     //logging options
     public boolean log;
@@ -272,10 +272,7 @@ public class Options {
         }
         if (useComMulti != options.useComMulti) return false;
         if (useBatchBulkSend != options.useBatchBulkSend) return false;
-        if (useBatchBulkSendNumber != null
-                ? !useBatchBulkSendNumber.equals(options.useBatchBulkSendNumber) : options.useBatchBulkSendNumber != null) {
-            return false;
-        }
+        if (useBatchBulkSendNumber != options.useBatchBulkSendNumber) return false;
 
         return !(prepStmtCacheSqlLimit != null ? !prepStmtCacheSqlLimit.equals(options.prepStmtCacheSqlLimit)
                 : options.prepStmtCacheSqlLimit != null);

@@ -189,4 +189,7 @@ public class SingleExecutionResult implements ExecutionResult {
         return cachedExecutionResults;
     }
 
+    public boolean isSingleExecutionResult() {
+        return true;
+    }
 }

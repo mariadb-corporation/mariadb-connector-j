@@ -88,6 +88,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketException;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
@@ -102,7 +103,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private final String password;
     private boolean hostFailed;
     private String version;
-    protected boolean isMariaServer;
+    protected boolean checkCallableResultSet;
     private int majorVersion;
     private int minorVersion;
     private int patchVersion;
@@ -288,7 +289,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
      */
     private void initializeSocketOption() {
         try {
-            if (options.tcpNoDelay) {
+            if (!options.tcpNoDelay) {
                 socket.setTcpNoDelay(options.tcpNoDelay);
             } else {
                 socket.setTcpNoDelay(true);
@@ -426,7 +427,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
             final ReadInitialConnectPacket greetingPacket = new ReadInitialConnectPacket(packetFetcher);
             this.serverThreadId = greetingPacket.getServerThreadId();
             this.version = greetingPacket.getServerVersion();
-            this.isMariaServer = this.version.indexOf("MariaDB") != -1;
+            this.checkCallableResultSet = this.version.indexOf("MariaDB") == -1;
             this.serverAcceptComMulti = (greetingPacket.getServerCapabilities() & MariaDbServerCapabilities.MARIADB_CLIENT_COM_MULTI) != 0;
             byte exchangeCharset = decideLanguage(greetingPacket.getServerLanguage());
             parseVersion();
@@ -654,9 +655,28 @@ public abstract class AbstractConnectProtocol implements Protocol {
         Buffer buffer = packetFetcher.getReusableBuffer();
         switch (buffer.getByteAt(0)) {
             case (byte) 0xfe: //EOF
-                EndOfFilePacket eof = new EndOfFilePacket(buffer);
-                this.hasWarnings = eof.getWarningCount() > 0;
-                this.serverStatus = eof.getStatusFlags();
+                buffer.skipByte();
+                this.hasWarnings = buffer.readShort() > 0;
+                this.serverStatus = buffer.readShort();
+                break;
+            case (byte) 0xff: //ERROR
+                ErrorPacket ep = new ErrorPacket(buffer);
+                throw new QueryException("Could not connect: " + ep.getMessage(), ep.getErrorNumber(), ep.getSqlState());
+            default:
+                throw new QueryException("Unexpected stream type " + buffer.getByteAt(0)
+                        + " instead of EOF");
+        }
+    }
+
+    /**
+     * Check that next read packet is a End-of-file packet.
+     * @throws QueryException if not a End-of-file packet
+     * @throws IOException if connection error occur
+     */
+    public void skipEofPacket() throws QueryException, IOException {
+        Buffer buffer = packetFetcher.getReusableBuffer();
+        switch (buffer.getByteAt(0)) {
+            case (byte) 0xfe: //EOF
                 break;
             case (byte) 0xff: //ERROR
                 ErrorPacket ep = new ErrorPacket(buffer);
@@ -998,5 +1018,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     public ReadPacketFetcher getPacketFetcher() {
         return packetFetcher;
+    }
+
+    public void changeSocketTcpNoDelay(boolean setTcpNoDelay) throws SocketException {
+        socket.setTcpNoDelay(setTcpNoDelay);
     }
 }

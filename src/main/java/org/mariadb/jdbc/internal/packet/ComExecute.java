@@ -377,7 +377,6 @@ public class ComExecute {
                 System.arraycopy(sqlBytes, 0, packetBuffer, 5, sqlLength);
 
                 writer.getOutputStream().write(packetBuffer);
-                writer.getOutputStream().flush();
             } else {
                 //send first packet
                 byte[] packetBuffer = new byte[writer.getMaxPacketSize() + 4];
@@ -389,7 +388,6 @@ public class ComExecute {
                 System.arraycopy(sqlBytes, 0, packetBuffer, 5, writer.getMaxPacketSize() - 1);
                 int sqlBytesPosition = writer.getMaxPacketSize() - 1;
                 writer.getOutputStream().write(packetBuffer);
-                writer.getOutputStream().flush();
                 int length;
                 while ((length = sqlLength - sqlBytesPosition) > 0) {
                     if (length > writer.getMaxPacketSize()) {
@@ -399,7 +397,6 @@ public class ComExecute {
                         packetBuffer[3] = (byte) seqNo++;
                         System.arraycopy(sqlBytes, sqlBytesPosition, packetBuffer, 4, writer.getMaxPacketSize());
                         writer.getOutputStream().write(packetBuffer);
-                        writer.getOutputStream().flush();
                         sqlBytesPosition += writer.getMaxPacketSize();
                     } else {
                         packetBuffer[0] = (byte) (length & 0xff);
@@ -408,7 +405,6 @@ public class ComExecute {
                         packetBuffer[3] = (byte) seqNo++;
                         System.arraycopy(sqlBytes, sqlBytesPosition, packetBuffer, 4, length);
                         writer.getOutputStream().write(packetBuffer, 0, length + 4);
-                        writer.getOutputStream().flush();
                         break;
                     }
                 }

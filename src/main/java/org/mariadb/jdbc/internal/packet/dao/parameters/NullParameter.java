@@ -98,4 +98,8 @@ public class NullParameter implements ParameterHolder, Cloneable {
         return "<null>";
     }
 
+    public boolean isNullData() {
+        return true;
+    }
+
 }

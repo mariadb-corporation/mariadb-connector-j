@@ -66,7 +66,7 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
     String sql;
     ServerPrepareResult serverPrepareResult = null;
     boolean returnTableAlias = false;
-    int parameterCount;
+    int parameterCount = -1;
     MariaDbResultSetMetaData metadata;
     MariaDbParameterMetaData parameterMetaData;
     SortedMap<Integer,ParameterHolder> currentParameterHolder;
@@ -130,7 +130,7 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
     }
 
     private void setMetaFromResult() {
-        parameterCount = serverPrepareResult.getParameters().length;;
+        parameterCount = serverPrepareResult.getParameters().length;
         metadata = new MariaDbResultSetMetaData(serverPrepareResult.getColumns(), protocol.getDataTypeMappingFlags(), returnTableAlias);
         parameterMetaData = new MariaDbParameterMetaData(serverPrepareResult.getParameters());
         sql = null;
@@ -328,8 +328,10 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
                 }
             }
         } else {
-            for (int i = 0; i < currentParameterHolder.size(); i++) {
+            if (parameterCount == -1) parameterCount = currentParameterHolder.size();
+            for (int i = 0; i < parameterCount; i++) {
                 if (!currentParameterHolder.containsKey(i)) {
+                    parameterCount = -1;
                     ExceptionMapper.throwException(new QueryException("Parameter at position " + (i + 1) + " is not set", -1, "07004"),
                             connection, this);
                 }

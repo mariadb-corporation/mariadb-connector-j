@@ -65,7 +65,7 @@ public enum DefaultOptions {
      */
     PASSWORD("password", "1.0.0"),
 
-    CONNECT_TIMOUT("connectTimeout", (Integer) null, new Integer(0), Integer.MAX_VALUE, "1.1.8"),
+    CONNECT_TIMEOUT("connectTimeout", (Integer) null, new Integer(0), Integer.MAX_VALUE, "1.1.8"),
 
     /**
      * On Windows, specify named pipe name to connect to mysqld.exe.
@@ -86,7 +86,7 @@ public enum DefaultOptions {
     /**
      * Sets corresponding option on the connection socket.
      */
-    TCP_NO_DELAY("tcpNoDelay", Boolean.FALSE, "1.0.0"),
+    TCP_NO_DELAY("tcpNoDelay", Boolean.TRUE, "1.0.0"),
 
     /**
      * Sets corresponding option on the connection socket.

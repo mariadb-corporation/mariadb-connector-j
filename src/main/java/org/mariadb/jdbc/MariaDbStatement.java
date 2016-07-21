@@ -726,7 +726,7 @@ public class MariaDbStatement implements Statement, Cloneable {
             //multi insert in one execution. will create result based on autoincrement
             if (executionResult.hasMoreThanOneAffectedRows()) {
                 long[] data;
-                if (executionResult instanceof SingleExecutionResult) {
+                if (executionResult.isSingleExecutionResult()) {
                     int updateCount = executionResult.getFirstAffectedRows();
                     data = new long[updateCount];
                     for (int i = 0; i < updateCount; i++) {
@@ -829,7 +829,7 @@ public class MariaDbStatement implements Statement, Cloneable {
         if (executionResult == null) {
             return -1;  /* Result comes from SELECT , or there are no more results */
         }
-        if (executionResult instanceof SingleExecutionResult) {
+        if (executionResult.isSingleExecutionResult()) {
             return (int) ((SingleExecutionResult) executionResult).getAffectedRows();
         } else {
             return ((MultiExecutionResult) executionResult).getAffectedRows()[0];

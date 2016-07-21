@@ -51,7 +51,6 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.protocol;
 
 import org.mariadb.jdbc.internal.MariaDbType;
-import org.mariadb.jdbc.internal.packet.ComExecute;
 import org.mariadb.jdbc.internal.packet.ComStmtPrepare;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.queryresults.ExecutionResult;
@@ -68,14 +67,14 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
 
 import static org.mariadb.jdbc.internal.util.ExceptionMapper.SqlStates.CONNECTION_EXCEPTION;
 import static org.mariadb.jdbc.internal.util.ExceptionMapper.SqlStates.INTERRUPTED_EXCEPTION;
 
 public abstract class AbstractBulkSend {
 
-    private static final ScheduledExecutorService readScheduler = SchedulerServiceProviderHolder.getBulkScheduler();
+    private static final ThreadPoolExecutor readScheduler = SchedulerServiceProviderHolder.getBulkScheduler();
 
     private Protocol protocol;
     private PacketOutputStream writer;
@@ -87,7 +86,7 @@ public abstract class AbstractBulkSend {
     private boolean binaryProtocol;
     private boolean readPrepareStmtResult;
     private String sql;
-    long statementId = -1;
+    int statementId = -1;
     MariaDbType[] parameterTypeHeader;
 
     /**
@@ -211,26 +210,27 @@ public abstract class AbstractBulkSend {
 
         ComStmtPrepare comStmtPrepare = null;
         FutureTask<PrepareResult> futureReadTask = null;
+
         int requestNumberByBulk;
         try {
             do {
                 status.sendSubCmdCounter = 0;
                 requestNumberByBulk = Math.min(totalExecutionNumber - status.sendCmdCounter, protocol.getOptions().useBatchBulkSendNumber);
-
+                protocol.changeSocketTcpNoDelay(false);
                 //add prepare sub-command
                 if (readPrepareStmtResult && prepareResult == null) {
+
                     comStmtPrepare = new ComStmtPrepare(protocol, sql);
                     comStmtPrepare.send(writer);
 
                     if (!handleMinusOnePrepare) {
                         //read prepare result
-                        if (readPrepareStmtResult && prepareResult == null) {
-                            try {
-                                prepareResult = comStmtPrepare.read(protocol.getPacketFetcher());
-                                statementId = ((ServerPrepareResult) prepareResult).getStatementId();
-                            } catch (QueryException queryException) {
-                                throw queryException;
-                            }
+                        try {
+                            prepareResult = comStmtPrepare.read(protocol.getPacketFetcher());
+                            statementId = ((ServerPrepareResult) prepareResult).getStatementId();
+                            paramCount = getParamCount();
+                        } catch (QueryException queryException) {
+                            throw queryException;
                         }
                     } else {
                         futureReadTask = new FutureTask<>(new BulkRead(comStmtPrepare, requestNumberByBulk, status.sendCmdCounter,
@@ -238,10 +238,9 @@ public abstract class AbstractBulkSend {
                                 resultSetScrollType, binaryProtocol, executionResult, parametersList, queries, prepareResult));
                         readScheduler.execute(futureReadTask);
                     }
-
                 }
 
-                while (status.sendCmdCounter < totalExecutionNumber && status.sendSubCmdCounter < protocol.getOptions().useBatchBulkSendNumber) {
+                for (; status.sendSubCmdCounter < requestNumberByBulk;) {
                     sendCmd(writer, executionResult, parametersList, queries, paramCount, status, prepareResult);
                     status.sendSubCmdCounter++;
                     status.sendCmdCounter++;
@@ -255,11 +254,13 @@ public abstract class AbstractBulkSend {
                     }
                 }
 
+                protocol.changeSocketTcpNoDelay(protocol.getOptions().tcpNoDelay);
                 try {
                     PrepareResult readPrepareResult = futureReadTask.get();
                     if (readPrepareResult != null) {
                         prepareResult = readPrepareResult;
                         statementId = ((ServerPrepareResult) prepareResult).getStatementId();
+                        paramCount = getParamCount();
                     }
                 } catch (ExecutionException executionException) {
                     if (executionException.getCause() instanceof QueryException) {
@@ -293,6 +294,8 @@ public abstract class AbstractBulkSend {
             throw new QueryException("Could not send query: " + e.getMessage(), -1, INTERRUPTED_EXCEPTION.getSqlState(), e);
         } catch (IOException e) {
             throw new QueryException("Could not send query: " + e.getMessage(), -1, CONNECTION_EXCEPTION.getSqlState(), e);
+        } finally {
+            writer.releaseBufferIfNotLogging();
         }
 
     }

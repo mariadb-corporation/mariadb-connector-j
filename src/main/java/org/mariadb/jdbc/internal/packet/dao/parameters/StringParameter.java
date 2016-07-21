@@ -282,4 +282,8 @@ public class StringParameter implements ParameterHolder, Cloneable {
         }
     }
 
+    public boolean isNullData() {
+        return false;
+    }
+
 }

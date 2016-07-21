@@ -167,7 +167,6 @@ public class PacketOutputStream extends OutputStream {
             header[3] = ((byte) seqNo);
             outputStream.write(header, 0, 4);
         }
-        outputStream.flush();
     }
 
     public void setCompressSeqNo(int compressSeqNo) {
@@ -415,11 +414,6 @@ public class PacketOutputStream extends OutputStream {
         writeUnsafe(bytes, 0, bytes.length);
     }
 
-    @Override
-    public void flush() throws IOException {
-        throw new AssertionError("Do not call flush() on PacketOutputStream. use finishPacket() instead.");
-    }
-
     /**
      * Check that current buffer + length will not be superior to max_allowed_packet + header size.
      * That permit to separate rewritable queries to be separate in multiple stream.
@@ -455,7 +449,6 @@ public class PacketOutputStream extends OutputStream {
                     .put((byte) (dataLength >>> 16))
                     .put((byte) seqNo++);
             outputStream.write(buffer.array(), 0, buffer.limit());
-            outputStream.flush();
         } else {
 
             //multiple packet. Send first one
@@ -464,19 +457,18 @@ public class PacketOutputStream extends OutputStream {
                     .put((byte) (maxPacketSize >>> 16))
                     .put((byte) seqNo++);
             outputStream.write(buffer.array(), 0, maxPacketSize + 4);
-            outputStream.flush();
             buffer.position(maxPacketSize + 4);
+
             while (buffer.remaining() > 0 ) {
                 int length = buffer.remaining();
                 buffer.position(buffer.position() - 4);
+
                 if (length > maxPacketSize) {
                     buffer.put((byte) (maxPacketSize & 0xff))
                             .put((byte) (maxPacketSize >>> 8))
                             .put((byte) (maxPacketSize >>> 16))
                             .put((byte) seqNo++);
-
                     outputStream.write(buffer.array(), buffer.position() - 4, maxPacketSize + 4);
-                    outputStream.flush();
                     buffer.position(buffer.position() + maxPacketSize);
                 } else {
                     buffer.put((byte) (length & 0xff))
@@ -484,7 +476,6 @@ public class PacketOutputStream extends OutputStream {
                             .put((byte) (length >>> 16))
                             .put((byte) seqNo++);
                     outputStream.write(buffer.array(), buffer.position() - 4, length + 4);
-                    outputStream.flush();
                     break;
                 }
             }
@@ -559,7 +550,6 @@ public class PacketOutputStream extends OutputStream {
             }
 
             position += packetLength;
-            outputStream.flush();
         }
     }
 
@@ -695,20 +685,6 @@ public class PacketOutputStream extends OutputStream {
     }
 
     /**
-     * Write int data in binary format.
-     * @param theUInt int data
-     * @return this.
-     */
-    public PacketOutputStream writeUInt(final long theUInt) {
-        assureBufferCapacity(4);
-        buffer.put((byte) (theUInt & 0xff));
-        buffer.put((byte) (theUInt >>> 8));
-        buffer.put((byte) (theUInt >>> 16));
-        buffer.put((byte) (theUInt >>> 24));
-        return this;
-    }
-
-    /**
      * Write long data in binary format.
      * @param theLong long data
      * @return this
@@ -838,7 +814,7 @@ public class PacketOutputStream extends OutputStream {
     }
 
     /**
-     * Send bytes and flush according to compression.
+     * Send bytes according to compression.
      * @param packetBuffer data to write
      * @param packetSize packet size
      * @throws IOException if connection to server fail
@@ -846,7 +822,6 @@ public class PacketOutputStream extends OutputStream {
     public void send(byte[] packetBuffer, int packetSize) throws IOException {
         if (!useCompression) {
             outputStream.write(packetBuffer);
-            outputStream.flush();
         } else {
             this.setCompressSeqNo(0);
             compressedAndSend(packetSize, packetBuffer);
