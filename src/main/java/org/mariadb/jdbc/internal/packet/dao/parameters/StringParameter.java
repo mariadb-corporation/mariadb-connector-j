@@ -54,7 +54,6 @@ import org.mariadb.jdbc.internal.MariaDbType;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.ReflectPermission;
-import java.nio.charset.StandardCharsets;
 import java.security.Permission;
 import java.sql.SQLException;
 
@@ -170,13 +169,17 @@ public class StringParameter implements ParameterHolder, Cloneable {
         position = 0;
 
         //create UTF-8 byte array
+        //since java char are internally using UTF-16 using surrogate's pattern, 4 bytes unicode characters will
+        //represent 2 characters : example "\uD83C\uDFA4" = 🎤 unicode 8 "no microphones"
+        //so max size is 3 * charLength + 2 for the quotes.
+        //(escaping concern only ASCII characters (1 bytes) and when escaped will be 2 bytes = won't cause any problems)
         escapedArray = new byte[(charsLength * 3) + 2];
         escapedArray[position++] = (byte)'\'';
 
         int maxCharIndex = charsOffset + charsLength;
         int maxLength = Math.min(charsLength, escapedArray.length);
 
-        //ASCII loop
+        //Handle fast conversion without testing kind of escape for each character
         if (noBackslashEscapes) {
             while (position < maxLength && chars[charsOffset] < 0x80) {
                 if (chars[charsOffset] == '\'') escapedArray[position++] = (byte) '\''; //add a single escape quote
@@ -205,18 +208,30 @@ public class StringParameter implements ParameterHolder, Cloneable {
             } else if (currChar < 0x800) {
                 escapedArray[position++] = (byte) (0xc0 | (currChar >> 6));
                 escapedArray[position++] = (byte) (0x80 | (currChar & 0x3f));
-            } else if (Character.isSurrogate(currChar)) {
-                //see https://en.wikipedia.org/wiki/Universal_Character_Set_characters#Surrogates
-                int surrogatePairs = parseSurrogatePair(currChar, chars, charsOffset - 1, maxCharIndex);
-                if (surrogatePairs < 0) {
-                    //if malformed, replace by filler
-                    escapedArray[position++] = (byte) 63;
+            } else if (currChar >= 0xD800 && currChar < 0xE000) {
+                //reserved for surrogate - see https://en.wikipedia.org/wiki/UTF-16
+                if (currChar >= 0xD800 && currChar < 0xDC00) {
+                    //is high surrogate
+                    if (charsOffset + 1 >= maxCharIndex) {
+                        escapedArray[position++] = (byte)0x63;
+                        break;
+                    }
+                    char nextChar = chars[charsOffset];
+                    if (nextChar >= 0xDC00 && nextChar < 0xE000) {
+                        //is low surrogate
+                        int surrogatePairs =  ((currChar << 10) + nextChar) + (0x010000 - (0xD800 << 10) - 0xDC00);
+                        escapedArray[position++] = (byte) (0xf0 | ((surrogatePairs >> 18)));
+                        escapedArray[position++] = (byte) (0x80 | ((surrogatePairs >> 12) & 0x3f));
+                        escapedArray[position++] = (byte) (0x80 | ((surrogatePairs >> 6) & 0x3f));
+                        escapedArray[position++] = (byte) (0x80 | (surrogatePairs & 0x3f));
+                        charsOffset++;
+                    } else {
+                        //must have low surrogate
+                        escapedArray[position++] = (byte)0x63;
+                    }
                 } else {
-                    escapedArray[position++] = (byte) (0xf0 | ((surrogatePairs >> 18)));
-                    escapedArray[position++] = (byte) (0x80 | ((surrogatePairs >> 12) & 0x3f));
-                    escapedArray[position++] = (byte) (0x80 | ((surrogatePairs >> 6) & 0x3f));
-                    escapedArray[position++] = (byte) (0x80 | (surrogatePairs & 0x3f));
-                    charsOffset++;
+                    //low surrogate without high surrogate before
+                    escapedArray[position++] = (byte)0x63;
                 }
             } else {
                 escapedArray[position++] = (byte) (0xe0 | ((currChar >> 12)));
@@ -225,26 +240,6 @@ public class StringParameter implements ParameterHolder, Cloneable {
             }
         }
         escapedArray[position++] = (byte) '\'';
-    }
-
-    private static int parseSurrogatePair(char currChar, char[] chars, int offset, int maxCharIndex) {
-        assert chars[offset] == currChar;
-        if (Character.isHighSurrogate(currChar)) {
-            if (maxCharIndex - offset < 2) {
-                return -1;
-            } else {
-                char nextCodePoint = chars[offset + 1];
-                if (Character.isLowSurrogate(nextCodePoint)) {
-                    return Character.toCodePoint(currChar, nextCodePoint);
-                } else {
-                    return -1;
-                }
-            }
-        } else if (Character.isLowSurrogate(currChar)) {
-            return -1;
-        } else {
-            return currChar;
-        }
     }
 
     public boolean isLongData() {
