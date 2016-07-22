@@ -213,7 +213,7 @@ public class AuroraListener extends MastersSlavesListener {
      * @param protocol  current protocol connected to
      * @throws QueryException
      */
-    private void retrieveAllEndpointsAndSet(Protocol protocol) throws QueryException {
+    public void retrieveAllEndpointsAndSet(Protocol protocol) throws QueryException {
         // For a given cluster, same port for all endpoints and same end host address
         int port = protocol.getPort();
         String clusterHost = (getClusterHostAddress() == null) ? "": getClusterHostAddress().host;

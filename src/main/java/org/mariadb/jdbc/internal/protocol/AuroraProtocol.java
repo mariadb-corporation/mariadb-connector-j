@@ -165,9 +165,19 @@ public class AuroraProtocol extends MastersSlavesProtocol {
                 listener.removeFromBlacklist(protocol.getHostAddress());
 
                 if (listener.isMasterHostFailReconnect() && protocol.isMasterConnection()) {
+                    // Look for secondary when only known endpoint is the cluster endpoint
+                    if (searchFilter.isFineIfFoundOnlyMaster() && listener.getUrlParser().getHostAddresses().size() == 1
+                            && protocol.getHostAddress().equals(listener.getClusterHostAddress())) {
+                        listener.retrieveAllEndpointsAndSet(protocol);
+                        if (listener.getUrlParser().getHostAddresses().size() > 2) {
+                            searchFilter = new SearchFilter(false);
+                            loopAddresses.addAll(listener.getUrlParser().getHostAddresses());
+                        }
+                    }
                     if (foundMaster(listener, protocol, searchFilter)) {
                         return;
                     }
+
                 } else if (!protocol.isMasterConnection()) {
                     if (listener.isSecondaryHostFailReconnect()) {
                         if (foundSecondary(listener, protocol, searchFilter)) {
