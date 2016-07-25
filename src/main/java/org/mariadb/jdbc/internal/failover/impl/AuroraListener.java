@@ -216,7 +216,6 @@ public class AuroraListener extends MastersSlavesListener {
     public void retrieveAllEndpointsAndSet(Protocol protocol) throws QueryException {
         // For a given cluster, same port for all endpoints and same end host address
         int port = protocol.getPort();
-        String clusterHost = (getClusterHostAddress() == null) ? "": getClusterHostAddress().host;
         if (urlEndStr.equals("") && protocol.getHost().indexOf(".") > -1){
             urlEndStr = protocol.getHost().substring(protocol.getHost().indexOf("."));
         }
@@ -224,10 +223,10 @@ public class AuroraListener extends MastersSlavesListener {
         List<String> endpoints = getCurrentEndpointIdentifiers(protocol);
         if (System.getProperty("auroraFailoverTesting") != null) {
             if (urlParser.getHostAddresses().size() != endpoints.size()+1) {
-                setUrlParserFromEndpoints(endpoints, clusterHost, port);
+                setUrlParserFromEndpoints(endpoints, port);
             }
         } else {
-            setUrlParserFromEndpoints(endpoints, clusterHost, port);
+            setUrlParserFromEndpoints(endpoints, port);
         }
 
     }
@@ -285,10 +284,9 @@ public class AuroraListener extends MastersSlavesListener {
      * Sets urlParser if there are any changes in the instance endpoints available.
      *
      * @param endpoints     instance identifiers
-     * @param clusterHost   host string of the cluster
      * @param port          port that is common to all endpoints
      */
-    private void setUrlParserFromEndpoints(List<String> endpoints, String clusterHost, int port) {
+    private void setUrlParserFromEndpoints(List<String> endpoints, int port) {
         List<HostAddress> addresses = Collections.synchronizedList(urlParser.getHostAddresses());
 
         List<String> currentHosts = new ArrayList<>();
@@ -302,7 +300,7 @@ public class AuroraListener extends MastersSlavesListener {
             Iterator<HostAddress> iterator = addresses.iterator();
             while (iterator.hasNext() && endpoints.size() > 0) {
                 HostAddress address = iterator.next();
-                if (!address.host.equals(clusterHost) && !endpoints.contains(address.host)) {
+                if (!endpoints.contains(address.host)) {
                     removeFromBlacklist(address);
                     iterator.remove();
                 }

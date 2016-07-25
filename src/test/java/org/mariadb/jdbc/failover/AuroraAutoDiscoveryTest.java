@@ -29,7 +29,7 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-public class AuroraSelfDiscoveryTest extends BaseMultiHostTest {
+public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
 
     /**
      * Initialisation.
@@ -201,7 +201,7 @@ public class AuroraSelfDiscoveryTest extends BaseMultiHostTest {
     /**
      * Must set newlyCreatedInstance system property in which the instance is not the current writer.
      * The best way to test is to create a new instance as the test is started.
-     * This instance should be created with the lowest promotion tier and all other instances with higher promotion tiers.
+     * All other instances should have a promotion tier greater than zero.
      * Test checks if a newly created instance that is promoted as the writer is found and connected to right away.
      * @throws Throwable
      */
@@ -230,14 +230,14 @@ public class AuroraSelfDiscoveryTest extends BaseMultiHostTest {
             } while (!promotionTierChanged);
 
             try {
-                Thread.sleep(40*1000); // Should have completed modification after 40 seconds
+                Thread.sleep(10*1000); // Should have completed modification
             } catch (InterruptedException e) {
                 fail("Thread sleep was interrupted");
             }
 
             launchAuroraFailover();
             try {
-                Thread.sleep(30*1000); // Should have failed over after 30 seconds
+                Thread.sleep(30*1000); // Should have failed over
             } catch (InterruptedException e) {
                 fail("Thread sleep was interrupted");
             }

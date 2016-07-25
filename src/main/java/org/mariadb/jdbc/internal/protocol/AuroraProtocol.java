@@ -123,12 +123,9 @@ public class AuroraProtocol extends MastersSlavesProtocol {
         HostAddress probableMasterHost = null;
 
         // Only one address means cluster so only possible connection
-        if (listener.getClusterHostAddress() != null && loopAddresses.size() != 1) {
-            loopAddresses.remove(listener.getClusterHostAddress());
-            // put cluster at end if only two addresses to use as backup
-            if (loopAddresses.size() == 1) {
+        if (listener.getClusterHostAddress() != null && loopAddresses.size() < 2
+                && !loopAddresses.contains(listener.getClusterHostAddress())) {
                 loopAddresses.add(listener.getClusterHostAddress());
-            }
         }
 
         while (!loopAddresses.isEmpty() || (!searchFilter.isFailoverLoop() && maxConnectionTry > 0)) {
@@ -148,7 +145,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
                         }
                     }
                     // Use cluster last as backup
-                    if (listener.getClusterHostAddress() != null && listener.getUrlParser().getHostAddresses().size() <= 2) {
+                    if (listener.getClusterHostAddress() != null && listener.getUrlParser().getHostAddresses().size() < 2) {
                         loopAddresses.add(listener.getClusterHostAddress());
                     }
 

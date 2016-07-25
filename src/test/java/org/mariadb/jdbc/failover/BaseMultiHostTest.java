@@ -144,7 +144,7 @@ public class BaseMultiHostTest {
     private static String createProxies(String tmpUrl, HaMode proxyType) throws SQLException {
         UrlParser tmpUrlParser;
         if (proxyType == HaMode.AURORA) {
-            tmpUrlParser = retrieveInstanceEndpointsForProxies(tmpUrl);
+            tmpUrlParser = retrieveEndpointsForProxies(tmpUrl);
         } else {
             tmpUrlParser = UrlParser.parse(tmpUrl);
         }
@@ -174,12 +174,17 @@ public class BaseMultiHostTest {
 
     }
 
-    private static UrlParser retrieveInstanceEndpointsForProxies(String tmpUrl) throws SQLException{
+    private static UrlParser retrieveEndpointsForProxies(String tmpUrl) throws SQLException{
         try {
             Connection connection = DriverManager.getConnection(tmpUrl);
             connection.setReadOnly(true);
             try {
-                return (new BaseMultiHostTest().getProtocolFromConnection(connection)).getUrlParser();
+                Protocol protocol = (new BaseMultiHostTest().getProtocolFromConnection(connection));
+                UrlParser urlParser = protocol.getUrlParser();
+                List<HostAddress> hostAddresses = urlParser.getHostAddresses();
+                hostAddresses.add(((AuroraListener) protocol.getProxy().getListener()).getClusterHostAddress());
+                urlParser.setHostAddresses(hostAddresses);
+                return urlParser;
             } catch (Throwable throwable) {
                 connection.close();
                 return UrlParser.parse(tmpUrl);
