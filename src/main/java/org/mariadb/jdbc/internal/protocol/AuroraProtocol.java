@@ -166,7 +166,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
                     if (searchFilter.isFineIfFoundOnlyMaster() && listener.getUrlParser().getHostAddresses().size() == 1
                             && protocol.getHostAddress().equals(listener.getClusterHostAddress())) {
                         listener.retrieveAllEndpointsAndSet(protocol);
-                        if (listener.getUrlParser().getHostAddresses().size() > 2) {
+                        if (listener.getUrlParser().getHostAddresses().size() > 1) {
                             searchFilter = new SearchFilter(false);
                             loopAddresses.addAll(listener.getUrlParser().getHostAddresses());
                         }
