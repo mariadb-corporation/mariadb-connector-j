@@ -76,7 +76,7 @@ need to ensure you have both java and maven installed on your server before you
 can build the driver.
 
 To run the unit test, you'll need a MariaDB or MySQL server running on
-localhost (on default TCP port 3306) and a database called 'test', and user
+localhost (on default TCP port 3306) and a database called 'testj', and user
 'root' with empty password
 
 {{{
