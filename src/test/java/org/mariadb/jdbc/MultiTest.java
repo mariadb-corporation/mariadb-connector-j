@@ -41,6 +41,7 @@ public class MultiTest extends BaseTest {
         createTable("MultiTestValues", "col1 VARCHAR(32), col2 VARCHAR(32)");
 
         createTable("MultiTestprepsemi", "id int not null primary key auto_increment, text text");
+        createTable("MultiTestA", "data varchar(10)");
         if (testSingleHost) {
             Statement st = sharedConnection.createStatement();
             st.execute("insert into MultiTestt1 values(1,'a'),(2,'a')");
@@ -940,5 +941,32 @@ public class MultiTest extends BaseTest {
                 tmpConnection.close();
             }
         }
+    }
+
+    /**
+     * Test that using -1 (last prepared Statement), if next execution has parameter corresponding,
+     * previous prepare will not be used.
+     * @throws Throwable if any error.
+     */
+    @Test
+    public void testLastPrepareDiscarded() throws Throwable {
+
+        PreparedStatement preparedStatement1 = sharedConnection.prepareStatement("INSERT INTO MultiTestA (data) VALUES (?)");
+        preparedStatement1.setString(1, "A");
+        preparedStatement1.execute();
+
+        PreparedStatement preparedStatement2 = sharedConnection.prepareStatement("select * from (select ? `field1` from dual) as tt");
+        preparedStatement2.setString(1, "B");
+        try {
+            preparedStatement2.execute();
+            //must have thrown error if server prepare.
+        } catch (Exception e) {
+            //server prepare.
+            ResultSet rs = sharedConnection.createStatement().executeQuery("SELECT * FROM MultiTestA");
+            assertTrue(rs.next());
+            assertEquals("A", rs.getString(1));
+            assertFalse(rs.next()); //"B" must not have been saved in Table MultiTestA
+        }
+
     }
 }

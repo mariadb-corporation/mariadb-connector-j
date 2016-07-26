@@ -55,13 +55,11 @@ import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
 import org.mariadb.jdbc.internal.packet.result.ErrorPacket;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
-import org.mariadb.jdbc.internal.util.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.buffer.Buffer;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 
 
 public class ComStmtPrepare {
@@ -81,25 +79,7 @@ public class ComStmtPrepare {
      * @throws QueryException if packet max size is to big.
      */
     public void send(PacketOutputStream writer) throws IOException, QueryException {
-        try {
-            byte[] sqlBytes = sql.getBytes("UTF-8");
-            int sqlLength = sqlBytes.length + 1;
-            if (sqlLength > writer.getMaxAllowedPacket()) {
-                throw new QueryException("Could not send query: max_allowed_packet=" + writer.getMaxAllowedPacket() + " but packet size is : "
-                        + sqlLength, -1, ExceptionMapper.SqlStates.INTERRUPTED_EXCEPTION.getSqlState());
-            }
-            byte[] packetBuffer = new byte[sqlLength + 4];
-            packetBuffer[0] = (byte) (sqlLength & 0xff);
-            packetBuffer[1] = (byte) (sqlLength >>> 8);
-            packetBuffer[2] = (byte) (sqlLength >>> 16);
-            packetBuffer[3] = (byte) 0;
-            packetBuffer[4] = Packet.COM_STMT_PREPARE;
-
-            System.arraycopy(sqlBytes, 0, packetBuffer, 5, sqlLength - 1);
-            writer.send(packetBuffer, sqlLength + 4);
-        } catch (UnsupportedEncodingException exception) {
-            //cannot happen
-        }
+        writer.send(this.sql, Packet.COM_STMT_PREPARE);
     }
 
     /**

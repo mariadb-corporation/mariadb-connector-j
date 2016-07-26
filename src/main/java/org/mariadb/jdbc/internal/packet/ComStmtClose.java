@@ -2,6 +2,7 @@
 MariaDB Client for Java
 
 Copyright (c) 2012-2014 Monty Program Ab.
+Copyright (c) 2015-2016 MariaDB Ab.
 
 This library is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License as published by the Free
@@ -20,7 +21,7 @@ This particular MariaDB Client for Java file is work
 derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
 the following copyright and notice provisions:
 
-Copyright (c) 2009-2011, Marcus Eriksson , Stephane Giron
+Copyright (c) 2009-2011, Marcus Eriksson
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
@@ -47,35 +48,34 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc.internal.packet.send;
+package org.mariadb.jdbc.internal.packet;
 
-import org.mariadb.jdbc.internal.packet.Packet;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
-
 import java.io.IOException;
-import java.io.OutputStream;
 
-public class SendClosePrepareStatementPacket implements InterfaceSendPacket {
-
-    private long statementId;
-
-    public SendClosePrepareStatementPacket(long statementId) {
-        this.statementId = statementId;
-    }
+public class ComStmtClose {
 
     /**
-     * Send close preparedStatement stream.
-     * @param os database socket.
-     * @throws IOException if a connection error occur
+     * Send a COM_STMT_CLOSE command, to close a PREPARE statement.
+     *
+     * @param pos packetOutput Stream
+     * @param statementId statement id to close
+     * @throws IOException if connection has error.
      */
-    public void send(final OutputStream os) throws IOException {
-        PacketOutputStream pos = (PacketOutputStream) os;
-        pos.startPacket(0);
-        pos.write(Packet.COM_STMT_CLOSE);
-        pos.write((byte) (statementId & 0xff));
-        pos.write((byte) ((statementId >> 8) & 0xff));
-        pos.write((byte) ((statementId >> 16) & 0xff));
-        pos.write((byte) ((statementId >> 24) & 0xff));
-        pos.finishPacket();
+    public static void send(final PacketOutputStream pos, int statementId) throws IOException {
+
+        byte[] packetBuffer = new byte[9];
+        packetBuffer[0] = (byte) 5; //packet length 1st byte
+//        packetBuffer[1] = (byte) (0 >>> 8); //packet length 2nd byte
+//        packetBuffer[2] = (byte) (0 >>> 16); //packet length 3rd byte
+//        packetBuffer[3] = (byte) 0; //sequence no
+        packetBuffer[4] = Packet.COM_STMT_CLOSE;
+        packetBuffer[5] = (byte) (statementId & 0xff);
+        packetBuffer[6] = (byte) ((statementId >> 8) & 0xff);
+        packetBuffer[7] = (byte) ((statementId >> 16) & 0xff);
+        packetBuffer[8] = (byte) ((statementId >> 24) & 0xff);
+
+        pos.send(packetBuffer, 9);
     }
+
 }

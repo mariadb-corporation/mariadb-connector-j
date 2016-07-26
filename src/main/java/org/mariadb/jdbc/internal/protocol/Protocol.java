@@ -222,7 +222,7 @@ public interface Protocol {
 
     void releasePrepareStatement(ServerPrepareResult serverPrepareResult) throws QueryException;
 
-    boolean forceReleasePrepareStatement(long statementId) throws QueryException;
+    boolean forceReleasePrepareStatement(int statementId) throws QueryException;
 
     void forceReleaseWaitingPrepareStatement() throws QueryException;
 

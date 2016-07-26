@@ -52,9 +52,15 @@ package org.mariadb.jdbc.internal.stream;
 
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
+import org.mariadb.jdbc.internal.packet.Packet;
+import org.mariadb.jdbc.internal.util.ExceptionMapper;
+import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import java.io.*;
+import java.lang.reflect.Field;
+import java.lang.reflect.ReflectPermission;
 import java.nio.*;
+import java.security.Permission;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -821,10 +827,216 @@ public class PacketOutputStream extends OutputStream {
      */
     public void send(byte[] packetBuffer, int packetSize) throws IOException {
         if (!useCompression) {
-            outputStream.write(packetBuffer);
+            outputStream.write(packetBuffer, 0, packetSize);
         } else {
             this.setCompressSeqNo(0);
             compressedAndSend(packetSize, packetBuffer);
+        }
+    }
+
+    /**
+     * Send SQL string to outputStream.
+     * SQL will be transform to UTF-8 byte buffer, and if possible this buffer will be send to stream directly.
+     *
+     * @param sql sql
+     * @param commandType command type
+     * @throws IOException if connection error occur.
+     * @throws QueryException if query size is to big according to server max_allowed_size
+     */
+    public void send(String sql, byte commandType) throws IOException, QueryException {
+        //get char array
+        char[] chars;
+        if (charsFieldValue != null) {
+            try {
+                chars = (char[]) charsFieldValue.get(sql);
+            } catch (IllegalAccessException e) {
+                chars = sql.toCharArray();
+            }
+        } else {
+            chars = sql.toCharArray();
+        }
+
+        int charsLength = chars.length;
+        int charsPosition = 0;
+        int position = 5;
+
+        //create UTF-8 byte array
+        //since java char are internally using UTF-16 using surrogate's pattern, 4 bytes unicode characters will
+        //represent 2 characters : example "\uD83C\uDFA4" = 🎤 unicode 8 "no microphones"
+        //so max size is 3 * charLength + 3 bytes packet length + 1 byte sequence number + 1 byte COM_STMT_PREPARE flag
+        byte[] packetBuffer = new byte[(charsLength * 3) + 5];
+
+        while (charsPosition < charsLength) {
+            char currChar = chars[charsPosition++];
+            if (currChar < 0x80) {
+                packetBuffer[position++] = (byte) currChar;
+            } else if (currChar < 0x800) {
+                packetBuffer[position++] = (byte) (0xc0 | (currChar >> 6));
+                packetBuffer[position++] = (byte) (0x80 | (currChar & 0x3f));
+            } else if (currChar >= 0xD800 && currChar < 0xE000) {
+                //reserved for surrogate - see https://en.wikipedia.org/wiki/UTF-16
+                if (currChar >= 0xD800 && currChar < 0xDC00) {
+                    //is high surrogate
+                    if (charsPosition + 1 >= charsLength) {
+                        packetBuffer[position++] = (byte)0x63;
+                        break;
+                    }
+                    char nextChar = chars[charsPosition];
+                    if (nextChar >= 0xDC00 && nextChar < 0xE000) {
+                        //is low surrogate
+                        int surrogatePairs =  ((currChar << 10) + nextChar) + (0x010000 - (0xD800 << 10) - 0xDC00);
+                        packetBuffer[position++] = (byte) (0xf0 | ((surrogatePairs >> 18)));
+                        packetBuffer[position++] = (byte) (0x80 | ((surrogatePairs >> 12) & 0x3f));
+                        packetBuffer[position++] = (byte) (0x80 | ((surrogatePairs >> 6) & 0x3f));
+                        packetBuffer[position++] = (byte) (0x80 | (surrogatePairs & 0x3f));
+                        charsPosition++;
+                    } else {
+                        //must have low surrogate
+                        packetBuffer[position++] = (byte)0x63;
+                    }
+                } else {
+                    //low surrogate without high surrogate before
+                    packetBuffer[position++] = (byte)0x63;
+                }
+            } else {
+                packetBuffer[position++] = (byte) (0xe0 | ((currChar >> 12)));
+                packetBuffer[position++] = (byte) (0x80 | ((currChar >> 6) & 0x3f));
+                packetBuffer[position++] = (byte) (0x80 | (currChar & 0x3f));
+            }
+        }
+
+        if (position - 4 > getMaxAllowedPacket()) {
+            throw new QueryException("Could not send query: max_allowed_packet=" + getMaxAllowedPacket() + " but packet size is : "
+                    + (position - 4), -1, ExceptionMapper.SqlStates.INTERRUPTED_EXCEPTION.getSqlState());
+        }
+
+        if (position - 4 < maxPacketSize) {
+            packetBuffer[0] = (byte) ((position - 4) & 0xff);
+            packetBuffer[1] = (byte) ((position - 4) >>> 8);
+            packetBuffer[2] = (byte) ((position - 4) >>> 16);
+            packetBuffer[3] = (byte) 0;
+            packetBuffer[4] = commandType;
+            send(packetBuffer, position);
+        } else {
+            sendDirect(packetBuffer, 5, position - 5, commandType);
+        }
+
+    }
+
+    /**
+     * Send buffer to outputStream.
+     *
+     * @param sqlBytes buffer
+     * @param offset offset
+     * @param sqlLength length to send to stream
+     * @param commandType command type
+     * @throws IOException if connection error occur
+     * @throws QueryException if query size is to big according to server max_allowed_size
+     */
+    public void sendDirect(byte[] sqlBytes, int offset, int sqlLength, byte commandType) throws IOException, QueryException {
+        if (isClosed()) throw new IOException("Stream has already closed");
+        int seqNo = 0;
+        setCompressSeqNo(0);
+
+        if (sqlLength + 1 > getMaxAllowedPacket()) {
+            throw new QueryException("Could not send query: max_allowed_packet=" + getMaxAllowedPacket() + " but packet size is : "
+                    + (sqlLength + 1), -1, ExceptionMapper.SqlStates.INTERRUPTED_EXCEPTION.getSqlState());
+        }
+        if (!isUseCompression()) {
+
+            if (sqlLength + 1 <= maxPacketSize) {
+                byte[] packetBuffer = new byte[sqlLength + 5];
+                packetBuffer[0] = (byte) ((sqlLength + 1) & 0xff);
+                packetBuffer[1] = (byte) ((sqlLength + 1) >>> 8);
+                packetBuffer[2] = (byte) ((sqlLength + 1) >>> 16);
+                packetBuffer[3] = (byte) seqNo++;
+                packetBuffer[4] = commandType;
+
+                System.arraycopy(sqlBytes, offset, packetBuffer, 5, sqlLength);
+                outputStream.write(packetBuffer);
+            } else {
+                //send first packet
+                byte[] packetBuffer = new byte[maxPacketSize + 4];
+                packetBuffer[0] = (byte) (maxPacketSize & 0xff);
+                packetBuffer[1] = (byte) (maxPacketSize >>> 8);
+                packetBuffer[2] = (byte) (maxPacketSize >>> 16);
+                packetBuffer[3] = (byte) seqNo++;
+                packetBuffer[4] = commandType;
+
+                System.arraycopy(sqlBytes, offset, packetBuffer, 5, maxPacketSize - 1);
+                int lengthAlreadySend = maxPacketSize - 1;
+                outputStream.write(packetBuffer);
+                int length;
+
+                while ((length = sqlLength - lengthAlreadySend) > 0) {
+                    if (length > maxPacketSize) {
+                        packetBuffer[0] = (byte) (maxPacketSize & 0xff);
+                        packetBuffer[1] = (byte) (maxPacketSize >>> 8);
+                        packetBuffer[2] = (byte) (maxPacketSize >>> 16);
+                        packetBuffer[3] = (byte) seqNo++;
+                        System.arraycopy(sqlBytes, offset + lengthAlreadySend, packetBuffer, 4, maxPacketSize);
+                        outputStream.write(packetBuffer);
+                        lengthAlreadySend += maxPacketSize;
+                    } else {
+                        packetBuffer[0] = (byte) (length & 0xff);
+                        packetBuffer[1] = (byte) (length >>> 8);
+                        packetBuffer[2] = (byte) (length >>> 16);
+                        packetBuffer[3] = (byte) seqNo++;
+                        System.arraycopy(sqlBytes, offset + lengthAlreadySend, packetBuffer, 4, length);
+                        outputStream.write(packetBuffer, 0, length + 4);
+                        break;
+                    }
+                }
+            }
+        } else {
+
+            if (sqlLength < maxPacketSize) {
+                byte[] packetBuffer = new byte[sqlLength + 5];
+                packetBuffer[0] = (byte) ((sqlLength + 1) & 0xff);
+                packetBuffer[1] = (byte) ((sqlLength + 1) >>> 8);
+                packetBuffer[2] = (byte) ((sqlLength + 1) >>> 16);
+                packetBuffer[3] = (byte) seqNo++;
+                packetBuffer[4] = Packet.COM_QUERY;
+
+                System.arraycopy(sqlBytes, offset, packetBuffer, 5, sqlLength);
+                compressedAndSend(sqlLength + 5, packetBuffer);
+
+            } else {
+                final int expectedPacketSize = sqlLength + 1 + 4 * (((sqlLength + 1) / maxPacketSize) + 1);
+
+                //create packet
+                byte[] packetBuffer = new byte[expectedPacketSize];
+                packetBuffer[0] = (byte) (maxPacketSize & 0xff);
+                packetBuffer[1] = (byte) (maxPacketSize >>> 8);
+                packetBuffer[2] = (byte) (maxPacketSize >>> 16);
+                packetBuffer[3] = (byte) seqNo++;
+                packetBuffer[4] = Packet.COM_QUERY;
+                System.arraycopy(sqlBytes, offset, packetBuffer, 5, maxPacketSize - 1);
+
+                int sqlBytesPosition = maxPacketSize - 1;
+                int positionDest = maxPacketSize + 4;
+
+                int length;
+                while ((length = sqlLength - sqlBytesPosition) > 0) {
+                    if (length > maxPacketSize) {
+                        packetBuffer[positionDest++] = (byte) (maxPacketSize & 0xff);
+                        packetBuffer[positionDest++] = (byte) (maxPacketSize >>> 8);
+                        packetBuffer[positionDest++] = (byte) (maxPacketSize >>> 16);
+                        packetBuffer[positionDest++] = (byte) seqNo++;
+                        System.arraycopy(sqlBytes, offset + sqlBytesPosition, packetBuffer, positionDest, maxPacketSize);
+                        sqlBytesPosition += maxPacketSize;
+                        positionDest += maxPacketSize;
+                    } else {
+                        packetBuffer[positionDest++] = (byte) (length & 0xff);
+                        packetBuffer[positionDest++] = (byte) (length >>> 8);
+                        packetBuffer[positionDest++] = (byte) (length >>> 16);
+                        packetBuffer[positionDest++] = (byte) seqNo++;
+                        System.arraycopy(sqlBytes, offset + sqlBytesPosition, packetBuffer, positionDest, length);
+                        break;
+                    }
+                }
+                compressedAndSend(expectedPacketSize, packetBuffer);
+            }
         }
     }
 
@@ -838,5 +1050,37 @@ public class PacketOutputStream extends OutputStream {
 
     public boolean isUseCompression() {
         return useCompression;
+    }
+
+
+    private static Field charsFieldValue;
+
+    static {
+        RuntimePermission runtimePermission = new RuntimePermission("accessDeclaredMembers");
+        Permission accessPermission = new ReflectPermission("suppressAccessChecks");
+        boolean securityException = false;
+
+        //check security
+        SecurityManager securityManager = System.getSecurityManager();
+        if (securityManager != null) {
+            try {
+
+                if (runtimePermission != null) securityManager.checkPermission(runtimePermission);
+                if (accessPermission != null) securityManager.checkPermission(accessPermission);
+            } catch (SecurityException exception) {
+                securityException = true;
+            }
+        }
+
+        if (!securityException) {
+            try {
+                charsFieldValue = String.class.getDeclaredField("value");
+                charsFieldValue.setAccessible(true);
+            } catch (NoSuchFieldException e) {
+                charsFieldValue = null;
+            }
+        } else {
+            charsFieldValue = null;
+        }
     }
 }
