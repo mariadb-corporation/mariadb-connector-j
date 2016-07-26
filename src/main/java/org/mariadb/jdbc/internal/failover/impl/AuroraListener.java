@@ -180,7 +180,9 @@ public class AuroraListener extends MastersSlavesListener {
             }
         }
 
-        if (urlParser.getHostAddresses().size() < 2) {
+        if (urlParser.getHostAddresses().size() < 2
+                || (urlParser.getHostAddresses().size() == 2
+                && urlParser.getHostAddresses().contains(getClusterHostAddress()))) {
             searchFilter = new SearchFilter(true, false);
         }
         if ((isMasterHostFail() || isSecondaryHostFail())

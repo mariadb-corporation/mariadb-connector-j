@@ -163,7 +163,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
 
                 if (listener.isMasterHostFailReconnect() && protocol.isMasterConnection()) {
                     // Look for secondary when only known endpoint is the cluster endpoint
-                    if (searchFilter.isFineIfFoundOnlyMaster() && listener.getUrlParser().getHostAddresses().size() == 1
+                    if (searchFilter.isFineIfFoundOnlyMaster() && listener.getUrlParser().getHostAddresses().size() <= 1
                             && protocol.getHostAddress().equals(listener.getClusterHostAddress())) {
                         listener.retrieveAllEndpointsAndSet(protocol);
                         if (listener.getUrlParser().getHostAddresses().size() > 1) {
