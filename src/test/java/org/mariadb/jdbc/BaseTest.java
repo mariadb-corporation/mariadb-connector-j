@@ -636,7 +636,7 @@ public class BaseTest {
      * @return true if server has bulk capacity and option not disabled
      */
     public boolean sharedBulkCapacity() {
-        return urlParser.getOptions().useBatchBulkSend;
+        return urlParser.getOptions().useBatchMultiSend;
     }
 
 }

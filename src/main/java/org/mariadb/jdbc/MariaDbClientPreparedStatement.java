@@ -371,9 +371,9 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
             protocol.executeBatchMultiple(protocol.isMasterConnection(), internalExecutionResult, prepareResult,
                     parameterList, resultSetScrollType);
             internalExecutionResult.updateResultsMultiple(size, false);
-        } else if (options.useBatchBulkSend) {
+        } else if (options.useBatchMultiSend) {
             //send by bulk : send data by bulk before reading corresponding results
-            protocol.executeBatchBulk(protocol.isMasterConnection(), internalExecutionResult, prepareResult, parameterList, resultSetScrollType);
+            protocol.executeBatchMulti(protocol.isMasterConnection(), internalExecutionResult, prepareResult, parameterList, resultSetScrollType);
         } else {
             //send query one by one, reading results for each query before sending another one
             QueryException exception = null;

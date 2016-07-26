@@ -58,7 +58,7 @@ public class ErrorMessageTest extends BaseTest {
     @Test
     public void testSmallPrepareErrorMessage() throws SQLException {
         Assume.assumeTrue(sharedUsePrepare());
-        try (Connection connection = setConnection("&useBatchBulkSend=false")) {
+        try (Connection connection = setConnection("&useBatchMultiSend=false")) {
             executeBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
@@ -70,7 +70,7 @@ public class ErrorMessageTest extends BaseTest {
     @Test
     public void testSmallBulkErrorMessage() throws SQLException {
         Assume.assumeTrue(sharedUsePrepare());
-        Connection connection = setConnection("&useBatchBulkSend=true");
+        Connection connection = setConnection("&useBatchMultiSend=true");
         try {
             executeBatchWithException(connection);
             fail("Must Have thrown error");
@@ -107,7 +107,7 @@ public class ErrorMessageTest extends BaseTest {
     @Test
     public void testBigPrepareErrorMessage() throws SQLException {
         Assume.assumeTrue(sharedUsePrepare());
-        try (Connection connection = setConnection("&useBatchBulkSend=false")) {
+        try (Connection connection = setConnection("&useBatchMultiSend=false")) {
             executeBigBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
@@ -119,7 +119,7 @@ public class ErrorMessageTest extends BaseTest {
     @Test
     public void testBigBulkErrorMessage() throws SQLException {
         Assume.assumeTrue(sharedUsePrepare());
-        Connection connection = setConnection("&useBatchBulkSend=true");
+        Connection connection = setConnection("&useBatchMultiSend=true");
         try {
             executeBigBatchWithException(connection);
             fail("Must Have thrown error");

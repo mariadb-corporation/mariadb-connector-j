@@ -91,7 +91,7 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
         returnTableAlias = options.useOldAliasMetadataBehavior;
         currentParameterHolder = new TreeMap<>();
         mustExecuteOnMaster = protocol.isMasterConnection();
-        if (forcePrepare || !options.useBatchBulkSend) prepare(this.sql);
+        if (forcePrepare || !options.useBatchMultiSend) prepare(this.sql);
     }
 
     /**
@@ -256,8 +256,8 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
     private void executeBatchInternal(MultiFixedIntExecutionResult internalExecutionResult, int queryParameterSize)
             throws QueryException, SQLException {
 
-        //if COM_MULTI capacity
-        if (options.useBatchBulkSend) {
+        //if  multi send capacity
+        if (options.useBatchMultiSend) {
             //send all sub-command in one packet (or more if > max_allowed_packet)
             serverPrepareResult = protocol.prepareAndExecutes(mustExecuteOnMaster, serverPrepareResult, internalExecutionResult, sql,
                     queryParameters, resultSetScrollType);

@@ -147,6 +147,10 @@ public class ServerPrepareResult implements PrepareResult {
         return false;
     }
 
+    public int getParamCount() {
+        return parameters.length;
+    }
+
     //for unit test
     public synchronized int getShareCounter() {
         return shareCounter;

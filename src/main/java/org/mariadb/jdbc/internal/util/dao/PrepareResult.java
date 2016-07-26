@@ -50,5 +50,9 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.util.dao;
 
 public interface PrepareResult {
+
     String getSql();
+
+    int getParamCount();
+
 }

@@ -32,7 +32,7 @@ public class ExecuteBatchTest extends BaseTest {
         Assume.assumeTrue(runLongTest);
         sharedConnection.createStatement().execute("TRUNCATE TABLE ExecuteBatchTest");
 
-        try (Connection connection = setConnection("&useComMulti=false&useBatchBulkSend=true&profileSql=" + profileSql)) {
+        try (Connection connection = setConnection("&useComMulti=false&useBatchMultiSend=true&profileSql=" + profileSql)) {
             PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO ExecuteBatchTest(test, test2) values (?, ?)");
             //packet size : 7 200 068 kb
             addBatchData(preparedStatement, 60000, connection);
@@ -45,7 +45,7 @@ public class ExecuteBatchTest extends BaseTest {
         Assume.assumeTrue(runLongTest);
         sharedConnection.createStatement().execute("TRUNCATE TABLE ExecuteBatchTest");
 
-        try (Connection connection = setConnection("&useComMulti=false&useBatchBulkSend=true&profileSql=" + profileSql)) {
+        try (Connection connection = setConnection("&useComMulti=false&useBatchMultiSend=true&profileSql=" + profileSql)) {
             PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO ExecuteBatchTest(test, test2) values (?, ?)");
             //packet size : 7 200 068 kb
             addBatchData(preparedStatement, 160000, connection);
@@ -59,7 +59,7 @@ public class ExecuteBatchTest extends BaseTest {
         Assume.assumeTrue(runLongTest);
         sharedConnection.createStatement().execute("TRUNCATE TABLE ExecuteBatchTest");
 
-        try (Connection connection = setConnection("&useComMulti=false&useBatchBulkSend=false&profileSql=" + profileSql)) {
+        try (Connection connection = setConnection("&useComMulti=false&useBatchMultiSend=false&profileSql=" + profileSql)) {
             PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO ExecuteBatchTest(test, test2) values (?, ?)");
             addBatchData(preparedStatement, 60000, connection);
         }
@@ -71,7 +71,7 @@ public class ExecuteBatchTest extends BaseTest {
         Assume.assumeTrue(runLongTest);
         sharedConnection.createStatement().execute("TRUNCATE TABLE ExecuteBatchTest");
 
-        try (Connection connection = setConnection("&useComMulti=false&useBatchBulkSend=true&useServerPrepStmts=false&profileSql=" + profileSql)) {
+        try (Connection connection = setConnection("&useComMulti=false&useBatchMultiSend=true&useServerPrepStmts=false&profileSql=" + profileSql)) {
             PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO ExecuteBatchTest(test, test2) values (?, ?)");
             addBatchData(preparedStatement, 60000, connection);
         }

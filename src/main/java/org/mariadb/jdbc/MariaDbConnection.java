@@ -90,7 +90,6 @@ public final class MariaDbConnection implements Connection {
     boolean nullCatalogMeansCurrent = true;
     int autoIncrementIncrement;
     volatile int lowercaseTableNames = -1;
-    boolean serverComMulti;
 
     /**
      * save point count - to generate good names for the savepoints.
@@ -111,7 +110,6 @@ public final class MariaDbConnection implements Connection {
         this.protocol = protocol;
         options = protocol.getOptions();
         noBackslashEscapes = protocol.noBackslashEscapes();
-        serverComMulti = options.useComMulti && protocol.isServerComMulti();
         nullCatalogMeansCurrent = options.nullCatalogMeansCurrent;
         if (options.cacheCallableStmts) {
             callableStatementCache = CallableStatementCache.newInstance(options.callableStmtCacheSize);
@@ -406,7 +404,7 @@ public final class MariaDbConnection implements Connection {
             throws SQLException {
         checkConnection();
         if (!options.allowMultiQueries && !options.rewriteBatchedStatements
-                && (options.useServerPrepStmts || serverComMulti)
+                && options.useServerPrepStmts
                 && checkIfPreparable(sql)) {
             try {
                 return new MariaDbServerPreparedStatement(this, sql, resultSetScrollType, false);
@@ -434,16 +432,13 @@ public final class MariaDbConnection implements Connection {
         }
 
         String cleanSql = sql.toUpperCase().trim();
-        if (cleanSql.contains("SELECT")
+        return (cleanSql.contains("SELECT")
                 || cleanSql.contains("CALL")
                 || cleanSql.contains("UPDATE")
                 || cleanSql.contains("INSERT")
                 || cleanSql.contains("DELETE")
                 || cleanSql.contains("REPLACE")
-                || cleanSql.contains("DO")) {
-            return true;
-        }
-        return false;
+                || cleanSql.contains("DO"));
 
     }
 
@@ -1401,10 +1396,6 @@ public final class MariaDbConnection implements Connection {
 
     protected Options getOptions() {
         return options;
-    }
-
-    public boolean isServerComMulti() {
-        return serverComMulti;
     }
 
     public ClientPrepareStatementCache getClientPrepareStatementCache() {

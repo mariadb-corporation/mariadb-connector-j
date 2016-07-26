@@ -169,7 +169,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             getResult(executionResult, resultSetScrollType, false, true);
 
         } catch (QueryException queryException) {
-            throwErrorWithQuery(writer.buffer, queryException);
+            throw throwErrorWithQuery(parameters, queryException, clientPrepareResult);
         } catch (MaxAllowedPacketException e) {
             if (e.isMustReconnect()) connect();
             throw new QueryException("Could not send query: " + e.getMessage(), -1, INTERRUPTED_EXCEPTION.getSqlState(), e);
@@ -190,10 +190,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * @param resultSetScrollType resultsetScroll type
      * @throws QueryException exception
      */
-    public void executeBatchBulk(boolean mustExecuteOnMaster, ExecutionResult executionResult, final ClientPrepareResult clientPrepareResult,
-                                 final List<ParameterHolder[]> parametersList, int resultSetScrollType) throws QueryException {
+    public void executeBatchMulti(boolean mustExecuteOnMaster, ExecutionResult executionResult, final ClientPrepareResult clientPrepareResult,
+                                  final List<ParameterHolder[]> parametersList, int resultSetScrollType) throws QueryException {
         cmdPrologue();
-        new AbstractBulkSend(this, writer, executionResult, clientPrepareResult, parametersList, resultSetScrollType) {
+        new AbstractMultiSend(this, writer, executionResult, clientPrepareResult, parametersList, resultSetScrollType) {
 
             @Override
             public void sendCmd(PacketOutputStream writer, ExecutionResult executionResult,
@@ -227,7 +227,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 return parametersList.size();
             }
 
-        }.executeBatch(isServerComMulti());
+        }.executeBatch(hasServerComMultiCapability());
 
     }
 
@@ -243,7 +243,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             throws QueryException {
         cmdPrologue();
 
-        new AbstractBulkSend(this, writer, executionResult, queries, resultSetScrollType) {
+        new AbstractMultiSend(this, writer, executionResult, queries, resultSetScrollType) {
 
             @Override
             public void sendCmd(PacketOutputStream writer, ExecutionResult executionResult,
@@ -273,7 +273,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 return queries.size();
             }
 
-        }.executeBatch(isServerComMulti());
+        }.executeBatch(hasServerComMultiCapability());
 
     }
 
@@ -469,7 +469,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                                                   final List<ParameterHolder[]> parametersList, int resultSetScrollType)
             throws QueryException {
         cmdPrologue();
-        return (ServerPrepareResult) new AbstractBulkSend(this, writer, executionResult, serverPrepareResult, parametersList, resultSetScrollType,
+        return (ServerPrepareResult) new AbstractMultiSend(this, writer, executionResult, serverPrepareResult, parametersList, resultSetScrollType,
                 true, sql) {
             @Override
             public void sendCmd(PacketOutputStream writer, ExecutionResult executionResult,
@@ -512,7 +512,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 return parametersList.size();
             }
 
-        }.executeBatch(isServerComMulti());
+        }.executeBatch(hasServerComMultiCapability());
 
     }
 
@@ -557,7 +557,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 comStmtPrepare = new ComStmtPrepare(this, sql);
                 comStmtPrepare.send(writer);
 
-                if (!isServerComMulti()) {
+                if (!hasServerComMultiCapability()) {
                     //read prepare result
                     try {
                         serverPrepareResult = comStmtPrepare.read(getPacketFetcher());
@@ -1031,14 +1031,14 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         throw queryException;
     }
 
-    private QueryException throwErrorWithQuery(ParameterHolder[] parameters, QueryException qex, ServerPrepareResult serverPrepareResult)
+    private QueryException throwErrorWithQuery(ParameterHolder[] parameters, QueryException qex, PrepareResult serverPrepareResult)
             throws QueryException {
         if (getOptions().dumpQueriesOnException || qex.getErrorCode() == 1064) {
             String sql = serverPrepareResult.getSql();
-            if (serverPrepareResult.getParameters().length > 0) {
+            if (serverPrepareResult.getParamCount() > 0) {
                 sql += ", parameters [";
                 if (parameters.length > 1) {
-                    for (int i = 0; i < Math.min(parameters.length, serverPrepareResult.getParameters().length); i++) {
+                    for (int i = 0; i < Math.min(parameters.length, serverPrepareResult.getParamCount()); i++) {
                         sql += parameters[i].toString() + ",";
                     }
                     sql = sql.substring(0, sql.length() - 1);

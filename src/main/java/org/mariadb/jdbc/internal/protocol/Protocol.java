@@ -143,8 +143,8 @@ public interface Protocol {
     void executeQuery(boolean mustExecuteOnMaster, ExecutionResult executionResult, final ClientPrepareResult clientPrepareResult,
                       ParameterHolder[] parameters, int resultSetScrollType) throws QueryException;
 
-    void executeBatchBulk(boolean mustExecuteOnMaster, ExecutionResult executionResult, final ClientPrepareResult clientPrepareResult,
-                          List<ParameterHolder[]> parameterList, int resultSetScrollType) throws QueryException;
+    void executeBatchMulti(boolean mustExecuteOnMaster, ExecutionResult executionResult, final ClientPrepareResult clientPrepareResult,
+                           List<ParameterHolder[]> parameterList, int resultSetScrollType) throws QueryException;
 
     void executeBatch(boolean mustExecuteOnMaster, ExecutionResult executionResult, List<String> queries, int resultSetScrollType)
             throws QueryException;
@@ -251,7 +251,7 @@ public interface Protocol {
 
     void setHasWarnings(boolean hasWarnings);
 
-    boolean isServerComMulti();
+    boolean hasServerComMultiCapability();
 
     void releaseWriterBuffer();
 

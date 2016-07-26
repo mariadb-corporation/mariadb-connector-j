@@ -3,14 +3,13 @@ package org.mariadb.jdbc.internal.protocol;
 import org.mariadb.jdbc.internal.packet.ComStmtPrepare;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.queryresults.ExecutionResult;
-import org.mariadb.jdbc.internal.queryresults.SingleExecutionResult;
 import org.mariadb.jdbc.internal.util.dao.PrepareResult;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import java.util.List;
 import java.util.concurrent.Callable;
 
-public class BulkRead implements Callable<PrepareResult> {
+public class AsyncMultiRead implements Callable<PrepareResult> {
 
     private final ComStmtPrepare comStmtPrepare;
     private final int nbResult;
@@ -22,7 +21,7 @@ public class BulkRead implements Callable<PrepareResult> {
     private ExecutionResult executionResult;
     private final int resultSetScrollType;
     private boolean binaryProtocol;
-    private final AbstractBulkSend bulkSend;
+    private final AbstractMultiSend bulkSend;
     private int paramCount;
     private final List<ParameterHolder[]> parametersList;
     private final List<String> queries;
@@ -46,9 +45,10 @@ public class BulkRead implements Callable<PrepareResult> {
      * @param queries queries
      * @param prepareResult prepare result
      */
-    public BulkRead(ComStmtPrepare comStmtPrepare, int nbResult, int sendCmdCounter, boolean handleMinusOnePrepare, Protocol protocol,
-                    boolean readPrepareStmtResult, AbstractBulkSend bulkSend, int paramCount, int resultSetScrollType, boolean binaryProtocol,
-                    ExecutionResult executionResult, List<ParameterHolder[]> parametersList, List<String> queries, PrepareResult prepareResult) {
+    public AsyncMultiRead(ComStmtPrepare comStmtPrepare, int nbResult, int sendCmdCounter, boolean handleMinusOnePrepare,
+                          Protocol protocol, boolean readPrepareStmtResult, AbstractMultiSend bulkSend, int paramCount,
+                          int resultSetScrollType, boolean binaryProtocol, ExecutionResult executionResult,
+                          List<ParameterHolder[]> parametersList, List<String> queries, PrepareResult prepareResult) {
         this.comStmtPrepare = comStmtPrepare;
         this.nbResult = nbResult;
         this.sendCmdCounter = sendCmdCounter;

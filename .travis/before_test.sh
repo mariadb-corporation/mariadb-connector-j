@@ -19,13 +19,13 @@ case "$TYPE" in
    export URLSTRING=-DdbURL='jdbc:mariadb://localhost:3306/testj?user=root&allowMultiQueries=true'
    ;;
  "BULK_CLIENT" )
-   export URLSTRING=-DdbURL='jdbc:mariadb://localhost:3306/testj?user=root&useBatchBulkSend=true&useServerPrepStmts=false'
+   export URLSTRING=-DdbURL='jdbc:mariadb://localhost:3306/testj?user=root&useBatchMultiSend=true&useServerPrepStmts=false'
    ;;
  "NO_BULK_CLIENT" )
-   export URLSTRING=-DdbURL='jdbc:mariadb://localhost:3306/testj?user=root&useBatchBulkSend=false&useServerPrepStmts=false'
+   export URLSTRING=-DdbURL='jdbc:mariadb://localhost:3306/testj?user=root&useBatchMultiSend=false&useServerPrepStmts=false'
    ;;
  "NO_BULK_SERVER" )
-   export URLSTRING=-DdbURL='jdbc:mariadb://localhost:3306/testj?user=root&useBatchBulkSend=false'
+   export URLSTRING=-DdbURL='jdbc:mariadb://localhost:3306/testj?user=root&useBatchMultiSend=false'
    ;;
  "COMPRESSION" )
    export URLSTRING=-DdbURL='jdbc:mariadb://localhost:3306/testj?user=root&useCompression=true'

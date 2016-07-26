@@ -361,25 +361,16 @@ public enum DefaultOptions {
     CONNECTION_ATTRIBUTES("connectionAttributes", "1.4.0"),
 
     /**
-     * Indicate that if COM_MULTI protocol exist, this protocol will be used.
-     * 2 different use :
-     * - PREPARE + EXECUTE in one round trip to server.
-     * - executeBatch() will be send in one round trip (or in many packet if command size &gt; max_allowed_packet)
-     *
-     */
-    USE_COM_MULTI("useComMulti", Boolean.FALSE, "1.5.0"),
-
-    /**
      * PreparedStatement.executeBatch() will send many QUERY before reading result packets.
      * default to true.
      */
-    USE_BATCH_BULK_SEND("useBatchBulkSend", Boolean.TRUE, "1.5.0"),
+    USE_BATCH_MULTI_SEND("useBatchMultiSend", Boolean.TRUE, "1.5.0"),
 
     /**
-     * When using useBatchBulkSend, indicate maximum query that can be send at a time.
+     * When using useBatchMultiSend, indicate maximum query that can be send at a time.
      * default to 100
      */
-    USE_BATCH_BULK_SEND_NUMBER("useBatchBulkSendNumber", new Integer(100), new Integer(1), Integer.MAX_VALUE, "1.5.0"),
+    USE_BATCH_MULTI_SEND_NUMBER("useBatchMultiSendNumber", new Integer(100), new Integer(1), Integer.MAX_VALUE, "1.5.0"),
 
     /**
      * Enable log information. require Slf4j version &gt; 1.4 dependency.

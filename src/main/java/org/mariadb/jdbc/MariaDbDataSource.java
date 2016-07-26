@@ -93,13 +93,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
     public MariaDbDataSource() {
         ArrayList<HostAddress> hostAddresses = new ArrayList<>();
         hostAddresses.add(new HostAddress("localhost", 3306));
-        UrlParser tmpUrlParser = null;
-        try {
-            tmpUrlParser = new UrlParser("", hostAddresses, DefaultOptions.defaultValues(HaMode.NONE), HaMode.NONE);
-        } catch (SQLException e) {
-            //cannot happen, but eating exception to avoid throw SQLException in class descriptor
-        }
-        urlParser = tmpUrlParser;
+        urlParser = new UrlParser("", hostAddresses, DefaultOptions.defaultValues(HaMode.NONE), HaMode.NONE);
     }
 
     /**

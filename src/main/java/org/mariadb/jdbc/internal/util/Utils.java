@@ -444,9 +444,6 @@ public class Utils {
      * @throws SQLException if any error occur during connection
      */
     public static Protocol retrieveProxy(final UrlParser urlParser, final ReentrantLock lock) throws QueryException, SQLException {
-        LoggerFactory.init(urlParser.getOptions().log
-                || urlParser.getOptions().profileSql
-                || urlParser.getOptions().slowQueryThresholdNanos != null);
         Protocol protocol;
         switch (urlParser.getHaMode()) {
             case AURORA:

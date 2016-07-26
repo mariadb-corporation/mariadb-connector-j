@@ -65,10 +65,10 @@ public class UnicodeTest extends BaseTest {
     @Test
     public void unicodeTests() throws SQLException {
         String unicodeString = "";
-        unicodeString+="\uD83D\uDE0E"; // 😎 unicode 6 smiling face with sunglasses
-        unicodeString+="\uD83C\uDF36"; // 🌶 unicode 7 hot pepper
-        unicodeString+="\uD83C\uDFA4"; // 🎤 unicode 8 no microphones
-        unicodeString+="\uD83E\uDD42"; // 🥂 unicode 9 clinking glasses
+        unicodeString += "\uD83D\uDE0E"; // 😎 unicode 6 smiling face with sunglasses
+        unicodeString += "\uD83C\uDF36"; // 🌶 unicode 7 hot pepper
+        unicodeString += "\uD83C\uDFA4"; // 🎤 unicode 8 no microphones
+        unicodeString += "\uD83E\uDD42"; // 🥂 unicode 9 clinking glasses
 
         //test binary protocol
         try (Connection connection = setConnection("")) {

@@ -335,7 +335,7 @@ public abstract class AbstractMastersListener implements Listener {
                 case "executeBatchMultiple":
                 case "executeBatchRewrite":
                 case "prepareAndExecutes":
-                case "executeBatchBulk":
+                case "executeBatchMulti":
                     if (!((Boolean) args[0])) return true; //launched on slave connection
                     return false;
                 default:

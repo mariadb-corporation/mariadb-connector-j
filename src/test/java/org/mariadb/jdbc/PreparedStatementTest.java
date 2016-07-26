@@ -56,9 +56,9 @@ public class PreparedStatementTest extends BaseTest {
                     "insert into test_insert_select ( field1) (select  TMP.field1 from (select ? `field1` from dual) TMP)");
             stmt.setString(1, "test");
             stmt.executeUpdate();
-            if (sharedOptions().useBatchBulkSend) fail("Must have fail");
+            if (sharedOptions().useBatchMultiSend) fail("Must have fail");
         } catch (SQLException e) {
-            if (!sharedOptions().useBatchBulkSend) {
+            if (!sharedOptions().useBatchMultiSend) {
                 fail("Must have fallback to client preparedStatement");
             }
         }

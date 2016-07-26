@@ -131,7 +131,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     public MariaSelectResultSet activeStreamingResult = null;
     public int dataTypeMappingFlags;
     public short serverStatus;
-    public boolean serverAcceptComMulti = false;
+    public boolean serverComMultiCapability = false;
 
     /**
      * Get a protocol instance.
@@ -428,7 +428,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
             this.serverThreadId = greetingPacket.getServerThreadId();
             this.version = greetingPacket.getServerVersion();
             this.checkCallableResultSet = this.version.indexOf("MariaDB") == -1;
-            this.serverAcceptComMulti = (greetingPacket.getServerCapabilities() & MariaDbServerCapabilities.MARIADB_CLIENT_COM_MULTI) != 0;
+            this.serverComMultiCapability = (greetingPacket.getServerCapabilities() & MariaDbServerCapabilities.MARIADB_CLIENT_COM_MULTI) != 0;
             byte exchangeCharset = decideLanguage(greetingPacket.getServerLanguage());
             parseVersion();
             long clientCapabilities = initializeClientCapabilities();
@@ -1004,8 +1004,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     public abstract void executeQuery(final String sql) throws QueryException;
 
-    public boolean isServerComMulti() {
-        return serverAcceptComMulti;
+    public boolean hasServerComMultiCapability() {
+        return serverComMultiCapability;
     }
 
     public void releaseWriterBuffer() {

@@ -15,10 +15,9 @@ public class LoggerFactory {
     /**
      * Initialize factory.
      * @param mustLog indicate if must initiate Slf4j log
-     * @throws QueryException if Slf4j dependency is not present.
      */
     @SuppressWarnings("unchecked")
-    public static void init(boolean mustLog) throws QueryException {
+    public static void init(boolean mustLog) {
         if (hasToLog == null || hasToLog.booleanValue() != mustLog) {
             if (mustLog) {
                 try {
@@ -26,15 +25,13 @@ public class LoggerFactory {
                     loggerClass = Class.forName("org.slf4j.LoggerFactory");
                     method = loggerClass.getMethod("getLogger", Class.class);
                 } catch (ClassNotFoundException classNotFound) {
-                    throw new QueryException("Logging cannot be activated, missing slf4j dependency");
+                    System.out.println("Logging cannot be activated, missing slf4j dependency");
                 } catch (NoSuchMethodException classNotFound) {
-                    throw new QueryException("Logging cannot be activated, missing slf4j dependency");
+                    System.out.println("Logging cannot be activated, missing slf4j dependency");
                 }
-            } else {
-                hasToLog = Boolean.FALSE;
             }
-
         }
+
     }
 
     /**
@@ -43,7 +40,7 @@ public class LoggerFactory {
      * @return logger
      */
     public static Logger getLogger(Class<?> clazz) {
-        if (hasToLog) {
+        if (hasToLog != null && hasToLog) {
             try {
                 return new Slf4JLogger((org.slf4j.Logger) method.invoke(loggerClass, clazz));
             } catch (IllegalAccessException illegalAccess) {

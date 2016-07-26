@@ -49,15 +49,18 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.util.DefaultOptions;
 import org.mariadb.jdbc.internal.util.Options;
-import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
+import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
 import org.mariadb.jdbc.internal.util.constant.Version;
 
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Properties;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * <p>parse and verification of URL.</p>
@@ -94,10 +97,9 @@ public class UrlParser {
     private List<HostAddress> addresses;
     private HaMode haMode;
 
-    private UrlParser() {
-    }
+    private UrlParser() { }
 
-    protected UrlParser(String database, List<HostAddress> addresses, Options options, HaMode haMode) throws SQLException {
+    protected UrlParser(String database, List<HostAddress> addresses, Options options, HaMode haMode) {
         this.options = options;
         this.database = database;
         this.addresses = addresses;
@@ -171,6 +173,14 @@ public class UrlParser {
         jdbc:mysql://host:port/database
         Example: jdbc:mysql://localhost:3306/test?user=root&password=passwd
          */
+    /**
+     * Parses the connection URL in order to set the UrlParser instance with all the information provided through the URL.
+     *
+     * @param urlParser     object instance in which all data from the connection url is stored
+     * @param url           connection URL
+     * @param properties    properties
+     * @throws SQLException if format is incorrect
+     */
     private static void parseInternal(UrlParser urlParser, String url, Properties properties) throws SQLException {
         try {
             int separator = url.indexOf("//");
@@ -181,32 +191,71 @@ public class UrlParser {
             setHaMode(urlParser, url, separator);
 
             String urlSecondPart = url.substring(separator + 2);
-            String[] tokens = urlSecondPart.split("/");
-            String hostAddressesString = tokens[0];
-            String additionalParameters = (tokens.length > 1) ? urlSecondPart.substring(tokens[0].length() + 1) : null;
+            int dbIndex = urlSecondPart.indexOf("/");
+            int paramIndex = urlSecondPart.indexOf("?");
 
-            urlParser.addresses = HostAddress.parse(hostAddressesString, urlParser.haMode);
-
-            if (additionalParameters == null) {
-                urlParser.database = null;
-                urlParser.options = DefaultOptions.parse(urlParser.haMode, "", properties);
+            String hostAddressesString;
+            String additionalParameters;
+            if ((dbIndex < paramIndex && dbIndex < 0) || (dbIndex > paramIndex && paramIndex > -1)) {
+                hostAddressesString = urlSecondPart.substring(0, paramIndex);
+                additionalParameters = urlSecondPart.substring(paramIndex);
+            } else if ((dbIndex < paramIndex && dbIndex > -1) || (dbIndex > paramIndex && paramIndex < 0)) {
+                hostAddressesString = urlSecondPart.substring(0, dbIndex);
+                additionalParameters = urlSecondPart.substring(dbIndex);
             } else {
-                int ind = additionalParameters.indexOf('?');
-                if (ind > -1) {
-                    urlParser.database = additionalParameters.substring(0, ind);
-                    urlParser.options = DefaultOptions.parse(urlParser.haMode, additionalParameters.substring(ind + 1), properties);
-                } else {
-                    if (!"".equals(additionalParameters)) {
-                        urlParser.database = additionalParameters;
-                    }
-                    urlParser.options = DefaultOptions.parse(urlParser.haMode, "", properties, urlParser.options);
-                }
+                hostAddressesString = urlSecondPart;
+                additionalParameters = null;
             }
+
+            urlParser = defineUrlParserParameters(urlParser, properties, hostAddressesString, additionalParameters);
             setDefaultHostAddressType(urlParser);
 
         } catch (IllegalArgumentException i) {
             throw new SQLException(i.getMessage());
         }
+    }
+
+    /**
+     * Sets the parameters of the UrlParser instance: addresses, database and options.
+     * It parses through the additional parameters given in order to extract the database and the options for the connection.
+     *
+     * @param urlParser             object instance in which all data from the connection URL is stored
+     * @param properties            properties
+     * @param hostAddressesString   string that holds all the host addresses
+     * @param additionalParameters  string that holds all parameters defined for the connection
+     * @return UrlParser instance
+     */
+    private static UrlParser defineUrlParserParameters(UrlParser urlParser, Properties properties, String hostAddressesString,
+                                                       String additionalParameters) {
+
+        if (additionalParameters != null) {
+            String regex = "(\\/[^\\?]*)(\\?.+)*|(\\?[^\\/]*)(\\/.+)*";
+            Pattern pattern = Pattern.compile(regex);
+            Matcher matcher = pattern.matcher(additionalParameters);
+            if (matcher.find()) {
+                String db1 = (matcher.group(1) != null && !matcher.group(1).equals("/")) ? matcher.group(1).substring(1) : null;
+                String db2 = (matcher.group(4) != null && !matcher.group(4).equals("/")) ? matcher.group(4).substring(1) : null;
+                String options1 = (matcher.group(2) != null) ? matcher.group(2).substring(1) : "";
+                String options2 = (matcher.group(3) != null) ? matcher.group(3).substring(1) : "";
+
+                urlParser.database = (db1 != null) ? db1 : db2;
+                urlParser.options = (!options1.equals(""))
+                        ? DefaultOptions.parse(urlParser.haMode, options1, properties) : DefaultOptions.parse(urlParser.haMode, options2, properties);
+
+            } else {
+                urlParser.database = null;
+                urlParser.options = DefaultOptions.parse(urlParser.haMode, "", properties);
+            }
+        } else {
+            urlParser.database = null;
+            urlParser.options = DefaultOptions.parse(urlParser.haMode, "", properties);
+        }
+        LoggerFactory.init(urlParser.options.log
+                || urlParser.options.profileSql
+                || urlParser.options.slowQueryThresholdNanos != null);
+        urlParser.addresses = HostAddress.parse(hostAddressesString, urlParser.haMode);
+
+        return urlParser;
     }
 
     private static void setHaMode(UrlParser urlParser,String url, int separator) {
@@ -284,6 +333,10 @@ public class UrlParser {
         return this.addresses;
     }
 
+    public void setHostAddresses(List<HostAddress> addresses) {
+        this.addresses = addresses;
+    }
+
     public Options getOptions() {
         return options;
     }
@@ -331,10 +384,7 @@ public class UrlParser {
         if (getOptions() != null ? !getOptions().equals(urlParser.getOptions()) : urlParser.getOptions() != null) {
             return false;
         }
-        if (addresses != null ? !addresses.equals(urlParser.addresses) : urlParser.addresses != null) {
-            return false;
-        }
-        return getHaMode() == urlParser.getHaMode();
+        return addresses != null ? addresses.equals(urlParser.addresses) : urlParser.addresses == null && getHaMode() == urlParser.getHaMode();
 
     }
 

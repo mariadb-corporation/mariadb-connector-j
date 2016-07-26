@@ -104,9 +104,8 @@ public class Options {
     public boolean cacheCallableStmts;
     public Integer callableStmtCacheSize;
     public String connectionAttributes;
-    public boolean useComMulti;
-    public boolean useBatchBulkSend;
-    public int useBatchBulkSendNumber;
+    public boolean useBatchMultiSend;
+    public int useBatchMultiSendNumber;
 
     //logging options
     public boolean log;
@@ -179,9 +178,8 @@ public class Options {
                 + ", continueBatchOnError=" + continueBatchOnError
                 + ", jdbcCompliantTruncation=" + jdbcCompliantTruncation
                 + ", cacheCallableStmts=" + cacheCallableStmts
-                + ", useComMulti=" + useComMulti
-                + ", useBatchBulkSend=" + useBatchBulkSend
-                + ", useBatchBulkSendNumber=" + useBatchBulkSendNumber
+                + ", useBatchMultiSend=" + useBatchMultiSend
+                + ", useBatchMultiSendNumber=" + useBatchMultiSendNumber
                 + ", callableStmtCacheSize=" + callableStmtCacheSize
                 + ", connectionAttributes=" + connectionAttributes
                 + ", log=" + log
@@ -270,9 +268,8 @@ public class Options {
                 ? !slowQueryThresholdNanos.equals(options.slowQueryThresholdNanos) : options.slowQueryThresholdNanos != null) {
             return false;
         }
-        if (useComMulti != options.useComMulti) return false;
-        if (useBatchBulkSend != options.useBatchBulkSend) return false;
-        if (useBatchBulkSendNumber != options.useBatchBulkSendNumber) return false;
+        if (useBatchMultiSend != options.useBatchMultiSend) return false;
+        if (useBatchMultiSendNumber != options.useBatchMultiSendNumber) return false;
 
         return !(prepStmtCacheSqlLimit != null ? !prepStmtCacheSqlLimit.equals(options.prepStmtCacheSqlLimit)
                 : options.prepStmtCacheSqlLimit != null);

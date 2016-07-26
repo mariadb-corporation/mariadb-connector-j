@@ -72,7 +72,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import static org.mariadb.jdbc.internal.util.ExceptionMapper.SqlStates.CONNECTION_EXCEPTION;
 import static org.mariadb.jdbc.internal.util.ExceptionMapper.SqlStates.INTERRUPTED_EXCEPTION;
 
-public abstract class AbstractBulkSend {
+public abstract class AbstractMultiSend {
 
     private static final ThreadPoolExecutor readScheduler = SchedulerServiceProviderHolder.getBulkScheduler();
 
@@ -101,8 +101,8 @@ public abstract class AbstractBulkSend {
      * @param readPrepareStmtResult must execute prepare result
      * @param sql                   sql query.
      */
-    public AbstractBulkSend(Protocol protocol, PacketOutputStream writer, ExecutionResult executionResult, ServerPrepareResult serverPrepareResult,
-                            List<ParameterHolder[]> parametersList, int resultSetScrollType, boolean readPrepareStmtResult, String sql) {
+    public AbstractMultiSend(Protocol protocol, PacketOutputStream writer, ExecutionResult executionResult, ServerPrepareResult serverPrepareResult,
+                             List<ParameterHolder[]> parametersList, int resultSetScrollType, boolean readPrepareStmtResult, String sql) {
         this.protocol = protocol;
         this.writer = writer;
         this.executionResult = executionResult;
@@ -124,8 +124,8 @@ public abstract class AbstractBulkSend {
      * @param parametersList      parameters
      * @param resultSetScrollType resultSet scroll type
      */
-    public AbstractBulkSend(Protocol protocol, PacketOutputStream writer, ExecutionResult executionResult,
-                            final ClientPrepareResult clientPrepareResult, List<ParameterHolder[]> parametersList, int resultSetScrollType) {
+    public AbstractMultiSend(Protocol protocol, PacketOutputStream writer, ExecutionResult executionResult,
+                             final ClientPrepareResult clientPrepareResult, List<ParameterHolder[]> parametersList, int resultSetScrollType) {
         this.protocol = protocol;
         this.writer = writer;
         this.executionResult = executionResult;
@@ -145,8 +145,8 @@ public abstract class AbstractBulkSend {
      * @param queries             query list
      * @param resultSetScrollType resultset type
      */
-    public AbstractBulkSend(Protocol protocol, PacketOutputStream writer, ExecutionResult executionResult, List<String> queries,
-                            int resultSetScrollType) {
+    public AbstractMultiSend(Protocol protocol, PacketOutputStream writer, ExecutionResult executionResult, List<String> queries,
+                             int resultSetScrollType) {
         this.protocol = protocol;
         this.writer = writer;
         this.executionResult = executionResult;
@@ -176,7 +176,7 @@ public abstract class AbstractBulkSend {
     }
 
     /**
-     * Execute Bulk execution (send packets by batch of  useBatchBulkSendNumber or when max packet is reached) before reading results.
+     * Execute Bulk execution (send packets by batch of  useBatchMultiSendNumber or when max packet is reached) before reading results.
      *
      * @param handleMinusOnePrepare can use '-1' for last prepareStatementId
      * @return prepare result
@@ -215,7 +215,7 @@ public abstract class AbstractBulkSend {
         try {
             do {
                 status.sendSubCmdCounter = 0;
-                requestNumberByBulk = Math.min(totalExecutionNumber - status.sendCmdCounter, protocol.getOptions().useBatchBulkSendNumber);
+                requestNumberByBulk = Math.min(totalExecutionNumber - status.sendCmdCounter, protocol.getOptions().useBatchMultiSendNumber);
                 protocol.changeSocketTcpNoDelay(false);
                 //add prepare sub-command
                 if (readPrepareStmtResult && prepareResult == null) {
@@ -233,7 +233,7 @@ public abstract class AbstractBulkSend {
                             throw queryException;
                         }
                     } else {
-                        futureReadTask = new FutureTask<>(new BulkRead(comStmtPrepare, requestNumberByBulk, status.sendCmdCounter,
+                        futureReadTask = new FutureTask<>(new AsyncMultiRead(comStmtPrepare, requestNumberByBulk, status.sendCmdCounter,
                                 handleMinusOnePrepare, protocol, readPrepareStmtResult && prepareResult == null, this, paramCount,
                                 resultSetScrollType, binaryProtocol, executionResult, parametersList, queries, prepareResult));
                         readScheduler.execute(futureReadTask);
@@ -247,7 +247,7 @@ public abstract class AbstractBulkSend {
                     writer.finishPacketWithoutRelease();
 
                     if (futureReadTask == null) {
-                        futureReadTask = new FutureTask<>(new BulkRead(comStmtPrepare, requestNumberByBulk, (status.sendCmdCounter - 1),
+                        futureReadTask = new FutureTask<>(new AsyncMultiRead(comStmtPrepare, requestNumberByBulk, (status.sendCmdCounter - 1),
                                 handleMinusOnePrepare, protocol, false, this, paramCount,
                                 resultSetScrollType, binaryProtocol, executionResult, parametersList, queries, prepareResult));
                         readScheduler.execute(futureReadTask);
