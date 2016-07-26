@@ -427,13 +427,10 @@ public final class MariaDbConnection implements Connection {
         }
 
         String cleanSql = sql.toUpperCase().trim();
-        if (cleanSql.contains("SELECT")
+        return cleanSql.contains("SELECT")
                 || cleanSql.contains("UPDATE")
                 || cleanSql.contains("INSERT")
-                || cleanSql.contains("DELETE")) {
-            return true;
-        }
-        return false;
+                || cleanSql.contains("DELETE");
 
     }
 

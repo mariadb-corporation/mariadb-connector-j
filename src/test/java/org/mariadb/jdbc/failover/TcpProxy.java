@@ -12,7 +12,7 @@ public class TcpProxy {
     TcpProxySocket socket;
 
     /**
-     * Initialise procy.
+     * Initialise proxy.
      * @param host host (ip / dns)
      * @param remoteport port
      * @throws IOException  exception

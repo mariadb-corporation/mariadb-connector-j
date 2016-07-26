@@ -60,8 +60,6 @@ public class SingleExecutionResult extends ExecutionResult {
         return (int) affectedRows;
     }
 
-    public void addStatsError() {
-        ;
-    }
+    public void addStatsError() { }
 
 }

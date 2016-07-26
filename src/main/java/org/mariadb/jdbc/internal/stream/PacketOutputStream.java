@@ -369,10 +369,7 @@ public class PacketOutputStream extends OutputStream {
      * @return true if with this additional length stream can be send in the same stream
      */
     public boolean checkRewritableLength(int length) {
-        if (checkPacketLength && buffer.position() + length > maxRewritableLengthAllowed) {
-            return false;
-        }
-        return true;
+        return !(checkPacketLength && buffer.position() + length > maxRewritableLengthAllowed);
     }
 
     private void checkPacketMaxSize(int limit) throws MaxAllowedPacketException {
