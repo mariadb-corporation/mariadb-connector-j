@@ -128,8 +128,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                              final String sql, int resultSetScrollType) throws QueryException {
         cmdPrologue();
         try {
-
-            ComExecute.sendDirect(writer, sql.getBytes("UTF-8"));
+            writer.send(sql, Packet.COM_QUERY);
             getResult(executionResult, resultSetScrollType, false, true);
 
         } catch (QueryException queryException) {
@@ -247,7 +246,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                                 PrepareResult prepareResult)
                     throws QueryException, IOException {
                 String sql = queries.get(status.sendCmdCounter);
-                ComExecute.sendDirect(writer, sql.getBytes("UTF-8"));
+                writer.send(sql, Packet.COM_QUERY);
             }
 
             @Override
@@ -384,7 +383,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
                 firstSql = queries.get(currentIndex++);
                 if (totalQueries == 1) {
-                    ComExecute.sendDirect(writer, firstSql.getBytes("UTF-8"));
+                    writer.send(firstSql, Packet.COM_QUERY);
                 } else {
                     currentIndex = ComExecute.sendMultiple(writer, firstSql, queries, currentIndex);
                 }

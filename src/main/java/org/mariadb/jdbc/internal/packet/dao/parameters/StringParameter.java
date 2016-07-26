@@ -176,17 +176,14 @@ public class StringParameter implements ParameterHolder, Cloneable {
         escapedArray = new byte[(charsLength * 3) + 2];
         escapedArray[position++] = (byte)'\'';
 
-        int maxCharIndex = charsOffset + charsLength;
-        int maxLength = Math.min(charsLength, escapedArray.length);
-
         //Handle fast conversion without testing kind of escape for each character
         if (noBackslashEscapes) {
-            while (position < maxLength && chars[charsOffset] < 0x80) {
+            while (position < charsLength && chars[charsOffset] < 0x80) {
                 if (chars[charsOffset] == '\'') escapedArray[position++] = (byte) '\''; //add a single escape quote
                 escapedArray[position++] = (byte) chars[charsOffset++];
             }
         } else {
-            while (position < maxLength && chars[charsOffset] < 0x80) {
+            while (position < charsLength && chars[charsOffset] < 0x80) {
                 if (chars[charsOffset]  == '\''
                         || chars[charsOffset]  == '\\'
                         || chars[charsOffset]  == '"'
@@ -196,7 +193,7 @@ public class StringParameter implements ParameterHolder, Cloneable {
         }
 
         //if contain non ASCII chars
-        while (charsOffset < maxCharIndex) {
+        while (charsOffset < charsLength) {
             char currChar = chars[charsOffset++];
             if (currChar < 0x80) {
                 if (currChar == '\'') {
@@ -212,7 +209,7 @@ public class StringParameter implements ParameterHolder, Cloneable {
                 //reserved for surrogate - see https://en.wikipedia.org/wiki/UTF-16
                 if (currChar >= 0xD800 && currChar < 0xDC00) {
                     //is high surrogate
-                    if (charsOffset + 1 >= maxCharIndex) {
+                    if (charsOffset + 1 >= charsLength) {
                         escapedArray[position++] = (byte)0x63;
                         break;
                     }
