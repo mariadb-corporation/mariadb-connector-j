@@ -53,10 +53,7 @@ package org.mariadb.jdbc.internal.protocol;
 import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.MariaDbType;
-import org.mariadb.jdbc.internal.packet.ComStmtLongData;
-import org.mariadb.jdbc.internal.packet.ComStmtPrepare;
-import org.mariadb.jdbc.internal.packet.ComStmtExecute;
-import org.mariadb.jdbc.internal.packet.ComExecute;
+import org.mariadb.jdbc.internal.packet.*;
 
 import org.mariadb.jdbc.internal.packet.result.*;
 import org.mariadb.jdbc.internal.packet.send.*;
@@ -71,7 +68,6 @@ import org.mariadb.jdbc.internal.util.dao.PrepareResult;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.util.constant.ServerStatus;
 import org.mariadb.jdbc.internal.util.buffer.Buffer;
-import org.mariadb.jdbc.internal.packet.Packet;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
@@ -101,7 +97,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     private int transactionIsolationLevel = 0;
     private InputStream localInfileInputStream;
     private int maxRows;  /* max rows returned by a statement */
-    private volatile long statementIdToRelease = -1;
+    private volatile int statementIdToRelease = -1;
 
     /**
      * Get a protocol instance.
@@ -682,14 +678,12 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * @return true if successfully released
      * @throws QueryException if connection exception.
      */
-    public boolean forceReleasePrepareStatement(long statementId) throws QueryException {
+    public boolean forceReleasePrepareStatement(int statementId) throws QueryException {
         if (lock.tryLock()) {
-            cmdPrologue();
             try {
                 checkClose();
-                final SendClosePrepareStatementPacket packet = new SendClosePrepareStatementPacket(statementId);
                 try {
-                    packet.send(writer);
+                    ComStmtClose.send(writer, statementId);
                     return true;
                 } catch (IOException e) {
                     throw new QueryException("Could not send query: " + e.getMessage(), -1, CONNECTION_EXCEPTION.getSqlState(), e);
