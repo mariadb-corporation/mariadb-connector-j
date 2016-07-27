@@ -97,10 +97,14 @@ public class ComStmtPrepare {
         if (firstByte == Packet.ERROR) {
             ErrorPacket ep = new ErrorPacket(buffer);
             String message = ep.getMessage();
-            throw new QueryException("Error preparing query: " + message
-                    + "\nIf a parameter type cannot be identified (example 'select ? `field1` from dual'). "
-                    + "Use CAST function to solve this problem (example 'select CAST(? as integer) `field1` from dual')",
-                    ep.getErrorNumber(), ep.getSqlState());
+            if (1054 == ep.getErrorNumber()) {
+                throw new QueryException("Error preparing query: " + message
+                        + "\nIf column exists but type cannot be identified (example 'select ? `field1` from dual'). "
+                        + "Use CAST function to solve this problem (example 'select CAST(? as integer) `field1` from dual')",
+                        ep.getErrorNumber(), ep.getSqlState());
+            } else {
+                throw new QueryException("Error preparing query: " + message, ep.getErrorNumber(), ep.getSqlState());
+            }
         }
 
         if (firstByte == Packet.OK) {

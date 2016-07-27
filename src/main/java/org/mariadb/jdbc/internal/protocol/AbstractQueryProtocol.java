@@ -1061,8 +1061,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 for (int paramNo = 0; paramNo < parameterList.size(); paramNo++) {
                     ParameterHolder[] parameters = parameterList.get(paramNo);
                     querySql += "[";
-                    if (parameters.length > 1) {
-                        for (int i = 0; i < Math.min(serverPrepareResult.getParameters().length, parameters.length); i++) {
+                    if (parameters.length > 0) {
+                        for (int i = 0; i < parameters.length; i++) {
                             querySql += parameters[i].toString() + ",";
                         }
                         querySql = querySql.substring(0, querySql.length() - 1);
