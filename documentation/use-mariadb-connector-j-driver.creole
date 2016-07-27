@@ -84,10 +84,9 @@ The following options are currently supported.
 === Essential options
 |=user|Database user name. \\//since 1.0.0//|
 |=password|Password of database user.\\//since 1.0.0//|
-|=rewriteBatchedStatements| For insert queries, rewrite batchedStatement to execute in a single executeQuery.\\example:\\{{{insert into ab (i) values (1)}}}\\{{{insert into ab (i) values (2)}}}\\will be rewritten \\{{{insert into ab (i) values (1), (2)}}}.\\\\when active, the useServerPrepStmts option is set to false\\//Default: false. Since 1.1.8//|
+|=rewriteBatchedStatements| For insert queries, rewrite batchedStatement to execute in a single executeQuery.\\example:\\{{{insert into ab (i) values (?)}}} with first batch values = 1, second = 2 will be rewritten\\{{{insert into ab (i) values (1), (2)}}}. \\If query cannot be rewriten in "multi-values", rewrite will use multi-queries : {{{INSERT INTO TABLE(col1) VALUES (?) ON DUPLICATE KEY UPDATE col2=?}}} with values [1,2] and [2,3]" will be {{{INSERT INTO TABLE(col1) VALUES (1) ON DUPLICATE KEY UPDATE col2=2;INSERT INTO TABLE(col1) VALUES (3) ON DUPLICATE KEY UPDATE col2=4\\\\when active, the useServerPrepStmts option is set to false\\//Default: false. Since 1.1.8//|
 |=connectTimeout| The connect timeout value, in milliseconds, or zero for no timeout.\\//Default: 0. Since 1.1.8//|
-|=useServerPrepStmts|Queries are prepared on the server side before executing, permitting faster execution next time. \\if allowMultiQueries or rewriteBatchedStatements is set to true, this option will be set to false.\\//Default: true. Since 1.3.0//|
-|=useComMulti|Indicate that if COM_MULTI protocol exist, this protocol will be used.\\2 different use :\\* PREPARE + EXECUTE in one round trip to server.\\* executeBatch() will be send in one round trip (or in many packet if command size &gt; max_allowed_packet)\\//Default: true. Since 1.5.0//|
+|=useServerPrepStmts|Queries are prepared on the server side before executing, permitting faster execution next time. \\if rewriteBatchedStatements is set to true, this option will be set to false.\\//Default: true. Since 1.3.0//|
 
 \\
 
@@ -115,7 +114,7 @@ The following options are currently supported.
 === Infrequently used
 
 |=useFractionalSeconds| Correctly handle subsecond precision in timestamps (feature available with MariaDB 5.3 and later).\\May confuse 3rd party components (Hibernated).\\//Default: true. Since 1.0.0//|
-|=allowMultiQueries| Combine batchedStatement queries to execute in a single executeQuery.\\example:\\{{{insert into ab (i) values (1)}}}\\{{{insert into ab (i) values (2)}}}\\ will be combine in one query :\\{{{insert into ab (i) values (1); insert into ab (i) values (2)}}}.\\\\Option inactive when rewriteBatchedStatements is active. \\When active, the useServerPrepStmts option is set to false\\//Default: false. Since 1.0.0//|
+|=allowMultiQueries| permit multi-queries like {{{insert into ab (i) values (1); insert into ab (i) values (2)}}}. //Default: false. Since 1.0.0//|
 |=dumpQueriesOnException|If set to 'true', an exception is thrown during query execution containing a query string.\\//Default: false. Since 1.1.0//|
 |=useCompression|allow compression in the MySQL Protocol.\\//Default: false. Since 1.0.0//|
 |=socketFactory| to use a custom socket factory, set it to the  full name of the class that implements javax.net.SocketFactory.\\//since 1.0.0//|
@@ -230,7 +229,7 @@ with {{{ResultSet.next()}}}, so called "streaming". This is
 activated using {{{Statement.setFetchSize(Integer.MIN_VALUE) }}}
 
 == Prepared statements
-The driver uses server prepared statements as a standard to communicate with the database (since 1.3.0). If the "allowMultiQueries" or "rewriteBatchedStatements" options are set to true, the driver will only use text protocol. Prepared statements (parameter substitution) is handled by the driver, on the client side.
+The driver uses server prepared statements as a standard to communicate with the database (since 1.3.0). If the "rewriteBatchedStatements" options are set to true, the driver will only use text protocol. Prepared statements (parameter substitution) is handled by the driver, on the client side.
 
 == CallableStatement
 Callable statement implementation won't need to access stored procedure

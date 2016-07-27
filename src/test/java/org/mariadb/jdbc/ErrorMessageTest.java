@@ -35,23 +35,14 @@ public class ErrorMessageTest extends BaseTest {
     }
 
     @Test
-    public void testSmallMultiErrorMessage() throws SQLException {
+    public void testSmallMultiBatchErrorMessage() throws SQLException {
         Assume.assumeFalse(sharedIsRewrite());
-        try (Connection connection = setConnection("&allowMultiQueries=true")) {
+        try (Connection connection = setConnection("&allowMultiQueries=true&useServerPrepStmts=false")) {
             executeBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
-            assertTrue(sqle.getMessage().contains("INSERT INTO testErrorMessage(test, test2) values ('whoua0', 0);"
-                    + "INSERT INTO testErrorMessage(test, test2) values ('whoua1', 1);"
-                    + "INSERT INTO testErrorMessage(test, test2) values ('whoua2', 2);"
-                    + "INSERT INTO testErrorMessage(test, test2) values ('whoua3', 3);"
-                    + "INSERT INTO testErrorMessage(test, test2) values ('whoua4', 4);"
-                    + "INSERT INTO testErrorMessage(test, test2) values ('whoua5', 5);"
-                    + "INSERT INTO testErrorMessage(test, test2) values ('whoua6', 6);"
-                    + "INSERT INTO testErrorMessage(test, test2) values ('whoua7', 7);"
-                    + "INSERT INTO testErrorMessage(test, test2) values ('whoua8', 8);"
-                    + "INSERT INTO testErrorMessage(test, test2) values ('whoua9', 9);"
-                    + "INSERT INTO testErrorMessage(test, test2) values ('more than 10 characters to provoc error', 10)"));
+            assertTrue(sqle.getMessage().contains("INSERT INTO testErrorMessage(test, test2) values "
+                    + "('more than 10 characters to provoc error', 10)"));
         }
     }
 
@@ -96,11 +87,12 @@ public class ErrorMessageTest extends BaseTest {
     @Test
     public void testBigMultiErrorMessage() throws SQLException {
         Assume.assumeFalse(sharedIsRewrite());
-        try (Connection connection = setConnection("&allowMultiQueries=true")) {
+        try (Connection connection = setConnection("&allowMultiQueries=true&useServerPrepStmts=false")) {
             executeBigBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
-            assertTrue(sqle.getMessage().contains(";INSERT INTO testErrorMessage(test, test2) values ('whoua15', 15);I..."));
+            assertTrue(sqle.getMessage().contains("INSERT INTO testErrorMessage(test, test2) values "
+                    + "('more than 10 characters to provoc error', 200)"));
         }
     }
 

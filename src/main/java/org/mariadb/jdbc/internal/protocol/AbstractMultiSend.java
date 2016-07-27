@@ -257,7 +257,7 @@ public abstract class AbstractMultiSend {
                 protocol.changeSocketTcpNoDelay(protocol.getOptions().tcpNoDelay);
                 try {
                     PrepareResult readPrepareResult = futureReadTask.get();
-                    if (readPrepareResult != null) {
+                    if (binaryProtocol && readPrepareResult != null) {
                         prepareResult = readPrepareResult;
                         statementId = ((ServerPrepareResult) prepareResult).getStatementId();
                         paramCount = getParamCount();

@@ -1068,7 +1068,7 @@ public class MariaDbStatement implements Statement, Cloneable {
             executing = true;
             executeQueryProlog();
             try {
-                if (this.options.allowMultiQueries || this.options.rewriteBatchedStatements) {
+                if (this.options.rewriteBatchedStatements) {
                     //check that queries are rewritable
                     boolean batchQueryMultiRewritable = true;
                     for (String query : batchQueries) {

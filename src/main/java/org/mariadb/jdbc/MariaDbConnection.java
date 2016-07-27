@@ -403,7 +403,7 @@ public final class MariaDbConnection implements Connection {
     public PreparedStatement internalPrepareStatement(final String sql, final int resultSetScrollType)
             throws SQLException {
         checkConnection();
-        if (!options.allowMultiQueries && !options.rewriteBatchedStatements
+        if (!options.rewriteBatchedStatements
                 && options.useServerPrepStmts
                 && checkIfPreparable(sql)) {
             try {

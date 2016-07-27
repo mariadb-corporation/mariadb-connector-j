@@ -918,13 +918,6 @@ public class MultiTest extends BaseTest {
                     assertEquals(Statement.EXECUTE_FAILED, updateCounts[2]);
                     assertEquals(Statement.EXECUTE_FAILED, updateCounts[3]);
                     verifyInsertCount(tmpConnection, 1);
-                } else if (allowMultiQueries) {
-                    assertEquals(4, updateCounts.length);
-                    assertEquals(1, updateCounts[0]);
-                    assertEquals(1, updateCounts[1]);
-                    assertEquals(Statement.EXECUTE_FAILED, updateCounts[2]);
-                    assertEquals(Statement.EXECUTE_FAILED, updateCounts[3]);
-                    verifyInsertCount(tmpConnection, 3);
                 } else {
                     assertEquals(4, updateCounts.length);
                     assertEquals(1, updateCounts[0]);

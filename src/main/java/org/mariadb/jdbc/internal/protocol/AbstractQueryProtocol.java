@@ -312,54 +312,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         }
     }
 
-
-    /**
-     * Specific execution for batch allowMultipleQueries that has specific query for memory.
-     *
-     * @param mustExecuteOnMaster was intended to be launched on master connection
-     * @param executionResult     result
-     * @param prepareResult       prepareResult
-     * @param parameterList       parameters
-     * @param resultSetScrollType resultsetScroll type
-     * @throws QueryException exception
-     */
-    public void executeBatchMultiple(boolean mustExecuteOnMaster, ExecutionResult executionResult,
-                                     final ClientPrepareResult prepareResult, List<ParameterHolder[]> parameterList,
-                                     int resultSetScrollType) throws QueryException {
-        cmdPrologue();
-        List<byte[]> queryParts = prepareResult.getQueryParts();
-        ParameterHolder[] parameters;
-        int currentIndex = 0;
-        int totalParameterList = parameterList.size();
-
-        try {
-
-            do {
-                parameters = parameterList.get(currentIndex++);
-                byte[] firstPart = queryParts.get(0);
-
-                //calculate static length for packet splitting
-                int staticLength = 1;
-                for (int i = 0; i < queryParts.size(); i++) staticLength += queryParts.get(i).length;
-
-                currentIndex = ComExecute.sendMultiple(writer, queryParts, parameters, firstPart, currentIndex, prepareResult.getParamCount(),
-                        parameterList, staticLength);
-                getResult(executionResult, resultSetScrollType, false, true);
-            } while (currentIndex < totalParameterList);
-
-        } catch (QueryException queryException) {
-            throwErrorWithQuery(writer.buffer, queryException);
-        } catch (MaxAllowedPacketException e) {
-            if (e.isMustReconnect()) connect();
-            throw new QueryException("Could not send query: " + e.getMessage(), -1, INTERRUPTED_EXCEPTION.getSqlState(), e);
-        } catch (IOException e) {
-            throw new QueryException("Could not send query: " + e.getMessage(), -1, CONNECTION_EXCEPTION.getSqlState(), e);
-        } finally {
-            writer.releaseBufferIfNotLogging();
-        }
-
-    }
-
     /**
      * Execute list of queries.
      * This method is used when using text batch statement and using rewriting (allowMultiQueries || rewriteBatchedStatements).

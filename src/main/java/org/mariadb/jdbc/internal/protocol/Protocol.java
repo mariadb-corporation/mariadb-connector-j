@@ -149,10 +149,6 @@ public interface Protocol {
     void executeBatch(boolean mustExecuteOnMaster, ExecutionResult executionResult, List<String> queries, int resultSetScrollType)
             throws QueryException;
 
-    void executeBatchMultiple(boolean mustExecuteOnMaster, ExecutionResult executionResult, ClientPrepareResult prepareResult,
-                              List<ParameterHolder[]> parameterList,
-                              int resultSetScrollType) throws QueryException;
-
     void executeBatchMultiple(boolean mustExecuteOnMaster, ExecutionResult executionResult, List<String> queries,
                               int resultSetScrollType) throws QueryException;
 

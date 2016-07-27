@@ -68,13 +68,6 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
     private List<ParameterHolder[]> parameterList = new ArrayList<>();
     private ResultSetMetaData resultSetMetaData = null;
     private ParameterMetaData parameterMetaData = null;
-    private RewriteType rewriteType;
-
-    enum RewriteType {
-        NO_REWRITE, /* inside  query */
-        MULTI_QUERIES, /* inside string */
-        REWRITE_QUERIES
-    }
 
     /**
      * Constructor.
@@ -93,11 +86,9 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
             String key = new StringBuilder(this.protocol.getDatabase()).append("-").append(sqlQuery).toString();
             prepareResult = connection.getClientPrepareStatementCache().get(key);
         }
-        rewriteType = options.rewriteBatchedStatements
-                ? RewriteType.REWRITE_QUERIES : (options.allowMultiQueries ? RewriteType.MULTI_QUERIES : RewriteType.NO_REWRITE);
 
         if (prepareResult == null) {
-            if (rewriteType == RewriteType.REWRITE_QUERIES) {
+            if (options.rewriteBatchedStatements) {
                 prepareResult = ClientPrepareResult.createRewritableParts(sqlQuery, connection.noBackslashEscapes);
             } else {
                 prepareResult = ClientPrepareResult.createParameterParts(sqlQuery, connection.noBackslashEscapes);
@@ -311,14 +302,12 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
                 exception = e;
             } finally {
                 if (exception != null) {
-                    if (rewriteType == RewriteType.REWRITE_QUERIES) {
+                    if (options.rewriteBatchedStatements) {
                         if (prepareResult.isRewritableValuesQuery()) {
                             internalExecutionResult.updateResultsForRewrite(size, true);
                         } else if (prepareResult.isRewritableMultipleQuery()) {
                             internalExecutionResult.updateResultsMultiple(size, true);
                         }
-                    } else if (prepareResult.isRewritableMultipleQuery() && rewriteType == RewriteType.MULTI_QUERIES) {
-                        internalExecutionResult.updateResultsMultiple(size, true);
                     }
                 }
 
@@ -346,7 +335,7 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
      */
     private void executeInternalBatch(MultiExecutionResult internalExecutionResult, int size) throws QueryException {
 
-        if (rewriteType == RewriteType.REWRITE_QUERIES) {
+        if (options.rewriteBatchedStatements) {
             if (prepareResult.isRewritableValuesQuery()) {
                 //values rewritten in one query :
                 // INSERT INTO X(a,b) VALUES (1,2), (3,4), ...
@@ -364,14 +353,7 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
             }
         }
 
-        if (prepareResult.isRewritableMultipleQuery() && rewriteType == RewriteType.MULTI_QUERIES) {
-            //multi rewritten in one query :
-            // INSERT INTO X(a,b) VALUES (1,2);INSERT INTO X(a,b) VALUES (3,4); ...
-            // Difference is query parts are not the same than if rewrite type is REWRITE_QUERIES
-            protocol.executeBatchMultiple(protocol.isMasterConnection(), internalExecutionResult, prepareResult,
-                    parameterList, resultSetScrollType);
-            internalExecutionResult.updateResultsMultiple(size, false);
-        } else if (options.useBatchMultiSend) {
+        if (options.useBatchMultiSend) {
             //send by bulk : send data by bulk before reading corresponding results
             protocol.executeBatchMulti(protocol.isMasterConnection(), internalExecutionResult, prepareResult, parameterList, resultSetScrollType);
         } else {

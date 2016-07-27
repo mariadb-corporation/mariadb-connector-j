@@ -159,18 +159,12 @@ public class ProtocolLoggingProxy implements InvocationHandler {
                 }
                 break;
             case "executeBatchMultiple":
-                if (args.length == 4) {
-                    List<String> multipleQueries = (List<String>) args[2];
-                    if (multipleQueries.size() == 1) {
-                        sql = multipleQueries.get(0);
-                        break;
-                    }
-                    sql = getQueryFromWriterBuffer();
+                List<String> multipleQueries = (List<String>) args[2];
+                if (multipleQueries.size() == 1) {
+                    sql = multipleQueries.get(0);
                     break;
                 }
-                ClientPrepareResult prepareResultMulti = (ClientPrepareResult) args[2];
-                List<ParameterHolder[]> parameterListMulti = (List<ParameterHolder[]>) args[3];
-                sql = getQueryFromPrepareParameters(prepareResultMulti.getSql(), parameterListMulti, prepareResultMulti.getParamCount());
+                sql = getQueryFromWriterBuffer();
                 break;
             case "prepareAndExecute":
                 ParameterHolder[] parameters = (ParameterHolder[]) args[4];

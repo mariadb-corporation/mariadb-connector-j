@@ -609,8 +609,7 @@ public class BaseTest {
      */
     public boolean sharedUsePrepare() {
         return urlParser.getOptions().useServerPrepStmts
-                && !urlParser.getOptions().rewriteBatchedStatements
-                && !urlParser.getOptions().allowMultiQueries;
+                && !urlParser.getOptions().rewriteBatchedStatements;
     }
 
     /**
