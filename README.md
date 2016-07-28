@@ -27,6 +27,17 @@ or maven :
 </dependency>
 ```
 
+Current release candidate :
+
+```script
+<dependency>
+	<groupId>org.mariadb.jdbc</groupId>
+	<artifactId>mariadb-java-client</artifactId>
+	<version>1.5.0-RC1</version>
+</dependency>
+```
+
+
 Development snapshot are available on sonatype nexus repository  
 ```script
 <repositories>
@@ -41,7 +52,7 @@ Development snapshot are available on sonatype nexus repository
     <dependency>
         <groupId>org.mariadb.jdbc</groupId>
         <artifactId>mariadb-java-client</artifactId>
-        <version>1.5.0-SNAPSHOT</version>
+        <version>1.6.0-SNAPSHOT</version>
     </dependency>
 </dependencies>
 ```
