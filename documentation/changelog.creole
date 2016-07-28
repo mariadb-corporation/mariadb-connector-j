@@ -76,19 +76,13 @@ See [[https://mariadb.com/kb/en/mariadb/prepare-statement/|Server prepare docume
 
 PREPARE and DEALLOCATE PREPARE are 2 additional client-server round-trip.
 Since MariaDB 10.2, a new functionality named COM-MULTI to permitting to send different task to server in one round-trip.
-
-Driver is using this functionality to
-* PREPARE and EXECUTE in one client-server round-trip.
-* Prepared statement batch will send all datas in packets whose size depends to max_allowed_packet size.
-
-New Options :
- |=useComMulti|Indicate that if COM_MULTI protocol exist, this protocol will be used.\\2 different use :\\* PREPARE + EXECUTE in one round trip to server.\\* executeBatch() will be send in one round trip (or in many packet if command size &gt; max_allowed_packet)\\//Default: true. Since 1.5.0//|
+Driver is using this functionality to PREPARE and EXECUTE in one client-server round-trip.
 
 === Client logging
 
 Client logging can be enable, permitting to log query information, execution time and different failover information.
 This implementation need the standard SLF4J dependency.
-//TODO finish documentation on logging to explain the differents information logged according to level.
+
 New Options :
  |=log|Enable log information. require Slf4j version > 1.4 dependency.\\//Default: false. Since 1.5.0//|
  |=maxQuerySizeToLog|Only the first characters corresponding to this options size will be displayed in logs\\//Default: 1024. Since 1.5.0//|
